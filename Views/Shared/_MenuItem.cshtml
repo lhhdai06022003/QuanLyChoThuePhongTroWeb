@@ -1,0 +1,38 @@
+﻿@using QuanLyChoThuePhongTroWeb.Models.ModelsOther
+@model MenuItem
+
+@{
+    var hasChild = Model.Children != null && Model.Children.Any();
+}
+<style>
+    .nav-treeview {
+        position: relative;
+        z-index: 9999;
+    }
+</style>
+<li class="nav-item @(hasChild ? "has-treeview" : "")">
+
+    <a href="@(string.IsNullOrEmpty(Model.Url) ? "#" : Model.Url)" class="nav-link">
+        <i class="nav-icon @(string.IsNullOrEmpty(Model.Icon) ? "far fa-circle" : Model.Icon)"></i>
+
+        <p>
+            @Model.Name
+
+            @if (hasChild)
+            {
+                <i class="right fas fa-angle-left"></i>
+            }
+        </p>
+    </a>
+
+    @if (hasChild)
+    {
+        <ul class="nav nav-treeview">
+            @foreach (var child in Model.Children)
+            {
+                @await Html.PartialAsync("_MenuItem", child)
+            }
+        </ul>
+    }
+
+</li>

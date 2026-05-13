@@ -1,0 +1,31 @@
+﻿@using QuanLyChoThuePhongTroWeb.Models.ModelsOther
+@model List<MenuItem>
+
+<aside class="main-sidebar sidebar-dark-primary elevation-4">
+
+    <!-- Logo -->
+    <a href="/Home/Index" class="brand-link text-center">
+        <img src="~/Theme/images/logo-hcmute.png" alt="AdminLTE Logo" class="brand-image img-circle elevation-3" style="opacity: .8">
+        <span class="brand-text font-weight-light">My System</span>
+    </a>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+
+        <nav class="mt-2">
+            <ul class="nav nav-pills nav-sidebar flex-column nav-child-indent"
+                data-widget="treeview"
+                role="menu"
+                data-accordion="false">
+
+                @foreach (var item in Model)
+                {
+                    @await Html.PartialAsync("_MenuItem", item)
+                }
+
+            </ul>
+        </nav>
+
+    </div>
+
+</aside>
