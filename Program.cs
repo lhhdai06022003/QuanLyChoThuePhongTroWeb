@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using QuanLyChoThuePhongTroWeb.Data;
+using QuanLyChoThuePhongTroWeb.Views.Areas.QuanLy.Services.ChiNhanhService;
 using System;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -10,6 +11,9 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+
+// Đăng ký Service vào Container
+builder.Services.AddScoped<IChiNhanhService, ChiNhanhService>();
 
 var app = builder.Build();
 // Lệnh này sẽ tự động chạy các Migration còn thiếu lên Database
@@ -43,6 +47,9 @@ app.UseRouting();
 
 app.UseAuthorization();
 
+app.MapControllerRoute(
+    name: "MyAreas",
+    pattern: "{area:exists}/{controller=Home}/{action=Index}/{id?}");
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");

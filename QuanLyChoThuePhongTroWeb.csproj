@@ -25,4 +25,9 @@
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Views\Areas\QuanLy\Models\" />
+    <Folder Include="Views\Areas\QuanLy\ViewModels\" />
+  </ItemGroup>
+
 </Project>

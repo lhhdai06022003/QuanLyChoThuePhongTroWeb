@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/Theme/adminlte3/plugins/fontawesome-free/css/all.min.css" />
     <link rel="stylesheet" href="~/Theme/adminlte3/dist/css/adminlte.min.css" />
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" />
 </head>
 
 <body class="hold-transition sidebar-mini layout-fixed">
@@ -24,11 +25,11 @@
 
         <div class="content-wrapper">
 
-            <section class="content-header">
+            @* <section class="content-header">
                 <div class="container-fluid">
                     <h1>@ViewBag.Title</h1>
                 </div>
-            </section>
+            </section> *@
 
             <section class="content">
                 <div class="container-fluid">
@@ -46,6 +47,9 @@
     <script src="~/Theme/adminlte3/plugins/jquery/jquery.min.js"></script>
     <script src="~/Theme/adminlte3/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
     <script src="~/Theme/adminlte3/dist/js/adminlte.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 
+    @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
