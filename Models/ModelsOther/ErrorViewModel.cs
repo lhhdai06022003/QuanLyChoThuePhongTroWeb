@@ -1,4 +1,4 @@
-namespace QuanLyChoThuePhongTroWeb.Models
+namespace QuanLyChoThuePhongTroWeb.Models.ModelsOther
 {
     public class ErrorViewModel
     {

@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using QuanLyChoThuePhongTroWeb.Models;
+using QuanLyChoThuePhongTroWeb.Models.ModelsOther;
 
 namespace QuanLyChoThuePhongTroWeb.Controllers
 {
