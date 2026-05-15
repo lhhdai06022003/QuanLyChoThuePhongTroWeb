@@ -26,6 +26,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Areas\QuanLy\NewFolder\" />
     <Folder Include="Views\Areas\QuanLy\Models\" />
     <Folder Include="Views\Areas\QuanLy\ViewModels\" />
   </ItemGroup>

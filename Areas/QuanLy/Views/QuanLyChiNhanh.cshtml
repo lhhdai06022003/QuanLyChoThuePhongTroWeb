@@ -1,0 +1,281 @@
+﻿@model IEnumerable<QuanLyChoThuePhongTroWeb.Models.ChiNhanh>
+@{
+    ViewData["Title"] = "Quản lý Chi Nhánh";
+    // Đảm bảo Layout được gọi đúng đường dẫn của bạn
+     Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<!-- Content Header -->
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6">
+                <h1 class="m-0">@ViewData["Title"]</h1>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main content -->
+<section class="content">
+    <div class="container-fluid">
+        <div class="card card-primary card-outline">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h3 class="card-title"><i class="fas fa-list"></i> Danh sách Chi nhánh</h3>
+                <button type="button" class="btn btn-success btn-sm ml-auto" id="btnOpenAddModal">
+                    <i class="fas fa-plus"></i> Thêm Chi Nhánh
+                </button>
+            </div>
+
+            <div class="card-body">
+                <!-- DataTables tự động chiếm 100% chiều rộng bằng class w-100 -->
+                <table id="chiNhanhTable" class="table table-bordered table-striped table-hover w-100">
+                    <thead class="thead-light">
+                        <tr>
+                            <th width="5%">ID</th>
+                            <th width="20%">Tên Chi Nhánh</th>
+                            <th width="30%">Địa Chỉ</th>
+                            <th width="15%">Số Điện Thoại</th>
+                            <th width="15%">Ngày Tạo</th>
+                            <th width="15%" class="text-center">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <!-- ĐỂ TRỐNG TBODY -->
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- MODAL THÊM / SỬA -->
+<div class="modal fade" id="chiNhanhModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-primary">
+                <h5 class="modal-title text-white" id="modalTitle">Thêm Chi Nhánh Mới</h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+
+            <div class="modal-body">
+
+                <div class="form-group row">
+                    <label class="col-sm-3 col-form-label">Tên Chi Nhánh <span class="text-danger">*</span></label>
+                    <div class="col-sm-9">
+                        <input type="text" class="form-control" id="TenChiNhanh" name="TenChiNhanh" required placeholder="Nhập tên chi nhánh...">
+                    </div>
+                </div>
+
+                <div class="form-group row">
+                    <label class="col-sm-3 col-form-label">Số Điện Thoại</label>
+                    <div class="col-sm-9">
+                        <input type="text" class="form-control" id="SoDienThoai" name="SoDienThoai" placeholder="Nhập SĐT liên hệ...">
+                    </div>
+                </div>
+
+                <div class="form-group row">
+                    <label class="col-sm-3 col-form-label">Địa Chỉ <span class="text-danger">*</span></label>
+                    <div class="col-sm-9">
+                        <input type="text" class="form-control" id="DiaChi" name="DiaChi" required placeholder="Nhập địa chỉ đầy đủ...">
+                    </div>
+                </div>
+
+                <div class="form-group row">
+                    <label class="col-sm-3 col-form-label">Mô Tả Thêm</label>
+                    <div class="col-sm-9">
+                        <textarea class="form-control" id="MoTa" name="MoTa" rows="3" placeholder="Ví dụ: Gần trường ĐH Sư Phạm Kỹ Thuật..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
+                <button type="submit" class="btn btn-primary" id="btnSaveData">
+                    <i class="fas fa-save"></i> Lưu thông tin
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Biến toàn cục để lưu DataTables
+
+        $(document).ready(function () {
+            let currentChiNhanhId = 0;
+            // 1. KHỞI TẠO DATATABLES BẰNG AJAX
+            var table = $('#chiNhanhTable').DataTable({
+                "language": { "url": "https://cdn.datatables.net/plug-ins/1.13.6/i18n/vi.json" },
+                "responsive": true,
+                "autoWidth": false,
+                "ajax": {
+                    "url": "/ChiNhanh/DanhSachChiNhanh",
+                    "type": "GET",
+                    "datatype": "json"
+                },
+                "columns": [
+                    { "data": "chiNhanhId" },
+                    {
+                        "data": "tenChiNhanh",
+                        "render": function(data) {
+                            return `<span class="font-weight-bold text-primary">${data}</span>`;
+                        }
+                    },
+                    { "data": "diaChi" },
+                    { "data": "soDienThoai" },
+                    {
+                        "data": "ngayTao",
+                        "render": function(data) {
+                            if(!data) return "";
+                            // Chuyển đổi định dạng ngày tháng từ JSON sang DD/MM/YYYY
+                            var date = new Date(data);
+                            return date.toLocaleDateString('vi-VN');
+                        }
+                    },
+                    {
+                        "data": "chiNhanhId",
+                        "className": "text-center",
+                        "render": function (data) {
+                            // Vẽ 2 nút Sửa và Xóa cho mỗi dòng
+                            return `
+                                <button class="btn btn-warning btn-sm btn-edit" data-id="${data}">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-danger btn-sm btn-delete" data-id="${data}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            `;
+                        }
+                    }
+                ],
+                "order": [[ 0, "desc" ]] // Sắp xếp ID giảm dần (mới nhất lên trên)
+            });
+
+                // --- SỰ KIỆN LƯU DỮ LIỆU ---
+            $('#btnSaveData').on('click', function () {
+                let ten = $('#TenChiNhanh').val() || "";
+                let sdt = $('#SoDienThoai').val() || "";
+                let diaChi = $('#DiaChi').val() || "";
+                let moTa = $('#MoTa').val() || "";
+
+                if (ten.trim() === "") {
+                    alert("Vui lòng nhập tên chi nhánh!");
+                    return;
+                }
+                if (diaChi.trim() === "") {
+                    alert("Vui lòng nhập địa chỉ!");
+                    return;
+                }
+
+                let $btn = $(this);
+                $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang xử lý...');
+
+                // 🌟 KIỂM TRA ĐIỀU KIỆN ĐỂ CHỌN URL BẮN LÊN BACKEND
+                let actionUrl = (currentChiNhanhId === 0)
+                                ? '/ChiNhanh/ThemChiNhanhMoi'
+                                : '/ChiNhanh/CapNhatChiNhanh';
+
+                $.ajax({
+                    url: actionUrl,
+                    type: 'POST',
+                    data: {
+                        ChiNhanhId: currentChiNhanhId, // Gửi biến này về backend
+                        TenChiNhanh: ten,
+                        SoDienThoai: sdt,
+                        DiaChi: diaChi,
+                        MoTa: moTa
+                    },
+                    success: function (res) {
+                        if (res.success) {
+                            alert(res.message);
+                            $('#chiNhanhModal').modal('hide');
+                            table.ajax.reload(null, false);
+                        } else {
+                            alert("Lỗi: " + res.message);
+                        }
+                    },
+                    complete: function () {
+                        $btn.prop('disabled', false).html('<i class="fas fa-save"></i> Lưu thông tin');
+                    }
+                });
+            });
+                    // Bắt sự kiện cho nút SỬA (Edit)
+            $('#chiNhanhTable tbody').on('click', '.btn-edit', function () {
+                // Gán ID của dòng đang được click vào biến
+                currentChiNhanhId = $(this).data('id');
+
+                $.ajax({
+                    url: '/ChiNhanh/GetChiNhanh?id=' + currentChiNhanhId,
+                    type: 'GET',
+                    success: function (res) {
+                        if (res.success && res.data) {
+                            $('#TenChiNhanh').val(res.data.tenChiNhanh);
+                            $('#SoDienThoai').val(res.data.soDienThoai);
+                            $('#DiaChi').val(res.data.diaChi);
+                            $('#MoTa').val(res.data.moTa);
+
+                            $('#modalTitle').text('Cập nhật Chi Nhánh');
+                            $('#chiNhanhModal').modal('show');
+                        }
+                    }
+                });
+            });
+            // Bắt sự kiện cho nút XÓA (Delete)
+            $('#chiNhanhTable tbody').on('click', '.btn-delete', function () {
+                let id = $(this).data('id');
+                let $btn = $(this);
+
+                // 1. KIỂM TRA FRONTEND TRƯỚC KHI GỬI
+                if (!id || isNaN(id) || parseInt(id) <= 0) {
+                    alert("Dữ liệu không hợp lệ. Vui lòng tải lại trang!");
+                    return;
+                }
+
+                // 2. XÁC NHẬN HÀNH ĐỘNG NGUY HIỂM (Confirm)
+                if (confirm('Hành động này không thể hoàn tác. Bạn có chắc chắn muốn xóa chi nhánh này?')) {
+
+                    // 3. NGĂN CHẶN SPAM CLICK
+                    let originalHtml = $btn.html();
+                    $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
+
+                    // 4. GỬI REQUEST XÓA
+                    $.ajax({
+                        url: '/ChiNhanh/XoaChiNhanh', // BỎ nối chuỗi + id ở đây
+                        type: 'POST',
+                        data: { id: id }, // TRUYỀN ID QUY VỀ BODY DỮ LIỆU
+                        success: function (res) {
+                            if (res.success) {
+                                alert(res.message || "Xóa thành công!");
+                                if (typeof table !== 'undefined') { // Đổi lại tên biến table nếu bạn dùng biến table
+                                    table.ajax.reload(null, false);
+                                }
+                            } else {
+                                alert("Không thể xóa: " + (res.message || "Chi nhánh đang được sử dụng."));
+                                $btn.prop('disabled', false).html(originalHtml);
+                            }
+                        },
+                        error: function (xhr, status, error) {
+                            console.error("Chi tiết lỗi:", error);
+                            alert("Lỗi kết nối máy chủ khi thực hiện xóa!");
+                            $btn.prop('disabled', false).html(originalHtml);
+                        }
+                    });
+                }
+            });
+            $('#btnOpenAddModal').on('click', function () {
+                currentChiNhanhId = 0; // Đặt lại về 0
+
+                // Reset trắng các ô nhập liệu
+                $('#TenChiNhanh').val('');
+                $('#SoDienThoai').val('');
+                $('#DiaChi').val('');
+                $('#MoTa').val('');
+
+                $('#modalTitle').text('Thêm Chi Nhánh Mới');
+                $('#chiNhanhModal').modal('show');
+            });
+        });
+    </script>
+}

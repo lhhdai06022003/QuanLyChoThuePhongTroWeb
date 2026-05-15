@@ -30,7 +30,7 @@ namespace QuanLyChoThuePhongTroWeb.Views.Areas.QuanLy.Controllers
             return Json(new { data = danhSach });
         }
         [HttpGet]
-        public async Task<IActionResult> GetChiNhanh(int id)
+        public async Task<JsonResult> GetChiNhanh(int id)
         {
             var chiNhanh = await _chiNhanhService.GetChiNhanh(id);
             if (chiNhanh == null)
@@ -48,7 +48,16 @@ namespace QuanLyChoThuePhongTroWeb.Views.Areas.QuanLy.Controllers
             return Json(new { success = result.IsSuccess, message = result.Message });
         }
         [HttpPost]
-        public async Task<IActionResult> XoaChiNhanh(int id)
+        public async Task<JsonResult> CapNhatChiNhanh(ChiNhanh model)
+        {
+            // Controller CHỈ NHẬN MODEL VÀ GỌI SERVICE
+            var result = await _chiNhanhService.ThemChiNhanhMoi(model);
+
+            // Trả về JSON cho Ajax
+            return Json(new { success = result.IsSuccess, message = result.Message });
+        }
+        [HttpPost]
+        public async Task<JsonResult> XoaChiNhanh(int id)
         {
             // Controller CHỈ NHẬN ID VÀ GỌI SERVICE
             var result = await _chiNhanhService.XoaChiNhanh(id);
