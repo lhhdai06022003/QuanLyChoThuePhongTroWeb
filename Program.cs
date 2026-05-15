@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.ChiNhanhs;
+using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.PhongTros;
 using QuanLyChoThuePhongTroWeb.Data;
-using QuanLyChoThuePhongTroWeb.Views.Areas.QuanLy.Services.ChiNhanhService;
 using System;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,6 +15,7 @@ builder.Services.AddControllersWithViews();
 
 // Đăng ký Service vào Container
 builder.Services.AddScoped<IChiNhanhService, ChiNhanhService>();
+builder.Services.AddScoped<IPhongTroService, PhongTroService>();
 
 var app = builder.Build();
 // Lệnh này sẽ tự động chạy các Migration còn thiếu lên Database

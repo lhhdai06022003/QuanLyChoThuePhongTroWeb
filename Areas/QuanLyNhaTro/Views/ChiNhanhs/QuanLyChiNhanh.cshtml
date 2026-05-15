@@ -111,7 +111,7 @@
                 "responsive": true,
                 "autoWidth": false,
                 "ajax": {
-                    "url": "/ChiNhanh/DanhSachChiNhanh",
+                    "url": "/ChiNhanhs/DanhSachChiNhanh",
                     "type": "GET",
                     "datatype": "json"
                 },
@@ -174,8 +174,8 @@
 
                 // 🌟 KIỂM TRA ĐIỀU KIỆN ĐỂ CHỌN URL BẮN LÊN BACKEND
                 let actionUrl = (currentChiNhanhId === 0)
-                                ? '/ChiNhanh/ThemChiNhanhMoi'
-                                : '/ChiNhanh/CapNhatChiNhanh';
+                                ? '/ChiNhanhs/ThemChiNhanhMoi'
+                                : '/ChiNhanhs/CapNhatChiNhanh';
 
                 $.ajax({
                     url: actionUrl,
@@ -207,7 +207,7 @@
                 currentChiNhanhId = $(this).data('id');
 
                 $.ajax({
-                    url: '/ChiNhanh/GetChiNhanh?id=' + currentChiNhanhId,
+                    url: '/ChiNhanhs/GetChiNhanh?id=' + currentChiNhanhId,
                     type: 'GET',
                     success: function (res) {
                         if (res.success && res.data) {
@@ -242,7 +242,7 @@
 
                     // 4. GỬI REQUEST XÓA
                     $.ajax({
-                        url: '/ChiNhanh/XoaChiNhanh', // BỎ nối chuỗi + id ở đây
+                        url: '/ChiNhanhs/XoaChiNhanh', // BỎ nối chuỗi + id ở đây
                         type: 'POST',
                         data: { id: id }, // TRUYỀN ID QUY VỀ BODY DỮ LIỆU
                         success: function (res) {

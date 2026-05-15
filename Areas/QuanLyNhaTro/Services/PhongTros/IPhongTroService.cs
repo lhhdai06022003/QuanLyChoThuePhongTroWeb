@@ -1,7 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc.Rendering;
+using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels;
 using QuanLyChoThuePhongTroWeb.Models;
 
-namespace QuanLyChoThuePhongTroWeb.Areas.QuanLy.Services.PhongTroService
+namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.PhongTros
 {
     public interface IPhongTroService
     {

@@ -1,15 +1,15 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.ChiNhanhs;
 using QuanLyChoThuePhongTroWeb.Models;
-using QuanLyChoThuePhongTroWeb.Views.Areas.QuanLy.Services.ChiNhanhService;
 
-namespace QuanLyChoThuePhongTroWeb.Views.Areas.QuanLy.Controllers
+namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
 {
-    [Area("QuanLy")]
+    [Area("QuanLyNhaTro")]
     [Route("[controller]/[action]")]
-    public class ChiNhanhController : Controller
+    public class ChiNhanhsController : Controller
     {
         private readonly IChiNhanhService _chiNhanhService;
-        public ChiNhanhController(IChiNhanhService chiNhanhService)
+        public ChiNhanhsController(IChiNhanhService chiNhanhService)
         {
             _chiNhanhService = chiNhanhService;
         }

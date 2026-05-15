@@ -3,7 +3,7 @@ using QuanLyChoThuePhongTroWeb.Data;
 using QuanLyChoThuePhongTroWeb.Models;
 using System;
 
-namespace QuanLyChoThuePhongTroWeb.Views.Areas.QuanLy.Services.ChiNhanhService
+namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.ChiNhanhs
 {
     public class ChiNhanhService : IChiNhanhService
     {

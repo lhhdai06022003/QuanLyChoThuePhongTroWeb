@@ -118,7 +118,7 @@
                 "responsive": true,
                 "autoWidth": false,
                 "ajax": {
-                    "url": "/PhongTro/DanhSachPhongTro",
+                    "url": "/PhongTros/DanhSachPhongTro",
                     "type": "GET",
                     "datatype": "json"
                 },
@@ -209,7 +209,7 @@
                 $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang lưu...');
 
                 // Xác định Endpoint API
-                let actionUrl = (currentPhongTroId === 0) ? '/PhongTro/ThemPhongTro' : '/PhongTro/CapNhatPhongTro';
+                let actionUrl = (currentPhongTroId === 0) ? '/PhongTros/ThemPhongTro' : '/PhongTros/CapNhatPhongTro';
 
                 $.ajax({
                     url: actionUrl,
@@ -260,7 +260,7 @@
 
                 // Gọi API lấy thông tin chi tiết
                 $.ajax({
-                    url: '/PhongTro/GetPhongTro?id=' + id,
+                    url: '/PhongTros/GetPhongTro?id=' + id,
                     type: 'GET',
                     success: function (res) {
                         if (res.success && res.data) {
@@ -301,7 +301,7 @@
                     $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
 
                     $.ajax({
-                        url: '/PhongTro/XoaPhongTro',
+                        url: '/PhongTros/XoaPhongTro',
                         type: 'POST',
                         data: { id: id }, // Truyền data dạng POST an toàn
                         success: function (res) {

@@ -1,6 +1,6 @@
 ﻿using QuanLyChoThuePhongTroWeb.Models;
 
-namespace QuanLyChoThuePhongTroWeb.Views.Areas.QuanLy.Services.ChiNhanhService
+namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.ChiNhanhs
 {
     public interface IChiNhanhService
     {
