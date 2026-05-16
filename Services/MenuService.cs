@@ -32,7 +32,8 @@ namespace QuanLyChoThuePhongTroWeb.Services
                     {
                         // Thay /Admin/ChiNhanh/Index nếu bạn đã dùng Area, hoặc /ChiNhanh/Index nếu chưa
                         new MenuItem { Name = "Chi nhánh", Url = "/ChiNhanhs/QuanLyChiNhanh" },
-                        new MenuItem { Name = "Phòng trọ", Url = "/PhongTros/QuanLyPhongTro" }
+                        new MenuItem { Name = "Phòng trọ", Url = "/PhongTros/QuanLyPhongTro" },
+                        new MenuItem { Name = "Người thuê", Url = "/QuanLyNhaTro/QuanLyNguoiThue" },
                     }
                 }
             };

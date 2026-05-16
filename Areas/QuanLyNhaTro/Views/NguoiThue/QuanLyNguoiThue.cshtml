@@ -1,0 +1,309 @@
+﻿@model IEnumerable<QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.NguoiThueReq>
+@{
+    ViewData["Title"] = "Quản lý Người Thuê Trọ";
+}
+
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="card card-primary card-outline">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h3 class="card-title"><i class="fas fa-users"></i> Danh sách Khách Thuê</h3>
+                <button type="button" class="btn btn-success btn-sm ml-auto" id="btnOpenAddModal">
+                    <i class="fas fa-plus"></i> Thêm Người Thuê
+                </button>
+            </div>
+
+            <div class="card-body">
+                <table id="nguoiThueTable" class="table table-bordered table-striped table-hover w-100">
+                    <thead class="thead-light">
+                        <tr>
+                            <th width="5%" class="text-center">STT</th>
+                            <th width="15%">Họ và Tên</th>
+                            <th width="15%">Số Điện Thoại</th>
+                            <th width="15%">CCCD</th>
+                            <th width="15%">Ngày Sinh</th>
+                            <th width="20%">Quê Quán</th>
+                            <th width="15%" class="text-center">Thao tác</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="modal fade" id="nguoiThueModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-primary">
+                <h5 class="modal-title text-white" id="modalTitle">Thêm Người Thuê Mới</h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+
+            <div class="modal-body">
+                <form id="frmNguoiThue">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Họ và Tên <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="HoVaTen" required placeholder="Nhập họ tên...">
+                            </div>
+                            <div class="form-group">
+                                <label>Số Điện Thoại <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="SoDienThoai" required placeholder="Nhập SĐT...">
+                            </div>
+                            <div class="form-group">
+                                <label>Ngày Sinh</label>
+                                <input type="date" class="form-control" id="NgaySinh">
+                            </div>
+                            <div class="form-group">
+                                <label>Quê Quán</label>
+                                <input type="text" class="form-control" id="QueQuan" placeholder="Nhập quê quán...">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Số CCCD <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="CCCD" required placeholder="Nhập số CCCD...">
+                            </div>
+                            <div class="form-group">
+                                <label>Ngày Cấp CCCD</label>
+                                <input type="date" class="form-control" id="NgayCapCCCD">
+                            </div>
+                            <div class="form-group">
+                                <label>Nơi Cấp CCCD</label>
+                                <input type="text" class="form-control" id="NoiCapCCCD" placeholder="Nơi cấp...">
+                            </div>
+                            <div class="form-group">
+                                <label>Ghi Chú</label>
+                                <textarea class="form-control" id="GhiChu" rows="1" placeholder="Ghi chú thêm..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-primary" id="btnSaveData">
+                    <i class="fas fa-save"></i> Lưu thông tin
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            let currentNguoiThueId = 0;
+
+            // Hàm hỗ trợ format ngày tháng từ API (YYYY-MM-DDTHH:mm:ss) sang input date (YYYY-MM-DD)
+            function formatDateForInput(dateString) {
+                if (!dateString) return '';
+                return dateString.split('T')[0];
+            }
+
+            // 1. KHỞI TẠO DATATABLES BẰNG AJAX GỌI API [cite: 18, 19]
+            var table = $('#nguoiThueTable').DataTable({
+                "language": { "url": "https://cdn.datatables.net/plug-ins/1.13.6/i18n/vi.json" },
+                "responsive": true,
+                "autoWidth": false,
+                "ajax": {
+                    "url": "/NguoiThue/GetAll", // Đảm bảo URL này gọi đúng vào API Controller của bạn
+                    "type": "GET",
+                    "dataSrc": ""
+                },
+                "columns": [
+                    // --- CỘT 1: SỐ THỨ TỰ (STT) TỰ ĐỘNG ---
+                    {
+                        "data": null,
+                        "className": "text-center align-middle",
+                        "orderable": false, // Bỏ tính năng click sắp xếp ở cột STT
+                        "searchable": false, // Không tìm kiếm theo STT
+                        "render": function (data, type, row, meta) {
+                            // meta.row là vị trí index của dòng hiện tại (bắt đầu từ 0)
+                            // meta.settings._iDisplayStart là vị trí bắt đầu của trang hiện tại (phục vụ phân trang)
+                            return meta.row + meta.settings._iDisplayStart + 1;
+                        }
+                    },
+                    // --- CÁC CỘT DỮ LIỆU CÒN LẠI GIỮ NGUYÊN ---
+                    {
+                        "data": "hoVaTen",
+                        "render": function(data) {
+                            return `<span class="font-weight-bold text-primary">${data}</span>`;
+                        }
+                    },
+                    { "data": "soDienThoai" },
+                    { "data": "cccd" },
+                    {
+                        "data": "ngaySinh",
+                        "render": function(data) {
+                            if(!data) return "";
+                            var date = new Date(data);
+                            return date.toLocaleDateString('vi-VN');
+                        }
+                    },
+                    { "data": "queQUan" },
+                    {
+                        "data": "nguoiThueId",
+                        "className": "text-center align-middle",
+                        "orderable": false, // Bỏ sắp xếp ở cột Thao tác
+                        "render": function (data) {
+                            // Dù cột 1 không hiện ID nữa, ID vẫn được ngầm lấy ở đây để truyền vào nút Sửa/Xóa
+                            return `
+                                <button class="btn btn-warning btn-sm btn-edit" data-id="${data}">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-danger btn-sm btn-delete" data-id="${data}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            `;
+                        }
+                    }
+                ],
+                // Sắp xếp mặc định: Không xếp theo cột 0 (STT) nữa, mà để trống để lấy luôn dữ liệu gốc từ Backend trả về (Backend thường đã sắp xếp theo Ngày tạo mới nhất)
+                "order": []
+            });
+
+            // --- SỰ KIỆN LƯU DỮ LIỆU --- [cite: 30]
+            $('#btnSaveData').on('click', function () {
+                let hoVaTen = $('#HoVaTen').val().trim();
+                let sdt = $('#SoDienThoai').val().trim();
+                let cccd = $('#CCCD').val().trim();
+
+                if (!hoVaTen || !sdt || !cccd) {
+                    alert("Vui lòng nhập đầy đủ Họ tên, Số điện thoại và CCCD!");
+                    return;
+                }
+                debugger;
+                let requestData = {
+                    hoVaTen: hoVaTen,
+                    soDienThoai: sdt,
+                    cccd: cccd,
+                    ngaySinh: $('#NgaySinh').val() ? $('#NgaySinh').val() : null, // Chặn triệt để chuỗi rỗng
+                    ngayCapCCCD: $('#NgayCapCCCD').val() ? $('#NgayCapCCCD').val() : null,
+                    noiCapCCCD: $('#NoiCapCCCD').val().trim(),
+                    queQuan: $('#QueQuan').val().trim(),
+                    ghiChu: $('#GhiChu').val().trim()
+                };
+
+                let isUpdate = currentNguoiThueId > 0;
+                // Đảm bảo URL này khớp với khai báo trong Controller của bạn
+                let apiUrl = isUpdate ? `/NguoiThue/Update/${currentNguoiThueId}` : `/NguoiThue/Create`;
+                let httpMethod = isUpdate ? 'PUT' : 'POST';
+
+                if (isUpdate) {
+                    // 🌟 GIẢI PHÁP 1: Ép kiểu dữ liệu về số nguyên (Integer)
+                    requestData.nguoiThueId = parseInt(currentNguoiThueId, 10);
+                }
+
+                let $btn = $(this);
+                $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang xử lý...');
+
+                $.ajax({
+                    url: apiUrl,
+                    type: httpMethod,
+                    contentType: 'application/json',
+                    data: JSON.stringify(requestData),
+                    success: function (res) {
+                        alert(res.message || "Lưu thành công!");
+                        $('#nguoiThueModal').modal('hide');
+                        table.ajax.reload(null, false);
+                    },
+                    error: function (xhr) {
+                        let errorMessage = "Đã xảy ra lỗi!";
+
+                        // 🌟 GIẢI PHÁP 2: Bóc tách chính xác lỗi Data Annotation từ .NET
+                        if (xhr.status === 400) {
+                            if (xhr.responseJSON && xhr.responseJSON.errors) {
+                                // Lỗi do nhập sai định dạng (SĐT, CCCD...)
+                                errorMessage = "Chi tiết lỗi:\n";
+                                for (let key in xhr.responseJSON.errors) {
+                                    errorMessage += "- " + xhr.responseJSON.errors[key][0] + "\n";
+                                }
+                            } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                                // Lỗi logic từ Service trả về (ví dụ: Trùng CCCD)
+                                errorMessage = xhr.responseJSON.message;
+                            } else {
+                                errorMessage = "Dữ liệu không hợp lệ. Vui lòng kiểm tra lại!";
+                            }
+                        }
+                        alert(errorMessage);
+                    },
+                    complete: function () {
+                        $btn.prop('disabled', false).html('<i class="fas fa-save"></i> Lưu thông tin');
+                    }
+                });
+            });
+
+            // Bắt sự kiện cho nút SỬA (Edit)
+            $('#nguoiThueTable tbody').on('click', '.btn-edit', function () {
+                currentNguoiThueId = $(this).data('id');
+
+                $.ajax({
+                    url: '/NguoiThue/GetById/' + currentNguoiThueId, // Gọi API GET BY ID
+                    type: 'GET',
+                    success: function (res) {
+                        if (res) {
+                            // Đổ dữ liệu vào form
+                            $('#HoVaTen').val(res.hoVaTen);
+                            $('#SoDienThoai').val(res.soDienThoai);
+                            $('#CCCD').val(res.cccd);
+                            $('#NgaySinh').val(formatDateForInput(res.ngaySinh));
+                            $('#NgayCapCCCD').val(formatDateForInput(res.ngayCapCCCD));
+                            $('#NoiCapCCCD').val(res.noiCapCCCD);
+                            $('#QueQuan').val(res.queQUan);
+                            $('#GhiChu').val(res.ghiChu);
+
+                            $('#modalTitle').text('Cập nhật Người Thuê');
+                            $('#nguoiThueModal').modal('show');
+                        }
+                    },
+                    error: function() {
+                        alert("Không thể tải thông tin người thuê.");
+                    }
+                });
+            });
+
+            // Bắt sự kiện cho nút XÓA (Delete)
+            $('#nguoiThueTable tbody').on('click', '.btn-delete', function () {
+                let id = $(this).data('id');
+                let $btn = $(this);
+
+                if (confirm('Hành động này không thể hoàn tác. Bạn có chắc chắn muốn xóa người thuê này?')) { // [cite: 48]
+                    let originalHtml = $btn.html();
+                    $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
+
+                    $.ajax({
+                        url: '/NguoiThue/Delete/' + id, // URL chuẩn RESTful
+                        type: 'DELETE',
+                        success: function (res) {
+                            alert(res.message || "Xóa thành công!");
+                            table.ajax.reload(null, false);
+                        },
+                        error: function (xhr) {
+                            let msg = "Lỗi kết nối máy chủ khi thực hiện xóa!";
+                            if (xhr.responseJSON && xhr.responseJSON.message) {
+                                msg = xhr.responseJSON.message;
+                            }
+                            alert("Không thể xóa: " + msg);
+                            $btn.prop('disabled', false).html(originalHtml);
+                        }
+                    });
+                }
+            });
+
+            // Reset form khi mở Modal Thêm Mới
+            $('#btnOpenAddModal').on('click', function () {
+                currentNguoiThueId = 0;
+                $('#frmNguoiThue')[0].reset(); // Xóa sạch toàn bộ input trong form nhanh chóng
+                $('#modalTitle').text('Thêm Người Thuê Mới');
+                $('#nguoiThueModal').modal('show');
+            });
+        });
+    </script>
+}

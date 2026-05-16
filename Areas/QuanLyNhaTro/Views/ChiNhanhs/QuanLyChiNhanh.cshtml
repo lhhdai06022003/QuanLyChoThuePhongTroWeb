@@ -5,16 +5,6 @@
      Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<!-- Content Header -->
-<div class="content-header">
-    <div class="container-fluid">
-        <div class="row mb-2">
-            <div class="col-sm-6">
-                <h1 class="m-0">@ViewData["Title"]</h1>
-            </div>
-        </div>
-    </div>
-</div>
 
 <!-- Main content -->
 <section class="content">
@@ -153,50 +143,77 @@
                 "order": [[ 0, "desc" ]] // Sắp xếp ID giảm dần (mới nhất lên trên)
             });
 
-                // --- SỰ KIỆN LƯU DỮ LIỆU ---
+                // --- SỰ KIỆN LƯU DỮ LIỆU (CẢ THÊM VÀ SỬA) ---
             $('#btnSaveData').on('click', function () {
-                let ten = $('#TenChiNhanh').val() || "";
-                let sdt = $('#SoDienThoai').val() || "";
-                let diaChi = $('#DiaChi').val() || "";
-                let moTa = $('#MoTa').val() || "";
+                // 1. Thu thập dữ liệu từ Form
+                let hoVaTen = $('#HoVaTen').val().trim();
+                let sdt = $('#SoDienThoai').val().trim();
+                let cccd = $('#CCCD').val().trim();
 
-                if (ten.trim() === "") {
-                    alert("Vui lòng nhập tên chi nhánh!");
+                // Validate nhanh trên Frontend
+                if (!hoVaTen || !sdt || !cccd) {
+                    alert("Vui lòng nhập đầy đủ Họ tên, Số điện thoại và CCCD!");
                     return;
                 }
-                if (diaChi.trim() === "") {
-                    alert("Vui lòng nhập địa chỉ!");
-                    return;
+
+                // 2. Tạo đối tượng Object dữ liệu gửi lên API
+                let requestData = {
+                    hoVaTen: hoVaTen,
+                    soDienThoai: sdt,
+                    cccd: cccd,
+                    ngaySinh: $('#NgaySinh').val() || null,
+                    ngayCapCCCD: $('#NgayCapCCCD').val() || null,
+                    noiCapCCCD: $('#NoiCapCCCD').val(),
+                    queQuan: $('#QueQuan').val(),
+                    ghiChu: $('#GhiChu').val()
+                };
+
+                // 3. Phân luồng API và Method dựa vào currentNguoiThueId
+                let isUpdate = currentNguoiThueId > 0;
+                let apiUrl = isUpdate ? `/api/NguoiThueApi/${currentNguoiThueId}` : `/api/NguoiThueApi`;
+                let httpMethod = isUpdate ? 'PUT' : 'POST';
+
+                // 🌟 SỬA LỖI TẠI ĐÂY: Gắn chính xác trường NguoiThueId vào body khi Update
+                if (isUpdate) {
+                    requestData.nguoiThueId = parseInt(currentNguoiThueId);
                 }
 
                 let $btn = $(this);
+                // Khóa nút tránh người dùng bấm liên tục (Spam click)
                 $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang xử lý...');
 
-                // 🌟 KIỂM TRA ĐIỀU KIỆN ĐỂ CHỌN URL BẮN LÊN BACKEND
-                let actionUrl = (currentChiNhanhId === 0)
-                                ? '/ChiNhanhs/ThemChiNhanhMoi'
-                                : '/ChiNhanhs/CapNhatChiNhanh';
-
+                // 4. Gọi AJAX lên Server
                 $.ajax({
-                    url: actionUrl,
-                    type: 'POST',
-                    data: {
-                        ChiNhanhId: currentChiNhanhId, // Gửi biến này về backend
-                        TenChiNhanh: ten,
-                        SoDienThoai: sdt,
-                        DiaChi: diaChi,
-                        MoTa: moTa
-                    },
+                    url: apiUrl,
+                    type: httpMethod,
+                    contentType: 'application/json', // Ép kiểu JSON gửi lên để phù hợp với [FromBody] của .NET
+                    data: JSON.stringify(requestData),
                     success: function (res) {
-                        if (res.success) {
-                            alert(res.message);
-                            $('#chiNhanhModal').modal('hide');
+                        // Thông báo thành công
+                        alert(res.message || "Thao tác thành công!");
+
+                        // Ẩn modal nhập liệu
+                        $('#nguoiThueModal').modal('hide');
+
+                        // 🌟 LÀM MỚI BẢNG DATATABLE KHÔNG CẦN TẢI LẠI TRANG
+                        // null: Giữ nguyên vị trí trang hiện tại (ví dụ đang ở trang 2 thì vẫn ở trang 2 sau khi reload)
+                        // false: Không reset lại phân trang
+                        if (typeof table !== 'undefined' && table !== null) {
                             table.ajax.reload(null, false);
-                        } else {
-                            alert("Lỗi: " + res.message);
                         }
                     },
+                    error: function (xhr) {
+                        // Đọc chi tiết lỗi trả về từ Backend để hiển thị công khai cho bạn biết lỗi ở đâu
+                        let errorMessage = "Đã xảy ra lỗi hệ thống!";
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            errorMessage = xhr.responseJSON.message;
+                        } else if (xhr.status === 400) {
+                            errorMessage = "Dữ liệu không hợp lệ hoặc ID không trùng khớp. Vui lòng kiểm tra lại!";
+                        }
+                        alert("Lỗi: " + errorMessage);
+                    },
                     complete: function () {
+                        // Mở khóa nút bấm khi hoàn thành kịch bản
                         $btn.prop('disabled', false).html('<i class="fas fa-save"></i> Lưu thông tin');
                     }
                 });
