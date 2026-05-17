@@ -44,7 +44,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.NguoiThues
                 SoDienThoai = input.SoDienThoai,
                 CCCD = input.CCCD,
                 NoiCapCCCD = input.NoiCapCCCD,
-                QueQUan = input.QueQuan,
+                QueQuan = input.QueQuan,
                 GhiChu = input.GhiChu,
                 NgaySinh = input.NgaySinh?.ToUniversalTime(), // Bắt buộc cho PostgreSQL
                 NgayCapCCCD = input.NgayCapCCCD?.ToUniversalTime(),
@@ -74,7 +74,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.NguoiThues
             entity.SoDienThoai = input.SoDienThoai;
             entity.CCCD = input.CCCD;
             entity.NoiCapCCCD = input.NoiCapCCCD;
-            entity.QueQUan = input.QueQuan;
+            entity.QueQuan = input.QueQuan;
             entity.GhiChu = input.GhiChu;
             entity.NgaySinh = input.NgaySinh?.ToUniversalTime();
             entity.NgayCapCCCD = input.NgayCapCCCD?.ToUniversalTime();

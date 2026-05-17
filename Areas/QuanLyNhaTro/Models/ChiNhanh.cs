@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Models;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace QuanLyChoThuePhongTroWeb.Models
@@ -19,5 +20,6 @@ namespace QuanLyChoThuePhongTroWeb.Models
 
         // Quan hệ
         public ICollection<PhongTro> PhongTros { get; set; }
+        public ICollection<DichVuChiNhanh> DichVuChiNhanhs { get; set; }
     }
 }

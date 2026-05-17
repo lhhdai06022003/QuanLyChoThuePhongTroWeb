@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Models;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace QuanLyChoThuePhongTroWeb.Models
@@ -13,9 +14,9 @@ namespace QuanLyChoThuePhongTroWeb.Models
         [ForeignKey("PhongTroId")]
         public PhongTro PhongTro { get; set; }
 
-        public int DichVuId { get; set; }
-        [ForeignKey("DichVuId")]
-        public DichVu DichVu { get; set; }
+        public int DichVuChiNhanhId { get; set; }
+        [ForeignKey("DichVuChiNhanhId")]
+        public DichVuChiNhanh DichVuChiNhanh { get; set; }
 
         public int SoLuong { get; set; }
     }

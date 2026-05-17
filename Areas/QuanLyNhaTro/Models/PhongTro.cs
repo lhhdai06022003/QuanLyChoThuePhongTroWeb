@@ -25,6 +25,7 @@ namespace QuanLyChoThuePhongTroWeb.Models
         public DateTime? NgayCapNhat { get; set; }
         public bool IsDeleted { get; set; } = false;
         public ICollection<HopDong> HopDongs { get; set; }
+        public ICollection<DangKyDichVu> DangKyDichVus { get; set; }
     }
     public enum TrangThaiPhong
     {

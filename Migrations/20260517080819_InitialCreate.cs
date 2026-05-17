@@ -7,7 +7,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace QuanLyChoThuePhongTroWeb.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreateV2 : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -32,36 +32,12 @@ namespace QuanLyChoThuePhongTroWeb.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "nguoi_dung",
-                columns: table => new
-                {
-                    NguoiDungId = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    TenDangNhap = table.Column<string>(type: "text", nullable: false),
-                    MatKhauHash = table.Column<string>(type: "text", nullable: false),
-                    Email = table.Column<string>(type: "text", nullable: false),
-                    HoTen = table.Column<string>(type: "text", nullable: false),
-                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
-                    Role = table.Column<int>(type: "integer", nullable: false),
-                    NgayTao = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    LanDangNhapCuoi = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    NguoiThueId = table.Column<int>(type: "integer", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_nguoi_dung", x => x.NguoiDungId);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "dich_vu",
                 columns: table => new
                 {
                     DichVuId = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    ChiNhanhId = table.Column<int>(type: "integer", nullable: false),
                     TenDichVu = table.Column<string>(type: "text", nullable: false),
-                    GiaDichVu = table.Column<double>(type: "double precision", nullable: false),
                     DonVi = table.Column<string>(type: "text", nullable: false),
                     GhiChu = table.Column<string>(type: "text", nullable: false),
                     NgayTao = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
@@ -71,12 +47,30 @@ namespace QuanLyChoThuePhongTroWeb.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_dich_vu", x => x.DichVuId);
-                    table.ForeignKey(
-                        name: "FK_dich_vu_chi_nhanh_ChiNhanhId",
-                        column: x => x.ChiNhanhId,
-                        principalTable: "chi_nhanh",
-                        principalColumn: "ChiNhanhId",
-                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "nguoi_thue",
+                columns: table => new
+                {
+                    NguoiThueId = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    HoVaTen = table.Column<string>(type: "text", nullable: false),
+                    Email = table.Column<string>(type: "text", nullable: false),
+                    SoDienThoai = table.Column<string>(type: "text", nullable: false),
+                    CCCD = table.Column<string>(type: "text", nullable: false),
+                    NgayCapCCCD = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    NoiCapCCCD = table.Column<string>(type: "text", nullable: false),
+                    NgaySinh = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    QueQuan = table.Column<string>(type: "text", nullable: false),
+                    GhiChu = table.Column<string>(type: "text", nullable: false),
+                    NgayTao = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    NgayCapNhat = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_nguoi_thue", x => x.NguoiThueId);
                 });
 
             migrationBuilder.CreateTable(
@@ -109,60 +103,58 @@ namespace QuanLyChoThuePhongTroWeb.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "nguoi_thue",
+                name: "dich_vu_chi_nhanh",
                 columns: table => new
                 {
-                    NguoiThueId = table.Column<int>(type: "integer", nullable: false)
+                    DichVuChiNhanhId = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    HoVaTen = table.Column<string>(type: "text", nullable: false),
-                    SoDienThoai = table.Column<string>(type: "text", nullable: false),
-                    CCCD = table.Column<string>(type: "text", nullable: false),
-                    NgayCapCCCD = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    NoiCapCCCD = table.Column<string>(type: "text", nullable: false),
-                    NgaySinh = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    QueQUan = table.Column<string>(type: "text", nullable: false),
-                    GhiChu = table.Column<string>(type: "text", nullable: false),
+                    ChiNhanhId = table.Column<int>(type: "integer", nullable: false),
+                    DichVuId = table.Column<int>(type: "integer", nullable: false),
+                    GiaDichVu = table.Column<double>(type: "double precision", nullable: false),
                     NgayTao = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     NgayCapNhat = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    NguoiDungId = table.Column<int>(type: "integer", nullable: true)
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_nguoi_thue", x => x.NguoiThueId);
+                    table.PrimaryKey("PK_dich_vu_chi_nhanh", x => x.DichVuChiNhanhId);
                     table.ForeignKey(
-                        name: "FK_nguoi_thue_nguoi_dung_NguoiDungId",
-                        column: x => x.NguoiDungId,
-                        principalTable: "nguoi_dung",
-                        principalColumn: "NguoiDungId",
+                        name: "FK_dich_vu_chi_nhanh_chi_nhanh_ChiNhanhId",
+                        column: x => x.ChiNhanhId,
+                        principalTable: "chi_nhanh",
+                        principalColumn: "ChiNhanhId",
                         onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "dang_ky_dich_vu",
-                columns: table => new
-                {
-                    DangKyDichVuId = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    PhongTroId = table.Column<int>(type: "integer", nullable: false),
-                    DichVuId = table.Column<int>(type: "integer", nullable: false),
-                    SoLuong = table.Column<int>(type: "integer", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_dang_ky_dich_vu", x => x.DangKyDichVuId);
                     table.ForeignKey(
-                        name: "FK_dang_ky_dich_vu_dich_vu_DichVuId",
+                        name: "FK_dich_vu_chi_nhanh_dich_vu_DichVuId",
                         column: x => x.DichVuId,
                         principalTable: "dich_vu",
                         principalColumn: "DichVuId",
                         onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "nguoi_dung",
+                columns: table => new
+                {
+                    NguoiDungId = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    TenDangNhap = table.Column<string>(type: "text", nullable: false),
+                    MatKhauHash = table.Column<string>(type: "text", nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    Role = table.Column<int>(type: "integer", nullable: false),
+                    NgayTao = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    LanDangNhapCuoi = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    NguoiThueId = table.Column<int>(type: "integer", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_nguoi_dung", x => x.NguoiDungId);
                     table.ForeignKey(
-                        name: "FK_dang_ky_dich_vu_phong_tro_PhongTroId",
-                        column: x => x.PhongTroId,
-                        principalTable: "phong_tro",
-                        principalColumn: "PhongTroId",
-                        onDelete: ReferentialAction.Cascade);
+                        name: "FK_nguoi_dung_nguoi_thue_NguoiThueId",
+                        column: x => x.NguoiThueId,
+                        principalTable: "nguoi_thue",
+                        principalColumn: "NguoiThueId");
                 });
 
             migrationBuilder.CreateTable(
@@ -224,6 +216,33 @@ namespace QuanLyChoThuePhongTroWeb.Migrations
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_hop_dong_phong_tro_PhongTroId",
+                        column: x => x.PhongTroId,
+                        principalTable: "phong_tro",
+                        principalColumn: "PhongTroId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "dang_ky_dich_vu",
+                columns: table => new
+                {
+                    DangKyDichVuId = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    PhongTroId = table.Column<int>(type: "integer", nullable: false),
+                    DichVuChiNhanhId = table.Column<int>(type: "integer", nullable: false),
+                    SoLuong = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_dang_ky_dich_vu", x => x.DangKyDichVuId);
+                    table.ForeignKey(
+                        name: "FK_dang_ky_dich_vu_dich_vu_chi_nhanh_DichVuChiNhanhId",
+                        column: x => x.DichVuChiNhanhId,
+                        principalTable: "dich_vu_chi_nhanh",
+                        principalColumn: "DichVuChiNhanhId",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_dang_ky_dich_vu_phong_tro_PhongTroId",
                         column: x => x.PhongTroId,
                         principalTable: "phong_tro",
                         principalColumn: "PhongTroId",
@@ -374,9 +393,9 @@ namespace QuanLyChoThuePhongTroWeb.Migrations
                 column: "NguoiThueId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_dang_ky_dich_vu_DichVuId",
+                name: "IX_dang_ky_dich_vu_DichVuChiNhanhId",
                 table: "dang_ky_dich_vu",
-                column: "DichVuId");
+                column: "DichVuChiNhanhId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_dang_ky_dich_vu_PhongTroId",
@@ -384,9 +403,15 @@ namespace QuanLyChoThuePhongTroWeb.Migrations
                 column: "PhongTroId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_dich_vu_ChiNhanhId",
-                table: "dich_vu",
-                column: "ChiNhanhId");
+                name: "IX_dich_vu_chi_nhanh_ChiNhanhId_DichVuId",
+                table: "dich_vu_chi_nhanh",
+                columns: new[] { "ChiNhanhId", "DichVuId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_dich_vu_chi_nhanh_DichVuId",
+                table: "dich_vu_chi_nhanh",
+                column: "DichVuId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_dich_vu_dien_nuoc_cua_phong_PhongTroId",
@@ -425,9 +450,9 @@ namespace QuanLyChoThuePhongTroWeb.Migrations
                 column: "NguoiXacNhanId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_nguoi_thue_NguoiDungId",
-                table: "nguoi_thue",
-                column: "NguoiDungId",
+                name: "IX_nguoi_dung_NguoiThueId",
+                table: "nguoi_dung",
+                column: "NguoiThueId",
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -452,10 +477,16 @@ namespace QuanLyChoThuePhongTroWeb.Migrations
                 name: "lich_su_thanh_toan");
 
             migrationBuilder.DropTable(
-                name: "dich_vu");
+                name: "dich_vu_chi_nhanh");
 
             migrationBuilder.DropTable(
                 name: "hoa_don");
+
+            migrationBuilder.DropTable(
+                name: "nguoi_dung");
+
+            migrationBuilder.DropTable(
+                name: "dich_vu");
 
             migrationBuilder.DropTable(
                 name: "dich_vu_dien_nuoc_cua_phong");
@@ -468,9 +499,6 @@ namespace QuanLyChoThuePhongTroWeb.Migrations
 
             migrationBuilder.DropTable(
                 name: "phong_tro");
-
-            migrationBuilder.DropTable(
-                name: "nguoi_dung");
 
             migrationBuilder.DropTable(
                 name: "chi_nhanh");

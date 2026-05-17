@@ -22,6 +22,42 @@ namespace QuanLyChoThuePhongTroWeb.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Models.DichVuChiNhanh", b =>
+                {
+                    b.Property<int>("DichVuChiNhanhId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("DichVuChiNhanhId"));
+
+                    b.Property<int>("ChiNhanhId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("DichVuId")
+                        .HasColumnType("integer");
+
+                    b.Property<double>("GiaDichVu")
+                        .HasColumnType("double precision");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("NgayCapNhat")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("NgayTao")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("DichVuChiNhanhId");
+
+                    b.HasIndex("DichVuId");
+
+                    b.HasIndex("ChiNhanhId", "DichVuId")
+                        .IsUnique();
+
+                    b.ToTable("dich_vu_chi_nhanh");
+                });
+
             modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Models.ChiNhanh", b =>
                 {
                     b.Property<int>("ChiNhanhId")
@@ -139,7 +175,7 @@ namespace QuanLyChoThuePhongTroWeb.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("DangKyDichVuId"));
 
-                    b.Property<int>("DichVuId")
+                    b.Property<int>("DichVuChiNhanhId")
                         .HasColumnType("integer");
 
                     b.Property<int>("PhongTroId")
@@ -150,7 +186,7 @@ namespace QuanLyChoThuePhongTroWeb.Migrations
 
                     b.HasKey("DangKyDichVuId");
 
-                    b.HasIndex("DichVuId");
+                    b.HasIndex("DichVuChiNhanhId");
 
                     b.HasIndex("PhongTroId");
 
@@ -165,9 +201,6 @@ namespace QuanLyChoThuePhongTroWeb.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("DichVuId"));
 
-                    b.Property<int>("ChiNhanhId")
-                        .HasColumnType("integer");
-
                     b.Property<string>("DonVi")
                         .IsRequired()
                         .HasColumnType("text");
@@ -175,9 +208,6 @@ namespace QuanLyChoThuePhongTroWeb.Migrations
                     b.Property<string>("GhiChu")
                         .IsRequired()
                         .HasColumnType("text");
-
-                    b.Property<double>("GiaDichVu")
-                        .HasColumnType("double precision");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
@@ -193,8 +223,6 @@ namespace QuanLyChoThuePhongTroWeb.Migrations
                         .HasColumnType("text");
 
                     b.HasKey("DichVuId");
-
-                    b.HasIndex("ChiNhanhId");
 
                     b.ToTable("dich_vu");
                 });
@@ -401,14 +429,6 @@ namespace QuanLyChoThuePhongTroWeb.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("NguoiDungId"));
 
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("HoTen")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
@@ -437,6 +457,9 @@ namespace QuanLyChoThuePhongTroWeb.Migrations
 
                     b.HasKey("NguoiDungId");
 
+                    b.HasIndex("NguoiThueId")
+                        .IsUnique();
+
                     b.ToTable("nguoi_dung");
                 });
 
@@ -449,6 +472,10 @@ namespace QuanLyChoThuePhongTroWeb.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("NguoiThueId"));
 
                     b.Property<string>("CCCD")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Email")
                         .IsRequired()
                         .HasColumnType("text");
 
@@ -475,14 +502,11 @@ namespace QuanLyChoThuePhongTroWeb.Migrations
                     b.Property<DateTime>("NgayTao")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int?>("NguoiDungId")
-                        .HasColumnType("integer");
-
                     b.Property<string>("NoiCapCCCD")
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("QueQUan")
+                    b.Property<string>("QueQuan")
                         .IsRequired()
                         .HasColumnType("text");
 
@@ -491,9 +515,6 @@ namespace QuanLyChoThuePhongTroWeb.Migrations
                         .HasColumnType("text");
 
                     b.HasKey("NguoiThueId");
-
-                    b.HasIndex("NguoiDungId")
-                        .IsUnique();
 
                     b.ToTable("nguoi_thue");
                 });
@@ -548,6 +569,25 @@ namespace QuanLyChoThuePhongTroWeb.Migrations
                     b.ToTable("phong_tro");
                 });
 
+            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Models.DichVuChiNhanh", b =>
+                {
+                    b.HasOne("QuanLyChoThuePhongTroWeb.Models.ChiNhanh", "ChiNhanh")
+                        .WithMany("DichVuChiNhanhs")
+                        .HasForeignKey("ChiNhanhId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("QuanLyChoThuePhongTroWeb.Models.DichVu", "DichVu")
+                        .WithMany("DichVuChiNhanhs")
+                        .HasForeignKey("DichVuId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ChiNhanh");
+
+                    b.Navigation("DichVu");
+                });
+
             modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Models.ChiTietHoaDon", b =>
                 {
                     b.HasOne("QuanLyChoThuePhongTroWeb.Models.DichVu", "DichVu")
@@ -574,7 +614,7 @@ namespace QuanLyChoThuePhongTroWeb.Migrations
                         .IsRequired();
 
                     b.HasOne("QuanLyChoThuePhongTroWeb.Models.NguoiThue", "NguoiThue")
-                        .WithMany()
+                        .WithMany("ChiTietThanhVienHopDongs")
                         .HasForeignKey("NguoiThueId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -586,32 +626,21 @@ namespace QuanLyChoThuePhongTroWeb.Migrations
 
             modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Models.DangKyDichVu", b =>
                 {
-                    b.HasOne("QuanLyChoThuePhongTroWeb.Models.DichVu", "DichVu")
-                        .WithMany()
-                        .HasForeignKey("DichVuId")
+                    b.HasOne("QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Models.DichVuChiNhanh", "DichVuChiNhanh")
+                        .WithMany("DangKyDichVus")
+                        .HasForeignKey("DichVuChiNhanhId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("QuanLyChoThuePhongTroWeb.Models.PhongTro", "PhongTro")
-                        .WithMany()
+                        .WithMany("DangKyDichVus")
                         .HasForeignKey("PhongTroId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("DichVu");
+                    b.Navigation("DichVuChiNhanh");
 
                     b.Navigation("PhongTro");
-                });
-
-            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Models.DichVu", b =>
-                {
-                    b.HasOne("QuanLyChoThuePhongTroWeb.Models.ChiNhanh", "ChiNhanh")
-                        .WithMany()
-                        .HasForeignKey("ChiNhanhId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("ChiNhanh");
                 });
 
             modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Models.DichVuDienNuocCuaPhong", b =>
@@ -678,14 +707,13 @@ namespace QuanLyChoThuePhongTroWeb.Migrations
                     b.Navigation("NguoiXacNhan");
                 });
 
-            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Models.NguoiThue", b =>
+            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Models.NguoiDung", b =>
                 {
-                    b.HasOne("QuanLyChoThuePhongTroWeb.Models.NguoiDung", "NguoiDung")
-                        .WithOne("NguoiThue")
-                        .HasForeignKey("QuanLyChoThuePhongTroWeb.Models.NguoiThue", "NguoiDungId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                    b.HasOne("QuanLyChoThuePhongTroWeb.Models.NguoiThue", "NguoiThue")
+                        .WithOne("NguoiDung")
+                        .HasForeignKey("QuanLyChoThuePhongTroWeb.Models.NguoiDung", "NguoiThueId");
 
-                    b.Navigation("NguoiDung");
+                    b.Navigation("NguoiThue");
                 });
 
             modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Models.PhongTro", b =>
@@ -699,9 +727,21 @@ namespace QuanLyChoThuePhongTroWeb.Migrations
                     b.Navigation("ChiNhanh");
                 });
 
+            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Models.DichVuChiNhanh", b =>
+                {
+                    b.Navigation("DangKyDichVus");
+                });
+
             modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Models.ChiNhanh", b =>
                 {
+                    b.Navigation("DichVuChiNhanhs");
+
                     b.Navigation("PhongTros");
+                });
+
+            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Models.DichVu", b =>
+                {
+                    b.Navigation("DichVuChiNhanhs");
                 });
 
             modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Models.DichVuDienNuocCuaPhong", b =>
@@ -724,18 +764,19 @@ namespace QuanLyChoThuePhongTroWeb.Migrations
                     b.Navigation("HoaDons");
                 });
 
-            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Models.NguoiDung", b =>
-                {
-                    b.Navigation("NguoiThue");
-                });
-
             modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Models.NguoiThue", b =>
                 {
+                    b.Navigation("ChiTietThanhVienHopDongs");
+
                     b.Navigation("HopDongs");
+
+                    b.Navigation("NguoiDung");
                 });
 
             modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Models.PhongTro", b =>
                 {
+                    b.Navigation("DangKyDichVus");
+
                     b.Navigation("HopDongs");
                 });
 #pragma warning restore 612, 618

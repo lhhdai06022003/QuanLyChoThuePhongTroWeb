@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Models;
 using QuanLyChoThuePhongTroWeb.Models;
 
 namespace QuanLyChoThuePhongTroWeb.Data
@@ -18,8 +19,12 @@ namespace QuanLyChoThuePhongTroWeb.Data
             modelBuilder.Entity<NguoiDung>()
                 .HasOne(u => u.NguoiThue)          // Một Người dùng có một Người thuê
                 .WithOne(t => t.NguoiDung)         // Một Người thuê có một Người dùng
-                .HasForeignKey<NguoiThue>(t => t.NguoiDungId) // Khóa ngoại nằm ở bảng NguoiThue
-                .OnDelete(DeleteBehavior.Cascade); // Nếu xóa NguoiDung thì xóa luôn NguoiThue (tùy bạn chọn)
+                .HasForeignKey<NguoiDung>(u => u.NguoiThueId);
+
+            // Đảm bảo một Chi nhánh không thể kích hoạt một Dịch vụ tổng quá 1 lần
+            modelBuilder.Entity<DichVuChiNhanh>()
+                .HasIndex(dcn => new { dcn.ChiNhanhId, dcn.DichVuId })
+                .IsUnique();
 
         }
         public DbSet<ChiNhanh> ChiNhanhs { get; set; }

@@ -11,8 +11,6 @@ namespace QuanLyChoThuePhongTroWeb.Models
         public int NguoiDungId { get; set; }
         public string TenDangNhap { get; set; }
         public string MatKhauHash { get; set; }
-        public string Email { get; set; }
-        public string HoTen { get; set; }
         public bool IsActive { get; set; } = true;
         public Role Role { get; set; }
         public DateTime NgayTao { get; set; } = DateTime.UtcNow;
