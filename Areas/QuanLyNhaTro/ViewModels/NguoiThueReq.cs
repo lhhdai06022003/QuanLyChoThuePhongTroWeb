@@ -8,6 +8,19 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels
         [StringLength(100, ErrorMessage = "Họ và tên không vượt quá 100 ký tự")]
         public string HoVaTen { get; set; }
 
+        // --- XỬ LÝ RIÊNG CHO EMAIL ĐỂ TRÁNH LỖI ĐỊNH DẠNG KHI ĐỂ TRỐNG ---
+        private string? _email;
+
+        [EmailAddress(ErrorMessage = "Email không đúng định dạng")]
+        [StringLength(150, ErrorMessage = "Email không vượt quá 150 ký tự")]
+        public string? Email
+        {
+            get => _email;
+            // Nếu Client gửi chuỗi rỗng "" hoặc khoảng trắng, tự động chuyển về null để qua bộ lọc [EmailAddress]
+            set => _email = string.IsNullOrWhiteSpace(value) ? null : value;
+        }
+        // -----------------------------------------------------------------
+
         [Required(ErrorMessage = "Số điện thoại không được để trống")]
         [RegularExpression(@"^(03|05|07|08|09)\d{8}$", ErrorMessage = "Số điện thoại không đúng định dạng Việt Nam")]
         public string SoDienThoai { get; set; }
@@ -17,11 +30,14 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels
         public string CCCD { get; set; }
 
         public DateTime? NgayCapCCCD { get; set; }
-        public string NoiCapCCCD { get; set; }
+
+        // Các trường này để string? thông thường là được vì không bị vướng bộ lọc định dạng nào
+        public string? NoiCapCCCD { get; set; }
         public DateTime? NgaySinh { get; set; }
-        public string QueQuan { get; set; } // Sửa lỗi chính tả "QueQUan" trong model gốc
-        public string GhiChu { get; set; }
+        public string? QueQuan { get; set; }
+        public string? GhiChu { get; set; }
     }
+
     public class NguoiThueUpdateDto : NguoiThueReq
     {
         [Required]

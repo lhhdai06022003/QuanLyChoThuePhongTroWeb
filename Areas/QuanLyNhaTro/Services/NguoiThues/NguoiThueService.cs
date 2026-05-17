@@ -31,30 +31,51 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.NguoiThues
 
         public async Task<(bool IsSuccess, string ErrorMessage)> CreateAsync(NguoiThueReq input)
         {
-            // 1. Kiểm tra trùng lặp CCCD hoặc SĐT (với những người chưa bị xóa)
-            bool isDuplicate = await _context.NguoiThues.AnyAsync(x =>
-                !x.IsDeleted && (x.CCCD == input.CCCD || x.SoDienThoai == input.SoDienThoai));
-
-            if (isDuplicate) return (false, "CCCD hoặc Số điện thoại đã tồn tại trong hệ thống.");
-
-            // 2. Ép kiểu UTC cho PostgreSQL để tránh lỗi Múi giờ
-            var entity = new NguoiThue
+            try
             {
-                HoVaTen = input.HoVaTen,
-                SoDienThoai = input.SoDienThoai,
-                CCCD = input.CCCD,
-                NoiCapCCCD = input.NoiCapCCCD,
-                QueQuan = input.QueQuan,
-                GhiChu = input.GhiChu,
-                NgaySinh = input.NgaySinh?.ToUniversalTime(), // Bắt buộc cho PostgreSQL
-                NgayCapCCCD = input.NgayCapCCCD?.ToUniversalTime(),
-                NgayTao = DateTime.UtcNow,
-                IsDeleted = false
-            };
+                // 1. Kiểm tra trùng lặp CCCD hoặc SĐT (với những người chưa bị xóa)
+                bool isDuplicate = await _context.NguoiThues.AnyAsync(x =>
+                !x.IsDeleted &&
+                (
+                    x.CCCD == input.CCCD ||
+                    x.SoDienThoai == input.SoDienThoai ||
+                    // Chỉ kiểm tra trùng Email nếu input.Email có dữ liệu (khác null)
+                    (!string.IsNullOrWhiteSpace(input.Email) && x.Email == input.Email)
+                ));
 
-            _context.NguoiThues.Add(entity);
-            await _context.SaveChangesAsync();
-            return (true, string.Empty);
+                if (isDuplicate) return (false, "CCCD hoặc Số điện thoại đã tồn tại trong hệ thống.");
+
+                // 2. Ép kiểu UTC cho PostgreSQL để tránh lỗi Múi giờ
+                var entity = new NguoiThue
+                {
+                    HoVaTen = input.HoVaTen,
+                    Email = input.Email,
+                    SoDienThoai = input.SoDienThoai,
+                    CCCD = input.CCCD,
+                    NoiCapCCCD = input.NoiCapCCCD,
+                    QueQuan = input.QueQuan,
+                    GhiChu = input.GhiChu,
+                    NgaySinh = input.NgaySinh?.ToUniversalTime(), // Bắt buộc cho PostgreSQL
+                    NgayCapCCCD = input.NgayCapCCCD?.ToUniversalTime(),
+                    NgayTao = DateTime.UtcNow,
+                    IsDeleted = false
+                };
+
+                _context.NguoiThues.Add(entity);
+                await _context.SaveChangesAsync();
+                return (true, string.Empty);
+            }
+            catch (Exception e)
+            {
+
+                // Lấy thông báo lỗi thật sự từ InnerException để dễ debug
+                string errorDetails = e.InnerException != null ? e.InnerException.Message : e.Message;
+
+                // Bạn nên dùng ILogger để ghi log ở đây thay vì trả về cho Client
+                // _logger.LogError($"Lỗi tạo người thuê: {errorDetails}");
+
+                return (false, $"Lỗi hệ thống: {errorDetails}"); 
+            }
         }
 
         public async Task<(bool IsSuccess, string ErrorMessage)> UpdateAsync(int id, NguoiThueUpdateDto input)
@@ -71,6 +92,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.NguoiThues
 
             // Cập nhật dữ liệu
             entity.HoVaTen = input.HoVaTen;
+            entity.Email = input.Email;
             entity.SoDienThoai = input.SoDienThoai;
             entity.CCCD = input.CCCD;
             entity.NoiCapCCCD = input.NoiCapCCCD;
