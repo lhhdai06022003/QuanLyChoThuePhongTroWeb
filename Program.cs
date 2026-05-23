@@ -1,5 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.ChiNhanhs;
+using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HopDongs;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.NguoiThues;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.PhongTros;
 using QuanLyChoThuePhongTroWeb.Data;
@@ -12,13 +13,17 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Add services to the container.
-builder.Services.AddControllersWithViews();
+builder.Services.AddControllersWithViews().AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+});
 builder.Services.AddControllers();
 
 // Đăng ký Service vào Container
 builder.Services.AddScoped<IChiNhanhService, ChiNhanhService>();
 builder.Services.AddScoped<IPhongTroService, PhongTroService>();
 builder.Services.AddScoped<INguoiThueService, NguoiThueService>();
+builder.Services.AddScoped<IHopDongService, HopDongService>();
 
 var app = builder.Build();
 // Lệnh này sẽ tự động chạy các Migration còn thiếu lên Database

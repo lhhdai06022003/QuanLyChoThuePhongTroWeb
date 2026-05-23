@@ -34,8 +34,9 @@ namespace QuanLyChoThuePhongTroWeb.Services
                         new MenuItem { Name = "Chi nhánh", Url = "/ChiNhanhs/QuanLyChiNhanh" },
                         new MenuItem { Name = "Phòng trọ", Url = "/PhongTros/QuanLyPhongTro" },
                         new MenuItem { Name = "Người thuê", Url = "/QuanLyNhaTro/QuanLyNguoiThue" },
+                        new MenuItem { Name = "Hợp đồng", Url = "/QuanLyNhaTro/QuanLyHopDong" },
                     }
-                }
+                },
             };
         }
     }

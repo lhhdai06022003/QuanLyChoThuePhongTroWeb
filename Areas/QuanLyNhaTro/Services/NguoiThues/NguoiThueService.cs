@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels;
 using QuanLyChoThuePhongTroWeb.Data;
 using QuanLyChoThuePhongTroWeb.Models;
@@ -126,6 +127,13 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.NguoiThues
             await _context.SaveChangesAsync();
 
             return (true, string.Empty);
+        }
+        public async Task<List<SelectListItem>> DanhSachNguoiThue()
+        {
+            return await _context.NguoiThues
+                .Where(p => !p.IsDeleted)
+                .Select(p => new SelectListItem { Value = p.NguoiThueId.ToString(), Text = p.HoVaTen + " - " + p.CCCD })
+                .ToListAsync();
         }
     }
 }
