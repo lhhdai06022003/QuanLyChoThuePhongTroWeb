@@ -361,3 +361,7 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# không up file settings c?a Visual Studio lên git vì nó có th? ch?a thông tin nh?y c?m nh? connection string, password, v.v.
+appsettings.json
+appsettings.Development.json
