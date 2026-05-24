@@ -1,4 +1,4 @@
-﻿<nav class="main-header navbar navbar-expand navbar-white navbar-light">
+<nav class="main-header navbar navbar-expand navbar-white navbar-light">
 
     <!-- Left -->
     <ul class="navbar-nav">
@@ -11,11 +11,27 @@
 
     <!-- Right -->
     <ul class="navbar-nav ml-auto">
-        <li class="nav-item">
-            <a class="nav-link" href="/Account/Logout">
-                <i class="fas fa-sign-out-alt"></i> Logout
-            </a>
-        </li>
+        @if (User.Identity != null && User.Identity.IsAuthenticated)
+        {
+            <li class="nav-item">
+                <span class="nav-link text-primary font-weight-bold">
+                    <i class="fas fa-user-circle"></i> @User.Identity.Name
+                </span>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link text-danger" href="/QuanLyNhaTro/DangXuat">
+                    <i class="fas fa-sign-out-alt"></i> Đăng xuất
+                </a>
+            </li>
+        }
+        else
+        {
+            <li class="nav-item">
+                <a class="nav-link" href="/QuanLyNhaTro/DangNhap">
+                    <i class="fas fa-sign-in-alt"></i> Đăng nhập
+                </a>
+            </li>
+        }
     </ul>
 
 </nav> 

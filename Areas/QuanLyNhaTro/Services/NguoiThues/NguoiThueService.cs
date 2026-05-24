@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels;
+using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Requests;
 using QuanLyChoThuePhongTroWeb.Data;
 using QuanLyChoThuePhongTroWeb.Models;
 

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.PhongTros;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels;
+using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Requests;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Responses;
 using QuanLyChoThuePhongTroWeb.Data;
 using QuanLyChoThuePhongTroWeb.Models;

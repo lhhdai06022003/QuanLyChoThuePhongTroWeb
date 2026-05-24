@@ -1,4 +1,6 @@
-﻿namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels
+﻿using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Requests;
+
+namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels
 {
     public class HopDongFilterReq : DataTableRequest
     {

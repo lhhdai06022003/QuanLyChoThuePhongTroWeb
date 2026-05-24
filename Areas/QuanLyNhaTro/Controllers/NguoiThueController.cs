@@ -1,11 +1,13 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.NguoiThues;
-using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels;
+using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Requests;
+using Microsoft.AspNetCore.Authorization;
 
 namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
 {
     [Area("QuanLyNhaTro")]
     [ApiController] // Thẻ này tự động trả về 400 BadRequest nếu DTO không hợp lệ
+    [Authorize]
     public class NguoiThueController : Controller
     {
         private readonly INguoiThueService _nguoiThueService;

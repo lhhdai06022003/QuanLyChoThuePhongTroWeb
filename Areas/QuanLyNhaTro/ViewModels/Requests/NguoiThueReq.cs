@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels
+namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Requests
 {
     public class NguoiThueReq
     {

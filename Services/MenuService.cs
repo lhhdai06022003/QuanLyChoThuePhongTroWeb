@@ -20,8 +20,8 @@ namespace QuanLyChoThuePhongTroWeb.Services
                     Icon = "fas fa-users",
                     Children = new List<MenuItem>
                     {
-                        new MenuItem { Name = "Danh sách", Url = "/User/Index" },
-                        new MenuItem { Name = "Thêm mới", Url = "/User/Create" }
+                        //new MenuItem { Name = "Đăng nhập", Url = "/QuanLyNhaTro/DangNhap" },
+                        new MenuItem { Name = "Quản lý tài khoản", Url = "/QuanLyNhaTro/QuanLyTaiKhoanDangNhap" }
                     }
                 },
                 new MenuItem
@@ -35,6 +35,8 @@ namespace QuanLyChoThuePhongTroWeb.Services
                         new MenuItem { Name = "Phòng trọ", Url = "/PhongTros/QuanLyPhongTro" },
                         new MenuItem { Name = "Người thuê", Url = "/QuanLyNhaTro/QuanLyNguoiThue" },
                         new MenuItem { Name = "Hợp đồng", Url = "/QuanLyNhaTro/QuanLyHopDong" },
+                        new MenuItem { Name = "Dịch vụ", Url = "/QuanLyNhaTro/QuanLyDichVu" },
+                        new MenuItem { Name = "Điện nước", Url = "/QuanLyNhaTro/ChotDienNuoc" },
                     }
                 },
             };

@@ -1,7 +1,7 @@
 ﻿
 
 using Microsoft.AspNetCore.Mvc.Rendering;
-using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels;
+using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Requests;
 using QuanLyChoThuePhongTroWeb.Models;
 
 namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.NguoiThues

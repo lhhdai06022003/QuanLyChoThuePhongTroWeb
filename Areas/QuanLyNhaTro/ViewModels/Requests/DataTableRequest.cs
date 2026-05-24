@@ -1,4 +1,4 @@
-namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels
+namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Requests
 {
     public class DataTableRequest
     {

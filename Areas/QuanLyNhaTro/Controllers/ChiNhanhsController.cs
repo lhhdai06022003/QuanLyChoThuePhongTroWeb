@@ -1,11 +1,13 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.ChiNhanhs;
 using QuanLyChoThuePhongTroWeb.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
 {
     [Area("QuanLyNhaTro")]
     [Route("[controller]/[action]")]
+    [Authorize]
     public class ChiNhanhsController : Controller
     {
         private readonly IChiNhanhService _chiNhanhService;

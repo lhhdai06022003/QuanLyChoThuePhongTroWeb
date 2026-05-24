@@ -3,11 +3,13 @@ using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HopDongs;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.NguoiThues;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.PhongTros;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels;
+using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Requests;
 
 namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
 {
     [Area("QuanLyNhaTro")]
     [ApiController]
+    [Microsoft.AspNetCore.Authorization.Authorize]
     public class HopDongController : Controller
     {
         private readonly IHopDongService _hopDongService;
