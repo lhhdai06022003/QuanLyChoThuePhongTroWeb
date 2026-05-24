@@ -12,5 +12,6 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.PhongTros
         Task<ServiceResult> ThemPhongTroAsync(PhongTro model);
         Task<ServiceResult> CapNhatPhongTroAsync(PhongTro model);
         Task<ServiceResult> XoaPhongTroAsync(int id);
+        Task<List<PhongTro>> DanhSachPhongTroConTrong();
     }
 }

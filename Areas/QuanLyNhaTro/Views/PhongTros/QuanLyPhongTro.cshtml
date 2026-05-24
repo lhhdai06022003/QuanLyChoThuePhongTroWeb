@@ -18,7 +18,7 @@
                 <table id="phongTroTable" class="table table-bordered table-striped table-hover w-100">
                     <thead class="bg-light">
                         <tr>
-                            <th>ID</th>
+                            <th>STT</th>
                             <th>Chi Nhánh</th>
                             <th>Số Phòng</th>
                             <th>Tầng</th>
@@ -123,7 +123,15 @@
                     "datatype": "json"
                 },
                 "columns": [
-                    { "data": "phongTroId", "width": "5%" },
+                    {
+                        "data": null,
+                        "className": "text-center align-middle",
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (data, type, row, meta) {
+                            return meta.row + meta.settings._iDisplayStart + 1;
+                        }
+                    },
                     { "data": "tenChiNhanh" },
                     {
                         "data": "soPhong",

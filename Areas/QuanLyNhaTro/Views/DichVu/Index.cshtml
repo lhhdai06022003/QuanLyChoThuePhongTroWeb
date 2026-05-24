@@ -1,0 +1,346 @@
+@{
+    ViewData["Title"] = "Quản lý Dịch vụ";
+}
+<section class="content">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="card card-primary card-outline card-outline-tabs">
+                    <div class="card-header p-0 border-bottom-0">
+                        <ul class="nav nav-tabs" id="custom-tabs-four-tab" role="tablist">
+                            <li class="nav-item">
+                                <a class="nav-link active" id="tab-danh-muc-dich-vu" data-toggle="pill" href="#content-danh-muc-dich-vu" role="tab" aria-controls="content-danh-muc-dich-vu" aria-selected="true">Danh mục Dịch vụ</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" id="tab-bang-gia" data-toggle="pill" href="#content-bang-gia" role="tab" aria-controls="content-bang-gia" aria-selected="false">Bảng giá theo Chi nhánh</a>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="card-body">
+                        <div class="tab-content" id="custom-tabs-four-tabContent">
+                            <!-- TAB DANH MỤC DỊCH VỤ -->
+                            <div class="tab-pane fade show active" id="content-danh-muc-dich-vu" role="tabpanel" aria-labelledby="tab-danh-muc-dich-vu">
+                                <div class="mb-3 d-flex justify-content-between">
+                                    <h4 class="m-0"><i class="fas fa-list"></i> Danh sách Dịch vụ Chung</h4>
+                                    <button class="btn btn-success" id="btnOpenAddDichVu"><i class="fas fa-plus"></i> Thêm Dịch vụ</button>
+                                </div>
+                                <table id="dichVuTable" class="table table-bordered table-striped w-100">
+                                    <thead>
+                                        <tr>
+                                            <th class="text-center" width="5%">STT</th>
+                                            <th>Tên Dịch Vụ</th>
+                                            <th>Đơn Vị Tính</th>
+                                            <th>Ghi Chú</th>
+                                            <th class="text-center" width="15%">Thao tác</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+
+                            <!-- TAB BẢNG GIÁ THEO CHI NHÁNH -->
+                            <div class="tab-pane fade" id="content-bang-gia" role="tabpanel" aria-labelledby="tab-bang-gia">
+                                <div class="row mb-3">
+                                    <div class="col-md-4">
+                                        <label>Lọc theo Chi Nhánh</label>
+                                        <select class="form-control" id="filterChiNhanh">
+                                            <option value="0">-- Tất cả chi nhánh --</option>
+                                            @if (ViewBag.ListChiNhanh != null)
+                                            {
+                                                foreach (var cn in ViewBag.ListChiNhanh)
+                                                {
+                                                    <option value="@cn.Value">@cn.Text</option>
+                                                }
+                                            }
+                                        </select>
+                                    </div>
+                                    <div class="col-md-8 d-flex align-items-end justify-content-end">
+                                        <button class="btn btn-success" id="btnOpenAddGia"><i class="fas fa-plus"></i> Cài đặt Giá mới</button>
+                                    </div>
+                                </div>
+                                <table id="bangGiaTable" class="table table-bordered table-striped w-100">
+                                    <thead>
+                                        <tr>
+                                            <th class="text-center" width="5%">STT</th>
+                                            <th>Chi Nhánh</th>
+                                            <th>Tên Dịch Vụ</th>
+                                            <th>Giá Dịch Vụ (VNĐ)</th>
+                                            <th class="text-center" width="15%">Thao tác</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Modal Thêm/Sửa Dịch Vụ -->
+<div class="modal fade" id="dichVuModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="dichVuModalTitle">Thêm Dịch Vụ Mới</h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="DichVuId" value="0" />
+                <div class="form-group">
+                    <label>Tên Dịch Vụ <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="TenDichVu" placeholder="VD: Điện, Nước, Rác...">
+                </div>
+                <div class="form-group">
+                    <label>Đơn Vị Tính <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="DonVi" placeholder="VD: kWh, m3, Tháng...">
+                </div>
+                <div class="form-group">
+                    <label>Ghi Chú</label>
+                    <textarea class="form-control" id="GhiChuDichVu" rows="2"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-primary" id="btnSaveDichVu">Lưu Dịch Vụ</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Thêm/Sửa Bảng Giá -->
+<div class="modal fade" id="bangGiaModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="bangGiaModalTitle">Cài đặt Giá Dịch Vụ</h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="DichVuChiNhanhId" value="0" />
+                <div class="form-group">
+                    <label>Chi Nhánh <span class="text-danger">*</span></label>
+                    <select class="form-control" id="BgChiNhanhId">
+                        <option value="">-- Chọn chi nhánh --</option>
+                        @if (ViewBag.ListChiNhanh != null)
+                        {
+                            foreach (var cn in ViewBag.ListChiNhanh)
+                            {
+                                <option value="@cn.Value">@cn.Text</option>
+                            }
+                        }
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Dịch Vụ <span class="text-danger">*</span></label>
+                    <select class="form-control" id="BgDichVuId">
+                        <option value="">-- Chọn dịch vụ --</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Giá Dịch Vụ (VNĐ) <span class="text-danger">*</span></label>
+                    <input type="number" class="form-control" id="GiaDichVu" value="0" min="0">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-success" id="btnSaveBangGia">Lưu Bảng Giá</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Hàm format tiền
+            function formatVND(n) {
+                if (n === null || n === undefined) return "0 ₫";
+                return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n);
+            }
+
+            // ================== TAB 1: DỊCH VỤ ==================
+            var tableDichVu = $('#dichVuTable').DataTable({
+                "language": { "url": "https://cdn.datatables.net/plug-ins/1.13.6/i18n/vi.json" },
+                "serverSide": true,
+                "processing": true,
+                "ajax": {
+                    "url": "/DichVu/GetList",
+                    "type": "POST"
+                },
+                "columns": [
+                    { "data": null, "className": "text-center", "orderable": false, "render": (d,t,r,m) => m.row + m.settings._iDisplayStart + 1 },
+                    { "data": "tenDichVu", "name": "tenDichVu" },
+                    { "data": "donVi" },
+                    { "data": "ghiChu", "orderable": false },
+                    {
+                        "data": "dichVuId", "orderable": false, "className": "text-center",
+                        "render": function(data) {
+                            return `<button class="btn btn-warning btn-sm btn-edit-dv" data-id="${data}"><i class="fas fa-edit"></i></button>
+                                    <button class="btn btn-danger btn-sm btn-delete-dv" data-id="${data}"><i class="fas fa-trash"></i></button>`;
+                        }
+                    }
+                ]
+            });
+
+            $('#btnOpenAddDichVu').click(function() {
+                $('#DichVuId').val(0);
+                $('#TenDichVu').val('');
+                $('#DonVi').val('');
+                $('#GhiChuDichVu').val('');
+                $('#dichVuModalTitle').text('Thêm Dịch Vụ Mới');
+                $('#dichVuModal').modal('show');
+            });
+
+            $('#btnSaveDichVu').click(function() {
+                let id = $('#DichVuId').val();
+                let ten = $('#TenDichVu').val().trim();
+                let dvi = $('#DonVi').val().trim();
+                let ghiChu = $('#GhiChuDichVu').val().trim();
+
+                if(!ten || !dvi) { alert('Vui lòng nhập tên và đơn vị!'); return; }
+
+                let req = { dichVuId: parseInt(id), tenDichVu: ten, donVi: dvi, ghiChu: ghiChu };
+                let isUpdate = id > 0;
+
+                $.ajax({
+                    url: isUpdate ? `/DichVu/Update/${id}` : '/DichVu/Create',
+                    type: isUpdate ? 'PUT' : 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(req),
+                    success: function(res) {
+                        alert(res.message);
+                        $('#dichVuModal').modal('hide');
+                        tableDichVu.ajax.reload(null, false);
+                    },
+                    error: function(xhr) { alert(xhr.responseJSON?.message || 'Có lỗi xảy ra'); }
+                });
+            });
+
+            $('#dichVuTable').on('click', '.btn-edit-dv', function() {
+                let id = $(this).data('id');
+                $.get(`/DichVu/GetById/${id}`, function(res) {
+                    $('#DichVuId').val(res.dichVuId);
+                    $('#TenDichVu').val(res.tenDichVu);
+                    $('#DonVi').val(res.donVi);
+                    $('#GhiChuDichVu').val(res.ghiChu);
+                    $('#dichVuModalTitle').text('Cập nhật Dịch Vụ');
+                    $('#dichVuModal').modal('show');
+                });
+            });
+
+            $('#dichVuTable').on('click', '.btn-delete-dv', function() {
+                let id = $(this).data('id');
+                if(confirm('Xóa dịch vụ này?')) {
+                    $.ajax({
+                        url: `/DichVu/Delete/${id}`, type: 'DELETE',
+                        success: function(res) { alert(res.message); tableDichVu.ajax.reload(null, false); },
+                        error: function(xhr) { alert(xhr.responseJSON?.message || 'Có lỗi xảy ra'); }
+                    });
+                }
+            });
+
+            // ================== TAB 2: BẢNG GIÁ CHI NHÁNH ==================
+            var tableBangGia = $('#bangGiaTable').DataTable({
+                "language": { "url": "https://cdn.datatables.net/plug-ins/1.13.6/i18n/vi.json" },
+                "serverSide": true,
+                "processing": true,
+                "ajax": {
+                    "url": "/DichVuChiNhanh/GetList",
+                    "type": "POST",
+                    "data": function(d) { d.chiNhanhId = $('#filterChiNhanh').val(); }
+                },
+                "columns": [
+                    { "data": null, "className": "text-center", "orderable": false, "render": (d,t,r,m) => m.row + m.settings._iDisplayStart + 1 },
+                    { "data": "tenChiNhanh", "orderable": false },
+                    { "data": "tenDichVu", "orderable": false },
+                    { "data": "giaDichVu", "orderable": false, "render": function(d) { return formatVND(d); } },
+                    {
+                        "data": "dichVuChiNhanhId", "orderable": false, "className": "text-center",
+                        "render": function(data) {
+                            return `<button class="btn btn-warning btn-sm btn-edit-bg" data-id="${data}"><i class="fas fa-edit"></i></button>
+                                    <button class="btn btn-danger btn-sm btn-delete-bg" data-id="${data}"><i class="fas fa-trash"></i></button>`;
+                        }
+                    }
+                ]
+            });
+
+            $('#filterChiNhanh').change(function() { tableBangGia.ajax.reload(); });
+
+            function loadDichVuDropdown(selectedId = 0) {
+                $.get('/DichVu/GetDropdown', function(data) {
+                    let html = '<option value="">-- Chọn dịch vụ --</option>';
+                    data.forEach(item => {
+                        let sel = item.value == selectedId ? 'selected' : '';
+                        html += `<option value="${item.value}" ${sel}>${item.text}</option>`;
+                    });
+                    $('#BgDichVuId').html(html);
+                });
+            }
+
+            $('#btnOpenAddGia').click(function() {
+                $('#DichVuChiNhanhId').val(0);
+                $('#BgChiNhanhId').val('');
+                loadDichVuDropdown();
+                $('#GiaDichVu').val(0);
+                $('#bangGiaModalTitle').text('Thêm Bảng Giá');
+                $('#bangGiaModal').modal('show');
+            });
+
+            $('#btnSaveBangGia').click(function() {
+                let id = $('#DichVuChiNhanhId').val();
+                let cn = $('#BgChiNhanhId').val();
+                let dv = $('#BgDichVuId').val();
+                let gia = parseFloat($('#GiaDichVu').val() || 0);
+
+                if(!cn || !dv) { alert('Vui lòng chọn chi nhánh và dịch vụ!'); return; }
+                if(gia < 0) { alert('Giá không được âm!'); return; }
+
+                let req = { dichVuChiNhanhId: parseInt(id), chiNhanhId: parseInt(cn), dichVuId: parseInt(dv), giaDichVu: gia };
+                let isUpdate = id > 0;
+
+                $.ajax({
+                    url: isUpdate ? `/DichVuChiNhanh/Update/${id}` : '/DichVuChiNhanh/Create',
+                    type: isUpdate ? 'PUT' : 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(req),
+                    success: function(res) {
+                        alert(res.message);
+                        $('#bangGiaModal').modal('hide');
+                        tableBangGia.ajax.reload(null, false);
+                    },
+                    error: function(xhr) { alert(xhr.responseJSON?.message || 'Có lỗi xảy ra'); }
+                });
+            });
+
+            $('#bangGiaTable').on('click', '.btn-edit-bg', function() {
+                let id = $(this).data('id');
+                $.get(`/DichVuChiNhanh/GetById/${id}`, function(res) {
+                    $('#DichVuChiNhanhId').val(res.dichVuChiNhanhId);
+                    $('#BgChiNhanhId').val(res.chiNhanhId);
+                    loadDichVuDropdown(res.dichVuId);
+                    $('#GiaDichVu').val(res.giaDichVu);
+                    $('#bangGiaModalTitle').text('Cập nhật Bảng Giá');
+                    $('#bangGiaModal').modal('show');
+                });
+            });
+
+            $('#bangGiaTable').on('click', '.btn-delete-bg', function() {
+                let id = $(this).data('id');
+                if(confirm('Xóa bảng giá này?')) {
+                    $.ajax({
+                        url: `/DichVuChiNhanh/Delete/${id}`, type: 'DELETE',
+                        success: function(res) { alert(res.message); tableBangGia.ajax.reload(null, false); },
+                        error: function(xhr) { alert(xhr.responseJSON?.message || 'Có lỗi xảy ra'); }
+                    });
+                }
+            });
+        });
+    </script>
+}

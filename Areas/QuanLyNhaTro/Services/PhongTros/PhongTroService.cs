@@ -115,5 +115,19 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.PhongTros
             await _context.SaveChangesAsync();
             return ServiceResult.Ok("Xóa phòng trọ thành công!");
         }
+        public async Task<List<PhongTro>> DanhSachPhongTroConTrong()
+        {
+            return await _context.PhongTros
+                .Where(p => !p.IsDeleted)
+                .Select(p => new PhongTro 
+                { 
+                    PhongTroId = p.PhongTroId, 
+                    SoPhong = p.SoPhong,
+                    ChiNhanhId = p.ChiNhanhId ,
+                    TrangThai = p.TrangThai
+                })
+                .ToListAsync();
+        }
+
     }
 }

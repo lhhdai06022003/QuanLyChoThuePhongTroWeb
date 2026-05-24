@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.PhongTros;
 using QuanLyChoThuePhongTroWeb.Models;
 
@@ -6,6 +6,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
 {
     [Area("QuanLyNhaTro")]
     [Route("[controller]/[action]")]
+    [Microsoft.AspNetCore.Authorization.Authorize]
     public class PhongTrosController : Controller
     {
         private readonly IPhongTroService _phongTroService;

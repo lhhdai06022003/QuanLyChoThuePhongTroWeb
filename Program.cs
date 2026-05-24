@@ -1,7 +1,12 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.EntityFrameworkCore;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.ChiNhanhs;
+using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HopDongs;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.NguoiThues;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.PhongTros;
+using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.DichVus;
+using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.DienNuocs;
+using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.NguoiDungs;
 using QuanLyChoThuePhongTroWeb.Data;
 using System;
 
@@ -12,13 +17,30 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Add services to the container.
-builder.Services.AddControllersWithViews();
+builder.Services.AddControllersWithViews().AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+});
 builder.Services.AddControllers();
 
 // Đăng ký Service vào Container
 builder.Services.AddScoped<IChiNhanhService, ChiNhanhService>();
 builder.Services.AddScoped<IPhongTroService, PhongTroService>();
 builder.Services.AddScoped<INguoiThueService, NguoiThueService>();
+builder.Services.AddScoped<IHopDongService, HopDongService>();
+builder.Services.AddScoped<IDichVuService, DichVuService>();
+builder.Services.AddScoped<IDienNuocService, DienNuocService>();
+builder.Services.AddScoped<INguoiDungService, NguoiDungService>();
+
+// Cấu hình Authentication
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/QuanLyNhaTro/DangNhap";
+        options.LogoutPath = "/QuanLyNhaTro/DangXuat";
+        options.AccessDeniedPath = "/QuanLyNhaTro/DangNhap";
+        options.ExpireTimeSpan = TimeSpan.FromDays(30);
+    });
 
 var app = builder.Build();
 // Lệnh này sẽ tự động chạy các Migration còn thiếu lên Database
@@ -50,6 +72,7 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllerRoute(

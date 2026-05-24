@@ -22,7 +22,7 @@
                 <table id="chiNhanhTable" class="table table-bordered table-striped table-hover w-100">
                     <thead class="thead-light">
                         <tr>
-                            <th width="5%">ID</th>
+                            <th width="5%">STT</th>
                             <th width="20%">Tên Chi Nhánh</th>
                             <th width="30%">Địa Chỉ</th>
                             <th width="15%">Số Điện Thoại</th>
@@ -106,7 +106,15 @@
                     "datatype": "json"
                 },
                 "columns": [
-                    { "data": "chiNhanhId" },
+                    {
+                        "data": null,
+                        "className": "text-center align-middle",
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (data, type, row, meta) {
+                            return meta.row + meta.settings._iDisplayStart + 1;
+                        }
+                    },
                     {
                         "data": "tenChiNhanh",
                         "render": function(data) {

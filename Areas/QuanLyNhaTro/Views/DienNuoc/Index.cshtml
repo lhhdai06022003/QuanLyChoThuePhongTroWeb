@@ -1,0 +1,234 @@
+@{
+    ViewData["Title"] = "Chốt Chỉ Số Điện/Nước Hàng Tháng";
+}
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="card card-default">
+            <div class="card-header">
+                <h3 class="card-title">Lọc Dữ Liệu</h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 form-group">
+                        <label>Chi Nhánh <span class="text-danger">*</span></label>
+                        <select id="filterChiNhanh" class="form-control">
+                            <option value="">-- Chọn chi nhánh --</option>
+                            @if (ViewBag.ListChiNhanh != null)
+                            {
+                                foreach (var cn in ViewBag.ListChiNhanh)
+                                {
+                                    <option value="@cn.Value">@cn.Text</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-3 form-group">
+                        <label>Tháng <span class="text-danger">*</span></label>
+                        <select id="filterThang" class="form-control">
+                            @for (int i = 1; i <= 12; i++)
+                            {
+                                if (i == DateTime.Now.Month)
+                                {
+                                    <option value="@i" selected>Tháng @i</option>
+                                }
+                                else
+                                {
+                                    <option value="@i">Tháng @i</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-3 form-group">
+                        <label>Năm <span class="text-danger">*</span></label>
+                        <input type="number" id="filterNam" class="form-control" value="@DateTime.Now.Year">
+                    </div>
+                    <div class="col-md-3 form-group d-flex align-items-end">
+                        <button type="button" class="btn btn-primary w-100" id="btnLoadData">
+                            <i class="fas fa-search"></i> Lấy danh sách
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card card-primary card-outline" id="cardResult" style="display: none;">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h3 class="card-title"><i class="fas fa-bolt"></i> <i class="fas fa-tint"></i> Danh sách Phòng</h3>
+                <button type="button" class="btn btn-success btn-sm ml-auto" id="btnSaveData">
+                    <i class="fas fa-save"></i> Lưu tất cả chỉ số
+                </button>
+            </div>
+            <div class="card-body">
+                <table class="table table-bordered table-striped table-hover w-100" id="dienNuocTable">
+                    <thead class="bg-light">
+                        <tr>
+                            <th class="text-center" width="5%">STT</th>
+                            <th>Phòng</th>
+                            <th>Người Đại Diện</th>
+                            <th class="text-center bg-warning text-white">Chỉ số Điện Cũ</th>
+                            <th class="text-center bg-danger text-white">Chỉ số Điện Mới</th>
+                            <th class="text-center bg-info text-white">Chỉ số Nước Cũ</th>
+                            <th class="text-center bg-primary text-white">Chỉ số Nước Mới</th>
+                            <th class="text-center">Trạng Thái</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbodyDienNuoc">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            let currentData = [];
+
+            $('#btnLoadData').on('click', function () {
+                let chiNhanhId = $('#filterChiNhanh').val();
+                let thang = $('#filterThang').val();
+                let nam = $('#filterNam').val();
+
+                if (!chiNhanhId) {
+                    alert('Vui lòng chọn chi nhánh!');
+                    return;
+                }
+
+                $('#btnLoadData').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang tải...');
+
+                $.ajax({
+                    url: '/DienNuoc/GetDanhSachPhongs',
+                    type: 'GET',
+                    data: { chiNhanhId: chiNhanhId, thang: thang, nam: nam },
+                    success: function (res) {
+                        currentData = res;
+                        renderTable(res);
+                        $('#cardResult').show();
+                    },
+                    error: function (xhr) {
+                        alert(xhr.responseJSON?.message || 'Có lỗi xảy ra khi tải dữ liệu.');
+                        $('#cardResult').hide();
+                    },
+                    complete: function () {
+                        $('#btnLoadData').prop('disabled', false).html('<i class="fas fa-search"></i> Lấy danh sách');
+                    }
+                });
+            });
+
+            function renderTable(data) {
+                let html = '';
+                if (data.length === 0) {
+                    html = '<tr><td colspan="8" class="text-center">Không có phòng nào đang thuê tại chi nhánh này.</td></tr>';
+                } else {
+                    data.forEach((item, index) => {
+                        let statusBadge = item.isDaChot 
+                            ? '<span class="badge badge-success">Đã chốt</span>' 
+                            : '<span class="badge badge-secondary">Chưa chốt</span>';
+                        
+                        // Default to old index if new index is 0 and not yet recorded
+                        let defaultDienMoi = (item.chiSoDienMoi === 0 && !item.isDaChot) ? item.chiSoDienCu : item.chiSoDienMoi;
+                        let defaultNuocMoi = (item.chiSoNuocMoi === 0 && !item.isDaChot) ? item.chiSoNuocCu : item.chiSoNuocMoi;
+
+                        html += `
+                            <tr data-index="${index}">
+                                <td class="text-center align-middle">${index + 1}</td>
+                                <td class="align-middle font-weight-bold">${item.tenPhong}</td>
+                                <td class="align-middle">${item.tenNguoiDaiDien}</td>
+                                <td class="text-center align-middle">
+                                    <input type="number" class="form-control text-center in-dien-cu" value="${item.chiSoDienCu}" min="0">
+                                </td>
+                                <td class="text-center align-middle">
+                                    <input type="number" class="form-control text-center text-danger font-weight-bold in-dien-moi" value="${defaultDienMoi}" min="0">
+                                </td>
+                                <td class="text-center align-middle">
+                                    <input type="number" class="form-control text-center in-nuoc-cu" value="${item.chiSoNuocCu}" min="0">
+                                </td>
+                                <td class="text-center align-middle">
+                                    <input type="number" class="form-control text-center text-primary font-weight-bold in-nuoc-moi" value="${defaultNuocMoi}" min="0">
+                                </td>
+                                <td class="text-center align-middle">${statusBadge}</td>
+                            </tr>
+                        `;
+                    });
+                }
+                $('#tbodyDienNuoc').html(html);
+            }
+
+            $('#btnSaveData').on('click', function () {
+                if (currentData.length === 0) return;
+
+                let chiNhanhId = $('#filterChiNhanh').val();
+                let thang = $('#filterThang').val();
+                let nam = $('#filterNam').val();
+
+                let danhSachPhong = [];
+                let hasError = false;
+
+                $('#tbodyDienNuoc tr').each(function () {
+                    let index = $(this).data('index');
+                    if (index !== undefined) {
+                        let rowData = currentData[index];
+                        let dienCu = parseFloat($(this).find('.in-dien-cu').val()) || 0;
+                        let dienMoi = parseFloat($(this).find('.in-dien-moi').val()) || 0;
+                        let nuocCu = parseFloat($(this).find('.in-nuoc-cu').val()) || 0;
+                        let nuocMoi = parseFloat($(this).find('.in-nuoc-moi').val()) || 0;
+
+                        if (dienMoi < dienCu) {
+                            alert(`Phòng ${rowData.tenPhong}: Chỉ số điện mới không được nhỏ hơn chỉ số điện cũ.`);
+                            hasError = true;
+                            return false; // break each
+                        }
+
+                        if (nuocMoi < nuocCu) {
+                            alert(`Phòng ${rowData.tenPhong}: Chỉ số nước mới không được nhỏ hơn chỉ số nước cũ.`);
+                            hasError = true;
+                            return false; // break each
+                        }
+
+                        danhSachPhong.push({
+                            dichVuDienNuocCuaPhongId: rowData.dichVuDienNuocCuaPhongId,
+                            phongTroId: rowData.phongTroId,
+                            chiSoDienCu: dienCu,
+                            chiSoDienMoi: dienMoi,
+                            chiSoNuocCu: nuocCu,
+                            chiSoNuocMoi: nuocMoi
+                        });
+                    }
+                });
+
+                if (hasError) return;
+
+                let payload = {
+                    chiNhanhId: parseInt(chiNhanhId),
+                    thang: parseInt(thang),
+                    nam: parseInt(nam),
+                    danhSachPhong: danhSachPhong
+                };
+
+                let $btn = $(this);
+                let originalHtml = $btn.html();
+                $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang lưu...');
+
+                $.ajax({
+                    url: '/DienNuoc/SaveChotDienNuoc',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(payload),
+                    success: function (res) {
+                        alert(res.message);
+                        // Reload data to see 'Đã chốt' badges
+                        $('#btnLoadData').click();
+                    },
+                    error: function (xhr) {
+                        alert(xhr.responseJSON?.message || 'Có lỗi xảy ra khi lưu.');
+                    },
+                    complete: function () {
+                        $btn.prop('disabled', false).html(originalHtml);
+                    }
+                });
+            });
+        });
+    </script>
+}

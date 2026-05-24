@@ -1,0 +1,494 @@
+@using QuanLyChoThuePhongTroWeb.Models
+@{
+    ViewData["Title"] = "Quản lý Hợp Đồng";
+    // Ép kiểu dữ liệu ViewBag sang JSON để xài trong Javascript với CamelCase
+    var jsonPhongTros = Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.ListPhongTro, new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }));
+}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/themes/material_blue.min.css" />
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/select2-bootstrap4-theme/1.5.2/select2-bootstrap4.min.css" />
+<section class="content">
+    <div class="container-fluid">
+        <div class="card card-default">
+            <div class="card-header">
+                <h3 class="card-title">Bộ lọc tìm kiếm</h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 form-group">
+                        <label>Chi Nhánh</label>
+                        <select id="filterChiNhanh" class="form-control select2">
+                            <option value="0">-- Tất cả chi nhánh --</option>
+                            @if (ViewBag.ListChiNhanh != null)
+                            {
+                                foreach (var cn in ViewBag.ListChiNhanh)
+                                {
+                                    <option value="@cn.Value">@cn.Text</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-3 form-group">
+                        <label>Người Thuê</label>
+                        <select id="filterNguoiThue" class="form-control select2">
+                            <option value="0">-- Tất cả người thuê --</option>
+                            @if (ViewBag.ListNguoiThue != null)
+                            {
+                                foreach (var nt in ViewBag.ListNguoiThue)
+                                {
+                                    <option value="@nt.Value">@nt.Text</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-3 form-group">
+                        <label>Thời hạn hợp đồng</label>
+                        <input type="text" class="form-control" id="filterDateRange" placeholder="Chọn khoảng thời gian...">
+                    </div>
+                    <div class="col-md-2 form-group d-flex align-items-end">
+                        <button type="button" class="btn btn-primary w-100" id="btnSearch">
+                            <i class="fas fa-search"></i> Tìm kiếm
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card card-primary card-outline">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h3 class="card-title"><i class="fas fa-file-contract"></i> Danh sách Hợp Đồng</h3>
+                <button type="button" class="btn btn-success btn-sm ml-auto" id="btnOpenAddModal">
+                    <i class="fas fa-plus"></i> Tạo Hợp Đồng Mới
+                </button>
+            </div>
+            <div class="card-body">
+                <table id="hopDongTable" class="table table-bordered table-striped table-hover w-100">
+                    <thead class="bg-light">
+                        <tr>
+                            <th class="text-center" width="5%">STT</th>
+                            <th>Mã HĐ</th>
+                            <th>Phòng</th>
+                            <th>Người Đại Diện</th>
+                            <th>Ngày Bắt Đầu</th>
+                            <th>Tiền Thuê/Tháng</th>
+                            <th class="text-center">Trạng Thái</th>
+                            <th class="text-center">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="modal fade" id="hopDongModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalTitle">Thêm Hợp Đồng Mới</h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Mã Hợp Đồng <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="MaHopDong" placeholder="VD: HD-001">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Chi Nhánh <span class="text-danger">*</span></label>
+                            <select class="form-control" id="ChiNhanhId">
+                                <option value="">-- Chọn chi nhánh --</option>
+                                @if (ViewBag.ListChiNhanh != null)
+                                {
+                                    foreach (var cn in ViewBag.ListChiNhanh)
+                                    {
+                                        <option value="@cn.Value">@cn.Text</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Phòng Trọ <span class="text-danger">*</span></label>
+                            <select class="form-control" id="PhongTroId">
+                                <option value="">-- Vui lòng chọn chi nhánh trước --</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Người Đại Diện <span class="text-danger">*</span></label>
+                            <select class="form-control select2" id="NguoiThueId">
+                                <option value="">-- Chọn khách thuê --</option>
+                                @if (ViewBag.ListNguoiThue != null)
+                                {
+                                    foreach (var nt in ViewBag.ListNguoiThue)
+                                    {
+                                        <option value="@nt.Value">@nt.Text</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Ngày Bắt Đầu <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="ThoiDiemBatDau" placeholder="Chọn ngày bắt đầu...">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Ngày Kết Thúc (Dự kiến)</label>
+                            <input type="text" class="form-control" id="ThoiDiemKetThuc" placeholder="Chọn ngày kết thúc...">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Tiền Cọc (VNĐ) <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="TienCocPhong" value="0" min="0">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Tiền Thuê/Tháng (VNĐ) <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="TienThuePhong" min="0">
+                        </div>
+
+                        <div class="form-group" id="groupTrangThaiHopDong" style="display: none;">
+                            <label>Trạng Thái Hợp Đồng <span class="text-danger">*</span></label>
+                            <select class="form-control" id="TrangThaiHopDong">
+                                <option value="1">Đang hoạt động</option>
+                                <option value="2">Đã kết thúc</option>
+                                <option value="3">Đã hủy</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-primary" id="btnSaveData">
+                    <i class="fas fa-save"></i> Lưu thông tin
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/l10n/vn.min.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.full.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            let currentHopDongId = 0;
+
+            // Hàm format tiền VNĐ
+            function formatVND(n) {
+                if (n === null || n === undefined) return "0 ₫";
+                return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n);
+            }
+
+            // Tính toán Ngày đầu/cuối quý hiện tại bằng JS thuần (Không cần moment)
+            const now = new Date();
+            const quarter = Math.floor(now.getMonth() / 3);
+            const startOfQuarter = new Date(now.getFullYear(), quarter * 3, 1);
+            const endOfQuarter = new Date(now.getFullYear(), (quarter + 1) * 3, 0);
+
+            // === KHỞI TẠO FLATPICKR CHO BỘ LỌC (Chọn khoảng ngày) ===
+            let filterPicker = flatpickr("#filterDateRange", {
+                mode: "range",
+                dateFormat: "d/m/Y",
+                locale: "vn",
+                defaultDate: [startOfQuarter, endOfQuarter]
+            });
+
+            // === KHỞI TẠO FLATPICKR CHO MODAL (Chọn ngày đơn) ===
+            let batDauPicker = flatpickr("#ThoiDiemBatDau", { dateFormat: "d/m/Y", locale: "vn" });
+            let ketThucPicker = flatpickr("#ThoiDiemKetThuc", { dateFormat: "d/m/Y", locale: "vn" });
+
+            // Khởi tạo Select2
+            if ($('.select2').length > 0) {
+                $('.select2').select2({ theme: 'bootstrap4' });
+            }
+
+            // Mảng dữ liệu phòng trọ từ ViewBag
+            let allPhongTros = @jsonPhongTros || [];
+
+            // Logic Chọn Chi Nhánh -> Lọc Phòng Trọ
+            $('#ChiNhanhId').on('change', function () {
+                let chiNhanhId = $(this).val();
+                let $phongTroSelect = $('#PhongTroId');
+                $phongTroSelect.empty();
+                if (!chiNhanhId) {
+                    $phongTroSelect.append('<option value="">-- Vui lòng chọn chi nhánh trước --</option>');
+                    return;
+                }
+                $phongTroSelect.append('<option value="">-- Chọn phòng trọ --</option>');
+                let phongsFilter = allPhongTros.filter(p => p.chiNhanhId == parseInt(chiNhanhId));
+                debugger;
+                if(currentHopDongId == 0){
+                    phongsFilter = allPhongTros.filter(p => p.trangThai == @((int)TrangThaiPhong.Trong));
+                }
+                phongsFilter.forEach(p => {
+                    $phongTroSelect.append(`<option value="${p.phongTroId}">${p.soPhong}</option>`);
+                });
+            });
+
+            // KHỞI TẠO DATATABLE SERVER-SIDE
+            var table = $('#hopDongTable').DataTable({
+                "language": { "url": "https://cdn.datatables.net/plug-ins/1.13.6/i18n/vi.json" },
+                "responsive": true,
+                "autoWidth": false,
+                "serverSide": true,
+                "processing": true,
+                "ajax": {
+                    "url": "/HopDong/DanhSachHopDongSideAsync",
+                    "type": "POST",
+                    "data": function (d) {
+                        d.chiNhanhId = $('#filterChiNhanh').val();
+                        d.nguoiThueId = $('#filterNguoiThue').val();
+
+                        // Lấy khoảng ngày từ Flatpickr gửi lên Server
+                        let selectedDates = filterPicker.selectedDates;
+                        if (selectedDates.length === 2) {
+                            d.startDate = flatpickr.formatDate(selectedDates[0], "Y-m-d");
+                            d.endDate = flatpickr.formatDate(selectedDates[1], "Y-m-d");
+                        }
+                    }
+                },
+                "columns": [
+                    {
+                        "data": null,
+                        "className": "text-center align-middle",
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (data, type, row, meta) {
+                            return meta.row + meta.settings._iDisplayStart + 1;
+                        }
+                    },
+                    { "data": "maHopDong", "name": "maHopDong", "className": "font-weight-bold text-primary" },
+                    { "data": "soPhong", "name": "SoPhong", "orderable": true },
+                    { "data": "tenNguoiThue", "orderable": false },
+                    {
+                        "data": "thoiDiemBatDau",
+                        "name": "thoiDiemBatDau",
+                        "render": function(data) {
+                            if(!data) return '';
+                            // Dùng hàm định dạng ngày tháng mặc định cực nhẹ của trình duyệt thay vì moment
+                            return new Date(data).toLocaleDateString('vi-VN');
+                        }
+                    },
+                    {
+                        "data": "tienThuePhong",
+                        "name": "tienThuePhong",
+                        "render": function(data) { return formatVND(data); }
+                    },
+                    {
+                        "data": "trangThaiHopDong",
+                        "orderable": false,
+                        "className": "text-center align-middle",
+                        "render": function (data) {
+                            if (data === 1) return '<span class="badge badge-success">Đang hoạt động</span>';
+                            if (data === 2) return '<span class="badge badge-secondary">Đã kết thúc</span>';
+                            return '<span class="badge badge-danger">Đã hủy</span>';
+                        }
+                    },
+                    {
+                        "data": "hopDongId",
+                        "orderable": false,
+                        "className": "text-center align-middle",
+                        "render": function (data) {
+                            return `
+                                <button class="btn btn-warning btn-sm btn-edit" data-id="${data}" title="Sửa">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-danger btn-sm btn-delete" data-id="${data}" title="Xóa">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            `;
+                        }
+                    }
+                ],
+                "order": [[4, 'desc']]
+            });
+
+            // Nút tìm kiếm
+            $('#btnSearch').on('click', function () {
+                table.ajax.reload();
+            });
+
+            // Nút mở Modal Thêm mới
+            $('#btnOpenAddModal').on('click', function() {
+                currentHopDongId = 0;
+                $('#MaHopDong').val('');
+                $('#TienCocPhong').val('0');
+                $('#TienThuePhong').val('');
+
+                // Clear ngày tháng bằng hàm của Flatpickr
+                batDauPicker.clear();
+                ketThucPicker.clear();
+
+                $('#ChiNhanhId').val('').trigger('change').prop('disabled', false);
+                $('#NguoiThueId').val('').trigger('change').prop('disabled', false);
+                $('#PhongTroId').prop('disabled', false);
+
+                $('#groupTrangThaiHopDong').hide();
+                $('#TrangThaiHopDong').val(1);
+
+                $('#modalTitle').text('Thêm Hợp Đồng Mới');
+                $('#hopDongModal').modal('show');
+            });
+
+            // SỰ KIỆN LƯU DỮ LIỆU
+            $('#btnSaveData').on('click', function () {
+                let maHopDong = $('#MaHopDong').val().trim();
+                let phongTroId = $('#PhongTroId').val();
+                let nguoiThueId = $('#NguoiThueId').val();
+
+                // Lấy đối tượng Date thực tế từ Flatpickr
+                let dateBatDau = batDauPicker.selectedDates[0];
+                let dateKetThuc = ketThucPicker.selectedDates[0];
+
+                let tienCocPhong = parseFloat($('#TienCocPhong').val() || 0);
+                let tienThuePhong = parseFloat($('#TienThuePhong').val() || 0);
+
+                if (!maHopDong || !phongTroId || !nguoiThueId || !dateBatDau) {
+                    alert("Vui lòng nhập đầy đủ các trường bắt buộc (*).");
+                    return;
+                }
+
+                if (tienThuePhong <= 0) {
+                    alert("Vui lòng nhập Tiền Thuê Phòng (phải lớn hơn 0).");
+                    return;
+                }
+                let requestData = {
+                    hopDongId: currentHopDongId,
+                    maHopDong: maHopDong,
+                    phongTroId: parseInt(phongTroId),
+                    nguoiThueId: parseInt(nguoiThueId),
+                    // Format sang ISO string gửi lên cho backend .NET nhận diện đúng kiểu dữ liệu
+                    thoiDiemBatDau: flatpickr.formatDate(dateBatDau, "Y-m-d"),
+                    thoiDiemKetThuc: dateKetThuc ? flatpickr.formatDate(dateKetThuc, "Y-m-d") : null,
+                    tienCocPhong: tienCocPhong,
+                    tienThuePhong: tienThuePhong,
+                    trangThaiHopDong: parseInt($('#TrangThaiHopDong').val() || 1)
+                };
+
+                let isUpdate = currentHopDongId > 0;
+                let apiUrl = isUpdate ? `/HopDong/Update/${currentHopDongId}` : `/HopDong/Create`;
+                let httpMethod = isUpdate ? 'PUT' : 'POST';
+
+                let $btn = $(this);
+                $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang xử lý...');
+
+                $.ajax({
+                    url: apiUrl,
+                    type: httpMethod,
+                    contentType: 'application/json',
+                    data: JSON.stringify(requestData),
+                    success: function (res) {
+                        alert(res.message || "Thao tác thành công!");
+                        $('#hopDongModal').modal('hide');
+                        table.ajax.reload(null, false);
+                    },
+                    error: function (xhr) {
+                        let errorMessage = "Đã xảy ra lỗi!";
+                        if (xhr.responseJSON) {
+                            if (xhr.responseJSON.message) {
+                                errorMessage = xhr.responseJSON.message;
+                            } else if (xhr.responseJSON.errors) {
+                                // Lấy tất cả thông báo lỗi từ ModelState (ASP.NET Core validation)
+                                errorMessage = Object.values(xhr.responseJSON.errors).flat().join('\n');
+                            }
+                        }
+                        alert(errorMessage);
+                    },
+                    complete: function () {
+                        $btn.prop('disabled', false).html('<i class="fas fa-save"></i> Lưu thông tin');
+                    }
+                });
+            });
+
+            // SỰ KIỆN NÚT SỬA (ĐỔ DỮ LIỆU)
+            $('#hopDongTable tbody').on('click', '.btn-edit', function () {
+                let id = $(this).data('id');
+                currentHopDongId = id;
+
+                let $btn = $(this);
+                let originalHtml = $btn.html();
+                $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
+
+                $.ajax({
+                    url: `/HopDong/GetById/${id}`,
+                    type: 'GET',
+                    success: function (res) {
+                        $('#MaHopDong').val(res.maHopDong);
+                        debugger;
+                        if(res.phongTroId) {
+                            $('#ChiNhanhId').val(res.phongTro.chiNhanhId).trigger('change');
+                            setTimeout(() => { $('#PhongTroId').val(res.phongTroId).change(); }, 150);
+                        }
+
+                        $('#NguoiThueId').val(res.nguoiThueId).trigger('change');
+
+                        // Khóa các select vì không cho phép đổi chi nhánh, phòng, hoặc người thuê
+                        $('#ChiNhanhId').prop('disabled', true);
+                        $('#PhongTroId').prop('disabled', true);
+                        $('#NguoiThueId').prop('disabled', true);
+
+                        // Mở dropdown Trạng Thái
+                        $('#groupTrangThaiHopDong').show();
+                        $('#TrangThaiHopDong').val(res.trangThaiHopDong);
+
+                        // Set ngày tháng thông qua hàm setDate của Flatpickr
+                        if(res.thoiDiemBatDau) batDauPicker.setDate(new Date(res.thoiDiemBatDau));
+                        if(res.thoiDiemKetThuc) ketThucPicker.setDate(new Date(res.thoiDiemKetThuc));
+                        else ketThucPicker.clear();
+
+                        $('#TienCocPhong').val(res.tienCocPhong);
+                        $('#TienThuePhong').val(res.tienThuePhong);
+
+                        $('#modalTitle').text('Cập nhật Hợp Đồng');
+                        $('#hopDongModal').modal('show');
+                    },
+                    error: function () { alert("Không thể tải thông tin."); },
+                    complete: function() { $btn.prop('disabled', false).html(originalHtml); }
+                });
+            });
+
+            // SỰ KIỆN NÚT XÓA
+            $('#hopDongTable tbody').on('click', '.btn-delete', function () {
+                let id = $(this).data('id');
+                if (confirm('Bạn có chắc chắn muốn xóa hợp đồng này?')) {
+                    let $btn = $(this);
+                    let originalHtml = $btn.html();
+                    $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
+
+                    $.ajax({
+                        url: `/HopDong/Delete/${id}`,
+                        type: 'DELETE',
+                        success: function (res) {
+                            alert(res.message || "Đã xóa.");
+                            table.ajax.reload(null, false);
+                        },
+                        error: function (xhr) {
+                            let msg = "Lỗi khi xóa!";
+                            if (xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
+                            alert(msg);
+                            $btn.prop('disabled', false).html(originalHtml);
+                        }
+                    });
+                }
+            });
+        });
+    </script>
+}
