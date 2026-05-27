@@ -1,0 +1,316 @@
+@{
+    ViewData["Title"] = "Quản lý Hóa đơn";
+}
+
+<section class="content">
+    <div class="container-fluid">
+        <!-- Card bộ lọc + Phát sinh -->
+        <div class="card card-default">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-filter"></i> Bộ Lọc & Phát sinh Hóa đơn</h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 form-group">
+                        <label>Chi Nhánh</label>
+                        <select id="filterChiNhanh" class="form-control">
+                            <option value="0">-- Tất cả --</option>
+                            @if (ViewBag.ListChiNhanh != null)
+                            {
+                                foreach (var cn in ViewBag.ListChiNhanh)
+                                {
+                                    <option value="@cn.Value">@cn.Text</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-2 form-group">
+                        <label>Tháng</label>
+                        <select id="filterThang" class="form-control">
+                            <option value="0">-- Tất cả --</option>
+                            @for (int i = 1; i <= 12; i++)
+                            {
+                                if (i == DateTime.Now.Month)
+                                {
+                                    <option value="@i" selected>Tháng @i</option>
+                                }
+                                else
+                                {
+                                    <option value="@i">Tháng @i</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-2 form-group">
+                        <label>Năm</label>
+                        <input type="number" id="filterNam" class="form-control" value="@DateTime.Now.Year">
+                    </div>
+                    <div class="col-md-2 form-group">
+                        <label>Trạng thái</label>
+                        <select id="filterTrangThai" class="form-control">
+                            <option value="-1">-- Tất cả --</option>
+                            <option value="0">Chưa thanh toán</option>
+                            <option value="1">Đã thanh toán</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 form-group d-flex align-items-end">
+                        <button class="btn btn-primary mr-2" id="btnFilter"><i class="fas fa-search"></i> Lọc</button>
+                        <button class="btn btn-success" id="btnPhatSinh"><i class="fas fa-magic"></i> Phát sinh HĐ</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card danh sách hóa đơn -->
+        <div class="card card-primary card-outline">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-file-invoice-dollar"></i> Danh sách Hóa đơn</h3>
+            </div>
+            <div class="card-body">
+                <table id="hoaDonTable" class="table table-bordered table-striped w-100">
+                    <thead>
+                        <tr>
+                            <th class="text-center" width="4%">STT</th>
+                            <th>Mã HĐ</th>
+                            <th>Phòng</th>
+                            <th>Người thuê</th>
+                            <th class="text-center">Kỳ</th>
+                            <th class="text-right">Tổng tiền</th>
+                            <th class="text-center">Trạng thái</th>
+                            <th class="text-center" width="22%">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Modal Chi tiết Hóa đơn -->
+<div class="modal fade" id="chiTietModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title"><i class="fas fa-file-alt"></i> Chi tiết Hóa đơn</h5>
+                <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <div class="modal-body" id="chiTietBody">
+                <!-- JS sẽ render nội dung ở đây -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Thu tiền -->
+<div class="modal fade" id="thuTienModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="fas fa-hand-holding-usd"></i> Xác nhận Thu tiền</h5>
+                <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="thuTienHoaDonId" />
+                <p>Bạn đang thu tiền cho hóa đơn: <strong id="thuTienMaHD"></strong></p>
+                <p>Tổng tiền: <strong class="text-danger" id="thuTienTongTien"></strong></p>
+                <div class="form-group">
+                    <label>Phương thức thanh toán</label>
+                    <select id="thuTienPhuongThuc" class="form-control">
+                        <option value="0">Tiền mặt</option>
+                        <option value="1">Chuyển khoản</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Ghi chú</label>
+                    <textarea id="thuTienGhiChu" class="form-control" rows="2" placeholder="VD: Đã nhận đủ tiền mặt..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-success" id="btnConfirmThuTien"><i class="fas fa-check"></i> Xác nhận Thu tiền</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            function formatVND(n) {
+                if (n === null || n === undefined) return "0 ₫";
+                return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n);
+            }
+
+            // ========== DataTable ==========
+            var table = $('#hoaDonTable').DataTable({
+                "language": { "url": "https://cdn.datatables.net/plug-ins/1.13.6/i18n/vi.json" },
+                "serverSide": true,
+                "processing": true,
+                "ajax": {
+                    "url": "/HoaDon/GetList",
+                    "type": "POST",
+                    "data": function(d) {
+                        d.chiNhanhId = $('#filterChiNhanh').val();
+                        d.thang = $('#filterThang').val();
+                        d.nam = $('#filterNam').val();
+                        d.trangThai = $('#filterTrangThai').val();
+                    }
+                },
+                "columns": [
+                    { "data": null, "className": "text-center", "orderable": false, "render": (d,t,r,m) => m.row + m.settings._iDisplayStart + 1 },
+                    { "data": "maHoaDon" },
+                    { "data": "tenPhong", "className": "font-weight-bold" },
+                    { "data": "tenNguoiThue" },
+                    { "data": null, "className": "text-center", "orderable": false, "render": (d) => `${d.thang}/${d.nam}` },
+                    { "data": "tongTien", "className": "text-right font-weight-bold text-danger", "render": (d) => formatVND(d) },
+                    {
+                        "data": "trangThaiHoaDonValue", "className": "text-center", "orderable": false,
+                        "render": function(d, t, r) {
+                            if (d === 1) return '<span class="badge badge-success"><i class="fas fa-check-circle"></i> Đã thanh toán</span>';
+                            return '<span class="badge badge-warning"><i class="fas fa-clock"></i> Chưa thanh toán</span>';
+                        }
+                    },
+                    {
+                        "data": "hoaDonId", "orderable": false, "className": "text-center",
+                        "render": function(data, t, row) {
+                            let html = `<button class="btn btn-info btn-sm btn-detail" data-id="${data}" title="Chi tiết"><i class="fas fa-eye"></i></button> `;
+                            if (row.trangThaiHoaDonValue === 0) {
+                                html += `<button class="btn btn-success btn-sm btn-thutien" data-id="${data}" data-ma="${row.maHoaDon}" data-tien="${row.tongTien}" title="Thu tiền"><i class="fas fa-hand-holding-usd"></i></button> `;
+                                html += `<button class="btn btn-danger btn-sm btn-delete" data-id="${data}" title="Xóa"><i class="fas fa-trash"></i></button> `;
+                            }
+                            html += `<a href="/HoaDon/ExportExcel/${data}" class="btn btn-outline-success btn-sm" title="Xuất Excel"><i class="fas fa-file-excel"></i></a> `;
+                            html += `<a href="/HoaDon/ExportPdf/${data}" class="btn btn-outline-danger btn-sm" title="Xuất PDF"><i class="fas fa-file-pdf"></i></a>`;
+                            return html;
+                        }
+                    }
+                ]
+            });
+
+            // ========== Filter ==========
+            $('#btnFilter').click(function() { table.ajax.reload(); });
+
+            // ========== Phát sinh hóa đơn ==========
+            $('#btnPhatSinh').click(function() {
+                let cn = $('#filterChiNhanh').val();
+                let th = $('#filterThang').val();
+                let na = $('#filterNam').val();
+
+                if (!cn || cn == '0') { alert('Vui lòng chọn Chi nhánh cụ thể để phát sinh hóa đơn!'); return; }
+                if (!th || th == '0') { alert('Vui lòng chọn Tháng cụ thể!'); return; }
+
+                if (!confirm(`Phát sinh hóa đơn cho Tháng ${th}/${na} tại chi nhánh đã chọn?`)) return;
+
+                let $btn = $(this);
+                $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang xử lý...');
+
+                $.ajax({
+                    url: '/HoaDon/PhatSinh',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ chiNhanhId: parseInt(cn), thang: parseInt(th), nam: parseInt(na) }),
+                    success: function(res) {
+                        alert(res.message);
+                        table.ajax.reload();
+                    },
+                    error: function(xhr) { alert(xhr.responseJSON?.message || 'Có lỗi xảy ra.'); },
+                    complete: function() { $btn.prop('disabled', false).html('<i class="fas fa-magic"></i> Phát sinh HĐ'); }
+                });
+            });
+
+            // ========== Xem chi tiết ==========
+            $('#hoaDonTable').on('click', '.btn-detail', function() {
+                let id = $(this).data('id');
+                $.get(`/HoaDon/GetById/${id}`, function(res) {
+                    let html = `
+                        <div class="row mb-3">
+                            <div class="col-6"><strong>Mã HĐ:</strong> ${res.maHoaDon}</div>
+                            <div class="col-6"><strong>Ngày tạo:</strong> ${res.ngayTao}</div>
+                            <div class="col-6"><strong>Phòng:</strong> ${res.tenPhong}</div>
+                            <div class="col-6"><strong>Kỳ:</strong> Tháng ${res.thang}/${res.nam}</div>
+                            <div class="col-6"><strong>Người thuê:</strong> ${res.tenNguoiThue}</div>
+                            <div class="col-6"><strong>Trạng thái:</strong> ${res.trangThaiHoaDon}</div>
+                        </div>
+                        <h6 class="font-weight-bold"><i class="fas fa-list"></i> Chi tiết dịch vụ</h6>
+                        <table class="table table-bordered table-sm">
+                            <thead class="bg-light">
+                                <tr><th>STT</th><th>Dịch vụ</th><th class="text-right">Đơn giá</th><th class="text-center">SL</th><th class="text-right">Thành tiền</th></tr>
+                            </thead>
+                            <tbody>`;
+
+                    res.chiTietHoaDons.forEach((ct, idx) => {
+                        html += `<tr><td>${idx+1}</td><td>${ct.tenDichVu}</td><td class="text-right">${formatVND(ct.donGia)}</td><td class="text-center">${ct.soLuong}</td><td class="text-right">${formatVND(ct.tongTien)}</td></tr>`;
+                    });
+
+                    html += `</tbody><tfoot><tr><td colspan="4" class="text-right font-weight-bold">TỔNG CỘNG</td><td class="text-right font-weight-bold text-danger">${formatVND(res.tongTien)}</td></tr></tfoot></table>`;
+
+                    // Lịch sử thanh toán
+                    if (res.lichSuThanhToans && res.lichSuThanhToans.length > 0) {
+                        html += `<h6 class="font-weight-bold mt-3"><i class="fas fa-history"></i> Lịch sử thanh toán</h6>
+                            <table class="table table-bordered table-sm">
+                                <thead class="bg-light">
+                                    <tr><th>Mã GD</th><th class="text-right">Số tiền</th><th>Phương thức</th><th>Ngày</th><th>Người xác nhận</th><th>Ghi chú</th></tr>
+                                </thead><tbody>`;
+                        res.lichSuThanhToans.forEach(ls => {
+                            html += `<tr><td>${ls.maGiaoDich}</td><td class="text-right">${formatVND(ls.soTienThanhToan)}</td><td>${ls.phuongThucThanhToan}</td><td>${ls.ngayThanhToan}</td><td>${ls.nguoiXacNhan}</td><td>${ls.ghiChu || ''}</td></tr>`;
+                        });
+                        html += `</tbody></table>`;
+                    }
+
+                    $('#chiTietBody').html(html);
+                    $('#chiTietModal').modal('show');
+                });
+            });
+
+            // ========== Thu tiền ==========
+            $('#hoaDonTable').on('click', '.btn-thutien', function() {
+                $('#thuTienHoaDonId').val($(this).data('id'));
+                $('#thuTienMaHD').text($(this).data('ma'));
+                $('#thuTienTongTien').text(formatVND($(this).data('tien')));
+                $('#thuTienPhuongThuc').val(0);
+                $('#thuTienGhiChu').val('');
+                $('#thuTienModal').modal('show');
+            });
+
+            $('#btnConfirmThuTien').click(function() {
+                let req = {
+                    hoaDonId: parseInt($('#thuTienHoaDonId').val()),
+                    phuongThucThanhToan: parseInt($('#thuTienPhuongThuc').val()),
+                    ghiChu: $('#thuTienGhiChu').val()
+                };
+
+                let $btn = $(this);
+                $btn.prop('disabled', true);
+
+                $.ajax({
+                    url: '/HoaDon/ThuTien',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(req),
+                    success: function(res) {
+                        alert(res.message);
+                        $('#thuTienModal').modal('hide');
+                        table.ajax.reload(null, false);
+                    },
+                    error: function(xhr) { alert(xhr.responseJSON?.message || 'Có lỗi xảy ra.'); },
+                    complete: function() { $btn.prop('disabled', false); }
+                });
+            });
+
+            // ========== Xóa hóa đơn ==========
+            $('#hoaDonTable').on('click', '.btn-delete', function() {
+                let id = $(this).data('id');
+                if (!confirm('Xóa hóa đơn này?')) return;
+                $.ajax({
+                    url: `/HoaDon/Delete/${id}`,
+                    type: 'DELETE',
+                    success: function(res) { alert(res.message); table.ajax.reload(null, false); },
+                    error: function(xhr) { alert(xhr.responseJSON?.message || 'Có lỗi xảy ra.'); }
+                });
+            });
+        });
+    </script>
+}

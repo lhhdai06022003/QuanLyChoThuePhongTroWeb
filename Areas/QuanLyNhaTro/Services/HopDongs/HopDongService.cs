@@ -284,6 +284,23 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HopDongs
                 tv.IsDeleted = true;
             }
 
+            // Tự động chuyển trạng thái phòng về "Trống" nếu không còn HĐ hoạt động nào khác
+            bool conHopDongKhac = await _context.HopDongs.AnyAsync(x =>
+                x.PhongTroId == entity.PhongTroId &&
+                x.HopDongId != id &&
+                x.TrangThaiHopDong == TrangThaiHopDong.DangHoatDong &&
+                !x.IsDeleted);
+
+            if (!conHopDongKhac)
+            {
+                var phong = await _context.PhongTros.FindAsync(entity.PhongTroId);
+                if (phong != null)
+                {
+                    phong.TrangThai = TrangThaiPhong.Trong;
+                    phong.NgayCapNhat = DateTime.UtcNow;
+                }
+            }
+
             await _context.SaveChangesAsync();
             return (true, string.Empty);
         }

@@ -1,0 +1,405 @@
+@{
+    ViewData["Title"] = "Sơ Đồ Phòng Trọ";
+}
+
+<style>
+    .room-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 16px;
+        padding: 10px 0;
+    }
+
+    .room-card {
+        border-radius: 12px;
+        padding: 16px;
+        position: relative;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        border: 2px solid transparent;
+        overflow: hidden;
+    }
+
+    .room-card::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0;
+        width: 100%; height: 4px;
+    }
+
+    .room-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    }
+
+    /* Trạng thái phòng */
+    .room-trong {
+        background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%);
+        border-color: #66bb6a;
+    }
+    .room-trong::before { background: #43a047; }
+
+    .room-dathue {
+        background: linear-gradient(135deg, #ffebee 0%, #fce4ec 100%);
+        border-color: #ef5350;
+    }
+    .room-dathue::before { background: #e53935; }
+
+    .room-baotri {
+        background: linear-gradient(135deg, #fff8e1 0%, #fff3e0 100%);
+        border-color: #ffa726;
+    }
+    .room-baotri::before { background: #fb8c00; }
+
+    .room-number {
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: #333;
+        margin-bottom: 4px;
+    }
+
+    .room-price {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #555;
+    }
+
+    .room-tenant {
+        font-size: 0.8rem;
+        color: #666;
+        margin-top: 6px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .room-meta {
+        font-size: 0.75rem;
+        color: #888;
+        margin-top: 2px;
+    }
+
+    .room-badges {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        display: flex;
+        gap: 4px;
+    }
+
+    .room-badge {
+        width: 28px; height: 28px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        color: #fff;
+        animation: pulse-badge 2s infinite;
+    }
+
+    .badge-debt {
+        background: #e53935;
+        box-shadow: 0 0 8px rgba(229, 57, 53, 0.5);
+    }
+
+    .badge-expiring {
+        background: #ff9800;
+        box-shadow: 0 0 8px rgba(255, 152, 0, 0.5);
+    }
+
+    @@keyframes pulse-badge {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.15); }
+    }
+
+    .room-status-dot {
+        display: inline-block;
+        width: 10px; height: 10px;
+        border-radius: 50%;
+        margin-right: 6px;
+    }
+
+    .dot-trong { background: #43a047; }
+    .dot-dathue { background: #e53935; }
+    .dot-baotri { background: #fb8c00; }
+
+    /* Quick Filter buttons */
+    .filter-btn {
+        border-radius: 20px;
+        padding: 6px 16px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        border: 2px solid #ddd;
+        background: #fff;
+        color: #555;
+        cursor: pointer;
+        transition: all 0.2s;
+        margin-right: 6px;
+        margin-bottom: 6px;
+    }
+
+    .filter-btn:hover, .filter-btn.active {
+        color: #fff;
+        border-color: transparent;
+    }
+
+    .filter-btn[data-filter="all"].active { background: #5c6bc0; border-color: #5c6bc0; }
+    .filter-btn[data-filter="trong"].active { background: #43a047; border-color: #43a047; }
+    .filter-btn[data-filter="dathue"].active { background: #e53935; border-color: #e53935; }
+    .filter-btn[data-filter="baotri"].active { background: #fb8c00; border-color: #fb8c00; }
+    .filter-btn[data-filter="notien"].active { background: #c62828; border-color: #c62828; }
+    .filter-btn[data-filter="saphethan"].active { background: #ef6c00; border-color: #ef6c00; }
+
+    /* Stats summary */
+    .stat-card {
+        border-radius: 10px;
+        padding: 14px 20px;
+        text-align: center;
+        color: #fff;
+        font-weight: 600;
+    }
+
+    .stat-card .stat-number {
+        font-size: 1.8rem;
+        font-weight: 700;
+    }
+
+    .stat-card .stat-label {
+        font-size: 0.8rem;
+        opacity: 0.9;
+    }
+
+    /* Detail popup */
+    .detail-row { margin-bottom: 8px; }
+    .detail-label { font-weight: 600; color: #555; font-size: 0.85rem; }
+    .detail-value { color: #333; font-size: 0.9rem; }
+</style>
+
+<section class="content mt-3">
+    <div class="container-fluid">
+        <!-- Thống kê tóm tắt -->
+        <div class="row mb-3" id="statsRow">
+            <div class="col-md-3 col-6 mb-2">
+                <div class="stat-card" style="background: linear-gradient(135deg, #43a047, #66bb6a);">
+                    <div class="stat-number" id="statTrong">0</div>
+                    <div class="stat-label"><i class="fas fa-door-open"></i> Phòng trống</div>
+                </div>
+            </div>
+            <div class="col-md-3 col-6 mb-2">
+                <div class="stat-card" style="background: linear-gradient(135deg, #e53935, #ef5350);">
+                    <div class="stat-number" id="statDaThue">0</div>
+                    <div class="stat-label"><i class="fas fa-user-check"></i> Đã thuê</div>
+                </div>
+            </div>
+            <div class="col-md-3 col-6 mb-2">
+                <div class="stat-card" style="background: linear-gradient(135deg, #c62828, #e53935);">
+                    <div class="stat-number" id="statNoTien">0</div>
+                    <div class="stat-label"><i class="fas fa-exclamation-triangle"></i> Đang nợ tiền</div>
+                </div>
+            </div>
+            <div class="col-md-3 col-6 mb-2">
+                <div class="stat-card" style="background: linear-gradient(135deg, #ef6c00, #ff9800);">
+                    <div class="stat-number" id="statSapHetHan">0</div>
+                    <div class="stat-label"><i class="fas fa-hourglass-half"></i> Sắp hết hạn</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card bộ lọc -->
+        <div class="card card-default mb-3">
+            <div class="card-body py-3">
+                <div class="d-flex flex-wrap align-items-center">
+                    <div class="mr-3 mb-2" style="min-width:200px;">
+                        <select id="filterChiNhanh" class="form-control form-control-sm">
+                            <option value="0">-- Tất cả Chi nhánh --</option>
+                            @if (ViewBag.ChiNhanhs != null)
+                            {
+                                foreach (var cn in ViewBag.ChiNhanhs)
+                                {
+                                    <option value="@cn.Value">@cn.Text</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                    <div class="d-flex flex-wrap">
+                        <button class="filter-btn active" data-filter="all"><i class="fas fa-th"></i> Tất cả</button>
+                        <button class="filter-btn" data-filter="trong"><span class="room-status-dot dot-trong"></span> Trống</button>
+                        <button class="filter-btn" data-filter="dathue"><span class="room-status-dot dot-dathue"></span> Đã thuê</button>
+                        <button class="filter-btn" data-filter="baotri"><span class="room-status-dot dot-baotri"></span> Bảo trì</button>
+                        <button class="filter-btn" data-filter="notien"><i class="fas fa-exclamation-circle text-danger"></i> Nợ tiền</button>
+                        <button class="filter-btn" data-filter="saphethan"><i class="fas fa-hourglass-half text-warning"></i> Sắp hết hạn</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Grid sơ đồ phòng -->
+        <div id="roomGrid" class="room-grid">
+            <!-- JS sẽ render cards ở đây -->
+        </div>
+
+        <div id="emptyState" class="text-center py-5" style="display:none;">
+            <i class="fas fa-building fa-3x text-muted mb-3"></i>
+            <p class="text-muted">Không có phòng nào phù hợp với bộ lọc.</p>
+        </div>
+    </div>
+</section>
+
+<!-- Modal chi tiết phòng -->
+<div class="modal fade" id="roomDetailModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header" id="roomDetailHeader">
+                <h5 class="modal-title"><i class="fas fa-door-open"></i> <span id="detailRoomName"></span></h5>
+                <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <div class="modal-body" id="roomDetailBody"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let allRooms = [];
+        let currentFilter = 'all';
+
+        function formatVND(n) {
+            return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n || 0);
+        }
+
+        function loadData() {
+            let chiNhanhId = $('#filterChiNhanh').val();
+            $.get(`/PhongTros/GetSoDoPhong?chiNhanhId=${chiNhanhId}`, function(data) {
+                allRooms = data;
+                updateStats();
+                renderGrid();
+            });
+        }
+
+        function updateStats() {
+            let trong = allRooms.filter(r => r.trangThai === 0).length;
+            let daThue = allRooms.filter(r => r.trangThai === 1).length;
+            let noTien = allRooms.filter(r => r.coNoTien).length;
+            let sapHetHan = allRooms.filter(r => r.sapHetHan).length;
+            $('#statTrong').text(trong);
+            $('#statDaThue').text(daThue);
+            $('#statNoTien').text(noTien);
+            $('#statSapHetHan').text(sapHetHan);
+        }
+
+        function renderGrid() {
+            let filtered = allRooms;
+
+            if (currentFilter === 'trong') filtered = allRooms.filter(r => r.trangThai === 0);
+            else if (currentFilter === 'dathue') filtered = allRooms.filter(r => r.trangThai === 1);
+            else if (currentFilter === 'baotri') filtered = allRooms.filter(r => r.trangThai === 2);
+            else if (currentFilter === 'notien') filtered = allRooms.filter(r => r.coNoTien);
+            else if (currentFilter === 'saphethan') filtered = allRooms.filter(r => r.sapHetHan);
+
+            if (filtered.length === 0) {
+                $('#roomGrid').html('');
+                $('#emptyState').show();
+                return;
+            }
+            $('#emptyState').hide();
+
+            let html = '';
+            filtered.forEach(r => {
+                let cssClass = r.trangThai === 0 ? 'room-trong' : r.trangThai === 1 ? 'room-dathue' : 'room-baotri';
+
+                let badges = '';
+                if (r.coNoTien) {
+                    badges += `<div class="room-badge badge-debt" title="Nợ ${formatVND(r.soTienNo)}"><i class="fas fa-exclamation"></i></div>`;
+                }
+                if (r.sapHetHan) {
+                    badges += `<div class="room-badge badge-expiring" title="Còn ${r.soNgayConLai} ngày"><i class="fas fa-hourglass-half"></i></div>`;
+                }
+
+                let tenant = r.tenNguoiThue ? `<div class="room-tenant"><i class="fas fa-user"></i> ${r.tenNguoiThue}</div>` : '';
+                let meta = '';
+                if (r.trangThai === 1 && r.soNgayConLai !== null) {
+                    meta = `<div class="room-meta"><i class="fas fa-calendar-alt"></i> Còn ${r.soNgayConLai} ngày</div>`;
+                }
+                if (r.coNoTien) {
+                    meta += `<div class="room-meta text-danger"><i class="fas fa-exclamation-circle"></i> Nợ: ${formatVND(r.soTienNo)}</div>`;
+                }
+
+                html += `
+                    <div class="room-card ${cssClass}" data-id="${r.phongTroId}" onclick="showDetail(${r.phongTroId})">
+                        <div class="room-badges">${badges}</div>
+                        <div class="room-number">${r.soPhong}</div>
+                        <div class="room-price">${formatVND(r.giaThue)}/tháng</div>
+                        ${tenant}
+                        <div class="room-meta"><i class="fas fa-ruler-combined"></i> ${r.dienTich} m² · Tầng ${r.tangLau}</div>
+                        ${meta}
+                    </div>
+                `;
+            });
+
+            $('#roomGrid').html(html);
+        }
+
+        function showDetail(id) {
+            let r = allRooms.find(x => x.phongTroId === id);
+            if (!r) return;
+
+            let statusColors = { 0: '#43a047', 1: '#e53935', 2: '#fb8c00' };
+            let headerColor = statusColors[r.trangThai] || '#5c6bc0';
+
+            $('#roomDetailHeader').css('background', headerColor).css('color', '#fff');
+            $('#detailRoomName').text(`Phòng ${r.soPhong} - ${r.trangThaiText}`);
+
+            let html = `
+                <div class="detail-row"><span class="detail-label">Chi nhánh:</span> <span class="detail-value">${r.tenChiNhanh}</span></div>
+                <div class="detail-row"><span class="detail-label">Giá thuê:</span> <span class="detail-value text-danger font-weight-bold">${formatVND(r.giaThue)}/tháng</span></div>
+                <div class="detail-row"><span class="detail-label">Diện tích:</span> <span class="detail-value">${r.dienTich} m²</span></div>
+                <div class="detail-row"><span class="detail-label">Tầng:</span> <span class="detail-value">${r.tangLau}</span></div>
+                <div class="detail-row"><span class="detail-label">Số người tối đa:</span> <span class="detail-value">${r.soNguoiToiDa}</span></div>
+                <hr>
+            `;
+
+            if (r.trangThai === 1 && r.tenNguoiThue) {
+                html += `
+                    <h6 class="font-weight-bold"><i class="fas fa-user"></i> Thông tin người thuê</h6>
+                    <div class="detail-row"><span class="detail-label">Họ tên:</span> <span class="detail-value">${r.tenNguoiThue}</span></div>
+                    <div class="detail-row"><span class="detail-label">SĐT:</span> <span class="detail-value">${r.sdtNguoiThue || 'N/A'}</span></div>
+                `;
+                if (r.ngayHetHan) {
+                    let ngay = new Date(r.ngayHetHan).toLocaleDateString('vi-VN');
+                    html += `<div class="detail-row"><span class="detail-label">Hết hạn HĐ:</span> <span class="detail-value">${ngay}</span></div>`;
+                }
+                if (r.sapHetHan) {
+                    html += `<div class="alert alert-warning mt-2 py-2"><i class="fas fa-hourglass-half"></i> <strong>Cảnh báo:</strong> Hợp đồng sắp hết hạn (còn ${r.soNgayConLai} ngày)!</div>`;
+                }
+                if (r.coNoTien) {
+                    html += `<div class="alert alert-danger mt-2 py-2"><i class="fas fa-exclamation-triangle"></i> <strong>Nợ tiền:</strong> Phòng này đang nợ <strong>${formatVND(r.soTienNo)}</strong>!</div>`;
+                }
+            } else if (r.trangThai === 0) {
+                html += `<div class="alert alert-success mt-2 py-2"><i class="fas fa-check-circle"></i> Phòng đang trống, sẵn sàng cho thuê.</div>`;
+            } else if (r.trangThai === 2) {
+                html += `<div class="alert alert-warning mt-2 py-2"><i class="fas fa-tools"></i> Phòng đang bảo trì.</div>`;
+            }
+
+            $('#roomDetailBody').html(html);
+            $('#roomDetailModal').modal('show');
+        }
+
+        $(document).ready(function() {
+            loadData();
+
+            $('#filterChiNhanh').change(function() { loadData(); });
+
+            $('.filter-btn').click(function() {
+                $('.filter-btn').removeClass('active');
+                $(this).addClass('active');
+                currentFilter = $(this).data('filter');
+                renderGrid();
+            });
+        });
+    </script>
+}

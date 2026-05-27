@@ -22,6 +22,19 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             return View();
         }
 
+        public async Task<IActionResult> SoDoPhong()
+        {
+            ViewBag.ChiNhanhs = await _phongTroService.GetDanhSachChiNhanhDropdownAsync();
+            return View();
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetSoDoPhong([FromQuery] int chiNhanhId = 0)
+        {
+            var data = await _phongTroService.GetSoDoPhongAsync(chiNhanhId);
+            return Json(data);
+        }
+
         [HttpGet]
         public async Task<IActionResult> DanhSachPhongTro()
         {

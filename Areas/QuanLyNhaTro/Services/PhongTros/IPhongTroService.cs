@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels;
 using QuanLyChoThuePhongTroWeb.Models;
 
@@ -13,5 +13,6 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.PhongTros
         Task<ServiceResult> CapNhatPhongTroAsync(PhongTro model);
         Task<ServiceResult> XoaPhongTroAsync(int id);
         Task<List<PhongTro>> DanhSachPhongTroConTrong();
+        Task<List<PhongCardRes>> GetSoDoPhongAsync(int chiNhanhId);
     }
 }

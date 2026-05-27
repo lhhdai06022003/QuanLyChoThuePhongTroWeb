@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels;
 using QuanLyChoThuePhongTroWeb.Data;
@@ -127,6 +127,88 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.PhongTros
                     TrangThai = p.TrangThai
                 })
                 .ToListAsync();
+        }
+
+        public async Task<List<PhongCardRes>> GetSoDoPhongAsync(int chiNhanhId)
+        {
+            var today = DateTime.UtcNow;
+            var in15Days = today.AddDays(15);
+
+            var query = _context.PhongTros
+                .Include(p => p.ChiNhanh)
+                .Where(p => !p.IsDeleted);
+
+            if (chiNhanhId > 0)
+                query = query.Where(p => p.ChiNhanhId == chiNhanhId);
+
+            var phongs = await query.OrderBy(p => p.TangLau).ThenBy(p => p.SoPhong).ToListAsync();
+
+            var result = new List<PhongCardRes>();
+
+            foreach (var p in phongs)
+            {
+                // Tìm hợp đồng đang hoạt động cho phòng này
+                var hopDong = await _context.HopDongs
+                    .Include(h => h.NguoiThue)
+                    .Where(h => h.PhongTroId == p.PhongTroId &&
+                                h.TrangThaiHopDong == TrangThaiHopDong.DangHoatDong &&
+                                !h.IsDeleted)
+                    .FirstOrDefaultAsync();
+
+                // Tìm hóa đơn nợ (chưa thanh toán)
+                double soTienNo = 0;
+                bool coNoTien = false;
+                if (hopDong != null)
+                {
+                    soTienNo = await _context.HoaDons
+                        .Where(hd => hd.HopDongId == hopDong.HopDongId &&
+                                     hd.TrangThaiHoaDon == TrangThaiHoaDon.ChuaThanhToan &&
+                                     !hd.IsDeleted)
+                        .SumAsync(hd => hd.TongTien);
+                    coNoTien = soTienNo > 0;
+                }
+
+                // Tính cảnh báo hết hạn
+                bool sapHetHan = false;
+                int? soNgayConLai = null;
+                if (hopDong?.ThoiDiemKetThuc != null)
+                {
+                    soNgayConLai = (int)(hopDong.ThoiDiemKetThuc.Value - today).TotalDays;
+                    sapHetHan = hopDong.ThoiDiemKetThuc.Value <= in15Days && hopDong.ThoiDiemKetThuc.Value >= today;
+                }
+
+                string trangThaiText = p.TrangThai switch
+                {
+                    TrangThaiPhong.Trong => "Trống",
+                    TrangThaiPhong.DaThue => "Đã thuê",
+                    TrangThaiPhong.BaoTri => "Bảo trì",
+                    _ => ""
+                };
+
+                result.Add(new PhongCardRes
+                {
+                    PhongTroId = p.PhongTroId,
+                    SoPhong = p.SoPhong,
+                    TangLau = p.TangLau,
+                    GiaThue = p.GiaThue,
+                    DienTich = p.DienTich,
+                    SoNguoiToiDa = p.SoNguoiToiDa,
+                    TrangThai = (int)p.TrangThai,
+                    TrangThaiText = trangThaiText,
+                    ChiNhanhId = p.ChiNhanhId,
+                    TenChiNhanh = p.ChiNhanh.TenChiNhanh,
+                    HopDongId = hopDong?.HopDongId,
+                    TenNguoiThue = hopDong?.NguoiThue?.HoVaTen,
+                    SdtNguoiThue = hopDong?.NguoiThue?.SoDienThoai,
+                    NgayHetHan = hopDong?.ThoiDiemKetThuc,
+                    CoNoTien = coNoTien,
+                    SoTienNo = soTienNo,
+                    SapHetHan = sapHetHan,
+                    SoNgayConLai = soNgayConLai
+                });
+            }
+
+            return result;
         }
 
     }

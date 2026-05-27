@@ -81,8 +81,11 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
 
         // --- CRUD Dich Vu Chi Nhanh (Bang Gia) ---
         [HttpPost("/DichVuChiNhanh/GetList")]
-        public async Task<IActionResult> GetListDichVuChiNhanh(int chiNhanhId)
+        public async Task<IActionResult> GetListDichVuChiNhanh([FromForm] int? chiNhanhId)
         {
+            // Đảm bảo có giá trị mặc định nếu JS chưa truyền lên kịp
+            int validChiNhanhId = chiNhanhId ?? 0;
+
             var form = Request.Form;
             var request = new DataTableRequest
             {
@@ -92,7 +95,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
                 SearchValue = form["search[value]"].FirstOrDefault()
             };
 
-            var data = await _dichVuService.GetDanhSachDichVuChiNhanhAsync(request, chiNhanhId);
+            var data = await _dichVuService.GetDanhSachDichVuChiNhanhAsync(request, validChiNhanhId);
             return Ok(data);
         }
 

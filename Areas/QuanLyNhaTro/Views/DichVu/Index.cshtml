@@ -254,7 +254,10 @@
                 "ajax": {
                     "url": "/DichVuChiNhanh/GetList",
                     "type": "POST",
-                    "data": function(d) { d.chiNhanhId = $('#filterChiNhanh').val(); }
+                    "data": function(d) {
+                        // Gán 0 nếu select bị null hoặc rỗng
+                        d.chiNhanhId = $('#filterChiNhanh').val() || 0;
+                    }
                 },
                 "columns": [
                     { "data": null, "className": "text-center", "orderable": false, "render": (d,t,r,m) => m.row + m.settings._iDisplayStart + 1 },

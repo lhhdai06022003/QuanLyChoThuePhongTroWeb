@@ -15,6 +15,7 @@
 
   <ItemGroup>
 	<!-- Thư viện kết nối PostgreSQL -->
+	<PackageReference Include="ClosedXML" Version="0.104.2" />
 	<PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.4" />
 
 	<!-- Các thư viện hỗ trợ EF Core & Migration -->
@@ -30,6 +31,7 @@
     <PackageReference Include="Microsoft.jQuery.Unobtrusive.Ajax" Version="3.2.6" />
     <PackageReference Include="Microsoft.jQuery.Unobtrusive.Validation" Version="4.0.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+    <PackageReference Include="QuestPDF" Version="2026.5.0" />
   </ItemGroup>
 
   <ItemGroup>
