@@ -1,35 +1,212 @@
-﻿@{
+@{
     ViewData["Title"] = "Quản Lý Phòng Trọ";
 }
 
-<!-- Main Content -->
+<style>
+    /* ========== Toggle View Buttons ========== */
+    .view-toggle .btn { border-radius: 20px; padding: 6px 18px; font-size: 0.85rem; font-weight: 600; }
+    .view-toggle .btn.active { box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+
+    /* ========== Room Grid ========== */
+    .room-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; padding: 8px 0; }
+
+    .room-card {
+        border-radius: 12px; padding: 16px 16px 12px; position: relative;
+        cursor: pointer; transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.07); border: 2px solid transparent; overflow: hidden;
+    }
+    .room-card::before { content:''; position:absolute; top:0; left:0; width:100%; height:4px; }
+    .room-card:hover { transform: translateY(-4px); box-shadow: 0 8px 25px rgba(0,0,0,0.14); }
+
+    /* Trạng thái */
+    .room-trong { background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%); border-color: #66bb6a; }
+    .room-trong::before { background: #43a047; }
+    .room-dathue { background: linear-gradient(135deg, #ffebee 0%, #fce4ec 100%); border-color: #ef5350; }
+    .room-dathue::before { background: #e53935; }
+    .room-baotri { background: linear-gradient(135deg, #fff8e1 0%, #fff3e0 100%); border-color: #ffa726; }
+    .room-baotri::before { background: #fb8c00; }
+
+    .room-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+    .room-status-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 15px; color: #fff; flex-shrink: 0; }
+    .icon-trong { background: #43a047; }
+    .icon-dathue { background: #e53935; }
+    .icon-baotri { background: #fb8c00; }
+
+    .room-number { font-size: 1.2rem; font-weight: 700; color: #333; }
+    .room-price { font-size: 0.82rem; font-weight: 600; color: #555; }
+    .room-tenant { font-size: 0.8rem; color: #666; margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .room-meta { font-size: 0.75rem; color: #888; margin-top: 2px; }
+
+    /* Warning badges */
+    .room-badges { position: absolute; top: 10px; right: 42px; display: flex; gap: 4px; }
+    .room-badge { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #fff; animation: pulse-badge 2s infinite; }
+    .badge-debt { background: #e53935; box-shadow: 0 0 8px rgba(229,57,53,0.5); }
+    .badge-expiring { background: #ff9800; box-shadow: 0 0 8px rgba(255,152,0,0.5); }
+    @@keyframes pulse-badge { 0%,100%{transform:scale(1)} 50%{transform:scale(1.15)} }
+
+    /* Kebab Menu */
+    .kebab-menu { position: absolute; top: 8px; right: 8px; z-index: 10; }
+    .kebab-btn { width: 30px; height: 30px; border: none; background: rgba(255,255,255,0.7); border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 14px; color: #555; transition: all 0.2s; }
+    .kebab-btn:hover { background: rgba(255,255,255,0.95); color: #333; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+
+    .kebab-dropdown { position: absolute; top: 34px; right: 0; background: #fff; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.18); min-width: 180px; display: none; overflow: hidden; z-index: 100; }
+    .kebab-dropdown.show, .kebab-menu:hover .kebab-dropdown { display: block; animation: fadeIn 0.15s ease; }
+    .kebab-item { display: flex; align-items: center; gap: 8px; padding: 10px 14px; font-size: 0.85rem; color: #333; cursor: pointer; transition: background 0.15s; border: none; background: none; width: 100%; text-align: left; }
+    .kebab-item:hover { background: #f5f5f5; }
+    .kebab-item i { width: 18px; text-align: center; }
+    .kebab-divider { height: 1px; background: #eee; margin: 2px 0; }
+
+    @@keyframes fadeIn { from{opacity:0;transform:translateY(-4px)} to{opacity:1;transform:translateY(0)} }
+
+    /* Floor group */
+    .floor-group { margin-bottom: 20px; }
+    .floor-label { font-size: 0.9rem; font-weight: 700; color: #5c6bc0; margin-bottom: 10px; padding: 6px 14px; background: #e8eaf6; border-radius: 8px; display: inline-block; }
+
+    /* Filter pills */
+    .filter-btn { border-radius: 20px; padding: 5px 14px; font-size: 0.82rem; font-weight: 500; border: 2px solid #ddd; background: #fff; color: #555; cursor: pointer; transition: all 0.2s; margin-right: 4px; margin-bottom: 4px; }
+    .filter-btn:hover,.filter-btn.active { color: #fff; border-color: transparent; }
+    .filter-btn[data-filter="all"].active { background: #5c6bc0; }
+    .filter-btn[data-filter="trong"].active { background: #43a047; }
+    .filter-btn[data-filter="dathue"].active { background: #e53935; }
+    .filter-btn[data-filter="baotri"].active { background: #fb8c00; }
+    .filter-btn[data-filter="notien"].active { background: #c62828; }
+    .filter-btn[data-filter="saphethan"].active { background: #ef6c00; }
+
+    .room-status-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; }
+    .dot-trong { background: #43a047; }
+    .dot-dathue { background: #e53935; }
+    .dot-baotri { background: #fb8c00; }
+
+    /* Stat cards */
+    .stat-card { border-radius: 10px; padding: 12px 16px; text-align: center; color: #fff; font-weight: 600; }
+    .stat-card .stat-number { font-size: 1.6rem; font-weight: 700; }
+    .stat-card .stat-label { font-size: 0.78rem; opacity: 0.9; }
+
+    /* Detail popup */
+    .detail-row { margin-bottom: 8px; }
+    .detail-label { font-weight: 600; color: #555; font-size: 0.85rem; }
+    .detail-value { color: #333; font-size: 0.9rem; }
+</style>
+
 <section class="content mt-3">
     <div class="container-fluid">
-        <div class="card card-primary card-outline">
-            <div class="card-header">
-                <h3 class="card-title"><i class="fas fa-bed"></i> Danh Sách Phòng Trọ</h3>
-                <div class="card-tools">
-                    <button type="button" class="btn btn-primary btn-sm" id="btnOpenAddModal">
-                        <i class="fas fa-plus"></i> Thêm Mới Phòng
-                    </button>
+        <!-- Header bar: Toggle + Add button -->
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+            <div class="view-toggle btn-group" role="group">
+                <button class="btn btn-outline-primary active" id="btnGridView"><i class="fas fa-th-large"></i> Sơ đồ</button>
+                <button class="btn btn-outline-primary" id="btnTableView"><i class="fas fa-table"></i> Bảng</button>
+            </div>
+            <button type="button" class="btn btn-primary btn-sm" id="btnOpenAddModal">
+                <i class="fas fa-plus"></i> Thêm Mới Phòng
+            </button>
+        </div>
+
+        <!-- ============= GRID VIEW ============= -->
+        <div id="gridViewSection">
+            <!-- Stats -->
+            <div class="row mb-3">
+                <div class="col-md-3 col-6 mb-2">
+                    <div class="stat-card" style="background:linear-gradient(135deg,#43a047,#66bb6a);">
+                        <div class="stat-number" id="statTrong">0</div>
+                        <div class="stat-label"><i class="fas fa-door-open"></i> Phòng trống</div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6 mb-2">
+                    <div class="stat-card" style="background:linear-gradient(135deg,#e53935,#ef5350);">
+                        <div class="stat-number" id="statDaThue">0</div>
+                        <div class="stat-label"><i class="fas fa-user-check"></i> Đã thuê</div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6 mb-2">
+                    <div class="stat-card" style="background:linear-gradient(135deg,#c62828,#e53935);">
+                        <div class="stat-number" id="statNoTien">0</div>
+                        <div class="stat-label"><i class="fas fa-exclamation-triangle"></i> Đang nợ</div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6 mb-2">
+                    <div class="stat-card" style="background:linear-gradient(135deg,#ef6c00,#ff9800);">
+                        <div class="stat-number" id="statSapHetHan">0</div>
+                        <div class="stat-label"><i class="fas fa-hourglass-half"></i> Sắp hết hạn</div>
+                    </div>
                 </div>
             </div>
-            <div class="card-body">
-                <table id="phongTroTable" class="table table-bordered table-striped table-hover w-100">
-                    <thead class="bg-light">
-                        <tr>
-                            <th>STT</th>
-                            <th>Chi Nhánh</th>
-                            <th>Số Phòng</th>
-                            <th>Tầng</th>
-                            <th>Giá Thuê</th>
-                            <th>Diện Tích</th>
-                            <th>Trạng Thái</th>
-                            <th class="text-center">Thao Tác</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
+
+            <!-- Filters -->
+            <div class="card card-default mb-3">
+                <div class="card-body py-2">
+                    <div class="d-flex flex-wrap align-items-center">
+                        <div class="mr-3 mb-1" style="min-width:200px;">
+                            <select id="filterChiNhanhGrid" class="form-control form-control-sm">
+                                <option value="0">-- Tất cả Chi nhánh --</option>
+                                @if (ViewBag.ChiNhanhs != null)
+                                {
+                                    foreach (var cn in ViewBag.ChiNhanhs)
+                                    {
+                                        <option value="@cn.Value">@cn.Text</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                        <div class="d-flex flex-wrap">
+                            <button class="filter-btn active" data-filter="all"><i class="fas fa-th"></i> Tất cả</button>
+                            <button class="filter-btn" data-filter="trong"><span class="room-status-dot dot-trong"></span>Trống</button>
+                            <button class="filter-btn" data-filter="dathue"><span class="room-status-dot dot-dathue"></span>Đã thuê</button>
+                            <button class="filter-btn" data-filter="baotri"><span class="room-status-dot dot-baotri"></span>Bảo trì</button>
+                            <button class="filter-btn" data-filter="notien"><i class="fas fa-exclamation-circle text-danger"></i> Nợ tiền</button>
+                            <button class="filter-btn" data-filter="saphethan"><i class="fas fa-hourglass-half text-warning"></i> Sắp hết hạn</button>
+                        </div>
+                        <div class="ml-auto mb-1">
+                            <input type="text" id="searchRoom" class="form-control form-control-sm" placeholder="🔍 Tìm phòng..." style="width:160px;">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Room cards grouped by floor -->
+            <div id="roomGrid"></div>
+            <div id="emptyState" class="text-center py-5" style="display:none;">
+                <i class="fas fa-building fa-3x text-muted mb-3"></i>
+                <p class="text-muted">Không có phòng nào phù hợp với bộ lọc.</p>
+            </div>
+        </div>
+
+        <!-- ============= TABLE VIEW ============= -->
+        <div id="tableViewSection" style="display:none;">
+            <div class="card card-primary card-outline">
+                <div class="card-header">
+                    <h3 class="card-title"><i class="fas fa-bed"></i> Danh Sách Phòng Trọ</h3>
+                    <div class="card-tools">
+                        <div style="min-width:180px;">
+                            <select id="filterChiNhanhTable" class="form-control form-control-sm">
+                                <option value="">-- Tất cả Chi nhánh --</option>
+                                @if (ViewBag.ChiNhanhs != null)
+                                {
+                                    foreach (var cn in ViewBag.ChiNhanhs)
+                                    {
+                                        <option value="@cn.Text">@cn.Text</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table id="phongTroTable" class="table table-bordered table-striped table-hover w-100">
+                        <thead class="bg-light">
+                            <tr>
+                                <th>STT</th>
+                                <th>Chi Nhánh</th>
+                                <th>Số Phòng</th>
+                                <th>Tầng</th>
+                                <th>Giá Thuê</th>
+                                <th>Diện Tích</th>
+                                <th>Trạng Thái</th>
+                                <th class="text-center">Thao Tác</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -38,13 +215,10 @@
 <!-- Modal Thêm/Sửa -->
 <div class="modal fade" id="phongTroModal" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">
-        <!-- Dùng modal-lg vì nhiều input -->
         <div class="modal-content">
             <div class="modal-header bg-primary text-white">
                 <h5 class="modal-title" id="modalTitle">Cập nhật thông tin phòng</h5>
-                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+                <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
             </div>
             <div class="modal-body">
                 <div class="row">
@@ -74,7 +248,7 @@
                         <input type="number" id="GiaThue" class="form-control" placeholder="VD: 3000000">
                     </div>
                     <div class="col-md-4 form-group">
-                        <label>Diện Tích (m2)</label>
+                        <label>Diện Tích (m²)</label>
                         <input type="number" id="DienTich" class="form-control" placeholder="VD: 20">
                     </div>
                     <div class="col-md-6 form-group">
@@ -97,118 +271,303 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
-                <button type="button" class="btn btn-primary" id="btnSaveData">
-                    <i class="fas fa-save"></i> Lưu thông tin
-                </button>
+                <button type="button" class="btn btn-primary" id="btnSaveData"><i class="fas fa-save"></i> Lưu thông tin</button>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Modal Chi tiết phòng -->
+<div class="modal fade" id="roomDetailModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header" id="roomDetailHeader">
+                <h5 class="modal-title"><i class="fas fa-door-open"></i> <span id="detailRoomName"></span></h5>
+                <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <div class="modal-body" id="roomDetailBody"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script>
-        // 🌟 Biến toàn cục để lưu trạng thái
+        // ========== Shared State ==========
         var table;
-        let currentPhongTroId = 0; // 0 = Thêm mới, Khác 0 = Cập nhật
+        let currentPhongTroId = 0;
+        let allRooms = [];
+        let currentFilter = 'all';
 
-        $(document).ready(function () {
+        function formatVND(n) {
+            return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n || 0);
+        }
 
-            // 1. KHỞI TẠO DATATABLE
-            table = $('#phongTroTable').DataTable({
-                "language": { "url": "https://cdn.datatables.net/plug-ins/1.13.6/i18n/vi.json" },
-                "responsive": true,
-                "autoWidth": false,
-                "ajax": {
-                    "url": "/PhongTros/DanhSachPhongTro",
-                    "type": "GET",
-                    "datatype": "json"
-                },
-                "columns": [
-                    {
-                        "data": null,
-                        "className": "text-center align-middle",
-                        "orderable": false,
-                        "searchable": false,
-                        "render": function (data, type, row, meta) {
-                            return meta.row + meta.settings._iDisplayStart + 1;
-                        }
-                    },
-                    { "data": "tenChiNhanh" },
-                    {
-                        "data": "soPhong",
-                        "render": data => `<span class="font-weight-bold text-info">${data}</span>`
-                    },
-                    { "data": "tangLau", "className": "text-center" },
-                    {
-                        "data": "giaThue",
-                        "className": "text-right",
-                        "render": data => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(data)
-                    },
-                    {
-                        "data": "dienTich",
-                        "className": "text-center",
-                        "render": data => data + " m²"
-                    },
-                    {
-                        "data": "trangThai",
-                        "className": "text-center",
-                        "render": function(data) {
-                            // Render HTML dựa trên Enum Trạng Thái (0: Trống, 1: Đã Thuê, 2: Bảo Trì)
-                            if (data === 0) return '<span class="badge badge-success">Trống</span>';
-                            if (data === 1) return '<span class="badge badge-danger">Đã Thuê</span>';
-                            if (data === 2) return '<span class="badge badge-warning">Bảo Trì</span>';
-                            return '';
-                        }
-                    },
-                    {
-                        "data": "phongTroId",
-                        "className": "text-center",
-                        "width": "10%",
-                        "render": function (data) {
-                            return `
-                                <button class="btn btn-warning btn-sm btn-edit" data-id="${data}" title="Sửa">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="btn btn-danger btn-sm btn-delete" data-id="${data}" title="Xóa">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            `;
-                        }
-                    }
-                ],
-                "order": [[ 0, "desc" ]]
+        // ========== VIEW TOGGLE ==========
+        $('#btnGridView').click(function () {
+            $(this).addClass('active');
+            $('#btnTableView').removeClass('active');
+            $('#gridViewSection').show();
+            $('#tableViewSection').hide();
+            loadGridData();
+        });
+        $('#btnTableView').click(function () {
+            $(this).addClass('active');
+            $('#btnGridView').removeClass('active');
+            $('#tableViewSection').show();
+            $('#gridViewSection').hide();
+            if (table) table.ajax.reload();
+        });
+
+        // ========== GRID VIEW LOGIC ==========
+        function loadGridData() {
+            let chiNhanhId = $('#filterChiNhanhGrid').val();
+            $.get(`/PhongTros/GetSoDoPhong?chiNhanhId=${chiNhanhId}`, function (data) {
+                allRooms = data;
+                updateStats();
+                renderGrid();
+            });
+        }
+
+        function updateStats() {
+            $('#statTrong').text(allRooms.filter(r => r.trangThai === 0).length);
+            $('#statDaThue').text(allRooms.filter(r => r.trangThai === 1).length);
+            $('#statNoTien').text(allRooms.filter(r => r.coNoTien).length);
+            $('#statSapHetHan').text(allRooms.filter(r => r.sapHetHan).length);
+        }
+
+        function renderGrid() {
+            let filtered = allRooms;
+            let search = ($('#searchRoom').val() || '').toLowerCase();
+
+            if (currentFilter === 'trong') filtered = filtered.filter(r => r.trangThai === 0);
+            else if (currentFilter === 'dathue') filtered = filtered.filter(r => r.trangThai === 1);
+            else if (currentFilter === 'baotri') filtered = filtered.filter(r => r.trangThai === 2);
+            else if (currentFilter === 'notien') filtered = filtered.filter(r => r.coNoTien);
+            else if (currentFilter === 'saphethan') filtered = filtered.filter(r => r.sapHetHan);
+
+            if (search) {
+                filtered = filtered.filter(r =>
+                    r.soPhong.toLowerCase().includes(search) ||
+                    (r.tenNguoiThue || '').toLowerCase().includes(search)
+                );
+            }
+
+            if (filtered.length === 0) {
+                $('#roomGrid').html('');
+                $('#emptyState').show();
+                return;
+            }
+            $('#emptyState').hide();
+
+            // Group by floor
+            let floors = {};
+            filtered.forEach(r => {
+                let key = r.tangLau || 0;
+                if (!floors[key]) floors[key] = [];
+                floors[key].push(r);
             });
 
-            // 2. SỰ KIỆN CLICK MỞ MODAL THÊM MỚI
+            let html = '';
+            let sortedFloors = Object.keys(floors).sort((a, b) => a - b);
+
+            sortedFloors.forEach(floor => {
+                html += `<div class="floor-group">
+                    <div class="floor-label"><i class="fas fa-layer-group"></i> Tầng ${floor}</div>
+                    <div class="room-grid">`;
+
+                floors[floor].forEach(r => {
+                    let cssClass = r.trangThai === 0 ? 'room-trong' : r.trangThai === 1 ? 'room-dathue' : 'room-baotri';
+                    let iconClass = r.trangThai === 0 ? 'icon-trong' : r.trangThai === 1 ? 'icon-dathue' : 'icon-baotri';
+                    let iconFa = r.trangThai === 0 ? 'fa-door-open' : r.trangThai === 1 ? 'fa-user-check' : 'fa-tools';
+
+                    let badges = '';
+                    if (r.coNoTien) badges += `<div class="room-badge badge-debt" title="Nợ ${formatVND(r.soTienNo)}"><i class="fas fa-exclamation"></i></div>`;
+                    if (r.sapHetHan) badges += `<div class="room-badge badge-expiring" title="Còn ${r.soNgayConLai} ngày"><i class="fas fa-hourglass-half"></i></div>`;
+
+                    let tenant = r.tenNguoiThue ? `<div class="room-tenant"><i class="fas fa-user"></i> ${r.tenNguoiThue}</div>` : '';
+                    let meta = '';
+                    if (r.trangThai === 1 && r.soNgayConLai !== null) meta = `<div class="room-meta"><i class="fas fa-calendar-alt"></i> Còn ${r.soNgayConLai} ngày</div>`;
+                    if (r.coNoTien) meta += `<div class="room-meta text-danger"><i class="fas fa-exclamation-circle"></i> Nợ: ${formatVND(r.soTienNo)}</div>`;
+
+                    // Kebab menu items based on status
+                    let menuItems = `
+                        <button class="kebab-item" onclick="openEditFromGrid(${r.phongTroId})"><i class="fas fa-edit text-warning"></i> Sửa thông tin</button>
+                        <button class="kebab-item" onclick="showDetail(${r.phongTroId})"><i class="fas fa-info-circle text-info"></i> Xem chi tiết</button>`;
+                    if (r.trangThai === 1) {
+                        menuItems += `<div class="kebab-divider"></div>`;
+                        if (r.coNoTien) menuItems += `<button class="kebab-item" onclick="goToInvoice()"><i class="fas fa-file-invoice-dollar text-danger"></i> Thu tiền</button>`;
+                        menuItems += `<button class="kebab-item" onclick="goToContract()"><i class="fas fa-file-contract text-primary"></i> Xem hợp đồng</button>`;
+                    }
+                    menuItems += `<div class="kebab-divider"></div>
+                        <button class="kebab-item" onclick="deleteRoom(${r.phongTroId})"><i class="fas fa-trash text-danger"></i> Xóa phòng</button>`;
+
+                    html += `
+                        <div class="room-card ${cssClass}" data-id="${r.phongTroId}">
+                            <div class="room-badges">${badges}</div>
+                            <div class="kebab-menu">
+                                <button class="kebab-btn" onclick="event.stopPropagation(); toggleKebab(this)"><i class="fas fa-ellipsis-v"></i></button>
+                                <div class="kebab-dropdown">${menuItems}</div>
+                            </div>
+                            <div class="room-header" onclick="showDetail(${r.phongTroId})">
+                                <div class="room-status-icon ${iconClass}"><i class="fas ${iconFa}"></i></div>
+                                <div>
+                                    <div class="room-number">${r.soPhong}</div>
+                                    <div class="room-price">${formatVND(r.giaThue)}/tháng</div>
+                                </div>
+                            </div>
+                            <div onclick="showDetail(${r.phongTroId})">
+                                ${tenant}
+                                <div class="room-meta"><i class="fas fa-ruler-combined"></i> ${r.dienTich} m²</div>
+                                ${meta}
+                            </div>
+                        </div>`;
+                });
+
+                html += `</div></div>`;
+            });
+
+            $('#roomGrid').html(html);
+        }
+
+        function toggleKebab(btn) {
+            let dropdown = $(btn).next('.kebab-dropdown');
+            // Close all others first
+            $('.kebab-dropdown.show').not(dropdown).removeClass('show');
+            dropdown.toggleClass('show');
+        }
+
+        // Close kebab when clicking outside
+        $(document).click(function (e) {
+            if (!$(e.target).closest('.kebab-menu').length) {
+                $('.kebab-dropdown.show').removeClass('show');
+            }
+        });
+
+        function openEditFromGrid(id) {
+            $('.kebab-dropdown.show').removeClass('show');
+            currentPhongTroId = id;
+            $.get('/PhongTros/GetPhongTro?id=' + id, function (res) {
+                if (res.success && res.data) {
+                    let d = res.data;
+                    $('#ChiNhanhId').val(d.chiNhanhId);
+                    $('#SoPhong').val(d.soPhong);
+                    $('#TangLau').val(d.tangLau);
+                    $('#GiaThue').val(d.giaThue);
+                    $('#DienTich').val(d.dienTich);
+                    $('#SoNguoiToiDa').val(d.soNguoiToiDa);
+                    $('#TrangThai').val(d.trangThai);
+                    $('#MoTa').val(d.moTa);
+                    $('#modalTitle').text('Chỉnh sửa: Phòng ' + (d.soPhong || ""));
+                    $('#phongTroModal').modal('show');
+                }
+            });
+        }
+
+        function deleteRoom(id) {
+            $('.kebab-dropdown.show').removeClass('show');
+            if (confirm('Bạn có chắc chắn muốn xóa phòng này?')) {
+                $.post('/PhongTros/XoaPhongTro', { id: id }, function (res) {
+                    if (res.success) { alert(res.message); loadGridData(); }
+                    else alert("Lỗi: " + res.message);
+                });
+            }
+        }
+
+        function goToInvoice() { $('.kebab-dropdown.show').removeClass('show'); window.location.href = '/QuanLyNhaTro/QuanLyHoaDon'; }
+        function goToContract() { $('.kebab-dropdown.show').removeClass('show'); window.location.href = '/QuanLyNhaTro/QuanLyHopDong'; }
+
+        function showDetail(id) {
+            let r = allRooms.find(x => x.phongTroId === id);
+            if (!r) return;
+            let statusColors = { 0: '#43a047', 1: '#e53935', 2: '#fb8c00' };
+            $('#roomDetailHeader').css('background', statusColors[r.trangThai] || '#5c6bc0').css('color', '#fff');
+            $('#detailRoomName').text(`Phòng ${r.soPhong} - ${r.trangThaiText}`);
+
+            let html = `
+                <div class="detail-row"><span class="detail-label">Chi nhánh:</span> <span class="detail-value">${r.tenChiNhanh}</span></div>
+                <div class="detail-row"><span class="detail-label">Giá thuê:</span> <span class="detail-value text-danger font-weight-bold">${formatVND(r.giaThue)}/tháng</span></div>
+                <div class="detail-row"><span class="detail-label">Diện tích:</span> <span class="detail-value">${r.dienTich} m²</span></div>
+                <div class="detail-row"><span class="detail-label">Tầng:</span> <span class="detail-value">${r.tangLau}</span></div>
+                <div class="detail-row"><span class="detail-label">Số người tối đa:</span> <span class="detail-value">${r.soNguoiToiDa}</span></div><hr>`;
+
+            if (r.trangThai === 1 && r.tenNguoiThue) {
+                html += `<h6 class="font-weight-bold"><i class="fas fa-user"></i> Thông tin người thuê</h6>
+                    <div class="detail-row"><span class="detail-label">Họ tên:</span> <span class="detail-value">${r.tenNguoiThue}</span></div>
+                    <div class="detail-row"><span class="detail-label">SĐT:</span> <span class="detail-value">${r.sdtNguoiThue || 'N/A'}</span></div>`;
+                if (r.ngayHetHan) html += `<div class="detail-row"><span class="detail-label">Hết hạn HĐ:</span> <span class="detail-value">${new Date(r.ngayHetHan).toLocaleDateString('vi-VN')}</span></div>`;
+                if (r.sapHetHan) html += `<div class="alert alert-warning mt-2 py-2"><i class="fas fa-hourglass-half"></i> <strong>Cảnh báo:</strong> Hợp đồng sắp hết hạn (còn ${r.soNgayConLai} ngày)!</div>`;
+                if (r.coNoTien) html += `<div class="alert alert-danger mt-2 py-2"><i class="fas fa-exclamation-triangle"></i> <strong>Nợ tiền:</strong> Phòng này đang nợ <strong>${formatVND(r.soTienNo)}</strong>!</div>`;
+            } else if (r.trangThai === 0) {
+                html += `<div class="alert alert-success mt-2 py-2"><i class="fas fa-check-circle"></i> Phòng đang trống, sẵn sàng cho thuê.</div>`;
+            } else if (r.trangThai === 2) {
+                html += `<div class="alert alert-warning mt-2 py-2"><i class="fas fa-tools"></i> Phòng đang bảo trì.</div>`;
+            }
+
+            $('#roomDetailBody').html(html);
+            $('#roomDetailModal').modal('show');
+        }
+
+        // ========== TABLE VIEW LOGIC ==========
+        $(document).ready(function () {
+            // DataTable
+            table = $('#phongTroTable').DataTable({
+                "language": { "url": "https://cdn.datatables.net/plug-ins/1.13.6/i18n/vi.json" },
+                "responsive": true, "autoWidth": false,
+                "ajax": { "url": "/PhongTros/DanhSachPhongTro", "type": "GET", "datatype": "json" },
+                "columns": [
+                    { "data": null, "className": "text-center align-middle", "orderable": false, "searchable": false,
+                        "render": (d,t,r,m) => m.row + m.settings._iDisplayStart + 1 },
+                    { "data": "tenChiNhanh" },
+                    { "data": "soPhong", "render": d => `<span class="font-weight-bold text-info">${d}</span>` },
+                    { "data": "tangLau", "className": "text-center" },
+                    { "data": "giaThue", "className": "text-right", "render": d => formatVND(d) },
+                    { "data": "dienTich", "className": "text-center", "render": d => d + " m²" },
+                    { "data": "trangThai", "className": "text-center",
+                        "render": d => d === 0 ? '<span class="badge badge-success"><i class="fas fa-door-open"></i> Trống</span>'
+                                     : d === 1 ? '<span class="badge badge-danger"><i class="fas fa-user-check"></i> Đã Thuê</span>'
+                                     : '<span class="badge badge-warning"><i class="fas fa-tools"></i> Bảo Trì</span>' },
+                    { "data": "phongTroId", "className": "text-center", "width": "10%",
+                        "render": id => `<button class="btn btn-warning btn-sm btn-edit" data-id="${id}" title="Sửa"><i class="fas fa-edit"></i></button>
+                                         <button class="btn btn-danger btn-sm btn-delete" data-id="${id}" title="Xóa"><i class="fas fa-trash"></i></button>` }
+                ],
+                "order": [[0, "desc"]]
+            });
+
+            // Table filter by Chi nhánh
+            $('#filterChiNhanhTable').change(function () {
+                table.column(1).search($(this).val()).draw();
+            });
+
+            // Load grid on start
+            loadGridData();
+
+            // Grid filters
+            $('#filterChiNhanhGrid').change(function () { loadGridData(); });
+            $('.filter-btn').click(function () {
+                $('.filter-btn').removeClass('active');
+                $(this).addClass('active');
+                currentFilter = $(this).data('filter');
+                renderGrid();
+            });
+            $('#searchRoom').on('input', function () { renderGrid(); });
+
+            // ========== SHARED CRUD ==========
             $('#btnOpenAddModal').on('click', function () {
-                currentPhongTroId = 0; // Đặt về 0 là chế độ thêm mới
-
-                // Reset form (Clear tất cả input/select)
-                $('#ChiNhanhId').val('');
-                $('#SoPhong').val('');
-                $('#TangLau').val('1');
-                $('#GiaThue').val('');
-                $('#DienTich').val('');
-                $('#SoNguoiToiDa').val('2');
-                $('#TrangThai').val('0'); // Mặc định là Trống
-                $('#MoTa').val('');
-
+                currentPhongTroId = 0;
+                $('#ChiNhanhId').val(''); $('#SoPhong').val(''); $('#TangLau').val('1');
+                $('#GiaThue').val(''); $('#DienTich').val(''); $('#SoNguoiToiDa').val('2');
+                $('#TrangThai').val('0'); $('#MoTa').val('');
                 $('#modalTitle').text('Thêm Phòng Trọ Mới');
                 $('#phongTroModal').modal('show');
             });
 
-            // 3. SỰ KIỆN CLICK NÚT LƯU (THÊM / SỬA)
             $('#btnSaveData').on('click', function () {
-                // Thu thập dữ liệu (Sử dụng toán tử || "" để tránh Null)
                 let chiNhanhId = $('#ChiNhanhId').val();
                 let soPhong = $('#SoPhong').val() || "";
-                let tangLau = $('#TangLau').val() || 0;
                 let giaThue = $('#GiaThue').val() || 0;
-                let dienTich = $('#DienTich').val() || 0;
-                let soNguoiToiDa = $('#SoNguoiToiDa').val() || 0;
-                let trangThai = $('#TrangThai').val() || 0;
-                let moTa = $('#MoTa').val() || "";
-
-                // Frontend Validation
                 if (!chiNhanhId) { alert("Vui lòng chọn chi nhánh!"); return; }
                 if (soPhong.trim() === "") { alert("Vui lòng nhập số phòng!"); return; }
                 if (giaThue <= 0) { alert("Giá thuê phải lớn hơn 0!"); return; }
@@ -216,120 +575,61 @@
                 let $btn = $(this);
                 $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang lưu...');
 
-                // Xác định Endpoint API
-                let actionUrl = (currentPhongTroId === 0) ? '/PhongTros/ThemPhongTro' : '/PhongTros/CapNhatPhongTro';
-
+                let actionUrl = currentPhongTroId === 0 ? '/PhongTros/ThemPhongTro' : '/PhongTros/CapNhatPhongTro';
                 $.ajax({
-                    url: actionUrl,
-                    type: 'POST',
+                    url: actionUrl, type: 'POST',
                     data: {
-                        PhongTroId: currentPhongTroId, // Nếu là Thêm thì gửi số 0, Cập nhật thì gửi ID thực tế
-                        ChiNhanhId: chiNhanhId,
-                        SoPhong: soPhong,
-                        TangLau: tangLau,
-                        GiaThue: giaThue,
-                        DienTich: dienTich,
-                        SoNguoiToiDa: soNguoiToiDa,
-                        TrangThai: trangThai,
-                        MoTa: moTa
+                        PhongTroId: currentPhongTroId, ChiNhanhId: chiNhanhId,
+                        SoPhong: soPhong, TangLau: $('#TangLau').val() || 0,
+                        GiaThue: giaThue, DienTich: $('#DienTich').val() || 0,
+                        SoNguoiToiDa: $('#SoNguoiToiDa').val() || 0,
+                        TrangThai: $('#TrangThai').val() || 0, MoTa: $('#MoTa').val() || ""
                     },
                     success: function (res) {
                         if (res.success) {
                             alert(res.message);
                             $('#phongTroModal').modal('hide');
-                            table.ajax.reload(null, false); // Reload nhưng giữ nguyên trang hiện tại
-                        } else {
-                            alert("Lỗi: " + res.message);
-                        }
+                            table.ajax.reload(null, false);
+                            loadGridData();
+                        } else alert("Lỗi: " + res.message);
                     },
-                    error: function (xhr, status, error) {
-                        console.error(error);
-                        alert("Không thể kết nối đến máy chủ!");
-                    },
-                    complete: function () {
-                        $btn.prop('disabled', false).html('<i class="fas fa-save"></i> Lưu thông tin');
-                    }
+                    error: function () { alert("Không thể kết nối đến máy chủ!"); },
+                    complete: function () { $btn.prop('disabled', false).html('<i class="fas fa-save"></i> Lưu thông tin'); }
                 });
             });
 
-            // 4. SỰ KIỆN CLICK NÚT SỬA (TRÊN TABLE)
+            // Table Edit
             $('#phongTroTable tbody').on('click', '.btn-edit', function () {
                 let id = $(this).data('id');
-                let $btn = $(this);
-
-                if (!id || isNaN(id) || parseInt(id) <= 0) {
-                    alert("Dữ liệu không hợp lệ!"); return;
-                }
-
-                currentPhongTroId = id; // Ghi nhớ ID đang thao tác
-
-                let originalHtml = $btn.html();
+                currentPhongTroId = id;
+                let $btn = $(this), orig = $btn.html();
                 $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
-
-                // Gọi API lấy thông tin chi tiết
-                $.ajax({
-                    url: '/PhongTros/GetPhongTro?id=' + id,
-                    type: 'GET',
-                    success: function (res) {
-                        if (res.success && res.data) {
-                            let d = res.data;
-
-                            // Đổ dữ liệu vào Modal
-                            $('#ChiNhanhId').val(d.chiNhanhId);
-                            $('#SoPhong').val(d.soPhong);
-                            $('#TangLau').val(d.tangLau);
-                            $('#GiaThue').val(d.giaThue);
-                            $('#DienTich').val(d.dienTich);
-                            $('#SoNguoiToiDa').val(d.soNguoiToiDa);
-                            $('#TrangThai').val(d.trangThai);
-                            $('#MoTa').val(d.moTa);
-
-                            $('#modalTitle').text('Chỉnh sửa: Phòng ' + (d.soPhong || ""));
-                            $('#phongTroModal').modal('show');
-                        } else {
-                            alert("Lỗi: " + (res.message || "Không tải được dữ liệu."));
-                        }
-                    },
-                    error: function () { alert("Lỗi kết nối máy chủ!"); },
-                    complete: function () {
-                        $btn.prop('disabled', false).html(originalHtml);
-                    }
+                $.get('/PhongTros/GetPhongTro?id=' + id, function (res) {
+                    if (res.success && res.data) {
+                        let d = res.data;
+                        $('#ChiNhanhId').val(d.chiNhanhId); $('#SoPhong').val(d.soPhong);
+                        $('#TangLau').val(d.tangLau); $('#GiaThue').val(d.giaThue);
+                        $('#DienTich').val(d.dienTich); $('#SoNguoiToiDa').val(d.soNguoiToiDa);
+                        $('#TrangThai').val(d.trangThai); $('#MoTa').val(d.moTa);
+                        $('#modalTitle').text('Chỉnh sửa: Phòng ' + (d.soPhong || ""));
+                        $('#phongTroModal').modal('show');
+                    } else alert("Lỗi: " + (res.message || "Không tải được."));
+                    $btn.prop('disabled', false).html(orig);
                 });
             });
 
-            // 5. SỰ KIỆN CLICK NÚT XÓA
+            // Table Delete
             $('#phongTroTable tbody').on('click', '.btn-delete', function () {
-                let id = $(this).data('id');
-                let $btn = $(this);
-
-                if (!id || isNaN(id) || parseInt(id) <= 0) return;
-
-                if (confirm('Bạn có chắc chắn muốn xóa phòng trọ này? Thao tác này không thể hoàn tác.')) {
-                    let originalHtml = $btn.html();
+                let id = $(this).data('id'), $btn = $(this);
+                if (confirm('Bạn có chắc chắn muốn xóa phòng này?')) {
+                    let orig = $btn.html();
                     $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
-
-                    $.ajax({
-                        url: '/PhongTros/XoaPhongTro',
-                        type: 'POST',
-                        data: { id: id }, // Truyền data dạng POST an toàn
-                        success: function (res) {
-                            if (res.success) {
-                                alert(res.message);
-                                table.ajax.reload(null, false);
-                            } else {
-                                alert("Không thể xóa: " + res.message);
-                                $btn.prop('disabled', false).html(originalHtml);
-                            }
-                        },
-                        error: function (xhr) {
-                            console.error(xhr);
-                            alert("Lỗi kết nối máy chủ khi xóa!");
-                            $btn.prop('disabled', false).html(originalHtml);
-                        }
+                    $.post('/PhongTros/XoaPhongTro', { id: id }, function (res) {
+                        if (res.success) { alert(res.message); table.ajax.reload(null, false); loadGridData(); }
+                        else { alert("Lỗi: " + res.message); $btn.prop('disabled', false).html(orig); }
                     });
                 }
             });
-
         });
     </script>
 }
