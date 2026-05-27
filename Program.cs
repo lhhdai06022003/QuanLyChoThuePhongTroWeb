@@ -1,13 +1,14 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.ChiNhanhs;
-using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HopDongs;
-using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.NguoiThues;
-using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.PhongTros;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.DichVus;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.DienNuocs;
+using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.Hoadon;
+using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HopDongs;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.NguoiDungs;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HoaDons;
+using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.NguoiThues;
+using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.PhongTros;
 using QuanLyChoThuePhongTroWeb.Data;
 using System;
 

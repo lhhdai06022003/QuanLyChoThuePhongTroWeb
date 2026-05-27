@@ -1,493 +1,271 @@
-@using QuanLyChoThuePhongTroWeb.Models
 @{
-    ViewData["Title"] = "Quản lý Hợp Đồng";
-    // Ép kiểu dữ liệu ViewBag sang JSON để xài trong Javascript với CamelCase
-    var jsonPhongTros = Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.ListPhongTro, new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }));
+    ViewData["Title"] = "Hệ thống Quản lý Hóa đơn - Tính tiền tự động";
 }
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css" />
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/themes/material_blue.min.css" />
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" />
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/select2-bootstrap4-theme/1.5.2/select2-bootstrap4.min.css" />
 <section class="content">
     <div class="container-fluid">
-        <div class="card card-default">
-            <div class="card-header">
-                <h3 class="card-title">Bộ lọc tìm kiếm</h3>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-3 form-group">
-                        <label>Chi Nhánh</label>
-                        <select id="filterChiNhanh" class="form-control select2">
-                            <option value="0">-- Tất cả chi nhánh --</option>
-                            @if (ViewBag.ListChiNhanh != null)
-                            {
-                                foreach (var cn in ViewBag.ListChiNhanh)
-                                {
-                                    <option value="@cn.Value">@cn.Text</option>
-                                }
-                            }
-                        </select>
-                    </div>
-                    <div class="col-md-3 form-group">
-                        <label>Người Thuê</label>
-                        <select id="filterNguoiThue" class="form-control select2">
-                            <option value="0">-- Tất cả người thuê --</option>
-                            @if (ViewBag.ListNguoiThue != null)
-                            {
-                                foreach (var nt in ViewBag.ListNguoiThue)
-                                {
-                                    <option value="@nt.Value">@nt.Text</option>
-                                }
-                            }
-                        </select>
-                    </div>
-                    <div class="col-md-3 form-group">
-                        <label>Thời hạn hợp đồng</label>
-                        <input type="text" class="form-control" id="filterDateRange" placeholder="Chọn khoảng thời gian...">
-                    </div>
-                    <div class="col-md-2 form-group d-flex align-items-end">
-                        <button type="button" class="btn btn-primary w-100" id="btnSearch">
-                            <i class="fas fa-search"></i> Tìm kiếm
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <div class="card card-primary card-outline">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <h3 class="card-title"><i class="fas fa-file-contract"></i> Danh sách Hợp Đồng</h3>
-                <button type="button" class="btn btn-success btn-sm ml-auto" id="btnOpenAddModal">
-                    <i class="fas fa-plus"></i> Tạo Hợp Đồng Mới
+                <h3 class="card-title"><i class="fas fa-file-invoice-dollar"></i> Danh sách Hóa đơn & Tiền phòng</h3>
+                <button type="button" class="btn btn-success btn-sm ml-auto" id="btnOpenChotTienModal">
+                    <i class="fas fa-calculator"></i> Tính Tiền Phòng Thường Niên
                 </button>
             </div>
             <div class="card-body">
-                <table id="hopDongTable" class="table table-bordered table-striped table-hover w-100">
-                    <thead class="bg-light">
+                <table id="hoaDonTable" class="table table-bordered table-striped table-hover w-100">
+                    <thead class="thead-light">
                         <tr>
-                            <th class="text-center" width="5%">STT</th>
-                            <th>Mã HĐ</th>
-                            <th>Phòng</th>
-                            <th>Người Đại Diện</th>
-                            <th>Ngày Bắt Đầu</th>
-                            <th>Tiền Thuê/Tháng</th>
-                            <th class="text-center">Trạng Thái</th>
-                            <th class="text-center">Thao tác</th>
+                            <th width="5%" class="text-center">STT</th>
+                            <th width="15%">Mã Hóa Đơn</th>
+                            <th width="10%">Số Phòng</th>
+                            <th width="20%">Đại Diện Thuê</th>
+                            <th width="12%">Kỳ Hóa Đơn</th>
+                            <th width="15%">Tổng Tiền (VND)</th>
+                            <th width="13%">Trạng Thái</th>
+                            <th width="10%" class="text-center">Thao tác</th>
                         </tr>
                     </thead>
-                    <tbody></tbody>
                 </table>
             </div>
         </div>
     </div>
 </section>
 
-<div class="modal fade" id="hopDongModal" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-dialog modal-lg" role="document">
+<div class="modal fade" id="chotTienModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-md" role="document">
         <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="modalTitle">Thêm Hợp Đồng Mới</h5>
-                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+            <div class="modal-header bg-success">
+                <h5 class="modal-title text-white"><i class="fas fa-calculator"></i> Tính Tiền & Chốt Chỉ Số Phòng</h5>
+                <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
             </div>
-
             <div class="modal-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label>Mã Hợp Đồng <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="MaHopDong" placeholder="VD: HD-001">
+                <form id="frmChotTien">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label>Chọn Phòng Cần Tính <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="txtPhongId" required placeholder="Nhập ID Phòng Trọ...">
+                            </div>
                         </div>
-
-                        <div class="form-group">
-                            <label>Chi Nhánh <span class="text-danger">*</span></label>
-                            <select class="form-control" id="ChiNhanhId">
-                                <option value="">-- Chọn chi nhánh --</option>
-                                @if (ViewBag.ListChiNhanh != null)
-                                {
-                                    foreach (var cn in ViewBag.ListChiNhanh)
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Tháng Tính Toán</label>
+                                <select class="form-control" id="txtThang">
+                                    @for (int i = 1; i <= 12; i++)
                                     {
-                                        <option value="@cn.Value">@cn.Text</option>
+                                        <option value="@i" selected="@(i == DateTime.Now.Month)">Tháng @i</option>
                                     }
-                                }
-                            </select>
+                                </select>
+                            </div>
                         </div>
-
-                        <div class="form-group">
-                            <label>Phòng Trọ <span class="text-danger">*</span></label>
-                            <select class="form-control" id="PhongTroId">
-                                <option value="">-- Vui lòng chọn chi nhánh trước --</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Người Đại Diện <span class="text-danger">*</span></label>
-                            <select class="form-control select2" id="NguoiThueId">
-                                <option value="">-- Chọn khách thuê --</option>
-                                @if (ViewBag.ListNguoiThue != null)
-                                {
-                                    foreach (var nt in ViewBag.ListNguoiThue)
-                                    {
-                                        <option value="@nt.Value">@nt.Text</option>
-                                    }
-                                }
-                            </select>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Năm Tính Toán</label>
+                                <input type="number" class="form-control" id="txtNam" value="@DateTime.Now.Year">
+                            </div>
                         </div>
                     </div>
+                    <hr>
+                    <h6 class="text-primary font-weight-bold"><i class="fas fa-bolt"></i> Chỉ số Điện (VND/kWh)</h6>
+                    <div class="row">
+                        <div class="col-md-4"><div class="form-group"><label>Số Cũ</label><input type="number" class="form-control" id="DienCu" value="0"></div></div>
+                        <div class="col-md-4"><div class="form-group"><label>Số Mới</label><input type="number" class="form-control" id="DienMoi"></div></div>
+                        <div class="col-md-4"><div class="form-group"><label>Đơn Giá</label><input type="number" class="form-control" id="GiaDien" value="3500"></div></div>
+                    </div>
+                    <h6 class="text-info font-weight-bold"><i class="fas fa-water"></i> Chỉ số Nước (VND/m³)</h6>
+                    <div class="row">
+                        <div class="col-md-4"><div class="form-group"><label>Số Cũ</label><input type="number" class="form-control" id="NuocCu" value="0"></div></div>
+                        <div class="col-md-4"><div class="form-group"><label>Số Mới</label><input type="number" class="form-control" id="NuocMoi"></div></div>
+                        <div class="col-md-4"><div class="form-group"><label>Đơn Giá</label><input type="number" class="form-control" id="GiaNuoc" value="15000"></div></div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-success" id="btnSaveChotTien"><i class="fas fa-check"></i> Tạo Hóa Đơn</button>
+            </div>
+        </div>
+    </div>
+</div>
 
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label>Ngày Bắt Đầu <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="ThoiDiemBatDau" placeholder="Chọn ngày bắt đầu...">
-                        </div>
+<div class="modal fade" id="detailHoaDonModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-primary">
+                <h5 class="modal-title text-white"><i class="fas fa-file-invoice"></i> Phiếu Chi Tiết Hóa Đơn Tiền Phòng</h5>
+                <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body" id="printArea">
+                <div class="text-center">
+                    <h5>PHIẾU THU TIỀN PHÒNG KHÁCH SẠN / NHÀ TRỌ</h5>
+                    <p class="font-italic text-muted">Kỳ hóa đơn: <span id="lblKyHD"></span> - Mã số: <span id="lblMaHD"></span></p>
+                </div>
+                <table class="table table-sm table-borderless table-responsive-md">
+                    <tr><td><strong>Số Phòng:</strong> <span id="lblSoPhong"></span></td><td><strong>Khách thuê đại diện:</strong> <span id="lblKhachHang"></span></td></tr>
+                    <tr><td><strong>Số Điện thoại:</strong> <span id="lblSdt"></span></td><td><strong>Trạng thái:</strong> <span id="lblTrangThai"></span></td></tr>
+                </table>
+                <table class="table table-bordered table-striped">
+                    <thead class="thead-light">
+                        <tr><th>Tên Chi Phí / Dịch vụ</th><th>Chỉ số Cũ</th><th>Chỉ số Mới</th><th>Tiêu thụ</th><th>Đơn giá</th><th>Thành Tiền</th></tr>
+                    </thead>
+                    <tbody id="invoiceItems">
+                    </tbody>
+                </table>
 
-                        <div class="form-group">
-                            <label>Ngày Kết Thúc (Dự kiến)</label>
-                            <input type="text" class="form-control" id="ThoiDiemKetThuc" placeholder="Chọn ngày kết thúc...">
-                        </div>
-
-                        <div class="form-group">
-                            <label>Tiền Cọc (VNĐ) <span class="text-danger">*</span></label>
-                            <input type="number" class="form-control" id="TienCocPhong" value="0" min="0">
-                        </div>
-
-                        <div class="form-group">
-                            <label>Tiền Thuê/Tháng (VNĐ) <span class="text-danger">*</span></label>
-                            <input type="number" class="form-control" id="TienThuePhong" min="0">
-                        </div>
-
-                        <div class="form-group" id="groupTrangThaiHopDong" style="display: none;">
-                            <label>Trạng Thái Hợp Đồng <span class="text-danger">*</span></label>
-                            <select class="form-control" id="TrangThaiHopDong">
-                                <option value="1">Đang hoạt động</option>
-                                <option value="2">Đã kết thúc</option>
-                                <option value="3">Đã hủy</option>
-                            </select>
-                        </div>
+                <div class="row mt-4 align-items-center">
+                    <div class="col-md-6 text-center">
+                        <p class="font-weight-bold mb-1"><i class="fas fa-qrcode"></i> Quét Mã QR Để Thanh Toán</p>
+                        <img id="imgVietQR" src="" alt="Mã chuyển khoản VietQR tự động" class="img-fluid border p-2 bg-white shadow-sm" style="max-width:230px;">
+                        <p class="small text-muted font-italic mt-1">Hệ thống VietQR tự động điền STK & Số tiền.</p>
+                    </div>
+                    <div class="col-md-6 text-right">
+                        <h4>TỔNG TIỀN: <span class="text-danger font-weight-bold" id="lblTongTien"></span> VND</h4>
                     </div>
                 </div>
             </div>
-
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
-                <button type="button" class="btn btn-primary" id="btnSaveData">
-                    <i class="fas fa-save"></i> Lưu thông tin
-                </button>
+                <button type="button" class="btn btn-warning" id="btnMarkAsPaid"><i class="fas fa-cash-register"></i> Xác nhận Đã Thu Tiền</button>
             </div>
         </div>
     </div>
 </div>
 
 @section Scripts {
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/l10n/vn.min.js"></script>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.full.min.js"></script>
-
     <script>
         $(document).ready(function () {
-            let currentHopDongId = 0;
+            let selectedHoaDonId = 0;
 
-            // Hàm format tiền VNĐ
-            function formatVND(n) {
-                if (n === null || n === undefined) return "0 ₫";
-                return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n);
-            }
-
-            // Tính toán Ngày đầu/cuối quý hiện tại bằng JS thuần (Không cần moment)
-            const now = new Date();
-            const quarter = Math.floor(now.getMonth() / 3);
-            const startOfQuarter = new Date(now.getFullYear(), quarter * 3, 1);
-            const endOfQuarter = new Date(now.getFullYear(), (quarter + 1) * 3, 0);
-
-            // === KHỞI TẠO FLATPICKR CHO BỘ LỌC (Chọn khoảng ngày) ===
-            let filterPicker = flatpickr("#filterDateRange", {
-                mode: "range",
-                dateFormat: "d/m/Y",
-                locale: "vn",
-                defaultDate: [startOfQuarter, endOfQuarter]
-            });
-
-            // === KHỞI TẠO FLATPICKR CHO MODAL (Chọn ngày đơn) ===
-            let batDauPicker = flatpickr("#ThoiDiemBatDau", { dateFormat: "d/m/Y", locale: "vn" });
-            let ketThucPicker = flatpickr("#ThoiDiemKetThuc", { dateFormat: "d/m/Y", locale: "vn" });
-
-            // Khởi tạo Select2
-            if ($('.select2').length > 0) {
-                $('.select2').select2({ theme: 'bootstrap4' });
-            }
-
-            // Mảng dữ liệu phòng trọ từ ViewBag
-            let allPhongTros = @jsonPhongTros || [];
-
-            // Logic Chọn Chi Nhánh -> Lọc Phòng Trọ
-            $('#ChiNhanhId').on('change', function () {
-                let chiNhanhId = $(this).val();
-                let $phongTroSelect = $('#PhongTroId');
-                $phongTroSelect.empty();
-                if (!chiNhanhId) {
-                    $phongTroSelect.append('<option value="">-- Vui lòng chọn chi nhánh trước --</option>');
-                    return;
-                }
-                $phongTroSelect.append('<option value="">-- Chọn phòng trọ --</option>');
-                let phongsFilter = allPhongTros.filter(p => p.chiNhanhId == parseInt(chiNhanhId));
-                debugger;
-                if(currentHopDongId == 0){
-                    phongsFilter = allPhongTros.filter(p => p.trangThai == @((int)TrangThaiPhong.Trong));
-                }
-                phongsFilter.forEach(p => {
-                    $phongTroSelect.append(`<option value="${p.phongTroId}">${p.soPhong}</option>`);
-                });
-            });
-
-            // KHỞI TẠO DATATABLE SERVER-SIDE
-            var table = $('#hopDongTable').DataTable({
+            // 1. Nạp danh sách hóa đơn bằng Datatable AJAX
+            var table = $('#hoaDonTable').DataTable({
                 "language": { "url": "https://cdn.datatables.net/plug-ins/1.13.6/i18n/vi.json" },
                 "responsive": true,
                 "autoWidth": false,
-                "serverSide": true,
-                "processing": true,
-                "ajax": {
-                    "url": "/HopDong/DanhSachHopDongSideAsync",
-                    "type": "POST",
-                    "data": function (d) {
-                        d.chiNhanhId = $('#filterChiNhanh').val();
-                        d.nguoiThueId = $('#filterNguoiThue').val();
-
-                        // Lấy khoảng ngày từ Flatpickr gửi lên Server
-                        let selectedDates = filterPicker.selectedDates;
-                        if (selectedDates.length === 2) {
-                            d.startDate = flatpickr.formatDate(selectedDates[0], "Y-m-d");
-                            d.endDate = flatpickr.formatDate(selectedDates[1], "Y-m-d");
-                        }
-                    }
-                },
+                "ajax": { "url": "/QuanLyNhaTro/HoaDon/GetAll", "type": "GET", "dataSrc": "" },
                 "columns": [
+                    { "data": null, "className": "text-center align-middle", "render": function (d, t, r, meta) { return meta.row + 1; } },
+                    { "data": "maHoaDon", "className": "font-weight-bold align-middle" },
+                    { "data": "soPhong", "className": "text-primary font-weight-bold align-middle" },
+                    { "data": "tenKhach", "className": "align-middle" },
+                    { "data": "thoiGian", "className": "align-middle" },
                     {
-                        "data": null,
-                        "className": "text-center align-middle",
-                        "orderable": false,
-                        "searchable": false,
-                        "render": function (data, type, row, meta) {
-                            return meta.row + meta.settings._iDisplayStart + 1;
-                        }
+                        "data": "tongTien",
+                        "className": "font-weight-bold text-right align-middle",
+                        "render": function(data) { return data.toLocaleString('vi-VN'); }
                     },
-                    { "data": "maHopDong", "name": "maHopDong", "className": "font-weight-bold text-primary" },
-                    { "data": "soPhong", "name": "SoPhong", "orderable": true },
-                    { "data": "tenNguoiThue", "orderable": false },
                     {
-                        "data": "thoiDiemBatDau",
-                        "name": "thoiDiemBatDau",
+                        "data": "trangThaiHoaDon",
+                        "className": "text-center align-middle",
                         "render": function(data) {
-                            if(!data) return '';
-                            // Dùng hàm định dạng ngày tháng mặc định cực nhẹ của trình duyệt thay vì moment
-                            return new Date(data).toLocaleDateString('vi-VN');
+                            return data === 1
+                                ? `<span class="badge badge-success p-2"><i class="fas fa-check"></i> Đã thanh toán</span>`
+                                : `<span class="badge badge-danger p-2"><i class="fas fa-clock"></i> Chưa thanh toán</span>`;
                         }
                     },
                     {
-                        "data": "tienThuePhong",
-                        "name": "tienThuePhong",
-                        "render": function(data) { return formatVND(data); }
-                    },
-                    {
-                        "data": "trangThaiHopDong",
-                        "orderable": false,
+                        "data": "hoaDonId",
                         "className": "text-center align-middle",
                         "render": function (data) {
-                            if (data === 1) return '<span class="badge badge-success">Đang hoạt động</span>';
-                            if (data === 2) return '<span class="badge badge-secondary">Đã kết thúc</span>';
-                            return '<span class="badge badge-danger">Đã hủy</span>';
-                        }
-                    },
-                    {
-                        "data": "hopDongId",
-                        "orderable": false,
-                        "className": "text-center align-middle",
-                        "render": function (data) {
-                            return `
-                                <button class="btn btn-warning btn-sm btn-edit" data-id="${data}" title="Sửa">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="btn btn-danger btn-sm btn-delete" data-id="${data}" title="Xóa">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            `;
+                            return `<button class="btn btn-info btn-sm btn-view-invoice" data-id="${data}" title="Xem phiếu thu"><i class="fas fa-eye"></i> Phiếu Thu</button>`;
                         }
                     }
-                ],
-                "order": [[4, 'desc']]
+                ]
             });
 
-            // Nút tìm kiếm
-            $('#btnSearch').on('click', function () {
-                table.ajax.reload();
-            });
-
-            // Nút mở Modal Thêm mới
-            $('#btnOpenAddModal').on('click', function() {
-                currentHopDongId = 0;
-                $('#MaHopDong').val('');
-                $('#TienCocPhong').val('0');
-                $('#TienThuePhong').val('');
-
-                // Clear ngày tháng bằng hàm của Flatpickr
-                batDauPicker.clear();
-                ketThucPicker.clear();
-
-                $('#ChiNhanhId').val('').trigger('change').prop('disabled', false);
-                $('#NguoiThueId').val('').trigger('change').prop('disabled', false);
-                $('#PhongTroId').prop('disabled', false);
-
-                $('#groupTrangThaiHopDong').hide();
-                $('#TrangThaiHopDong').val(1);
-
-                $('#modalTitle').text('Thêm Hợp Đồng Mới');
-                $('#hopDongModal').modal('show');
-            });
-
-            // SỰ KIỆN LƯU DỮ LIỆU
-            $('#btnSaveData').on('click', function () {
-                let maHopDong = $('#MaHopDong').val().trim();
-                let phongTroId = $('#PhongTroId').val();
-                let nguoiThueId = $('#NguoiThueId').val();
-
-                // Lấy đối tượng Date thực tế từ Flatpickr
-                let dateBatDau = batDauPicker.selectedDates[0];
-                let dateKetThuc = ketThucPicker.selectedDates[0];
-
-                let tienCocPhong = parseFloat($('#TienCocPhong').val() || 0);
-                let tienThuePhong = parseFloat($('#TienThuePhong').val() || 0);
-
-                if (!maHopDong || !phongTroId || !nguoiThueId || !dateBatDau) {
-                    alert("Vui lòng nhập đầy đủ các trường bắt buộc (*).");
-                    return;
-                }
-
-                if (tienThuePhong <= 0) {
-                    alert("Vui lòng nhập Tiền Thuê Phòng (phải lớn hơn 0).");
-                    return;
-                }
-                let requestData = {
-                    hopDongId: currentHopDongId,
-                    maHopDong: maHopDong,
-                    phongTroId: parseInt(phongTroId),
-                    nguoiThueId: parseInt(nguoiThueId),
-                    // Format sang ISO string gửi lên cho backend .NET nhận diện đúng kiểu dữ liệu
-                    thoiDiemBatDau: flatpickr.formatDate(dateBatDau, "Y-m-d"),
-                    thoiDiemKetThuc: dateKetThuc ? flatpickr.formatDate(dateKetThuc, "Y-m-d") : null,
-                    tienCocPhong: tienCocPhong,
-                    tienThuePhong: tienThuePhong,
-                    trangThaiHopDong: parseInt($('#TrangThaiHopDong').val() || 1)
-                };
-
-                let isUpdate = currentHopDongId > 0;
-                let apiUrl = isUpdate ? `/HopDong/Update/${currentHopDongId}` : `/HopDong/Create`;
-                let httpMethod = isUpdate ? 'PUT' : 'POST';
-
-                let $btn = $(this);
-                $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang xử lý...');
-
-                $.ajax({
-                    url: apiUrl,
-                    type: httpMethod,
-                    contentType: 'application/json',
-                    data: JSON.stringify(requestData),
-                    success: function (res) {
-                        alert(res.message || "Thao tác thành công!");
-                        $('#hopDongModal').modal('hide');
-                        table.ajax.reload(null, false);
-                    },
-                    error: function (xhr) {
-                        let errorMessage = "Đã xảy ra lỗi!";
-                        if (xhr.responseJSON) {
-                            if (xhr.responseJSON.message) {
-                                errorMessage = xhr.responseJSON.message;
-                            } else if (xhr.responseJSON.errors) {
-                                // Lấy tất cả thông báo lỗi từ ModelState (ASP.NET Core validation)
-                                errorMessage = Object.values(xhr.responseJSON.errors).flat().join('\n');
-                            }
-                        }
-                        alert(errorMessage);
-                    },
-                    complete: function () {
-                        $btn.prop('disabled', false).html('<i class="fas fa-save"></i> Lưu thông tin');
-                    }
-                });
-            });
-
-            // SỰ KIỆN NÚT SỬA (ĐỔ DỮ LIỆU)
-            $('#hopDongTable tbody').on('click', '.btn-edit', function () {
-                let id = $(this).data('id');
-                currentHopDongId = id;
-
-                let $btn = $(this);
-                let originalHtml = $btn.html();
-                $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
-
-                $.ajax({
-                    url: `/HopDong/GetById/${id}`,
-                    type: 'GET',
-                    success: function (res) {
-                        $('#MaHopDong').val(res.maHopDong);
-                        debugger;
-                        if(res.phongTroId) {
-                            $('#ChiNhanhId').val(res.phongTro.chiNhanhId).trigger('change');
-                            setTimeout(() => { $('#PhongTroId').val(res.phongTroId).change(); }, 150);
-                        }
-
-                        $('#NguoiThueId').val(res.nguoiThueId).trigger('change');
-
-                        // Khóa các select vì không cho phép đổi chi nhánh, phòng, hoặc người thuê
-                        $('#ChiNhanhId').prop('disabled', true);
-                        $('#PhongTroId').prop('disabled', true);
-                        $('#NguoiThueId').prop('disabled', true);
-
-                        // Mở dropdown Trạng Thái
-                        $('#groupTrangThaiHopDong').show();
-                        $('#TrangThaiHopDong').val(res.trangThaiHopDong);
-
-                        // Set ngày tháng thông qua hàm setDate của Flatpickr
-                        if(res.thoiDiemBatDau) batDauPicker.setDate(new Date(res.thoiDiemBatDau));
-                        if(res.thoiDiemKetThuc) ketThucPicker.setDate(new Date(res.thoiDiemKetThuc));
-                        else ketThucPicker.clear();
-
-                        $('#TienCocPhong').val(res.tienCocPhong);
-                        $('#TienThuePhong').val(res.tienThuePhong);
-
-                        $('#modalTitle').text('Cập nhật Hợp Đồng');
-                        $('#hopDongModal').modal('show');
-                    },
-                    error: function () { alert("Không thể tải thông tin."); },
-                    complete: function() { $btn.prop('disabled', false).html(originalHtml); }
-                });
-            });
-
-            // SỰ KIỆN NÚT XÓA
-            $('#hopDongTable tbody').on('click', '.btn-delete', function () {
-                let id = $(this).data('id');
-                if (confirm('Bạn có chắc chắn muốn xóa hợp đồng này?')) {
-                    let $btn = $(this);
-                    let originalHtml = $btn.html();
-                    $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
-
-                    $.ajax({
-                        url: `/HopDong/Delete/${id}`,
-                        type: 'DELETE',
-                        success: function (res) {
-                            alert(res.message || "Đã xóa.");
-                            table.ajax.reload(null, false);
-                        },
-                        error: function (xhr) {
-                            let msg = "Lỗi khi xóa!";
-                            if (xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
-                            alert(msg);
-                            $btn.prop('disabled', false).html(originalHtml);
-                        }
+            // 2. Khi chủ trọ nhập ID phòng, tự động gọi Ajax lấy số điện nước Cũ của tháng trước điền vào form
+            $('#txtPhongId').on('change', function() {
+                let idPhong = $(this).val();
+                if(idPhong) {
+                    $.get('/QuanLyNhaTro/HoaDon/GetChiSoCu/' + idPhong, function(res) {
+                        $('#DienCu').val(res.dienCu);
+                        $('#NuocCu').val(res.nuocCu);
                     });
                 }
+            });
+
+            // 3. Sự kiện bấm nút Tạo hóa đơn tính tiền tự động
+            $('#btnSaveChotTien').on('click', function() {
+                let data = {
+                    phongTroId: parseInt($('#txtPhongId').val()),
+                    thang: parseInt($('#txtThang').val()),
+                    nam: parseInt($('#txtNam').val()),
+                    chiSoDienCu: parseFloat($('#DienCu').val()),
+                    chiSoDienMoi: parseFloat($('#DienMoi').val()),
+                    donGiaDien: parseFloat($('#GiaDien').val()),
+                    chiSoNuocCu: parseFloat($('#NuocCu').val()),
+                    chiSoNuocMoi: parseFloat($('#NuocMoi').val()),
+                    donGiaNuoc: parseFloat($('#GiaNuoc').val())
+                };
+
+                if(!data.phongTroId || !data.chiSoDienMoi || !data.chiSoNuocMoi) {
+                    alert("Vui lòng điền đầy đủ thông tin chỉ số điện nước mới!");
+                    return;
+                }
+
+                $.ajax({
+                    url: '/QuanLyNhaTro/HoaDon/ChotTien',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(data),
+                    success: function(res) {
+                        if(res.success) {
+                            alert(res.message);
+                            $('#chotTienModal').modal('hide');
+                            table.ajax.reload();
+                        } else { alert(res.message); }
+                    }
+                });
+            });
+
+            // 4. Bấm xem phiếu thu chi tiết (Tự nạp bảng chi tiết và ảnh QR động VietQR)
+            $('#hoaDonTable tbody').on('click', '.btn-view-invoice', function () {
+                selectedHoaDonId = $(this).data('id');
+                $.get('/QuanLyNhaTro/HoaDon/Details/' + selectedHoaDonId, function(res) {
+                    let d = res.data;
+                    $('#lblMaHD').text(d.maHoaDon);
+                    $('#lblKyHD').text(d.thangNam);
+                    $('#lblSoPhong').text(d.soPhong);
+                    $('#lblKhachHang').text(d.tenKhach);
+                    $('#lblSdt').text(d.sdt);
+                    $('#lblTongTien').text(d.tongTien.toLocaleString('vi-VN'));
+                    $('#lblTrangThai').html(d.trangThaiHoaDon === 1 ? '<span class="text-success">Đã đóng tiền</span>' : '<span class="text-danger">Chưa đóng tiền</span>');
+
+                    // Gán link ảnh mã QR động từ API vào thẻ img
+                    $('#imgVietQR').attr('src', res.qrUrl);
+
+                    // Xây dựng bảng tính tiền chi tiết
+                    let html = `
+                        <tr><td>Tiền Thuê Phòng (Cơ bản)</td><td>-</td><td>-</td><td>1 tháng</td><td>${d.tienPhong.toLocaleString('vi-VN')}</td><td>${d.tienPhong.toLocaleString('vi-VN')}</td></tr>
+                        <tr><td>Tiền Điện sinh hoạt</td><td>${d.dienCu}</td><td>${d.dienMoi}</td><td>${d.dienMoi - d.dienCu} kWh</td><td>${d.donGiaDien}</td><td>${d.tienDien.toLocaleString('vi-VN')}</td></tr>
+                        <tr><td>Tiền Nước sinh hoạt</td><td>${d.nuocCu}</td><td>${d.nuocMoi}</td><td>${d.nuocMoi - d.nuocCu} m³</td><td>${d.donGiaNuoc}</td><td>${d.tienNuoc.toLocaleString('vi-VN')}</td></tr>
+                    `;
+                    // Nạp các dịch vụ đăng ký thêm (wifi, rác...)
+                    d.dichVuKhac.forEach(item => {
+                        html += `<tr><td>${item.tenDichVu}</td><td>-</td><td>-</td><td>${item.soLuong}</td><td>${item.gia.toLocaleString('vi-VN')}</td><td>${item.thanhTien.toLocaleString('vi-VN')}</td></tr>`;
+                    });
+
+                    $('#invoiceItems').html(html);
+
+                    if(d.trangThaiHoaDon === 1) { $('#btnMarkAsPaid').hide(); } else { $('#btnMarkAsPaid').show(); }
+                    $('#detailHoaDonModal').modal('show');
+                });
+            });
+
+            // 5. Xác nhận đã thu tiền đóng hóa đơn
+            $('#btnMarkAsPaid').on('click', function() {
+                if(confirm("Bạn có chắc chắn tài khoản này đã thanh toán hóa đơn này không?")) {
+                    $.post(`/QuanLyNhaTro/HoaDon/XacNhanThanhToan/${selectedHoaDonId}?trangThai=1`, function(res) {
+                        alert(res.message);
+                        $('#detailHoaDonModal').modal('hide');
+                        table.ajax.reload();
+                    });
+                }
+            });
+
+            // Mở modal thêm mới
+            $('#btnOpenChotTienModal').on('click', function () {
+                $('#frmChotTien')[0].reset();
+                $('#chotTienModal').modal('show');
             });
         });
     </script>
