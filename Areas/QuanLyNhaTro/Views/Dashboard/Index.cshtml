@@ -1,0 +1,140 @@
+﻿@model QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.DashboardViewModel
+@{
+    ViewData["Title"] = "Dashboard Tổng Quan";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
+<div class="container-fluid pt-4 px-4">
+    <div class="d-flex flex-wrap align-items-center justify-content-between mb-4">
+        <h3 class="mb-3 mb-md-0 text-primary"><i class="fas fa-chart-line me-2"></i>Bảng Điều Khiển Hệ Thống</h3>
+
+        <form method="get" action="@Url.Action("Index", "Dashboard")" class="d-flex align-items-center gap-2">
+            <select name="branchId" asp-items="Model.Branches" class="form-select shadow-sm" style="min-width: 200px;">
+                <option value="">-- Tất cả chi nhánh --</option>
+            </select>
+
+            <select name="year" asp-items="Model.Years" class="form-select shadow-sm" style="min-width: 120px;">
+            </select>
+
+            <button type="submit" class="btn btn-primary shadow-sm">
+                <i class="fas fa-filter me-1"></i> Lọc
+            </button>
+        </form>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-sm-6 col-xl-3">
+            <div class="bg-light rounded d-flex align-items-center justify-content-between p-4 shadow-sm border-start border-primary border-5">
+                <i class="fa fa-home fa-3x text-primary"></i>
+                <div class="text-end">
+                    <p class="mb-2 text-secondary" style="font-size: 0.9rem;">Tổng số phòng / Trống</p>
+                    <h4 class="mb-0">@Model.TongSoPhong / <span class="text-success">@Model.SoPhongTrong</span></h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="bg-light rounded d-flex align-items-center justify-content-between p-4 shadow-sm border-start border-success border-5">
+                <i class="fa fa-file-contract fa-3x text-success"></i>
+                <div class="text-end">
+                    <p class="mb-2 text-secondary" style="font-size: 0.9rem;">Hợp đồng hoạt động</p>
+                    <h4 class="mb-0 text-success">@Model.TongSoHopDongHoatDong</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="bg-light rounded d-flex align-items-center justify-content-between p-4 shadow-sm border-start border-info border-5">
+                <i class="fa fa-money-bill-wave fa-3x text-info"></i>
+                <div class="text-end">
+                    <p class="mb-2 text-secondary">Doanh thu tháng @DateTime.Now.Month</p>
+                    <h4 class="mb-0 text-info">@Model.DoanhThuThangNay.ToString("N0") ₫</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="bg-light rounded d-flex align-items-center justify-content-between p-4 shadow-sm border-start border-danger border-5">
+                <i class="fa fa-hand-holding-usd fa-3x text-danger"></i>
+                <div class="text-end">
+                    <p class="mb-2 text-secondary">Tiền chờ thu</p>
+                    <h4 class="mb-0 text-danger">@Model.TongTienChoThu.ToString("N0") ₫</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-sm-12 col-xl-8">
+            <div class="bg-light text-center rounded p-4 shadow-sm">
+                <h6 class="mb-4 font-weight-bold text-dark text-start">Xu hướng Doanh thu (Năm @Model.SelectedYear)</h6>
+                <div style="height: 350px; position: relative;">
+                    <canvas id="revenueBarChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-12 col-xl-4">
+            <div class="bg-light text-center rounded p-4 shadow-sm">
+                <h6 class="mb-4 font-weight-bold text-dark text-start">Tỷ lệ trạng thái phòng trọ</h6>
+                <div class="d-flex justify-content-center align-items-center" style="height: 350px;">
+                    <canvas id="roomStatusPieChart" style="max-height: 280px; max-width: 280px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const chartLabels = @Html.Raw(Json.Serialize(Model.ChartLabels));
+        const chartData = @Html.Raw(Json.Serialize(Model.ChartData));
+
+        const dataTrong = @Model.SoPhongTrong;
+        const dataDaThue = @Model.SoPhongDaThue;
+        const dataBaoTri = @Model.SoPhongBaoTri;
+
+        const ctxBar = document.getElementById('revenueBarChart').getContext('2d');
+        new Chart(ctxBar, {
+            type: 'bar',
+            data: {
+                labels: chartLabels,
+                datasets: [{
+                    label: 'Doanh thu (VNĐ)',
+                    data: chartData,
+                    backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1,
+                    borderRadius: 5
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { callback: function(value) { return value.toLocaleString('vi-VN') + ' ₫'; } }
+                    }
+                }
+            }
+        });
+
+        const ctxPie = document.getElementById('roomStatusPieChart').getContext('2d');
+        new Chart(ctxPie, {
+            type: 'doughnut',
+            data: {
+                labels: ['Còn trống', 'Đã cho thuê', 'Đang bảo trì'],
+                datasets: [{
+                    data: [dataTrong, dataDaThue, dataBaoTri],
+                    backgroundColor: ['#28a745', '#007bff', '#ffc107'],
+                    borderWidth: 2,
+                    hoverOffset: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+    </script>
+}

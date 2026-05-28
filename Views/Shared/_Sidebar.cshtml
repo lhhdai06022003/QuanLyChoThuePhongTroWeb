@@ -20,6 +20,7 @@
 
                 @foreach (var item in Model)
                 {
+
                     @await Html.PartialAsync("_MenuItem", item)
                 }
             </ul>
