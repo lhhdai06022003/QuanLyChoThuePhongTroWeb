@@ -1,0 +1,360 @@
+@* 
+    Partial View: Đăng ký dịch vụ cho phòng trọ
+    Được nhúng vào: QuanLyHopDong.cshtml (tab) và QuanLyPhongTro.cshtml (modal)
+    Dữ liệu load bằng AJAX, render bằng JS function: renderDangKyDichVu(containerId, data, isNew)
+*@
+
+<style>
+    .dkdv-container {
+        max-height: 450px;
+        overflow-y: auto;
+        padding-right: 4px;
+    }
+
+    /* === Section headers === */
+    .dkdv-section-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.85rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 6px 0;
+        margin-bottom: 8px;
+        border-bottom: 2px solid #e9ecef;
+    }
+    .dkdv-section-header.default-header {
+        color: #0d6efd;
+        border-bottom-color: #b6d4fe;
+    }
+    .dkdv-section-header.optional-header {
+        color: #198754;
+        border-bottom-color: #a3cfbb;
+        margin-top: 16px;
+    }
+    .dkdv-section-count {
+        font-size: 0.7rem;
+        background: #e9ecef;
+        padding: 1px 8px;
+        border-radius: 10px;
+        font-weight: 600;
+        color: #666;
+    }
+
+    /* === Base item row === */
+    .dkdv-item {
+        display: flex;
+        align-items: center;
+        padding: 10px 12px;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        margin-bottom: 8px;
+        transition: all 0.2s ease;
+        background: #fff;
+    }
+
+    /* === DEFAULT SERVICE ITEMS (no checkbox, informational) === */
+    .dkdv-item.dkdv-default {
+        background: linear-gradient(135deg, #eff6ff 0%, #f0f7ff 100%);
+        border-color: #b6d4fe;
+        cursor: default;
+    }
+    .dkdv-default-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 8px;
+        background: linear-gradient(135deg, #0d6efd, #6ea8fe);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 14px;
+        flex-shrink: 0;
+    }
+    .dkdv-badge-included {
+        display: inline-block;
+        background: #0d6efd;
+        color: #fff;
+        font-size: 0.65rem;
+        padding: 2px 8px;
+        border-radius: 10px;
+        margin-left: 8px;
+        font-weight: 600;
+        letter-spacing: 0.3px;
+    }
+
+    /* === OPTIONAL SERVICE ITEMS (with checkbox) === */
+    .dkdv-item.dkdv-optional:hover {
+        border-color: #80bdff;
+        box-shadow: 0 2px 8px rgba(0,123,255,0.08);
+    }
+    .dkdv-item.dkdv-optional.selected {
+        border-color: #198754;
+        background: #f0fdf4;
+    }
+    .dkdv-checkbox {
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+        flex-shrink: 0;
+        accent-color: #198754;
+    }
+
+    /* === Shared === */
+    .dkdv-info {
+        flex: 1;
+        margin-left: 12px;
+        min-width: 0;
+    }
+    .dkdv-name {
+        font-weight: 600;
+        font-size: 0.95rem;
+        color: #333;
+    }
+    .dkdv-detail {
+        font-size: 0.8rem;
+        color: #777;
+        margin-top: 2px;
+    }
+    .dkdv-qty-group {
+        display: flex;
+        align-items: center;
+        margin-left: 12px;
+        flex-shrink: 0;
+    }
+    .dkdv-qty-group label {
+        font-size: 0.8rem;
+        margin-right: 6px;
+        margin-bottom: 0;
+        white-space: nowrap;
+        color: #555;
+    }
+    .dkdv-qty-input {
+        width: 70px;
+        text-align: center;
+    }
+    .dkdv-price {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #198754;
+        margin-left: 12px;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+    .dkdv-price-default {
+        color: #0d6efd;
+    }
+    .dkdv-empty {
+        text-align: center;
+        padding: 30px;
+        color: #999;
+    }
+    .dkdv-empty i {
+        font-size: 2rem;
+        margin-bottom: 10px;
+        display: block;
+    }
+
+    /* Responsive */
+    @@media (max-width: 576px) {
+        .dkdv-item {
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .dkdv-qty-group {
+            margin-left: 32px;
+        }
+        .dkdv-price {
+            margin-left: 32px;
+        }
+    }
+</style>
+
+<script>
+    // Render danh sách dịch vụ đăng ký vào container.
+    // containerId: ID của div container (không có #)
+    // data: Mảng DichVuChiNhanhWithDangKyRes từ API
+    // isNew: true nếu đang tạo mới hợp đồng (auto-tick MacDinh)
+    function renderDangKyDichVu(containerId, data, isNew) {
+        let $container = $('#' + containerId);
+        $container.empty();
+
+        if (!data || data.length === 0) {
+            $container.html(`
+                <div class="dkdv-empty">
+                    <i class="fas fa-info-circle"></i>
+                    <p>Chi nhánh này chưa có dịch vụ nào được cài đặt giá.<br>
+                    Vui lòng vào <strong>Quản lý Dịch vụ → Bảng giá</strong> để thiết lập.</p>
+                </div>
+            `);
+            return;
+        }
+
+        function formatVNDShort(n) {
+            return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n || 0);
+        }
+
+        // Phân nhóm: Mặc định vs. Tùy chọn
+        let defaults = data.filter(x => x.macDinh);
+        let optionals = data.filter(x => !x.macDinh);
+
+        let html = '<div class="dkdv-container">';
+
+        // ===== NHÓM 1: DỊCH VỤ MẶC ĐỊNH (luôn bao gồm, không checkbox) =====
+        if (defaults.length > 0) {
+            html += `
+                <div class="dkdv-section-header default-header">
+                    <i class="fas fa-lock"></i> Dịch vụ bắt buộc
+                    <span class="dkdv-section-count">${defaults.length} dịch vụ</span>
+                </div>
+            `;
+
+            defaults.forEach(function (item) {
+                // Dịch vụ mặc định: luôn selected, dùng hidden checkbox để collectDangKyDichVu vẫn thu thập được
+                html += `
+                    <div class="dkdv-item dkdv-default" data-dkdv-id="${item.dichVuChiNhanhId}">
+                        <input type="checkbox" class="dkdv-checkbox" 
+                               data-id="${item.dichVuChiNhanhId}" 
+                               data-macdinh="true" 
+                               checked style="display:none;">
+                        <div class="dkdv-default-icon">
+                            <i class="fas fa-check"></i>
+                        </div>
+                        <div class="dkdv-info">
+                            <div class="dkdv-name">
+                                ${item.tenDichVu}
+                                <span class="dkdv-badge-included"><i class="fas fa-lock" style="font-size:0.6rem;"></i> Luôn bao gồm</span>
+                            </div>
+                            <div class="dkdv-detail">
+                                <i class="fas fa-tag"></i> ${item.donVi}
+                            </div>
+                        </div>
+                        <div class="dkdv-price dkdv-price-default">${formatVNDShort(item.giaDichVu)}/${item.donVi}</div>
+                    </div>
+                `;
+            });
+        }
+
+        // ===== NHÓM 2: DỊCH VỤ TÙY CHỌN (checkbox + số lượng) =====
+        if (optionals.length > 0) {
+            html += `
+                <div class="dkdv-section-header optional-header">
+                    <i class="fas fa-plus-circle"></i> Dịch vụ tùy chọn
+                    <span class="dkdv-section-count">${optionals.length} dịch vụ</span>
+                </div>
+            `;
+
+            optionals.forEach(function (item) {
+                let isChecked = item.isSelected;
+                let checkedAttr = isChecked ? 'checked' : '';
+                let selectedClass = isChecked ? 'selected' : '';
+                let qtyDisplay = isChecked ? '' : 'display:none;';
+                let soLuong = item.soLuong || 1;
+
+                html += `
+                    <div class="dkdv-item dkdv-optional ${selectedClass}" data-dkdv-id="${item.dichVuChiNhanhId}">
+                        <input type="checkbox" class="dkdv-checkbox" 
+                               data-id="${item.dichVuChiNhanhId}" 
+                               data-macdinh="false" 
+                               ${checkedAttr}>
+                        <div class="dkdv-info">
+                            <div class="dkdv-name">${item.tenDichVu}</div>
+                            <div class="dkdv-detail">
+                                <i class="fas fa-tag"></i> ${item.donVi}
+                            </div>
+                        </div>
+                        <div class="dkdv-qty-group" data-qty-for="${item.dichVuChiNhanhId}" style="${qtyDisplay}">
+                            <label>SL:</label>
+                            <input type="number" class="form-control form-control-sm dkdv-qty-input" 
+                                   data-qty-id="${item.dichVuChiNhanhId}" 
+                                   value="${soLuong}" min="1" max="99">
+                        </div>
+                        <div class="dkdv-price">${formatVNDShort(item.giaDichVu)}/${item.donVi}</div>
+                    </div>
+                `;
+            });
+        }
+
+        html += '</div>';
+        $container.html(html);
+
+        // Event: checkbox change → toggle selected class + qty visibility (chỉ cho tùy chọn)
+        $container.find('.dkdv-optional .dkdv-checkbox').on('change', function () {
+            let $item = $(this).closest('.dkdv-item');
+            let dvId = $(this).data('id');
+            let $qty = $container.find(`[data-qty-for="${dvId}"]`);
+
+            if ($(this).is(':checked')) {
+                $item.addClass('selected');
+                $qty.slideDown(150);
+            } else {
+                $item.removeClass('selected');
+                $qty.slideUp(150);
+            }
+        });
+    }
+
+    // Thu thập dữ liệu đăng ký dịch vụ từ container.
+    // containerId: ID của div container (không có #)
+    // Returns: Mảng DangKyDichVuItem
+    function collectDangKyDichVu(containerId) {
+        let $container = $('#' + containerId);
+        let items = [];
+
+        $container.find('.dkdv-checkbox').each(function () {
+            let dvId = parseInt($(this).data('id'));
+            let isSelected = $(this).is(':checked');
+            let soLuong = 1;
+
+            // Nếu không phải mặc định, lấy giá trị từ ô nhập
+            let isMacDinh = $(this).data('macdinh') === true || $(this).data('macdinh') === 'true';
+            if (!isMacDinh) {
+                let $qty = $container.find(`[data-qty-id="${dvId}"]`);
+                if ($qty.length > 0) {
+                    soLuong = parseInt($qty.val()) || 1;
+                }
+            }
+
+            items.push({
+                dichVuChiNhanhId: dvId,
+                isSelected: isSelected,
+                soLuong: soLuong
+            });
+        });
+
+        return items;
+    }
+
+    // Gọi API lưu đăng ký dịch vụ.
+    // phongTroId: ID phòng trọ
+    // containerId: ID container chứa UI dịch vụ
+    // onSuccess: callback khi thành công
+    // onError: callback khi lỗi
+    function saveDangKyDichVu(phongTroId, containerId, onSuccess, onError) {
+        let dichVus = collectDangKyDichVu(containerId);
+
+        if (dichVus.length === 0) {
+            if (onSuccess) onSuccess();
+            return;
+        }
+
+        $.ajax({
+            url: '/DangKyDichVu/Luu',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                phongTroId: phongTroId,
+                dichVus: dichVus
+            }),
+            success: function (res) {
+                if (onSuccess) onSuccess(res);
+            },
+            error: function (xhr) {
+                let msg = xhr.responseJSON?.message || 'Lỗi khi lưu dịch vụ!';
+                if (onError) onError(msg);
+                else alert(msg);
+            }
+        });
+    }
+</script>

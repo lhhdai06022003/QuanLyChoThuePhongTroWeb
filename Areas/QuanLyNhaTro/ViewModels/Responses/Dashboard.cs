@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
-namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels
+namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Responses
 {
     public class DashboardViewModel
     {

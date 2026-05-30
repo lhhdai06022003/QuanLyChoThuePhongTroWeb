@@ -139,5 +139,24 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             var data = await _dichVuService.GetDanhSachDichVuAsync(req);
             return Ok(data.data.Select(x => new { value = x.DichVuId, text = $"{x.TenDichVu} ({x.DonVi})" }));
         }
+
+        // ===== ĐĂNG KÝ DỊCH VỤ CHO PHÒNG =====
+
+        [HttpGet("/DangKyDichVu/GetByPhong")]
+        public async Task<IActionResult> GetDangKyDichVuByPhong([FromQuery] int phongTroId)
+        {
+            if (phongTroId <= 0) return BadRequest(new { Message = "PhongTroId không hợp lệ." });
+            var data = await _dichVuService.GetDichVuVaDangKyCuaPhongAsync(phongTroId);
+            return Ok(data);
+        }
+
+        [HttpPost("/DangKyDichVu/Luu")]
+        public async Task<IActionResult> LuuDangKyDichVu([FromBody] DangKyDichVuReq request)
+        {
+            var result = await _dichVuService.LuuDangKyDichVuAsync(request);
+            if (!result.IsSuccess) return BadRequest(new { Message = result.ErrorMessage });
+            return Ok(new { Message = "Đăng ký dịch vụ thành công!" });
+        }
     }
 }
+

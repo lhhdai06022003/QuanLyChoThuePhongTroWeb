@@ -17,5 +17,9 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.DichVus
         Task<(bool IsSuccess, string ErrorMessage)> CreateDichVuChiNhanhAsync(DichVuChiNhanhReq input);
         Task<(bool IsSuccess, string ErrorMessage)> UpdateDichVuChiNhanhAsync(int id, DichVuChiNhanhReq input);
         Task<(bool IsSuccess, string ErrorMessage)> DeleteDichVuChiNhanhAsync(int id);
+
+        // Đăng ký dịch vụ cho phòng
+        Task<List<DichVuChiNhanhWithDangKyRes>> GetDichVuVaDangKyCuaPhongAsync(int phongTroId);
+        Task<(bool IsSuccess, string ErrorMessage)> LuuDangKyDichVuAsync(DangKyDichVuReq input);
     }
 }

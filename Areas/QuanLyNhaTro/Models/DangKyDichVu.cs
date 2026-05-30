@@ -19,5 +19,6 @@ namespace QuanLyChoThuePhongTroWeb.Models
         public DichVuChiNhanh DichVuChiNhanh { get; set; }
 
         public int SoLuong { get; set; }
+        public DateTime NgayBatDau { get; set; }
     }
 }

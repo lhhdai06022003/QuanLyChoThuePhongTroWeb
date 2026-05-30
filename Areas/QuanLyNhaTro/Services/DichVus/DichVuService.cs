@@ -229,5 +229,103 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.DichVus
             await _context.SaveChangesAsync();
             return (true, null);
         }
+
+        // ===== ĐĂNG KÝ DỊCH VỤ CHO PHÒNG =====
+
+        public async Task<List<DichVuChiNhanhWithDangKyRes>> GetDichVuVaDangKyCuaPhongAsync(int phongTroId)
+        {
+            // Lấy ChiNhanhId từ phòng trọ
+            var phong = await _context.PhongTros.FirstOrDefaultAsync(p => p.PhongTroId == phongTroId && !p.IsDeleted);
+            if (phong == null) return new List<DichVuChiNhanhWithDangKyRes>();
+
+            int chiNhanhId = phong.ChiNhanhId;
+
+            // Lấy tất cả dịch vụ đang active của chi nhánh
+            var dichVuChiNhanhs = await _context.Set<DichVuChiNhanh>()
+                .Include(x => x.DichVu)
+                .Where(x => x.ChiNhanhId == chiNhanhId && !x.IsDeleted && !x.DichVu.IsDeleted)
+                .ToListAsync();
+
+            // Lấy tất cả đăng ký hiện tại của phòng
+            var dangKys = await _context.DangKyDichVus
+                .Where(x => x.PhongTroId == phongTroId)
+                .ToListAsync();
+
+            // Map kết hợp
+            var result = dichVuChiNhanhs.Select(dcn =>
+            {
+                var dk = dangKys.FirstOrDefault(d => d.DichVuChiNhanhId == dcn.DichVuChiNhanhId);
+                return new DichVuChiNhanhWithDangKyRes
+                {
+                    DichVuChiNhanhId = dcn.DichVuChiNhanhId,
+                    TenDichVu = dcn.DichVu.TenDichVu,
+                    DonVi = dcn.DichVu.DonVi,
+                    GiaDichVu = dcn.GiaDichVu,
+                    MacDinh = dcn.DichVu.MacDinh,
+                    IsSelected = dk != null,
+                    SoLuong = dk?.SoLuong ?? 1,
+                    DangKyDichVuId = dk?.DangKyDichVuId
+                };
+            }).OrderByDescending(x => x.MacDinh).ThenBy(x => x.TenDichVu).ToList();
+
+            return result;
+        }
+
+        public async Task<(bool IsSuccess, string ErrorMessage)> LuuDangKyDichVuAsync(DangKyDichVuReq input)
+        {
+            var phong = await _context.PhongTros.FirstOrDefaultAsync(p => p.PhongTroId == input.PhongTroId && !p.IsDeleted);
+            if (phong == null) return (false, "Phòng trọ không tồn tại.");
+
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                // Lấy tất cả đăng ký cũ của phòng
+                var existingDangKys = await _context.DangKyDichVus
+                    .Where(x => x.PhongTroId == input.PhongTroId)
+                    .ToListAsync();
+
+                foreach (var item in input.DichVus)
+                {
+                    var existing = existingDangKys.FirstOrDefault(x => x.DichVuChiNhanhId == item.DichVuChiNhanhId);
+
+                    if (item.IsSelected)
+                    {
+                        if (existing != null)
+                        {
+                            // UPDATE: cập nhật số lượng
+                            existing.SoLuong = item.SoLuong > 0 ? item.SoLuong : 1;
+                        }
+                        else
+                        {
+                            // INSERT: thêm mới
+                            _context.DangKyDichVus.Add(new DangKyDichVu
+                            {
+                                PhongTroId = input.PhongTroId,
+                                DichVuChiNhanhId = item.DichVuChiNhanhId,
+                                SoLuong = item.SoLuong > 0 ? item.SoLuong : 1
+                            });
+                        }
+                    }
+                    else
+                    {
+                        if (existing != null)
+                        {
+                            // DELETE: bỏ chọn → xóa cứng
+                            _context.DangKyDichVus.Remove(existing);
+                        }
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return (true, null);
+            }
+            catch (Exception e)
+            {
+                await transaction.RollbackAsync();
+                string errorDetails = e.InnerException != null ? e.InnerException.Message : e.Message;
+                return (false, $"Lỗi hệ thống: {errorDetails}");
+            }
+        }
     }
 }

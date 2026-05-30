@@ -293,7 +293,35 @@
     </div>
 </div>
 
+<!-- Modal Quản lý dịch vụ phòng -->
+<div class="modal fade" id="dichVuPhongModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="fas fa-concierge-bell"></i> <span id="dichVuPhongTitle">Quản lý dịch vụ</span></h5>
+                <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info py-2 mb-3">
+                    <i class="fas fa-info-circle"></i>
+                    Dịch vụ <strong>Mặc định</strong> (Điện, Nước) tự động đăng ký. Các dịch vụ khác có thể nhập số lượng.
+                </div>
+                <div id="dichVuPhongContainer">
+                    <div class="text-center py-4"><i class="fas fa-spinner fa-spin fa-2x"></i></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-success" id="btnSaveDichVuPhong">
+                    <i class="fas fa-save"></i> Lưu dịch vụ
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
+    @await Html.PartialAsync("~/Areas/QuanLyNhaTro/Views/Shared/_DangKyDichVuPartial.cshtml")
     <script>
         // ========== Shared State ==========
         var table;
@@ -398,6 +426,7 @@
                         <button class="kebab-item" onclick="showDetail(${r.phongTroId})"><i class="fas fa-info-circle text-info"></i> Xem chi tiết</button>`;
                     if (r.trangThai === 1) {
                         menuItems += `<div class="kebab-divider"></div>`;
+                        menuItems += `<button class="kebab-item" onclick="openDichVuPhong(${r.phongTroId})"><i class="fas fa-concierge-bell text-success"></i> Quản lý dịch vụ</button>`;
                         if (r.coNoTien) menuItems += `<button class="kebab-item" onclick="goToInvoice()"><i class="fas fa-file-invoice-dollar text-danger"></i> Thu tiền</button>`;
                         menuItems += `<button class="kebab-item" onclick="goToContract()"><i class="fas fa-file-contract text-primary"></i> Xem hợp đồng</button>`;
                     }
@@ -478,6 +507,46 @@
 
         function goToInvoice() { $('.kebab-dropdown.show').removeClass('show'); window.location.href = '/QuanLyNhaTro/QuanLyHoaDon'; }
         function goToContract() { $('.kebab-dropdown.show').removeClass('show'); window.location.href = '/QuanLyNhaTro/QuanLyHopDong'; }
+
+        // ========== QUẢN LÝ DỊCH VỤ PHÒNG ==========
+        let currentDichVuPhongId = 0;
+
+        function openDichVuPhong(phongTroId) {
+            $('.kebab-dropdown.show').removeClass('show');
+            currentDichVuPhongId = phongTroId;
+
+            let room = allRooms.find(r => r.phongTroId === phongTroId);
+            let roomName = room ? room.soPhong : phongTroId;
+            $('#dichVuPhongTitle').text(`Quản lý dịch vụ - Phòng ${roomName}`);
+            $('#dichVuPhongContainer').html('<div class="text-center py-4"><i class="fas fa-spinner fa-spin fa-2x"></i></div>');
+            $('#dichVuPhongModal').modal('show');
+
+            $.get(`/DangKyDichVu/GetByPhong?phongTroId=${phongTroId}`, function (data) {
+                renderDangKyDichVu('dichVuPhongContainer', data, false);
+            }).fail(function () {
+                $('#dichVuPhongContainer').html('<div class="alert alert-danger">Không thể tải dịch vụ.</div>');
+            });
+        }
+
+        // Nút lưu dịch vụ từ modal phòng trọ
+        $(document).on('click', '#btnSaveDichVuPhong', function () {
+            let $btn = $(this);
+            $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang lưu...');
+
+            saveDangKyDichVu(
+                currentDichVuPhongId,
+                'dichVuPhongContainer',
+                function (res) {
+                    alert(res?.message || 'Đăng ký dịch vụ thành công!');
+                    $('#dichVuPhongModal').modal('hide');
+                },
+                function (errMsg) {
+                    alert('Lỗi: ' + errMsg);
+                }
+            );
+
+            $btn.prop('disabled', false).html('<i class="fas fa-save"></i> Lưu dịch vụ');
+        });
 
         function showDetail(id) {
             let r = allRooms.find(x => x.phongTroId === id);

@@ -86,7 +86,7 @@
 </section>
 
 <div class="modal fade" id="hopDongModal" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-dialog modal-xl" role="document">
         <div class="modal-content">
             <div class="modal-header bg-primary text-white">
                 <h5 class="modal-title" id="modalTitle">Thêm Hợp Đồng Mới</h5>
@@ -96,77 +96,110 @@
             </div>
 
             <div class="modal-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label>Mã Hợp Đồng <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="MaHopDong" placeholder="VD: HD-001">
-                        </div>
+                <!-- Bootstrap Tabs -->
+                <ul class="nav nav-tabs mb-3" id="hopDongTabs" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link active" id="tab-thongtin" data-toggle="tab" href="#content-thongtin" role="tab">
+                            <i class="fas fa-file-contract"></i> Thông tin hợp đồng
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="tab-dichvu" data-toggle="tab" href="#content-dichvu" role="tab">
+                            <i class="fas fa-concierge-bell"></i> Dịch vụ đăng ký
+                        </a>
+                    </li>
+                </ul>
 
-                        <div class="form-group">
-                            <label>Chi Nhánh <span class="text-danger">*</span></label>
-                            <select class="form-control" id="ChiNhanhId">
-                                <option value="">-- Chọn chi nhánh --</option>
-                                @if (ViewBag.ListChiNhanh != null)
-                                {
-                                    foreach (var cn in ViewBag.ListChiNhanh)
-                                    {
-                                        <option value="@cn.Value">@cn.Text</option>
-                                    }
-                                }
-                            </select>
-                        </div>
+                <div class="tab-content">
+                    <!-- Tab 1: Thông tin hợp đồng -->
+                    <div class="tab-pane fade show active" id="content-thongtin" role="tabpanel">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>Mã Hợp Đồng <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="MaHopDong" placeholder="VD: HD-001">
+                                </div>
 
-                        <div class="form-group">
-                            <label>Phòng Trọ <span class="text-danger">*</span></label>
-                            <select class="form-control" id="PhongTroId">
-                                <option value="">-- Vui lòng chọn chi nhánh trước --</option>
-                            </select>
-                        </div>
+                                <div class="form-group">
+                                    <label>Chi Nhánh <span class="text-danger">*</span></label>
+                                    <select class="form-control" id="ChiNhanhId">
+                                        <option value="">-- Chọn chi nhánh --</option>
+                                        @if (ViewBag.ListChiNhanh != null)
+                                        {
+                                            foreach (var cn in ViewBag.ListChiNhanh)
+                                            {
+                                                <option value="@cn.Value">@cn.Text</option>
+                                            }
+                                        }
+                                    </select>
+                                </div>
 
-                        <div class="form-group">
-                            <label>Người Đại Diện <span class="text-danger">*</span></label>
-                            <select class="form-control select2" id="NguoiThueId">
-                                <option value="">-- Chọn khách thuê --</option>
-                                @if (ViewBag.ListNguoiThue != null)
-                                {
-                                    foreach (var nt in ViewBag.ListNguoiThue)
-                                    {
-                                        <option value="@nt.Value">@nt.Text</option>
-                                    }
-                                }
-                            </select>
+                                <div class="form-group">
+                                    <label>Phòng Trọ <span class="text-danger">*</span></label>
+                                    <select class="form-control" id="PhongTroId">
+                                        <option value="">-- Vui lòng chọn chi nhánh trước --</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Người Đại Diện <span class="text-danger">*</span></label>
+                                    <select class="form-control select2" id="NguoiThueId">
+                                        <option value="">-- Chọn khách thuê --</option>
+                                        @if (ViewBag.ListNguoiThue != null)
+                                        {
+                                            foreach (var nt in ViewBag.ListNguoiThue)
+                                            {
+                                                <option value="@nt.Value">@nt.Text</option>
+                                            }
+                                        }
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>Ngày Bắt Đầu <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="ThoiDiemBatDau" placeholder="Chọn ngày bắt đầu...">
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Ngày Kết Thúc (Dự kiến)</label>
+                                    <input type="text" class="form-control" id="ThoiDiemKetThuc" placeholder="Chọn ngày kết thúc...">
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Tiền Cọc (VNĐ) <span class="text-danger">*</span></label>
+                                    <input type="number" class="form-control" id="TienCocPhong" value="0" min="0">
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Tiền Thuê/Tháng (VNĐ) <span class="text-danger">*</span></label>
+                                    <input type="number" class="form-control" id="TienThuePhong" min="0">
+                                </div>
+
+                                <div class="form-group" id="groupTrangThaiHopDong" style="display: none;">
+                                    <label>Trạng Thái Hợp Đồng <span class="text-danger">*</span></label>
+                                    <select class="form-control" id="TrangThaiHopDong">
+                                        <option value="1">Đang hoạt động</option>
+                                        <option value="2">Đã kết thúc</option>
+                                        <option value="3">Đã hủy</option>
+                                    </select>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label>Ngày Bắt Đầu <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="ThoiDiemBatDau" placeholder="Chọn ngày bắt đầu...">
+                    <!-- Tab 2: Dịch vụ đăng ký -->
+                    <div class="tab-pane fade" id="content-dichvu" role="tabpanel">
+                        <div class="alert alert-info py-2 mb-3">
+                            <i class="fas fa-info-circle"></i> 
+                            Chọn các dịch vụ cho phòng trọ. Dịch vụ <strong>Mặc định</strong> (Điện, Nước) sẽ được tích sẵn.
                         </div>
-
-                        <div class="form-group">
-                            <label>Ngày Kết Thúc (Dự kiến)</label>
-                            <input type="text" class="form-control" id="ThoiDiemKetThuc" placeholder="Chọn ngày kết thúc...">
-                        </div>
-
-                        <div class="form-group">
-                            <label>Tiền Cọc (VNĐ) <span class="text-danger">*</span></label>
-                            <input type="number" class="form-control" id="TienCocPhong" value="0" min="0">
-                        </div>
-
-                        <div class="form-group">
-                            <label>Tiền Thuê/Tháng (VNĐ) <span class="text-danger">*</span></label>
-                            <input type="number" class="form-control" id="TienThuePhong" min="0">
-                        </div>
-
-                        <div class="form-group" id="groupTrangThaiHopDong" style="display: none;">
-                            <label>Trạng Thái Hợp Đồng <span class="text-danger">*</span></label>
-                            <select class="form-control" id="TrangThaiHopDong">
-                                <option value="1">Đang hoạt động</option>
-                                <option value="2">Đã kết thúc</option>
-                                <option value="3">Đã hủy</option>
-                            </select>
+                        <div id="hopDongDichVuContainer">
+                            <div class="text-center text-muted py-4">
+                                <i class="fas fa-hand-point-up fa-2x mb-2"></i>
+                                <p>Vui lòng chọn <strong>Phòng Trọ</strong> ở tab "Thông tin hợp đồng" trước.</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -183,6 +216,8 @@
 </div>
 
 @section Scripts {
+    @await Html.PartialAsync("~/Areas/QuanLyNhaTro/Views/Shared/_DangKyDichVuPartial.cshtml")
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/l10n/vn.min.js"></script>
 
@@ -235,12 +270,34 @@
                 }
                 $phongTroSelect.append('<option value="">-- Chọn phòng trọ --</option>');
                 let phongsFilter = allPhongTros.filter(p => p.chiNhanhId == parseInt(chiNhanhId));
-                debugger;
                 if(currentHopDongId == 0){
                     phongsFilter = allPhongTros.filter(p => p.trangThai == @((int)TrangThaiPhong.Trong));
                 }
                 phongsFilter.forEach(p => {
                     $phongTroSelect.append(`<option value="${p.phongTroId}">${p.soPhong}</option>`);
+                });
+            });
+
+            // Logic Chọn Phòng Trọ -> Tải dịch vụ đăng ký
+            $('#PhongTroId').on('change', function () {
+                let phongTroId = $(this).val();
+                if (!phongTroId) {
+                    $('#hopDongDichVuContainer').html(`
+                        <div class="text-center text-muted py-4">
+                            <i class="fas fa-hand-point-up fa-2x mb-2"></i>
+                            <p>Vui lòng chọn <strong>Phòng Trọ</strong> ở tab "Thông tin hợp đồng" trước.</p>
+                        </div>
+                    `);
+                    return;
+                }
+                // Hiện loading
+                $('#hopDongDichVuContainer').html('<div class="text-center py-3"><i class="fas fa-spinner fa-spin fa-2x"></i></div>');
+
+                $.get(`/DangKyDichVu/GetByPhong?phongTroId=${phongTroId}`, function (data) {
+                    let isNew = currentHopDongId === 0;
+                    renderDangKyDichVu('hopDongDichVuContainer', data, isNew);
+                }).fail(function () {
+                    $('#hopDongDichVuContainer').html('<div class="alert alert-danger">Không thể tải dịch vụ.</div>');
                 });
             });
 
@@ -345,11 +402,21 @@
                 $('#groupTrangThaiHopDong').hide();
                 $('#TrangThaiHopDong').val(1);
 
+                // Reset tab dịch vụ
+                $('#hopDongDichVuContainer').html(`
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-hand-point-up fa-2x mb-2"></i>
+                        <p>Vui lòng chọn <strong>Phòng Trọ</strong> ở tab "Thông tin hợp đồng" trước.</p>
+                    </div>
+                `);
+                // Chuyển về tab thông tin
+                $('#tab-thongtin').tab('show');
+
                 $('#modalTitle').text('Thêm Hợp Đồng Mới');
                 $('#hopDongModal').modal('show');
             });
 
-            // SỰ KIỆN LƯU DỮ LIỆU
+            // SỰ KIỆN LƯU DỮ LIỆU (Hợp đồng + Dịch vụ)
             $('#btnSaveData').on('click', function () {
                 let maHopDong = $('#MaHopDong').val().trim();
                 let phongTroId = $('#PhongTroId').val();
@@ -391,15 +458,36 @@
                 let $btn = $(this);
                 $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang xử lý...');
 
+                // Bước 1: Lưu hợp đồng
                 $.ajax({
                     url: apiUrl,
                     type: httpMethod,
                     contentType: 'application/json',
                     data: JSON.stringify(requestData),
                     success: function (res) {
-                        alert(res.message || "Thao tác thành công!");
-                        $('#hopDongModal').modal('hide');
-                        table.ajax.reload(null, false);
+                        // Bước 2: Lưu dịch vụ đăng ký (nếu có dịch vụ nào được render)
+                        let hasDichVu = $('#hopDongDichVuContainer .dkdv-checkbox').length > 0;
+                        if (hasDichVu) {
+                            saveDangKyDichVu(
+                                parseInt(phongTroId),
+                                'hopDongDichVuContainer',
+                                function () {
+                                    // Thành công cả 2
+                                    alert(res.message || "Thao tác thành công!");
+                                    $('#hopDongModal').modal('hide');
+                                    table.ajax.reload(null, false);
+                                },
+                                function (errMsg) {
+                                    alert("Hợp đồng đã lưu, nhưng lỗi khi lưu dịch vụ: " + errMsg);
+                                    $('#hopDongModal').modal('hide');
+                                    table.ajax.reload(null, false);
+                                }
+                            );
+                        } else {
+                            alert(res.message || "Thao tác thành công!");
+                            $('#hopDongModal').modal('hide');
+                            table.ajax.reload(null, false);
+                        }
                     },
                     error: function (xhr) {
                         let errorMessage = "Đã xảy ra lỗi!";
@@ -433,10 +521,17 @@
                     type: 'GET',
                     success: function (res) {
                         $('#MaHopDong').val(res.maHopDong);
-                        debugger;
                         if(res.phongTroId) {
                             $('#ChiNhanhId').val(res.phongTro.chiNhanhId).trigger('change');
-                            setTimeout(() => { $('#PhongTroId').val(res.phongTroId).change(); }, 150);
+                            setTimeout(() => {
+                                $('#PhongTroId').val(res.phongTroId).change();
+                                // Load dịch vụ đã đăng ký cho phòng này
+                                setTimeout(() => {
+                                    $.get(`/DangKyDichVu/GetByPhong?phongTroId=${res.phongTroId}`, function (dvData) {
+                                        renderDangKyDichVu('hopDongDichVuContainer', dvData, false);
+                                    });
+                                }, 100);
+                            }, 150);
                         }
 
                         $('#NguoiThueId').val(res.nguoiThueId).trigger('change');
@@ -457,6 +552,9 @@
 
                         $('#TienCocPhong').val(res.tienCocPhong);
                         $('#TienThuePhong').val(res.tienThuePhong);
+
+                        // Chuyển về tab thông tin
+                        $('#tab-thongtin').tab('show');
 
                         $('#modalTitle').text('Cập nhật Hợp Đồng');
                         $('#hopDongModal').modal('show');
