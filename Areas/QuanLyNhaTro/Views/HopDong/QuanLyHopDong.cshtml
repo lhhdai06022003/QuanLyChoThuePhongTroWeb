@@ -108,6 +108,11 @@
                             <i class="fas fa-concierge-bell"></i> Dịch vụ đăng ký
                         </a>
                     </li>
+                    <li class="nav-item" id="nav-item-thanhvien" style="display:none;">
+                        <a class="nav-link" id="tab-thanhvien" data-toggle="tab" href="#content-thanhvien" role="tab">
+                            <i class="fas fa-users"></i> Thành viên
+                        </a>
+                    </li>
                 </ul>
 
                 <div class="tab-content">
@@ -153,6 +158,14 @@
                                             }
                                         }
                                     </select>
+                                </div>
+
+                                <div class="form-group" id="groupNguoiDungCoO">
+                                    <div class="custom-control custom-checkbox">
+                                        <input class="custom-control-input" type="checkbox" id="NguoiDungCoOPhongKhong" checked>
+                                        <label for="NguoiDungCoOPhongKhong" class="custom-control-label text-success">Người đại diện có ở tại phòng này không?</label>
+                                    </div>
+                                    <small class="form-text text-muted">Bỏ chọn nếu người này chỉ đứng tên ký hợp đồng (VD: Bố mẹ thuê cho con).</small>
                                 </div>
                             </div>
 
@@ -202,6 +215,11 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Tab 3: Danh sách thành viên -->
+                    <div class="tab-pane fade" id="content-thanhvien" role="tabpanel">
+                        @await Html.PartialAsync("~/Areas/QuanLyNhaTro/Views/Shared/_DanhSachThanhVienPartial.cshtml")
+                    </div>
                 </div>
             </div>
 
@@ -224,8 +242,25 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.full.min.js"></script>
 
     <script>
+        window.currentHopDongId = 0;
         $(document).ready(function () {
-            let currentHopDongId = 0;
+
+            // Khởi tạo Partial View Thành Viên
+            let allNguoiThues = [];
+            @if (ViewBag.ListNguoiThue != null)
+            {
+                <text>
+                allNguoiThues = [
+                    @foreach (var nt in ViewBag.ListNguoiThue)
+                    {
+                        @:{ value: '@nt.Value', text: '@Html.Raw(nt.Text)' },
+                    }
+                ];
+                </text>
+            }
+            if (typeof initThanhVienModule === "function") {
+                initThanhVienModule(allNguoiThues);
+            }
 
             // Hàm format tiền VNĐ
             function formatVND(n) {
@@ -271,16 +306,30 @@
                 $phongTroSelect.append('<option value="">-- Chọn phòng trọ --</option>');
                 let phongsFilter = allPhongTros.filter(p => p.chiNhanhId == parseInt(chiNhanhId));
                 if(currentHopDongId == 0){
-                    phongsFilter = allPhongTros.filter(p => p.trangThai == @((int)TrangThaiPhong.Trong));
+                    phongsFilter = phongsFilter.filter(p => p.trangThai == @((int)TrangThaiPhong.Trong));
                 }
                 phongsFilter.forEach(p => {
-                    $phongTroSelect.append(`<option value="${p.phongTroId}">${p.soPhong}</option>`);
+                    $phongTroSelect.append(`<option value="${p.phongTroId}" data-gia-thue="${p.giaThue || 0}">${p.soPhong}</option>`);
                 });
             });
 
             // Logic Chọn Phòng Trọ -> Tải dịch vụ đăng ký
             $('#PhongTroId').on('change', function () {
                 let phongTroId = $(this).val();
+                
+                // Tránh ghi đè tiền thuê/dịch vụ liên tục khi đang load chi tiết cập nhật
+                if (window.isBindingData) return;
+
+                // Lấy giá thuê phòng mặc định gán vào ô Tiền thuê từ thuộc tính data
+                if (phongTroId) {
+                    let giaThue = $(this).find(':selected').data('gia-thue');
+                    if (giaThue !== undefined && giaThue !== null) {
+                        $('#TienThuePhong').val(giaThue);
+                    }
+                } else {
+                    $('#TienThuePhong').val('');
+                }
+
                 if (!phongTroId) {
                     $('#hopDongDichVuContainer').html(`
                         <div class="text-center text-muted py-4">
@@ -401,6 +450,11 @@
 
                 $('#groupTrangThaiHopDong').hide();
                 $('#TrangThaiHopDong').val(1);
+                $('#groupNguoiDungCoO').show(); // Cho phép chọn khi thêm mới
+                $('#NguoiDungCoOPhongKhong').prop('checked', true);
+
+                // Ẩn tab thành viên khi thêm mới
+                $('#nav-item-thanhvien').hide();
 
                 // Reset tab dịch vụ
                 $('#hopDongDichVuContainer').html(`
@@ -415,6 +469,187 @@
                 $('#modalTitle').text('Thêm Hợp Đồng Mới');
                 $('#hopDongModal').modal('show');
             });
+
+            // ================== LOGIC THÀNH VIÊN Ở GHÉP ==================
+            // Khởi tạo Select2 và Flatpickr cho Modal Thêm Thành Viên
+            $('#addMember_NguoiThueId').select2({
+                dropdownParent: $('#addMemberModal'),
+                theme: 'bootstrap4'
+            });
+
+            let memberNgayVaoPicker = flatpickr("#addMember_NgayVao", { dateFormat: "d/m/Y", locale: "vn", defaultDate: new Date() });
+
+            $('#addMember_NguoiThueId').on('change', function () {
+                let val = $(this).val();
+                if (val) {
+                    $('#newMemberFields').slideUp();
+                    $('#addMember_HoVaTen, #addMember_SoDienThoai, #addMember_CCCD').val('');
+                } else {
+                    $('#newMemberFields').slideDown();
+                }
+            });
+
+            // Hàm load danh sách thành viên (Dùng chung)
+            window.loadDanhSachThanhVien = function(hopDongId) {
+                $('#thanhVienTbody').html('<tr><td colspan="8" class="text-center"><i class="fas fa-spinner fa-spin"></i> Đang tải dữ liệu...</td></tr>');
+                $.ajax({
+                    url: `/ThanhVienHopDong/GetDanhSach/${hopDongId}`,
+                    type: 'GET',
+                    success: function (res) {
+                        let html = '';
+                        if (res && res.length > 0) {
+                            res.forEach(function (tv, index) {
+                                let ngayVao = tv.ngayVao ? new Date(tv.ngayVao).toLocaleDateString('vi-VN') : '-';
+                                let ngayRoi = tv.ngayChuyenDi ? new Date(tv.ngayChuyenDi).toLocaleDateString('vi-VN') : '-';
+                                let isChuHopDong = tv.isChuHopDong ? '<span class="badge badge-primary"><i class="fas fa-crown"></i> Đại diện</span>' : '';
+                                let trangThai = tv.ngayChuyenDi ? '<span class="badge badge-secondary">Đã chuyển đi</span>' : '<span class="badge badge-success">Đang ở</span>';
+                                
+                                let buttons = '';
+                                if (!tv.ngayChuyenDi) {
+                                    buttons += `<button type="button" class="btn btn-sm btn-warning btn-checkout" data-id="${tv.chiTietThanhVienHopDongId}" title="Báo chuyển đi"><i class="fas fa-sign-out-alt"></i></button> `;
+                                }
+                                if (!tv.isChuHopDong) {
+                                    buttons += `<button type="button" class="btn btn-sm btn-danger btn-delete-member" data-id="${tv.chiTietThanhVienHopDongId}" title="Xoá thành viên (nhập sai)"><i class="fas fa-trash"></i></button>`;
+                                }
+
+                                html += `
+                                    <tr>
+                                        <td class="text-center align-middle">${index + 1}</td>
+                                        <td class="align-middle"><strong>${tv.hoVaTen}</strong> ${isChuHopDong}</td>
+                                        <td class="align-middle">${tv.soDienThoai || '-'}</td>
+                                        <td class="align-middle">${tv.cccd || '-'}</td>
+                                        <td class="align-middle">${ngayVao}</td>
+                                        <td class="align-middle">${ngayRoi}</td>
+                                        <td class="text-center align-middle">${trangThai}</td>
+                                        <td class="text-center align-middle">${buttons}</td>
+                                    </tr>
+                                `;
+                            });
+                        } else {
+                            html = '<tr><td colspan="8" class="text-center text-muted">Chưa có thành viên nào.</td></tr>';
+                        }
+                        $('#thanhVienTbody').html(html);
+                    },
+                    error: function () {
+                        $('#thanhVienTbody').html('<tr><td colspan="8" class="text-center text-danger">Lỗi khi tải dữ liệu!</td></tr>');
+                    }
+                });
+            };
+
+            // Nút mở modal thêm thành viên
+            $(document).on('click', '#btnOpenAddMemberModal', function () {
+                if (!currentHopDongId || currentHopDongId === 0) {
+                    alert("Hợp đồng chưa được lưu. Vui lòng tạo hợp đồng trước khi thêm thành viên.");
+                    return;
+                }
+
+                // Tải lại danh sách khách thuê CHƯA CÓ PHÒNG từ Server qua AJAX
+                $.get('/NguoiThue/GetAvailable', function (res) {
+                    let $select = $('#addMember_NguoiThueId');
+                    $select.empty().append('<option value="">-- Khách mới (Nhập thông tin bên dưới) --</option>');
+                    if (res && res.length > 0) {
+                        res.forEach(function (nt) {
+                            $select.append(`<option value="${nt.nguoiThueId}">${nt.hoVaTen} - ${nt.soDienThoai || ''}</option>`);
+                        });
+                    }
+
+                    $('#addMember_NguoiThueId').val('').trigger('change');
+                    $('#addMember_HoVaTen').val('');
+                    $('#addMember_SoDienThoai').val('');
+                    $('#addMember_CCCD').val('');
+                    memberNgayVaoPicker.setDate(new Date());
+                    
+                    $('#addMemberModal').modal('show');
+                }).fail(function () {
+                    alert("Lỗi khi tải danh sách khách thuê. Vui lòng thử lại!");
+                });
+            });
+
+            // Nút lưu thành viên mới
+            $(document).on('click', '#btnSaveMember', function () {
+                let hopDongId = currentHopDongId;
+                let nguoiThueId = $('#addMember_NguoiThueId').val();
+                let hoVaTen = $('#addMember_HoVaTen').val().trim();
+                let soDienThoai = $('#addMember_SoDienThoai').val().trim();
+                let cccd = $('#addMember_CCCD').val().trim();
+                let ngayVaoDate = memberNgayVaoPicker.selectedDates[0];
+
+                if (!ngayVaoDate) {
+                    alert("Vui lòng chọn ngày vào.");
+                    return;
+                }
+
+                if (!nguoiThueId) {
+                    if (!hoVaTen || !soDienThoai || !cccd) {
+                        alert("Vui lòng nhập đủ Họ tên, Số ĐT và CCCD cho khách mới.");
+                        return;
+                    }
+                }
+
+                let requestData = {
+                    hopDongId: hopDongId,
+                    nguoiThueId: nguoiThueId ? parseInt(nguoiThueId) : null,
+                    hoVaTen: hoVaTen,
+                    soDienThoai: soDienThoai,
+                    cccd: cccd,
+                    ngayVao: flatpickr.formatDate(ngayVaoDate, "Y-m-d")
+                };
+
+                let $btn = $(this);
+                $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang lưu...');
+
+                $.ajax({
+                    url: '/ThanhVienHopDong/AddThanhVien',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(requestData),
+                    success: function (res) {
+                        alert(res.message);
+                        $('#addMemberModal').modal('hide');
+                        window.loadDanhSachThanhVien(hopDongId);
+                    },
+                    error: function (xhr) {
+                        let msg = "Đã xảy ra lỗi!";
+                        if (xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
+                        alert(msg);
+                    },
+                    complete: function () {
+                        $btn.prop('disabled', false).html('<i class="fas fa-save"></i> Lưu thành viên');
+                    }
+                });
+            });
+
+            // Báo chuyển đi
+            $(document).on('click', '.btn-checkout', function () {
+                let id = $(this).data('id');
+                if (confirm("Xác nhận thành viên này đã chuyển đi? (Ngày rời phòng sẽ cập nhật hôm nay)")) {
+                    $.post(`/ThanhVienHopDong/BaoRoiPhong/${id}`, function (res) {
+                        alert(res.message);
+                        window.loadDanhSachThanhVien(currentHopDongId);
+                    }).fail(function (xhr) {
+                        alert(xhr.responseJSON ? xhr.responseJSON.message : "Lỗi!");
+                    });
+                }
+            });
+
+            // Xoá nhầm
+            $(document).on('click', '.btn-delete-member', function () {
+                let id = $(this).data('id');
+                if (confirm("Bạn có chắc muốn xoá hoàn toàn bản ghi này?")) {
+                    $.ajax({
+                        url: `/ThanhVienHopDong/XoaThanhVien/${id}`,
+                        type: 'DELETE',
+                        success: function (res) {
+                            alert(res.message);
+                            window.loadDanhSachThanhVien(currentHopDongId);
+                        },
+                        error: function (xhr) {
+                            alert(xhr.responseJSON ? xhr.responseJSON.message : "Lỗi!");
+                        }
+                    });
+                }
+            });
+            // =============================================================
 
             // SỰ KIỆN LƯU DỮ LIỆU (Hợp đồng + Dịch vụ)
             $('#btnSaveData').on('click', function () {
@@ -448,7 +683,8 @@
                     thoiDiemKetThuc: dateKetThuc ? flatpickr.formatDate(dateKetThuc, "Y-m-d") : null,
                     tienCocPhong: tienCocPhong,
                     tienThuePhong: tienThuePhong,
-                    trangThaiHopDong: parseInt($('#TrangThaiHopDong').val() || 1)
+                    trangThaiHopDong: parseInt($('#TrangThaiHopDong').val() || 1),
+                    nguoiDungCoOPhongKhong: $('#NguoiDungCoOPhongKhong').is(':checked')
                 };
 
                 let isUpdate = currentHopDongId > 0;
@@ -522,9 +758,17 @@
                     success: function (res) {
                         $('#MaHopDong').val(res.maHopDong);
                         if(res.phongTroId) {
-                            $('#ChiNhanhId').val(res.phongTro.chiNhanhId).trigger('change');
+                            window.isBindingData = true; // Tránh trigger đổi giá phòng/dịch vụ
+                            $('#ChiNhanhId').val(res.phongTro ? res.phongTro.chiNhanhId : '').trigger('change');
                             setTimeout(() => {
+                                // Nếu phòng đang thuê ko nằm trong danh sách phòng trống, phải tự thêm option
+                                if ($('#PhongTroId option[value="'+res.phongTroId+'"]').length === 0) {
+                                    let soPhongName = res.soPhong || (res.phongTro ? res.phongTro.soPhong : res.phongTroId);
+                                    $('#PhongTroId').append(`<option value="${res.phongTroId}" data-gia-thue="${res.tienThuePhong}">${soPhongName}</option>`);
+                                }
                                 $('#PhongTroId').val(res.phongTroId).change();
+                                window.isBindingData = false;
+
                                 // Load dịch vụ đã đăng ký cho phòng này
                                 setTimeout(() => {
                                     $.get(`/DangKyDichVu/GetByPhong?phongTroId=${res.phongTroId}`, function (dvData) {
@@ -534,12 +778,19 @@
                             }, 150);
                         }
 
+                        // Nếu danh sách không chứa người thuê hiện tại, thêm tạm vào
+                        if ($('#NguoiThueId option[value="'+res.nguoiThueId+'"]').length === 0) {
+                            $('#NguoiThueId').append(`<option value="${res.nguoiThueId}">${res.tenNguoiThue || "Khách thuê (ID: " + res.nguoiThueId + ")"}</option>`);
+                        }
                         $('#NguoiThueId').val(res.nguoiThueId).trigger('change');
 
                         // Khóa các select vì không cho phép đổi chi nhánh, phòng, hoặc người thuê
                         $('#ChiNhanhId').prop('disabled', true);
                         $('#PhongTroId').prop('disabled', true);
                         $('#NguoiThueId').prop('disabled', true);
+                        
+                        // Khi cập nhật thì ẩn checkbox này đi
+                        $('#groupNguoiDungCoO').hide();
 
                         // Mở dropdown Trạng Thái
                         $('#groupTrangThaiHopDong').show();
@@ -552,6 +803,12 @@
 
                         $('#TienCocPhong').val(res.tienCocPhong);
                         $('#TienThuePhong').val(res.tienThuePhong);
+
+                        // Hiển thị tab thành viên và load dữ liệu
+                        $('#nav-item-thanhvien').show();
+                        if (typeof window.loadDanhSachThanhVien === "function") {
+                            window.loadDanhSachThanhVien(id);
+                        }
 
                         // Chuyển về tab thông tin
                         $('#tab-thongtin').tab('show');
@@ -591,4 +848,3 @@
         });
     </script>
 }
-No newline at end of file

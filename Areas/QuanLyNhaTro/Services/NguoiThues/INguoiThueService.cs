@@ -1,4 +1,4 @@
-﻿
+
 
 using Microsoft.AspNetCore.Mvc.Rendering;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Requests;
@@ -9,6 +9,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.NguoiThues
     public interface INguoiThueService
     {
         Task<IEnumerable<NguoiThue>> GetAllAsync();
+        Task<IEnumerable<NguoiThue>> GetAvailableAsync();
         Task<NguoiThue> GetByIdAsync(int id);
         Task<(bool IsSuccess, string ErrorMessage)> CreateAsync(NguoiThueReq input);
         Task<(bool IsSuccess, string ErrorMessage)> UpdateAsync(int id, NguoiThueUpdateDto input);

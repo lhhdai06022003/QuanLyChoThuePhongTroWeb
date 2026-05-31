@@ -34,6 +34,13 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             return Ok(data);
         }
 
+        [HttpGet("/NguoiThue/GetAvailable")]
+        public async Task<IActionResult> GetAvailable()
+        {
+            var data = await _nguoiThueService.GetAvailableAsync();
+            return Ok(data);
+        }
+
         [HttpGet("/NguoiThue/GetById/{id}")]
         public async Task<IActionResult> GetById(int id)
         {

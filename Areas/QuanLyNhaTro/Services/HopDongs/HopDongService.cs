@@ -34,7 +34,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HopDongs
                 if (request.ChiNhanhId.HasValue && request.ChiNhanhId > 0)
                 {
                     // Giả sử PhongTro có ChiNhanhId
-                    // query = query.Where(x => x.PhongTro.ChiNhanhId == request.ChiNhanhId.Value);
+                    query = query.Where(x => x.PhongTro.ChiNhanhId == request.ChiNhanhId.Value);
                 }
                 if (request.NguoiThueId.HasValue && request.NguoiThueId > 0)
                 {
@@ -171,17 +171,18 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HopDongs
                 _context.HopDongs.Add(hopDong);
                 await _context.SaveChangesAsync(); // Lưu để lấy HopDongId
 
-                // Thêm người đại diện vào bảng chi tiết thành viên
-                var members = new List<ChiTietThanhVienHopDong>
+                // Thêm người đại diện vào bảng chi tiết thành viên nếu họ có ở
+                var members = new List<ChiTietThanhVienHopDong>();
+                if (input.NguoiDungCoOPhongKhong)
                 {
-                    new ChiTietThanhVienHopDong
+                    members.Add(new ChiTietThanhVienHopDong
                     {
                         HopDongId = hopDong.HopDongId,
                         NguoiThueId = input.NguoiThueId, // Chủ hợp đồng
                         NgayVao = hopDong.ThoiDiemBatDau,
                         IsDeleted = false
-                    }
-                };
+                    });
+                }
 
                 // Thêm các thành viên ở ghép (nếu có)
                 if (input.ThanhVienKhacIds != null && input.ThanhVienKhacIds.Any())
@@ -199,7 +200,10 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HopDongs
                     }
                 }
 
-                _context.ChiTietThanhVienHopDongs.AddRange(members);
+                if (members.Any())
+                {
+                    _context.ChiTietThanhVienHopDongs.AddRange(members);
+                }
 
                 // Cập nhật trạng thái của PhongTro thành "Đã cho thuê"
                 var phong = await _context.PhongTros.FindAsync(input.PhongTroId);
@@ -242,6 +246,15 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HopDongs
                     if (input.TrangThaiHopDong == TrangThaiHopDong.DaKetThuc || input.TrangThaiHopDong == TrangThaiHopDong.DaHuy)
                     {
                         phong.TrangThai = TrangThaiPhong.Trong;
+
+                        // Tự động check-out các thành viên đang ở
+                        var activeMembers = await _context.ChiTietThanhVienHopDongs
+                            .Where(x => x.HopDongId == id && x.NgayChuyenDi == null && !x.IsDeleted)
+                            .ToListAsync();
+                        foreach (var member in activeMembers)
+                        {
+                            member.NgayChuyenDi = DateTime.UtcNow;
+                        }
                     }
                     else if (input.TrangThaiHopDong == TrangThaiHopDong.DangHoatDong)
                     {
@@ -277,11 +290,11 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HopDongs
             entity.IsDeleted = true;
             entity.NgayCapNhat = DateTime.UtcNow;
 
-            // Xóa mềm các chi tiết thành viên liên quan
-            var thanhViens = await _context.ChiTietThanhVienHopDongs.Where(x => x.HopDongId == id).ToListAsync();
+            // Tự động check-out các thành viên liên quan (đang ở)
+            var thanhViens = await _context.ChiTietThanhVienHopDongs.Where(x => x.HopDongId == id && !x.IsDeleted && x.NgayChuyenDi == null).ToListAsync();
             foreach (var tv in thanhViens)
             {
-                tv.IsDeleted = true;
+                tv.NgayChuyenDi = DateTime.UtcNow;
             }
 
             // Tự động chuyển trạng thái phòng về "Trống" nếu không còn HĐ hoạt động nào khác

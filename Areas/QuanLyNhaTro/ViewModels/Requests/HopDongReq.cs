@@ -1,4 +1,4 @@
-﻿using QuanLyChoThuePhongTroWeb.Models;
+using QuanLyChoThuePhongTroWeb.Models;
 using System.ComponentModel.DataAnnotations;
 
 namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Requests
@@ -29,6 +29,8 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Requests
         public double TienThuePhong { get; set; }
 
         public TrangThaiHopDong TrangThaiHopDong { get; set; } = TrangThaiHopDong.DangHoatDong;
+
+        public bool NguoiDungCoOPhongKhong { get; set; } = true;
 
         // Danh sách những người ở ghép (nếu có)
         public List<int>? ThanhVienKhacIds { get; set; }

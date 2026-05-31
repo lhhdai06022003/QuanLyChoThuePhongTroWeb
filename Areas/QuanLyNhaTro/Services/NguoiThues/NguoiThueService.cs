@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Requests;
 using QuanLyChoThuePhongTroWeb.Data;
@@ -20,6 +20,19 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.NguoiThues
             // Chỉ lấy những người chưa bị xóa mềm
             return await _context.NguoiThues
                 .Where(x => !x.IsDeleted)
+                .OrderByDescending(x => x.NgayTao)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<NguoiThue>> GetAvailableAsync()
+        {
+            // Lấy những người chưa bị xóa mềm VÀ:
+            // 1. Không phải là chủ của bất kỳ hợp đồng nào đang hoạt động
+            // 2. Không phải là thành viên đang ở của bất kỳ hợp đồng nào đang hoạt động
+            return await _context.NguoiThues
+                .Where(x => !x.IsDeleted)
+                .Where(x => !x.HopDongs.Any(h => h.TrangThaiHopDong == TrangThaiHopDong.DangHoatDong))
+                .Where(x => !x.ChiTietThanhVienHopDongs.Any(tv => tv.NgayChuyenDi == null && tv.HopDong.TrangThaiHopDong == TrangThaiHopDong.DangHoatDong))
                 .OrderByDescending(x => x.NgayTao)
                 .ToListAsync();
         }
