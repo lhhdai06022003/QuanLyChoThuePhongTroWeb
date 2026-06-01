@@ -123,8 +123,9 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.PhongTros
                 { 
                     PhongTroId = p.PhongTroId, 
                     SoPhong = p.SoPhong,
-                    ChiNhanhId = p.ChiNhanhId ,
-                    TrangThai = p.TrangThai
+                    ChiNhanhId = p.ChiNhanhId,
+                    TrangThai = p.TrangThai,
+                    GiaThue = p.GiaThue
                 })
                 .ToListAsync();
         }

@@ -65,7 +65,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         public async Task<IActionResult> GetById(int id)
         {
             var data = await _hopDongService.GetByIdAsync(id);
-            if (data == null) return NotFound(new { Message = "Không tìm thấy hợp đồng" });
+            if (data == null) return NotFound(new { message = "Không tìm thấy hợp đồng." });
             return Ok(data);
         }
 

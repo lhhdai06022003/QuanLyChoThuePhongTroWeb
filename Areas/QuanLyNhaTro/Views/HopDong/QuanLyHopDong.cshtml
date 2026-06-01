@@ -242,6 +242,13 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.full.min.js"></script>
 
     <script>
+        // Hàm hiển thị thông báo thay cho alert() mặc định
+        function showToastr(message, type = 'info') {
+            // Chuẩn bị tích hợp Toastr/SweetAlert2 sau này
+            // Hiện tạm dùng alert, nhưng đã quy về một hàm duy nhất
+            alert(`[${type.toUpperCase()}] ${message}`);
+        }
+
         window.currentHopDongId = 0;
         $(document).ready(function () {
 
@@ -472,22 +479,76 @@
 
             // ================== LOGIC THÀNH VIÊN Ở GHÉP ==================
             // Khởi tạo Select2 và Flatpickr cho Modal Thêm Thành Viên
-            $('#addMember_NguoiThueId').select2({
+            // Khởi tạo Select2 Autocomplete và Flatpickr cho Modal Thêm Thành Viên
+            $('#addMember_SearchNguoiThue').select2({
                 dropdownParent: $('#addMemberModal'),
-                theme: 'bootstrap4'
+                theme: 'bootstrap4',
+                placeholder: 'Gõ Tên, SĐT hoặc CCCD...',
+                allowClear: true,
+                minimumInputLength: 1,
+                ajax: {
+                    url: '/NguoiThue/SearchAutocomplete',
+                    dataType: 'json',
+                    delay: 250,
+                    data: function (params) {
+                        return {
+                            searchTerm: params.term // Gửi từ khóa lên server
+                        };
+                    },
+                    processResults: function (data) {
+                        return {
+                            results: $.map(data, function (item) {
+                                return {
+                                    id: item.id,
+                                    text: `${item.hoVaTen} - ${item.soDienThoai || ''} (CCCD: ${item.cccd || ''})`,
+                                    hoVaTen: item.hoVaTen,
+                                    soDienThoai: item.soDienThoai,
+                                    cccd: item.cccd
+                                };
+                            })
+                        };
+                    },
+                    cache: true
+                }
             });
 
             let memberNgayVaoPicker = flatpickr("#addMember_NgayVao", { dateFormat: "d/m/Y", locale: "vn", defaultDate: new Date() });
 
-            $('#addMember_NguoiThueId').on('change', function () {
-                let val = $(this).val();
-                if (val) {
-                    $('#newMemberFields').slideUp();
-                    $('#addMember_HoVaTen, #addMember_SoDienThoai, #addMember_CCCD').val('');
-                } else {
-                    $('#newMemberFields').slideDown();
-                }
+            // Khi chọn một khách thuê có sẵn từ danh sách tìm kiếm
+            $('#addMember_SearchNguoiThue').on('select2:select', function (e) {
+                let data = e.params.data;
+                $('#addMember_NguoiThueId').val(data.id);
+                $('#addMember_HoVaTen').val(data.hoVaTen).prop('disabled', true);
+                $('#addMember_SoDienThoai').val(data.soDienThoai).prop('disabled', true);
+                $('#addMember_CCCD').val(data.cccd).prop('disabled', true);
             });
+
+            // Khi người dùng click nút clear trong select2
+            $('#addMember_SearchNguoiThue').on('select2:clear', function () {
+                resetAddMemberForm();
+            });
+
+            // Khi người dùng bấm nút Nhập mới hoàn toàn
+            $('#btnToggleNewMember').on('click', function () {
+                // Reset select2
+                $('#addMember_SearchNguoiThue').val(null).trigger('change');
+                
+                // Mở khóa các trường nhập liệu và đặt NguoiThueId = rỗng (để tạo mới)
+                $('#addMember_NguoiThueId').val('');
+                $('#addMember_HoVaTen').val('').prop('disabled', false).focus();
+                $('#addMember_SoDienThoai').val('').prop('disabled', false);
+                $('#addMember_CCCD').val('').prop('disabled', false);
+            });
+
+            // Hàm reset dữ liệu form modal
+            function resetAddMemberForm() {
+                $('#addMember_SearchNguoiThue').val(null).trigger('change');
+                $('#addMember_NguoiThueId').val('');
+                $('#addMember_HoVaTen').val('').prop('disabled', true);
+                $('#addMember_SoDienThoai').val('').prop('disabled', true);
+                $('#addMember_CCCD').val('').prop('disabled', true);
+                memberNgayVaoPicker.setDate(new Date());
+            }
 
             // Hàm load danh sách thành viên (Dùng chung)
             window.loadDanhSachThanhVien = function(hopDongId) {
@@ -539,30 +600,12 @@
             // Nút mở modal thêm thành viên
             $(document).on('click', '#btnOpenAddMemberModal', function () {
                 if (!currentHopDongId || currentHopDongId === 0) {
-                    alert("Hợp đồng chưa được lưu. Vui lòng tạo hợp đồng trước khi thêm thành viên.");
+                    showToastr("Hợp đồng chưa được lưu. Vui lòng tạo hợp đồng trước khi thêm thành viên.", "warning");
                     return;
                 }
 
-                // Tải lại danh sách khách thuê CHƯA CÓ PHÒNG từ Server qua AJAX
-                $.get('/NguoiThue/GetAvailable', function (res) {
-                    let $select = $('#addMember_NguoiThueId');
-                    $select.empty().append('<option value="">-- Khách mới (Nhập thông tin bên dưới) --</option>');
-                    if (res && res.length > 0) {
-                        res.forEach(function (nt) {
-                            $select.append(`<option value="${nt.nguoiThueId}">${nt.hoVaTen} - ${nt.soDienThoai || ''}</option>`);
-                        });
-                    }
-
-                    $('#addMember_NguoiThueId').val('').trigger('change');
-                    $('#addMember_HoVaTen').val('');
-                    $('#addMember_SoDienThoai').val('');
-                    $('#addMember_CCCD').val('');
-                    memberNgayVaoPicker.setDate(new Date());
-                    
-                    $('#addMemberModal').modal('show');
-                }).fail(function () {
-                    alert("Lỗi khi tải danh sách khách thuê. Vui lòng thử lại!");
-                });
+                resetAddMemberForm();
+                $('#addMemberModal').modal('show');
             });
 
             // Nút lưu thành viên mới
@@ -575,13 +618,13 @@
                 let ngayVaoDate = memberNgayVaoPicker.selectedDates[0];
 
                 if (!ngayVaoDate) {
-                    alert("Vui lòng chọn ngày vào.");
+                    showToastr("Vui lòng chọn ngày vào.", "warning");
                     return;
                 }
 
                 if (!nguoiThueId) {
                     if (!hoVaTen || !soDienThoai || !cccd) {
-                        alert("Vui lòng nhập đủ Họ tên, Số ĐT và CCCD cho khách mới.");
+                        showToastr("Vui lòng nhập đủ Họ tên, Số ĐT và CCCD cho khách mới.", "warning");
                         return;
                     }
                 }
@@ -604,14 +647,14 @@
                     contentType: 'application/json',
                     data: JSON.stringify(requestData),
                     success: function (res) {
-                        alert(res.message);
+                        showToastr(res.message, "success");
                         $('#addMemberModal').modal('hide');
                         window.loadDanhSachThanhVien(hopDongId);
                     },
                     error: function (xhr) {
                         let msg = "Đã xảy ra lỗi!";
                         if (xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
-                        alert(msg);
+                        showToastr(msg, "error");
                     },
                     complete: function () {
                         $btn.prop('disabled', false).html('<i class="fas fa-save"></i> Lưu thành viên');
@@ -624,10 +667,10 @@
                 let id = $(this).data('id');
                 if (confirm("Xác nhận thành viên này đã chuyển đi? (Ngày rời phòng sẽ cập nhật hôm nay)")) {
                     $.post(`/ThanhVienHopDong/BaoRoiPhong/${id}`, function (res) {
-                        alert(res.message);
+                        showToastr(res.message, "success");
                         window.loadDanhSachThanhVien(currentHopDongId);
                     }).fail(function (xhr) {
-                        alert(xhr.responseJSON ? xhr.responseJSON.message : "Lỗi!");
+                        showToastr(xhr.responseJSON ? xhr.responseJSON.message : "Lỗi!", "error");
                     });
                 }
             });
@@ -640,11 +683,11 @@
                         url: `/ThanhVienHopDong/XoaThanhVien/${id}`,
                         type: 'DELETE',
                         success: function (res) {
-                            alert(res.message);
+                            showToastr(res.message, "success");
                             window.loadDanhSachThanhVien(currentHopDongId);
                         },
                         error: function (xhr) {
-                            alert(xhr.responseJSON ? xhr.responseJSON.message : "Lỗi!");
+                            showToastr(xhr.responseJSON ? xhr.responseJSON.message : "Lỗi!", "error");
                         }
                     });
                 }
@@ -665,12 +708,12 @@
                 let tienThuePhong = parseFloat($('#TienThuePhong').val() || 0);
 
                 if (!maHopDong || !phongTroId || !nguoiThueId || !dateBatDau) {
-                    alert("Vui lòng nhập đầy đủ các trường bắt buộc (*).");
+                    showToastr("Vui lòng nhập đầy đủ các trường bắt buộc (*).", "warning");
                     return;
                 }
 
                 if (tienThuePhong <= 0) {
-                    alert("Vui lòng nhập Tiền Thuê Phòng (phải lớn hơn 0).");
+                    showToastr("Vui lòng nhập Tiền Thuê Phòng (phải lớn hơn 0).", "warning");
                     return;
                 }
                 let requestData = {
@@ -709,18 +752,18 @@
                                 'hopDongDichVuContainer',
                                 function () {
                                     // Thành công cả 2
-                                    alert(res.message || "Thao tác thành công!");
+                                    showToastr(res.message || "Thao tác thành công!", "success");
                                     $('#hopDongModal').modal('hide');
                                     table.ajax.reload(null, false);
                                 },
                                 function (errMsg) {
-                                    alert("Hợp đồng đã lưu, nhưng lỗi khi lưu dịch vụ: " + errMsg);
+                                    showToastr("Hợp đồng đã lưu, nhưng lỗi khi lưu dịch vụ: " + errMsg, "warning");
                                     $('#hopDongModal').modal('hide');
                                     table.ajax.reload(null, false);
                                 }
                             );
                         } else {
-                            alert(res.message || "Thao tác thành công!");
+                            showToastr(res.message || "Thao tác thành công!", "success");
                             $('#hopDongModal').modal('hide');
                             table.ajax.reload(null, false);
                         }
@@ -735,7 +778,7 @@
                                 errorMessage = Object.values(xhr.responseJSON.errors).flat().join('\n');
                             }
                         }
-                        alert(errorMessage);
+                        showToastr(errorMessage, "error");
                     },
                     complete: function () {
                         $btn.prop('disabled', false).html('<i class="fas fa-save"></i> Lưu thông tin');
@@ -759,11 +802,13 @@
                         $('#MaHopDong').val(res.maHopDong);
                         if(res.phongTroId) {
                             window.isBindingData = true; // Tránh trigger đổi giá phòng/dịch vụ
-                            $('#ChiNhanhId').val(res.phongTro ? res.phongTro.chiNhanhId : '').trigger('change');
+                            // DTO đã flatten: dùng res.chiNhanhId thay vì res.phongTro.chiNhanhId
+                            $('#ChiNhanhId').val(res.chiNhanhId || '').trigger('change');
                             setTimeout(() => {
                                 // Nếu phòng đang thuê ko nằm trong danh sách phòng trống, phải tự thêm option
                                 if ($('#PhongTroId option[value="'+res.phongTroId+'"]').length === 0) {
-                                    let soPhongName = res.soPhong || (res.phongTro ? res.phongTro.soPhong : res.phongTroId);
+                                    // DTO đã flatten: dùng res.soPhong trực tiếp
+                                    let soPhongName = res.soPhong || res.phongTroId;
                                     $('#PhongTroId').append(`<option value="${res.phongTroId}" data-gia-thue="${res.tienThuePhong}">${soPhongName}</option>`);
                                 }
                                 $('#PhongTroId').val(res.phongTroId).change();
@@ -816,7 +861,7 @@
                         $('#modalTitle').text('Cập nhật Hợp Đồng');
                         $('#hopDongModal').modal('show');
                     },
-                    error: function () { alert("Không thể tải thông tin."); },
+                    error: function () { showToastr("Không thể tải thông tin.", "error"); },
                     complete: function() { $btn.prop('disabled', false).html(originalHtml); }
                 });
             });
@@ -833,13 +878,13 @@
                         url: `/HopDong/Delete/${id}`,
                         type: 'DELETE',
                         success: function (res) {
-                            alert(res.message || "Đã xóa.");
+                            showToastr(res.message || "Đã xóa.", "success");
                             table.ajax.reload(null, false);
                         },
                         error: function (xhr) {
                             let msg = "Lỗi khi xóa!";
                             if (xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
-                            alert(msg);
+                            showToastr(msg, "error");
                             $btn.prop('disabled', false).html(originalHtml);
                         }
                     });

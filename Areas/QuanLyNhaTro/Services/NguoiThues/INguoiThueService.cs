@@ -15,5 +15,6 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.NguoiThues
         Task<(bool IsSuccess, string ErrorMessage)> UpdateAsync(int id, NguoiThueUpdateDto input);
         Task<(bool IsSuccess, string ErrorMessage)> DeleteAsync(int id);
         Task<List<SelectListItem>> DanhSachNguoiThue();
+        Task<object> SearchAutocompleteAsync(string searchTerm);
     }
 }

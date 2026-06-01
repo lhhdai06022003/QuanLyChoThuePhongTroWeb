@@ -84,5 +84,12 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             }
             return Ok(new { Message = "Đã xóa người thuê." });
         }
+
+        [HttpGet("/NguoiThue/SearchAutocomplete")]
+        public async Task<IActionResult> SearchAutocomplete(string searchTerm = "")
+        {
+            var data = await _nguoiThueService.SearchAutocompleteAsync(searchTerm);
+            return Ok(data);
+        }
     }
 }

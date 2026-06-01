@@ -148,5 +148,26 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.NguoiThues
                 .Select(p => new SelectListItem { Value = p.NguoiThueId.ToString(), Text = p.HoVaTen + " - " + p.CCCD })
                 .ToListAsync();
         }
+
+        public async Task<object> SearchAutocompleteAsync(string searchTerm)
+        {
+            searchTerm = (searchTerm ?? "").Trim().ToLower();
+            return await _context.NguoiThues
+                .Where(x => !x.IsDeleted && (
+                    string.IsNullOrEmpty(searchTerm) || 
+                    x.HoVaTen.ToLower().Contains(searchTerm) || 
+                    x.SoDienThoai.Contains(searchTerm) || 
+                    x.CCCD.Contains(searchTerm)
+                ))
+                .Select(x => new
+                {
+                    Id = x.NguoiThueId,
+                    HoVaTen = x.HoVaTen,
+                    SoDienThoai = x.SoDienThoai,
+                    CCCD = x.CCCD
+                })
+                .Take(10)
+                .ToListAsync();
+        }
     }
 }

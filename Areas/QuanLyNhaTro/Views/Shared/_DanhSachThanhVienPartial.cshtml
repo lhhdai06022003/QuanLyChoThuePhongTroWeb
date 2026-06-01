@@ -40,26 +40,38 @@
             </div>
             <div class="modal-body">
                 <form id="formAddMember">
+                    <!-- Input ẩn lưu NguoiThueId khi chọn từ danh sách autocomplete -->
+                    <input type="hidden" id="addMember_NguoiThueId" value="" />
+
                     <div class="form-group">
-                        <label>Chọn khách thuê có sẵn (Tùy chọn)</label>
-                        <select class="form-control select2-modal" id="addMember_NguoiThueId" style="width: 100%;">
-                            <option value="">-- Khách mới (Nhập thông tin bên dưới) --</option>
-                            <!-- Options will be populated by ViewBag in parent view or JS -->
-                        </select>
+                        <label>Tìm khách thuê có sẵn (Gõ Tên, SĐT hoặc CCCD)</label>
+                        <div class="d-flex align-items-center">
+                            <div style="flex-grow: 1; margin-right: 10px;">
+                                <select class="form-control" id="addMember_SearchNguoiThue" style="width: 100%;">
+                                    <option value="">-- Gõ để tìm kiếm --</option>
+                                </select>
+                            </div>
+                            <div>
+                                <button type="button" class="btn btn-outline-primary" id="btnToggleNewMember" title="Nhập mới hoàn toàn">
+                                    <i class="fas fa-plus"></i> Nhập mới
+                                </button>
+                            </div>
+                        </div>
+                        <small class="form-text text-muted">Nhập từ khóa để tìm kiếm khách có sẵn, hoặc bấm "Nhập mới" để đăng ký thông tin mới.</small>
                     </div>
                     <hr />
                     <div id="newMemberFields">
                         <div class="form-group">
                             <label>Họ và Tên <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="addMember_HoVaTen" placeholder="Nhập họ tên...">
+                            <input type="text" class="form-control" id="addMember_HoVaTen" placeholder="Nhập họ tên..." disabled>
                         </div>
                         <div class="form-group">
                             <label>Số điện thoại <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="addMember_SoDienThoai" placeholder="Nhập số ĐT...">
+                            <input type="text" class="form-control" id="addMember_SoDienThoai" placeholder="Nhập số ĐT..." disabled>
                         </div>
                         <div class="form-group">
                             <label>CCCD/CMND <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="addMember_CCCD" placeholder="Nhập CCCD...">
+                            <input type="text" class="form-control" id="addMember_CCCD" placeholder="Nhập CCCD..." disabled>
                         </div>
                     </div>
                     <div class="form-group mt-2">
