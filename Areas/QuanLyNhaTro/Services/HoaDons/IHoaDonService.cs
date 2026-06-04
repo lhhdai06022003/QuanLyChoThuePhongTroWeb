@@ -1,11 +1,15 @@
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Requests;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HoaDons
 {
     public interface IHoaDonService
     {
-        Task<(bool IsSuccess, string Message, int SoHoaDonMoi)> PhatSinhHoaDonAsync(int chiNhanhId, int thang, int nam);
+        Task<(bool IsSuccess, string Message, int SoHoaDonMoi)> PhatSinhHoaDonAsync(int chiNhanhId, int thang, int nam, List<int> selectedPhongTroIds);
+        Task<List<PhatSinhPreviewRes>> PreviewPhatSinhHoaDonAsync(int chiNhanhId, int thang, int nam);
+        Task<(bool IsSuccess, string ErrorMessage)> UpdateHoaDonAsync(int hoaDonId, UpdateHoaDonReq req);
         Task<DataTableResponse<HoaDonRes>> GetDanhSachHoaDonAsync(DataTableRequest request, int chiNhanhId, int thang, int nam, int trangThai);
         Task<HoaDonChiTietRes> GetHoaDonByIdAsync(int id);
         Task<(bool IsSuccess, string ErrorMessage)> ThuTienAsync(int hoaDonId, int phuongThuc, string ghiChu, int nguoiXacNhanId);

@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels
 {
     // Request để phát sinh hóa đơn hàng loạt
@@ -6,6 +8,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels
         public int ChiNhanhId { get; set; }
         public int Thang { get; set; }
         public int Nam { get; set; }
+        public List<int> SelectedPhongTroIds { get; set; } = new();
     }
 
     // Request để thu tiền
@@ -60,6 +63,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels
         public double DonGia { get; set; }
         public int SoLuong { get; set; }
         public double TongTien { get; set; }
+        public string DonVi { get; set; }
     }
 
     // Response cho lịch sử thanh toán
@@ -72,5 +76,36 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels
         public string NgayThanhToan { get; set; }
         public string NguoiXacNhan { get; set; }
         public string GhiChu { get; set; }
+    }
+
+    // Response dùng khi xem trước phát sinh hóa đơn
+    public class PhatSinhPreviewRes
+    {
+        public int PhongTroId { get; set; }
+        public string SoPhong { get; set; }
+        public string TenNguoiThue { get; set; }
+        public double TienPhongDuKien { get; set; }
+        public int SoNgayO { get; set; }
+        public int TongSoNgayTrongThang { get; set; }
+        public bool DaChotDienNuoc { get; set; }
+        public bool DaCoHoaDon { get; set; }
+        public bool HopDongHopLe { get; set; }
+        public string GhiChuTrangThai { get; set; }
+        public double TongTienDuKien { get; set; }
+    }
+
+    // Request chỉnh sửa hóa đơn
+    public class UpdateHoaDonReq
+    {
+        public List<ChiTietHoaDonUpdateReq> ChiTiets { get; set; } = new();
+    }
+
+    public class ChiTietHoaDonUpdateReq
+    {
+        public int? ChiTietHoaDonId { get; set; }
+        public string TenDichVu { get; set; }
+        public double DonGia { get; set; }
+        public int SoLuong { get; set; }
+        public int? DichVuId { get; set; }
     }
 }

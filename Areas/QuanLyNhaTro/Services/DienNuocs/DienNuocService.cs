@@ -26,21 +26,42 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.DienNuocs
                             !h.IsDeleted)
                 .ToListAsync();
 
-            var result = new List<DienNuocPhongRes>();
+            if (!phongĐangThue.Any()) return new List<DienNuocPhongRes>();
+
+            var phongTroIds = phongĐangThue.Select(h => h.PhongTroId).ToList();
+
+            // 2. Lấy TOÀN BỘ bản ghi chỉ số tháng hiện tại của các phòng này (Query 2)
+            var currentRecords = await _context.DichVuDienNuocCuaPhongs
+                .Where(x => phongTroIds.Contains(x.PhongTroId) && x.Thang == thang && x.Nam == nam && !x.IsDeleted)
+                .ToDictionaryAsync(x => x.PhongTroId);
 
             // Tính tháng/năm trước đó để lấy chỉ số cũ nếu cần
             int prevThang = thang == 1 ? 12 : thang - 1;
             int prevNam = thang == 1 ? nam - 1 : nam;
 
+            // 3. Lấy TOÀN BỘ bản ghi chỉ số tháng trước của các phòng này (Query 3)
+            var prevRecords = await _context.DichVuDienNuocCuaPhongs
+                .Where(x => phongTroIds.Contains(x.PhongTroId) && x.Thang == prevThang && x.Nam == prevNam && !x.IsDeleted)
+                .ToDictionaryAsync(x => x.PhongTroId);
+
+            // 4. Tìm các phòng đã có bản ghi chốt ở các tháng tiếp theo (dùng để khóa)
+            var lockedPhongIds = new HashSet<int>(
+                await _context.DichVuDienNuocCuaPhongs
+                    .Where(x => phongTroIds.Contains(x.PhongTroId) && !x.IsDeleted &&
+                                (x.Nam > nam || (x.Nam == nam && x.Thang > thang)))
+                    .Select(x => x.PhongTroId)
+                    .Distinct()
+                    .ToListAsync()
+            );
+
+            var result = new List<DienNuocPhongRes>();
+
             foreach (var hd in phongĐangThue)
             {
                 var phongTroId = hd.PhongTroId;
+                bool isLocked = lockedPhongIds.Contains(phongTroId);
 
-                // Kiểm tra xem đã có bản ghi cho tháng hiện tại chưa
-                var currentRecord = await _context.DichVuDienNuocCuaPhongs
-                    .FirstOrDefaultAsync(x => x.PhongTroId == phongTroId && x.Thang == thang && x.Nam == nam && !x.IsDeleted);
-
-                if (currentRecord != null)
+                if (currentRecords.TryGetValue(phongTroId, out var currentRecord))
                 {
                     result.Add(new DienNuocPhongRes
                     {
@@ -52,15 +73,13 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.DienNuocs
                         ChiSoDienMoi = currentRecord.ChiSoDienMoi,
                         ChiSoNuocCu = currentRecord.ChiSoNuocCu,
                         ChiSoNuocMoi = currentRecord.ChiSoNuocMoi,
-                        IsDaChot = true
+                        IsDaChot = true,
+                        IsLocked = isLocked
                     });
                 }
                 else
                 {
-                    // Lấy chỉ số mới của tháng trước đó làm chỉ số cũ cho tháng này
-                    var prevRecord = await _context.DichVuDienNuocCuaPhongs
-                        .FirstOrDefaultAsync(x => x.PhongTroId == phongTroId && x.Thang == prevThang && x.Nam == prevNam && !x.IsDeleted);
-
+                    prevRecords.TryGetValue(phongTroId, out var prevRecord);
                     double dienCu = prevRecord != null ? prevRecord.ChiSoDienMoi : 0;
                     double nuocCu = prevRecord != null ? prevRecord.ChiSoNuocMoi : 0;
 
@@ -74,7 +93,8 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.DienNuocs
                         ChiSoDienMoi = 0,
                         ChiSoNuocCu = nuocCu,
                         ChiSoNuocMoi = 0,
-                        IsDaChot = false
+                        IsDaChot = false,
+                        IsLocked = isLocked
                     });
                 }
             }
@@ -89,8 +109,18 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.DienNuocs
                 return (false, "Không có dữ liệu để lưu.");
             }
 
-            // Lấy đơn giá Điện / Nước cấu hình ở Chi nhánh
-            // Tìm DichVu có tên "Điện" hoặc "Nước"
+            // 1. Kiểm tra tính hợp lệ của tham số tháng, năm, chi nhánh
+            if (input.Thang < 1 || input.Thang > 12 || input.Nam < 2000)
+            {
+                return (false, "Thời gian chốt chỉ số điện nước không hợp lệ.");
+            }
+
+            if (input.ChiNhanhId <= 0)
+            {
+                return (false, "Chi nhánh không hợp lệ.");
+            }
+
+            // 2. Lấy đơn giá Điện / Nước cấu hình ở Chi nhánh
             var dichVuDien = await _context.DichVus.FirstOrDefaultAsync(x => x.TenDichVu.ToLower().Contains("điện") && !x.IsDeleted);
             var dichVuNuoc = await _context.DichVus.FirstOrDefaultAsync(x => x.TenDichVu.ToLower().Contains("nước") && !x.IsDeleted);
 
@@ -109,48 +139,128 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.DienNuocs
                 if (bgNuoc != null) donGiaNuoc = bgNuoc.GiaDichVu;
             }
 
-            foreach (var req in input.DanhSachPhong)
-            {
-                if (req.ChiSoDienMoi < req.ChiSoDienCu) return (false, "Chỉ số điện mới không được nhỏ hơn chỉ số điện cũ.");
-                if (req.ChiSoNuocMoi < req.ChiSoNuocCu) return (false, "Chỉ số nước mới không được nhỏ hơn chỉ số nước cũ.");
+            var phongTroIds = input.DanhSachPhong.Select(x => x.PhongTroId).ToList();
 
-                if (req.DichVuDienNuocCuaPhongId > 0)
+            // 3. Tải toàn bộ bản ghi cần đối chiếu để tránh N+1 Query
+            var currentRecords = await _context.DichVuDienNuocCuaPhongs
+                .Where(x => phongTroIds.Contains(x.PhongTroId) && x.Thang == input.Thang && x.Nam == input.Nam && !x.IsDeleted)
+                .ToDictionaryAsync(x => x.PhongTroId);
+
+            int prevThang = input.Thang == 1 ? 12 : input.Thang - 1;
+            int prevNam = input.Thang == 1 ? input.Nam - 1 : input.Nam;
+
+            var prevRecords = await _context.DichVuDienNuocCuaPhongs
+                .Where(x => phongTroIds.Contains(x.PhongTroId) && x.Thang == prevThang && x.Nam == prevNam && !x.IsDeleted)
+                .ToDictionaryAsync(x => x.PhongTroId);
+
+            var lockedPhongIds = new HashSet<int>(
+                await _context.DichVuDienNuocCuaPhongs
+                    .Where(x => phongTroIds.Contains(x.PhongTroId) && !x.IsDeleted &&
+                                (x.Nam > input.Nam || (x.Nam == input.Nam && x.Thang > input.Thang)))
+                    .Select(x => x.PhongTroId)
+                    .Distinct()
+                    .ToListAsync()
+            );
+
+            var phongNames = await _context.PhongTros
+                .Where(x => phongTroIds.Contains(x.PhongTroId))
+                .ToDictionaryAsync(x => x.PhongTroId, x => x.SoPhong);
+
+            // Bắt đầu Transaction để đảm bảo tính toàn vẹn dữ liệu
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                foreach (var req in input.DanhSachPhong)
                 {
-                    // Update
-                    var record = await _context.DichVuDienNuocCuaPhongs.FindAsync(req.DichVuDienNuocCuaPhongId);
-                    if (record != null && !record.IsDeleted)
+                    string soPhong = phongNames.TryGetValue(req.PhongTroId, out var name) ? name : $"ID {req.PhongTroId}";
+
+                    // a. Kiểm tra ràng buộc khóa thời gian (không được sửa tháng cũ nếu tháng sau đã chốt)
+                    if (lockedPhongIds.Contains(req.PhongTroId))
                     {
-                        record.ChiSoDienCu = req.ChiSoDienCu;
-                        record.ChiSoDienMoi = req.ChiSoDienMoi;
-                        record.ChiSoNuocCu = req.ChiSoNuocCu;
-                        record.ChiSoNuocMoi = req.ChiSoNuocMoi;
-                        record.DonGiaDien = donGiaDien;
-                        record.DonGiaNuoc = donGiaNuoc;
-                        record.NgayCapNhat = DateTime.UtcNow;
-                        _context.DichVuDienNuocCuaPhongs.Update(record);
+                        return (false, $"Phòng {soPhong}: Không thể lưu chỉ số tháng {input.Thang}/{input.Nam} vì tháng tiếp theo đã được chốt.");
+                    }
+
+                    // b. Kiểm tra chỉ số âm
+                    if (req.ChiSoDienCu < 0 || req.ChiSoDienMoi < 0 || req.ChiSoNuocCu < 0 || req.ChiSoNuocMoi < 0)
+                    {
+                        return (false, $"Phòng {soPhong}: Chỉ số điện/nước không được phép âm.");
+                    }
+
+                    // c. Kiểm tra chỉ số mới nhỏ hơn cũ
+                    if (req.ChiSoDienMoi < req.ChiSoDienCu)
+                    {
+                        return (false, $"Phòng {soPhong}: Chỉ số điện mới không được nhỏ hơn chỉ số điện cũ.");
+                    }
+                    if (req.ChiSoNuocMoi < req.ChiSoNuocCu)
+                    {
+                        return (false, $"Phòng {soPhong}: Chỉ số nước mới không được nhỏ hơn chỉ số nước cũ.");
+                    }
+
+                    // d. Kiểm tra tính chính xác của chỉ số đầu kỳ gửi lên từ Client
+                    prevRecords.TryGetValue(req.PhongTroId, out var prevRecord);
+                    double actualPrevDienMoi = prevRecord != null ? prevRecord.ChiSoDienMoi : 0;
+                    double actualPrevNuocMoi = prevRecord != null ? prevRecord.ChiSoNuocMoi : 0;
+
+                    if (req.ChiSoDienCu != actualPrevDienMoi)
+                    {
+                        return (false, $"Phòng {soPhong}: Chỉ số điện đầu kỳ ({req.ChiSoDienCu}) không khớp với chỉ số cuối kỳ trước ({actualPrevDienMoi}).");
+                    }
+                    if (req.ChiSoNuocCu != actualPrevNuocMoi)
+                    {
+                        return (false, $"Phòng {soPhong}: Chỉ số nước đầu kỳ ({req.ChiSoNuocCu}) không khớp với chỉ số cuối kỳ trước ({actualPrevNuocMoi}).");
+                    }
+
+                    // e. Lưu/Cập nhật dữ liệu
+                    DichVuDienNuocCuaPhong currentRecord = null;
+                    bool hasRecord = req.DichVuDienNuocCuaPhongId > 0 || currentRecords.TryGetValue(req.PhongTroId, out currentRecord);
+                    if (hasRecord)
+                    {
+                        // Update
+                        var record = req.DichVuDienNuocCuaPhongId > 0
+                            ? await _context.DichVuDienNuocCuaPhongs.FindAsync(req.DichVuDienNuocCuaPhongId)
+                            : currentRecord;
+
+                        if (record != null && !record.IsDeleted)
+                        {
+                            record.ChiSoDienCu = req.ChiSoDienCu;
+                            record.ChiSoDienMoi = req.ChiSoDienMoi;
+                            record.ChiSoNuocCu = req.ChiSoNuocCu;
+                            record.ChiSoNuocMoi = req.ChiSoNuocMoi;
+                            record.DonGiaDien = donGiaDien;
+                            record.DonGiaNuoc = donGiaNuoc;
+                            record.NgayCapNhat = DateTime.UtcNow;
+                            _context.DichVuDienNuocCuaPhongs.Update(record);
+                        }
+                    }
+                    else
+                    {
+                        // Create
+                        var record = new DichVuDienNuocCuaPhong
+                        {
+                            PhongTroId = req.PhongTroId,
+                            Thang = input.Thang,
+                            Nam = input.Nam,
+                            ChiSoDienCu = req.ChiSoDienCu,
+                            ChiSoDienMoi = req.ChiSoDienMoi,
+                            DonGiaDien = donGiaDien,
+                            ChiSoNuocCu = req.ChiSoNuocCu,
+                            ChiSoNuocMoi = req.ChiSoNuocMoi,
+                            DonGiaNuoc = donGiaNuoc,
+                            NgayTao = DateTime.UtcNow
+                        };
+                        _context.DichVuDienNuocCuaPhongs.Add(record);
                     }
                 }
-                else
-                {
-                    // Create
-                    var record = new DichVuDienNuocCuaPhong
-                    {
-                        PhongTroId = req.PhongTroId,
-                        Thang = input.Thang,
-                        Nam = input.Nam,
-                        ChiSoDienCu = req.ChiSoDienCu,
-                        ChiSoDienMoi = req.ChiSoDienMoi,
-                        DonGiaDien = donGiaDien,
-                        ChiSoNuocCu = req.ChiSoNuocCu,
-                        ChiSoNuocMoi = req.ChiSoNuocMoi,
-                        DonGiaNuoc = donGiaNuoc
-                    };
-                    _context.DichVuDienNuocCuaPhongs.Add(record);
-                }
-            }
 
-            await _context.SaveChangesAsync();
-            return (true, null);
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return (true, null);
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
     }
 }

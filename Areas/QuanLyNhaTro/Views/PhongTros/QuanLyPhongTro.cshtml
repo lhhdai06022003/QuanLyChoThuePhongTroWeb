@@ -13,10 +13,11 @@
     .room-card {
         border-radius: 12px; padding: 16px 16px 12px; position: relative;
         cursor: pointer; transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
-        box-shadow: 0 2px 8px rgba(0,0,0,0.07); border: 2px solid transparent; overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.07); border: 2px solid transparent;
     }
-    .room-card::before { content:''; position:absolute; top:0; left:0; width:100%; height:4px; }
-    .room-card:hover { transform: translateY(-4px); box-shadow: 0 8px 25px rgba(0,0,0,0.14); }
+    .room-card::before { content:''; position:absolute; top:0; left:0; width:100%; height:4px; border-top-left-radius: 10px; border-top-right-radius: 10px; }
+    .room-card:hover { transform: translateY(-4px); box-shadow: 0 8px 25px rgba(0,0,0,0.14); z-index: 99; }
+    .room-card.kebab-open { z-index: 999; }
 
     /* Trạng thái */
     .room-trong { background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%); border-color: #66bb6a; }
@@ -96,9 +97,14 @@
                 <button class="btn btn-outline-primary active" id="btnGridView"><i class="fas fa-th-large"></i> Sơ đồ</button>
                 <button class="btn btn-outline-primary" id="btnTableView"><i class="fas fa-table"></i> Bảng</button>
             </div>
-            <button type="button" class="btn btn-primary btn-sm" id="btnOpenAddModal">
-                <i class="fas fa-plus"></i> Thêm Mới Phòng
-            </button>
+            <div>
+                <button type="button" class="btn btn-success btn-sm mr-2 font-weight-bold" id="btnPhatSinhPhong">
+                    <i class="fas fa-magic"></i> Phát sinh 10 phòng ngẫu nhiên
+                </button>
+                <button type="button" class="btn btn-primary btn-sm font-weight-bold" id="btnOpenAddModal">
+                    <i class="fas fa-plus"></i> Thêm Mới Phòng
+                </button>
+            </div>
         </div>
 
         <!-- ============= GRID VIEW ============= -->
@@ -320,7 +326,180 @@
     </div>
 </div>
 
+<!-- Modal Xem nhanh hợp đồng -->
+<div class="modal fade" id="quickContractModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="fas fa-file-contract"></i> Xem Nhanh Hợp Đồng - Phòng <span id="quickContractRoom"></span></h5>
+                <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-md-6 border-right">
+                        <h6 class="font-weight-bold text-primary border-bottom pb-1 mb-2"><i class="fas fa-info-circle"></i> Thông tin hợp đồng</h6>
+                        <table class="table table-sm table-borderless text-dark">
+                            <tr><td width="40%">Mã HĐ:</td><td><strong id="qcMaHD" class="text-dark"></strong></td></tr>
+                            <tr><td>Ngày bắt đầu:</td><td id="qcNgayBatDau"></td></tr>
+                            <tr><td>Ngày kết thúc:</td><td id="qcNgayKetThuc"></td></tr>
+                            <tr><td>Tiền cọc:</td><td><strong id="qcTienCoc" class="text-danger"></strong></td></tr>
+                            <tr><td>Tiền thuê:</td><td><strong id="qcTienThue" class="text-danger"></strong></td></tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="font-weight-bold text-primary border-bottom pb-1 mb-2"><i class="fas fa-user-tie"></i> Đại diện ký hợp đồng</h6>
+                        <table class="table table-sm table-borderless text-dark">
+                            <tr><td width="40%">Họ tên:</td><td><strong id="qcTenDaiDien" class="text-dark"></strong></td></tr>
+                            <tr><td>Số điện thoại:</td><td id="qcSDTDaiDien"></td></tr>
+                            <tr><td>Số CCCD:</td><td id="qcCCCDDaiDien"></td></tr>
+                        </table>
+                    </div>
+                </div>
+
+                <ul class="nav nav-tabs mb-3" id="quickContractTabs" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link active font-weight-bold" id="qc-members-tab" data-toggle="tab" href="#qc-members-pane" role="tab"><i class="fas fa-users mr-1"></i> Khách ở ghép (<span id="qcMemberCount">0</span>)</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link font-weight-bold" id="qc-services-tab" data-toggle="tab" href="#qc-services-pane" role="tab"><i class="fas fa-concierge-bell mr-1"></i> Dịch vụ đăng ký (<span id="qcServiceCount">0</span>)</a>
+                    </li>
+                </ul>
+
+                <div class="tab-content" id="quickContractTabContent">
+                    <div class="tab-pane fade show active" id="qc-members-pane" role="tabpanel">
+                        <table class="table table-bordered table-sm table-striped">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th class="text-center" width="8%">STT</th>
+                                    <th>Họ và Tên</th>
+                                    <th class="text-center" width="25%">Số Điện Thoại</th>
+                                    <th class="text-center" width="25%">Số CCCD</th>
+                                    <th class="text-center" width="20%">Ngày vào ở</th>
+                                </tr>
+                            </thead>
+                            <tbody id="qcMembersBody">
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="tab-pane fade" id="qc-services-pane" role="tabpanel">
+                        <table class="table table-bordered table-sm table-striped">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th class="text-center" width="8%">STT</th>
+                                    <th>Tên dịch vụ</th>
+                                    <th class="text-right" width="25%">Đơn giá</th>
+                                    <th class="text-center" width="20%">Số lượng</th>
+                                    <th class="text-center" width="20%">Đơn vị</th>
+                                </tr>
+                            </thead>
+                            <tbody id="qcServicesBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <a href="/QuanLyNhaTro/QuanLyHopDong" class="btn btn-outline-primary mr-auto"><i class="fas fa-external-link-alt mr-1"></i> Quản lý hợp đồng đầy đủ</a>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Thu tiền nhanh -->
+<div class="modal fade" id="quickPaymentModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-xl" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="fas fa-hand-holding-usd"></i> Thu Tiền Nhanh - Phòng <span id="quickPaymentRoom"></span></h5>
+                <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="qpInvoiceId" />
+                <div class="row">
+                    <div class="col-lg-7 border-right">
+                        <h6 class="font-weight-bold text-success border-bottom pb-2 mb-3">
+                            <i class="fas fa-file-invoice-dollar mr-1"></i> Hóa đơn chưa thanh toán kỳ: <span id="qpInvoicePeriod" class="text-danger font-weight-bold"></span>
+                        </h6>
+                        <div class="row mb-3 font-weight-bold text-secondary">
+                            <div class="col-md-6">Mã Hóa Đơn: <span id="qpInvoiceCode" class="text-dark"></span></div>
+                            <div class="col-md-6 text-right">Khách thuê: <span id="qpTenantName" class="text-dark"></span></div>
+                        </div>
+                        <table class="table table-bordered table-sm table-striped mb-3">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th class="text-center" width="8%">STT</th>
+                                    <th>Khoản phí / Dịch vụ</th>
+                                    <th class="text-right" width="22%">Đơn giá</th>
+                                    <th class="text-center" width="12%">SL</th>
+                                    <th class="text-center" width="15%">Đơn vị</th>
+                                    <th class="text-right" width="22%">Thành tiền</th>
+                                </tr>
+                            </thead>
+                            <tbody id="qpDetailsBody">
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colspan="5" class="text-right font-weight-bold align-middle text-dark">TỔNG CỘNG THANH TOÁN:</td>
+                                    <td class="text-right text-danger font-weight-bold align-middle" style="font-size: 1.25rem;" id="qpTotalAmount"></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+
+                        <div class="card card-outline card-success p-3 bg-light">
+                            <h6 class="font-weight-bold text-success mb-3"><i class="fas fa-check-double mr-1"></i> Cấu hình thu tiền nhanh</h6>
+                            <div class="row text-dark">
+                                <div class="col-md-6 form-group">
+                                    <label class="font-weight-bold">Phương thức thanh toán</label>
+                                    <select id="qpPaymentMethod" class="form-control">
+                                        <option value="0">Tiền mặt</option>
+                                        <option value="1">Chuyển khoản</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 form-group">
+                                    <label class="font-weight-bold">Ghi chú nhanh</label>
+                                    <input type="text" id="qpNotes" class="form-control" placeholder="Ví dụ: Đã nhận đủ chuyển khoản...">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-5 text-center mt-3 mt-lg-0">
+                        <div class="card card-outline card-primary p-3 shadow-sm bg-white h-100 d-flex flex-column justify-content-between text-dark">
+                            <div>
+                                <h6 class="font-weight-bold text-primary mb-2"><i class="fas fa-qrcode mr-1"></i> Quét mã QR chuyển khoản nhanh</h6>
+                                <div class="my-3">
+                                    <img id="qpQRImage" src="" class="img-fluid border rounded p-2 bg-white" style="max-width: 200px; height: auto;" alt="VietQR" />
+                                </div>
+                                <p class="small text-muted mb-3">Chủ nhà hoặc khách thuê quét mã này bằng App ngân hàng để giao dịch lập tức</p>
+                            </div>
+                            <div class="bg-light p-3 rounded text-left small" style="line-height: 1.6;">
+                                <div class="border-bottom pb-1 mb-1"><strong>Nội dung thanh toán:</strong></div>
+                                <div><strong>Nội dung CK:</strong> <code id="qpCKContent" class="text-primary font-weight-bold" style="font-size: 0.95rem;"></code></div>
+                                <div class="border-top pt-1 mt-1"><strong>Thông tin người nhận thụ hưởng:</strong></div>
+                                <div class="row text-muted">
+                                    <div class="col-4">Ngân hàng:</div><div class="col-8 text-dark font-weight-bold" id="qpBankId"></div>
+                                    <div class="col-4">Số tài khoản:</div><div class="col-8 text-dark font-weight-bold" id="qpAccountNumber"></div>
+                                    <div class="col-4">Tên tài khoản:</div><div class="col-8 text-dark font-weight-bold" id="qpAccountName"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-success font-weight-bold px-4" id="btnConfirmQuickPayment">
+                    <i class="fas fa-check-circle mr-1"></i> Xác nhận thanh toán thành công
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     @await Html.PartialAsync("~/Areas/QuanLyNhaTro/Views/Shared/_DangKyDichVuPartial.cshtml")
     <script>
         // ========== Shared State ==========
@@ -427,8 +606,8 @@
                     if (r.trangThai === 1) {
                         menuItems += `<div class="kebab-divider"></div>`;
                         menuItems += `<button class="kebab-item" onclick="openDichVuPhong(${r.phongTroId})"><i class="fas fa-concierge-bell text-success"></i> Quản lý dịch vụ</button>`;
-                        if (r.coNoTien) menuItems += `<button class="kebab-item" onclick="goToInvoice()"><i class="fas fa-file-invoice-dollar text-danger"></i> Thu tiền</button>`;
-                        menuItems += `<button class="kebab-item" onclick="goToContract()"><i class="fas fa-file-contract text-primary"></i> Xem hợp đồng</button>`;
+                        if (r.coNoTien) menuItems += `<button class="kebab-item" onclick="openQuickPayment(${r.phongTroId})"><i class="fas fa-file-invoice-dollar text-danger"></i> Thu tiền</button>`;
+                        menuItems += `<button class="kebab-item" onclick="openQuickContract(${r.phongTroId})"><i class="fas fa-file-contract text-primary"></i> Xem hợp đồng</button>`;
                     }
                     menuItems += `<div class="kebab-divider"></div>
                         <button class="kebab-item" onclick="deleteRoom(${r.phongTroId})"><i class="fas fa-trash text-danger"></i> Xóa phòng</button>`;
@@ -463,15 +642,20 @@
 
         function toggleKebab(btn) {
             let dropdown = $(btn).next('.kebab-dropdown');
+            let card = $(btn).closest('.room-card');
             // Close all others first
             $('.kebab-dropdown.show').not(dropdown).removeClass('show');
+            $('.room-card.kebab-open').not(card).removeClass('kebab-open');
+            
             dropdown.toggleClass('show');
+            card.toggleClass('kebab-open');
         }
 
         // Close kebab when clicking outside
         $(document).click(function (e) {
             if (!$(e.target).closest('.kebab-menu').length) {
                 $('.kebab-dropdown.show').removeClass('show');
+                $('.room-card.kebab-open').removeClass('kebab-open');
             }
         });
 
@@ -505,8 +689,203 @@
             }
         }
 
-        function goToInvoice() { $('.kebab-dropdown.show').removeClass('show'); window.location.href = '/QuanLyNhaTro/QuanLyHoaDon'; }
-        function goToContract() { $('.kebab-dropdown.show').removeClass('show'); window.location.href = '/QuanLyNhaTro/QuanLyHopDong'; }
+        var bankId = '@ViewBag.BankId';
+        var accountNumber = '@ViewBag.AccountNumber';
+        var accountName = '@ViewBag.AccountName';
+        let currentQuickPaymentRoomId = 0;
+
+        function openQuickContract(phongTroId) {
+            $('.kebab-dropdown.show').removeClass('show');
+            let room = allRooms.find(r => r.phongTroId === phongTroId);
+            let roomName = room ? room.soPhong : phongTroId;
+            $('#quickContractRoom').text(roomName);
+
+            $('#qcMaHD').text('Đang tải...');
+            $('#qcNgayBatDau').text('Đang tải...');
+            $('#qcNgayKetThuc').text('Đang tải...');
+            $('#qcTienCoc').text('Đang tải...');
+            $('#qcTienThue').text('Đang tải...');
+            $('#qcTenDaiDien').text('Đang tải...');
+            $('#qcSDTDaiDien').text('Đang tải...');
+            $('#qcCCCDDaiDien').text('Đang tải...');
+            $('#qcMembersBody').html('<tr><td colspan="5" class="text-center"><i class="fas fa-spinner fa-spin"></i> Đang tải thành viên...</td></tr>');
+            $('#qcServicesBody').html('<tr><td colspan="5" class="text-center"><i class="fas fa-spinner fa-spin"></i> Đang tải dịch vụ...</td></tr>');
+            $('#qcMemberCount').text(0);
+            $('#qcServiceCount').text(0);
+
+            $('#quickContractModal').modal('show');
+
+            $.get(`/PhongTros/GetQuickContract?phongTroId=${phongTroId}`, function (res) {
+                $('#qcMaHD').text(res.maHopDong);
+                $('#qcNgayBatDau').text(res.thoiDiemBatDau);
+                $('#qcNgayKetThuc').text(res.thoiDiemKetThuc);
+                $('#qcTienCoc').text(formatVND(res.tienCocPhong));
+                $('#qcTienThue').text(formatVND(res.tienThuePhong));
+                $('#qcTenDaiDien').text(res.tenNguoiDaiDien);
+                $('#qcSDTDaiDien').text(res.soDienThoaiDaiDien || '-');
+                $('#qcCCCDDaiDien').text(res.cccdDaiDien || '-');
+
+                let mHtml = '';
+                if (res.members && res.members.length > 0) {
+                    res.members.forEach((m, idx) => {
+                        mHtml += `
+                            <tr>
+                                <td class="text-center">${idx + 1}</td>
+                                <td class="font-weight-bold">${m.hoVaTen}</td>
+                                <td class="text-center">${m.soDienThoai || '-'}</td>
+                                <td class="text-center">${m.cccd || '-'}</td>
+                                <td class="text-center">${m.ngayVao}</td>
+                            </tr>`;
+                    });
+                    $('#qcMemberCount').text(res.members.length);
+                } else {
+                    mHtml = '<tr><td colspan="5" class="text-center text-muted">Chưa có thành viên nào khác ở ghép.</td></tr>';
+                }
+                $('#qcMembersBody').html(mHtml);
+
+                let sHtml = '';
+                if (res.services && res.services.length > 0) {
+                    res.services.forEach((s, idx) => {
+                        sHtml += `
+                            <tr>
+                                <td class="text-center">${idx + 1}</td>
+                                <td class="font-weight-bold">${s.tenDichVu}</td>
+                                <td class="text-right">${formatVND(s.donGia)}</td>
+                                <td class="text-center">${s.soLuong}</td>
+                                <td class="text-center">${s.donVi || '-'}</td>
+                            </tr>`;
+                    });
+                    $('#qcServiceCount').text(res.services.length);
+                } else {
+                    sHtml = '<tr><td colspan="5" class="text-center text-muted">Không có dịch vụ đăng ký nào.</td></tr>';
+                }
+                $('#qcServicesBody').html(sHtml);
+            }).fail(function (xhr) {
+                $('#quickContractModal').modal('hide');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Lỗi',
+                    text: xhr.responseJSON?.message || 'Không thể tải thông tin hợp đồng.'
+                });
+            });
+        }
+
+        function openQuickPayment(phongTroId) {
+            $('.kebab-dropdown.show').removeClass('show');
+            currentQuickPaymentRoomId = phongTroId;
+            let room = allRooms.find(r => r.phongTroId === phongTroId);
+            let roomName = room ? room.soPhong : phongTroId;
+            $('#quickPaymentRoom').text(roomName);
+
+            $('#qpInvoiceId').val('');
+            $('#qpInvoicePeriod').text('');
+            $('#qpInvoiceCode').text('Đang tải...');
+            $('#qpTenantName').text('Đang tải...');
+            $('#qpTotalAmount').text('0 ₫');
+            $('#qpDetailsBody').html('<tr><td colspan="6" class="text-center"><i class="fas fa-spinner fa-spin"></i> Đang tải hóa đơn...</td></tr>');
+            $('#qpNotes').val('');
+            $('#qpQRImage').attr('src', '');
+            $('#qpCKContent').text('');
+
+            $('#qpBankId').text(bankId || '-');
+            $('#qpAccountNumber').text(accountNumber || '-');
+            $('#qpAccountName').text(accountName || '-');
+
+            $('#quickPaymentModal').modal('show');
+
+            $.get(`/PhongTros/GetUnpaidInvoice?phongTroId=${phongTroId}`, function (res) {
+                $('#qpInvoiceId').val(res.hoaDonId);
+                $('#qpInvoicePeriod').text(`Tháng ${res.thang}/${res.nam}`);
+                $('#qpInvoiceCode').text(res.maHoaDon);
+                $('#qpTenantName').text(res.tenNguoiThue);
+                $('#qpTotalAmount').text(formatVND(res.tongTien));
+
+                $('#qpQRImage').attr('src', `/HoaDon/GetVietQR?hoaDonId=${res.hoaDonId}`);
+                $('#qpCKContent').text(`THANH TOAN ${res.maHoaDon}`);
+
+                let dHtml = '';
+                if (res.chiTiets && res.chiTiets.length > 0) {
+                    res.chiTiets.forEach((d, idx) => {
+                        dHtml += `
+                            <tr>
+                                <td class="text-center">${idx + 1}</td>
+                                <td>${d.tenDichVu}</td>
+                                <td class="text-right">${formatVND(d.donGia)}</td>
+                                <td class="text-center">${d.soLuong}</td>
+                                <td class="text-center">${d.donVi || '-'}</td>
+                                <td class="text-right font-weight-bold">${formatVND(d.tongTien)}</td>
+                            </tr>`;
+                    });
+                } else {
+                    dHtml = '<tr><td colspan="6" class="text-center text-muted">Không có chi tiết dịch vụ nào.</td></tr>';
+                }
+                $('#qpDetailsBody').html(dHtml);
+            }).fail(function (xhr) {
+                $('#quickPaymentModal').modal('hide');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Lỗi',
+                    text: xhr.responseJSON?.message || 'Không tìm thấy hóa đơn chưa thanh toán cho phòng này.'
+                });
+            });
+        }
+
+        // Đăng ký sự kiện nút xác nhận thanh toán nhanh
+        $(document).on('click', '#btnConfirmQuickPayment', function () {
+            let hoaDonId = $('#qpInvoiceId').val();
+            let pMethod = $('#qpPaymentMethod').val();
+            let notes = $('#qpNotes').val();
+
+            if (!hoaDonId) return;
+
+            let $btn = $(this);
+            let originalText = $btn.html();
+            $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-1"></i> Đang xử lý...');
+
+            $.ajax({
+                url: '/HoaDon/ThuTien',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    hoaDonId: parseInt(hoaDonId),
+                    phuongThucThanhToan: parseInt(pMethod),
+                    ghiChu: notes
+                }),
+                success: function (res) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Thành công',
+                        text: 'Đã xác nhận thu tiền phòng thành công!'
+                    });
+                    $('#quickPaymentModal').modal('hide');
+                    
+                    // Cập nhật giao diện động
+                    let card = $(`.room-card[data-id="${currentQuickPaymentRoomId}"]`);
+                    card.find('.badge-debt').fadeOut(400, function() { $(this).remove(); });
+                    
+                    let statNo = $('#statNoTien');
+                    if (statNo.length > 0) {
+                        let currentVal = parseInt(statNo.text()) || 0;
+                        if (currentVal > 0) statNo.text(currentVal - 1);
+                    }
+                    
+                    let roomItem = allRooms.find(r => r.phongTroId === currentQuickPaymentRoomId);
+                    if (roomItem) {
+                        roomItem.coNoTien = false;
+                    }
+                },
+                error: function (xhr) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Thất bại',
+                        text: xhr.responseJSON?.message || 'Có lỗi xảy ra khi xác nhận thanh toán.'
+                    });
+                },
+                complete: function () {
+                    $btn.prop('disabled', false).html(originalText);
+                }
+            });
+        });
 
         // ========== QUẢN LÝ DỊCH VỤ PHÒNG ==========
         let currentDichVuPhongId = 0;
@@ -622,6 +1001,26 @@
                 renderGrid();
             });
             $('#searchRoom').on('input', function () { renderGrid(); });
+
+            // Phát sinh phòng ngẫu nhiên
+            $('#btnPhatSinhPhong').click(function () {
+                let $btn = $(this);
+                if (!confirm('Bạn muốn tự động phát sinh 10 phòng trọ ngẫu nhiên cho các chi nhánh hiện có?')) return;
+                
+                $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang phát sinh...');
+                
+                $.post('/PhongTros/PhatSinhNgauNhien', function (res) {
+                    alert(res.message);
+                    if (res.success) {
+                        loadGridData();
+                        if (table) table.ajax.reload(null, false);
+                    }
+                }).fail(function() {
+                    alert('Lỗi hệ thống khi phát sinh phòng!');
+                }).always(function() {
+                    $btn.prop('disabled', false).html('<i class="fas fa-magic"></i> Phát sinh 10 phòng ngẫu nhiên');
+                });
+            });
 
             // ========== SHARED CRUD ==========
             $('#btnOpenAddModal').on('click', function () {

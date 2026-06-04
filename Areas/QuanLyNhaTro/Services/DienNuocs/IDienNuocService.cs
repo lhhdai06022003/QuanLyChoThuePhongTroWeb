@@ -22,5 +22,6 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.DienNuocs
         public double ChiSoNuocMoi { get; set; }
 
         public bool IsDaChot { get; set; } // true if this record already exists in DB for the given month/year
+        public bool IsLocked { get; set; }
     }
 }

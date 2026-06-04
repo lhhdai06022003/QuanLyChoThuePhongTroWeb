@@ -1,4 +1,4 @@
-﻿@using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Requests
+@using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Requests
 @model IEnumerable<NguoiThueReq>
 @{
     ViewData["Title"] = "Quản lý Người Thuê Trọ";
@@ -9,9 +9,14 @@
         <div class="card card-primary card-outline">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h3 class="card-title"><i class="fas fa-users"></i> Danh sách Khách Thuê</h3>
-                <button type="button" class="btn btn-success btn-sm ml-auto" id="btnOpenAddModal">
-                    <i class="fas fa-plus"></i> Thêm Người Thuê
-                </button>
+                <div class="ml-auto">
+                    <button type="button" class="btn btn-primary btn-sm mr-2 font-weight-bold" id="btnPhatSinhKhach">
+                        <i class="fas fa-magic"></i> Phát sinh 10 khách ngẫu nhiên
+                    </button>
+                    <button type="button" class="btn btn-success btn-sm font-weight-bold" id="btnOpenAddModal">
+                        <i class="fas fa-plus"></i> Thêm Người Thuê
+                    </button>
+                </div>
             </div>
 
             <div class="card-body">
@@ -317,6 +322,29 @@
                 $('#frmNguoiThue')[0].reset(); 
                 $('#modalTitle').text('Thêm Người Thuê Mới');
                 $('#nguoiThueModal').modal('show');
+            });
+
+            // Phát sinh khách thuê ngẫu nhiên
+            $('#btnPhatSinhKhach').click(function () {
+                let $btn = $(this);
+                if (!confirm('Bạn có chắc chắn muốn tự động phát sinh 10 khách thuê ngẫu nhiên?')) return;
+
+                $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang phát sinh...');
+
+                $.ajax({
+                    url: '/NguoiThue/PhatSinhNgauNhien',
+                    type: 'POST',
+                    success: function (res) {
+                        alert(res.message);
+                        table.ajax.reload(null, false);
+                    },
+                    error: function (xhr) {
+                        alert('Lỗi khi phát sinh khách thuê: ' + (xhr.responseJSON?.message || 'Lỗi hệ thống'));
+                    },
+                    complete: function () {
+                        $btn.prop('disabled', false).html('<i class="fas fa-magic"></i> Phát sinh 10 khách ngẫu nhiên');
+                    }
+                });
             });
         });
     </script>

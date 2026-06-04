@@ -15,11 +15,13 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
     {
         private readonly IHoaDonService _hoaDonService;
         private readonly IPhongTroService _phongTroService;
+        private readonly Microsoft.Extensions.Configuration.IConfiguration _configuration;
 
-        public HoaDonController(IHoaDonService hoaDonService, IPhongTroService phongTroService)
+        public HoaDonController(IHoaDonService hoaDonService, IPhongTroService phongTroService, Microsoft.Extensions.Configuration.IConfiguration configuration)
         {
             _hoaDonService = hoaDonService;
             _phongTroService = phongTroService;
+            _configuration = configuration;
         }
 
         [Route("QuanLyNhaTro/QuanLyHoaDon")]
@@ -27,26 +29,54 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         public async Task<IActionResult> Index()
         {
             ViewBag.ListChiNhanh = await _phongTroService.GetDanhSachChiNhanhDropdownAsync();
+            ViewBag.BankId = _configuration["VietQRSettings:BankId"] ?? "MB";
+            ViewBag.AccountNumber = _configuration["VietQRSettings:AccountNumber"] ?? "";
+            ViewBag.AccountName = _configuration["VietQRSettings:AccountName"] ?? "";
             return View();
         }
 
-        // Phát sinh hóa đơn hàng loạt
+        // Phát sinh hóa đơn hàng loạt hoặc theo phòng đã chọn
         [HttpPost("/HoaDon/PhatSinh")]
         public async Task<IActionResult> PhatSinh([FromBody] PhatSinhHoaDonReq req)
         {
             if (req.ChiNhanhId <= 0 || req.Thang < 1 || req.Thang > 12 || req.Nam < 2000)
                 return BadRequest(new { Message = "Tham số không hợp lệ." });
 
-            var result = await _hoaDonService.PhatSinhHoaDonAsync(req.ChiNhanhId, req.Thang, req.Nam);
+            var result = await _hoaDonService.PhatSinhHoaDonAsync(req.ChiNhanhId, req.Thang, req.Nam, req.SelectedPhongTroIds);
             if (!result.IsSuccess)
                 return BadRequest(new { Message = result.Message });
 
             return Ok(new { Message = result.Message, SoHoaDonMoi = result.SoHoaDonMoi });
         }
 
+        // Xem trước phát sinh hóa đơn
+        [HttpGet("/HoaDon/PreviewPhatSinh")]
+        public async Task<IActionResult> PreviewPhatSinh([FromQuery] int chiNhanhId, [FromQuery] int thang, [FromQuery] int nam)
+        {
+            if (chiNhanhId <= 0 || thang < 1 || thang > 12 || nam < 2000)
+                return BadRequest(new { Message = "Tham số không hợp lệ." });
+
+            var data = await _hoaDonService.PreviewPhatSinhHoaDonAsync(chiNhanhId, thang, nam);
+            return Ok(data);
+        }
+
+        // Cập nhật/Chỉnh sửa hóa đơn
+        [HttpPost("/HoaDon/Update/{id}")]
+        public async Task<IActionResult> Update(int id, [FromBody] UpdateHoaDonReq req)
+        {
+            if (id <= 0 || req == null)
+                return BadRequest(new { Message = "Dữ liệu không hợp lệ." });
+
+            var result = await _hoaDonService.UpdateHoaDonAsync(id, req);
+            if (!result.IsSuccess)
+                return BadRequest(new { Message = result.ErrorMessage });
+
+            return Ok(new { Message = "Cập nhật hóa đơn thành công!" });
+        }
+
         // Danh sách hóa đơn (DataTable server-side)
         [HttpPost("/HoaDon/GetList")]
-        public async Task<IActionResult> GetList([FromQuery] int chiNhanhId = 0, [FromQuery] int thang = 0, [FromQuery] int nam = 0, [FromQuery] int trangThai = -1)
+        public async Task<IActionResult> GetList([FromForm] int chiNhanhId = 0, [FromForm] int thang = 0, [FromForm] int nam = 0, [FromForm] int trangThai = -1)
         {
             var form = Request.Form;
             var request = new DataTableRequest
@@ -107,6 +137,29 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             var bytes = await _hoaDonService.ExportPdfAsync(id);
             if (bytes == null) return NotFound();
             return File(bytes, "application/pdf", $"HoaDon_{id}.pdf");
+        }
+
+        // Endpoint sinh mã QR VietQR ngoại tuyến
+        [HttpGet("/HoaDon/GetVietQR")]
+        public async Task<IActionResult> GetVietQR([FromQuery] int hoaDonId)
+        {
+            var hd = await _hoaDonService.GetHoaDonByIdAsync(hoaDonId);
+            if (hd == null) return NotFound(new { Message = "Không tìm thấy hóa đơn." });
+
+            // Chỉ hiển thị QR nếu chưa thanh toán
+            if (hd.TrangThaiHoaDon != "Chưa thanh toán")
+            {
+                return BadRequest(new { Message = "Hóa đơn đã được thanh toán hoặc không hợp lệ." });
+            }
+
+            var bankId = _configuration["VietQRSettings:BankId"] ?? "MB";
+            var accountNumber = _configuration["VietQRSettings:AccountNumber"] ?? "";
+            string memo = $"THANH TOAN {hd.MaHoaDon}";
+
+            string qrString = Helpers.VietQRHelper.GenerateVietQRString(bankId, accountNumber, hd.TongTien, memo);
+            byte[] qrBytes = Helpers.VietQRHelper.GenerateQRCodePNGBytes(qrString);
+
+            return File(qrBytes, "image/png");
         }
     }
 }

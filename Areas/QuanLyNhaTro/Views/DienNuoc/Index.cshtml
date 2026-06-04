@@ -2,16 +2,33 @@
     ViewData["Title"] = "Chốt Chỉ Số Điện/Nước Hàng Tháng";
 }
 
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<style>
+    .is-invalid {
+        border-color: #dc3545 !important;
+        background-color: #f8d7da !important;
+    }
+    .row-locked {
+        background-color: #f8f9fa !important;
+        color: #6c757d;
+    }
+    .row-locked input {
+        background-color: #e9ecef !important;
+        cursor: not-allowed;
+    }
+</style>
+
 <section class="content">
     <div class="container-fluid">
-        <div class="card card-default">
-            <div class="card-header">
-                <h3 class="card-title">Lọc Dữ Liệu</h3>
+        <!-- Card Lọc Dữ Liệu -->
+        <div class="card card-default shadow-sm">
+            <div class="card-header bg-light">
+                <h3 class="card-title font-weight-bold text-secondary"><i class="fas fa-filter mr-1"></i> Bộ Lọc Dữ Liệu</h3>
             </div>
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-3 form-group">
-                        <label>Chi Nhánh <span class="text-danger">*</span></label>
+                        <label class="font-weight-bold text-secondary">Chi Nhánh <span class="text-danger">*</span></label>
                         <select id="filterChiNhanh" class="form-control">
                             <option value="">-- Chọn chi nhánh --</option>
                             @if (ViewBag.ListChiNhanh != null)
@@ -24,7 +41,7 @@
                         </select>
                     </div>
                     <div class="col-md-3 form-group">
-                        <label>Tháng <span class="text-danger">*</span></label>
+                        <label class="font-weight-bold text-secondary">Tháng <span class="text-danger">*</span></label>
                         <select id="filterThang" class="form-control">
                             @for (int i = 1; i <= 12; i++)
                             {
@@ -40,63 +57,87 @@
                         </select>
                     </div>
                     <div class="col-md-3 form-group">
-                        <label>Năm <span class="text-danger">*</span></label>
-                        <input type="number" id="filterNam" class="form-control" value="@DateTime.Now.Year">
+                        <label class="font-weight-bold text-secondary">Năm <span class="text-danger">*</span></label>
+                        <input type="number" id="filterNam" class="form-control" value="@DateTime.Now.Year" min="2000">
                     </div>
                     <div class="col-md-3 form-group d-flex align-items-end">
-                        <button type="button" class="btn btn-primary w-100" id="btnLoadData">
-                            <i class="fas fa-search"></i> Lấy danh sách
+                        <button type="button" class="btn btn-primary w-100 font-weight-bold" id="btnLoadData">
+                            <i class="fas fa-search mr-1"></i> Lấy danh sách
                         </button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="card card-primary card-outline" id="cardResult" style="display: none;">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h3 class="card-title"><i class="fas fa-bolt"></i> <i class="fas fa-tint"></i> Danh sách Phòng</h3>
-                <button type="button" class="btn btn-success btn-sm ml-auto" id="btnSaveData">
-                    <i class="fas fa-save"></i> Lưu tất cả chỉ số
+        <!-- Card Danh sách kết quả -->
+        <div class="card card-primary card-outline shadow" id="cardResult" style="display: none;">
+            <div class="card-header d-flex justify-content-between align-items-center p-3">
+                <h3 class="card-title m-0 font-weight-bold text-primary">
+                    <i class="fas fa-bolt mr-1"></i> <i class="fas fa-tint mr-2"></i> Ghi Nhận Chỉ Số Điện Nước
+                </h3>
+                <button type="button" class="btn btn-success font-weight-bold ml-auto shadow-sm" id="btnSaveData">
+                    <i class="fas fa-save mr-1"></i> Lưu tất cả chỉ số
                 </button>
             </div>
             <div class="card-body">
-                <table class="table table-bordered table-striped table-hover w-100" id="dienNuocTable">
-                    <thead class="bg-light">
-                        <tr>
-                            <th class="text-center" width="5%">STT</th>
-                            <th>Phòng</th>
-                            <th>Người Đại Diện</th>
-                            <th class="text-center bg-warning text-white">Chỉ số Điện Cũ</th>
-                            <th class="text-center bg-danger text-white">Chỉ số Điện Mới</th>
-                            <th class="text-center bg-info text-white">Chỉ số Nước Cũ</th>
-                            <th class="text-center bg-primary text-white">Chỉ số Nước Mới</th>
-                            <th class="text-center">Trạng Thái</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tbodyDienNuoc">
-                    </tbody>
-                </table>
+                <div class="alert alert-info py-2 mb-3 small">
+                    <i class="fas fa-info-circle"></i> 
+                    <strong>Hướng dẫn:</strong> Nhập chỉ số điện và nước mới. Chỉ số cũ ở trạng thái chỉ đọc và được đối chiếu với kỳ trước. Các dòng có biểu tượng khóa <i class="fas fa-lock text-danger"></i> đã được chốt kỳ sau nên không được sửa đổi.
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped table-hover w-100" id="dienNuocTable">
+                        <thead class="bg-light text-secondary">
+                            <tr>
+                                <th class="text-center" width="5%">STT</th>
+                                <th>Phòng</th>
+                                <th>Người Đại Diện</th>
+                                <th class="text-center bg-warning-light" style="background-color: #fff9e6;">Chỉ số Điện Cũ</th>
+                                <th class="text-center bg-danger-light" style="background-color: #ffe6e6;">Chỉ số Điện Mới</th>
+                                <th class="text-center bg-info-light" style="background-color: #e6f7ff;">Chỉ số Nước Cũ</th>
+                                <th class="text-center bg-primary-light" style="background-color: #e6e6ff;">Chỉ số Nước Mới</th>
+                                <th class="text-center" width="12%">Trạng Thái</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyDienNuoc">
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
 </section>
 
 @section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         $(document).ready(function () {
             let currentData = [];
+            let table = null;
 
+            // Khởi động lấy dữ liệu
             $('#btnLoadData').on('click', function () {
                 let chiNhanhId = $('#filterChiNhanh').val();
                 let thang = $('#filterThang').val();
                 let nam = $('#filterNam').val();
 
                 if (!chiNhanhId) {
-                    alert('Vui lòng chọn chi nhánh!');
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Thông báo',
+                        text: 'Vui lòng chọn chi nhánh!'
+                    });
+                    return;
+                }
+                if (!nam || nam < 2000) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Cảnh báo',
+                        text: 'Năm chốt dữ liệu không hợp lệ.'
+                    });
                     return;
                 }
 
-                $('#btnLoadData').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang tải...');
+                $('#btnLoadData').prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-1"></i> Đang tải...');
 
                 $.ajax({
                     url: '/DienNuoc/GetDanhSachPhongs',
@@ -108,54 +149,121 @@
                         $('#cardResult').show();
                     },
                     error: function (xhr) {
-                        alert(xhr.responseJSON?.message || 'Có lỗi xảy ra khi tải dữ liệu.');
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Lỗi tải dữ liệu',
+                            text: xhr.responseJSON?.message || 'Có lỗi xảy ra khi tải dữ liệu.'
+                        });
                         $('#cardResult').hide();
                     },
                     complete: function () {
-                        $('#btnLoadData').prop('disabled', false).html('<i class="fas fa-search"></i> Lấy danh sách');
+                        $('#btnLoadData').prop('disabled', false).html('<i class="fas fa-search mr-1"></i> Lấy danh sách');
                     }
                 });
             });
 
             function renderTable(data) {
+                // Hủy DataTable nếu đang có để vẽ lại
+                if ($.fn.DataTable.isDataTable('#dienNuocTable')) {
+                    $('#dienNuocTable').DataTable().destroy();
+                }
+
                 let html = '';
                 if (data.length === 0) {
-                    html = '<tr><td colspan="8" class="text-center">Không có phòng nào đang thuê tại chi nhánh này.</td></tr>';
+                    html = '<tr><td colspan="8" class="text-center text-muted">Không có phòng nào đang thuê tại chi nhánh này.</td></tr>';
                 } else {
                     data.forEach((item, index) => {
-                        let statusBadge = item.isDaChot 
-                            ? '<span class="badge badge-success">Đã chốt</span>' 
-                            : '<span class="badge badge-secondary">Chưa chốt</span>';
+                        let statusBadge = '';
+                        let rowClass = '';
+                        let disabledAttr = '';
                         
-                        // Default to old index if new index is 0 and not yet recorded
+                        if (item.isLocked) {
+                            statusBadge = '<span class="badge badge-danger"><i class="fas fa-lock mr-1"></i> Đã khóa</span>';
+                            rowClass = 'row-locked';
+                            disabledAttr = 'disabled';
+                        } else if (item.isDaChot) {
+                            statusBadge = '<span class="badge badge-success"><i class="fas fa-check-circle mr-1"></i> Đã chốt</span>';
+                        } else {
+                            statusBadge = '<span class="badge badge-secondary"><i class="fas fa-clock mr-1"></i> Chưa chốt</span>';
+                        }
+                        
                         let defaultDienMoi = (item.chiSoDienMoi === 0 && !item.isDaChot) ? item.chiSoDienCu : item.chiSoDienMoi;
                         let defaultNuocMoi = (item.chiSoNuocMoi === 0 && !item.isDaChot) ? item.chiSoNuocCu : item.chiSoNuocMoi;
 
                         html += `
-                            <tr data-index="${index}">
+                            <tr data-index="${index}" class="${rowClass}">
                                 <td class="text-center align-middle">${index + 1}</td>
-                                <td class="align-middle font-weight-bold">${item.tenPhong}</td>
+                                <td class="align-middle font-weight-bold text-dark">${item.tenPhong}</td>
                                 <td class="align-middle">${item.tenNguoiDaiDien}</td>
                                 <td class="text-center align-middle">
-                                    <input type="number" class="form-control text-center in-dien-cu" value="${item.chiSoDienCu}" min="0">
+                                    <input type="number" class="form-control text-center in-dien-cu" value="${item.chiSoDienCu}" readonly>
                                 </td>
                                 <td class="text-center align-middle">
-                                    <input type="number" class="form-control text-center text-danger font-weight-bold in-dien-moi" value="${defaultDienMoi}" min="0">
+                                    <input type="number" class="form-control text-center text-danger font-weight-bold in-dien-moi" value="${defaultDienMoi}" min="0" ${disabledAttr}>
+                                    <div class="invalid-feedback text-left small" style="display: none;">Mới phải ≥ Cũ</div>
                                 </td>
                                 <td class="text-center align-middle">
-                                    <input type="number" class="form-control text-center in-nuoc-cu" value="${item.chiSoNuocCu}" min="0">
+                                    <input type="number" class="form-control text-center in-nuoc-cu" value="${item.chiSoNuocCu}" readonly>
                                 </td>
                                 <td class="text-center align-middle">
-                                    <input type="number" class="form-control text-center text-primary font-weight-bold in-nuoc-moi" value="${defaultNuocMoi}" min="0">
+                                    <input type="number" class="form-control text-center text-primary font-weight-bold in-nuoc-moi" value="${defaultNuocMoi}" min="0" ${disabledAttr}>
+                                    <div class="invalid-feedback text-left small" style="display: none;">Mới phải ≥ Cũ</div>
                                 </td>
                                 <td class="text-center align-middle">${statusBadge}</td>
                             </tr>
                         `;
                     });
                 }
+                
                 $('#tbodyDienNuoc').html(html);
+
+                // Khởi tạo lại DataTable (Giữ cuộn dọc, chỉ tìm kiếm và sắp xếp)
+                if (data.length > 0) {
+                    table = $('#dienNuocTable').DataTable({
+                        "language": { "url": "https://cdn.datatables.net/plug-ins/1.13.6/i18n/vi.json" },
+                        "paging": false,
+                        "ordering": true,
+                        "searching": true,
+                        "info": false,
+                        "autoWidth": false,
+                        "columnDefs": [
+                            { "orderable": false, "targets": [3, 4, 5, 6, 7] } // Không sort trên các cột input và status
+                        ]
+                    });
+                }
             }
 
+            // Real-time validation viền đỏ khi nhập sai chỉ số điện mới
+            $('#tbodyDienNuoc').on('input change', '.in-dien-moi', function () {
+                let tr = $(this).closest('tr');
+                let cu = parseFloat(tr.find('.in-dien-cu').val()) || 0;
+                let moi = parseFloat($(this).val()) || 0;
+
+                if (moi < cu || moi < 0) {
+                    $(this).addClass('is-invalid');
+                    tr.find('.in-dien-moi').siblings('.invalid-feedback').show();
+                } else {
+                    $(this).removeClass('is-invalid');
+                    tr.find('.in-dien-moi').siblings('.invalid-feedback').hide();
+                }
+            });
+
+            // Real-time validation viền đỏ khi nhập sai chỉ số nước mới
+            $('#tbodyDienNuoc').on('input change', '.in-nuoc-moi', function () {
+                let tr = $(this).closest('tr');
+                let cu = parseFloat(tr.find('.in-nuoc-cu').val()) || 0;
+                let moi = parseFloat($(this).val()) || 0;
+
+                if (moi < cu || moi < 0) {
+                    $(this).addClass('is-invalid');
+                    tr.find('.in-nuoc-moi').siblings('.invalid-feedback').show();
+                } else {
+                    $(this).removeClass('is-invalid');
+                    tr.find('.in-nuoc-moi').siblings('.invalid-feedback').hide();
+                }
+            });
+
+            // Ghi nhận dữ liệu
             $('#btnSaveData').on('click', function () {
                 if (currentData.length === 0) return;
 
@@ -166,24 +274,51 @@
                 let danhSachPhong = [];
                 let hasError = false;
 
-                $('#tbodyDienNuoc tr').each(function () {
+                // Lấy tất cả hàng trong DataTable (kể cả những hàng đang bị ẩn do search)
+                let rows = table ? table.rows().nodes().to$() : $('#tbodyDienNuoc tr');
+
+                rows.each(function () {
                     let index = $(this).data('index');
                     if (index !== undefined) {
                         let rowData = currentData[index];
+                        
+                        // Bỏ qua nếu dòng này đã bị khóa
+                        if (rowData.isLocked) return;
+
                         let dienCu = parseFloat($(this).find('.in-dien-cu').val()) || 0;
                         let dienMoi = parseFloat($(this).find('.in-dien-moi').val()) || 0;
                         let nuocCu = parseFloat($(this).find('.in-nuoc-cu').val()) || 0;
                         let nuocMoi = parseFloat($(this).find('.in-nuoc-moi').val()) || 0;
 
-                        if (dienMoi < dienCu) {
-                            alert(`Phòng ${rowData.tenPhong}: Chỉ số điện mới không được nhỏ hơn chỉ số điện cũ.`);
+                        if (dienMoi < 0 || nuocMoi < 0) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Chỉ số không hợp lệ',
+                                text: `Phòng ${rowData.tenPhong}: Chỉ số điện/nước mới không được âm.`
+                            });
                             hasError = true;
                             return false; // break each
                         }
 
-                        if (nuocMoi < nuocCu) {
-                            alert(`Phòng ${rowData.tenPhong}: Chỉ số nước mới không được nhỏ hơn chỉ số nước cũ.`);
+                        if (dienMoi < dienCu) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Chỉ số điện sai lệch',
+                                text: `Phòng ${rowData.tenPhong}: Chỉ số điện mới (${dienMoi}) không được nhỏ hơn chỉ số điện cũ (${dienCu}).`
+                            });
                             hasError = true;
+                            $(this).find('.in-dien-moi').addClass('is-invalid');
+                            return false; // break each
+                        }
+
+                        if (nuocMoi < nuocCu) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Chỉ số nước sai lệch',
+                                text: `Phòng ${rowData.tenPhong}: Chỉ số nước mới (${nuocMoi}) không được nhỏ hơn chỉ số nước cũ (${nuocCu}).`
+                            });
+                            hasError = true;
+                            $(this).find('.in-nuoc-moi').addClass('is-invalid');
                             return false; // break each
                         }
 
@@ -200,6 +335,15 @@
 
                 if (hasError) return;
 
+                if (danhSachPhong.length === 0) {
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Thông báo',
+                        text: 'Tất cả các phòng trong danh sách đã bị khóa hoặc không có chỉ số mới cần lưu.'
+                    });
+                    return;
+                }
+
                 let payload = {
                     chiNhanhId: parseInt(chiNhanhId),
                     thang: parseInt(thang),
@@ -209,7 +353,7 @@
 
                 let $btn = $(this);
                 let originalHtml = $btn.html();
-                $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang lưu...');
+                $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-1"></i> Đang lưu...');
 
                 $.ajax({
                     url: '/DienNuoc/SaveChotDienNuoc',
@@ -217,12 +361,21 @@
                     contentType: 'application/json',
                     data: JSON.stringify(payload),
                     success: function (res) {
-                        alert(res.message);
-                        // Reload data to see 'Đã chốt' badges
-                        $('#btnLoadData').click();
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Thành công',
+                            text: res.message
+                        }).then(() => {
+                            // Tải lại dữ liệu
+                            $('#btnLoadData').click();
+                        });
                     },
                     error: function (xhr) {
-                        alert(xhr.responseJSON?.message || 'Có lỗi xảy ra khi lưu.');
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Thất bại',
+                            text: xhr.responseJSON?.message || 'Có lỗi xảy ra khi lưu chỉ số.'
+                        });
                     },
                     complete: function () {
                         $btn.prop('disabled', false).html(originalHtml);
