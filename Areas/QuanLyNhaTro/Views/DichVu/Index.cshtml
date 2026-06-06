@@ -85,9 +85,7 @@
         <div class="modal-content">
             <div class="modal-header bg-primary text-white">
                 <h5 class="modal-title" id="dichVuModalTitle">Thêm Dịch Vụ Mới</h5>
-                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <input type="hidden" id="DichVuId" value="0" />
@@ -105,7 +103,7 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
                 <button type="button" class="btn btn-primary" id="btnSaveDichVu">Lưu Dịch Vụ</button>
             </div>
         </div>
@@ -118,9 +116,7 @@
         <div class="modal-content">
             <div class="modal-header bg-success text-white">
                 <h5 class="modal-title" id="bangGiaModalTitle">Cài đặt Giá Dịch Vụ</h5>
-                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <input type="hidden" id="DichVuChiNhanhId" value="0" />
@@ -149,7 +145,7 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
                 <button type="button" class="btn btn-success" id="btnSaveBangGia">Lưu Bảng Giá</button>
             </div>
         </div>
@@ -180,10 +176,18 @@
                     { "data": "donVi" },
                     { "data": "ghiChu", "orderable": false },
                     {
-                        "data": "dichVuId", "orderable": false, "className": "text-center",
+                        "data": "dichVuId", "orderable": false, "className": "text-center align-middle",
                         "render": function(data) {
-                            return `<button class="btn btn-warning btn-sm btn-edit-dv" data-id="${data}"><i class="fas fa-edit"></i></button>
-                                    <button class="btn btn-danger btn-sm btn-delete-dv" data-id="${data}"><i class="fas fa-trash"></i></button>`;
+                            return `
+                                <div class="btn-list flex-nowrap justify-content-center">
+                                    <button class="btn btn-icon btn-ghost-warning btn-sm btn-edit-dv" data-id="${data}" title="Sửa">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-icon btn-ghost-danger btn-sm btn-delete-dv" data-id="${data}" title="Xóa">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            `;
                         }
                     }
                 ]
@@ -265,10 +269,18 @@
                     { "data": "tenDichVu", "orderable": false },
                     { "data": "giaDichVu", "orderable": false, "render": function(d) { return formatVND(d); } },
                     {
-                        "data": "dichVuChiNhanhId", "orderable": false, "className": "text-center",
+                        "data": "dichVuChiNhanhId", "orderable": false, "className": "text-center align-middle",
                         "render": function(data) {
-                            return `<button class="btn btn-warning btn-sm btn-edit-bg" data-id="${data}"><i class="fas fa-edit"></i></button>
-                                    <button class="btn btn-danger btn-sm btn-delete-bg" data-id="${data}"><i class="fas fa-trash"></i></button>`;
+                            return `
+                                <div class="btn-list flex-nowrap justify-content-center">
+                                    <button class="btn btn-icon btn-ghost-warning btn-sm btn-edit-bg" data-id="${data}" title="Sửa">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-icon btn-ghost-danger btn-sm btn-delete-bg" data-id="${data}" title="Xóa">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            `;
                         }
                     }
                 ]

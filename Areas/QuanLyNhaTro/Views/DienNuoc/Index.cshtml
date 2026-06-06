@@ -2,34 +2,40 @@
     ViewData["Title"] = "Chốt Chỉ Số Điện/Nước Hàng Tháng";
 }
 
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
-<style>
-    .is-invalid {
-        border-color: #dc3545 !important;
-        background-color: #f8d7da !important;
-    }
-    .row-locked {
-        background-color: #f8f9fa !important;
-        color: #6c757d;
-    }
-    .row-locked input {
-        background-color: #e9ecef !important;
-        cursor: not-allowed;
-    }
-</style>
+<link rel="stylesheet" href="~/css/diennuoc.css" />
 
-<section class="content">
-    <div class="container-fluid">
-        <!-- Card Lọc Dữ Liệu -->
-        <div class="card card-default shadow-sm">
-            <div class="card-header bg-light">
-                <h3 class="card-title font-weight-bold text-secondary"><i class="fas fa-filter mr-1"></i> Bộ Lọc Dữ Liệu</h3>
+<div class="container-xl mt-3">
+    <!-- Page Header -->
+    <div class="page-header d-print-none mb-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <h2 class="page-title text-primary font-weight-bold">
+                    <i class="fas fa-bolt me-1 text-warning"></i> <i class="fas fa-tint me-2 text-info"></i> Chốt Chỉ Số Điện/Nước Hàng Tháng
+                </h2>
             </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-3 form-group">
-                        <label class="font-weight-bold text-secondary">Chi Nhánh <span class="text-danger">*</span></label>
-                        <select id="filterChiNhanh" class="form-control">
+        </div>
+    </div>
+
+    <!-- Unified Card Layout -->
+    <div class="card border-0 shadow-sm mb-5">
+        <div class="card-header d-flex justify-content-between align-items-center py-3 border-bottom">
+            <h3 class="card-title font-weight-bold text-dark mb-0">
+                <i class="fas fa-list me-2 text-primary"></i> Danh sách ghi nhận chỉ số
+            </h3>
+            <div class="ms-auto" id="saveActionArea" style="display: none;">
+                <button type="button" class="btn btn-success font-weight-bold shadow-sm" id="btnSaveData">
+                    <i class="fas fa-save me-1"></i> Lưu tất cả chỉ số
+                </button>
+            </div>
+        </div>
+
+        <div class="card-body p-0">
+            <!-- Filter Bar inside Card (Horizontal Toolbar) -->
+            <div class="p-3 border-bottom bg-light">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label small font-weight-bold text-secondary mb-1">Chi Nhánh <span class="text-danger">*</span></label>
+                        <select id="filterChiNhanh" class="form-select">
                             <option value="">-- Chọn chi nhánh --</option>
                             @if (ViewBag.ListChiNhanh != null)
                             {
@@ -40,9 +46,9 @@
                             }
                         </select>
                     </div>
-                    <div class="col-md-3 form-group">
-                        <label class="font-weight-bold text-secondary">Tháng <span class="text-danger">*</span></label>
-                        <select id="filterThang" class="form-control">
+                    <div class="col-md-4">
+                        <label class="form-label small font-weight-bold text-secondary mb-1">Tháng <span class="text-danger">*</span></label>
+                        <select id="filterThang" class="form-select">
                             @for (int i = 1; i <= 12; i++)
                             {
                                 if (i == DateTime.Now.Month)
@@ -56,45 +62,36 @@
                             }
                         </select>
                     </div>
-                    <div class="col-md-3 form-group">
-                        <label class="font-weight-bold text-secondary">Năm <span class="text-danger">*</span></label>
+                    <div class="col-md-4">
+                        <label class="form-label small font-weight-bold text-secondary mb-1">Năm <span class="text-danger">*</span></label>
                         <input type="number" id="filterNam" class="form-control" value="@DateTime.Now.Year" min="2000">
                     </div>
-                    <div class="col-md-3 form-group d-flex align-items-end">
-                        <button type="button" class="btn btn-primary w-100 font-weight-bold" id="btnLoadData">
-                            <i class="fas fa-search mr-1"></i> Lấy danh sách
-                        </button>
-                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Card Danh sách kết quả -->
-        <div class="card card-primary card-outline shadow" id="cardResult" style="display: none;">
-            <div class="card-header d-flex justify-content-between align-items-center p-3">
-                <h3 class="card-title m-0 font-weight-bold text-primary">
-                    <i class="fas fa-bolt mr-1"></i> <i class="fas fa-tint mr-2"></i> Ghi Nhận Chỉ Số Điện Nước
-                </h3>
-                <button type="button" class="btn btn-success font-weight-bold ml-auto shadow-sm" id="btnSaveData">
-                    <i class="fas fa-save mr-1"></i> Lưu tất cả chỉ số
-                </button>
+            <!-- Empty State Container -->
+            <div id="emptyState" class="text-center py-5">
+                <i class="fas fa-building fa-3x text-muted mb-3" style="opacity: 0.5;"></i>
+                <p class="text-muted font-weight-medium">Vui lòng chọn <strong>Chi nhánh</strong> để bắt đầu ghi nhận chỉ số điện nước.</p>
             </div>
-            <div class="card-body">
-                <div class="alert alert-info py-2 mb-3 small">
-                    <i class="fas fa-info-circle"></i> 
-                    <strong>Hướng dẫn:</strong> Nhập chỉ số điện và nước mới. Chỉ số cũ ở trạng thái chỉ đọc và được đối chiếu với kỳ trước. Các dòng có biểu tượng khóa <i class="fas fa-lock text-danger"></i> đã được chốt kỳ sau nên không được sửa đổi.
+
+            <!-- Table Container (Initially Hidden) -->
+            <div id="tableContainer" style="display: none;" class="p-3">
+                <div class="alert alert-info py-2 mb-3">
+                    <i class="fas fa-info-circle me-1"></i> 
+                    <strong>Hướng dẫn:</strong> Nhập chỉ số điện và nước mới. Chỉ số cũ ở trạng thái chỉ đọc. Bấm các phím <code>Enter</code> hoặc phím <code>Mũi tên lên/xuống</code> để tự động chuyển ô nhập liệu cực kỳ nhanh chóng.
                 </div>
                 <div class="table-responsive">
-                    <table class="table table-bordered table-striped table-hover w-100" id="dienNuocTable">
-                        <thead class="bg-light text-secondary">
+                    <table class="table card-table table-vcenter text-nowrap datatable w-100" id="dienNuocTable">
+                        <thead>
                             <tr>
                                 <th class="text-center" width="5%">STT</th>
                                 <th>Phòng</th>
                                 <th>Người Đại Diện</th>
-                                <th class="text-center bg-warning-light" style="background-color: #fff9e6;">Chỉ số Điện Cũ</th>
-                                <th class="text-center bg-danger-light" style="background-color: #ffe6e6;">Chỉ số Điện Mới</th>
-                                <th class="text-center bg-info-light" style="background-color: #e6f7ff;">Chỉ số Nước Cũ</th>
-                                <th class="text-center bg-primary-light" style="background-color: #e6e6ff;">Chỉ số Nước Mới</th>
+                                <th class="text-center bg-warning-light-td" width="12%">Chỉ số Điện Cũ</th>
+                                <th class="text-center bg-danger-light-td" width="15%">Chỉ số Điện Mới</th>
+                                <th class="text-center bg-info-light-td" width="12%">Chỉ số Nước Cũ</th>
+                                <th class="text-center bg-primary-light-td" width="15%">Chỉ số Nước Mới</th>
                                 <th class="text-center" width="12%">Trạng Thái</th>
                             </tr>
                         </thead>
@@ -105,39 +102,93 @@
             </div>
         </div>
     </div>
-</section>
+</div>
+
+<!-- Sticky Bottom Action Bar -->
+<div class="fixed-bottom bg-body border-top shadow-lg py-3 px-4 d-flex align-items-center justify-content-between d-print-none" id="stickyActionBar" style="display: none !important; z-index: 1050; transition: transform 0.3s ease;">
+    <div class="d-flex align-items-center">
+        <span class="badge bg-yellow-lt text-warning me-2"><i class="fas fa-exclamation-triangle"></i></span>
+        <span class="font-weight-medium">Bạn có chỉ số mới chưa được lưu lại vào hệ thống.</span>
+    </div>
+    <div class="d-flex gap-2">
+        <button type="button" class="btn btn-secondary px-4" id="btnCancelChanges">Hủy bỏ</button>
+        <button type="button" class="btn btn-success px-4 font-weight-bold" id="btnSaveDataSticky">
+            <i class="fas fa-save me-1"></i> Lưu thay đổi ngay
+        </button>
+    </div>
+</div>
 
 @section Scripts {
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         $(document).ready(function () {
             let currentData = [];
             let table = null;
 
-            // Khởi động lấy dữ liệu
-            $('#btnLoadData').on('click', function () {
+            // Auto-tab navigation between input fields using Enter and Arrow keys
+            $('#tbodyDienNuoc').on('keydown', '.in-dien-moi, .in-nuoc-moi', function (e) {
+                const key = e.key;
+                const isDien = $(this).hasClass('in-dien-moi');
+                const targetClass = isDien ? '.in-dien-moi' : '.in-nuoc-moi';
+                const tr = $(this).closest('tr');
+                let targetTr = null;
+
+                if (key === 'Enter' || key === 'ArrowDown') {
+                    e.preventDefault();
+                    // Find the next available unlocked row
+                    let nextRows = tr.nextAll('tr');
+                    for (let i = 0; i < nextRows.length; i++) {
+                        let nextTr = $(nextRows[i]);
+                        if (!nextTr.hasClass('row-locked')) {
+                            targetTr = nextTr;
+                            break;
+                        }
+                    }
+                } else if (key === 'ArrowUp') {
+                    e.preventDefault();
+                    // Find the previous available unlocked row
+                    let prevRows = tr.prevAll('tr');
+                    for (let i = 0; i < prevRows.length; i++) {
+                        let prevTr = $(prevRows[i]);
+                        if (!prevTr.hasClass('row-locked')) {
+                            targetTr = prevTr;
+                            break;
+                        }
+                    }
+                } else if (key === 'ArrowRight' && isDien) {
+                    e.preventDefault();
+                    tr.find('.in-nuoc-moi').focus().select();
+                } else if (key === 'ArrowLeft' && !isDien) {
+                    e.preventDefault();
+                    tr.find('.in-dien-moi').focus().select();
+                }
+
+                if (targetTr) {
+                    targetTr.find(targetClass).focus().select();
+                }
+            });
+
+            // Auto-load trigger when filters change
+            $('#filterChiNhanh, #filterThang, #filterNam').on('change', function () {
+                loadData();
+            });
+
+            function loadData() {
                 let chiNhanhId = $('#filterChiNhanh').val();
                 let thang = $('#filterThang').val();
                 let nam = $('#filterNam').val();
 
                 if (!chiNhanhId) {
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'Thông báo',
-                        text: 'Vui lòng chọn chi nhánh!'
-                    });
-                    return;
-                }
-                if (!nam || nam < 2000) {
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'Cảnh báo',
-                        text: 'Năm chốt dữ liệu không hợp lệ.'
-                    });
+                    $('#emptyState').show();
+                    $('#tableContainer').hide();
+                    $('#saveActionArea').hide();
+                    hideStickyBar();
                     return;
                 }
 
-                $('#btnLoadData').prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-1"></i> Đang tải...');
+                $('#emptyState').hide();
+                $('#tableContainer').show();
+                $('#tbodyDienNuoc').html('<tr><td colspan="8" class="text-center py-4"><i class="fas fa-spinner fa-spin fa-2x text-primary mb-2"></i><div>Đang tải dữ liệu...</div></td></tr>');
+                hideStickyBar();
 
                 $.ajax({
                     url: '/DienNuoc/GetDanhSachPhongs',
@@ -146,7 +197,7 @@
                     success: function (res) {
                         currentData = res;
                         renderTable(res);
-                        $('#cardResult').show();
+                        $('#saveActionArea').show();
                     },
                     error: function (xhr) {
                         Swal.fire({
@@ -154,13 +205,12 @@
                             title: 'Lỗi tải dữ liệu',
                             text: xhr.responseJSON?.message || 'Có lỗi xảy ra khi tải dữ liệu.'
                         });
-                        $('#cardResult').hide();
-                    },
-                    complete: function () {
-                        $('#btnLoadData').prop('disabled', false).html('<i class="fas fa-search mr-1"></i> Lấy danh sách');
+                        $('#tableContainer').hide();
+                        $('#emptyState').show();
+                        $('#saveActionArea').hide();
                     }
                 });
-            });
+            }
 
             function renderTable(data) {
                 // Hủy DataTable nếu đang có để vẽ lại
@@ -170,7 +220,7 @@
 
                 let html = '';
                 if (data.length === 0) {
-                    html = '<tr><td colspan="8" class="text-center text-muted">Không có phòng nào đang thuê tại chi nhánh này.</td></tr>';
+                    html = '<tr><td colspan="8" class="text-center text-muted py-4">Không có phòng nào đang thuê tại chi nhánh này.</td></tr>';
                 } else {
                     data.forEach((item, index) => {
                         let statusBadge = '';
@@ -178,13 +228,13 @@
                         let disabledAttr = '';
                         
                         if (item.isLocked) {
-                            statusBadge = '<span class="badge badge-danger"><i class="fas fa-lock mr-1"></i> Đã khóa</span>';
+                            statusBadge = '<span class="badge bg-danger-lt text-danger"><i class="fas fa-lock me-1"></i> Đã khóa</span>';
                             rowClass = 'row-locked';
                             disabledAttr = 'disabled';
                         } else if (item.isDaChot) {
-                            statusBadge = '<span class="badge badge-success"><i class="fas fa-check-circle mr-1"></i> Đã chốt</span>';
+                            statusBadge = '<span class="badge bg-success-lt text-success"><i class="fas fa-check-circle me-1"></i> Đã chốt</span>';
                         } else {
-                            statusBadge = '<span class="badge badge-secondary"><i class="fas fa-clock mr-1"></i> Chưa chốt</span>';
+                            statusBadge = '<span class="badge bg-secondary-lt text-secondary"><i class="fas fa-clock me-1"></i> Chưa chốt</span>';
                         }
                         
                         let defaultDienMoi = (item.chiSoDienMoi === 0 && !item.isDaChot) ? item.chiSoDienCu : item.chiSoDienMoi;
@@ -195,19 +245,19 @@
                                 <td class="text-center align-middle">${index + 1}</td>
                                 <td class="align-middle font-weight-bold text-dark">${item.tenPhong}</td>
                                 <td class="align-middle">${item.tenNguoiDaiDien}</td>
-                                <td class="text-center align-middle">
+                                <td class="text-center align-middle bg-warning-light-td diennuoc-input-td">
                                     <input type="number" class="form-control text-center in-dien-cu" value="${item.chiSoDienCu}" readonly>
                                 </td>
-                                <td class="text-center align-middle">
+                                <td class="text-center align-middle bg-danger-light-td diennuoc-input-td">
                                     <input type="number" class="form-control text-center text-danger font-weight-bold in-dien-moi" value="${defaultDienMoi}" min="0" ${disabledAttr}>
-                                    <div class="invalid-feedback text-left small" style="display: none;">Mới phải ≥ Cũ</div>
+                                    <div class="invalid-feedback text-start small" style="display: none;">Mới phải ≥ Cũ</div>
                                 </td>
-                                <td class="text-center align-middle">
+                                <td class="text-center align-middle bg-info-light-td diennuoc-input-td">
                                     <input type="number" class="form-control text-center in-nuoc-cu" value="${item.chiSoNuocCu}" readonly>
                                 </td>
-                                <td class="text-center align-middle">
+                                <td class="text-center align-middle bg-primary-light-td diennuoc-input-td">
                                     <input type="number" class="form-control text-center text-primary font-weight-bold in-nuoc-moi" value="${defaultNuocMoi}" min="0" ${disabledAttr}>
-                                    <div class="invalid-feedback text-left small" style="display: none;">Mới phải ≥ Cũ</div>
+                                    <div class="invalid-feedback text-start small" style="display: none;">Mới phải ≥ Cũ</div>
                                 </td>
                                 <td class="text-center align-middle">${statusBadge}</td>
                             </tr>
@@ -263,8 +313,57 @@
                 }
             });
 
-            // Ghi nhận dữ liệu
-            $('#btnSaveData').on('click', function () {
+            // Detect changes in inputs to toggle sticky bottom bar
+            function checkForChanges() {
+                let hasChanges = false;
+                $('#tbodyDienNuoc tr').not('.row-locked').each(function () {
+                    let index = $(this).data('index');
+                    if (index !== undefined) {
+                        let rowData = currentData[index];
+                        let defaultDienMoi = (rowData.chiSoDienMoi === 0 && !rowData.isDaChot) ? rowData.chiSoDienCu : rowData.chiSoDienMoi;
+                        let defaultNuocMoi = (rowData.chiSoNuocMoi === 0 && !rowData.isDaChot) ? rowData.chiSoNuocCu : rowData.chiSoNuocMoi;
+
+                        let currentDienMoi = parseFloat($(this).find('.in-dien-moi').val()) || 0;
+                        let currentNuocMoi = parseFloat($(this).find('.in-nuoc-moi').val()) || 0;
+
+                        if (currentDienMoi !== defaultDienMoi || currentNuocMoi !== defaultNuocMoi) {
+                            hasChanges = true;
+                            return false; // break loop
+                        }
+                    }
+                });
+
+                if (hasChanges) {
+                    showStickyBar();
+                } else {
+                    hideStickyBar();
+                }
+            }
+
+            function showStickyBar() {
+                $('#stickyActionBar').addClass('show-bar');
+            }
+
+            function hideStickyBar() {
+                $('#stickyActionBar').removeClass('show-bar');
+            }
+
+            $('#tbodyDienNuoc').on('input change', '.in-dien-moi, .in-nuoc-moi', function () {
+                checkForChanges();
+            });
+
+            // Reset changes
+            $('#btnCancelChanges').on('click', function () {
+                renderTable(currentData);
+                hideStickyBar();
+            });
+
+            // Save Data
+            $('#btnSaveData, #btnSaveDataSticky').on('click', function () {
+                saveAllData();
+            });
+
+            function saveAllData() {
                 if (currentData.length === 0) return;
 
                 let chiNhanhId = $('#filterChiNhanh').val();
@@ -351,9 +450,13 @@
                     danhSachPhong: danhSachPhong
                 };
 
-                let $btn = $(this);
+                let $btn = $('#btnSaveData');
+                let $btnSticky = $('#btnSaveDataSticky');
                 let originalHtml = $btn.html();
-                $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-1"></i> Đang lưu...');
+                let originalStickyHtml = $btnSticky.html();
+
+                $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Đang lưu...');
+                $btnSticky.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Đang lưu...');
 
                 $.ajax({
                     url: '/DienNuoc/SaveChotDienNuoc',
@@ -366,8 +469,8 @@
                             title: 'Thành công',
                             text: res.message
                         }).then(() => {
-                            // Tải lại dữ liệu
-                            $('#btnLoadData').click();
+                            // Tải lại dữ liệu tự động
+                            loadData();
                         });
                     },
                     error: function (xhr) {
@@ -379,9 +482,10 @@
                     },
                     complete: function () {
                         $btn.prop('disabled', false).html(originalHtml);
+                        $btnSticky.prop('disabled', false).html(originalStickyHtml);
                     }
                 });
-            });
+            }
         });
     </script>
 }

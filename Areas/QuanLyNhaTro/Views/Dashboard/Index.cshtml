@@ -1,84 +1,128 @@
-﻿@using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Responses
+@using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Responses
 @model DashboardViewModel
 @{
     ViewData["Title"] = "Dashboard Tổng Quan";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-
-<div class="container-fluid pt-4 px-4">
-    <div class="d-flex flex-wrap align-items-center justify-content-between mb-4">
-        <h3 class="mb-3 mb-md-0 text-primary"><i class="fas fa-chart-line me-2"></i>Bảng Điều Khiển Hệ Thống</h3>
-
-        <form method="get" action="@Url.Action("Index", "Dashboard")" class="d-flex align-items-center gap-2">
-            <select name="branchId" asp-items="Model.Branches" class="form-select shadow-sm" style="min-width: 200px;">
-                <option value="">-- Tất cả chi nhánh --</option>
-            </select>
-
-            <select name="year" asp-items="Model.Years" class="form-select shadow-sm" style="min-width: 120px;">
-            </select>
-
-            <button type="submit" class="btn btn-primary shadow-sm">
-                <i class="fas fa-filter me-1"></i> Lọc
-            </button>
-        </form>
-    </div>
-
-    <div class="row g-4 mb-4">
-        <div class="col-sm-6 col-xl-3">
-            <div class="bg-light rounded d-flex align-items-center justify-content-between p-4 shadow-sm border-start border-primary border-5">
-                <i class="fa fa-home fa-3x text-primary"></i>
-                <div class="text-end">
-                    <p class="mb-2 text-secondary" style="font-size: 0.9rem;">Tổng số phòng / Trống</p>
-                    <h4 class="mb-0">@Model.TongSoPhong / <span class="text-success">@Model.SoPhongTrong</span></h4>
-                </div>
+<div class="container-xl">
+    <!-- Page Header -->
+    <div class="page-header d-print-none mb-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <h2 class="page-title text-primary font-weight-bold">
+                    <i class="fas fa-chart-line me-2"></i>Bảng Điều Khiển Hệ Thống
+                </h2>
             </div>
-        </div>
-        <div class="col-sm-6 col-xl-3">
-            <div class="bg-light rounded d-flex align-items-center justify-content-between p-4 shadow-sm border-start border-success border-5">
-                <i class="fa fa-file-contract fa-3x text-success"></i>
-                <div class="text-end">
-                    <p class="mb-2 text-secondary" style="font-size: 0.9rem;">Hợp đồng hoạt động</p>
-                    <h4 class="mb-0 text-success">@Model.TongSoHopDongHoatDong</h4>
-                </div>
-            </div>
-        </div>
-        <div class="col-sm-6 col-xl-3">
-            <div class="bg-light rounded d-flex align-items-center justify-content-between p-4 shadow-sm border-start border-info border-5">
-                <i class="fa fa-money-bill-wave fa-3x text-info"></i>
-                <div class="text-end">
-                    <p class="mb-2 text-secondary">Doanh thu tháng @DateTime.Now.Month</p>
-                    <h4 class="mb-0 text-info">@Model.DoanhThuThangNay.ToString("N0") ₫</h4>
-                </div>
-            </div>
-        </div>
-        <div class="col-sm-6 col-xl-3">
-            <div class="bg-light rounded d-flex align-items-center justify-content-between p-4 shadow-sm border-start border-danger border-5">
-                <i class="fa fa-hand-holding-usd fa-3x text-danger"></i>
-                <div class="text-end">
-                    <p class="mb-2 text-secondary">Tiền chờ thu</p>
-                    <h4 class="mb-0 text-danger">@Model.TongTienChoThu.ToString("N0") ₫</h4>
-                </div>
+            <div class="col-auto ms-auto d-print-none">
+                <form method="get" action="@Url.Action("Index", "Dashboard")" class="d-flex gap-2 align-items-center">
+                    <select name="branchId" asp-items="Model.Branches" class="form-select" style="min-width: 200px;">
+                        <option value="">-- Tất cả chi nhánh --</option>
+                    </select>
+
+                    <select name="year" asp-items="Model.Years" class="form-select" style="min-width: 100px;">
+                    </select>
+
+                    <button type="submit" class="btn btn-primary px-3">
+                        <i class="fas fa-filter me-1"></i> Lọc
+                    </button>
+                </form>
             </div>
         </div>
     </div>
 
-    <div class="row g-4">
-        <div class="col-sm-12 col-xl-8">
-            <div class="bg-light text-center rounded p-4 shadow-sm">
-                <h6 class="mb-4 font-weight-bold text-dark text-start">Xu hướng Doanh thu (Năm @Model.SelectedYear)</h6>
-                <div style="height: 350px; position: relative;">
-                    <canvas id="revenueBarChart"></canvas>
+    <!-- Stat Cards Row -->
+    <div class="row row-cards mb-4">
+        <!-- Card 1: Tổng số phòng / Trống -->
+        <div class="col-sm-6 col-lg-3">
+            <div class="card card-sm shadow-sm border-0" style="border-left: 4px solid var(--tblr-primary, #206bc4) !important;">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-auto">
+                            <span class="bg-primary-lt text-primary avatar rounded"><i class="fa fa-home"></i></span>
+                        </div>
+                        <div class="col text-end">
+                            <div class="text-secondary small font-weight-medium">Tổng số phòng / Trống</div>
+                            <div class="h3 mb-0 font-weight-bold">@Model.TongSoPhong / <span class="text-success">@Model.SoPhongTrong</span></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="col-sm-12 col-xl-4">
-            <div class="bg-light text-center rounded p-4 shadow-sm">
-                <h6 class="mb-4 font-weight-bold text-dark text-start">Tỷ lệ trạng thái phòng trọ</h6>
-                <div class="d-flex justify-content-center align-items-center" style="height: 350px;">
-                    <canvas id="roomStatusPieChart" style="max-height: 280px; max-width: 280px;"></canvas>
+
+        <!-- Card 2: Hợp đồng hoạt động -->
+        <div class="col-sm-6 col-lg-3">
+            <div class="card card-sm shadow-sm border-0" style="border-left: 4px solid var(--tblr-success, #2fb344) !important;">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-auto">
+                            <span class="bg-success-lt text-success avatar rounded"><i class="fa fa-file-contract"></i></span>
+                        </div>
+                        <div class="col text-end">
+                            <div class="text-secondary small font-weight-medium">Hợp đồng hoạt động</div>
+                            <div class="h3 mb-0 font-weight-bold text-success">@Model.TongSoHopDongHoatDong</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 3: Doanh thu tháng -->
+        <div class="col-sm-6 col-lg-3">
+            <div class="card card-sm shadow-sm border-0" style="border-left: 4px solid var(--tblr-info, #4299e1) !important;">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-auto">
+                            <span class="bg-info-lt text-info avatar rounded"><i class="fa fa-money-bill-wave"></i></span>
+                        </div>
+                        <div class="col text-end">
+                            <div class="text-secondary small font-weight-medium">Doanh thu tháng @DateTime.Now.Month</div>
+                            <div class="h3 mb-0 font-weight-bold text-info">@Model.DoanhThuThangNay.ToString("N0") ₫</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 4: Tiền chờ thu -->
+        <div class="col-sm-6 col-lg-3">
+            <div class="card card-sm shadow-sm border-0" style="border-left: 4px solid var(--tblr-danger, #d63939) !important;">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-auto">
+                            <span class="bg-danger-lt text-danger avatar rounded"><i class="fa fa-hand-holding-usd"></i></span>
+                        </div>
+                        <div class="col text-end">
+                            <div class="text-secondary small font-weight-medium">Tiền chờ thu</div>
+                            <div class="h3 mb-0 font-weight-bold text-danger">@Model.TongTienChoThu.ToString("N0") ₫</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row row-cards">
+        <!-- Revenue Bar Chart -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <h3 class="card-title font-weight-bold text-dark mb-3"><i class="fas fa-chart-bar me-2 text-primary"></i>Xu hướng Doanh thu (Năm @Model.SelectedYear)</h3>
+                    <div style="height: 350px; position: relative;">
+                        <canvas id="revenueBarChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Room Status Pie Chart -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <h3 class="card-title font-weight-bold text-dark mb-3"><i class="fas fa-chart-pie me-2 text-primary"></i>Tỷ lệ trạng thái phòng trọ</h3>
+                    <div class="d-flex justify-content-center align-items-center" style="height: 350px;">
+                        <canvas id="roomStatusPieChart" style="max-height: 280px; max-width: 280px;"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
@@ -102,15 +146,18 @@
                 datasets: [{
                     label: 'Doanh thu (VNĐ)',
                     data: chartData,
-                    backgroundColor: 'rgba(54, 162, 235, 0.7)',
-                    borderColor: 'rgba(54, 162, 235, 1)',
+                    backgroundColor: '#206bc4',
+                    borderColor: '#206bc4',
                     borderWidth: 1,
-                    borderRadius: 5
+                    borderRadius: 4
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
                 scales: {
                     y: {
                         beginAtZero: true,
@@ -127,7 +174,7 @@
                 labels: ['Còn trống', 'Đã cho thuê', 'Đang bảo trì'],
                 datasets: [{
                     data: [dataTrong, dataDaThue, dataBaoTri],
-                    backgroundColor: ['#28a745', '#007bff', '#ffc107'],
+                    backgroundColor: ['#2fb344', '#206bc4', '#f59f00'],
                     borderWidth: 2,
                     hoverOffset: 6
                 }]

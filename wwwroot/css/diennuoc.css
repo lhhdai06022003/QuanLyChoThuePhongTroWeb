@@ -1,0 +1,48 @@
+.is-invalid {
+    border-color: var(--tblr-danger, #d63939) !important;
+    background-color: rgba(214, 57, 57, 0.05) !important;
+}
+
+.row-locked {
+    background-color: var(--tblr-bg-surface-secondary, #f6f8fa) !important;
+    opacity: 0.65;
+}
+
+.row-locked input {
+    background-color: var(--tblr-bg-surface-secondary, #f6f8fa) !important;
+    cursor: not-allowed;
+}
+
+/* Styling meter inputs inside table cells */
+.diennuoc-input-td input {
+    max-width: 120px;
+    margin: 0 auto;
+    font-weight: 600;
+}
+
+.bg-warning-light-td {
+    background-color: rgba(245, 159, 0, 0.03) !important;
+}
+
+.bg-danger-light-td {
+    background-color: rgba(214, 57, 57, 0.03) !important;
+}
+
+.bg-info-light-td {
+    background-color: rgba(66, 153, 225, 0.03) !important;
+}
+
+.bg-primary-light-td {
+    background-color: rgba(32, 107, 196, 0.03) !important;
+}
+
+/* Sticky Action Bar styling */
+#stickyActionBar {
+    transform: translateY(100%);
+    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.08) !important;
+}
+#stickyActionBar.show-bar {
+    transform: translateY(0) !important;
+    display: flex !important;
+}
+

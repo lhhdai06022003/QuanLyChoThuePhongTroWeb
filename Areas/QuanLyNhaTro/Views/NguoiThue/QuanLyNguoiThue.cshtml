@@ -44,9 +44,7 @@
         <div class="modal-content">
             <div class="modal-header bg-primary">
                 <h5 class="modal-title text-white" id="modalTitle">Thêm Người Thuê Mới</h5>
-                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
 
             <div class="modal-body">
@@ -104,7 +102,7 @@
             </div>
 
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
                 <button type="button" class="btn btn-primary" id="btnSaveData">
                     <i class="fas fa-save"></i> Lưu thông tin
                 </button>
@@ -172,12 +170,14 @@
                         "orderable": false,
                         "render": function (data) {
                             return `
-                                <button class="btn btn-warning btn-sm btn-edit" data-id="${data}" title="Sửa">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="btn btn-danger btn-sm btn-delete" data-id="${data}" title="Xóa">
-                                    <i class="fas fa-trash"></i>
-                                </button>
+                                <div class="btn-list flex-nowrap justify-content-center">
+                                    <button class="btn btn-icon btn-ghost-warning btn-sm btn-edit" data-id="${data}" title="Sửa">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-icon btn-ghost-danger btn-sm btn-delete" data-id="${data}" title="Xóa">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </div>
                             `;
                         }
                     }

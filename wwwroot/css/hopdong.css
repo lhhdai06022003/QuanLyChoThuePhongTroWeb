@@ -1,0 +1,140 @@
+/* Style cho Stepper Wizard của Hợp Đồng */
+.steps-counter {
+    counter-reset: step;
+}
+
+.steps-counter .step-item {
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    position: relative;
+    user-select: none;
+    font-weight: 500;
+}
+
+.steps-counter .step-item::before {
+    content: counter(step);
+    counter-increment: step;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    margin: 0 auto 0.5rem;
+    border-radius: 50%;
+    background-color: #f1f3f5;
+    color: #495057;
+    font-size: 0.875rem;
+    font-weight: 600;
+    border: 2px solid #e9ecef;
+    transition: all 0.25s ease;
+    z-index: 2;
+}
+
+.steps-counter .step-item:not(:first-child)::after {
+    content: "";
+    position: absolute;
+    width: 100%;
+    height: 2px;
+    background-color: #e9ecef;
+    top: 1rem;
+    left: -50%;
+    z-index: 1;
+    transition: all 0.25s ease;
+}
+
+/* Active State */
+.steps-counter .step-item.active {
+    color: var(--tb-primary, #206bc4);
+    font-weight: 600;
+}
+
+.steps-counter .step-item.active::before {
+    background-color: var(--tb-primary, #206bc4);
+    color: #ffffff;
+    border-color: var(--tb-primary, #206bc4);
+    box-shadow: 0 0 0 3px rgba(32, 107, 196, 0.2);
+}
+
+/* Completed State */
+.steps-counter .step-item.completed {
+    color: var(--tb-success, #2fb344);
+}
+
+.steps-counter .step-item.completed::before {
+    content: "✓";
+    background-color: var(--tb-success, #2fb344);
+    color: #ffffff;
+    border-color: var(--tb-success, #2fb344);
+}
+
+.steps-counter .step-item.completed:not(:first-child)::after,
+.steps-counter .step-item.active:not(:first-child)::after {
+    background-color: var(--tb-primary, #206bc4);
+}
+
+.steps-counter .step-item.disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.steps-counter .step-item.disabled::before {
+    background-color: #e9ecef;
+    color: #adb5bd;
+    border-color: #dee2e6;
+}
+
+/* Style cho bảng danh sách thành viên */
+#thanhVienTable th {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 600;
+    color: #626976;
+}
+
+/* Custom cho modal và Select2 trong theme Dark/Light */
+.select2-container--bootstrap4 .select2-selection {
+    border-color: #dadcde;
+    border-radius: 4px;
+    height: calc(1.5em + 0.75rem + 2px);
+    padding: 0.375rem 0.75rem;
+}
+
+html[data-bs-theme="dark"] .select2-container--bootstrap4 .select2-selection {
+    background-color: #1b2434;
+    border-color: #2f3e56;
+    color: #f4f6fa;
+}
+
+html[data-bs-theme="dark"] .select2-container--bootstrap4 .select2-selection--single .select2-selection__rendered {
+    color: #f4f6fa;
+}
+
+html[data-bs-theme="dark"] .select2-dropdown {
+    background-color: #1b2434;
+    border-color: #2f3e56;
+    color: #f4f6fa;
+}
+
+html[data-bs-theme="dark"] .select2-search__field {
+    background-color: #111926 !important;
+    border-color: #2f3e56 !important;
+    color: #f4f6fa !important;
+}
+
+html[data-bs-theme="dark"] .select2-results__option {
+    color: #cbd5e1;
+}
+
+html[data-bs-theme="dark"] .select2-results__option--highlighted[aria-selected] {
+    background-color: var(--tb-primary, #206bc4) !important;
+    color: white !important;
+}
+
+/* Ẩn Tabs mặc định khi xài Stepper Wizard */
+#hopDongModal .tab-content > .tab-pane {
+    display: none;
+}
+#hopDongModal .tab-content > .active {
+    display: block;
+}

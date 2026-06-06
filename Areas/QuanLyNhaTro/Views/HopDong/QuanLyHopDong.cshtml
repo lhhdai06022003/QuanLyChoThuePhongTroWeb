@@ -5,76 +5,88 @@
     // Ép kiểu dữ liệu ViewBag sang JSON để xài trong Javascript với CamelCase
     var jsonPhongTros = Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.ListPhongTro, new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }));
 }
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css" />
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/themes/material_blue.min.css" />
-
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" />
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/select2-bootstrap4-theme/1.5.2/select2-bootstrap4.min.css" />
-<section class="content">
-    <div class="container-fluid">
-        <!-- Card quản lý & danh sách hợp đồng -->
-        <div class="card card-primary card-outline shadow">
-            <div class="card-header d-flex align-items-center justify-content-between p-3">
-                <h3 class="card-title m-0"><i class="fas fa-file-contract text-primary mr-2"></i> Quản lý & Danh sách Hợp Đồng</h3>
-                <div class="card-tools ml-auto">
-                    <button type="button" class="btn btn-success btn-sm font-weight-bold px-3 py-2 shadow-sm" id="btnOpenAddModal">
-                        <i class="fas fa-plus-circle mr-1"></i> Tạo Hợp Đồng Mới
-                    </button>
-                </div>
+<link rel="stylesheet" href="~/css/hopdong.css" />
+<div class="container-xl mt-3">
+    <!-- Page Header -->
+    <div class="page-header d-print-none mb-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <h2 class="page-title text-primary font-weight-bold">
+                    <i class="fas fa-file-contract me-2"></i> Quản lý & Danh sách Hợp Đồng
+                </h2>
             </div>
-            <div class="card-body">
-                <!-- Khu vực Bộ lọc dạng hàng ngang -->
-                <div class="bg-light p-3 border rounded mb-4 shadow-sm">
-                    <div class="row align-items-end">
-                        <div class="col-md-2 form-group mb-md-0">
-                            <label class="font-weight-bold text-secondary mb-1"><i class="fas fa-building mr-1"></i> Chi Nhánh</label>
-                            <select id="filterChiNhanh" class="form-control form-control-sm">
-                                <option value="0">-- Tất cả --</option>
-                                @if (ViewBag.ListChiNhanh != null)
+            <div class="col-auto ms-auto">
+                <button type="button" class="btn btn-success font-weight-bold shadow-sm" id="btnOpenAddModal">
+                    <i class="fas fa-plus-circle me-1"></i> Tạo Hợp Đồng Mới
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card quản lý & danh sách hợp đồng -->
+    <div class="card border-0 shadow-sm mb-5">
+        <div class="card-body p-4">
+            <!-- Khu vực Bộ lọc dạng hàng ngang -->
+            <div class="bg-light p-3 border border-dashed rounded-3 mb-4">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label font-weight-bold text-secondary mb-1">
+                            <i class="fas fa-building me-1"></i> Chi Nhánh
+                        </label>
+                        <select id="filterChiNhanh" class="form-select form-select-sm">
+                            <option value="0">-- Tất cả --</option>
+                            @if (ViewBag.ListChiNhanh != null)
+                            {
+                                foreach (var cn in ViewBag.ListChiNhanh)
                                 {
-                                    foreach (var cn in ViewBag.ListChiNhanh)
-                                    {
-                                        <option value="@cn.Value">@cn.Text</option>
-                                    }
+                                    <option value="@cn.Value">@cn.Text</option>
                                 }
-                            </select>
-                        </div>
-                        <div class="col-md-3 form-group mb-md-0">
-                            <label class="font-weight-bold text-secondary mb-1"><i class="fas fa-user mr-1"></i> Người Thuê</label>
-                            <select id="filterNguoiThue" class="form-control form-control-sm">
-                                <option value="0">-- Tất cả --</option>
-                                @if (ViewBag.ListNguoiThue != null)
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label font-weight-bold text-secondary mb-1">
+                            <i class="fas fa-user me-1"></i> Người Thuê
+                        </label>
+                        <select id="filterNguoiThue" class="form-select form-select-sm">
+                            <option value="0">-- Tất cả --</option>
+                            @if (ViewBag.ListNguoiThue != null)
+                            {
+                                foreach (var nt in ViewBag.ListNguoiThue)
                                 {
-                                    foreach (var nt in ViewBag.ListNguoiThue)
-                                    {
-                                        <option value="@nt.Value">@nt.Text</option>
-                                    }
+                                    <option value="@nt.Value">@nt.Text</option>
                                 }
-                            </select>
-                        </div>
-                        <div class="col-md-3 form-group mb-md-0">
-                            <label class="font-weight-bold text-secondary mb-1"><i class="fas fa-calendar-alt mr-1"></i> Thời hạn hợp đồng</label>
-                            <input type="text" class="form-control form-control-sm" id="filterDateRange" placeholder="Chọn khoảng thời gian...">
-                        </div>
-                        <div class="col-md-2 form-group mb-md-0">
-                            <label class="font-weight-bold text-secondary mb-1"><i class="fas fa-info-circle mr-1"></i> Trạng thái</label>
-                            <select id="filterTrangThai" class="form-control form-control-sm">
-                                <option value="0">-- Tất cả --</option>
-                                <option value="1">Đang hoạt động</option>
-                                <option value="2">Đã kết thúc</option>
-                                <option value="3">Đã hủy</option>
-                            </select>
-                        </div>
-                        <div class="col-md-2 mb-0">
-                            <button type="button" class="btn btn-primary btn-sm w-100 font-weight-bold py-2" id="btnFilter">
-                                <i class="fas fa-search mr-1"></i> Lọc danh sách
-                            </button>
-                        </div>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label font-weight-bold text-secondary mb-1">
+                            <i class="fas fa-calendar-alt me-1"></i> Thời hạn hợp đồng
+                        </label>
+                        <input type="text" class="form-control form-control-sm" id="filterDateRange" placeholder="Chọn khoảng thời gian...">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label font-weight-bold text-secondary mb-1">
+                            <i class="fas fa-info-circle me-1"></i> Trạng thái
+                        </label>
+                        <select id="filterTrangThai" class="form-select form-select-sm">
+                            <option value="0">-- Tất cả --</option>
+                            <option value="1">Đang hoạt động</option>
+                            <option value="2">Đã kết thúc</option>
+                            <option value="3">Đã hủy</option>
+                        </select>
+                    </div>
+                    <div class="col-md-1">
+                        <button type="button" class="btn btn-primary btn-sm w-100 font-weight-bold" id="btnFilter" style="height: 36px;">
+                            <i class="fas fa-search me-1"></i> Lọc
+                        </button>
                     </div>
                 </div>
+            </div>
 
-                <table id="hopDongTable" class="table table-bordered table-striped table-hover w-100">
-                    <thead class="bg-light">
+            <div class="table-responsive">
+                <table id="hopDongTable" class="table card-table table-vcenter table-striped table-hover w-100">
+                    <thead>
                         <tr>
                             <th class="text-center" width="5%">STT</th>
                             <th>Mã HĐ</th>
@@ -91,51 +103,37 @@
             </div>
         </div>
     </div>
-</section>
+</div>
 
-<div class="modal fade" id="hopDongModal" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-dialog modal-xl" role="document">
-        <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="modalTitle">Thêm Hợp Đồng Mới</h5>
-                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+<div class="modal modal-blur fade" id="hopDongModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
+        <div class="modal-content shadow-lg border-0">
+            <div class="modal-header bg-primary text-white py-3">
+                <h5 class="modal-title font-weight-bold" id="modalTitle">Thêm Hợp Đồng Mới</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
 
-            <div class="modal-body">
-                <!-- Bootstrap Tabs -->
-                <ul class="nav nav-tabs mb-3" id="hopDongTabs" role="tablist">
-                    <li class="nav-item">
-                        <a class="nav-link active" id="tab-thongtin" data-toggle="tab" href="#content-thongtin" role="tab">
-                            <i class="fas fa-file-contract"></i> Thông tin hợp đồng
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" id="tab-dichvu" data-toggle="tab" href="#content-dichvu" role="tab">
-                            <i class="fas fa-concierge-bell"></i> Dịch vụ đăng ký
-                        </a>
-                    </li>
-                    <li class="nav-item" id="nav-item-thanhvien" style="display:none;">
-                        <a class="nav-link" id="tab-thanhvien" data-toggle="tab" href="#content-thanhvien" role="tab">
-                            <i class="fas fa-users"></i> Thành viên
-                        </a>
-                    </li>
-                </ul>
+            <div class="modal-body py-4">
+                <!-- Stepper Progress Bar -->
+                <div class="steps steps-counter steps-blue mb-4" id="hopDongStepper">
+                    <span class="step-item active" data-step="1" id="step-tab-thongtin">Thông tin chung</span>
+                    <span class="step-item" data-step="2" id="step-tab-dichvu">Dịch vụ đăng ký</span>
+                    <span class="step-item" data-step="3" id="stepHeaderThanhVien" style="display:none;">Thành viên ở ghép</span>
+                </div>
 
-                <div class="tab-content">
+                <div class="tab-content mt-3">
                     <!-- Tab 1: Thông tin hợp đồng -->
                     <div class="tab-pane fade show active" id="content-thongtin" role="tabpanel">
-                        <div class="row">
+                        <div class="row g-3">
                             <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>Mã Hợp Đồng <span class="text-danger">*</span></label>
+                                <div class="mb-3">
+                                    <label class="form-label">Mã Hợp Đồng <span class="text-danger">*</span></label>
                                     <input type="text" class="form-control" id="MaHopDong" placeholder="VD: HD-001">
                                 </div>
 
-                                <div class="form-group">
-                                    <label>Chi Nhánh <span class="text-danger">*</span></label>
-                                    <select class="form-control" id="ChiNhanhId">
+                                <div class="mb-3">
+                                    <label class="form-label">Chi Nhánh <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="ChiNhanhId">
                                         <option value="">-- Chọn chi nhánh --</option>
                                         @if (ViewBag.ListChiNhanh != null)
                                         {
@@ -147,16 +145,16 @@
                                     </select>
                                 </div>
 
-                                <div class="form-group">
-                                    <label>Phòng Trọ <span class="text-danger">*</span></label>
-                                    <select class="form-control" id="PhongTroId">
+                                <div class="mb-3">
+                                    <label class="form-label">Phòng Trọ <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="PhongTroId">
                                         <option value="">-- Vui lòng chọn chi nhánh trước --</option>
                                     </select>
                                 </div>
 
-                                <div class="form-group">
-                                    <label>Người Đại Diện <span class="text-danger">*</span></label>
-                                    <select class="form-control select2" id="NguoiThueId">
+                                <div class="mb-3">
+                                    <label class="form-label">Người Đại Diện <span class="text-danger">*</span></label>
+                                    <select class="form-control select2" id="NguoiThueId" style="width: 100%;">
                                         <option value="">-- Chọn khách thuê --</option>
                                         @if (ViewBag.ListNguoiThue != null)
                                         {
@@ -168,39 +166,41 @@
                                     </select>
                                 </div>
 
-                                <div class="form-group" id="groupNguoiDungCoO">
-                                    <div class="custom-control custom-checkbox">
-                                        <input class="custom-control-input" type="checkbox" id="NguoiDungCoOPhongKhong" checked>
-                                        <label for="NguoiDungCoOPhongKhong" class="custom-control-label text-success">Người đại diện có ở tại phòng này không?</label>
+                                <div class="mb-3" id="groupNguoiDungCoO">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="NguoiDungCoOPhongKhong" checked>
+                                        <label for="NguoiDungCoOPhongKhong" class="form-check-label text-success font-weight-bold">
+                                            Người đại diện có ở tại phòng này không?
+                                        </label>
                                     </div>
-                                    <small class="form-text text-muted">Bỏ chọn nếu người này chỉ đứng tên ký hợp đồng (VD: Bố mẹ thuê cho con).</small>
+                                    <small class="form-text text-muted d-block mt-1">Bỏ chọn nếu người này chỉ đứng tên ký hợp đồng (VD: Bố mẹ thuê cho con).</small>
                                 </div>
                             </div>
 
                             <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>Ngày Bắt Đầu <span class="text-danger">*</span></label>
+                                <div class="mb-3">
+                                    <label class="form-label">Ngày Bắt Đầu <span class="text-danger">*</span></label>
                                     <input type="text" class="form-control" id="ThoiDiemBatDau" placeholder="Chọn ngày bắt đầu...">
                                 </div>
 
-                                <div class="form-group">
-                                    <label>Ngày Kết Thúc (Dự kiến)</label>
+                                <div class="mb-3">
+                                    <label class="form-label">Ngày Kết Thúc (Dự kiến)</label>
                                     <input type="text" class="form-control" id="ThoiDiemKetThuc" placeholder="Chọn ngày kết thúc...">
                                 </div>
 
-                                <div class="form-group">
-                                    <label>Tiền Cọc (VNĐ) <span class="text-danger">*</span></label>
+                                <div class="mb-3">
+                                    <label class="form-label">Tiền Cọc (VNĐ) <span class="text-danger">*</span></label>
                                     <input type="number" class="form-control" id="TienCocPhong" value="0" min="0">
                                 </div>
 
-                                <div class="form-group">
-                                    <label>Tiền Thuê/Tháng (VNĐ) <span class="text-danger">*</span></label>
+                                <div class="mb-3">
+                                    <label class="form-label">Tiền Thuê/Tháng (VNĐ) <span class="text-danger">*</span></label>
                                     <input type="number" class="form-control" id="TienThuePhong" min="0">
                                 </div>
 
-                                <div class="form-group" id="groupTrangThaiHopDong" style="display: none;">
-                                    <label>Trạng Thái Hợp Đồng <span class="text-danger">*</span></label>
-                                    <select class="form-control" id="TrangThaiHopDong">
+                                <div class="mb-3" id="groupTrangThaiHopDong" style="display: none;">
+                                    <label class="form-label">Trạng Thái Hợp Đồng <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="TrangThaiHopDong">
                                         <option value="1">Đang hoạt động</option>
                                         <option value="2">Đã kết thúc</option>
                                         <option value="3">Đã hủy</option>
@@ -212,9 +212,13 @@
 
                     <!-- Tab 2: Dịch vụ đăng ký -->
                     <div class="tab-pane fade" id="content-dichvu" role="tabpanel">
-                        <div class="alert alert-info py-2 mb-3">
-                            <i class="fas fa-info-circle"></i> 
-                            Chọn các dịch vụ cho phòng trọ. Dịch vụ <strong>Mặc định</strong> (Điện, Nước) sẽ được tích sẵn.
+                        <div class="alert alert-info py-2 mb-3 shadow-sm border-0">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-info-circle me-2"></i> 
+                                <div>
+                                    Chọn các dịch vụ cho phòng trọ. Dịch vụ <strong>Mặc định</strong> (Điện, Nước) sẽ được tích sẵn.
+                                </div>
+                            </div>
                         </div>
                         <div id="hopDongDichVuContainer">
                             <div class="text-center text-muted py-4">
@@ -231,11 +235,19 @@
                 </div>
             </div>
 
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
-                <button type="button" class="btn btn-primary" id="btnSaveData">
-                    <i class="fas fa-save"></i> Lưu thông tin
+            <div class="modal-footer d-flex justify-content-between py-3">
+                <button type="button" class="btn btn-secondary shadow-sm" id="btnWizardBack">
+                    <i class="fas fa-arrow-left me-1"></i> Quay lại
                 </button>
+                <div>
+                    <button type="button" class="btn btn-light me-2" data-bs-dismiss="modal">Đóng</button>
+                    <button type="button" class="btn btn-primary shadow-sm" id="btnWizardNext">
+                        Tiếp theo <i class="fas fa-arrow-right ms-1"></i>
+                    </button>
+                    <button type="button" class="btn btn-success shadow-sm" id="btnSaveData" style="display: none;">
+                        <i class="fas fa-save me-1"></i> Lưu thông tin
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -243,11 +255,6 @@
 
 @section Scripts {
     @await Html.PartialAsync("~/Areas/QuanLyNhaTro/Views/Shared/_DangKyDichVuPartial.cshtml")
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/l10n/vn.min.js"></script>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.full.min.js"></script>
 
     <script>
         // Hàm hiển thị thông báo thay cho alert() mặc định
@@ -258,8 +265,89 @@
         }
 
         window.currentHopDongId = 0;
-        $(document).ready(function () {
+        window.currentStep = 1;
 
+        // Quản lý các bước của Stepper Wizard
+        function goToStep(step) {
+            let hasThanhVien = window.currentHopDongId > 0;
+            let maxStepVal = hasThanhVien ? 3 : 2;
+
+            if (step > maxStepVal || step < 1) return;
+
+            // Validate di chuyển tiến tới từ bước 1
+            if (step > window.currentStep && window.currentStep === 1) {
+                let maHopDong = $('#MaHopDong').val().trim();
+                let chiNhanhId = $('#ChiNhanhId').val();
+                let phongTroId = $('#PhongTroId').val();
+                let nguoiThueId = $('#NguoiThueId').val();
+                let dateBatDau = batDauPicker.selectedDates[0];
+                let tienThuePhong = parseFloat($('#TienThuePhong').val() || 0);
+
+                if (!maHopDong || !chiNhanhId || !phongTroId || !nguoiThueId || !dateBatDau) {
+                    showToastr("Vui lòng nhập đầy đủ các trường bắt buộc (*).", "warning");
+                    return;
+                }
+                if (tienThuePhong <= 0) {
+                    showToastr("Vui lòng nhập Tiền Thuê Phòng (phải lớn hơn 0).", "warning");
+                    return;
+                }
+            }
+
+            window.currentStep = step;
+
+            // Cập nhật UI Stepper Progress Bar
+            $('#hopDongStepper .step-item').removeClass('active completed');
+            $('#hopDongStepper .step-item').each(function() {
+                let stepNum = parseInt($(this).data('step'));
+                if (stepNum < window.currentStep) {
+                    $(this).addClass('completed');
+                } else if (stepNum === window.currentStep) {
+                    $(this).addClass('active');
+                }
+            });
+
+            // Cập nhật hiển thị Pane
+            $('.tab-content .tab-pane').removeClass('show active');
+            if (window.currentStep === 1) {
+                $('#content-thongtin').addClass('show active');
+            } else if (window.currentStep === 2) {
+                $('#content-dichvu').addClass('show active');
+            } else if (window.currentStep === 3) {
+                $('#content-thanhvien').addClass('show active');
+            }
+
+            updateWizardButtons();
+        }
+
+        function updateWizardButtons() {
+            let hasThanhVien = window.currentHopDongId > 0;
+            let maxStepVal = hasThanhVien ? 3 : 2;
+
+            // Hiển thị tiêu đề bước 3 trong stepper
+            if (hasThanhVien) {
+                $('#stepHeaderThanhVien').show();
+            } else {
+                $('#stepHeaderThanhVien').hide();
+            }
+
+            // Điều khiển hiển thị Nút Quay lại
+            if (window.currentStep === 1) {
+                $('#btnWizardBack').hide();
+            } else {
+                $('#btnWizardBack').show();
+            }
+
+            // Điều khiển hiển thị Nút Tiếp theo / Nút Lưu
+            if (window.currentStep < maxStepVal) {
+                $('#btnWizardNext').show();
+                $('#btnSaveData').hide();
+            } else {
+                $('#btnWizardNext').hide();
+                $('#btnSaveData').show();
+            }
+        }
+
+        $(document).ready(function () {
             // Khởi tạo Partial View Thành Viên
             let allNguoiThues = [];
             @if (ViewBag.ListNguoiThue != null)
@@ -283,7 +371,7 @@
                 return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n);
             }
 
-            // Tính toán Ngày đầu/cuối quý hiện tại bằng JS thuần (Không cần moment)
+            // Tính toán Ngày đầu/cuối quý hiện tại bằng JS thuần
             const now = new Date();
             const quarter = Math.floor(now.getMonth() / 3);
             const startOfQuarter = new Date(now.getFullYear(), quarter * 3, 1);
@@ -298,12 +386,15 @@
             });
 
             // === KHỞI TẠO FLATPICKR CHO MODAL (Chọn ngày đơn) ===
-            let batDauPicker = flatpickr("#ThoiDiemBatDau", { dateFormat: "d/m/Y", locale: "vn" });
-            let ketThucPicker = flatpickr("#ThoiDiemKetThuc", { dateFormat: "d/m/Y", locale: "vn" });
+            window.batDauPicker = flatpickr("#ThoiDiemBatDau", { dateFormat: "d/m/Y", locale: "vn" });
+            window.ketThucPicker = flatpickr("#ThoiDiemKetThuc", { dateFormat: "d/m/Y", locale: "vn" });
 
-            // Khởi tạo Select2
-            if ($('.select2').length > 0) {
-                $('.select2').select2({ theme: 'bootstrap4' });
+            // Khởi tạo Select2 trong Modal (có dropdownParent tránh lỗi mất focus trong BS5 modal)
+            if ($('#NguoiThueId').length > 0) {
+                $('#NguoiThueId').select2({
+                    theme: 'bootstrap4',
+                    dropdownParent: $('#hopDongModal')
+                });
             }
 
             // Mảng dữ liệu phòng trọ từ ViewBag
@@ -320,7 +411,7 @@
                 }
                 $phongTroSelect.append('<option value="">-- Chọn phòng trọ --</option>');
                 let phongsFilter = allPhongTros.filter(p => p.chiNhanhId == parseInt(chiNhanhId));
-                if(currentHopDongId == 0){
+                if(window.currentHopDongId == 0){
                     phongsFilter = phongsFilter.filter(p => p.trangThai == @((int)TrangThaiPhong.Trong));
                 }
                 phongsFilter.forEach(p => {
@@ -358,7 +449,7 @@
                 $('#hopDongDichVuContainer').html('<div class="text-center py-3"><i class="fas fa-spinner fa-spin fa-2x"></i></div>');
 
                 $.get(`/DangKyDichVu/GetByPhong?phongTroId=${phongTroId}`, function (data) {
-                    let isNew = currentHopDongId === 0;
+                    let isNew = window.currentHopDongId === 0;
                     renderDangKyDichVu('hopDongDichVuContainer', data, isNew);
                 }).fail(function () {
                     $('#hopDongDichVuContainer').html('<div class="alert alert-danger">Không thể tải dịch vụ.</div>');
@@ -398,21 +489,22 @@
                             return meta.row + meta.settings._iDisplayStart + 1;
                         }
                     },
-                    { "data": "maHopDong", "name": "maHopDong", "className": "font-weight-bold text-primary" },
-                    { "data": "soPhong", "name": "SoPhong", "orderable": true },
-                    { "data": "tenNguoiThue", "orderable": false },
+                    { "data": "maHopDong", "name": "maHopDong", "className": "font-weight-bold text-primary align-middle" },
+                    { "data": "soPhong", "name": "SoPhong", "orderable": true, "className": "align-middle" },
+                    { "data": "tenNguoiThue", "orderable": false, "className": "align-middle" },
                     {
                         "data": "thoiDiemBatDau",
                         "name": "thoiDiemBatDau",
+                        "className": "align-middle",
                         "render": function(data) {
                             if(!data) return '';
-                            // Dùng hàm định dạng ngày tháng mặc định cực nhẹ của trình duyệt thay vì moment
                             return new Date(data).toLocaleDateString('vi-VN');
                         }
                     },
                     {
                         "data": "tienThuePhong",
                         "name": "tienThuePhong",
+                        "className": "align-middle",
                         "render": function(data) { return formatVND(data); }
                     },
                     {
@@ -420,9 +512,9 @@
                         "orderable": false,
                         "className": "text-center align-middle",
                         "render": function (data) {
-                            if (data === 1) return '<span class="badge badge-success">Đang hoạt động</span>';
-                            if (data === 2) return '<span class="badge badge-secondary">Đã kết thúc</span>';
-                            return '<span class="badge badge-danger">Đã hủy</span>';
+                            if (data === 1) return '<span class="badge bg-success-lt px-2 py-1">Đang hoạt động</span>';
+                            if (data === 2) return '<span class="badge bg-secondary-lt px-2 py-1">Đã kết thúc</span>';
+                            return '<span class="badge bg-danger-lt px-2 py-1">Đã hủy</span>';
                         }
                     },
                     {
@@ -431,12 +523,14 @@
                         "className": "text-center align-middle",
                         "render": function (data) {
                             return `
-                                <button class="btn btn-warning btn-sm btn-edit" data-id="${data}" title="Sửa">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="btn btn-danger btn-sm btn-delete" data-id="${data}" title="Xóa">
-                                    <i class="fas fa-trash"></i>
-                                </button>
+                                <div class="btn-list flex-nowrap justify-content-center">
+                                    <button class="btn btn-icon btn-ghost-warning btn-sm btn-edit" data-id="${data}" title="Sửa">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-icon btn-ghost-danger btn-sm btn-delete" data-id="${data}" title="Xóa">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </div>
                             `;
                         }
                     }
@@ -451,14 +545,14 @@
 
             // Nút mở Modal Thêm mới
             $('#btnOpenAddModal').on('click', function() {
-                currentHopDongId = 0;
+                window.currentHopDongId = 0;
                 $('#MaHopDong').val('');
                 $('#TienCocPhong').val('0');
                 $('#TienThuePhong').val('');
 
                 // Clear ngày tháng bằng hàm của Flatpickr
-                batDauPicker.clear();
-                ketThucPicker.clear();
+                window.batDauPicker.clear();
+                window.ketThucPicker.clear();
 
                 $('#ChiNhanhId').val('').trigger('change').prop('disabled', false);
                 $('#NguoiThueId').val('').trigger('change').prop('disabled', false);
@@ -466,11 +560,8 @@
 
                 $('#groupTrangThaiHopDong').hide();
                 $('#TrangThaiHopDong').val(1);
-                $('#groupNguoiDungCoO').show(); // Cho phép chọn khi thêm mới
+                $('#groupNguoiDungCoO').show();
                 $('#NguoiDungCoOPhongKhong').prop('checked', true);
-
-                // Ẩn tab thành viên khi thêm mới
-                $('#nav-item-thanhvien').hide();
 
                 // Reset tab dịch vụ
                 $('#hopDongDichVuContainer').html(`
@@ -479,15 +570,29 @@
                         <p>Vui lòng chọn <strong>Phòng Trọ</strong> ở tab "Thông tin hợp đồng" trước.</p>
                     </div>
                 `);
-                // Chuyển về tab thông tin
-                $('#tab-thongtin').tab('show');
+
+                // Thiết lập trạng thái Stepper về Bước 1
+                goToStep(1);
 
                 $('#modalTitle').text('Thêm Hợp Đồng Mới');
-                $('#hopDongModal').modal('show');
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('hopDongModal')).show();
+            });
+
+            // Stepper Navigation Buttons
+            $('#btnWizardNext').on('click', function() {
+                goToStep(window.currentStep + 1);
+            });
+
+            $('#btnWizardBack').on('click', function() {
+                goToStep(window.currentStep - 1);
+            });
+
+            $('#hopDongStepper').on('click', '.step-item', function() {
+                let targetStep = parseInt($(this).data('step'));
+                goToStep(targetStep);
             });
 
             // ================== LOGIC THÀNH VIÊN Ở GHÉP ==================
-            // Khởi tạo Select2 và Flatpickr cho Modal Thêm Thành Viên
             // Khởi tạo Select2 Autocomplete và Flatpickr cho Modal Thêm Thành Viên
             $('#addMember_SearchNguoiThue').select2({
                 dropdownParent: $('#addMemberModal'),
@@ -501,7 +606,7 @@
                     delay: 250,
                     data: function (params) {
                         return {
-                            searchTerm: params.term // Gửi từ khóa lên server
+                            searchTerm: params.term
                         };
                     },
                     processResults: function (data) {
@@ -539,17 +644,14 @@
 
             // Khi người dùng bấm nút Nhập mới hoàn toàn
             $('#btnToggleNewMember').on('click', function () {
-                // Reset select2
                 $('#addMember_SearchNguoiThue').val(null).trigger('change');
-                
-                // Mở khóa các trường nhập liệu và đặt NguoiThueId = rỗng (để tạo mới)
                 $('#addMember_NguoiThueId').val('');
                 $('#addMember_HoVaTen').val('').prop('disabled', false).focus();
                 $('#addMember_SoDienThoai').val('').prop('disabled', false);
                 $('#addMember_CCCD').val('').prop('disabled', false);
             });
 
-            // Hàm reset dữ liệu form modal
+            // Hàm reset dữ liệu form modal thành viên
             function resetAddMemberForm() {
                 $('#addMember_SearchNguoiThue').val(null).trigger('change');
                 $('#addMember_NguoiThueId').val('');
@@ -559,7 +661,7 @@
                 memberNgayVaoPicker.setDate(new Date());
             }
 
-            // Hàm load danh sách thành viên (Dùng chung)
+            // Hàm load danh sách thành viên
             window.loadDanhSachThanhVien = function(hopDongId) {
                 $('#thanhVienTbody').html('<tr><td colspan="8" class="text-center"><i class="fas fa-spinner fa-spin"></i> Đang tải dữ liệu...</td></tr>');
                 $.ajax({
@@ -571,15 +673,15 @@
                             res.forEach(function (tv, index) {
                                 let ngayVao = tv.ngayVao ? new Date(tv.ngayVao).toLocaleDateString('vi-VN') : '-';
                                 let ngayRoi = tv.ngayChuyenDi ? new Date(tv.ngayChuyenDi).toLocaleDateString('vi-VN') : '-';
-                                let isChuHopDong = tv.isChuHopDong ? '<span class="badge badge-primary"><i class="fas fa-crown"></i> Đại diện</span>' : '';
-                                let trangThai = tv.ngayChuyenDi ? '<span class="badge badge-secondary">Đã chuyển đi</span>' : '<span class="badge badge-success">Đang ở</span>';
+                                let isChuHopDong = tv.isChuHopDong ? '<span class="badge bg-primary-lt"><i class="fas fa-crown"></i> Đại diện</span>' : '';
+                                let trangThai = tv.ngayChuyenDi ? '<span class="badge bg-secondary-lt">Đã chuyển đi</span>' : '<span class="badge bg-success-lt">Đang ở</span>';
                                 
                                 let buttons = '';
                                 if (!tv.ngayChuyenDi) {
-                                    buttons += `<button type="button" class="btn btn-sm btn-warning btn-checkout" data-id="${tv.chiTietThanhVienHopDongId}" title="Báo chuyển đi"><i class="fas fa-sign-out-alt"></i></button> `;
+                                    buttons += `<button type="button" class="btn btn-sm btn-icon btn-warning btn-checkout" data-id="${tv.chiTietThanhVienHopDongId}" title="Báo chuyển đi"><i class="fas fa-sign-out-alt"></i></button> `;
                                 }
                                 if (!tv.isChuHopDong) {
-                                    buttons += `<button type="button" class="btn btn-sm btn-danger btn-delete-member" data-id="${tv.chiTietThanhVienHopDongId}" title="Xoá thành viên (nhập sai)"><i class="fas fa-trash"></i></button>`;
+                                    buttons += `<button type="button" class="btn btn-sm btn-icon btn-danger btn-delete-member" data-id="${tv.chiTietThanhVienHopDongId}" title="Xoá thành viên (nhập sai)"><i class="fas fa-trash"></i></button>`;
                                 }
 
                                 html += `
@@ -608,18 +710,17 @@
 
             // Nút mở modal thêm thành viên
             $(document).on('click', '#btnOpenAddMemberModal', function () {
-                if (!currentHopDongId || currentHopDongId === 0) {
+                if (!window.currentHopDongId || window.currentHopDongId === 0) {
                     showToastr("Hợp đồng chưa được lưu. Vui lòng tạo hợp đồng trước khi thêm thành viên.", "warning");
                     return;
                 }
-
                 resetAddMemberForm();
-                $('#addMemberModal').modal('show');
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('addMemberModal')).show();
             });
 
             // Nút lưu thành viên mới
             $(document).on('click', '#btnSaveMember', function () {
-                let hopDongId = currentHopDongId;
+                let hopDongId = window.currentHopDongId;
                 let nguoiThueId = $('#addMember_NguoiThueId').val();
                 let hoVaTen = $('#addMember_HoVaTen').val().trim();
                 let soDienThoai = $('#addMember_SoDienThoai').val().trim();
@@ -657,7 +758,7 @@
                     data: JSON.stringify(requestData),
                     success: function (res) {
                         showToastr(res.message, "success");
-                        $('#addMemberModal').modal('hide');
+                        bootstrap.Modal.getOrCreateInstance(document.getElementById('addMemberModal')).hide();
                         window.loadDanhSachThanhVien(hopDongId);
                     },
                     error: function (xhr) {
@@ -677,14 +778,14 @@
                 if (confirm("Xác nhận thành viên này đã chuyển đi? (Ngày rời phòng sẽ cập nhật hôm nay)")) {
                     $.post(`/ThanhVienHopDong/BaoRoiPhong/${id}`, function (res) {
                         showToastr(res.message, "success");
-                        window.loadDanhSachThanhVien(currentHopDongId);
+                        window.loadDanhSachThanhVien(window.currentHopDongId);
                     }).fail(function (xhr) {
                         showToastr(xhr.responseJSON ? xhr.responseJSON.message : "Lỗi!", "error");
                     });
                 }
             });
 
-            // Xoá nhầm
+            // Xoá nhầm thành viên
             $(document).on('click', '.btn-delete-member', function () {
                 let id = $(this).data('id');
                 if (confirm("Bạn có chắc muốn xoá hoàn toàn bản ghi này?")) {
@@ -693,7 +794,7 @@
                         type: 'DELETE',
                         success: function (res) {
                             showToastr(res.message, "success");
-                            window.loadDanhSachThanhVien(currentHopDongId);
+                            window.loadDanhSachThanhVien(window.currentHopDongId);
                         },
                         error: function (xhr) {
                             showToastr(xhr.responseJSON ? xhr.responseJSON.message : "Lỗi!", "error");
@@ -709,9 +810,8 @@
                 let phongTroId = $('#PhongTroId').val();
                 let nguoiThueId = $('#NguoiThueId').val();
 
-                // Lấy đối tượng Date thực tế từ Flatpickr
-                let dateBatDau = batDauPicker.selectedDates[0];
-                let dateKetThuc = ketThucPicker.selectedDates[0];
+                let dateBatDau = window.batDauPicker.selectedDates[0];
+                let dateKetThuc = window.ketThucPicker.selectedDates[0];
 
                 let tienCocPhong = parseFloat($('#TienCocPhong').val() || 0);
                 let tienThuePhong = parseFloat($('#TienThuePhong').val() || 0);
@@ -726,11 +826,10 @@
                     return;
                 }
                 let requestData = {
-                    hopDongId: currentHopDongId,
+                    hopDongId: window.currentHopDongId,
                     maHopDong: maHopDong,
                     phongTroId: parseInt(phongTroId),
                     nguoiThueId: parseInt(nguoiThueId),
-                    // Format sang ISO string gửi lên cho backend .NET nhận diện đúng kiểu dữ liệu
                     thoiDiemBatDau: flatpickr.formatDate(dateBatDau, "Y-m-d"),
                     thoiDiemKetThuc: dateKetThuc ? flatpickr.formatDate(dateKetThuc, "Y-m-d") : null,
                     tienCocPhong: tienCocPhong,
@@ -739,8 +838,8 @@
                     nguoiDungCoOPhongKhong: $('#NguoiDungCoOPhongKhong').is(':checked')
                 };
 
-                let isUpdate = currentHopDongId > 0;
-                let apiUrl = isUpdate ? `/HopDong/Update/${currentHopDongId}` : `/HopDong/Create`;
+                let isUpdate = window.currentHopDongId > 0;
+                let apiUrl = isUpdate ? `/HopDong/Update/${window.currentHopDongId}` : `/HopDong/Create`;
                 let httpMethod = isUpdate ? 'PUT' : 'POST';
 
                 let $btn = $(this);
@@ -760,20 +859,19 @@
                                 parseInt(phongTroId),
                                 'hopDongDichVuContainer',
                                 function () {
-                                    // Thành công cả 2
                                     showToastr(res.message || "Thao tác thành công!", "success");
-                                    $('#hopDongModal').modal('hide');
+                                    bootstrap.Modal.getOrCreateInstance(document.getElementById('hopDongModal')).hide();
                                     table.ajax.reload(null, false);
                                 },
                                 function (errMsg) {
                                     showToastr("Hợp đồng đã lưu, nhưng lỗi khi lưu dịch vụ: " + errMsg, "warning");
-                                    $('#hopDongModal').modal('hide');
+                                    bootstrap.Modal.getOrCreateInstance(document.getElementById('hopDongModal')).hide();
                                     table.ajax.reload(null, false);
                                 }
                             );
                         } else {
                             showToastr(res.message || "Thao tác thành công!", "success");
-                            $('#hopDongModal').modal('hide');
+                            bootstrap.Modal.getOrCreateInstance(document.getElementById('hopDongModal')).hide();
                             table.ajax.reload(null, false);
                         }
                     },
@@ -783,7 +881,6 @@
                             if (xhr.responseJSON.message) {
                                 errorMessage = xhr.responseJSON.message;
                             } else if (xhr.responseJSON.errors) {
-                                // Lấy tất cả thông báo lỗi từ ModelState (ASP.NET Core validation)
                                 errorMessage = Object.values(xhr.responseJSON.errors).flat().join('\n');
                             }
                         }
@@ -798,7 +895,7 @@
             // SỰ KIỆN NÚT SỬA (ĐỔ DỮ LIỆU)
             $('#hopDongTable tbody').on('click', '.btn-edit', function () {
                 let id = $(this).data('id');
-                currentHopDongId = id;
+                window.currentHopDongId = id;
 
                 let $btn = $(this);
                 let originalHtml = $btn.html();
@@ -811,19 +908,15 @@
                         $('#MaHopDong').val(res.maHopDong);
                         if(res.phongTroId) {
                             window.isBindingData = true; // Tránh trigger đổi giá phòng/dịch vụ
-                            // DTO đã flatten: dùng res.chiNhanhId thay vì res.phongTro.chiNhanhId
                             $('#ChiNhanhId').val(res.chiNhanhId || '').trigger('change');
                             setTimeout(() => {
-                                // Nếu phòng đang thuê ko nằm trong danh sách phòng trống, phải tự thêm option
                                 if ($('#PhongTroId option[value="'+res.phongTroId+'"]').length === 0) {
-                                    // DTO đã flatten: dùng res.soPhong trực tiếp
                                     let soPhongName = res.soPhong || res.phongTroId;
                                     $('#PhongTroId').append(`<option value="${res.phongTroId}" data-gia-thue="${res.tienThuePhong}">${soPhongName}</option>`);
                                 }
                                 $('#PhongTroId').val(res.phongTroId).change();
                                 window.isBindingData = false;
 
-                                // Load dịch vụ đã đăng ký cho phòng này
                                 setTimeout(() => {
                                     $.get(`/DangKyDichVu/GetByPhong?phongTroId=${res.phongTroId}`, function (dvData) {
                                         renderDangKyDichVu('hopDongDichVuContainer', dvData, false);
@@ -832,43 +925,36 @@
                             }, 150);
                         }
 
-                        // Nếu danh sách không chứa người thuê hiện tại, thêm tạm vào
                         if ($('#NguoiThueId option[value="'+res.nguoiThueId+'"]').length === 0) {
                             $('#NguoiThueId').append(`<option value="${res.nguoiThueId}">${res.tenNguoiThue || "Khách thuê (ID: " + res.nguoiThueId + ")"}</option>`);
                         }
                         $('#NguoiThueId').val(res.nguoiThueId).trigger('change');
 
-                        // Khóa các select vì không cho phép đổi chi nhánh, phòng, hoặc người thuê
                         $('#ChiNhanhId').prop('disabled', true);
                         $('#PhongTroId').prop('disabled', true);
                         $('#NguoiThueId').prop('disabled', true);
                         
-                        // Khi cập nhật thì ẩn checkbox này đi
                         $('#groupNguoiDungCoO').hide();
 
-                        // Mở dropdown Trạng Thái
                         $('#groupTrangThaiHopDong').show();
                         $('#TrangThaiHopDong').val(res.trangThaiHopDong);
 
-                        // Set ngày tháng thông qua hàm setDate của Flatpickr
-                        if(res.thoiDiemBatDau) batDauPicker.setDate(new Date(res.thoiDiemBatDau));
-                        if(res.thoiDiemKetThuc) ketThucPicker.setDate(new Date(res.thoiDiemKetThuc));
-                        else ketThucPicker.clear();
+                        if(res.thoiDiemBatDau) window.batDauPicker.setDate(new Date(res.thoiDiemBatDau));
+                        if(res.thoiDiemKetThuc) window.ketThucPicker.setDate(new Date(res.thoiDiemKetThuc));
+                        else window.ketThucPicker.clear();
 
                         $('#TienCocPhong').val(res.tienCocPhong);
                         $('#TienThuePhong').val(res.tienThuePhong);
 
-                        // Hiển thị tab thành viên và load dữ liệu
-                        $('#nav-item-thanhvien').show();
+                        // Load danh sách thành viên và chuyển bước 1
                         if (typeof window.loadDanhSachThanhVien === "function") {
                             window.loadDanhSachThanhVien(id);
                         }
 
-                        // Chuyển về tab thông tin
-                        $('#tab-thongtin').tab('show');
+                        goToStep(1);
 
                         $('#modalTitle').text('Cập nhật Hợp Đồng');
-                        $('#hopDongModal').modal('show');
+                        bootstrap.Modal.getOrCreateInstance(document.getElementById('hopDongModal')).show();
                     },
                     error: function () { showToastr("Không thể tải thông tin.", "error"); },
                     complete: function() { $btn.prop('disabled', false).html(originalHtml); }

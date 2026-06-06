@@ -1,38 +1,49 @@
-﻿@using QuanLyChoThuePhongTroWeb.Models.ModelsOther
+@using QuanLyChoThuePhongTroWeb.Models.ModelsOther
 @model MenuItem
 
 @{
     var hasChild = Model.Children != null && Model.Children.Any();
 }
-<style>
-    .nav-treeview {
-        position: relative;
-        z-index: 9999;
-    }
-</style>
-<li class="nav-item @(hasChild ? "has-treeview" : "")">
 
-    <a href="@(string.IsNullOrEmpty(Model.Url) ? "#" : Model.Url)" class="nav-link">
-        <i class="nav-icon @(string.IsNullOrEmpty(Model.Icon) ? "far fa-circle" : Model.Icon)"></i>
-
-        <p>
-            @Model.Name
-
-            @if (hasChild)
-            {
-                <i class="right fas fa-angle-left"></i>
-            }
-        </p>
-    </a>
-
-    @if (hasChild)
-    {
-        <ul class="nav nav-treeview">
-            @foreach (var child in Model.Children)
-            {
-                @await Html.PartialAsync("_MenuItem", child)
-            }
-        </ul>
-    }
-
-</li>
+@if (hasChild)
+{
+    <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle" href="#navbar-menu-@Model.Name.GetHashCode()" data-bs-toggle="dropdown" data-bs-auto-close="false" role="button" aria-expanded="false">
+            <span class="nav-link-icon d-md-none d-lg-inline-block">
+                <i class="@(string.IsNullOrEmpty(Model.Icon) ? "far fa-circle" : Model.Icon)"></i>
+            </span>
+            <span class="nav-link-title">
+                @Model.Name
+            </span>
+        </a>
+        <div class="dropdown-menu">
+            <div class="dropdown-menu-columns">
+                <div class="dropdown-menu-column">
+                    @foreach (var child in Model.Children)
+                    {
+                        <a class="dropdown-item py-2" href="@child.Url">
+                            @if (!string.IsNullOrEmpty(child.Icon))
+                            {
+                                <i class="@child.Icon me-2" style="font-size: 0.85rem;"></i>
+                            }
+                            @child.Name
+                        </a>
+                    }
+                </div>
+            </div>
+        </div>
+    </li>
+}
+else
+{
+    <li class="nav-item">
+        <a class="nav-link" href="@(string.IsNullOrEmpty(Model.Url) ? "#" : Model.Url)">
+            <span class="nav-link-icon d-md-none d-lg-inline-block">
+                <i class="@(string.IsNullOrEmpty(Model.Icon) ? "far fa-circle" : Model.Icon)"></i>
+            </span>
+            <span class="nav-link-title">
+                @Model.Name
+            </span>
+        </a>
+    </li>
+}

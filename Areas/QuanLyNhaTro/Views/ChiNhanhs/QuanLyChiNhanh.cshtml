@@ -1,4 +1,4 @@
-﻿@model IEnumerable<QuanLyChoThuePhongTroWeb.Models.ChiNhanh>
+@model IEnumerable<QuanLyChoThuePhongTroWeb.Models.ChiNhanh>
 @{
     ViewData["Title"] = "Quản lý Chi Nhánh";
     // Đảm bảo Layout được gọi đúng đường dẫn của bạn
@@ -43,9 +43,7 @@
         <div class="modal-content">
             <div class="modal-header bg-primary">
                 <h5 class="modal-title text-white" id="modalTitle">Thêm Chi Nhánh Mới</h5>
-                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
 
             <div class="modal-body">
@@ -80,7 +78,7 @@
             </div>
 
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
                 <button type="submit" class="btn btn-primary" id="btnSaveData">
                     <i class="fas fa-save"></i> Lưu thông tin
                 </button>
@@ -134,16 +132,18 @@
                     },
                     {
                         "data": "chiNhanhId",
-                        "className": "text-center",
+                        "className": "text-center align-middle",
                         "render": function (data) {
-                            // Vẽ 2 nút Sửa và Xóa cho mỗi dòng
+                            // Vẽ 2 nút Sửa và Xóa cho mỗi dòng bằng Ghost Buttons hiện đại
                             return `
-                                <button class="btn btn-warning btn-sm btn-edit" data-id="${data}">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="btn btn-danger btn-sm btn-delete" data-id="${data}">
-                                    <i class="fas fa-trash"></i>
-                                </button>
+                                <div class="btn-list flex-nowrap justify-content-center">
+                                    <button class="btn btn-icon btn-ghost-warning btn-sm btn-edit" data-id="${data}" title="Sửa">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-icon btn-ghost-danger btn-sm btn-delete" data-id="${data}" title="Xóa">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
                             `;
                         }
                     }

@@ -1,0 +1,116 @@
+/* CSS Tùy Biến Cho Giao Diện Quản Lý Hóa Đơn */
+
+/* Định dạng in ấn cho Hóa đơn (Print-friendly layout) */
+@media print {
+    /* Ẩn các thành phần giao diện web xung quanh */
+    body * {
+        visibility: hidden;
+    }
+    /* Chỉ hiển thị khu vực hóa đơn chi tiết bên trong modal */
+    #chiTietModal,
+    #chiTietModal * {
+        visibility: visible;
+    }
+    #chiTietModal {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        border: none;
+        box-shadow: none;
+    }
+    /* Ẩn tiêu đề modal header, chân trang modal footer khi in */
+    #chiTietModal .modal-header,
+    #chiTietModal .modal-footer,
+    #chiTietModal .btn-close,
+    #chiTietModal .d-print-none,
+    #chiTietModal .qr-payment-box {
+        display: none !important;
+    }
+}
+
+/* Khung hiển thị QR Code và thông tin chuyển khoản (VietQR Card) */
+.qr-payment-box {
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    background-color: #ffffff;
+    transition: all 0.2s ease-in-out;
+}
+
+html[data-bs-theme="dark"] .qr-payment-box {
+    border-color: #2f3e56;
+    background-color: #1b2434;
+}
+
+.qr-payment-box .qr-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+}
+
+.qr-payment-box img {
+    border: 1px solid #dee2e6;
+    background-color: #ffffff;
+    padding: 6px;
+    border-radius: 8px;
+    max-width: 160px;
+    height: auto;
+    transition: transform 0.2s ease;
+}
+
+.qr-payment-box img:hover {
+    transform: scale(1.05);
+}
+
+.qr-details-list {
+    font-size: 0.85rem;
+    line-height: 1.6;
+}
+
+.qr-details-list .qr-detail-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 0;
+    border-bottom: 1px dashed #f1f3f5;
+}
+
+html[data-bs-theme="dark"] .qr-details-list .qr-detail-item {
+    border-bottom-color: #2f3e56;
+}
+
+.qr-details-list .qr-detail-item:last-child {
+    border-bottom: none;
+}
+
+.qr-details-list strong {
+    color: #495057;
+}
+
+html[data-bs-theme="dark"] .qr-details-list strong {
+    color: #cbd5e1;
+}
+
+/* Căn chỉnh bảng nhập liệu chi phí khi chỉnh sửa */
+#editLinesTable th {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 600;
+    color: #626976;
+    background-color: #f8f9fa;
+}
+
+html[data-bs-theme="dark"] #editLinesTable th {
+    background-color: #1a2232;
+    color: #8f9baf;
+}
+
+/* Đảm bảo chiều rộng các trường chỉnh sửa hợp lý */
+.edit-ten {
+    font-weight: 500;
+}
+
+.edit-gia, .edit-sl {
+    font-family: var(--tb-font-monospace, monospace);
+}

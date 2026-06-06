@@ -1,4 +1,4 @@
-﻿@model IEnumerable<QuanLyChoThuePhongTroWeb.Models.NguoiDung>
+@model IEnumerable<QuanLyChoThuePhongTroWeb.Models.NguoiDung>
 @{
     ViewData["Title"] = "Quản lý Tài Khoản Đăng Nhập";
 }
@@ -37,9 +37,7 @@
         <div class="modal-content">
             <div class="modal-header bg-primary">
                 <h5 class="modal-title text-white" id="modalTitle">Thêm Tài Khoản Mới</h5>
-                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
 
             <div class="modal-body">
@@ -73,7 +71,7 @@
             </div>
 
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
                 <button type="button" class="btn btn-primary" id="btnSaveData">
                     <i class="fas fa-save"></i> Lưu thông tin
                 </button>
@@ -123,17 +121,17 @@
                         "data": "role",
                         "render": function(data) {
                             return data === 0
-                                ? `<span class="badge badge-danger">Admin</span>`
-                                : `<span class="badge badge-info">Người Dùng</span>`;
+                                ? `<span class="badge bg-danger-lt text-danger">Admin</span>`
+                                : `<span class="badge bg-info-lt text-info">Người Dùng</span>`;
                         }
                     },
                     {
                         "data": "isActive",
-                        "className": "text-center",
+                        "className": "text-center align-middle",
                         "render": function(data) {
                             return data
-                                ? `<span class="badge badge-success"><i class="fas fa-check-circle"></i> Hoạt động</span>`
-                                : `<span class="badge badge-secondary"><i class="fas fa-ban"></i> Khóa</span>`;
+                                ? `<span class="badge bg-success-lt text-success"><i class="fas fa-check-circle me-1"></i> Hoạt động</span>`
+                                : `<span class="badge bg-secondary-lt text-secondary"><i class="fas fa-ban me-1"></i> Khóa</span>`;
                         }
                     },
                     {
@@ -150,12 +148,14 @@
                         "orderable": false,
                         "render": function (data) {
                             return `
-                                <button class="btn btn-warning btn-sm btn-edit" data-id="${data}" title="Sửa">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="btn btn-danger btn-sm btn-delete" data-id="${data}" title="Xóa">
-                                    <i class="fas fa-trash"></i>
-                                </button>
+                                <div class="btn-list flex-nowrap justify-content-center">
+                                    <button class="btn btn-icon btn-ghost-warning btn-sm btn-edit" data-id="${data}" title="Sửa">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-icon btn-ghost-danger btn-sm btn-delete" data-id="${data}" title="Xóa">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </div>
                             `;
                         }
                     }

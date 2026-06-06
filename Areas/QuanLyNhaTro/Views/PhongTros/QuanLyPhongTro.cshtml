@@ -1,204 +1,156 @@
 @{
     ViewData["Title"] = "Quản Lý Phòng Trọ";
 }
+<link rel="stylesheet" href="~/css/quanlyphongtro.css" />
 
-<style>
-    /* ========== Toggle View Buttons ========== */
-    .view-toggle .btn { border-radius: 20px; padding: 6px 18px; font-size: 0.85rem; font-weight: 600; }
-    .view-toggle .btn.active { box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
-
-    /* ========== Room Grid ========== */
-    .room-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; padding: 8px 0; }
-
-    .room-card {
-        border-radius: 12px; padding: 16px 16px 12px; position: relative;
-        cursor: pointer; transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
-        box-shadow: 0 2px 8px rgba(0,0,0,0.07); border: 2px solid transparent;
-    }
-    .room-card::before { content:''; position:absolute; top:0; left:0; width:100%; height:4px; border-top-left-radius: 10px; border-top-right-radius: 10px; }
-    .room-card:hover { transform: translateY(-4px); box-shadow: 0 8px 25px rgba(0,0,0,0.14); z-index: 99; }
-    .room-card.kebab-open { z-index: 999; }
-
-    /* Trạng thái */
-    .room-trong { background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%); border-color: #66bb6a; }
-    .room-trong::before { background: #43a047; }
-    .room-dathue { background: linear-gradient(135deg, #ffebee 0%, #fce4ec 100%); border-color: #ef5350; }
-    .room-dathue::before { background: #e53935; }
-    .room-baotri { background: linear-gradient(135deg, #fff8e1 0%, #fff3e0 100%); border-color: #ffa726; }
-    .room-baotri::before { background: #fb8c00; }
-
-    .room-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-    .room-status-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 15px; color: #fff; flex-shrink: 0; }
-    .icon-trong { background: #43a047; }
-    .icon-dathue { background: #e53935; }
-    .icon-baotri { background: #fb8c00; }
-
-    .room-number { font-size: 1.2rem; font-weight: 700; color: #333; }
-    .room-price { font-size: 0.82rem; font-weight: 600; color: #555; }
-    .room-tenant { font-size: 0.8rem; color: #666; margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .room-meta { font-size: 0.75rem; color: #888; margin-top: 2px; }
-
-    /* Warning badges */
-    .room-badges { position: absolute; top: 10px; right: 42px; display: flex; gap: 4px; }
-    .room-badge { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #fff; animation: pulse-badge 2s infinite; }
-    .badge-debt { background: #e53935; box-shadow: 0 0 8px rgba(229,57,53,0.5); }
-    .badge-expiring { background: #ff9800; box-shadow: 0 0 8px rgba(255,152,0,0.5); }
-    @@keyframes pulse-badge { 0%,100%{transform:scale(1)} 50%{transform:scale(1.15)} }
-
-    /* Kebab Menu */
-    .kebab-menu { position: absolute; top: 8px; right: 8px; z-index: 10; }
-    .kebab-btn { width: 30px; height: 30px; border: none; background: rgba(255,255,255,0.7); border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 14px; color: #555; transition: all 0.2s; }
-    .kebab-btn:hover { background: rgba(255,255,255,0.95); color: #333; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
-
-    .kebab-dropdown { position: absolute; top: 34px; right: 0; background: #fff; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.18); min-width: 180px; display: none; overflow: hidden; z-index: 100; }
-    .kebab-dropdown.show, .kebab-menu:hover .kebab-dropdown { display: block; animation: fadeIn 0.15s ease; }
-    .kebab-item { display: flex; align-items: center; gap: 8px; padding: 10px 14px; font-size: 0.85rem; color: #333; cursor: pointer; transition: background 0.15s; border: none; background: none; width: 100%; text-align: left; }
-    .kebab-item:hover { background: #f5f5f5; }
-    .kebab-item i { width: 18px; text-align: center; }
-    .kebab-divider { height: 1px; background: #eee; margin: 2px 0; }
-
-    @@keyframes fadeIn { from{opacity:0;transform:translateY(-4px)} to{opacity:1;transform:translateY(0)} }
-
-    /* Floor group */
-    .floor-group { margin-bottom: 20px; }
-    .floor-label { font-size: 0.9rem; font-weight: 700; color: #5c6bc0; margin-bottom: 10px; padding: 6px 14px; background: #e8eaf6; border-radius: 8px; display: inline-block; }
-
-    /* Filter pills */
-    .filter-btn { border-radius: 20px; padding: 5px 14px; font-size: 0.82rem; font-weight: 500; border: 2px solid #ddd; background: #fff; color: #555; cursor: pointer; transition: all 0.2s; margin-right: 4px; margin-bottom: 4px; }
-    .filter-btn:hover,.filter-btn.active { color: #fff; border-color: transparent; }
-    .filter-btn[data-filter="all"].active { background: #5c6bc0; }
-    .filter-btn[data-filter="trong"].active { background: #43a047; }
-    .filter-btn[data-filter="dathue"].active { background: #e53935; }
-    .filter-btn[data-filter="baotri"].active { background: #fb8c00; }
-    .filter-btn[data-filter="notien"].active { background: #c62828; }
-    .filter-btn[data-filter="saphethan"].active { background: #ef6c00; }
-
-    .room-status-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; }
-    .dot-trong { background: #43a047; }
-    .dot-dathue { background: #e53935; }
-    .dot-baotri { background: #fb8c00; }
-
-    /* Stat cards */
-    .stat-card { border-radius: 10px; padding: 12px 16px; text-align: center; color: #fff; font-weight: 600; }
-    .stat-card .stat-number { font-size: 1.6rem; font-weight: 700; }
-    .stat-card .stat-label { font-size: 0.78rem; opacity: 0.9; }
-
-    /* Detail popup */
-    .detail-row { margin-bottom: 8px; }
-    .detail-label { font-weight: 600; color: #555; font-size: 0.85rem; }
-    .detail-value { color: #333; font-size: 0.9rem; }
-</style>
-
-<section class="content mt-3">
-    <div class="container-fluid">
-        <!-- Header bar: Toggle + Add button -->
-        <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
-            <div class="view-toggle btn-group" role="group">
-                <button class="btn btn-outline-primary active" id="btnGridView"><i class="fas fa-th-large"></i> Sơ đồ</button>
-                <button class="btn btn-outline-primary" id="btnTableView"><i class="fas fa-table"></i> Bảng</button>
+<div class="container-xl mt-3">
+    <!-- Header bar: Toggle + Add button -->
+    <div class="page-header d-print-none mb-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <div class="view-toggle btn-group" role="group">
+                    <button class="btn btn-outline-primary active" id="btnGridView"><i class="fas fa-th-large"></i> Sơ đồ</button>
+                    <button class="btn btn-outline-primary" id="btnTableView"><i class="fas fa-table"></i> Bảng</button>
+                </div>
             </div>
-            <div>
-                <button type="button" class="btn btn-success btn-sm mr-2 font-weight-bold" id="btnPhatSinhPhong">
+            <div class="col-auto ms-auto">
+                <button type="button" class="btn btn-success me-2 font-weight-bold" id="btnPhatSinhPhong">
                     <i class="fas fa-magic"></i> Phát sinh 10 phòng ngẫu nhiên
                 </button>
-                <button type="button" class="btn btn-primary btn-sm font-weight-bold" id="btnOpenAddModal">
+                <button type="button" class="btn btn-primary font-weight-bold" id="btnOpenAddModal">
                     <i class="fas fa-plus"></i> Thêm Mới Phòng
                 </button>
             </div>
         </div>
+    </div>
 
-        <!-- ============= GRID VIEW ============= -->
-        <div id="gridViewSection">
-            <!-- Stats -->
-            <div class="row mb-3">
-                <div class="col-md-3 col-6 mb-2">
-                    <div class="stat-card" style="background:linear-gradient(135deg,#43a047,#66bb6a);">
-                        <div class="stat-number" id="statTrong">0</div>
-                        <div class="stat-label"><i class="fas fa-door-open"></i> Phòng trống</div>
-                    </div>
-                </div>
-                <div class="col-md-3 col-6 mb-2">
-                    <div class="stat-card" style="background:linear-gradient(135deg,#e53935,#ef5350);">
-                        <div class="stat-number" id="statDaThue">0</div>
-                        <div class="stat-label"><i class="fas fa-user-check"></i> Đã thuê</div>
-                    </div>
-                </div>
-                <div class="col-md-3 col-6 mb-2">
-                    <div class="stat-card" style="background:linear-gradient(135deg,#c62828,#e53935);">
-                        <div class="stat-number" id="statNoTien">0</div>
-                        <div class="stat-label"><i class="fas fa-exclamation-triangle"></i> Đang nợ</div>
-                    </div>
-                </div>
-                <div class="col-md-3 col-6 mb-2">
-                    <div class="stat-card" style="background:linear-gradient(135deg,#ef6c00,#ff9800);">
-                        <div class="stat-number" id="statSapHetHan">0</div>
-                        <div class="stat-label"><i class="fas fa-hourglass-half"></i> Sắp hết hạn</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Filters -->
-            <div class="card card-default mb-3">
-                <div class="card-body py-2">
-                    <div class="d-flex flex-wrap align-items-center">
-                        <div class="mr-3 mb-1" style="min-width:200px;">
-                            <select id="filterChiNhanhGrid" class="form-control form-control-sm">
-                                <option value="0">-- Tất cả Chi nhánh --</option>
-                                @if (ViewBag.ChiNhanhs != null)
-                                {
-                                    foreach (var cn in ViewBag.ChiNhanhs)
-                                    {
-                                        <option value="@cn.Value">@cn.Text</option>
-                                    }
-                                }
-                            </select>
-                        </div>
-                        <div class="d-flex flex-wrap">
-                            <button class="filter-btn active" data-filter="all"><i class="fas fa-th"></i> Tất cả</button>
-                            <button class="filter-btn" data-filter="trong"><span class="room-status-dot dot-trong"></span>Trống</button>
-                            <button class="filter-btn" data-filter="dathue"><span class="room-status-dot dot-dathue"></span>Đã thuê</button>
-                            <button class="filter-btn" data-filter="baotri"><span class="room-status-dot dot-baotri"></span>Bảo trì</button>
-                            <button class="filter-btn" data-filter="notien"><i class="fas fa-exclamation-circle text-danger"></i> Nợ tiền</button>
-                            <button class="filter-btn" data-filter="saphethan"><i class="fas fa-hourglass-half text-warning"></i> Sắp hết hạn</button>
-                        </div>
-                        <div class="ml-auto mb-1">
-                            <input type="text" id="searchRoom" class="form-control form-control-sm" placeholder="🔍 Tìm phòng..." style="width:160px;">
+    <!-- ============= GRID VIEW ============= -->
+    <div id="gridViewSection">
+        <!-- Stats -->
+        <div class="row row-cards mb-3">
+            <div class="col-sm-6 col-lg-3">
+                <div class="card card-sm shadow-sm border-0" style="border-left: 4px solid var(--tblr-success, #2fb344) !important;">
+                    <div class="card-body py-3">
+                        <div class="row align-items-center">
+                            <div class="col-auto">
+                                <span class="bg-success-lt text-success avatar rounded"><i class="fas fa-door-open"></i></span>
+                            </div>
+                            <div class="col text-end">
+                                <div class="text-secondary small font-weight-medium">Phòng trống</div>
+                                <div class="h3 mb-0 font-weight-bold" id="statTrong">0</div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-
-            <!-- Room cards grouped by floor -->
-            <div id="roomGrid"></div>
-            <div id="emptyState" class="text-center py-5" style="display:none;">
-                <i class="fas fa-building fa-3x text-muted mb-3"></i>
-                <p class="text-muted">Không có phòng nào phù hợp với bộ lọc.</p>
+            <div class="col-sm-6 col-lg-3">
+                <div class="card card-sm shadow-sm border-0" style="border-left: 4px solid var(--tblr-primary, #206bc4) !important;">
+                    <div class="card-body py-3">
+                        <div class="row align-items-center">
+                            <div class="col-auto">
+                                <span class="bg-primary-lt text-primary avatar rounded"><i class="fas fa-user-check"></i></span>
+                            </div>
+                            <div class="col text-end">
+                                <div class="text-secondary small font-weight-medium">Đã thuê</div>
+                                <div class="h3 mb-0 font-weight-bold" id="statDaThue">0</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <div class="card card-sm shadow-sm border-0" style="border-left: 4px solid var(--tblr-danger, #d63939) !important;">
+                    <div class="card-body py-3">
+                        <div class="row align-items-center">
+                            <div class="col-auto">
+                                <span class="bg-danger-lt text-danger avatar rounded"><i class="fas fa-exclamation-triangle"></i></span>
+                            </div>
+                            <div class="col text-end">
+                                <div class="text-secondary small font-weight-medium">Đang nợ</div>
+                                <div class="h3 mb-0 font-weight-bold" id="statNoTien">0</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <div class="card card-sm shadow-sm border-0" style="border-left: 4px solid var(--tblr-warning, #f59f00) !important;">
+                    <div class="card-body py-3">
+                        <div class="row align-items-center">
+                            <div class="col-auto">
+                                <span class="bg-warning-lt text-warning avatar rounded"><i class="fas fa-hourglass-half"></i></span>
+                            </div>
+                            <div class="col text-end">
+                                <div class="text-secondary small font-weight-medium">Sắp hết hạn</div>
+                                <div class="h3 mb-0 font-weight-bold" id="statSapHetHan">0</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- ============= TABLE VIEW ============= -->
-        <div id="tableViewSection" style="display:none;">
-            <div class="card card-primary card-outline">
-                <div class="card-header">
-                    <h3 class="card-title"><i class="fas fa-bed"></i> Danh Sách Phòng Trọ</h3>
-                    <div class="card-tools">
-                        <div style="min-width:180px;">
-                            <select id="filterChiNhanhTable" class="form-control form-control-sm">
-                                <option value="">-- Tất cả Chi nhánh --</option>
-                                @if (ViewBag.ChiNhanhs != null)
+        <!-- Filters -->
+        <div class="card mb-3 border-0 shadow-sm">
+            <div class="card-body py-2">
+                <div class="row align-items-center g-2">
+                    <div class="col-md-3">
+                        <select id="filterChiNhanhGrid" class="form-select form-select-sm">
+                            <option value="0">-- Tất cả Chi nhánh --</option>
+                            @if (ViewBag.ChiNhanhs != null)
+                            {
+                                foreach (var cn in ViewBag.ChiNhanhs)
                                 {
-                                    foreach (var cn in ViewBag.ChiNhanhs)
-                                    {
-                                        <option value="@cn.Text">@cn.Text</option>
-                                    }
+                                    <option value="@cn.Value">@cn.Text</option>
                                 }
-                            </select>
-                        </div>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-6 d-flex flex-wrap gap-1">
+                        <button class="filter-btn active" data-filter="all"><i class="fas fa-th"></i> Tất cả</button>
+                        <button class="filter-btn" data-filter="trong"><span class="room-status-dot dot-trong"></span>Trống</button>
+                        <button class="filter-btn" data-filter="dathue"><span class="room-status-dot dot-dathue"></span>Đã thuê</button>
+                        <button class="filter-btn" data-filter="baotri"><span class="room-status-dot dot-baotri"></span>Bảo trì</button>
+                        <button class="filter-btn" data-filter="notien"><i class="fas fa-exclamation-circle text-danger"></i> Nợ tiền</button>
+                        <button class="filter-btn" data-filter="saphethan"><i class="fas fa-hourglass-half text-warning"></i> Sắp hết hạn</button>
+                    </div>
+                    <div class="col-md-3 ms-auto text-end">
+                        <input type="text" id="searchRoom" class="form-control form-control-sm d-inline-block" placeholder="🔍 Tìm phòng..." style="max-width:180px;">
                     </div>
                 </div>
-                <div class="card-body">
-                    <table id="phongTroTable" class="table table-bordered table-striped table-hover w-100">
-                        <thead class="bg-light">
+            </div>
+        </div>
+
+        <!-- Room cards grouped by floor -->
+        <div id="roomGrid"></div>
+        <div id="emptyState" class="text-center py-5" style="display:none;">
+            <i class="fas fa-building fa-3x text-muted mb-3"></i>
+            <p class="text-muted">Không có phòng nào phù hợp với bộ lọc.</p>
+        </div>
+    </div>
+
+    <!-- ============= TABLE VIEW ============= -->
+    <div id="tableViewSection" style="display:none;">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header d-flex align-items-center justify-content-between py-3">
+                <h3 class="card-title font-weight-bold text-dark"><i class="fas fa-bed me-2 text-primary"></i> Danh Sách Phòng Trọ</h3>
+                <div class="card-actions" style="min-width:200px;">
+                    <select id="filterChiNhanhTable" class="form-select form-select-sm">
+                        <option value="">-- Tất cả Chi nhánh --</option>
+                        @if (ViewBag.ChiNhanhs != null)
+                        {
+                            foreach (var cn in ViewBag.ChiNhanhs)
+                            {
+                                <option value="@cn.Text">@cn.Text</option>
+                            }
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table id="phongTroTable" class="table card-table table-vcenter text-nowrap datatable w-100">
+                        <thead>
                             <tr>
                                 <th>STT</th>
                                 <th>Chi Nhánh</th>
@@ -216,21 +168,21 @@
             </div>
         </div>
     </div>
-</section>
+</div>
 
 <!-- Modal Thêm/Sửa -->
-<div class="modal fade" id="phongTroModal" tabindex="-1" role="dialog" aria-hidden="true">
+<div class="modal fade" id="phongTroModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
+            <div class="modal-header">
                 <h5 class="modal-title" id="modalTitle">Cập nhật thông tin phòng</h5>
-                <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <div class="row">
-                    <div class="col-md-6 form-group">
-                        <label>Chi Nhánh <span class="text-danger">*</span></label>
-                        <select id="ChiNhanhId" class="form-control">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Chi Nhánh <span class="text-danger">*</span></label>
+                        <select id="ChiNhanhId" class="form-select">
                             <option value="">-- Chọn Chi Nhánh --</option>
                             @if (ViewBag.ChiNhanhs != null)
                             {
@@ -241,42 +193,42 @@
                             }
                         </select>
                     </div>
-                    <div class="col-md-6 form-group">
-                        <label>Số Phòng <span class="text-danger">*</span></label>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Số Phòng <span class="text-danger">*</span></label>
                         <input type="text" id="SoPhong" class="form-control" placeholder="VD: P.101">
                     </div>
-                    <div class="col-md-4 form-group">
-                        <label>Tầng Lầu</label>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Tầng Lầu</label>
                         <input type="number" id="TangLau" class="form-control" value="1">
                     </div>
-                    <div class="col-md-4 form-group">
-                        <label>Giá Thuê (VNĐ) <span class="text-danger">*</span></label>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Giá Thuê (VNĐ) <span class="text-danger">*</span></label>
                         <input type="number" id="GiaThue" class="form-control" placeholder="VD: 3000000">
                     </div>
-                    <div class="col-md-4 form-group">
-                        <label>Diện Tích (m²)</label>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Diện Tích (m²)</label>
                         <input type="number" id="DienTich" class="form-control" placeholder="VD: 20">
                     </div>
-                    <div class="col-md-6 form-group">
-                        <label>Số Người Tối Đa</label>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Số Người Tối Đa</label>
                         <input type="number" id="SoNguoiToiDa" class="form-control" value="2">
                     </div>
-                    <div class="col-md-6 form-group">
-                        <label>Trạng Thái</label>
-                        <select id="TrangThai" class="form-control">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Trạng Thái</label>
+                        <select id="TrangThai" class="form-select">
                             <option value="0">Trống</option>
                             <option value="1">Đã Thuê</option>
                             <option value="2">Bảo Trì</option>
                         </select>
                     </div>
-                    <div class="col-md-12 form-group">
-                        <label>Mô Tả</label>
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label">Mô Tả</label>
                         <textarea id="MoTa" class="form-control" rows="3" placeholder="Nội thất, tiện ích đi kèm..."></textarea>
                     </div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
                 <button type="button" class="btn btn-primary" id="btnSaveData"><i class="fas fa-save"></i> Lưu thông tin</button>
             </div>
         </div>
@@ -284,28 +236,28 @@
 </div>
 
 <!-- Modal Chi tiết phòng -->
-<div class="modal fade" id="roomDetailModal" tabindex="-1" role="dialog" aria-hidden="true">
+<div class="modal fade" id="roomDetailModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header" id="roomDetailHeader">
                 <h5 class="modal-title"><i class="fas fa-door-open"></i> <span id="detailRoomName"></span></h5>
-                <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body" id="roomDetailBody"></div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
             </div>
         </div>
     </div>
 </div>
 
 <!-- Modal Quản lý dịch vụ phòng -->
-<div class="modal fade" id="dichVuPhongModal" tabindex="-1" role="dialog" aria-hidden="true">
+<div class="modal fade" id="dichVuPhongModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header bg-success text-white">
                 <h5 class="modal-title"><i class="fas fa-concierge-bell"></i> <span id="dichVuPhongTitle">Quản lý dịch vụ</span></h5>
-                <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <div class="alert alert-info py-2 mb-3">
@@ -317,7 +269,7 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
                 <button type="button" class="btn btn-success" id="btnSaveDichVuPhong">
                     <i class="fas fa-save"></i> Lưu dịch vụ
                 </button>
@@ -327,16 +279,16 @@
 </div>
 
 <!-- Modal Xem nhanh hợp đồng -->
-<div class="modal fade" id="quickContractModal" tabindex="-1" role="dialog" aria-hidden="true">
+<div class="modal fade" id="quickContractModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header bg-primary text-white">
                 <h5 class="modal-title"><i class="fas fa-file-contract"></i> Xem Nhanh Hợp Đồng - Phòng <span id="quickContractRoom"></span></h5>
-                <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <div class="row mb-3">
-                    <div class="col-md-6 border-right">
+                    <div class="col-md-6 border-end">
                         <h6 class="font-weight-bold text-primary border-bottom pb-1 mb-2"><i class="fas fa-info-circle"></i> Thông tin hợp đồng</h6>
                         <table class="table table-sm table-borderless text-dark">
                             <tr><td width="40%">Mã HĐ:</td><td><strong id="qcMaHD" class="text-dark"></strong></td></tr>
@@ -358,10 +310,10 @@
 
                 <ul class="nav nav-tabs mb-3" id="quickContractTabs" role="tablist">
                     <li class="nav-item">
-                        <a class="nav-link active font-weight-bold" id="qc-members-tab" data-toggle="tab" href="#qc-members-pane" role="tab"><i class="fas fa-users mr-1"></i> Khách ở ghép (<span id="qcMemberCount">0</span>)</a>
+                        <a class="nav-link active font-weight-bold" id="qc-members-tab" data-bs-toggle="tab" href="#qc-members-pane" role="tab"><i class="fas fa-users me-1"></i> Khách ở ghép (<span id="qcMemberCount">0</span>)</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link font-weight-bold" id="qc-services-tab" data-toggle="tab" href="#qc-services-pane" role="tab"><i class="fas fa-concierge-bell mr-1"></i> Dịch vụ đăng ký (<span id="qcServiceCount">0</span>)</a>
+                        <a class="nav-link font-weight-bold" id="qc-services-tab" data-bs-toggle="tab" href="#qc-services-pane" role="tab"><i class="fas fa-concierge-bell me-1"></i> Dịch vụ đăng ký (<span id="qcServiceCount">0</span>)</a>
                     </li>
                 </ul>
 
@@ -399,31 +351,31 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <a href="/QuanLyNhaTro/QuanLyHopDong" class="btn btn-outline-primary mr-auto"><i class="fas fa-external-link-alt mr-1"></i> Quản lý hợp đồng đầy đủ</a>
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
+                <a href="/QuanLyNhaTro/QuanLyHopDong" class="btn btn-outline-primary me-auto"><i class="fas fa-external-link-alt me-1"></i> Quản lý hợp đồng đầy đủ</a>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
             </div>
         </div>
     </div>
 </div>
 
 <!-- Modal Thu tiền nhanh -->
-<div class="modal fade" id="quickPaymentModal" tabindex="-1" role="dialog" aria-hidden="true">
+<div class="modal fade" id="quickPaymentModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl" role="document">
         <div class="modal-content">
             <div class="modal-header bg-success text-white">
                 <h5 class="modal-title"><i class="fas fa-hand-holding-usd"></i> Thu Tiền Nhanh - Phòng <span id="quickPaymentRoom"></span></h5>
-                <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <input type="hidden" id="qpInvoiceId" />
                 <div class="row">
-                    <div class="col-lg-7 border-right">
+                    <div class="col-lg-7 border-end">
                         <h6 class="font-weight-bold text-success border-bottom pb-2 mb-3">
-                            <i class="fas fa-file-invoice-dollar mr-1"></i> Hóa đơn chưa thanh toán kỳ: <span id="qpInvoicePeriod" class="text-danger font-weight-bold"></span>
+                            <i class="fas fa-file-invoice-dollar me-1"></i> Hóa đơn chưa thanh toán kỳ: <span id="qpInvoicePeriod" class="text-danger font-weight-bold"></span>
                         </h6>
                         <div class="row mb-3 font-weight-bold text-secondary">
                             <div class="col-md-6">Mã Hóa Đơn: <span id="qpInvoiceCode" class="text-dark"></span></div>
-                            <div class="col-md-6 text-right">Khách thuê: <span id="qpTenantName" class="text-dark"></span></div>
+                            <div class="col-md-6 text-end">Khách thuê: <span id="qpTenantName" class="text-dark"></span></div>
                         </div>
                         <table class="table table-bordered table-sm table-striped mb-3">
                             <thead class="bg-light">
@@ -446,18 +398,18 @@
                             </tfoot>
                         </table>
 
-                        <div class="card card-outline card-success p-3 bg-light">
-                            <h6 class="font-weight-bold text-success mb-3"><i class="fas fa-check-double mr-1"></i> Cấu hình thu tiền nhanh</h6>
+                        <div class="card p-3 bg-light border-0">
+                            <h6 class="font-weight-bold text-success mb-3"><i class="fas fa-check-double me-1"></i> Cấu hình thu tiền nhanh</h6>
                             <div class="row text-dark">
-                                <div class="col-md-6 form-group">
-                                    <label class="font-weight-bold">Phương thức thanh toán</label>
-                                    <select id="qpPaymentMethod" class="form-control">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label font-weight-bold">Phương thức thanh toán</label>
+                                    <select id="qpPaymentMethod" class="form-select">
                                         <option value="0">Tiền mặt</option>
                                         <option value="1">Chuyển khoản</option>
                                     </select>
                                 </div>
-                                <div class="col-md-6 form-group">
-                                    <label class="font-weight-bold">Ghi chú nhanh</label>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label font-weight-bold">Ghi chú nhanh</label>
                                     <input type="text" id="qpNotes" class="form-control" placeholder="Ví dụ: Đã nhận đủ chuyển khoản...">
                                 </div>
                             </div>
@@ -465,15 +417,15 @@
                     </div>
 
                     <div class="col-lg-5 text-center mt-3 mt-lg-0">
-                        <div class="card card-outline card-primary p-3 shadow-sm bg-white h-100 d-flex flex-column justify-content-between text-dark">
+                        <div class="card p-3 shadow-sm h-100 d-flex flex-column justify-content-between border-0">
                             <div>
-                                <h6 class="font-weight-bold text-primary mb-2"><i class="fas fa-qrcode mr-1"></i> Quét mã QR chuyển khoản nhanh</h6>
+                                <h6 class="font-weight-bold text-primary mb-2"><i class="fas fa-qrcode me-1"></i> Quét mã QR chuyển khoản nhanh</h6>
                                 <div class="my-3">
                                     <img id="qpQRImage" src="" class="img-fluid border rounded p-2 bg-white" style="max-width: 200px; height: auto;" alt="VietQR" />
                                 </div>
                                 <p class="small text-muted mb-3">Chủ nhà hoặc khách thuê quét mã này bằng App ngân hàng để giao dịch lập tức</p>
                             </div>
-                            <div class="bg-light p-3 rounded text-left small" style="line-height: 1.6;">
+                            <div class="bg-light p-3 rounded text-start small" style="line-height: 1.6;">
                                 <div class="border-bottom pb-1 mb-1"><strong>Nội dung thanh toán:</strong></div>
                                 <div><strong>Nội dung CK:</strong> <code id="qpCKContent" class="text-primary font-weight-bold" style="font-size: 0.95rem;"></code></div>
                                 <div class="border-top pt-1 mt-1"><strong>Thông tin người nhận thụ hưởng:</strong></div>
@@ -488,9 +440,9 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
                 <button type="button" class="btn btn-success font-weight-bold px-4" id="btnConfirmQuickPayment">
-                    <i class="fas fa-check-circle mr-1"></i> Xác nhận thanh toán thành công
+                    <i class="fas fa-check-circle me-1"></i> Xác nhận thanh toán thành công
                 </button>
             </div>
         </div>
@@ -498,8 +450,6 @@
 </div>
 
 @section Scripts {
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     @await Html.PartialAsync("~/Areas/QuanLyNhaTro/Views/Shared/_DangKyDichVuPartial.cshtml")
     <script>
         // ========== Shared State ==========
@@ -969,17 +919,21 @@
                     { "data": null, "className": "text-center align-middle", "orderable": false, "searchable": false,
                         "render": (d,t,r,m) => m.row + m.settings._iDisplayStart + 1 },
                     { "data": "tenChiNhanh" },
-                    { "data": "soPhong", "render": d => `<span class="font-weight-bold text-info">${d}</span>` },
+                    { "data": "soPhong", "render": d => `<span class="font-weight-bold text-primary">${d}</span>` },
                     { "data": "tangLau", "className": "text-center" },
-                    { "data": "giaThue", "className": "text-right", "render": d => formatVND(d) },
+                    { "data": "giaThue", "className": "text-end", "render": d => formatVND(d) },
                     { "data": "dienTich", "className": "text-center", "render": d => d + " m²" },
                     { "data": "trangThai", "className": "text-center",
-                        "render": d => d === 0 ? '<span class="badge badge-success"><i class="fas fa-door-open"></i> Trống</span>'
-                                     : d === 1 ? '<span class="badge badge-danger"><i class="fas fa-user-check"></i> Đã Thuê</span>'
-                                     : '<span class="badge badge-warning"><i class="fas fa-tools"></i> Bảo Trì</span>' },
-                    { "data": "phongTroId", "className": "text-center", "width": "10%",
-                        "render": id => `<button class="btn btn-warning btn-sm btn-edit" data-id="${id}" title="Sửa"><i class="fas fa-edit"></i></button>
-                                         <button class="btn btn-danger btn-sm btn-delete" data-id="${id}" title="Xóa"><i class="fas fa-trash"></i></button>` }
+                        "render": d => d === 0 ? '<span class="badge bg-success-lt text-success"><i class="fas fa-door-open me-1"></i> Trống</span>'
+                                     : d === 1 ? '<span class="badge bg-blue-lt text-blue"><i class="fas fa-user-check me-1"></i> Đã Thuê</span>'
+                                     : '<span class="badge bg-warning-lt text-warning"><i class="fas fa-tools me-1"></i> Bảo Trì</span>' },
+                    { "data": "phongTroId", "className": "text-center align-middle", "width": "10%",
+                        "render": id => `
+                            <div class="btn-list flex-nowrap justify-content-center">
+                                <button class="btn btn-icon btn-ghost-warning btn-sm btn-edit" data-id="${id}" title="Sửa"><i class="fas fa-edit"></i></button>
+                                <button class="btn btn-icon btn-ghost-danger btn-sm btn-delete" data-id="${id}" title="Xóa"><i class="fas fa-trash-alt"></i></button>
+                            </div>
+                        ` }
                 ],
                 "order": [[0, "desc"]]
             });
