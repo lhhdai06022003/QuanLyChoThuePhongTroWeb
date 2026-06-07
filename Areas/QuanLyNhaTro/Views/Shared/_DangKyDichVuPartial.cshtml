@@ -134,6 +134,22 @@
         width: 70px;
         text-align: center;
     }
+    .dkdv-date-group {
+        display: flex;
+        align-items: center;
+        margin-left: 12px;
+        flex-shrink: 0;
+    }
+    .dkdv-date-group label {
+        font-size: 0.8rem;
+        margin-right: 6px;
+        margin-bottom: 0;
+        white-space: nowrap;
+        color: #555;
+    }
+    .dkdv-date-input {
+        width: 125px;
+    }
     .dkdv-price {
         font-size: 0.85rem;
         font-weight: 600;
@@ -165,6 +181,9 @@
         .dkdv-qty-group {
             margin-left: 32px;
         }
+        .dkdv-date-group {
+            margin-left: 32px;
+        }
         .dkdv-price {
             margin-left: 32px;
         }
@@ -172,6 +191,41 @@
 </style>
 
 <script>
+    // Render danh sách dịch vụ đăng ký vào container.
+    // containerId: ID của div container (không có #)
+    // data: Mảng DichVuChiNhanhWithDangKyRes từ API
+    // isNew: true nếu đang tạo mới hợp đồng (auto-tick MacDinh)
+    // Lấy Ngày Bắt Đầu Hợp Đồng (hoặc ngày hôm nay)
+    function getContractStartDate() {
+        let flatpickrEl = document.getElementById('ThoiDiemBatDau');
+        if (flatpickrEl && flatpickrEl._flatpickr && flatpickrEl._flatpickr.selectedDates.length > 0) {
+            let d = flatpickrEl._flatpickr.selectedDates[0];
+            let year = d.getFullYear();
+            let month = String(d.getMonth() + 1).padStart(2, '0');
+            let day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+        // Fallback sang parse text
+        let val = $('#ThoiDiemBatDau').val();
+        if (val) {
+            let parts = val.split('/');
+            if (parts.length === 3) {
+                return `${parts[2]}-${parts[1]}-${parts[0]}`;
+            }
+            parts = val.split('-');
+            if (parts.length === 3) {
+                if (parts[0].length === 4) return val;
+                return `${parts[2]}-${parts[1]}-${parts[0]}`;
+            }
+        }
+        
+        let now = new Date();
+        let year = now.getFullYear();
+        let month = String(now.getMonth() + 1).padStart(2, '0');
+        let day = String(now.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
     // Render danh sách dịch vụ đăng ký vào container.
     // containerId: ID của div container (không có #)
     // data: Mảng DichVuChiNhanhWithDangKyRes từ API
@@ -195,6 +249,9 @@
             return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n || 0);
         }
 
+        // Lấy ngày bắt đầu mặc định
+        let defaultStartDate = getContractStartDate();
+
         // Phân nhóm: Mặc định vs. Tùy chọn
         let defaults = data.filter(x => x.macDinh);
         let optionals = data.filter(x => !x.macDinh);
@@ -211,6 +268,13 @@
             `;
 
             defaults.forEach(function (item) {
+                let ngayBatDauStr = '';
+                if (item.ngayBatDau && !isNew) {
+                    ngayBatDauStr = item.ngayBatDau.split('T')[0];
+                } else {
+                    ngayBatDauStr = defaultStartDate;
+                }
+
                 // Dịch vụ mặc định: luôn selected, dùng hidden checkbox để collectDangKyDichVu vẫn thu thập được
                 html += `
                     <div class="dkdv-item dkdv-default" data-dkdv-id="${item.dichVuChiNhanhId}">
@@ -229,6 +293,12 @@
                             <div class="dkdv-detail">
                                 <i class="fas fa-tag"></i> ${item.donVi}
                             </div>
+                        </div>
+                        <div class="dkdv-date-group">
+                            <label>Bắt đầu:</label>
+                            <input type="date" class="form-control form-control-sm dkdv-date-input" 
+                                   data-date-id="${item.dichVuChiNhanhId}" 
+                                   value="${ngayBatDauStr}">
                         </div>
                         <div class="dkdv-price dkdv-price-default">${formatVNDShort(item.giaDichVu)}/${item.donVi}</div>
                     </div>
@@ -252,6 +322,13 @@
                 let qtyDisplay = isChecked ? '' : 'display:none;';
                 let soLuong = item.soLuong || 1;
 
+                let ngayBatDauStr = '';
+                if (item.ngayBatDau && !isNew) {
+                    ngayBatDauStr = item.ngayBatDau.split('T')[0];
+                } else {
+                    ngayBatDauStr = defaultStartDate;
+                }
+
                 html += `
                     <div class="dkdv-item dkdv-optional ${selectedClass}" data-dkdv-id="${item.dichVuChiNhanhId}">
                         <input type="checkbox" class="dkdv-checkbox" 
@@ -270,6 +347,12 @@
                                    data-qty-id="${item.dichVuChiNhanhId}" 
                                    value="${soLuong}" min="1" max="99">
                         </div>
+                        <div class="dkdv-date-group" data-date-for="${item.dichVuChiNhanhId}" style="${qtyDisplay}">
+                            <label>Bắt đầu:</label>
+                            <input type="date" class="form-control form-control-sm dkdv-date-input" 
+                                   data-date-id="${item.dichVuChiNhanhId}" 
+                                   value="${ngayBatDauStr}">
+                        </div>
                         <div class="dkdv-price">${formatVNDShort(item.giaDichVu)}/${item.donVi}</div>
                     </div>
                 `;
@@ -279,18 +362,21 @@
         html += '</div>';
         $container.html(html);
 
-        // Event: checkbox change → toggle selected class + qty visibility (chỉ cho tùy chọn)
+        // Event: checkbox change → toggle selected class + qty & date visibility (chỉ cho tùy chọn)
         $container.find('.dkdv-optional .dkdv-checkbox').on('change', function () {
             let $item = $(this).closest('.dkdv-item');
             let dvId = $(this).data('id');
             let $qty = $container.find(`[data-qty-for="${dvId}"]`);
+            let $date = $container.find(`[data-date-for="${dvId}"]`);
 
             if ($(this).is(':checked')) {
                 $item.addClass('selected');
                 $qty.slideDown(150);
+                $date.slideDown(150);
             } else {
                 $item.removeClass('selected');
                 $qty.slideUp(150);
+                $date.slideUp(150);
             }
         });
     }
@@ -306,6 +392,7 @@
             let dvId = parseInt($(this).data('id'));
             let isSelected = $(this).is(':checked');
             let soLuong = 1;
+            let ngayBatDau = null;
 
             // Nếu không phải mặc định, lấy giá trị từ ô nhập
             let isMacDinh = $(this).data('macdinh') === true || $(this).data('macdinh') === 'true';
@@ -316,10 +403,17 @@
                 }
             }
 
+            // Lấy ngày bắt đầu
+            let $dateInput = $container.find(`[data-date-id="${dvId}"]`);
+            if ($dateInput.length > 0 && $dateInput.val()) {
+                ngayBatDau = $dateInput.val();
+            }
+
             items.push({
                 dichVuChiNhanhId: dvId,
                 isSelected: isSelected,
-                soLuong: soLuong
+                soLuong: soLuong,
+                ngayBatDau: ngayBatDau
             });
         });
 

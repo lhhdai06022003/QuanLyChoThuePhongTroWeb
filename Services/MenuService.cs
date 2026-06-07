@@ -38,6 +38,7 @@ namespace QuanLyChoThuePhongTroWeb.Services
                         new MenuItem { Name = "Dịch vụ", Url = "/QuanLyNhaTro/QuanLyDichVu" },
                         new MenuItem { Name = "Điện nước", Url = "/QuanLyNhaTro/ChotDienNuoc" },
                         new MenuItem { Name = "Hóa đơn", Url = "/QuanLyNhaTro/QuanLyHoaDon" },
+                        new MenuItem { Name = "Lịch sử thanh toán", Url = "/QuanLyNhaTro/LichSuThanhToan" },
                     }
                 },
             };

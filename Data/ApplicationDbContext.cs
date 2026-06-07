@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Models;
 using QuanLyChoThuePhongTroWeb.Models;
 
@@ -26,6 +26,10 @@ namespace QuanLyChoThuePhongTroWeb.Data
                 .HasIndex(dcn => new { dcn.ChiNhanhId, dcn.DichVuId })
                 .IsUnique();
 
+            // Đảm bảo Mã chi nhánh là duy nhất
+            modelBuilder.Entity<ChiNhanh>()
+                .HasIndex(c => c.MaChiNhanh)
+                .IsUnique();
         }
         public DbSet<ChiNhanh> ChiNhanhs { get; set; }
         public DbSet<PhongTro> PhongTros { get; set; }

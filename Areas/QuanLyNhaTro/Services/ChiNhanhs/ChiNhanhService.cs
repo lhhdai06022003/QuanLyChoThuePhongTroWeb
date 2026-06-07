@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using QuanLyChoThuePhongTroWeb.Data;
 using QuanLyChoThuePhongTroWeb.Models;
 using System;
@@ -31,8 +31,18 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.ChiNhanhs
         {
             try
             {
+                // Kiểm tra trùng mã chi nhánh (không phân biệt hoa thường)
+                string normMa = model.MaChiNhanh.Trim().ToUpper();
+                bool isDuplicateMa = await _context.ChiNhanhs
+                    .AnyAsync(c => c.MaChiNhanh.ToUpper() == normMa && c.ChiNhanhId != model.ChiNhanhId && !c.IsDeleted);
+                if (isDuplicateMa)
+                {
+                    return (false, "Mã chi nhánh đã tồn tại trong hệ thống!");
+                }
+
                 if (model.ChiNhanhId == 0) // LÀ THÊM MỚI
                 {
+                    model.MaChiNhanh = normMa;
                     model.NgayTao = DateTime.UtcNow;
                     _context.ChiNhanhs.Add(model);
                     await _context.SaveChangesAsync();
@@ -47,6 +57,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.ChiNhanhs
                     }
 
                     // Map dữ liệu
+                    existing.MaChiNhanh = normMa;
                     existing.TenChiNhanh = model.TenChiNhanh;
                     existing.DiaChi = model.DiaChi;
                     existing.SoDienThoai = model.SoDienThoai;

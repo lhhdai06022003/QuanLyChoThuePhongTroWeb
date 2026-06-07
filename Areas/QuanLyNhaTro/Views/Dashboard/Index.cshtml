@@ -1,10 +1,58 @@
 @using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Responses
 @model DashboardViewModel
 @{
-    ViewData["Title"] = "Dashboard Tổng Quan";
+    ViewData["Title"] = "Bảng điều khiển hệ thống";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
-<div class="container-xl">
+
+<style>
+    /* Đồng bộ màu nền bộ lọc trong chế độ tối */
+    html[data-bs-theme="dark"] .bg-light,
+    [data-bs-theme="dark"] .bg-light {
+        background-color: var(--tblr-bg-surface-secondary, #1b2434) !important;
+        color: var(--tblr-body-color, #f4f6fa) !important;
+    }
+    html[data-bs-theme="dark"] .border-dashed,
+    [data-bs-theme="dark"] .border-dashed {
+        border-color: rgba(255, 255, 255, 0.15) !important;
+    }
+    
+    .avatar {
+        width: 2.5rem;
+        height: 2.5rem;
+        font-size: 1.25rem;
+    }
+
+    /* Styles cho timeline hoạt động */
+    .timeline {
+        position: relative;
+        padding-left: 1.5rem;
+        border-left: 2px solid var(--tblr-border-color, #e6e8eb);
+    }
+    .timeline-item {
+        position: relative;
+        margin-bottom: 1.5rem;
+    }
+    .timeline-item:last-child {
+        margin-bottom: 0;
+    }
+    .timeline-badge {
+        position: absolute;
+        left: -2.35rem;
+        top: 0.25rem;
+        width: 1.6rem;
+        height: 1.6rem;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8rem;
+        color: #fff;
+        border: 3px solid var(--tblr-card-bg, #fff);
+    }
+</style>
+
+<div class="container-xl mt-3">
     <!-- Page Header -->
     <div class="page-header d-print-none mb-3">
         <div class="row align-items-center">
@@ -14,86 +62,85 @@
                 </h2>
             </div>
             <div class="col-auto ms-auto d-print-none">
-                <form method="get" action="@Url.Action("Index", "Dashboard")" class="d-flex gap-2 align-items-center">
-                    <select name="branchId" asp-items="Model.Branches" class="form-select" style="min-width: 200px;">
+                <div class="d-flex gap-2 align-items-center">
+                    <select id="branchSelect" asp-items="Model.Branches" class="form-select" style="min-width: 180px;">
                         <option value="">-- Tất cả chi nhánh --</option>
                     </select>
 
-                    <select name="year" asp-items="Model.Years" class="form-select" style="min-width: 100px;">
+                    <select id="monthSelect" asp-items="Model.Months" class="form-select" style="min-width: 110px;">
                     </select>
 
-                    <button type="submit" class="btn btn-primary px-3">
-                        <i class="fas fa-filter me-1"></i> Lọc
-                    </button>
-                </form>
+                    <select id="yearSelect" asp-items="Model.Years" class="form-select" style="min-width: 100px;">
+                    </select>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- Stat Cards Row -->
     <div class="row row-cards mb-4">
-        <!-- Card 1: Tổng số phòng / Trống -->
-        <div class="col-sm-6 col-lg-3">
-            <div class="card card-sm shadow-sm border-0" style="border-left: 4px solid var(--tblr-primary, #206bc4) !important;">
-                <div class="card-body">
-                    <div class="row align-items-center">
-                        <div class="col-auto">
-                            <span class="bg-primary-lt text-primary avatar rounded"><i class="fa fa-home"></i></span>
-                        </div>
-                        <div class="col text-end">
-                            <div class="text-secondary small font-weight-medium">Tổng số phòng / Trống</div>
-                            <div class="h3 mb-0 font-weight-bold">@Model.TongSoPhong / <span class="text-success">@Model.SoPhongTrong</span></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Card 2: Hợp đồng hoạt động -->
+        <!-- Card 1: Doanh thu đã thu -->
         <div class="col-sm-6 col-lg-3">
             <div class="card card-sm shadow-sm border-0" style="border-left: 4px solid var(--tblr-success, #2fb344) !important;">
                 <div class="card-body">
                     <div class="row align-items-center">
                         <div class="col-auto">
-                            <span class="bg-success-lt text-success avatar rounded"><i class="fa fa-file-contract"></i></span>
+                            <span class="bg-success-lt text-success avatar rounded"><i class="fas fa-wallet"></i></span>
                         </div>
                         <div class="col text-end">
-                            <div class="text-secondary small font-weight-medium">Hợp đồng hoạt động</div>
-                            <div class="h3 mb-0 font-weight-bold text-success">@Model.TongSoHopDongHoatDong</div>
+                            <div class="text-secondary small font-weight-medium">Doanh thu đã thu</div>
+                            <div class="h3 mb-0 font-weight-bold text-success" id="statDoanhThu">@Model.DoanhThuThangNay.ToString("N0") ₫</div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Card 3: Doanh thu tháng -->
+        <!-- Card 2: Doanh thu chờ thu -->
         <div class="col-sm-6 col-lg-3">
-            <div class="card card-sm shadow-sm border-0" style="border-left: 4px solid var(--tblr-info, #4299e1) !important;">
+            <div class="card card-sm shadow-sm border-0" style="border-left: 4px solid var(--tblr-warning, #f59f00) !important;">
                 <div class="card-body">
                     <div class="row align-items-center">
                         <div class="col-auto">
-                            <span class="bg-info-lt text-info avatar rounded"><i class="fa fa-money-bill-wave"></i></span>
+                            <span class="bg-warning-lt text-warning avatar rounded"><i class="fas fa-clock"></i></span>
                         </div>
                         <div class="col text-end">
-                            <div class="text-secondary small font-weight-medium">Doanh thu tháng @DateTime.Now.Month</div>
-                            <div class="h3 mb-0 font-weight-bold text-info">@Model.DoanhThuThangNay.ToString("N0") ₫</div>
+                            <div class="text-secondary small font-weight-medium">Doanh thu chờ thu</div>
+                            <div class="h3 mb-0 font-weight-bold text-warning" id="statChoThu">@Model.TongTienChoThu.ToString("N0") ₫</div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Card 4: Tiền chờ thu -->
+        <!-- Card 3: Phòng chưa thanh toán -->
         <div class="col-sm-6 col-lg-3">
             <div class="card card-sm shadow-sm border-0" style="border-left: 4px solid var(--tblr-danger, #d63939) !important;">
                 <div class="card-body">
                     <div class="row align-items-center">
                         <div class="col-auto">
-                            <span class="bg-danger-lt text-danger avatar rounded"><i class="fa fa-hand-holding-usd"></i></span>
+                            <span class="bg-danger-lt text-danger avatar rounded"><i class="fas fa-home"></i></span>
                         </div>
                         <div class="col text-end">
-                            <div class="text-secondary small font-weight-medium">Tiền chờ thu</div>
-                            <div class="h3 mb-0 font-weight-bold text-danger">@Model.TongTienChoThu.ToString("N0") ₫</div>
+                            <div class="text-secondary small font-weight-medium">Phòng chưa thanh toán</div>
+                            <div class="h3 mb-0 font-weight-bold text-danger" id="statChuaThanhToan">@Model.SoPhongChuaThanhToan</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 4: Tỷ lệ lấp đầy phòng -->
+        <div class="col-sm-6 col-lg-3">
+            <div class="card card-sm shadow-sm border-0" style="border-left: 4px solid var(--tblr-primary, #206bc4) !important;">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-auto">
+                            <span class="bg-primary-lt text-primary avatar rounded"><i class="fas fa-percent"></i></span>
+                        </div>
+                        <div class="col text-end">
+                            <div class="text-secondary small font-weight-medium">Phòng đã thuê / Tổng số</div>
+                            <div class="h3 mb-0 font-weight-bold text-primary" id="statTyLeText">@Model.SoPhongDaThue / @Model.TongSoPhong</div>
                         </div>
                     </div>
                 </div>
@@ -102,27 +149,108 @@
     </div>
 
     <!-- Charts Row -->
-    <div class="row row-cards">
+    <div class="row row-cards mb-4">
         <!-- Revenue Bar Chart -->
         <div class="col-lg-8">
             <div class="card shadow-sm border-0">
                 <div class="card-body">
-                    <h3 class="card-title font-weight-bold text-dark mb-3"><i class="fas fa-chart-bar me-2 text-primary"></i>Xu hướng Doanh thu (Năm @Model.SelectedYear)</h3>
-                    <div style="height: 350px; position: relative;">
+                    <h3 class="card-title font-weight-bold text-dark mb-3"><i class="fas fa-chart-bar me-2 text-primary"></i>Xu hướng Doanh thu (Năm <span id="chartYearText">@Model.SelectedYear</span>)</h3>
+                    <div style="height: 320px; position: relative;">
                         <canvas id="revenueBarChart"></canvas>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Room Status Pie Chart -->
+        <!-- Payment Method doughnut chart -->
         <div class="col-lg-4">
             <div class="card shadow-sm border-0">
                 <div class="card-body">
-                    <h3 class="card-title font-weight-bold text-dark mb-3"><i class="fas fa-chart-pie me-2 text-primary"></i>Tỷ lệ trạng thái phòng trọ</h3>
-                    <div class="d-flex justify-content-center align-items-center" style="height: 350px;">
-                        <canvas id="roomStatusPieChart" style="max-height: 280px; max-width: 280px;"></canvas>
+                    <h3 class="card-title font-weight-bold text-dark mb-3"><i class="fas fa-chart-pie me-2 text-primary"></i>Cơ cấu phương thức nhận tiền</h3>
+                    <div class="d-flex justify-content-center align-items-center" style="height: 320px;">
+                        <canvas id="paymentMethodChart" style="max-height: 260px; max-width: 260px;"></canvas>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Row: To-Do & Activities -->
+    <div class="row row-cards mb-5">
+        <!-- Việc cần làm / Cảnh báo vận hành -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header border-0 bg-transparent py-3">
+                    <h3 class="card-title font-weight-bold text-dark mb-0"><i class="fas fa-tasks text-warning me-2"></i>Cảnh báo vận hành & Việc cần làm</h3>
+                </div>
+                <div class="card-body pt-1" id="toDoContainer">
+                    @if (Model.ToDos.Count == 0)
+                    {
+                        <div class="text-center text-muted py-4">
+                            <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
+                            <div>Không có cảnh báo vận hành nào cần xử lý.</div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="list-group list-group-flush">
+                            @foreach (var todo in Model.ToDos)
+                            {
+                                <a href="@todo.Link" class="list-group-item list-group-item-action border-0 px-0 py-3">
+                                    <div class="row align-items-center">
+                                        <div class="col-auto">
+                                            <span class="avatar rounded bg-@todo.Type-lt text-@todo.Type"><i class="@todo.Icon"></i></span>
+                                        </div>
+                                        <div class="col">
+                                            <div class="font-weight-bold text-dark">@todo.Title</div>
+                                            <div class="text-muted small">@todo.Description</div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <span class="btn btn-sm btn-outline-@todo.Type">Xử lý ngay</span>
+                                        </div>
+                                    </div>
+                                </a>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Hoạt động gần đây -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header border-0 bg-transparent py-3">
+                    <h3 class="card-title font-weight-bold text-dark mb-0"><i class="fas fa-history text-primary me-2"></i>Hoạt động vận hành gần đây</h3>
+                </div>
+                <div class="card-body pt-1" id="activitiesContainer">
+                    @if (Model.RecentActivities.Count == 0)
+                    {
+                        <div class="text-center text-muted py-4">
+                            <i class="fas fa-info-circle fa-2x mb-2"></i>
+                            <div>Chưa ghi nhận hoạt động vận hành nào gần đây.</div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="timeline">
+                            @foreach (var act in Model.RecentActivities)
+                            {
+                                <div class="timeline-item">
+                                    <div class="timeline-badge @act.ColorClass">
+                                        <i class="@act.Icon"></i>
+                                    </div>
+                                    <div class="ms-2">
+                                        <div class="font-weight-bold text-dark fs-4">@act.Title</div>
+                                        <div class="text-muted small">@act.Description</div>
+                                        <span class="badge bg-light-lt text-muted px-2 py-0.5 mt-1 small" style="font-size: 0.75rem;">
+                                            <i class="far fa-clock me-1"></i>@act.TimeText
+                                        </span>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
                 </div>
             </div>
         </div>
@@ -131,58 +259,195 @@
 
 @section Scripts {
     <script>
-        const chartLabels = @Html.Raw(Json.Serialize(Model.ChartLabels));
-        const chartData = @Html.Raw(Json.Serialize(Model.ChartData));
+        $(document).ready(function () {
+            function formatVND(n) {
+                if (n === null || n === undefined) return "0 ₫";
+                return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n);
+            }
 
-        const dataTrong = @Model.SoPhongTrong;
-        const dataDaThue = @Model.SoPhongDaThue;
-        const dataBaoTri = @Model.SoPhongBaoTri;
+            // Khởi tạo các biểu đồ ban đầu
+            const initialLabels = @Html.Raw(Json.Serialize(Model.ChartLabels));
+            const initialData = @Html.Raw(Json.Serialize(Model.ChartData));
+            const initialDataChoThu = @Html.Raw(Json.Serialize(Model.ChartDataChoThu));
 
-        const ctxBar = document.getElementById('revenueBarChart').getContext('2d');
-        new Chart(ctxBar, {
-            type: 'bar',
-            data: {
-                labels: chartLabels,
-                datasets: [{
-                    label: 'Doanh thu (VNĐ)',
-                    data: chartData,
-                    backgroundColor: '#206bc4',
-                    borderColor: '#206bc4',
-                    borderWidth: 1,
-                    borderRadius: 4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false }
+            const initialPayLabels = @Html.Raw(Json.Serialize(Model.PaymentMethodLabels));
+            const initialPayData = @Html.Raw(Json.Serialize(Model.PaymentMethodData));
+
+            // 1. Biểu đồ Stacked Bar Chart
+            const ctxBar = document.getElementById('revenueBarChart').getContext('2d');
+            const revenueChart = new Chart(ctxBar, {
+                type: 'bar',
+                data: {
+                    labels: initialLabels,
+                    datasets: [
+                        {
+                            label: 'Đã thu tiền (VNĐ)',
+                            data: initialData,
+                            backgroundColor: '#2fb344', // success color
+                            borderRadius: 4
+                        },
+                        {
+                            label: 'Chờ thu tiền (VNĐ)',
+                            data: initialDataChoThu,
+                            backgroundColor: '#f59f00', // warning color
+                            borderRadius: 4
+                        }
+                    ]
                 },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: { callback: function(value) { return value.toLocaleString('vi-VN') + ' ₫'; } }
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            stacked: true
+                        },
+                        y: {
+                            stacked: true,
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toLocaleString('vi-VN') + ' ₫';
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top'
+                        }
                     }
                 }
-            }
-        });
+            });
 
-        const ctxPie = document.getElementById('roomStatusPieChart').getContext('2d');
-        new Chart(ctxPie, {
-            type: 'doughnut',
-            data: {
-                labels: ['Còn trống', 'Đã cho thuê', 'Đang bảo trì'],
-                datasets: [{
-                    data: [dataTrong, dataDaThue, dataBaoTri],
-                    backgroundColor: ['#2fb344', '#206bc4', '#f59f00'],
-                    borderWidth: 2,
-                    hoverOffset: 6
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: { legend: { position: 'bottom' } }
+            // 2. Biểu đồ Doughnut Chart
+            const ctxDoughnut = document.getElementById('paymentMethodChart').getContext('2d');
+            const paymentChart = new Chart(ctxDoughnut, {
+                type: 'doughnut',
+                data: {
+                    labels: initialPayLabels,
+                    datasets: [{
+                        data: initialPayData,
+                        backgroundColor: ['#4299e1', '#6574cd'],
+                        borderWidth: 2,
+                        hoverOffset: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+
+            // Gọi AJAX cập nhật dữ liệu bảng điều khiển
+            function reloadDashboard() {
+                var branchId = $('#branchSelect').val();
+                var month = $('#monthSelect').val();
+                var year = $('#yearSelect').val();
+
+                // Cập nhật text năm trên tiêu đề chart
+                $('#chartYearText').text(year);
+
+                $.ajax({
+                    url: '/QuanLyNhaTro/Dashboard/GetAjaxData',
+                    type: 'GET',
+                    data: {
+                        branchId: branchId,
+                        month: month,
+                        year: year
+                    },
+                    success: function (res) {
+                        // 1. Cập nhật KPIs
+                        $('#statDoanhThu').text(formatVND(res.doanhThuThangNay));
+                        $('#statChoThu').text(formatVND(res.tongTienChoThu));
+                        $('#statChuaThanhToan').text(res.soPhongChuaThanhToan);
+                        $('#statTyLeText').text(res.soPhongDaThue + ' / ' + res.tongSoPhong);
+
+                        // 2. Cập nhật biểu đồ cột
+                        revenueChart.data.labels = res.chartLabels;
+                        revenueChart.data.datasets[0].data = res.chartData;
+                        revenueChart.data.datasets[1].data = res.chartDataChoThu;
+                        revenueChart.update();
+
+                        // 3. Cập nhật biểu đồ tròn
+                        paymentChart.data.labels = res.paymentMethodLabels;
+                        paymentChart.data.datasets[0].data = res.paymentMethodData;
+                        paymentChart.update();
+
+                        // 4. Cập nhật danh sách Việc cần làm
+                        var todoHtml = '';
+                        if (res.toDos.length === 0) {
+                            todoHtml = `
+                                <div class="text-center text-muted py-4">
+                                    <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
+                                    <div>Không có cảnh báo vận hành nào cần xử lý.</div>
+                                </div>`;
+                        } else {
+                            todoHtml = '<div class="list-group list-group-flush">';
+                            res.toDos.forEach(function (todo) {
+                                todoHtml += `
+                                    <a href="${todo.link}" class="list-group-item list-group-item-action border-0 px-0 py-3">
+                                        <div class="row align-items-center">
+                                            <div class="col-auto">
+                                                <span class="avatar rounded bg-${todo.type}-lt text-${todo.type}"><i class="${todo.icon}"></i></span>
+                                            </div>
+                                            <div class="col">
+                                                <div class="font-weight-bold text-dark">${todo.title}</div>
+                                                <div class="text-muted small">${todo.description}</div>
+                                            </div>
+                                            <div class="col-auto">
+                                                <span class="btn btn-sm btn-outline-${todo.type}">Xử lý ngay</span>
+                                            </div>
+                                        </div>
+                                    </a>`;
+                            });
+                            todoHtml += '</div>';
+                        }
+                        $('#toDoContainer').html(todoHtml);
+
+                        // 5. Cập nhật danh sách hoạt động gần đây
+                        var actHtml = '';
+                        if (res.recentActivities.length === 0) {
+                            actHtml = `
+                                <div class="text-center text-muted py-4">
+                                    <i class="fas fa-info-circle fa-2x mb-2"></i>
+                                    <div>Chưa ghi nhận hoạt động vận hành nào gần đây.</div>
+                                </div>`;
+                        } else {
+                            actHtml = '<div class="timeline">';
+                            res.recentActivities.forEach(function (act) {
+                                actHtml += `
+                                    <div class="timeline-item">
+                                        <div class="timeline-badge ${act.colorClass}">
+                                            <i class="${act.icon}"></i>
+                                        </div>
+                                        <div class="ms-2">
+                                            <div class="font-weight-bold text-dark fs-4">${act.title}</div>
+                                            <div class="text-muted small">${act.description}</div>
+                                            <span class="badge bg-light-lt text-muted px-2 py-0.5 mt-1 small" style="font-size: 0.75rem;">
+                                                <i class="far fa-clock me-1"></i>${act.timeText}
+                                            </span>
+                                        </div>
+                                    </div>`;
+                            });
+                            actHtml += '</div>';
+                        }
+                        $('#activitiesContainer').html(actHtml);
+                    },
+                    error: function (xhr) {
+                        console.error('Không tải được dữ liệu dashboard:', xhr);
+                    }
+                });
             }
+
+            // Lắng nghe thay đổi bộ lọc
+            $('#branchSelect, #monthSelect, #yearSelect').change(function () {
+                reloadDashboard();
+            });
         });
     </script>
 }

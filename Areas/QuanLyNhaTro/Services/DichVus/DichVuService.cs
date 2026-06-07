@@ -264,7 +264,8 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.DichVus
                     MacDinh = dcn.DichVu.MacDinh,
                     IsSelected = dk != null,
                     SoLuong = dk?.SoLuong ?? 1,
-                    DangKyDichVuId = dk?.DangKyDichVuId
+                    DangKyDichVuId = dk?.DangKyDichVuId,
+                    NgayBatDau = dk?.NgayBatDau
                 };
             }).OrderByDescending(x => x.MacDinh).ThenBy(x => x.TenDichVu).ToList();
 
@@ -294,6 +295,10 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.DichVus
                         {
                             // UPDATE: cập nhật số lượng
                             existing.SoLuong = item.SoLuong > 0 ? item.SoLuong : 1;
+                            if (item.NgayBatDau.HasValue)
+                            {
+                                existing.NgayBatDau = DateTime.SpecifyKind(item.NgayBatDau.Value, DateTimeKind.Utc);
+                            }
                         }
                         else
                         {
@@ -302,7 +307,10 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.DichVus
                             {
                                 PhongTroId = input.PhongTroId,
                                 DichVuChiNhanhId = item.DichVuChiNhanhId,
-                                SoLuong = item.SoLuong > 0 ? item.SoLuong : 1
+                                SoLuong = item.SoLuong > 0 ? item.SoLuong : 1,
+                                NgayBatDau = item.NgayBatDau.HasValue
+                                    ? DateTime.SpecifyKind(item.NgayBatDau.Value, DateTimeKind.Utc)
+                                    : DateTime.UtcNow
                             });
                         }
                     }

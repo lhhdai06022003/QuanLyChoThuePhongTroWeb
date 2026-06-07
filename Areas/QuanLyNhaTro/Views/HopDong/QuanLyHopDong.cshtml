@@ -5,7 +5,19 @@
     // Ép kiểu dữ liệu ViewBag sang JSON để xài trong Javascript với CamelCase
     var jsonPhongTros = Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.ListPhongTro, new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }));
 }
-<link rel="stylesheet" href="~/css/hopdong.css" />
+<link rel="stylesheet" href="~/css/hopdong.css" asp-append-version="true" />
+<style>
+    /* Đồng bộ màu nền bộ lọc trong chế độ tối */
+    html[data-bs-theme="dark"] .bg-light,
+    [data-bs-theme="dark"] .bg-light {
+        background-color: var(--tblr-bg-surface-secondary, #1b2434) !important;
+        color: var(--tblr-body-color, #f4f6fa) !important;
+    }
+    html[data-bs-theme="dark"] .border-dashed,
+    [data-bs-theme="dark"] .border-dashed {
+        border-color: rgba(255, 255, 255, 0.15) !important;
+    }
+</style>
 <div class="container-xl mt-3">
     <!-- Page Header -->
     <div class="page-header d-print-none mb-3">
@@ -127,8 +139,10 @@
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label class="form-label">Mã Hợp Đồng <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="MaHopDong" placeholder="VD: HD-001">
+                                    <label class="form-label">Mã Hợp Đồng</label>
+                                    <input type="text" class="form-control" id="MaHopDong" readonly 
+                                           placeholder="Hệ thống tự sinh khi lưu" 
+                                           style="background-color: #f4f6f9; font-weight: bold; color: #206bc4;">
                                 </div>
 
                                 <div class="mb-3">
@@ -240,7 +254,7 @@
                     <i class="fas fa-arrow-left me-1"></i> Quay lại
                 </button>
                 <div>
-                    <button type="button" class="btn btn-light me-2" data-bs-dismiss="modal">Đóng</button>
+                    <button type="button" class="btn btn-danger me-2" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i> Đóng</button>
                     <button type="button" class="btn btn-primary shadow-sm" id="btnWizardNext">
                         Tiếp theo <i class="fas fa-arrow-right ms-1"></i>
                     </button>
@@ -276,14 +290,13 @@
 
             // Validate di chuyển tiến tới từ bước 1
             if (step > window.currentStep && window.currentStep === 1) {
-                let maHopDong = $('#MaHopDong').val().trim();
                 let chiNhanhId = $('#ChiNhanhId').val();
                 let phongTroId = $('#PhongTroId').val();
                 let nguoiThueId = $('#NguoiThueId').val();
                 let dateBatDau = batDauPicker.selectedDates[0];
                 let tienThuePhong = parseFloat($('#TienThuePhong').val() || 0);
 
-                if (!maHopDong || !chiNhanhId || !phongTroId || !nguoiThueId || !dateBatDau) {
+                if (!chiNhanhId || !phongTroId || !nguoiThueId || !dateBatDau) {
                     showToastr("Vui lòng nhập đầy đủ các trường bắt buộc (*).", "warning");
                     return;
                 }
@@ -546,7 +559,7 @@
             // Nút mở Modal Thêm mới
             $('#btnOpenAddModal').on('click', function() {
                 window.currentHopDongId = 0;
-                $('#MaHopDong').val('');
+                $('#MaHopDong').val('Hệ thống tự sinh khi lưu');
                 $('#TienCocPhong').val('0');
                 $('#TienThuePhong').val('');
 
@@ -678,11 +691,12 @@
                                 
                                 let buttons = '';
                                 if (!tv.ngayChuyenDi) {
-                                    buttons += `<button type="button" class="btn btn-sm btn-icon btn-warning btn-checkout" data-id="${tv.chiTietThanhVienHopDongId}" title="Báo chuyển đi"><i class="fas fa-sign-out-alt"></i></button> `;
+                                    buttons += `<button type="button" class="btn btn-icon btn-ghost-warning btn-sm btn-checkout" data-id="${tv.chiTietThanhVienHopDongId}" title="Báo chuyển đi"><i class="fas fa-sign-out-alt"></i></button> `;
                                 }
                                 if (!tv.isChuHopDong) {
-                                    buttons += `<button type="button" class="btn btn-sm btn-icon btn-danger btn-delete-member" data-id="${tv.chiTietThanhVienHopDongId}" title="Xoá thành viên (nhập sai)"><i class="fas fa-trash"></i></button>`;
+                                    buttons += `<button type="button" class="btn btn-icon btn-ghost-danger btn-sm btn-delete-member" data-id="${tv.chiTietThanhVienHopDongId}" title="Xoá thành viên (nhập sai)"><i class="fas fa-trash"></i></button>`;
                                 }
+                                buttons = `<div class="btn-list flex-nowrap justify-content-center">${buttons}</div>`;
 
                                 html += `
                                     <tr>
@@ -806,7 +820,7 @@
 
             // SỰ KIỆN LƯU DỮ LIỆU (Hợp đồng + Dịch vụ)
             $('#btnSaveData').on('click', function () {
-                let maHopDong = $('#MaHopDong').val().trim();
+                let maHopDong = window.currentHopDongId > 0 ? $('#MaHopDong').val().trim() : '';
                 let phongTroId = $('#PhongTroId').val();
                 let nguoiThueId = $('#NguoiThueId').val();
 
@@ -816,7 +830,7 @@
                 let tienCocPhong = parseFloat($('#TienCocPhong').val() || 0);
                 let tienThuePhong = parseFloat($('#TienThuePhong').val() || 0);
 
-                if (!maHopDong || !phongTroId || !nguoiThueId || !dateBatDau) {
+                if (!phongTroId || !nguoiThueId || !dateBatDau) {
                     showToastr("Vui lòng nhập đầy đủ các trường bắt buộc (*).", "warning");
                     return;
                 }

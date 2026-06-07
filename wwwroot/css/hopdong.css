@@ -9,6 +9,7 @@
     position: relative;
     user-select: none;
     font-weight: 500;
+    padding-top: 3.0rem !important; /* Tránh vòng tròn số đè lên chữ tiêu đề bên dưới */
 }
 
 .steps-counter .step-item::before {

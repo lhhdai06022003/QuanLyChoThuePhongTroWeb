@@ -150,6 +150,27 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HopDongs
                 .FirstOrDefaultAsync();
         }
 
+        private async Task<string> GenerateMaHopDongAsync(int chiNhanhId, DateTime thoiDiemBatDau, int offset = 0)
+        {
+            // 1. Lấy mã viết tắt chi nhánh
+            var chiNhanh = await _context.ChiNhanhs.FindAsync(chiNhanhId);
+            if (chiNhanh == null) throw new Exception("Không tìm thấy chi nhánh.");
+            string maChiNhanh = !string.IsNullOrEmpty(chiNhanh.MaChiNhanh) ? chiNhanh.MaChiNhanh : $"CN{chiNhanhId}";
+
+            // 2. Xây dựng prefix theo năm tháng (yyMM)
+            string datePart = thoiDiemBatDau.ToString("yyMM");
+            string prefix = $"HD-{maChiNhanh}-{datePart}-";
+
+            // 3. Đếm số hợp đồng đã tồn tại với cùng prefix để tính số thứ tự trong tháng đó (bao gồm cả các hợp đồng đã xóa để không trùng số thứ tự cũ)
+            int count = await _context.HopDongs
+                .CountAsync(x => x.MaHopDong.StartsWith(prefix));
+
+            // 4. Sinh số thứ tự tiếp theo (đệm 3 chữ số), cộng thêm offset nếu xảy ra va chạm đồng thời
+            string seq = (count + 1 + offset).ToString("D3");
+
+            return $"{prefix}{seq}";
+        }
+
         public async Task<(bool IsSuccess, string ErrorMessage)> CreateAsync(HopDongReq input)
         {
             // 1. Kiểm tra Logic Ngày tháng
@@ -157,10 +178,6 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HopDongs
             {
                 return (false, "Ngày kết thúc không được trước ngày bắt đầu.");
             }
-
-            // 2. Kiểm tra mã hợp đồng trùng lặp
-            bool isDuplicateMa = await _context.HopDongs.AnyAsync(x => x.MaHopDong == input.MaHopDong && !x.IsDeleted);
-            if (isDuplicateMa) return (false, "Mã hợp đồng đã tồn tại trong hệ thống.");
 
             // 3. Kiểm tra phòng trọ có đang được thuê không
             bool isPhongDangThue = await _context.HopDongs.AnyAsync(x =>
@@ -180,6 +197,32 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HopDongs
             // 5. Kiểm tra giới hạn số người tối đa của phòng trọ
             var phong = await _context.PhongTros.FindAsync(input.PhongTroId);
             if (phong == null) return (false, "Không tìm thấy phòng trọ.");
+
+            // Sinh mã hợp đồng tự động (sử dụng ngày bắt đầu local để tránh lệch múi giờ)
+            string maHopDong = "";
+            int maxRetries = 5;
+            int retryCount = 0;
+            bool isCodeUnique = false;
+
+            while (!isCodeUnique && retryCount < maxRetries)
+            {
+                maHopDong = await GenerateMaHopDongAsync(phong.ChiNhanhId, input.ThoiDiemBatDau, retryCount);
+                // Kiểm tra xem mã này đã tồn tại thực sự trong DB chưa
+                bool exists = await _context.HopDongs.AnyAsync(x => x.MaHopDong == maHopDong);
+                if (!exists)
+                {
+                    isCodeUnique = true;
+                }
+                else
+                {
+                    retryCount++;
+                }
+            }
+
+            if (!isCodeUnique)
+            {
+                return (false, "Không thể tự động sinh mã hợp đồng duy nhất. Vui lòng thử lại.");
+            }
 
             int totalMembersToAdd = (input.NguoiDungCoOPhongKhong ? 1 : 0) + 
                                     (input.ThanhVienKhacIds != null ? input.ThanhVienKhacIds.Where(id => id != input.NguoiThueId).Distinct().Count() : 0);
@@ -220,7 +263,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HopDongs
             {
                 var hopDong = new HopDong
                 {
-                    MaHopDong = input.MaHopDong,
+                    MaHopDong = maHopDong,
                     PhongTroId = input.PhongTroId,
                     NguoiThueId = input.NguoiThueId,
                     ThoiDiemBatDau = input.ThoiDiemBatDau.ToUniversalTime(), // PostgreSQL yêu cầu UTC
@@ -299,9 +342,6 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HopDongs
             if (input.ThoiDiemKetThuc.HasValue && input.ThoiDiemKetThuc.Value.Date < input.ThoiDiemBatDau.Date)
                 return (false, "Ngày kết thúc không được trước ngày bắt đầu.");
 
-            bool isDuplicateMa = await _context.HopDongs.AnyAsync(x => x.MaHopDong == input.MaHopDong && x.HopDongId != id && !x.IsDeleted);
-            if (isDuplicateMa) return (false, "Mã hợp đồng bị trùng với hợp đồng khác.");
-
             // Nếu thay đổi trạng thái sang Hoạt động, cần kiểm tra người đại diện và phòng trọ
             if (input.TrangThaiHopDong == TrangThaiHopDong.DangHoatDong && entity.TrangThaiHopDong != TrangThaiHopDong.DangHoatDong)
             {
@@ -354,7 +394,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HopDongs
                 }
 
                 // Bước 2: Cập nhật thông tin hợp đồng
-                entity.MaHopDong = input.MaHopDong;
+                // Giữ nguyên MaHopDong (không cho phép sửa đổi mã hợp đồng đã sinh)
                 entity.ThoiDiemBatDau = input.ThoiDiemBatDau.ToUniversalTime();
                 entity.ThoiDiemKetThuc = input.ThoiDiemKetThuc?.ToUniversalTime();
                 entity.TienCocPhong = input.TienCocPhong;

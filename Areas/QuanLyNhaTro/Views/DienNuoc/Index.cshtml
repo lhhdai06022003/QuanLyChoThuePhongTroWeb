@@ -2,7 +2,19 @@
     ViewData["Title"] = "Chốt Chỉ Số Điện/Nước Hàng Tháng";
 }
 
-<link rel="stylesheet" href="~/css/diennuoc.css" />
+<link rel="stylesheet" href="~/css/diennuoc.css" asp-append-version="true" />
+<style>
+    /* Đồng bộ màu nền bộ lọc trong chế độ tối */
+    html[data-bs-theme="dark"] .bg-light,
+    [data-bs-theme="dark"] .bg-light {
+        background-color: var(--tblr-bg-surface-secondary, #1b2434) !important;
+        color: var(--tblr-body-color, #f4f6fa) !important;
+    }
+    html[data-bs-theme="dark"] .border-bottom,
+    [data-bs-theme="dark"] .border-bottom {
+        border-color: rgba(255, 255, 255, 0.15) !important;
+    }
+</style>
 
 <div class="container-xl mt-3">
     <!-- Page Header -->

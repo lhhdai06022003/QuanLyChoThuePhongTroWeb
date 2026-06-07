@@ -23,10 +23,11 @@
                     <thead class="thead-light">
                         <tr>
                             <th width="5%">STT</th>
+                            <th width="10%">Mã CN</th>
                             <th width="20%">Tên Chi Nhánh</th>
-                            <th width="30%">Địa Chỉ</th>
+                            <th width="25%">Địa Chỉ</th>
                             <th width="15%">Số Điện Thoại</th>
-                            <th width="15%">Ngày Tạo</th>
+                            <th width="10%">Ngày Tạo</th>
                             <th width="15%" class="text-center">Thao tác</th>
                         </tr>
                     </thead>
@@ -48,28 +49,36 @@
 
             <div class="modal-body">
 
-                <div class="form-group row">
+                <div class="form-group row mb-3">
+                    <label class="col-sm-3 col-form-label">Mã Chi Nhánh <span class="text-danger">*</span></label>
+                    <div class="col-sm-9">
+                        <input type="text" class="form-control" id="MaChiNhanh" name="MaChiNhanh" required placeholder="Ví dụ: Q1, BT, TD..." maxlength="10">
+                        <small class="form-text text-muted">Mã viết tắt viết liền không dấu, dùng để tự động sinh mã hợp đồng.</small>
+                    </div>
+                </div>
+
+                <div class="form-group row mb-3">
                     <label class="col-sm-3 col-form-label">Tên Chi Nhánh <span class="text-danger">*</span></label>
                     <div class="col-sm-9">
                         <input type="text" class="form-control" id="TenChiNhanh" name="TenChiNhanh" required placeholder="Nhập tên chi nhánh...">
                     </div>
                 </div>
 
-                <div class="form-group row">
+                <div class="form-group row mb-3">
                     <label class="col-sm-3 col-form-label">Số Điện Thoại</label>
                     <div class="col-sm-9">
                         <input type="text" class="form-control" id="SoDienThoai" name="SoDienThoai" placeholder="Nhập SĐT liên hệ...">
                     </div>
                 </div>
 
-                <div class="form-group row">
+                <div class="form-group row mb-3">
                     <label class="col-sm-3 col-form-label">Địa Chỉ <span class="text-danger">*</span></label>
                     <div class="col-sm-9">
                         <input type="text" class="form-control" id="DiaChi" name="DiaChi" required placeholder="Nhập địa chỉ đầy đủ...">
                     </div>
                 </div>
 
-                <div class="form-group row">
+                <div class="form-group row mb-3">
                     <label class="col-sm-3 col-form-label">Mô Tả Thêm</label>
                     <div class="col-sm-9">
                         <textarea class="form-control" id="MoTa" name="MoTa" rows="3" placeholder="Ví dụ: Gần trường ĐH Sư Phạm Kỹ Thuật..."></textarea>
@@ -78,7 +87,7 @@
             </div>
 
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i> Đóng</button>
                 <button type="submit" class="btn btn-primary" id="btnSaveData">
                     <i class="fas fa-save"></i> Lưu thông tin
                 </button>
@@ -111,6 +120,12 @@
                         "searchable": false,
                         "render": function (data, type, row, meta) {
                             return meta.row + meta.settings._iDisplayStart + 1;
+                        }
+                    },
+                    {
+                        "data": "maChiNhanh",
+                        "render": function(data) {
+                            return `<span class="font-weight-bold text-success">${data || ""}</span>`;
                         }
                     },
                     {
@@ -153,11 +168,16 @@
 
                 // --- SỰ KIỆN LƯU DỮ LIỆU ---
             $('#btnSaveData').on('click', function () {
+                let ma = $('#MaChiNhanh').val() || "";
                 let ten = $('#TenChiNhanh').val() || "";
                 let sdt = $('#SoDienThoai').val() || "";
                 let diaChi = $('#DiaChi').val() || "";
                 let moTa = $('#MoTa').val() || "";
 
+                if (ma.trim() === "") {
+                    alert("Vui lòng nhập mã chi nhánh!");
+                    return;
+                }
                 if (ten.trim() === "") {
                     alert("Vui lòng nhập tên chi nhánh!");
                     return;
@@ -180,6 +200,7 @@
                     type: 'POST',
                     data: {
                         ChiNhanhId: currentChiNhanhId, // Gửi biến này về backend
+                        MaChiNhanh: ma,
                         TenChiNhanh: ten,
                         SoDienThoai: sdt,
                         DiaChi: diaChi,
@@ -209,6 +230,7 @@
                     type: 'GET',
                     success: function (res) {
                         if (res.success && res.data) {
+                            $('#MaChiNhanh').val(res.data.maChiNhanh);
                             $('#TenChiNhanh').val(res.data.tenChiNhanh);
                             $('#SoDienThoai').val(res.data.soDienThoai);
                             $('#DiaChi').val(res.data.diaChi);
@@ -266,6 +288,7 @@
                 currentChiNhanhId = 0; // Đặt lại về 0
 
                 // Reset trắng các ô nhập liệu
+                $('#MaChiNhanh').val('');
                 $('#TenChiNhanh').val('');
                 $('#SoDienThoai').val('');
                 $('#DiaChi').val('');

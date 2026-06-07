@@ -1,0 +1,470 @@
+@using Microsoft.AspNetCore.Html
+@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
+@{
+    ViewData["Title"] = "Quản lý Lịch sử Thanh toán";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var isAdmin = User.IsInRole("Admin") ? "true" : "false";
+}
+
+<style>
+    /* Đồng bộ màu nền bộ lọc trong chế độ tối */
+    html[data-bs-theme="dark"] .bg-light,
+    [data-bs-theme="dark"] .bg-light {
+        background-color: var(--tblr-bg-surface-secondary, #1b2434) !important;
+        color: var(--tblr-body-color, #f4f6fa) !important;
+    }
+    html[data-bs-theme="dark"] .border-dashed,
+    [data-bs-theme="dark"] .border-dashed {
+        border-color: rgba(255, 255, 255, 0.15) !important;
+    }
+    
+    .avatar {
+        width: 2.5rem;
+        height: 2.5rem;
+        font-size: 1.25rem;
+    }
+</style>
+
+<div class="container-xl mt-3">
+    <!-- Page Header -->
+    <div class="page-header d-print-none mb-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <h2 class="page-title text-primary font-weight-bold">
+                    <i class="fas fa-history me-2"></i> Lịch sử thanh toán giao dịch
+                </h2>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stat Cards Row -->
+    <div class="row row-cards mb-4">
+        <!-- Card 1: Tổng doanh thu -->
+        <div class="col-sm-6 col-lg-3">
+            <div class="card card-sm shadow-sm border-0" style="border-left: 4px solid var(--tblr-success, #2fb344) !important;">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-auto">
+                            <span class="bg-success-lt text-success avatar rounded"><i class="fas fa-wallet"></i></span>
+                        </div>
+                        <div class="col text-end">
+                            <div class="text-secondary small font-weight-medium">Tổng doanh thu</div>
+                            <div class="h3 mb-0 font-weight-bold text-success" id="statTongDoanhThu">0 ₫</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 2: Số giao dịch -->
+        <div class="col-sm-6 col-lg-3">
+            <div class="card card-sm shadow-sm border-0" style="border-left: 4px solid var(--tblr-primary, #206bc4) !important;">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-auto">
+                            <span class="bg-primary-lt text-primary avatar rounded"><i class="fas fa-receipt"></i></span>
+                        </div>
+                        <div class="col text-end">
+                            <div class="text-secondary small font-weight-medium">Số giao dịch</div>
+                            <div class="h3 mb-0 font-weight-bold text-primary" id="statTongSoGiaoDich">0</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 3: Thu tiền mặt -->
+        <div class="col-sm-6 col-lg-3">
+            <div class="card card-sm shadow-sm border-0" style="border-left: 4px solid var(--tblr-info, #4299e1) !important;">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-auto">
+                            <span class="bg-info-lt text-info avatar rounded"><i class="fas fa-money-bill-wave"></i></span>
+                        </div>
+                        <div class="col text-end">
+                            <div class="text-secondary small font-weight-medium">Thu tiền mặt</div>
+                            <div class="h3 mb-0 font-weight-bold text-info" id="statDoanhThuTienMat">0 ₫</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 4: Chuyển khoản -->
+        <div class="col-sm-6 col-lg-3">
+            <div class="card card-sm shadow-sm border-0" style="border-left: 4px solid var(--tblr-indigo, #6574cd) !important;">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-auto">
+                            <span class="bg-indigo-lt text-indigo avatar rounded"><i class="fas fa-university"></i></span>
+                        </div>
+                        <div class="col text-end">
+                            <div class="text-secondary small font-weight-medium">Chuyển khoản</div>
+                            <div class="h3 mb-0 font-weight-bold text-indigo" id="statDoanhThuChuyenKhoan">0 ₫</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card quản lý & danh sách giao dịch -->
+    <div class="card border-0 shadow-sm mb-5">
+        <div class="card-body p-4">
+            <!-- Khu vực Bộ lọc dạng hàng ngang -->
+            <div class="bg-light p-3 border border-dashed rounded-3 mb-4">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label font-weight-bold text-secondary mb-1">
+                            <i class="fas fa-building me-1"></i> Chi Nhánh
+                        </label>
+                        <select id="filterChiNhanh" class="form-select form-select-sm">
+                            <option value="0">-- Tất cả chi nhánh --</option>
+                            @if (ViewBag.ListChiNhanh != null)
+                            {
+                                foreach (var cn in ViewBag.ListChiNhanh)
+                                {
+                                    <option value="@cn.Value">@cn.Text</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label font-weight-bold text-secondary mb-1">
+                            <i class="fas fa-hand-holding-usd me-1"></i> Phương thức
+                        </label>
+                        <select id="filterPhuongThuc" class="form-select form-select-sm">
+                            <option value="-1">-- Tất cả phương thức --</option>
+                            <option value="0">Tiền mặt</option>
+                            <option value="1">Chuyển khoản</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label font-weight-bold text-secondary mb-1">
+                            <i class="fas fa-calendar-alt me-1"></i> Khoảng thời gian
+                        </label>
+                        <input type="text" id="filterDateRange" class="form-control form-control-sm" placeholder="Chọn khoảng ngày thanh toán..." readonly />
+                    </div>
+                    <div class="col-md-2">
+                        <button class="btn btn-primary btn-sm w-100 font-weight-bold" id="btnFilter" style="height: 36px;">
+                            <i class="fas fa-search me-1"></i> Lọc danh sách
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bảng dữ liệu -->
+            <div class="table-responsive">
+                <table id="lichSuTable" class="table card-table table-vcenter table-striped table-hover w-100">
+                    <thead>
+                        <tr>
+                            <th class="text-center" width="4%">STT</th>
+                            <th>Mã GD</th>
+                            <th>Mã HĐ</th>
+                            <th>Phòng</th>
+                            <th>Khách thuê</th>
+                            <th>Chi nhánh</th>
+                            <th class="text-right">Số tiền</th>
+                            <th class="text-center">Phương thức</th>
+                            <th>Ngày thanh toán</th>
+                            <th>Người thực hiện</th>
+                            <th class="text-center" width="12%">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Chi tiết Hóa đơn -->
+<div class="modal modal-blur fade" id="chiTietModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+        <div class="modal-content shadow-lg border-0">
+            <div class="modal-header bg-info text-white py-3">
+                <h5 class="modal-title font-weight-bold"><i class="fas fa-file-alt me-1"></i> Chi tiết Hóa đơn</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body py-4" id="chiTietBody">
+                <!-- JS render -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i> Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            var isAdmin = @isAdmin;
+            var bankId = '@(Configuration["VietQRSettings:BankId"] ?? "MB")';
+            var accountNumber = '@(Configuration["VietQRSettings:AccountNumber"] ?? "")';
+            var accountName = '@(Configuration["VietQRSettings:AccountName"] ?? "")';
+
+            function formatVND(n) {
+                if (n === null || n === undefined) return "0 ₫";
+                return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n);
+            }
+
+            // Khởi tạo Flatpickr cho khoảng ngày thanh toán
+            var flatpickrInstance = flatpickr("#filterDateRange", {
+                mode: "range",
+                dateFormat: "Y-m-d",
+                altInput: true,
+                altFormat: "d/m/Y",
+                locale: "vn",
+                onReady: function(selectedDates, dateStr, instance) {
+                    var clearBtn = $('<div class="flatpickr-clear-btn text-end p-2 border-top" style="cursor: pointer; color: var(--tblr-danger); font-weight: bold;"><i class="fas fa-times me-1"></i>Xóa chọn</div>');
+                    clearBtn.on('click', function() {
+                        instance.clear();
+                        instance.close();
+                    });
+                    $(instance.calendarContainer).append(clearBtn);
+                }
+            });
+
+            // Tải thống kê
+            function loadStats() {
+                var chiNhanhId = $('#filterChiNhanh').val();
+                var dateRange = $('#filterDateRange').val();
+
+                $.ajax({
+                    url: '/LichSuThanhToan/GetStats',
+                    type: 'GET',
+                    data: {
+                        chiNhanhId: chiNhanhId,
+                        dateRange: dateRange
+                    },
+                    success: function (res) {
+                        $('#statTongDoanhThu').text(formatVND(res.tongDoanhThu));
+                        $('#statTongSoGiaoDich').text(res.tongSoGiaoDich);
+                        $('#statDoanhThuTienMat').text(formatVND(res.doanhThuTienMat));
+                        $('#statDoanhThuChuyenKhoan').text(formatVND(res.doanhThuChuyenKhoan));
+                    },
+                    error: function (xhr) {
+                        console.error('Không tải được thống kê giao dịch:', xhr);
+                    }
+                });
+            }
+
+            // Khởi tạo DataTable
+            var table = $('#lichSuTable').DataTable({
+                "language": { "url": "https://cdn.datatables.net/plug-ins/1.13.6/i18n/vi.json" },
+                "serverSide": true,
+                "processing": true,
+                "ajax": {
+                    "url": "/LichSuThanhToan/GetList",
+                    "type": "POST",
+                    "data": function (d) {
+                        d.chiNhanhId = $('#filterChiNhanh').val();
+                        d.phuongThuc = $('#filterPhuongThuc').val();
+                        d.dateRange = $('#filterDateRange').val();
+                    }
+                },
+                "columns": [
+                    { 
+                        "data": null, 
+                        "className": "text-center align-middle", 
+                        "orderable": false, 
+                        "render": (d, t, r, m) => m.row + m.settings._iDisplayStart + 1 
+                    },
+                    { "data": "maGiaoDich", "className": "align-middle font-weight-bold text-dark" },
+                    { "data": "maHoaDon", "className": "align-middle font-weight-bold text-info" },
+                    { "data": "tenPhong", "className": "align-middle font-weight-bold text-primary" },
+                    { "data": "tenNguoiThue", "className": "align-middle" },
+                    { "data": "tenChiNhanh", "className": "align-middle text-muted" },
+                    { 
+                        "data": "soTienThanhToan", 
+                        "className": "text-right align-middle font-weight-bold text-success", 
+                        "render": (d) => formatVND(d) 
+                    },
+                    {
+                        "data": "phuongThucThanhToan", 
+                        "className": "text-center align-middle",
+                        "orderable": false,
+                        "render": function (d, t, r) {
+                            if (d === 1) {
+                                return '<span class="badge bg-success-lt px-2 py-1"><i class="fas fa-university me-1"></i> Chuyển khoản</span>';
+                            }
+                            return '<span class="badge bg-blue-lt px-2 py-1"><i class="fas fa-money-bill-wave me-1"></i> Tiền mặt</span>';
+                        }
+                    },
+                    { "data": "ngayThanhToan", "className": "align-middle text-center" },
+                    { "data": "nguoiXacNhan", "className": "align-middle" },
+                    {
+                        "data": null, 
+                        "orderable": false, 
+                        "className": "text-center align-middle",
+                        "render": function (data, t, row) {
+                            let actionHtml = `
+                                <div class="d-flex justify-content-center gap-1">
+                                    <button class="btn btn-outline-info btn-xs btn-detail" data-id="${row.hoaDonId}" title="Xem hóa đơn">
+                                        <i class="fas fa-eye me-1"></i>Xem HĐ
+                                    </button>
+                            `;
+                            if (isAdmin) {
+                                actionHtml += `
+                                    <button class="btn btn-outline-danger btn-xs btn-void" data-id="${row.lichSuThanhToanId}" data-code="${row.maGiaoDich}" title="Hủy giao dịch thanh toán">
+                                        <i class="fas fa-trash-alt me-1"></i>Hủy
+                                    </button>
+                                `;
+                            }
+                            actionHtml += '</div>';
+                            return actionHtml;
+                        }
+                    }
+                ]
+            });
+
+            // Tải thống kê & dữ liệu ban đầu
+            loadStats();
+
+            // Lọc dữ liệu
+            $('#btnFilter').click(function () {
+                table.ajax.reload();
+                loadStats();
+            });
+
+            // Chi tiết hóa đơn
+            $('#lichSuTable').on('click', '.btn-detail', function () {
+                let id = $(this).data('id');
+                $.get(`/HoaDon/GetById/${id}`, function (res) {
+                    let html = `
+                        <div class="row mb-3 fs-3">
+                            <div class="col-md-6 mb-2"><strong>Mã HĐ:</strong> <span class="text-primary font-weight-bold">${res.maHoaDon}</span></div>
+                            <div class="col-md-6 mb-2"><strong>Ngày tạo:</strong> ${res.ngayTao}</div>
+                            <div class="col-md-6 mb-2"><strong>Phòng:</strong> <span class="text-primary font-weight-bold">${res.tenPhong}</span></div>
+                            <div class="col-md-6 mb-2"><strong>Kỳ:</strong> Tháng ${res.thang}/${res.nam}</div>
+                            <div class="col-md-6 mb-2"><strong>Người thuê:</strong> ${res.tenNguoiThue}</div>
+                            <div class="col-md-6 mb-2"><strong>Trạng thái:</strong> <span class="badge ${res.trangThaiHoaDon === 'Đã thanh toán' ? 'bg-success-lt' : 'bg-warning-lt'} px-2 py-1">${res.trangThaiHoaDon}</span></div>
+                        </div>
+                        <h4 class="font-weight-bold border-bottom pb-2 mt-4 text-dark"><i class="fas fa-list me-1"></i> Chi tiết các khoản phí</h4>
+                        <div class="table-responsive mb-3">
+                            <table class="table card-table table-vcenter table-striped table-hover w-100 table-sm">
+                                <thead>
+                                    <tr>
+                                        <th class="text-center" width="6%">STT</th>
+                                        <th>Dịch vụ</th>
+                                        <th class="text-right" width="18%">Đơn giá</th>
+                                        <th class="text-center" width="12%">SL</th>
+                                        <th class="text-center" width="12%">Đơn vị</th>
+                                        <th class="text-right" width="20%">Thành tiền</th>
+                                    </tr>
+                                </thead>
+                                <tbody>`;
+
+                    res.chiTietHoaDons.forEach((ct, idx) => {
+                        let donViText = ct.donVi ? ct.donVi : '-';
+                        html += `<tr>
+                            <td class="text-center align-middle">${idx + 1}</td>
+                            <td class="align-middle">${ct.tenDichVu}</td>
+                            <td class="text-right align-middle">${formatVND(ct.donGia)}</td>
+                            <td class="text-center align-middle">${ct.soLuong}</td>
+                            <td class="text-center align-middle">${donViText}</td>
+                            <td class="text-right align-middle font-weight-bold text-dark">${formatVND(ct.tongTien)}</td>
+                        </tr>`;
+                    });
+
+                    html += `</tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colspan="5" class="text-right font-weight-bold align-middle fs-2 text-uppercase">TỔNG CỘNG</td>
+                                    <td class="text-right font-weight-bold text-danger align-middle fs-2">${formatVND(res.tongTien)}</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                        </div>`;
+
+                    // Lịch sử thanh toán
+                    if (res.lichSuThanhToans && res.lichSuThanhToans.length > 0) {
+                        html += `<h4 class="font-weight-bold border-bottom pb-2 mt-4 text-dark"><i class="fas fa-history me-1"></i> Lịch sử thanh toán</h4>
+                            <div class="table-responsive">
+                            <table class="table card-table table-vcenter table-striped table-hover w-100 table-sm">
+                                <thead>
+                                    <tr><th>Mã GD</th><th class="text-right">Số tiền</th><th>Phương thức</th><th>Ngày</th><th>Người xác nhận</th><th>Ghi chú</th></tr>
+                                </thead><tbody>`;
+                        res.lichSuThanhToans.forEach(ls => {
+                            html += `<tr><td>${ls.maGiaoDich}</td><td class="text-right font-weight-bold text-success">${formatVND(ls.soTienThanhToan)}</td><td>${ls.phuongThucThanhToan}</td><td>${ls.ngayThanhToan}</td><td>${ls.nguoiXacNhan}</td><td>${ls.ghiChu || ''}</td></tr>`;
+                        });
+                        html += `</tbody></table></div>`;
+                    }
+
+                    // QR code nếu chưa thanh toán (chỉ hiển thị dự phòng)
+                    if (res.trangThaiHoaDon === 'Chưa thanh toán') {
+                        html += `
+                        <div class="row mt-4 pt-3 border-top justify-content-center">
+                            <div class="col-md-7 text-center">
+                                <div class="qr-payment-box p-4 shadow-sm border rounded">
+                                    <h4 class="qr-title text-primary font-weight-bold mb-3"><i class="fas fa-qrcode me-1"></i> Quét mã QR để chuyển khoản nhanh</h4>
+                                    <div class="mb-3">
+                                        <img src="/HoaDon/GetVietQR?hoaDonId=${res.hoaDonId}" alt="VietQR" style="max-width: 100%; height: auto;" />
+                                    </div>
+                                    <p class="small text-muted mb-3">Sử dụng ứng dụng ngân hàng hoặc ví điện tử để quét mã QR</p>
+                                    <div class="qr-details-list bg-light p-3 rounded text-start" style="font-size: 0.9rem;">
+                                        <div class="d-flex justify-content-between mb-1"><span>Ngân hàng:</span><strong>${bankId}</strong></div>
+                                        <div class="d-flex justify-content-between mb-1"><span>Số tài khoản:</span><strong>${accountNumber}</strong></div>
+                                        <div class="d-flex justify-content-between mb-1"><span>Chủ tài khoản:</span><strong>${accountName}</strong></div>
+                                        <div class="d-flex justify-content-between mb-1"><span>Số tiền:</span><strong class="text-danger">${formatVND(res.tongTien)}</strong></div>
+                                        <div class="d-flex justify-content-between"><span>Nội dung CK:</span><code class="text-primary font-weight-bold">THANH TOAN ${res.maHoaDon}</code></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        `;
+                    }
+
+                    $('#chiTietBody').html(html);
+                    bootstrap.Modal.getOrCreateInstance(document.getElementById('chiTietModal')).show();
+                });
+            });
+
+            // Hủy giao dịch thanh toán
+            $('#lichSuTable').on('click', '.btn-void', function () {
+                let id = $(this).data('id');
+                let code = $(this).data('code');
+
+                Swal.fire({
+                    title: 'Xác nhận hủy thanh toán?',
+                    text: `Giao dịch ${code} sẽ bị xóa và hóa đơn liên quan sẽ trở lại trạng thái "Chưa thanh toán".`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'Đồng ý hủy!',
+                    cancelButtonText: 'Không, giữ lại',
+                    customClass: {
+                        confirmButton: 'btn btn-danger me-2',
+                        cancelButton: 'btn btn-secondary'
+                    },
+                    buttonsStyling: false
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: `/LichSuThanhToan/HuyThanhToan/${id}`,
+                            type: 'DELETE',
+                            success: function (res) {
+                                Swal.fire(
+                                    'Đã hủy!',
+                                    res.message,
+                                    'success'
+                                );
+                                table.ajax.reload(null, false);
+                                loadStats();
+                            },
+                            error: function (xhr) {
+                                Swal.fire(
+                                    'Lỗi!',
+                                    xhr.responseJSON?.message || 'Có lỗi xảy ra khi thực hiện yêu cầu.',
+                                    'error'
+                                );
+                            }
+                        });
+                    }
+                });
+            });
+        });
+    </script>
+}

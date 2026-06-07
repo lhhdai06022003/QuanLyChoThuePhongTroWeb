@@ -10,6 +10,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Requests
         public int DichVuChiNhanhId { get; set; }
         public bool IsSelected { get; set; }
         public int SoLuong { get; set; } = 1;
+        public DateTime? NgayBatDau { get; set; }
     }
 
     /// <summary>
@@ -41,5 +42,6 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Requests
         public bool IsSelected { get; set; }
         public int SoLuong { get; set; } = 1;
         public int? DangKyDichVuId { get; set; } // null nếu chưa đăng ký
+        public DateTime? NgayBatDau { get; set; }
     }
 }

@@ -1,7 +1,19 @@
 @{
     ViewData["Title"] = "Quản lý Hóa đơn";
 }
-<link rel="stylesheet" href="~/css/hoadon.css" />
+<link rel="stylesheet" href="~/css/hoadon.css" asp-append-version="true" />
+<style>
+    /* Đồng bộ màu nền bộ lọc trong chế độ tối */
+    html[data-bs-theme="dark"] .bg-light,
+    [data-bs-theme="dark"] .bg-light {
+        background-color: var(--tblr-bg-surface-secondary, #1b2434) !important;
+        color: var(--tblr-body-color, #f4f6fa) !important;
+    }
+    html[data-bs-theme="dark"] .border-dashed,
+    [data-bs-theme="dark"] .border-dashed {
+        border-color: rgba(255, 255, 255, 0.15) !important;
+    }
+</style>
 
 <div class="container-xl mt-3">
     <!-- Page Header -->
@@ -117,7 +129,7 @@
                 <!-- JS sẽ render nội dung ở đây -->
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i> Đóng</button>
             </div>
         </div>
     </div>
@@ -148,7 +160,7 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i> Hủy</button>
                 <button type="button" class="btn btn-success shadow-sm" id="btnConfirmThuTien">
                     <i class="fas fa-check me-1"></i> Xác nhận Thu tiền
                 </button>
@@ -294,7 +306,7 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i> Đóng</button>
                 <button type="button" class="btn btn-primary shadow-sm" id="btnConfirmPhatSinh">
                     <i class="fas fa-magic me-1"></i> Phát sinh Hóa đơn (<span id="selected-preview-count">0</span> phòng)
                 </button>
@@ -342,7 +354,7 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i> Hủy</button>
                 <button type="button" class="btn btn-warning shadow-sm" id="btnSaveEdit">
                     <i class="fas fa-save me-1"></i> Lưu thay đổi
                 </button>
@@ -357,6 +369,18 @@
             var bankId = '@ViewBag.BankId';
             var accountNumber = '@ViewBag.AccountNumber';
             var accountName = '@ViewBag.AccountName';
+
+            // Đọc tham số URL query nếu có (dành cho redirect từ Dashboard)
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlThang = urlParams.get('thang');
+            const urlNam = urlParams.get('nam');
+            const urlTrangThai = urlParams.get('trangThai');
+            const urlChiNhanh = urlParams.get('chiNhanhId');
+
+            if (urlThang) $('#filterThang').val(urlThang);
+            if (urlNam) $('#filterNam').val(urlNam);
+            if (urlTrangThai) $('#filterTrangThai').val(urlTrangThai);
+            if (urlChiNhanh) $('#filterChiNhanh').val(urlChiNhanh);
 
             function formatVND(n) {
                 if (n === null || n === undefined) return "0 ₫";

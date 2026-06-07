@@ -7,9 +7,8 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Requests
     {
         public int HopDongId { get; set; }
 
-        [Required(ErrorMessage = "Mã hợp đồng không được để trống.")]
         [StringLength(50, ErrorMessage = "Mã hợp đồng tối đa 50 ký tự.")]
-        public string MaHopDong { get; set; }
+        public string? MaHopDong { get; set; }
 
         [Required(ErrorMessage = "Vui lòng chọn phòng trọ.")]
         public int PhongTroId { get; set; }

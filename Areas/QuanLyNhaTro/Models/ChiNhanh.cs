@@ -1,4 +1,4 @@
-﻿using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Models;
+using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Models;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -10,6 +10,9 @@ namespace QuanLyChoThuePhongTroWeb.Models
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int ChiNhanhId { get; set; }
+        [Required]
+        [StringLength(10)]
+        public string MaChiNhanh { get; set; }
         public string TenChiNhanh { get; set; }
         public string DiaChi { get; set; }
         public string MoTa { get; set; }

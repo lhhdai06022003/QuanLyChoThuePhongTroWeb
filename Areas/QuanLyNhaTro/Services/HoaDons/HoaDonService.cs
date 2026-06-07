@@ -114,7 +114,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HoaDons
                     DichVuId = nuocDichVu?.DichVuId
                 });
 
-                // Dòng 4+: Các dịch vụ khác đã đăng ký cho phòng
+                // Dòng 4+: Các dịch vụ khác đã đăng ký cho phòng (có tính lẻ ngày nếu đăng ký giữa tháng)
                 var dangKyDvs = await _context.DangKyDichVus
                     .Include(d => d.DichVuChiNhanh)
                         .ThenInclude(dcn => dcn.DichVu)
@@ -127,14 +127,32 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HoaDons
                     var tenDv = dk.DichVuChiNhanh.DichVu.TenDichVu.ToLower();
                     if (tenDv.Contains("điện") || tenDv.Contains("nước")) continue;
 
-                    chiTietList.Add(new ChiTietHoaDon
+                    // Tính lẻ ngày đăng ký dịch vụ:
+                    if (dk.NgayBatDau.Date <= activeEnd)
                     {
-                        TenDichVu = dk.DichVuChiNhanh.DichVu.TenDichVu,
-                        DonGia = dk.DichVuChiNhanh.GiaDichVu,
-                        SoLuong = dk.SoLuong,
-                        TongTien = dk.DichVuChiNhanh.GiaDichVu * dk.SoLuong,
-                        DichVuId = dk.DichVuChiNhanh.DichVuId
-                    });
+                        DateTime serviceStart = dk.NgayBatDau.Date > activeStart ? dk.NgayBatDau.Date : activeStart;
+                        int serviceActiveDays = (activeEnd - serviceStart).Days + 1;
+
+                        if (serviceActiveDays > 0)
+                        {
+                            double dvTongTien = Math.Round((dk.DichVuChiNhanh.GiaDichVu * dk.SoLuong / daysInMonth) * serviceActiveDays);
+                            string finalTenDichVu = dk.DichVuChiNhanh.DichVu.TenDichVu;
+
+                            if (serviceActiveDays < daysInMonth)
+                            {
+                                finalTenDichVu = $"{dk.DichVuChiNhanh.DichVu.TenDichVu} (thực tế dùng {serviceActiveDays}/{daysInMonth} ngày)";
+                            }
+
+                            chiTietList.Add(new ChiTietHoaDon
+                            {
+                                TenDichVu = finalTenDichVu,
+                                DonGia = dk.DichVuChiNhanh.GiaDichVu,
+                                SoLuong = dk.SoLuong,
+                                TongTien = dvTongTien,
+                                DichVuId = dk.DichVuChiNhanh.DichVuId
+                            });
+                        }
+                    }
                 }
 
                 double tongTien = chiTietList.Sum(x => x.TongTien);
@@ -242,7 +260,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HoaDons
                     tongTien += (soDien * dienNuoc.DonGiaDien) + (soNuoc * dienNuoc.DonGiaNuoc);
                 }
 
-                // Tính thêm các dịch vụ cố định
+                // Tính thêm các dịch vụ cố định (có tính lẻ ngày nếu đăng ký giữa tháng)
                 var dangKyDvs = await _context.DangKyDichVus
                     .Include(d => d.DichVuChiNhanh).ThenInclude(dcn => dcn.DichVu)
                     .Where(d => d.PhongTroId == p.PhongTroId)
@@ -252,7 +270,18 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HoaDons
                 {
                     var tenDv = dk.DichVuChiNhanh.DichVu.TenDichVu.ToLower();
                     if (tenDv.Contains("điện") || tenDv.Contains("nước")) continue;
-                    tongTien += dk.DichVuChiNhanh.GiaDichVu * dk.SoLuong;
+
+                    if (dk.NgayBatDau.Date <= activeEnd)
+                    {
+                        DateTime serviceStart = dk.NgayBatDau.Date > activeStart ? dk.NgayBatDau.Date : activeStart;
+                        int serviceActiveDays = (activeEnd - serviceStart).Days + 1;
+
+                        if (serviceActiveDays > 0)
+                        {
+                            double dvTongTien = Math.Round((dk.DichVuChiNhanh.GiaDichVu * dk.SoLuong / daysInMonth) * serviceActiveDays);
+                            tongTien += dvTongTien;
+                        }
+                    }
                 }
 
                 item.TongTienDuKien = tongTien;
