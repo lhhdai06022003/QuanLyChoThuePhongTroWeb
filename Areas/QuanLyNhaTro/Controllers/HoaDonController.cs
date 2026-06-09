@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.Emails;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HoaDons;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.PhongTros;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels;
@@ -16,12 +17,14 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         private readonly IHoaDonService _hoaDonService;
         private readonly IPhongTroService _phongTroService;
         private readonly Microsoft.Extensions.Configuration.IConfiguration _configuration;
+        private readonly IEmailService _emailService;
 
-        public HoaDonController(IHoaDonService hoaDonService, IPhongTroService phongTroService, Microsoft.Extensions.Configuration.IConfiguration configuration)
+        public HoaDonController(IHoaDonService hoaDonService, IPhongTroService phongTroService, Microsoft.Extensions.Configuration.IConfiguration configuration, IEmailService emailService)
         {
             _hoaDonService = hoaDonService;
             _phongTroService = phongTroService;
             _configuration = configuration;
+            _emailService = emailService;
         }
 
         [Route("QuanLyNhaTro/QuanLyHoaDon")]
@@ -160,6 +163,37 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             byte[] qrBytes = Helpers.VietQRHelper.GenerateQRCodePNGBytes(qrString);
 
             return File(qrBytes, "image/png");
+        }
+
+        // Gửi email hóa đơn
+        [HttpPost("/HoaDon/SendEmail/{id}")]
+        public async Task<IActionResult> SendEmail(int id)
+        {
+            try
+            {
+                var hd = await _hoaDonService.GetHoaDonByIdAsync(id);
+                if (hd == null) 
+                    return NotFound(new { Message = "Không tìm thấy hóa đơn." });
+
+                if (string.IsNullOrWhiteSpace(hd.Email))
+                    return BadRequest(new { Message = "Khách thuê chưa đăng ký địa chỉ email." });
+
+                // Xuất file PDF hóa đơn
+                var pdfBytes = await _hoaDonService.ExportPdfAsync(id);
+                if (pdfBytes == null || pdfBytes.Length == 0)
+                    return BadRequest(new { Message = "Không thể sinh tệp PDF hóa đơn." });
+
+                // Gọi EmailService để gửi thư
+                var result = await _emailService.SendInvoiceEmailAsync(hd.Email, hd, pdfBytes);
+                if (!result.IsSuccess)
+                    return BadRequest(new { Message = $"Gửi email thất bại: {result.ErrorMessage}" });
+
+                return Ok(new { Message = "Gửi email hóa đơn thành công!" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Message = $"Đã xảy ra lỗi hệ thống: {ex.Message}" });
+            }
         }
     }
 }

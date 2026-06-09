@@ -10,6 +10,7 @@ using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.NguoiThues;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.ThanhVienHopDongs;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.PhongTros;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.LichSuThanhToans;
+using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.Emails;
 using QuanLyChoThuePhongTroWeb.Data;
 using System;
 
@@ -37,6 +38,7 @@ builder.Services.AddScoped<IDienNuocService, DienNuocService>();
 builder.Services.AddScoped<INguoiDungService, NguoiDungService>();
 builder.Services.AddScoped<IHoaDonService, HoaDonService>();
 builder.Services.AddScoped<ILichSuThanhToanService, LichSuThanhToanService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
 
 // Cấu hình Authentication
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)

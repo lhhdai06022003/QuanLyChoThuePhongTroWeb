@@ -35,6 +35,8 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels
         public string TrangThaiHoaDon { get; set; }
         public int TrangThaiHoaDonValue { get; set; }
         public string NgayTao { get; set; }
+        public string SoDienThoai { get; set; }
+        public string Email { get; set; }
     }
 
     // Response chi tiết hóa đơn (bao gồm các dòng dịch vụ)
@@ -51,6 +53,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels
         public double TongTien { get; set; }
         public string TrangThaiHoaDon { get; set; }
         public string NgayTao { get; set; }
+        public string Email { get; set; }
         public List<ChiTietHoaDonRes> ChiTietHoaDons { get; set; } = new();
         public List<LichSuThanhToanRes> LichSuThanhToans { get; set; } = new();
     }

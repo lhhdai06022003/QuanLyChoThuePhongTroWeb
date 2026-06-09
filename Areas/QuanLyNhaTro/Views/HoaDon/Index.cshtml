@@ -442,6 +442,10 @@
                                                 </button>
                                             ` : ''}
                                             <div class="dropdown-divider"></div>
+                                            <button class="dropdown-item btn-send-email text-primary py-2" data-id="${data}" data-email="${row.email || ''}" data-ma="${row.maHoaDon}">
+                                                <i class="fas fa-envelope me-2"></i> Gửi Email hóa đơn
+                                            </button>
+                                            <div class="dropdown-divider"></div>
                                             <a class="dropdown-item text-secondary py-2" href="/HoaDon/ExportExcel/${data}">
                                                 <i class="fas fa-file-excel text-success me-2"></i> Xuất Excel
                                             </a>
@@ -899,6 +903,42 @@
                     type: 'DELETE',
                     success: function(res) { alert(res.message); table.ajax.reload(null, false); },
                     error: function(xhr) { alert(xhr.responseJSON?.message || 'Có lỗi xảy ra.'); }
+                });
+            });
+
+            // ========== Gửi Email hóa đơn ==========
+            $('#hoaDonTable').on('click', '.btn-send-email', function() {
+                let id = $(this).data('id');
+                let email = $(this).data('email');
+                let maHd = $(this).data('ma');
+
+                if (!email || email.trim() === '') {
+                    alert('Lỗi: Khách thuê của hóa đơn này chưa đăng ký địa chỉ email.');
+                    return;
+                }
+
+                if (!confirm(`Bạn có chắc chắn muốn gửi email thông báo hóa đơn ${maHd} đến email: ${email}?`)) {
+                    return;
+                }
+
+                let $btn = $(this);
+                // Khóa nút và hiển thị trạng thái đang gửi
+                let originalHtml = $btn.html();
+                $btn.prop('disabled', true).addClass('disabled').html('<i class="fas fa-spinner fa-spin me-2"></i> Đang gửi...');
+
+                $.ajax({
+                    url: `/HoaDon/SendEmail/${id}`,
+                    type: 'POST',
+                    success: function(res) {
+                        alert(res.message);
+                    },
+                    error: function(xhr) {
+                        alert(xhr.responseJSON?.message || 'Có lỗi xảy ra khi gửi email.');
+                    },
+                    complete: function() {
+                        // Mở khóa nút và khôi phục văn bản ban đầu
+                        $btn.prop('disabled', false).removeClass('disabled').html(originalHtml);
+                    }
                 });
             });
         });

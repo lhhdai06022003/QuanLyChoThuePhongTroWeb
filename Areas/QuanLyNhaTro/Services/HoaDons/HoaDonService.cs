@@ -396,7 +396,9 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HoaDons
                     TongTien = h.TongTien,
                     TrangThaiHoaDon = h.TrangThaiHoaDon == TrangThaiHoaDon.DaThanhToan ? "Đã thanh toán" : "Chưa thanh toán",
                     TrangThaiHoaDonValue = (int)h.TrangThaiHoaDon,
-                    NgayTao = h.NgayTao.ToString("dd/MM/yyyy HH:mm")
+                    NgayTao = h.NgayTao.ToString("dd/MM/yyyy HH:mm"),
+                    SoDienThoai = h.HopDong.NguoiThue.SoDienThoai,
+                    Email = h.HopDong.NguoiThue.Email ?? ""
                 })
                 .ToListAsync();
 
@@ -441,6 +443,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HoaDons
                 TongTien = hd.TongTien,
                 TrangThaiHoaDon = hd.TrangThaiHoaDon == TrangThaiHoaDon.DaThanhToan ? "Đã thanh toán" : "Chưa thanh toán",
                 NgayTao = hd.NgayTao.ToString("dd/MM/yyyy HH:mm"),
+                Email = hd.HopDong.NguoiThue.Email ?? "",
                 ChiTietHoaDons = hd.ChiTietHoaDonDichVus.Where(x => !x.IsDeleted).Select(ct => new ChiTietHoaDonRes
                 {
                     ChiTietHoaDonId = ct.ChiTietHoaDonId,
