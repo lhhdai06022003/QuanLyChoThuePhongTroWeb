@@ -24,7 +24,10 @@
                     <i class="fas fa-file-invoice-dollar me-2"></i> Quản lý & Danh sách Hóa đơn
                 </h2>
             </div>
-            <div class="col-auto ms-auto">
+            <div class="col-auto ms-auto d-flex gap-2">
+                <button class="btn btn-primary font-weight-bold shadow-sm" id="btnOpenBulkEmailModal">
+                    <i class="fas fa-envelope me-1"></i> Gửi Email Hóa Đơn
+                </button>
                 <button class="btn btn-success font-weight-bold shadow-sm" id="btnPhatSinh">
                     <i class="fas fa-plus-circle me-1"></i> Phát sinh Hóa đơn
                 </button>
@@ -315,17 +318,117 @@
     </div>
 </div>
 
+<!-- Modal Gửi Email Hóa Đơn Hàng Loạt -->
+<div class="modal modal-blur fade" id="emailBulkModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
+        <div class="modal-content shadow-lg border-0">
+            <div class="modal-header bg-primary text-white py-3">
+                <h5 class="modal-title font-weight-bold"><i class="fas fa-envelope me-1"></i> Gửi Email Hóa Đơn Hàng Loạt</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body py-4">
+                <div class="alert alert-info py-2 mb-3 shadow-sm border-0">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <div>
+                            Chọn Chi nhánh, Kỳ tháng/năm cần gửi và bấm <strong>"Tải dữ liệu"</strong> để hiển thị danh sách hóa đơn chưa thanh toán.
+                        </div>
+                    </div>
+                </div>
+                <!-- Khung bộ lọc dữ liệu gửi mail -->
+                <div class="card card-body bg-light border border-dashed rounded-3 p-3 mb-3 shadow-none">
+                    <div class="row g-3">
+                        <div class="col-md-5">
+                            <label class="form-label font-weight-bold text-secondary mb-1">
+                                <i class="fas fa-building text-secondary me-1"></i> Chi Nhánh
+                            </label>
+                            <select id="emailBulkChiNhanh" class="form-select form-select-sm">
+                                <option value="0">-- Tất cả chi nhánh --</option>
+                                @if (ViewBag.ListChiNhanh != null)
+                                {
+                                    foreach (var cn in ViewBag.ListChiNhanh)
+                                    {
+                                        <option value="@cn.Value">@cn.Text</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label font-weight-bold text-secondary mb-1">
+                                <i class="fas fa-calendar-alt text-secondary me-1"></i> Tháng
+                            </label>
+                            <select id="emailBulkThang" class="form-select form-select-sm">
+                                <option value="0">-- Tất cả tháng --</option>
+                                @for (int i = 1; i <= 12; i++)
+                                {
+                                    if (i == DateTime.Now.Month)
+                                    {
+                                        <option value="@i" selected>Tháng @i</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@i">Tháng @i</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label font-weight-bold text-secondary mb-1">
+                                <i class="fas fa-calendar-check text-secondary me-1"></i> Năm
+                            </label>
+                            <input type="number" id="emailBulkNam" class="form-control form-control-sm" value="@DateTime.Now.Year">
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="button" class="btn btn-primary btn-sm w-100 font-weight-bold" id="btnLoadEmailBulk" style="height: 36px;">
+                                <i class="fas fa-sync-alt me-1"></i> Tải dữ liệu
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="table card-table table-vcenter table-striped table-hover w-100" id="emailBulkTable">
+                        <thead>
+                            <tr>
+                                <th class="text-center" width="5%"><input type="checkbox" id="checkAllEmailBulk" checked /></th>
+                                <th>Mã HĐ</th>
+                                <th>Số phòng</th>
+                                <th>Khách thuê</th>
+                                <th>Email nhận thư</th>
+                                <th class="text-right">Tổng tiền</th>
+                                <th>Trạng thái</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="7" class="text-center text-muted py-4">Chưa có dữ liệu. Vui lòng bấm "Tải dữ liệu".</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i> Đóng</button>
+                <button type="button" class="btn btn-success shadow-sm" id="btnConfirmSendEmailBulk" disabled>
+                    <i class="fas fa-paper-plane me-1"></i> Bắt đầu gửi (<span id="selected-email-bulk-count">0</span> hóa đơn)
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
 <!-- Modal Chỉnh sửa Hóa đơn -->
 <div class="modal modal-blur fade" id="editModal" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
         <div class="modal-content shadow-lg border-0">
-            <div class="modal-header bg-warning text-dark py-3">
-                <h5 class="modal-title font-weight-bold"><i class="fas fa-edit me-1"></i> Chỉnh sửa Chi tiết Hóa đơn</h5>
+            <div class="modal-header bg-warning py-3">
+                <h5 class="modal-title font-weight-bold text-reset"><i class="fas fa-edit me-1"></i> Chỉnh sửa Chi tiết Hóa đơn</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body py-4">
                 <input type="hidden" id="editHoaDonId" />
-                <div class="row mb-3 font-weight-bold fs-3 text-dark">
+                <div class="row mb-3 font-weight-bold fs-3">
                     <div class="col-md-6" id="editMaHDText"></div>
                     <div class="col-md-6 text-end" id="editPhongText"></div>
                 </div>
@@ -897,47 +1000,241 @@
             // ========== Xóa hóa đơn ==========
             $('#hoaDonTable').on('click', '.btn-delete', function() {
                 let id = $(this).data('id');
-                if (!confirm('Xóa hóa đơn này?')) return;
-                $.ajax({
-                    url: `/HoaDon/Delete/${id}`,
-                    type: 'DELETE',
-                    success: function(res) { alert(res.message); table.ajax.reload(null, false); },
-                    error: function(xhr) { alert(xhr.responseJSON?.message || 'Có lỗi xảy ra.'); }
+                Swal.fire({
+                    title: 'Xác nhận xóa?',
+                    text: 'Bạn có chắc chắn muốn xóa hóa đơn này?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Đồng ý xóa',
+                    cancelButtonText: 'Hủy bỏ'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: `/HoaDon/Delete/${id}`,
+                            type: 'DELETE',
+                            success: function(res) {
+                                Swal.fire('Thành công!', res.message, 'success');
+                                table.ajax.reload(null, false);
+                            },
+                            error: function(xhr) {
+                                Swal.fire('Lỗi!', xhr.responseJSON?.message || 'Có lỗi xảy ra.', 'error');
+                            }
+                        });
+                    }
                 });
             });
 
-            // ========== Gửi Email hóa đơn ==========
+            // ========== Gửi Email hóa đơn đơn lẻ ==========
             $('#hoaDonTable').on('click', '.btn-send-email', function() {
                 let id = $(this).data('id');
                 let email = $(this).data('email');
                 let maHd = $(this).data('ma');
 
                 if (!email || email.trim() === '') {
-                    alert('Lỗi: Khách thuê của hóa đơn này chưa đăng ký địa chỉ email.');
+                    Swal.fire('Lỗi!', 'Khách thuê của hóa đơn này chưa đăng ký địa chỉ email.', 'error');
                     return;
                 }
 
-                if (!confirm(`Bạn có chắc chắn muốn gửi email thông báo hóa đơn ${maHd} đến email: ${email}?`)) {
+                Swal.fire({
+                    title: 'Gửi Email hóa đơn?',
+                    text: `Bạn có chắc chắn muốn gửi email thông báo hóa đơn ${maHd} đến địa chỉ ${email}?`,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Đồng ý gửi',
+                    cancelButtonText: 'Hủy bỏ'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        let $btn = $(this);
+                        let originalHtml = $btn.html();
+                        $btn.prop('disabled', true).addClass('disabled').html('<i class="fas fa-spinner fa-spin me-2"></i> Đang gửi...');
+
+                        $.ajax({
+                            url: `/HoaDon/SendEmail/${id}`,
+                            type: 'POST',
+                            success: function(res) {
+                                Swal.fire('Thành công!', res.message, 'success');
+                            },
+                            error: function(xhr) {
+                                Swal.fire('Lỗi!', xhr.responseJSON?.message || 'Có lỗi xảy ra khi gửi email.', 'error');
+                            },
+                            complete: function() {
+                                $btn.prop('disabled', false).removeClass('disabled').html(originalHtml);
+                            }
+                        });
+                    }
+                });
+            });
+
+            // ========== Gửi Email Hóa Đơn Hàng Loạt qua Modal ==========
+            var emailBulkDataList = [];
+
+            $('#btnOpenBulkEmailModal').click(function() {
+                // Đồng bộ từ bộ lọc ngoài vào bộ lọc Modal để hỗ trợ tiện dụng
+                let cn = $('#filterChiNhanh').val();
+                let th = $('#filterThang').val();
+                let na = $('#filterNam').val();
+
+                if (cn) $('#emailBulkChiNhanh').val(cn);
+                if (th) $('#emailBulkThang').val(th);
+                if (na) $('#emailBulkNam').val(na);
+
+                // Reset table & footer count in modal
+                $('#emailBulkTable tbody').html('<tr><td colspan="7" class="text-center text-muted py-4">Chưa có dữ liệu. Vui lòng bấm "Tải dữ liệu".</td></tr>');
+                $('#selected-email-bulk-count').text(0);
+                $('#btnConfirmSendEmailBulk').prop('disabled', true);
+                $('#checkAllEmailBulk').prop('checked', true);
+
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('emailBulkModal')).show();
+            });
+
+            // Tải dữ liệu hóa đơn chưa thanh toán cho Modal
+            $('#btnLoadEmailBulk').click(function() {
+                let cn = $('#emailBulkChiNhanh').val();
+                let th = $('#emailBulkThang').val();
+                let na = $('#emailBulkNam').val();
+
+                if (!na || na < 2000) {
+                    alert('Vui lòng nhập năm hợp lệ!');
                     return;
                 }
 
                 let $btn = $(this);
-                // Khóa nút và hiển thị trạng thái đang gửi
-                let originalHtml = $btn.html();
-                $btn.prop('disabled', true).addClass('disabled').html('<i class="fas fa-spinner fa-spin me-2"></i> Đang gửi...');
+                $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Đang tải...');
 
                 $.ajax({
-                    url: `/HoaDon/SendEmail/${id}`,
-                    type: 'POST',
+                    url: `/HoaDon/GetUnpaidList?chiNhanhId=${cn}&thang=${th}&nam=${na}`,
+                    type: 'GET',
                     success: function(res) {
-                        alert(res.message);
+                        emailBulkDataList = res;
+                        renderEmailBulkTable();
                     },
                     error: function(xhr) {
-                        alert(xhr.responseJSON?.message || 'Có lỗi xảy ra khi gửi email.');
+                        alert(xhr.responseJSON?.message || 'Có lỗi khi tải danh sách hóa đơn chưa thanh toán.');
                     },
                     complete: function() {
-                        // Mở khóa nút và khôi phục văn bản ban đầu
-                        $btn.prop('disabled', false).removeClass('disabled').html(originalHtml);
+                        $btn.prop('disabled', false).html('<i class="fas fa-sync-alt me-1"></i> Tải dữ liệu');
+                    }
+                });
+            });
+
+            function renderEmailBulkTable() {
+                let tbody = $('#emailBulkTable tbody').empty();
+                if (emailBulkDataList.length === 0) {
+                    tbody.html('<tr><td colspan="7" class="text-center text-muted py-4">Không có hóa đơn nào chưa thanh toán trong kỳ này.</td></tr>');
+                    $('#selected-email-bulk-count').text(0);
+                    $('#btnConfirmSendEmailBulk').prop('disabled', true);
+                    return;
+                }
+
+                emailBulkDataList.forEach(item => {
+                    let emailText = item.email ? item.email : '<span class="text-danger font-weight-bold"><i class="fas fa-exclamation-triangle"></i> Chưa có Email</span>';
+                    let disabledCheckbox = !item.email ? 'disabled' : 'checked';
+                    
+                    tbody.append(`
+                        <tr>
+                            <td class="text-center align-middle">
+                                <input type="checkbox" class="form-check-input email-bulk-select" data-id="${item.hoaDonId}" data-email="${item.email || ''}" data-ma="${item.maHoaDon}" ${disabledCheckbox} />
+                            </td>
+                            <td class="align-middle font-weight-bold">${item.maHoaDon}</td>
+                            <td class="align-middle font-weight-bold text-primary">${item.tenPhong}</td>
+                            <td class="align-middle">${item.tenNguoiThue}</td>
+                            <td class="align-middle">${emailText}</td>
+                            <td class="text-right align-middle text-danger font-weight-bold">${formatVND(item.tongTien)}</td>
+                            <td class="align-middle"><span class="badge bg-warning-lt px-2 py-1"><i class="fas fa-clock me-1"></i> Chưa thanh toán</span></td>
+                        </tr>
+                    `);
+                });
+
+                $('#checkAllEmailBulk').prop('checked', $('.email-bulk-select:not(:disabled)').length === $('.email-bulk-select:checked').length);
+                updateSelectedEmailBulkCount();
+            }
+
+            $('#checkAllEmailBulk').change(function() {
+                $('.email-bulk-select:not(:disabled)').prop('checked', this.checked);
+                updateSelectedEmailBulkCount();
+            });
+
+            $('#emailBulkTable').on('change', '.email-bulk-select', function() {
+                updateSelectedEmailBulkCount();
+            });
+
+            function updateSelectedEmailBulkCount() {
+                let cnt = $('.email-bulk-select:checked').length;
+                $('#selected-email-bulk-count').text(cnt);
+                $('#btnConfirmSendEmailBulk').prop('disabled', cnt === 0);
+            }
+
+            // Thực hiện gửi hàng loạt bằng AJAX tuần tự
+            $('#btnConfirmSendEmailBulk').click(function() {
+                let selected = [];
+                $('.email-bulk-select:checked').each(function() {
+                    selected.push({
+                        id: parseInt($(this).data('id')),
+                        email: $(this).data('email'),
+                        ma: $(this).data('ma')
+                    });
+                });
+
+                if (selected.length === 0) return;
+
+                Swal.fire({
+                    title: 'Gửi Email hàng loạt?',
+                    text: `Bạn có chắc chắn muốn gửi email thông báo hóa đơn cho ${selected.length} phòng đã chọn?`,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Đồng ý',
+                    cancelButtonText: 'Hủy bỏ'
+                }).then(async (result) => {
+                    if (result.isConfirmed) {
+                        bootstrap.Modal.getOrCreateInstance(document.getElementById('emailBulkModal')).hide();
+
+                        // Hiển thị SweetAlert2 Progress bar
+                        Swal.fire({
+                            title: 'Đang gửi email hàng loạt...',
+                            html: `Đã gửi thành công: <strong class="text-success" id="swal-success-cnt">0</strong> / <strong>${selected.length}</strong> email.<br/>
+                                   <div class="progress progress-sm mt-3" style="height: 10px; border-radius: 5px;">
+                                       <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: 0%; border-radius: 5px;"></div>
+                                   </div>`,
+                            allowOutsideClick: false,
+                            allowEscapeKey: false,
+                            showConfirmButton: false,
+                            didOpen: () => {
+                                Swal.showLoading();
+                            }
+                        });
+
+                        let successCount = 0;
+                        let failCount = 0;
+
+                        for (let i = 0; i < selected.length; i++) {
+                            let item = selected[i];
+                            
+                            // Gửi request AJAX
+                            try {
+                                await $.ajax({
+                                    url: `/HoaDon/SendEmail/${item.id}`,
+                                    type: 'POST'
+                                });
+                                successCount++;
+                            } catch (err) {
+                                failCount++;
+                            }
+
+                            // Cập nhật progress bar
+                            let percent = Math.round(((i + 1) / selected.length) * 100);
+                            $('#swal-success-cnt').text(successCount);
+                            $('.progress-bar').css('width', `${percent}%`);
+                        }
+
+                        // Hoàn thành
+                        Swal.fire({
+                            icon: successCount === selected.length ? 'success' : (failCount === selected.length ? 'error' : 'warning'),
+                            title: 'Kết quả gửi email',
+                            text: `Đã gửi xong! Thành công: ${successCount}, Thất bại: ${failCount}.`,
+                            confirmButtonText: 'Đóng'
+                        });
+
+                        table.ajax.reload(null, false);
                     }
                 });
             });

@@ -139,14 +139,14 @@
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label class="form-label">Mã Hợp Đồng</label>
+                                    <label for="MaHopDong" class="form-label">Mã Hợp Đồng</label>
                                     <input type="text" class="form-control" id="MaHopDong" readonly 
                                            placeholder="Hệ thống tự sinh khi lưu" 
                                            style="background-color: #f4f6f9; font-weight: bold; color: #206bc4;">
                                 </div>
 
                                 <div class="mb-3">
-                                    <label class="form-label">Chi Nhánh <span class="text-danger">*</span></label>
+                                    <label for="ChiNhanhId" class="form-label">Chi Nhánh <span class="text-danger">*</span></label>
                                     <select class="form-select" id="ChiNhanhId">
                                         <option value="">-- Chọn chi nhánh --</option>
                                         @if (ViewBag.ListChiNhanh != null)
@@ -160,14 +160,14 @@
                                 </div>
 
                                 <div class="mb-3">
-                                    <label class="form-label">Phòng Trọ <span class="text-danger">*</span></label>
+                                    <label for="PhongTroId" class="form-label">Phòng Trọ <span class="text-danger">*</span></label>
                                     <select class="form-select" id="PhongTroId">
                                         <option value="">-- Vui lòng chọn chi nhánh trước --</option>
                                     </select>
                                 </div>
 
                                 <div class="mb-3">
-                                    <label class="form-label">Người Đại Diện <span class="text-danger">*</span></label>
+                                    <label for="NguoiThueId" class="form-label">Người Đại Diện <span class="text-danger">*</span></label>
                                     <select class="form-control select2" id="NguoiThueId" style="width: 100%;">
                                         <option value="">-- Chọn khách thuê --</option>
                                         @if (ViewBag.ListNguoiThue != null)
@@ -193,27 +193,27 @@
 
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label class="form-label">Ngày Bắt Đầu <span class="text-danger">*</span></label>
+                                    <label for="ThoiDiemBatDau" class="form-label">Ngày Bắt Đầu <span class="text-danger">*</span></label>
                                     <input type="text" class="form-control" id="ThoiDiemBatDau" placeholder="Chọn ngày bắt đầu...">
                                 </div>
 
                                 <div class="mb-3">
-                                    <label class="form-label">Ngày Kết Thúc (Dự kiến)</label>
+                                    <label for="ThoiDiemKetThuc" class="form-label">Ngày Kết Thúc (Dự kiến)</label>
                                     <input type="text" class="form-control" id="ThoiDiemKetThuc" placeholder="Chọn ngày kết thúc...">
                                 </div>
 
                                 <div class="mb-3">
-                                    <label class="form-label">Tiền Cọc (VNĐ) <span class="text-danger">*</span></label>
+                                    <label for="TienCocPhong" class="form-label">Tiền Cọc (VNĐ) <span class="text-danger">*</span></label>
                                     <input type="number" class="form-control" id="TienCocPhong" value="0" min="0">
                                 </div>
 
                                 <div class="mb-3">
-                                    <label class="form-label">Tiền Thuê/Tháng (VNĐ) <span class="text-danger">*</span></label>
+                                    <label for="TienThuePhong" class="form-label">Tiền Thuê/Tháng (VNĐ) <span class="text-danger">*</span></label>
                                     <input type="number" class="form-control" id="TienThuePhong" min="0">
                                 </div>
 
                                 <div class="mb-3" id="groupTrangThaiHopDong" style="display: none;">
-                                    <label class="form-label">Trạng Thái Hợp Đồng <span class="text-danger">*</span></label>
+                                    <label for="TrangThaiHopDong" class="form-label">Trạng Thái Hợp Đồng <span class="text-danger">*</span></label>
                                     <select class="form-select" id="TrangThaiHopDong">
                                         <option value="1">Đang hoạt động</option>
                                         <option value="2">Đã kết thúc</option>
@@ -366,12 +366,7 @@
             @if (ViewBag.ListNguoiThue != null)
             {
                 <text>
-                allNguoiThues = [
-                    @foreach (var nt in ViewBag.ListNguoiThue)
-                    {
-                        @:{ value: '@nt.Value', text: '@Html.Raw(nt.Text)' },
-                    }
-                ];
+                allNguoiThues = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.ListNguoiThue, new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }));
                 </text>
             }
             if (typeof initThanhVienModule === "function") {
@@ -789,32 +784,50 @@
             // Báo chuyển đi
             $(document).on('click', '.btn-checkout', function () {
                 let id = $(this).data('id');
-                if (confirm("Xác nhận thành viên này đã chuyển đi? (Ngày rời phòng sẽ cập nhật hôm nay)")) {
-                    $.post(`/ThanhVienHopDong/BaoRoiPhong/${id}`, function (res) {
-                        showToastr(res.message, "success");
-                        window.loadDanhSachThanhVien(window.currentHopDongId);
-                    }).fail(function (xhr) {
-                        showToastr(xhr.responseJSON ? xhr.responseJSON.message : "Lỗi!", "error");
-                    });
-                }
+                Swal.fire({
+                    title: 'Xác nhận chuyển đi?',
+                    text: 'Xác nhận thành viên này đã chuyển đi? (Ngày rời phòng sẽ cập nhật hôm nay)',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Đồng ý',
+                    cancelButtonText: 'Hủy bỏ'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.post(`/ThanhVienHopDong/BaoRoiPhong/${id}`, function (res) {
+                            showToastr(res.message, "success");
+                            window.loadDanhSachThanhVien(window.currentHopDongId);
+                        }).fail(function (xhr) {
+                            showToastr(xhr.responseJSON ? xhr.responseJSON.message : "Lỗi!", "error");
+                        });
+                    }
+                });
             });
 
             // Xoá nhầm thành viên
             $(document).on('click', '.btn-delete-member', function () {
                 let id = $(this).data('id');
-                if (confirm("Bạn có chắc muốn xoá hoàn toàn bản ghi này?")) {
-                    $.ajax({
-                        url: `/ThanhVienHopDong/XoaThanhVien/${id}`,
-                        type: 'DELETE',
-                        success: function (res) {
-                            showToastr(res.message, "success");
-                            window.loadDanhSachThanhVien(window.currentHopDongId);
-                        },
-                        error: function (xhr) {
-                            showToastr(xhr.responseJSON ? xhr.responseJSON.message : "Lỗi!", "error");
-                        }
-                    });
-                }
+                Swal.fire({
+                    title: 'Xác nhận xóa thành viên?',
+                    text: 'Hành động này sẽ xóa hoàn toàn thành viên (nhập sai). Bạn có chắc muốn xoá?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Đồng ý xóa',
+                    cancelButtonText: 'Hủy bỏ'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: `/ThanhVienHopDong/XoaThanhVien/${id}`,
+                            type: 'DELETE',
+                            success: function (res) {
+                                showToastr(res.message, "success");
+                                window.loadDanhSachThanhVien(window.currentHopDongId);
+                            },
+                            error: function (xhr) {
+                                showToastr(xhr.responseJSON ? xhr.responseJSON.message : "Lỗi!", "error");
+                            }
+                        });
+                    }
+                });
             });
             // =============================================================
 
@@ -978,26 +991,35 @@
             // SỰ KIỆN NÚT XÓA
             $('#hopDongTable tbody').on('click', '.btn-delete', function () {
                 let id = $(this).data('id');
-                if (confirm('Bạn có chắc chắn muốn xóa hợp đồng này?')) {
-                    let $btn = $(this);
-                    let originalHtml = $btn.html();
-                    $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
+                Swal.fire({
+                    title: 'Xác nhận xóa hợp đồng?',
+                    text: 'Bạn có chắc chắn muốn xóa hợp đồng này?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Đồng ý xóa',
+                    cancelButtonText: 'Hủy bỏ'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        let $btn = $(this);
+                        let originalHtml = $btn.html();
+                        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
 
-                    $.ajax({
-                        url: `/HopDong/Delete/${id}`,
-                        type: 'DELETE',
-                        success: function (res) {
-                            showToastr(res.message || "Đã xóa.", "success");
-                            table.ajax.reload(null, false);
-                        },
-                        error: function (xhr) {
-                            let msg = "Lỗi khi xóa!";
-                            if (xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
-                            showToastr(msg, "error");
-                            $btn.prop('disabled', false).html(originalHtml);
-                        }
-                    });
-                }
+                        $.ajax({
+                            url: `/HopDong/Delete/${id}`,
+                            type: 'DELETE',
+                            success: function (res) {
+                                showToastr(res.message || "Đã xóa.", "success");
+                                table.ajax.reload(null, false);
+                            },
+                            error: function (xhr) {
+                                let msg = "Lỗi khi xóa!";
+                                if (xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
+                                showToastr(msg, "error");
+                                $btn.prop('disabled', false).html(originalHtml);
+                            }
+                        });
+                    }
+                });
             });
         });
     </script>

@@ -9,6 +9,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
     [Area("QuanLyNhaTro")]
     [ApiController]
     [Microsoft.AspNetCore.Authorization.Authorize]
+    [AutoValidateAntiforgeryToken]
     public class DienNuocController : Controller
     {
         private readonly IDienNuocService _dienNuocService;

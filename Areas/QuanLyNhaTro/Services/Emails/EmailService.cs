@@ -84,28 +84,49 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.Emails
 <head>
     <meta charset='utf-8' />
     <style>
-        body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #333; line-height: 1.6; background-color: #f4f6fa; margin: 0; padding: 20px; }}
+        body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #333333; line-height: 1.6; background-color: #f4f6fa; margin: 0; padding: 20px; }}
         .container {{ max-width: 600px; background-color: #ffffff; margin: 0 auto; border-radius: 8px; padding: 30px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); border: 1px solid #e1e4e8; }}
         .header {{ text-align: center; border-bottom: 2px solid #0056b3; padding-bottom: 15px; margin-bottom: 25px; }}
         .header h2 {{ color: #0056b3; margin: 0; font-size: 24px; text-transform: uppercase; }}
-        .header p {{ color: #666; margin: 5px 0 0 0; font-size: 14px; }}
+        .header p {{ color: #666666; margin: 5px 0 0 0; font-size: 14px; }}
         .info-table {{ width: 100%; border-collapse: collapse; margin-bottom: 25px; }}
         .info-table td {{ padding: 8px 0; font-size: 15px; }}
-        .info-table td.label {{ font-weight: bold; color: #555; width: 35%; }}
-        .info-table td.value {{ color: #111; }}
+        .info-table td.label {{ font-weight: bold; color: #555555; width: 35%; }}
+        .info-table td.value {{ color: #111111; }}
         .details-table {{ width: 100%; border-collapse: collapse; margin-bottom: 25px; }}
         .details-table th {{ background-color: #f1f3f9; border: 1px solid #dcdfe6; color: #0056b3; font-weight: bold; padding: 10px; text-align: left; font-size: 14px; }}
+        .details-table td {{ border: 1px solid #dcdfe6; padding: 10px; font-size: 14px; color: #333333; }}
         .total-row {{ font-weight: bold; font-size: 16px; color: #d9001b; }}
         .qr-section {{ background-color: #f9f9fb; border: 1px dashed #409eff; border-radius: 6px; padding: 20px; text-align: center; margin-top: 25px; }}
         .qr-section h3 {{ margin: 0 0 10px 0; color: #0056b3; font-size: 16px; }}
-        .qr-section img {{ max-width: 180px; height: auto; border: 1px solid #ebeef5; border-radius: 4px; }}
-        .footer {{ text-align: center; margin-top: 30px; font-size: 12px; color: #999; border-top: 1px solid #eee; padding-top: 15px; }}
+        .qr-section img {{ max-width: 180px; height: auto; border: 1px solid #ebeef5; border-radius: 4px; background-color: #ffffff; padding: 8px; display: inline-block; }}
+        .footer {{ text-align: center; margin-top: 30px; font-size: 12px; color: #999999; border-top: 1px solid #eeeeee; padding-top: 15px; }}
+
+        /* Tương thích Dark Mode */
+        @media (prefers-color-scheme: dark) {{
+            body {{ background-color: #1a1f2c !important; color: #f4f6fa !important; }}
+            .container {{ background-color: #232936 !important; border-color: #384252 !important; box-shadow: 0 4px 10px rgba(0,0,0,0.2) !important; }}
+            .header {{ border-bottom-color: #3080e6 !important; }}
+            .header h2 {{ color: #3080e6 !important; }}
+            .header p {{ color: #a0aebf !important; }}
+            .info-table td.label {{ color: #a0aebf !important; }}
+            .info-table td.value {{ color: #ffffff !important; }}
+            .details-table th {{ background-color: #2d3545 !important; border-color: #384252 !important; color: #3080e6 !important; }}
+            .details-table td {{ border-color: #384252 !important; color: #e1e8f2 !important; }}
+            .details-table tr:nth-child(even) {{ background-color: #272e3d !important; }}
+            .total-row td {{ color: #ff4d61 !important; }}
+            .qr-section {{ background-color: #1a1f2c !important; border-color: #3080e6 !important; }}
+            .qr-section h3 {{ color: #3080e6 !important; }}
+            .qr-section td, .qr-section div {{ color: #a0aebf !important; }}
+            .qr-section strong {{ color: #ffffff !important; }}
+            .footer {{ color: #707d90 !important; border-top-color: #384252 !important; }}
+        }}
     </style>
 </head>
 <body>
     <div class='container'>
         <div class='header'>
-            <h2>Hóa Đơn Thanh Tự Tiền Phòng</h2>
+            <h2>Hóa Đơn Thanh Toán Tiền Phòng</h2>
             <p>{hoaDon.TenChiNhanh}</p>
         </div>
         
@@ -122,7 +143,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.Emails
                 <tr>
                     <th style='text-align: center;'>STT</th>
                     <th>Dịch vụ</th>
-                    <th style='text-align: right;'>Đơn giá</th>
+                    <th style='text-align: right;'>Don giá</th>
                     <th style='text-align: center;'>SL</th>
                     <th style='text-align: center;'>Đơn vị</th>
                     <th style='text-align: right;'>Thành tiền</th>

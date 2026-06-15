@@ -8,6 +8,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
     [Area("QuanLyNhaTro")]
     [Route("[controller]/[action]")]
     [Authorize]
+    [AutoValidateAntiforgeryToken]
     public class ChiNhanhsController : Controller
     {
         private readonly IChiNhanhService _chiNhanhService;

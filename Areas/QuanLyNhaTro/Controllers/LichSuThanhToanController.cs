@@ -13,6 +13,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
     [Area("QuanLyNhaTro")]
     [ApiController]
     [Authorize]
+    [AutoValidateAntiforgeryToken]
     public class LichSuThanhToanController : Controller
     {
         private readonly ILichSuThanhToanService _lichSuThanhToanService;

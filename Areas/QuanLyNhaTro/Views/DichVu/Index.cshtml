@@ -89,16 +89,16 @@
             </div>
             <div class="modal-body">
                 <input type="hidden" id="DichVuId" value="0" />
-                <div class="form-group">
-                    <label>Tên Dịch Vụ <span class="text-danger">*</span></label>
+                <div class="form-group mb-3">
+                    <label for="TenDichVu">Tên Dịch Vụ <span class="text-danger">*</span></label>
                     <input type="text" class="form-control" id="TenDichVu" placeholder="VD: Điện, Nước, Rác...">
                 </div>
-                <div class="form-group">
-                    <label>Đơn Vị Tính <span class="text-danger">*</span></label>
+                <div class="form-group mb-3">
+                    <label for="DonVi">Đơn Vị Tính <span class="text-danger">*</span></label>
                     <input type="text" class="form-control" id="DonVi" placeholder="VD: kWh, m3, Tháng...">
                 </div>
-                <div class="form-group">
-                    <label>Ghi Chú</label>
+                <div class="form-group mb-3">
+                    <label for="GhiChuDichVu">Ghi Chú</label>
                     <textarea class="form-control" id="GhiChuDichVu" rows="2"></textarea>
                 </div>
             </div>
@@ -120,8 +120,8 @@
             </div>
             <div class="modal-body">
                 <input type="hidden" id="DichVuChiNhanhId" value="0" />
-                <div class="form-group">
-                    <label>Chi Nhánh <span class="text-danger">*</span></label>
+                <div class="form-group mb-3">
+                    <label for="BgChiNhanhId">Chi Nhánh <span class="text-danger">*</span></label>
                     <select class="form-control" id="BgChiNhanhId">
                         <option value="">-- Chọn chi nhánh --</option>
                         @if (ViewBag.ListChiNhanh != null)
@@ -133,14 +133,14 @@
                         }
                     </select>
                 </div>
-                <div class="form-group">
-                    <label>Dịch Vụ <span class="text-danger">*</span></label>
+                <div class="form-group mb-3">
+                    <label for="BgDichVuId">Dịch Vụ <span class="text-danger">*</span></label>
                     <select class="form-control" id="BgDichVuId">
                         <option value="">-- Chọn dịch vụ --</option>
                     </select>
                 </div>
-                <div class="form-group">
-                    <label>Giá Dịch Vụ (VNĐ) <span class="text-danger">*</span></label>
+                <div class="form-group mb-3">
+                    <label for="GiaDichVu">Giá Dịch Vụ (VNĐ) <span class="text-danger">*</span></label>
                     <input type="number" class="form-control" id="GiaDichVu" value="0" min="0">
                 </div>
             </div>
@@ -208,10 +208,12 @@
                 let dvi = $('#DonVi').val().trim();
                 let ghiChu = $('#GhiChuDichVu').val().trim();
 
-                if(!ten || !dvi) { alert('Vui lòng nhập tên và đơn vị!'); return; }
+                if(!ten || !dvi) { Swal.fire('Thông báo', 'Vui lòng nhập tên và đơn vị!', 'warning'); return; }
 
                 let req = { dichVuId: parseInt(id), tenDichVu: ten, donVi: dvi, ghiChu: ghiChu };
                 let isUpdate = id > 0;
+                let $btn = $(this);
+                $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang lưu...');
 
                 $.ajax({
                     url: isUpdate ? `/DichVu/Update/${id}` : '/DichVu/Create',
@@ -219,11 +221,12 @@
                     contentType: 'application/json',
                     data: JSON.stringify(req),
                     success: function(res) {
-                        alert(res.message);
+                        Swal.fire('Thành công', res.message, 'success');
                         $('#dichVuModal').modal('hide');
                         tableDichVu.ajax.reload(null, false);
                     },
-                    error: function(xhr) { alert(xhr.responseJSON?.message || 'Có lỗi xảy ra'); }
+                    error: function(xhr) { Swal.fire('Lỗi', xhr.responseJSON?.message || 'Có lỗi xảy ra', 'error'); },
+                    complete: function() { $btn.prop('disabled', false).text('Lưu Dịch Vụ'); }
                 });
             });
 
@@ -241,13 +244,27 @@
 
             $('#dichVuTable').on('click', '.btn-delete-dv', function() {
                 let id = $(this).data('id');
-                if(confirm('Xóa dịch vụ này?')) {
-                    $.ajax({
-                        url: `/DichVu/Delete/${id}`, type: 'DELETE',
-                        success: function(res) { alert(res.message); tableDichVu.ajax.reload(null, false); },
-                        error: function(xhr) { alert(xhr.responseJSON?.message || 'Có lỗi xảy ra'); }
-                    });
-                }
+                Swal.fire({
+                    title: 'Xác nhận xóa?',
+                    text: 'Bạn có chắc chắn muốn xóa dịch vụ này?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Đồng ý xóa',
+                    cancelButtonText: 'Hủy bỏ'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: `/DichVu/Delete/${id}`, type: 'DELETE',
+                            success: function(res) {
+                                Swal.fire('Thành công', res.message, 'success');
+                                tableDichVu.ajax.reload(null, false);
+                            },
+                            error: function(xhr) {
+                                Swal.fire('Lỗi', xhr.responseJSON?.message || 'Có lỗi xảy ra', 'error');
+                            }
+                        });
+                    }
+                });
             });
 
             // ================== TAB 2: BẢNG GIÁ CHI NHÁNH ==================
@@ -314,11 +331,13 @@
                 let dv = $('#BgDichVuId').val();
                 let gia = parseFloat($('#GiaDichVu').val() || 0);
 
-                if(!cn || !dv) { alert('Vui lòng chọn chi nhánh và dịch vụ!'); return; }
-                if(gia < 0) { alert('Giá không được âm!'); return; }
+                if(!cn || !dv) { Swal.fire('Thông báo', 'Vui lòng chọn chi nhánh và dịch vụ!', 'warning'); return; }
+                if(gia < 0) { Swal.fire('Thông báo', 'Giá không được âm!', 'warning'); return; }
 
                 let req = { dichVuChiNhanhId: parseInt(id), chiNhanhId: parseInt(cn), dichVuId: parseInt(dv), giaDichVu: gia };
                 let isUpdate = id > 0;
+                let $btn = $(this);
+                $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang lưu...');
 
                 $.ajax({
                     url: isUpdate ? `/DichVuChiNhanh/Update/${id}` : '/DichVuChiNhanh/Create',
@@ -326,11 +345,12 @@
                     contentType: 'application/json',
                     data: JSON.stringify(req),
                     success: function(res) {
-                        alert(res.message);
+                        Swal.fire('Thành công', res.message, 'success');
                         $('#bangGiaModal').modal('hide');
                         tableBangGia.ajax.reload(null, false);
                     },
-                    error: function(xhr) { alert(xhr.responseJSON?.message || 'Có lỗi xảy ra'); }
+                    error: function(xhr) { Swal.fire('Lỗi', xhr.responseJSON?.message || 'Có lỗi xảy ra', 'error'); },
+                    complete: function() { $btn.prop('disabled', false).text('Lưu Bảng Giá'); }
                 });
             });
 
@@ -348,13 +368,27 @@
 
             $('#bangGiaTable').on('click', '.btn-delete-bg', function() {
                 let id = $(this).data('id');
-                if(confirm('Xóa bảng giá này?')) {
-                    $.ajax({
-                        url: `/DichVuChiNhanh/Delete/${id}`, type: 'DELETE',
-                        success: function(res) { alert(res.message); tableBangGia.ajax.reload(null, false); },
-                        error: function(xhr) { alert(xhr.responseJSON?.message || 'Có lỗi xảy ra'); }
-                    });
-                }
+                Swal.fire({
+                    title: 'Xác nhận xóa?',
+                    text: 'Bạn có chắc chắn muốn xóa bảng giá này?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Đồng ý xóa',
+                    cancelButtonText: 'Hủy bỏ'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: `/DichVuChiNhanh/Delete/${id}`, type: 'DELETE',
+                            success: function(res) {
+                                Swal.fire('Thành công', res.message, 'success');
+                                tableBangGia.ajax.reload(null, false);
+                            },
+                            error: function(xhr) {
+                                Swal.fire('Lỗi', xhr.responseJSON?.message || 'Có lỗi xảy ra', 'error');
+                            }
+                        });
+                    }
+                });
             });
         });
     </script>

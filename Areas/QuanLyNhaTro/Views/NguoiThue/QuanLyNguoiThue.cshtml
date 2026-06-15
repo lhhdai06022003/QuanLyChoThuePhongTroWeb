@@ -51,49 +51,49 @@
                 <form id="frmNguoiThue">
                     <div class="row">
                         <div class="col-md-6">
-                            <div class="form-group">
-                                <label>Họ và Tên <span class="text-danger">*</span></label>
+                            <div class="form-group mb-3">
+                                <label for="HoVaTen">Họ và Tên <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control" id="HoVaTen" required placeholder="Nhập họ tên...">
                             </div>
                             
-                            <div class="form-group">
-                                <label>Email</label>
+                            <div class="form-group mb-3">
+                                <label for="Email">Email</label>
                                 <input type="email" class="form-control" id="Email" placeholder="Nhập email (nếu có)...">
                             </div>
 
-                            <div class="form-group">
-                                <label>Số Điện Thoại <span class="text-danger">*</span></label>
+                            <div class="form-group mb-3">
+                                <label for="SoDienThoai">Số Điện Thoại <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control" id="SoDienThoai" required placeholder="Nhập SĐT...">
                             </div>
                             
-                            <div class="form-group">
-                                <label>Ngày Sinh</label>
+                            <div class="form-group mb-3">
+                                <label for="NgaySinh">Ngày Sinh</label>
                                 <input type="date" class="form-control" id="NgaySinh">
                             </div>
                         </div>
                         
                         <div class="col-md-6">
-                            <div class="form-group">
-                                <label>Số CCCD <span class="text-danger">*</span></label>
+                            <div class="form-group mb-3">
+                                <label for="CCCD">Số CCCD <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control" id="CCCD" required placeholder="Nhập số CCCD...">
                             </div>
-                            <div class="form-group">
-                                <label>Ngày Cấp CCCD</label>
+                            <div class="form-group mb-3">
+                                <label for="NgayCapCCCD">Ngày Cấp CCCD</label>
                                 <input type="date" class="form-control" id="NgayCapCCCD">
                             </div>
-                            <div class="form-group">
-                                <label>Nơi Cấp CCCD</label>
+                            <div class="form-group mb-3">
+                                <label for="NoiCapCCCD">Nơi Cấp CCCD</label>
                                 <input type="text" class="form-control" id="NoiCapCCCD" placeholder="Nơi cấp...">
                             </div>
-                            <div class="form-group">
-                                <label>Quê Quán</label>
+                            <div class="form-group mb-3">
+                                <label for="QueQuan">Quê Quán</label>
                                 <input type="text" class="form-control" id="QueQuan" placeholder="Nhập quê quán...">
                             </div>
                         </div>
                         
                         <div class="col-md-12">
-                            <div class="form-group">
-                                <label>Ghi Chú</label>
+                            <div class="form-group mb-3">
+                                <label for="GhiChu">Ghi Chú</label>
                                 <textarea class="form-control" id="GhiChu" rows="2" placeholder="Ghi chú thêm..."></textarea>
                             </div>
                         </div>
@@ -194,13 +194,13 @@
 
                 // Validation giao diện: Không ép buộc Email
                 if (!hoVaTen || !sdt || !cccd) {
-                    alert("Vui lòng nhập đầy đủ Họ tên, Số điện thoại và CCCD!");
+                    Swal.fire('Thông báo', 'Vui lòng nhập đầy đủ Họ tên, Số điện thoại và CCCD!', 'warning');
                     return;
                 }
 
                 // Nếu có nhập email thì kiểm tra định dạng sơ bộ ở client
                 if (email && !/^[^\s\x40]+\x40[^\s\x40]+\.[^\s\x40]+$/.test(email)) {
-                    alert("Vui lòng nhập đúng định dạng Email!");
+                    Swal.fire('Thông báo', 'Vui lòng nhập đúng định dạng Email!', 'warning');
                     return;
                 }
 
@@ -233,7 +233,7 @@
                     contentType: 'application/json',
                     data: JSON.stringify(requestData),
                     success: function (res) {
-                        alert(res.message || "Lưu thành công!");
+                        Swal.fire('Thành công', res.message || 'Lưu thành công!', 'success');
                         $('#nguoiThueModal').modal('hide');
                         table.ajax.reload(null, false);
                     },
@@ -251,7 +251,7 @@
                                 errorMessage = "Dữ liệu không hợp lệ. Vui lòng kiểm tra lại!";
                             }
                         }
-                        alert(errorMessage);
+                        Swal.fire('Lỗi', errorMessage, 'error');
                     },
                     complete: function () {
                         $btn.prop('disabled', false).html('<i class="fas fa-save"></i> Lưu thông tin');
@@ -283,7 +283,7 @@
                         }
                     },
                     error: function() {
-                        alert("Không thể tải thông tin người thuê.");
+                        Swal.fire('Lỗi', 'Không thể tải thông tin người thuê.', 'error');
                     }
                 });
             });
@@ -293,27 +293,36 @@
                 let id = $(this).data('id');
                 let $btn = $(this);
 
-                if (confirm('Hành động này không thể hoàn tác. Bạn có chắc chắn muốn xóa người thuê này?')) {
-                    let originalHtml = $btn.html();
-                    $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
+                Swal.fire({
+                    title: 'Xác nhận xóa?',
+                    text: 'Hành động này không thể hoàn tác. Bạn có chắc chắn muốn xóa người thuê này?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Đồng ý xóa',
+                    cancelButtonText: 'Hủy bỏ'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        let originalHtml = $btn.html();
+                        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
 
-                    $.ajax({
-                        url: '/NguoiThue/Delete/' + id, 
-                        type: 'DELETE',
-                        success: function (res) {
-                            alert(res.message || "Xóa thành công!");
-                            table.ajax.reload(null, false);
-                        },
-                        error: function (xhr) {
-                            let msg = "Lỗi kết nối máy chủ khi thực hiện xóa!";
-                            if (xhr.responseJSON && xhr.responseJSON.message) {
-                                msg = xhr.responseJSON.message;
+                        $.ajax({
+                            url: '/NguoiThue/Delete/' + id, 
+                            type: 'DELETE',
+                            success: function (res) {
+                                Swal.fire('Thành công', res.message || 'Xóa thành công!', 'success');
+                                table.ajax.reload(null, false);
+                            },
+                            error: function (xhr) {
+                                let msg = "Lỗi kết nối máy chủ khi thực hiện xóa!";
+                                if (xhr.responseJSON && xhr.responseJSON.message) {
+                                    msg = xhr.responseJSON.message;
+                                }
+                                Swal.fire('Lỗi', 'Không thể xóa: ' + msg, 'error');
+                                $btn.prop('disabled', false).html(originalHtml);
                             }
-                            alert("Không thể xóa: " + msg);
-                            $btn.prop('disabled', false).html(originalHtml);
-                        }
-                    });
-                }
+                        });
+                    }
+                });
             });
 
             // Reset form khi mở Modal Thêm Mới
@@ -327,22 +336,31 @@
             // Phát sinh khách thuê ngẫu nhiên
             $('#btnPhatSinhKhach').click(function () {
                 let $btn = $(this);
-                if (!confirm('Bạn có chắc chắn muốn tự động phát sinh 10 khách thuê ngẫu nhiên?')) return;
+                Swal.fire({
+                    title: 'Phát sinh khách thuê?',
+                    text: 'Bạn có chắc chắn muốn tự động phát sinh 10 khách thuê ngẫu nhiên?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Đồng ý',
+                    cancelButtonText: 'Hủy bỏ'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang phát sinh...');
 
-                $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang phát sinh...');
-
-                $.ajax({
-                    url: '/NguoiThue/PhatSinhNgauNhien',
-                    type: 'POST',
-                    success: function (res) {
-                        alert(res.message);
-                        table.ajax.reload(null, false);
-                    },
-                    error: function (xhr) {
-                        alert('Lỗi khi phát sinh khách thuê: ' + (xhr.responseJSON?.message || 'Lỗi hệ thống'));
-                    },
-                    complete: function () {
-                        $btn.prop('disabled', false).html('<i class="fas fa-magic"></i> Phát sinh 10 khách ngẫu nhiên');
+                        $.ajax({
+                            url: '/NguoiThue/PhatSinhNgauNhien',
+                            type: 'POST',
+                            success: function (res) {
+                                Swal.fire('Thành công', res.message, 'success');
+                                table.ajax.reload(null, false);
+                            },
+                            error: function (xhr) {
+                                Swal.fire('Lỗi', 'Lỗi khi phát sinh khách thuê: ' + (xhr.responseJSON?.message || 'Lỗi hệ thống'), 'error');
+                            },
+                            complete: function () {
+                                $btn.prop('disabled', false).html('<i class="fas fa-magic"></i> Phát sinh 10 khách ngẫu nhiên');
+                            }
+                        });
                     }
                 });
             });

@@ -169,5 +169,38 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.NguoiThues
                 .Take(10)
                 .ToListAsync();
         }
+
+        public async Task<(bool IsSuccess, string ErrorMessage)> PhatSinhNgauNhienAsync()
+        {
+            var random = new Random();
+
+            string[] hoList = { "Nguyễn", "Trần", "Lê", "Phạm", "Hoàng", "Huỳnh", "Phan", "Vũ", "Võ", "Đặng" };
+            string[] demList = { "Văn", "Thị", "Hữu", "Minh", "Anh", "Đức", "Ngọc", "Tuấn", "Hoàng", "Quốc" };
+            string[] tenList = { "Anh", "Dũng", "Hùng", "Cường", "Trang", "Vy", "Hải", "Tuấn", "Nam", "Lan", "Hương", "Long", "Minh", "Khánh", "Đức" };
+            string[] tinhList = { "Hà Nội", "TP. Hồ Chí Minh", "Đà Nẵng", "Cần Thơ", "Hải Phòng", "Đồng Nai", "Bình Dương", "Long An", "Tiền Giang", "Lâm Đồng" };
+
+            var addedTenants = new List<string>();
+
+            for (int i = 0; i < 10; i++)
+            {
+                string hoTen = $"{hoList[random.Next(hoList.Length)]} {demList[random.Next(demList.Length)]} {tenList[random.Next(tenList.Length)]}";
+                
+                var nguoiThue = new NguoiThue
+                {
+                    HoVaTen = hoTen,
+                    Email = $"tenant.{random.Next(1000, 9999)}@example.com",
+                    SoDienThoai = $"09{random.Next(10000000, 99999999)}",
+                    CCCD = $"{random.Next(100000000, 999999999)}{random.Next(100, 999)}",
+                    QueQuan = tinhList[random.Next(tinhList.Length)],
+                    NgayTao = DateTime.UtcNow,
+                    IsDeleted = false
+                };
+                _context.NguoiThues.Add(nguoiThue);
+                addedTenants.Add(hoTen);
+            }
+
+            await _context.SaveChangesAsync();
+            return (true, $"Đã thêm 10 người thuê ngẫu nhiên thành công: {string.Join(", ", addedTenants)}");
+        }
     }
 }

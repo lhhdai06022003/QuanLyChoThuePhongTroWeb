@@ -50,7 +50,7 @@
             <div class="modal-body">
 
                 <div class="form-group row mb-3">
-                    <label class="col-sm-3 col-form-label">Mã Chi Nhánh <span class="text-danger">*</span></label>
+                    <label for="MaChiNhanh" class="col-sm-3 col-form-label">Mã Chi Nhánh <span class="text-danger">*</span></label>
                     <div class="col-sm-9">
                         <input type="text" class="form-control" id="MaChiNhanh" name="MaChiNhanh" required placeholder="Ví dụ: Q1, BT, TD..." maxlength="10">
                         <small class="form-text text-muted">Mã viết tắt viết liền không dấu, dùng để tự động sinh mã hợp đồng.</small>
@@ -58,28 +58,28 @@
                 </div>
 
                 <div class="form-group row mb-3">
-                    <label class="col-sm-3 col-form-label">Tên Chi Nhánh <span class="text-danger">*</span></label>
+                    <label for="TenChiNhanh" class="col-sm-3 col-form-label">Tên Chi Nhánh <span class="text-danger">*</span></label>
                     <div class="col-sm-9">
                         <input type="text" class="form-control" id="TenChiNhanh" name="TenChiNhanh" required placeholder="Nhập tên chi nhánh...">
                     </div>
                 </div>
 
                 <div class="form-group row mb-3">
-                    <label class="col-sm-3 col-form-label">Số Điện Thoại</label>
+                    <label for="SoDienThoai" class="col-sm-3 col-form-label">Số Điện Thoại</label>
                     <div class="col-sm-9">
                         <input type="text" class="form-control" id="SoDienThoai" name="SoDienThoai" placeholder="Nhập SĐT liên hệ...">
                     </div>
                 </div>
 
                 <div class="form-group row mb-3">
-                    <label class="col-sm-3 col-form-label">Địa Chỉ <span class="text-danger">*</span></label>
+                    <label for="DiaChi" class="col-sm-3 col-form-label">Địa Chỉ <span class="text-danger">*</span></label>
                     <div class="col-sm-9">
                         <input type="text" class="form-control" id="DiaChi" name="DiaChi" required placeholder="Nhập địa chỉ đầy đủ...">
                     </div>
                 </div>
 
                 <div class="form-group row mb-3">
-                    <label class="col-sm-3 col-form-label">Mô Tả Thêm</label>
+                    <label for="MoTa" class="col-sm-3 col-form-label">Mô Tả Thêm</label>
                     <div class="col-sm-9">
                         <textarea class="form-control" id="MoTa" name="MoTa" rows="3" placeholder="Ví dụ: Gần trường ĐH Sư Phạm Kỹ Thuật..."></textarea>
                     </div>
@@ -175,15 +175,15 @@
                 let moTa = $('#MoTa').val() || "";
 
                 if (ma.trim() === "") {
-                    alert("Vui lòng nhập mã chi nhánh!");
+                    Swal.fire('Thông báo', 'Vui lòng nhập mã chi nhánh!', 'warning');
                     return;
                 }
                 if (ten.trim() === "") {
-                    alert("Vui lòng nhập tên chi nhánh!");
+                    Swal.fire('Thông báo', 'Vui lòng nhập tên chi nhánh!', 'warning');
                     return;
                 }
                 if (diaChi.trim() === "") {
-                    alert("Vui lòng nhập địa chỉ!");
+                    Swal.fire('Thông báo', 'Vui lòng nhập địa chỉ!', 'warning');
                     return;
                 }
 
@@ -208,11 +208,11 @@
                     },
                     success: function (res) {
                         if (res.success) {
-                            alert(res.message);
+                            Swal.fire('Thành công', res.message, 'success');
                             $('#chiNhanhModal').modal('hide');
                             table.ajax.reload(null, false);
                         } else {
-                            alert("Lỗi: " + res.message);
+                            Swal.fire('Lỗi', 'Lỗi: ' + res.message, 'error');
                         }
                     },
                     complete: function () {
@@ -249,40 +249,48 @@
 
                 // 1. KIỂM TRA FRONTEND TRƯỚC KHI GỬI
                 if (!id || isNaN(id) || parseInt(id) <= 0) {
-                    alert("Dữ liệu không hợp lệ. Vui lòng tải lại trang!");
+                    Swal.fire('Lỗi', 'Dữ liệu không hợp lệ. Vui lòng tải lại trang!', 'error');
                     return;
                 }
 
                 // 2. XÁC NHẬN HÀNH ĐỘNG NGUY HIỂM (Confirm)
-                if (confirm('Hành động này không thể hoàn tác. Bạn có chắc chắn muốn xóa chi nhánh này?')) {
+                Swal.fire({
+                    title: 'Xác nhận xóa?',
+                    text: 'Hành động này không thể hoàn tác. Bạn có chắc chắn muốn xóa chi nhánh này?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Đồng ý xóa',
+                    cancelButtonText: 'Hủy bỏ'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // 3. NGĂN CHẶN SPAM CLICK
+                        let originalHtml = $btn.html();
+                        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
 
-                    // 3. NGĂN CHẶN SPAM CLICK
-                    let originalHtml = $btn.html();
-                    $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
-
-                    // 4. GỬI REQUEST XÓA
-                    $.ajax({
-                        url: '/ChiNhanhs/XoaChiNhanh', // BỎ nối chuỗi + id ở đây
-                        type: 'POST',
-                        data: { id: id }, // TRUYỀN ID QUY VỀ BODY DỮ LIỆU
-                        success: function (res) {
-                            if (res.success) {
-                                alert(res.message || "Xóa thành công!");
-                                if (typeof table !== 'undefined') { // Đổi lại tên biến table nếu bạn dùng biến table
-                                    table.ajax.reload(null, false);
+                        // 4. GỬI REQUEST XÓA
+                        $.ajax({
+                            url: '/ChiNhanhs/XoaChiNhanh', 
+                            type: 'POST',
+                            data: { id: id },
+                            success: function (res) {
+                                if (res.success) {
+                                    Swal.fire('Thành công', res.message || 'Xóa thành công!', 'success');
+                                    if (typeof table !== 'undefined') {
+                                        table.ajax.reload(null, false);
+                                    }
+                                } else {
+                                    Swal.fire('Lỗi', 'Không thể xóa: ' + (res.message || 'Chi nhánh đang được sử dụng.'), 'error');
+                                    $btn.prop('disabled', false).html(originalHtml);
                                 }
-                            } else {
-                                alert("Không thể xóa: " + (res.message || "Chi nhánh đang được sử dụng."));
+                            },
+                            error: function (xhr, status, error) {
+                                console.error("Chi tiết lỗi:", error);
+                                Swal.fire('Lỗi', 'Lỗi kết nối máy chủ khi thực hiện xóa!', 'error');
                                 $btn.prop('disabled', false).html(originalHtml);
                             }
-                        },
-                        error: function (xhr, status, error) {
-                            console.error("Chi tiết lỗi:", error);
-                            alert("Lỗi kết nối máy chủ khi thực hiện xóa!");
-                            $btn.prop('disabled', false).html(originalHtml);
-                        }
-                    });
-                }
+                        });
+                    }
+                });
             });
             $('#btnOpenAddModal').on('click', function () {
                 currentChiNhanhId = 0; // Đặt lại về 0

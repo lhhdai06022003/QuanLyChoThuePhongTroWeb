@@ -175,7 +175,8 @@ Tài liệu này mô tả chi tiết tất cả các chức năng nghiệp vụ 
 *   **Xác nhận thanh toán (Thu tiền)**: Ghi nhận đóng tiền và chuyển trạng thái hóa đơn sang "Đã thanh toán".
 *   **Sinh mã VietQR chuyển khoản động**: Tạo mã QR ngân hàng chứa số tài khoản, số tiền và nội dung chuyển khoản động chứa mã hóa đơn.
 *   **Xuất tệp tin PDF và Excel**: Tải hóa đơn chi tiết dạng file Excel hoặc file PDF để gửi/in cho khách.
-*   **Gửi Email hóa đơn tự động**: Gửi trực tiếp hóa đơn PDF vào hòm thư điện tử của khách thuê.
+*   **Gửi Email hóa đơn tự động (Đơn lẻ & Hàng loạt)**: Gửi trực tiếp hóa đơn dạng bảng HTML đính kèm tệp PDF vào hòm thư điện tử của khách thuê.
+*   **Bộ lọc và Gửi email hàng loạt qua Modal**: Tự động lọc ra toàn bộ hóa đơn chưa thanh toán của chi nhánh và kỳ đã chọn để gửi email nhắc nợ hàng loạt trong một giao diện Modal riêng biệt.
 *   **Xóa hóa đơn**: Xóa các hóa đơn chưa thanh toán bị lập sai.
 
 #### C. Cách thức hoạt động chi tiết:
@@ -198,7 +199,10 @@ Tài liệu này mô tả chi tiết tất cả các chức năng nghiệp vụ 
 4.  **Xuất bản tài liệu chất lượng cao**:
     *   *Excel*: Thư viện `ClosedXML` tạo một Workbook mới, vẽ bảng kê chi tiết hóa đơn, kẻ bảng, tô màu tiêu đề và định dạng số tiền tệ, trả về luồng byte tải về của trình duyệt.
     *   *PDF*: Thư viện `QuestPDF` vẽ bố cục hóa đơn A4 sắc nét gồm logo, thông tin chi nhánh, thông tin khách thuê, bảng chi phí chi tiết, và chữ ký người lập phiếu, trả về file PDF chuẩn.
-5.  **Gửi Email tự động**: Khi bấm "Gửi Email", hệ thống gọi hàm sinh PDF trong bộ nhớ RAM, chuyển mảng byte PDF này sang [EmailService.cs]. Dịch vụ gửi email khởi tạo một kết nối SMTP bảo mật (TLS) tới máy chủ thư điện tử (ví dụ: Google Mail Server), đính kèm file PDF hóa đơn và gửi thư tới địa chỉ email của khách hàng thuê phòng.
+5.  **Gửi Email tự động & Gửi hàng loạt qua Modal**:
+    *   *Gửi đơn lẻ:* Khi Admin bấm "Gửi Email" trên bảng thao tác, hệ thống sinh PDF hóa đơn dưới dạng mảng byte trong bộ nhớ RAM, gọi [EmailService.cs] khởi tạo kết nối SMTP (TLS) tới máy chủ thư điện tử (cấu hình trong `appsettings.json`) để gửi đính kèm file PDF hóa đơn và nội dung HTML tóm tắt đến email khách thuê phòng.
+    *   *Gửi hàng loạt:* Bấm nút **"Gửi Email Hóa Đơn"** ở thanh công cụ chính, Modal gửi email mở ra hỗ trợ bộ lọc riêng biệt (Chi nhánh, Tháng, Năm). Hệ thống gọi API `/HoaDon/GetUnpaidList` để lấy toàn bộ các hóa đơn chưa thanh toán, hỗ trợ tích chọn hàng loạt. Khi bấm bắt đầu gửi, Javascript chạy vòng lặp tuần tự gọi API gửi email cho từng hóa đơn, đồng thời cập nhật thanh tiến trình (Progress Bar) động qua SweetAlert2 để đảm bảo UX trực quan và mượt mà.
+    *   *Tương thích giao diện tối (Dark Mode):* Email được thiết kế responsive với mã CSS thích ứng tự động (`prefers-color-scheme: dark`) giúp tự động chuyển tông màu nền và màu chữ dịu mắt khi khách thuê bật chế độ tối trên thiết bị. Mã QR Code VietQR được bọc trong viền trắng cố định giúp camera quét chuyển khoản nhanh và chính xác nhất.
 
 ---
 

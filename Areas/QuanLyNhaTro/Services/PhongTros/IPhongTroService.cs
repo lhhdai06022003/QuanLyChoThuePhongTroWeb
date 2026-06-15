@@ -14,5 +14,8 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.PhongTros
         Task<ServiceResult> XoaPhongTroAsync(int id);
         Task<List<PhongTro>> DanhSachPhongTroConTrong();
         Task<List<PhongCardRes>> GetSoDoPhongAsync(int chiNhanhId);
+        Task<object> GetQuickContractAsync(int phongTroId);
+        Task<object> GetUnpaidInvoiceAsync(int phongTroId);
+        Task<ServiceResult> PhatSinhNgauNhienAsync();
     }
 }

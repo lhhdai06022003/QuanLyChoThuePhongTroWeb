@@ -1,32 +1,32 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.NguoiThues;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Requests;
 using Microsoft.AspNetCore.Authorization;
-using QuanLyChoThuePhongTroWeb.Models;
+using Microsoft.Extensions.Logging;
+using System;
+using System.Threading.Tasks;
 
 namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
 {
     [Area("QuanLyNhaTro")]
-    [ApiController] // Thẻ này tự động trả về 400 BadRequest nếu DTO không hợp lệ
+    [ApiController]
     [Authorize]
+    [AutoValidateAntiforgeryToken]
     public class NguoiThueController : Controller
     {
         private readonly INguoiThueService _nguoiThueService;
+        private readonly ILogger<NguoiThueController> _logger;
 
-        public NguoiThueController(INguoiThueService nguoiThueService)
+        public NguoiThueController(INguoiThueService nguoiThueService, ILogger<NguoiThueController> logger)
         {
             _nguoiThueService = nguoiThueService;
+            _logger = logger;
         }
+
         [Route("QuanLyNhaTro/QuanLyNguoiThue")]
         [ApiExplorerSettings(IgnoreApi = true)]
         public async Task<IActionResult> QuanLyNguoiThue()
         {
-            // 1. Gọi Service để lấy danh sách chi nhánh từ Database
-            //var danhSachChiNhanh = await _chiNhanhService.GetAllAsync();
-
-            // 2. Trả danh sách này về cho file View (Index.cshtml)
             return View();
         }
 
@@ -55,37 +55,60 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         [HttpPost("/NguoiThue/Create")]
         public async Task<IActionResult> Create([FromBody] NguoiThueReq request)
         {
-            // Controller cực gọn, mọi logic validation phức tạp đã nằm ở Service
-            var result = await _nguoiThueService.CreateAsync(request);
-            if (!result.IsSuccess)
+            try
             {
-                return BadRequest(new { Message = result.ErrorMessage });
+                var result = await _nguoiThueService.CreateAsync(request);
+                if (!result.IsSuccess)
+                {
+                    return BadRequest(new { Message = result.ErrorMessage });
+                }
+                return Ok(new { Message = "Thêm người thuê thành công!" });
             }
-            return Ok(new { Message = "Thêm người thuê thành công!" });
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi thêm người thuê mới.");
+                return StatusCode(500, new { Message = "Đã xảy ra lỗi hệ thống khi thêm người thuê." });
+            }
         }
 
         [HttpPut("/NguoiThue/Update/{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] NguoiThueUpdateDto request)
         {
-            if (id != request.NguoiThueId) return BadRequest(new { Message = "ID không khớp." });
-
-            var result = await _nguoiThueService.UpdateAsync(id, request);
-            if (!result.IsSuccess)
+            try
             {
-                return BadRequest(new { Message = result.ErrorMessage });
+                if (id != request.NguoiThueId) return BadRequest(new { Message = "ID không khớp." });
+
+                var result = await _nguoiThueService.UpdateAsync(id, request);
+                if (!result.IsSuccess)
+                {
+                    return BadRequest(new { Message = result.ErrorMessage });
+                }
+                return Ok(new { Message = "Cập nhật thành công!" });
             }
-            return Ok(new { Message = "Cập nhật thành công!" });
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi cập nhật người thuê {NguoiThueId}.", id);
+                return StatusCode(500, new { Message = "Đã xảy ra lỗi hệ thống khi cập nhật người thuê." });
+            }
         }
 
         [HttpDelete("/NguoiThue/Delete/{id}")]
         public async Task<IActionResult> Delete(int id)
         {
-            var result = await _nguoiThueService.DeleteAsync(id);
-            if (!result.IsSuccess)
+            try
             {
-                return BadRequest(new { Message = result.ErrorMessage });
+                var result = await _nguoiThueService.DeleteAsync(id);
+                if (!result.IsSuccess)
+                {
+                    return BadRequest(new { Message = result.ErrorMessage });
+                }
+                return Ok(new { Message = "Đã xóa người thuê." });
             }
-            return Ok(new { Message = "Đã xóa người thuê." });
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi xóa người thuê {NguoiThueId}.", id);
+                return StatusCode(500, new { Message = "Đã xảy ra lỗi hệ thống khi xóa người thuê." });
+            }
         }
 
         [HttpGet("/NguoiThue/SearchAutocomplete")]
@@ -100,40 +123,17 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         {
             try
             {
-                var context = HttpContext.RequestServices.GetRequiredService<Data.ApplicationDbContext>();
-                var random = new Random();
-
-                string[] hoList = { "Nguyễn", "Trần", "Lê", "Phạm", "Hoàng", "Huỳnh", "Phan", "Vũ", "Võ", "Đặng" };
-                string[] demList = { "Văn", "Thị", "Hữu", "Minh", "Anh", "Đức", "Ngọc", "Tuấn", "Hoàng", "Quốc" };
-                string[] tenList = { "Anh", "Dũng", "Hùng", "Cường", "Trang", "Vy", "Hải", "Tuấn", "Nam", "Lan", "Hương", "Long", "Minh", "Khánh", "Đức" };
-
-                string[] tinhList = { "Hà Nội", "TP. Hồ Chí Minh", "Đà Nẵng", "Cần Thơ", "Hải Phòng", "Đồng Nai", "Bình Dương", "Long An", "Tiền Giang", "Lâm Đồng" };
-
-                var addedTenants = new List<string>();
-
-                for (int i = 0; i < 10; i++)
+                var result = await _nguoiThueService.PhatSinhNgauNhienAsync();
+                if (!result.IsSuccess)
                 {
-                    string hoTen = $"{hoList[random.Next(hoList.Length)]} {demList[random.Next(demList.Length)]} {tenList[random.Next(tenList.Length)]}";
-                    
-                    var nguoiThue = new NguoiThue
-                    {
-                        HoVaTen = hoTen,
-                        Email = $"tenant.{random.Next(1000, 9999)}@example.com",
-                        SoDienThoai = $"09{random.Next(10000000, 99999999)}",
-                        CCCD = $"{random.Next(100000000, 999999999)}{random.Next(100, 999)}",
-                        QueQuan = tinhList[random.Next(tinhList.Length)],
-                        NgayTao = DateTime.UtcNow
-                    };
-                    context.NguoiThues.Add(nguoiThue);
-                    addedTenants.Add(hoTen);
+                    return BadRequest(new { success = false, message = result.ErrorMessage });
                 }
-
-                await context.SaveChangesAsync();
-                return Ok(new { success = true, message = $"Đã thêm 10 người thuê ngẫu nhiên thành công: {string.Join(", ", addedTenants)}" });
+                return Ok(new { success = true, message = result.ErrorMessage }); // note: service stores output message in ErrorMessage for simplicity
             }
             catch (Exception ex)
             {
-                return BadRequest(new { success = false, message = $"Lỗi hệ thống: {ex.Message}" });
+                _logger.LogError(ex, "Lỗi hệ thống khi sinh ngẫu nhiên người thuê.");
+                return StatusCode(500, new { success = false, message = "Lỗi hệ thống khi phát sinh người thuê!" });
             }
         }
     }

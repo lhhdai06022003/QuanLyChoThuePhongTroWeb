@@ -7,24 +7,34 @@ using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Requests;
 using System.Security.Claims;
 
+using Microsoft.Extensions.Logging;
+
 namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
 {
     [Area("QuanLyNhaTro")]
     [ApiController]
     [Authorize]
+    [AutoValidateAntiforgeryToken]
     public class HoaDonController : Controller
     {
         private readonly IHoaDonService _hoaDonService;
         private readonly IPhongTroService _phongTroService;
         private readonly Microsoft.Extensions.Configuration.IConfiguration _configuration;
         private readonly IEmailService _emailService;
+        private readonly ILogger<HoaDonController> _logger;
 
-        public HoaDonController(IHoaDonService hoaDonService, IPhongTroService phongTroService, Microsoft.Extensions.Configuration.IConfiguration configuration, IEmailService emailService)
+        public HoaDonController(
+            IHoaDonService hoaDonService, 
+            IPhongTroService phongTroService, 
+            Microsoft.Extensions.Configuration.IConfiguration configuration, 
+            IEmailService emailService,
+            ILogger<HoaDonController> logger)
         {
             _hoaDonService = hoaDonService;
             _phongTroService = phongTroService;
             _configuration = configuration;
             _emailService = emailService;
+            _logger = logger;
         }
 
         [Route("QuanLyNhaTro/QuanLyHoaDon")]
@@ -165,6 +175,22 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             return File(qrBytes, "image/png");
         }
 
+        // Lấy danh sách hóa đơn chưa thanh toán để gửi mail hàng loạt
+        [HttpGet("/HoaDon/GetUnpaidList")]
+        public async Task<IActionResult> GetUnpaidList([FromQuery] int chiNhanhId, [FromQuery] int thang, [FromQuery] int nam)
+        {
+            try
+            {
+                var data = await _hoaDonService.GetDanhSachHoaDonChuaThanhToanAsync(chiNhanhId, thang, nam);
+                return Ok(data);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi tải danh sách hóa đơn chưa thanh toán.");
+                return StatusCode(500, new { Message = "Lỗi hệ thống khi tải danh sách hóa đơn chưa thanh toán." });
+            }
+        }
+
         // Gửi email hóa đơn
         [HttpPost("/HoaDon/SendEmail/{id}")]
         public async Task<IActionResult> SendEmail(int id)
@@ -192,7 +218,8 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { Message = $"Đã xảy ra lỗi hệ thống: {ex.Message}" });
+                _logger.LogError(ex, "Lỗi hệ thống khi gửi email hóa đơn {HoaDonId}.", id);
+                return StatusCode(500, new { Message = "Đã xảy ra lỗi hệ thống khi gửi email hóa đơn." });
             }
         }
     }

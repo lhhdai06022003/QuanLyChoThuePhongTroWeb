@@ -133,7 +133,7 @@
     <div id="tableViewSection" style="display:none;">
         <div class="card border-0 shadow-sm">
             <div class="card-header d-flex align-items-center justify-content-between py-3">
-                <h3 class="card-title font-weight-bold text-dark"><i class="fas fa-bed me-2 text-primary"></i> Danh Sách Phòng Trọ</h3>
+                <h3 class="card-title font-weight-bold"><i class="fas fa-bed me-2 text-primary"></i> Danh Sách Phòng Trọ</h3>
                 <div class="card-actions" style="min-width:200px;">
                     <select id="filterChiNhanhTable" class="form-select form-select-sm">
                         <option value="">-- Tất cả Chi nhánh --</option>
@@ -181,7 +181,7 @@
             <div class="modal-body">
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Chi Nhánh <span class="text-danger">*</span></label>
+                        <label for="ChiNhanhId" class="form-label">Chi Nhánh <span class="text-danger">*</span></label>
                         <select id="ChiNhanhId" class="form-select">
                             <option value="">-- Chọn Chi Nhánh --</option>
                             @if (ViewBag.ChiNhanhs != null)
@@ -194,27 +194,27 @@
                         </select>
                     </div>
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Số Phòng <span class="text-danger">*</span></label>
+                        <label for="SoPhong" class="form-label">Số Phòng <span class="text-danger">*</span></label>
                         <input type="text" id="SoPhong" class="form-control" placeholder="VD: P.101">
                     </div>
                     <div class="col-md-4 mb-3">
-                        <label class="form-label">Tầng Lầu</label>
+                        <label for="TangLau" class="form-label">Tầng Lầu</label>
                         <input type="number" id="TangLau" class="form-control" value="1">
                     </div>
                     <div class="col-md-4 mb-3">
-                        <label class="form-label">Giá Thuê (VNĐ) <span class="text-danger">*</span></label>
+                        <label for="GiaThue" class="form-label">Giá Thuê (VNĐ) <span class="text-danger">*</span></label>
                         <input type="number" id="GiaThue" class="form-control" placeholder="VD: 3000000">
                     </div>
                     <div class="col-md-4 mb-3">
-                        <label class="form-label">Diện Tích (m²)</label>
+                        <label for="DienTich" class="form-label">Diện Tích (m²)</label>
                         <input type="number" id="DienTich" class="form-control" placeholder="VD: 20">
                     </div>
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Số Người Tối Đa</label>
+                        <label for="SoNguoiToiDa" class="form-label">Số Người Tối Đa</label>
                         <input type="number" id="SoNguoiToiDa" class="form-control" value="2">
                     </div>
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Trạng Thái</label>
+                        <label for="TrangThai" class="form-label">Trạng Thái</label>
                         <select id="TrangThai" class="form-select">
                             <option value="0">Trống</option>
                             <option value="1">Đã Thuê</option>
@@ -222,7 +222,7 @@
                         </select>
                     </div>
                     <div class="col-md-12 mb-3">
-                        <label class="form-label">Mô Tả</label>
+                        <label for="MoTa" class="form-label">Mô Tả</label>
                         <textarea id="MoTa" class="form-control" rows="3" placeholder="Nội thất, tiện ích đi kèm..."></textarea>
                     </div>
                 </div>
@@ -290,8 +290,8 @@
                 <div class="row mb-3">
                     <div class="col-md-6 border-end">
                         <h6 class="font-weight-bold text-primary border-bottom pb-1 mb-2"><i class="fas fa-info-circle"></i> Thông tin hợp đồng</h6>
-                        <table class="table table-sm table-borderless text-dark">
-                            <tr><td width="40%">Mã HĐ:</td><td><strong id="qcMaHD" class="text-dark"></strong></td></tr>
+                        <table class="table table-sm table-borderless">
+                            <tr><td width="40%">Mã HĐ:</td><td><strong id="qcMaHD"></strong></td></tr>
                             <tr><td>Ngày bắt đầu:</td><td id="qcNgayBatDau"></td></tr>
                             <tr><td>Ngày kết thúc:</td><td id="qcNgayKetThuc"></td></tr>
                             <tr><td>Tiền cọc:</td><td><strong id="qcTienCoc" class="text-danger"></strong></td></tr>
@@ -300,8 +300,8 @@
                     </div>
                     <div class="col-md-6">
                         <h6 class="font-weight-bold text-primary border-bottom pb-1 mb-2"><i class="fas fa-user-tie"></i> Đại diện ký hợp đồng</h6>
-                        <table class="table table-sm table-borderless text-dark">
-                            <tr><td width="40%">Họ tên:</td><td><strong id="qcTenDaiDien" class="text-dark"></strong></td></tr>
+                        <table class="table table-sm table-borderless">
+                            <tr><td width="40%">Họ tên:</td><td><strong id="qcTenDaiDien"></strong></td></tr>
                             <tr><td>Số điện thoại:</td><td id="qcSDTDaiDien"></td></tr>
                             <tr><td>Số CCCD:</td><td id="qcCCCDDaiDien"></td></tr>
                         </table>
@@ -374,8 +374,8 @@
                             <i class="fas fa-file-invoice-dollar me-1"></i> Hóa đơn chưa thanh toán kỳ: <span id="qpInvoicePeriod" class="text-danger font-weight-bold"></span>
                         </h6>
                         <div class="row mb-3 font-weight-bold text-secondary">
-                            <div class="col-md-6">Mã Hóa Đơn: <span id="qpInvoiceCode" class="text-dark"></span></div>
-                            <div class="col-md-6 text-end">Khách thuê: <span id="qpTenantName" class="text-dark"></span></div>
+                            <div class="col-md-6">Mã Hóa Đơn: <span id="qpInvoiceCode"></span></div>
+                            <div class="col-md-6 text-end">Khách thuê: <span id="qpTenantName"></span></div>
                         </div>
                         <table class="table table-bordered table-sm table-striped mb-3">
                             <thead class="bg-light">
@@ -392,7 +392,7 @@
                             </tbody>
                             <tfoot>
                                 <tr>
-                                    <td colspan="5" class="text-right font-weight-bold align-middle text-dark">TỔNG CỘNG THANH TOÁN:</td>
+                                    <td colspan="5" class="text-right font-weight-bold align-middle">TỔNG CỘNG THANH TOÁN:</td>
                                     <td class="text-right text-danger font-weight-bold align-middle" style="font-size: 1.25rem;" id="qpTotalAmount"></td>
                                 </tr>
                             </tfoot>
@@ -400,7 +400,7 @@
 
                         <div class="card p-3 bg-light border-0">
                             <h6 class="font-weight-bold text-success mb-3"><i class="fas fa-check-double me-1"></i> Cấu hình thu tiền nhanh</h6>
-                            <div class="row text-dark">
+                            <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label font-weight-bold">Phương thức thanh toán</label>
                                     <select id="qpPaymentMethod" class="form-select">
@@ -430,9 +430,9 @@
                                 <div><strong>Nội dung CK:</strong> <code id="qpCKContent" class="text-primary font-weight-bold" style="font-size: 0.95rem;"></code></div>
                                 <div class="border-top pt-1 mt-1"><strong>Thông tin người nhận thụ hưởng:</strong></div>
                                 <div class="row text-muted">
-                                    <div class="col-4">Ngân hàng:</div><div class="col-8 text-dark font-weight-bold" id="qpBankId"></div>
-                                    <div class="col-4">Số tài khoản:</div><div class="col-8 text-dark font-weight-bold" id="qpAccountNumber"></div>
-                                    <div class="col-4">Tên tài khoản:</div><div class="col-8 text-dark font-weight-bold" id="qpAccountName"></div>
+                                    <div class="col-4">Ngân hàng:</div><div class="col-8 font-weight-bold" id="qpBankId"></div>
+                                    <div class="col-4">Số tài khoản:</div><div class="col-8 font-weight-bold" id="qpAccountNumber"></div>
+                                    <div class="col-4">Tên tài khoản:</div><div class="col-8 font-weight-bold" id="qpAccountName"></div>
                                 </div>
                             </div>
                         </div>
@@ -631,12 +631,26 @@
 
         function deleteRoom(id) {
             $('.kebab-dropdown.show').removeClass('show');
-            if (confirm('Bạn có chắc chắn muốn xóa phòng này?')) {
-                $.post('/PhongTros/XoaPhongTro', { id: id }, function (res) {
-                    if (res.success) { alert(res.message); loadGridData(); }
-                    else alert("Lỗi: " + res.message);
-                });
-            }
+            Swal.fire({
+                title: 'Xác nhận xóa phòng?',
+                text: 'Hành động này không thể hoàn tác. Bạn có chắc chắn muốn xóa phòng này?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Đồng ý xóa',
+                cancelButtonText: 'Hủy bỏ'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.post('/PhongTros/XoaPhongTro', { id: id }, function (res) {
+                        if (res.success) {
+                            Swal.fire('Thành công!', res.message, 'success');
+                            loadGridData();
+                            if (table) table.ajax.reload(null, false);
+                        } else {
+                            Swal.fire('Lỗi!', res.message, 'error');
+                        }
+                    });
+                }
+            });
         }
 
         var bankId = '@ViewBag.BankId';
@@ -959,20 +973,30 @@
             // Phát sinh phòng ngẫu nhiên
             $('#btnPhatSinhPhong').click(function () {
                 let $btn = $(this);
-                if (!confirm('Bạn muốn tự động phát sinh 10 phòng trọ ngẫu nhiên cho các chi nhánh hiện có?')) return;
-                
-                $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang phát sinh...');
-                
-                $.post('/PhongTros/PhatSinhNgauNhien', function (res) {
-                    alert(res.message);
-                    if (res.success) {
-                        loadGridData();
-                        if (table) table.ajax.reload(null, false);
+                Swal.fire({
+                    title: 'Phát sinh phòng ngẫu nhiên?',
+                    text: 'Bạn muốn tự động phát sinh 10 phòng trọ ngẫu nhiên cho các chi nhánh hiện có?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Đồng ý',
+                    cancelButtonText: 'Hủy bỏ'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang phát sinh...');
+                        $.post('/PhongTros/PhatSinhNgauNhien', function (res) {
+                            if (res.success) {
+                                Swal.fire('Thành công!', res.message, 'success');
+                                loadGridData();
+                                if (table) table.ajax.reload(null, false);
+                            } else {
+                                Swal.fire('Lỗi!', res.message, 'error');
+                            }
+                        }).fail(function() {
+                            Swal.fire('Lỗi!', 'Lỗi hệ thống khi phát sinh phòng!', 'error');
+                        }).always(function() {
+                            $btn.prop('disabled', false).html('<i class="fas fa-magic"></i> Phát sinh 10 phòng ngẫu nhiên');
+                        });
                     }
-                }).fail(function() {
-                    alert('Lỗi hệ thống khi phát sinh phòng!');
-                }).always(function() {
-                    $btn.prop('disabled', false).html('<i class="fas fa-magic"></i> Phát sinh 10 phòng ngẫu nhiên');
                 });
             });
 
@@ -1043,14 +1067,32 @@
             // Table Delete
             $('#phongTroTable tbody').on('click', '.btn-delete', function () {
                 let id = $(this).data('id'), $btn = $(this);
-                if (confirm('Bạn có chắc chắn muốn xóa phòng này?')) {
-                    let orig = $btn.html();
-                    $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
-                    $.post('/PhongTros/XoaPhongTro', { id: id }, function (res) {
-                        if (res.success) { alert(res.message); table.ajax.reload(null, false); loadGridData(); }
-                        else { alert("Lỗi: " + res.message); $btn.prop('disabled', false).html(orig); }
-                    });
-                }
+                Swal.fire({
+                    title: 'Xác nhận xóa phòng?',
+                    text: 'Hành động này không thể hoàn tác. Bạn có chắc chắn muốn xóa phòng này?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Đồng ý xóa',
+                    cancelButtonText: 'Hủy bỏ'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        let orig = $btn.html();
+                        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
+                        $.post('/PhongTros/XoaPhongTro', { id: id }, function (res) {
+                            if (res.success) {
+                                Swal.fire('Thành công!', res.message, 'success');
+                                table.ajax.reload(null, false);
+                                loadGridData();
+                            } else {
+                                Swal.fire('Lỗi!', res.message, 'error');
+                                $btn.prop('disabled', false).html(orig);
+                            }
+                        }).fail(function() {
+                            Swal.fire('Lỗi!', 'Không thể kết nối đến máy chủ.', 'error');
+                            $btn.prop('disabled', false).html(orig);
+                        });
+                    }
+                });
             });
         });
     </script>

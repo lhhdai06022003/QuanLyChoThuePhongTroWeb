@@ -36,6 +36,7 @@
 </head>
 
 <body class="layout-fluid">
+    @Html.AntiForgeryToken()
     <div class="page">
         <!-- Sidebar -->
         @Html.Partial("_Sidebar", menus)
@@ -44,11 +45,11 @@
             <!-- Header (Navbar) -->
             @Html.Partial("_Header")
 
-            <div class="page-body m-0 pt-3">
+            <main class="page-body m-0 pt-3" role="main">
                 <div class="container-fluid">
                     @RenderBody()
                 </div>
-            </div>
+            </main>
 
             <!-- Footer -->
             @Html.Partial("_Footer")
@@ -57,6 +58,19 @@
 
     <!-- JS -->
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script>
+        // Cấu hình AJAX toàn cục để tự động gửi Token chống giả mạo yêu cầu (CSRF)
+        $.ajaxSetup({
+            beforeSend: function (xhr, settings) {
+                if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type)) {
+                    var token = $('input[name="__RequestVerificationToken"]').val();
+                    if (token) {
+                        xhr.setRequestHeader("RequestVerificationToken", token);
+                    }
+                }
+            }
+        });
+    </script>
     <script src="~/Theme/tabler/dist/js/tabler.min.js"></script>
     <script>
         window.bootstrap = window.tabler;

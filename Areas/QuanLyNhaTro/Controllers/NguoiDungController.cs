@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.NguoiDungs;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels;
 using QuanLyChoThuePhongTroWeb.Models;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Security.Claims;
@@ -14,16 +15,18 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
 {
     [Area("QuanLyNhaTro")]
     [Authorize] // Mặc định yêu cầu đăng nhập cho toàn bộ tính năng bên dưới
+    [AutoValidateAntiforgeryToken]
     public class NguoiDungController : Controller
     {
         private readonly INguoiDungService _nguoiDungService;
+        private readonly ILogger<NguoiDungController> _logger;
 
-        public NguoiDungController(INguoiDungService nguoiDungService)
+        public NguoiDungController(INguoiDungService nguoiDungService, ILogger<NguoiDungController> logger)
         {
             _nguoiDungService = nguoiDungService;
+            _logger = logger;
         }
 
-       
         [AllowAnonymous]
         [Route("QuanLyNhaTro/DangNhap")]
         [HttpGet]
@@ -89,7 +92,6 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             return RedirectToAction("DangNhap", "NguoiDung", new { area = "QuanLyNhaTro" });
         }
 
-
         [Route("QuanLyNhaTro/QuanLyTaiKhoanDangNhap")]
         public IActionResult QuanLyTaiKhoanDangNhap()
         {
@@ -97,7 +99,6 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             return View();
         }
 
-     
         // 1. API: Lấy danh sách tài khoản
         [HttpGet]
         [Route("QuanLyNhaTro/NguoiDung/GetAllApi")]
@@ -138,8 +139,8 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             }
             catch (Exception ex)
             {
-                var innerMsg = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
-                return Json(new { success = false, message = "Lỗi tạo tài khoản: " + innerMsg });
+                _logger.LogError(ex, "Lỗi khi thêm mới tài khoản.");
+                return Json(new { success = false, message = "Lỗi hệ thống khi tạo tài khoản!" });
             }
         }
 
@@ -179,8 +180,8 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             }
             catch (Exception ex)
             {
-                var innerMsg = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
-                return Json(new { success = false, message = "Lỗi hệ thống lưu trữ thay đổi: " + innerMsg });
+                _logger.LogError(ex, "Lỗi khi cập nhật tài khoản {NguoiDungId}.", id);
+                return Json(new { success = false, message = "Lỗi hệ thống khi lưu trữ thay đổi tài khoản!" });
             }
         }
 
@@ -202,8 +203,8 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             }
             catch (Exception ex)
             {
-                var innerMsg = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
-                return Json(new { success = false, message = "Lỗi không thể thực hiện xóa: " + innerMsg });
+                _logger.LogError(ex, "Lỗi khi xóa tài khoản {NguoiDungId}.", id);
+                return Json(new { success = false, message = "Lỗi hệ thống khi xóa tài khoản!" });
             }
         }
 

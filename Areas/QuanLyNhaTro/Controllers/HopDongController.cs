@@ -10,6 +10,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
     [Area("QuanLyNhaTro")]
     [ApiController]
     [Microsoft.AspNetCore.Authorization.Authorize]
+    [AutoValidateAntiforgeryToken]
     public class HopDongController : Controller
     {
         private readonly IHopDongService _hopDongService;

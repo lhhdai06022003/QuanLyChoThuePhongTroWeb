@@ -202,6 +202,7 @@
         }
 
         <form action="/QuanLyNhaTro/DangNhap" method="post">
+            @Html.AntiForgeryToken()
             <div class="form-group">
                 <i class="fas fa-user form-icon"></i>
                 <input type="text" class="form-control" name="TenDangNhap" placeholder="Tên đăng nhập (admin)" required value="@(Model?.TenDangNhap)">

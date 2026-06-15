@@ -11,6 +11,7 @@ using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.ThanhVienHopDongs;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.PhongTros;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.LichSuThanhToans;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.Emails;
+using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.Dashboard;
 using QuanLyChoThuePhongTroWeb.Data;
 using System;
 
@@ -27,7 +28,14 @@ builder.Services.AddControllersWithViews().AddJsonOptions(options =>
 });
 builder.Services.AddControllers();
 
+// Cấu hình Antiforgery để nhận Token qua Header của AJAX
+builder.Services.AddAntiforgery(options =>
+{
+    options.HeaderName = "RequestVerificationToken";
+});
+
 // Đăng ký Service vào Container
+builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IChiNhanhService, ChiNhanhService>();
 builder.Services.AddScoped<IPhongTroService, PhongTroService>();
 builder.Services.AddScoped<INguoiThueService, NguoiThueService>();

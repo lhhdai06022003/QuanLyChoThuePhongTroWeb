@@ -762,7 +762,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HoaDons
                     page.Footer().AlignCenter().Text(t =>
                     {
                         t.Span("Ngày xuất: ").FontSize(9);
-                        t.Span(DateTime.Now.ToString("dd/MM/yyyy HH:mm")).FontSize(9);
+                        t.Span(DateTime.UtcNow.AddHours(7).ToString("dd/MM/yyyy HH:mm")).FontSize(9);
                     });
                 });
             });
@@ -773,6 +773,43 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HoaDons
         private string FormatVND(double amount)
         {
             return string.Format("{0:#,##0} ₫", amount);
+        }
+
+        public async Task<List<HoaDonRes>> GetDanhSachHoaDonChuaThanhToanAsync(int chiNhanhId, int thang, int nam)
+        {
+            var query = _context.HoaDons
+                .Include(h => h.HopDong).ThenInclude(hd => hd.PhongTro)
+                .Include(h => h.HopDong).ThenInclude(hd => hd.NguoiThue)
+                .Where(h => !h.IsDeleted && h.TrangThaiHoaDon == TrangThaiHoaDon.ChuaThanhToan);
+
+            if (chiNhanhId > 0)
+                query = query.Where(h => h.HopDong.PhongTro.ChiNhanhId == chiNhanhId);
+            if (thang > 0)
+                query = query.Where(h => h.Thang == thang);
+            if (nam > 0)
+                query = query.Where(h => h.Nam == nam);
+
+            return await query
+                .OrderByDescending(h => h.HoaDonId)
+                .Select(h => new HoaDonRes
+                {
+                    HoaDonId = h.HoaDonId,
+                    MaHoaDon = h.MaHoaDon,
+                    HopDongId = h.HopDongId,
+                    MaHopDong = h.HopDong.MaHopDong,
+                    TenPhong = h.HopDong.PhongTro.SoPhong,
+                    TenNguoiThue = h.HopDong.NguoiThue.HoVaTen,
+                    TenChiNhanh = h.HopDong.PhongTro.ChiNhanh.TenChiNhanh,
+                    Thang = h.Thang,
+                    Nam = h.Nam,
+                    TongTien = h.TongTien,
+                    TrangThaiHoaDon = "Chưa thanh toán",
+                    TrangThaiHoaDonValue = (int)h.TrangThaiHoaDon,
+                    NgayTao = h.NgayTao.ToString("dd/MM/yyyy HH:mm"),
+                    SoDienThoai = h.HopDong.NguoiThue.SoDienThoai,
+                    Email = h.HopDong.NguoiThue.Email ?? ""
+                })
+                .ToListAsync();
         }
     }
 }

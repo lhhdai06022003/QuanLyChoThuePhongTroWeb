@@ -212,5 +212,148 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.PhongTros
             return result;
         }
 
+        public async Task<object> GetQuickContractAsync(int phongTroId)
+        {
+            var contract = await _context.HopDongs
+                .Include(h => h.NguoiThue)
+                .Include(h => h.PhongTro)
+                .Where(h => h.PhongTroId == phongTroId && h.TrangThaiHopDong == TrangThaiHopDong.DangHoatDong && !h.IsDeleted)
+                .FirstOrDefaultAsync();
+
+            if (contract == null) return null;
+
+            var members = await _context.ChiTietThanhVienHopDongs
+                .Include(m => m.NguoiThue)
+                .Where(m => m.HopDongId == contract.HopDongId && m.NgayChuyenDi == null && !m.IsDeleted)
+                .Select(m => new {
+                    hoVaTen = m.NguoiThue.HoVaTen,
+                    soDienThoai = m.NguoiThue.SoDienThoai,
+                    cccd = m.NguoiThue.CCCD,
+                    ngayVao = m.NgayVao.ToString("dd/MM/yyyy")
+                })
+                .ToListAsync();
+
+            var services = await _context.DangKyDichVus
+                .Include(s => s.DichVuChiNhanh.DichVu)
+                .Where(s => s.PhongTroId == phongTroId && !s.DichVuChiNhanh.IsDeleted)
+                .Select(s => new {
+                    tenDichVu = s.DichVuChiNhanh.DichVu.TenDichVu,
+                    donGia = s.DichVuChiNhanh.GiaDichVu,
+                    donVi = s.DichVuChiNhanh.DichVu.DonVi,
+                    soLuong = s.SoLuong
+                })
+                .ToListAsync();
+
+            return new {
+                hopDongId = contract.HopDongId,
+                maHopDong = contract.MaHopDong,
+                thoiDiemBatDau = contract.ThoiDiemBatDau.ToString("dd/MM/yyyy"),
+                thoiDiemKetThuc = contract.ThoiDiemKetThuc.HasValue ? contract.ThoiDiemKetThuc.Value.ToString("dd/MM/yyyy") : "Không xác định",
+                tienCocPhong = contract.TienCocPhong,
+                tienThuePhong = contract.TienThuePhong,
+                tenNguoiDaiDien = contract.NguoiThue.HoVaTen,
+                soDienThoaiDaiDien = contract.NguoiThue.SoDienThoai,
+                cccdDaiDien = contract.NguoiThue.CCCD,
+                members = members,
+                services = services
+            };
+        }
+
+        public async Task<object> GetUnpaidInvoiceAsync(int phongTroId)
+        {
+            var invoice = await _context.HoaDons
+                .Include(i => i.HopDong)
+                    .ThenInclude(h => h.PhongTro)
+                .Include(i => i.HopDong)
+                    .ThenInclude(h => h.NguoiThue)
+                .Where(i => i.HopDong.PhongTroId == phongTroId && i.TrangThaiHoaDon == TrangThaiHoaDon.ChuaThanhToan && !i.IsDeleted)
+                .OrderByDescending(i => i.NgayTao)
+                .FirstOrDefaultAsync();
+
+            if (invoice == null) return null;
+
+            var details = await _context.ChiTietHoaDons
+                .Include(d => d.DichVu)
+                .Where(d => d.HoaDonId == invoice.HoaDonId && !d.IsDeleted)
+                .ToListAsync();
+
+            var mappedDetails = details.Select(d => new {
+                tenDichVu = d.TenDichVu,
+                donGia = d.DonGia,
+                soLuong = d.SoLuong,
+                donVi = d.DichVu != null ? d.DichVu.DonVi : 
+                        (d.TenDichVu.ToLower().Contains("điện") ? "kWh" : 
+                        (d.TenDichVu.ToLower().Contains("nước") ? "m³" : "-")),
+                tongTien = d.TongTien
+            }).ToList();
+
+            return new {
+                hoaDonId = invoice.HoaDonId,
+                maHoaDon = invoice.MaHoaDon,
+                thang = invoice.Thang,
+                nam = invoice.Nam,
+                tongTien = invoice.TongTien,
+                tenPhong = invoice.HopDong.PhongTro.SoPhong,
+                tenNguoiThue = invoice.HopDong.NguoiThue.HoVaTen,
+                chiTiets = mappedDetails
+            };
+        }
+
+        public async Task<ServiceResult> PhatSinhNgauNhienAsync()
+        {
+            var chiNhanhs = await _context.ChiNhanhs.Where(c => !c.IsDeleted).ToListAsync();
+            if (!chiNhanhs.Any())
+            {
+                return ServiceResult.Fail("Không tìm thấy chi nhánh nào trong database. Vui lòng thêm chi nhánh trước!");
+            }
+
+            var random = new Random();
+            var addedRooms = new List<string>();
+
+            // Query max rooms for all branches in a single query
+            var allRooms = await _context.PhongTros
+                .Where(p => !p.IsDeleted)
+                .Select(p => new { p.ChiNhanhId, p.SoPhong })
+                .ToListAsync();
+
+            var branchMaxRooms = new Dictionary<int, int>();
+            foreach (var cn in chiNhanhs)
+            {
+                var maxRoom = allRooms.Where(p => p.ChiNhanhId == cn.ChiNhanhId).Select(p => p.SoPhong).ToList();
+                int maxVal = 100;
+                if (maxRoom.Any())
+                {
+                    maxVal = maxRoom
+                        .Select(sp => int.TryParse(sp, out var n) ? n : 100)
+                        .Max();
+                }
+                branchMaxRooms[cn.ChiNhanhId] = maxVal;
+            }
+
+            for (int i = 0; i < 10; i++)
+            {
+                var chiNhanh = chiNhanhs[random.Next(chiNhanhs.Count)];
+                int nextRoomNum = branchMaxRooms[chiNhanh.ChiNhanhId] + 1;
+                branchMaxRooms[chiNhanh.ChiNhanhId] = nextRoomNum;
+
+                var pt = new PhongTro
+                {
+                    ChiNhanhId = chiNhanh.ChiNhanhId,
+                    SoPhong = nextRoomNum.ToString(),
+                    TangLau = (nextRoomNum / 100) == 0 ? 1 : (nextRoomNum / 100),
+                    GiaThue = random.Next(18, 45) * 100000,
+                    DienTich = random.Next(15, 30),
+                    SoNguoiToiDa = random.Next(2, 4),
+                    TrangThai = TrangThaiPhong.Trong,
+                    MoTa = $"Phòng {nextRoomNum} ngẫu nhiên thuộc {chiNhanh.TenChiNhanh}",
+                    NgayTao = DateTime.UtcNow
+                };
+                _context.PhongTros.Add(pt);
+                addedRooms.Add($"{pt.SoPhong} ({chiNhanh.TenChiNhanh})");
+            }
+
+            await _context.SaveChangesAsync();
+            return ServiceResult.Ok($"Đã phát sinh 10 phòng thành công: {string.Join(", ", addedRooms)}");
+        }
     }
 }
