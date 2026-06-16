@@ -4,27 +4,31 @@ using Microsoft.Extensions.Configuration;
 using MimeKit;
 using MimeKit.Utils;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels;
+using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Responses;
 using System;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
+
+using Microsoft.Extensions.Logging;
 
 namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.Emails
 {
     public class EmailService : IEmailService
     {
         private readonly IConfiguration _configuration;
+        private readonly ILogger<EmailService> _logger;
 
-        public EmailService(IConfiguration configuration)
+        public EmailService(IConfiguration configuration, ILogger<EmailService> logger)
         {
             _configuration = configuration;
+            _logger = logger;
         }
 
         public async Task<(bool IsSuccess, string ErrorMessage)> SendInvoiceEmailAsync(string toEmail, HoaDonChiTietRes hoaDon, byte[] pdfBytes)
         {
             try
             {
-                // 1. Đọc cấu hình SMTP
                 var smtpServer = _configuration["EmailSettings:SmtpServer"] ?? "smtp.gmail.com";
                 var portStr = _configuration["EmailSettings:Port"] ?? "587";
                 int port = int.TryParse(portStr, out int p) ? p : 587;
@@ -37,12 +41,10 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.Emails
                     return (false, "Chưa cấu hình tài khoản gửi thư (SenderEmail/Password) trong appsettings.json.");
                 }
 
-                // 2. Đọc cấu hình VietQR để hiển thị trong email
                 var bankId = _configuration["VietQRSettings:BankId"] ?? "MB";
                 var accountNumber = _configuration["VietQRSettings:AccountNumber"] ?? "";
                 var accountName = _configuration["VietQRSettings:AccountName"] ?? "";
 
-                // 3. Tạo thông điệp Email
                 var message = new MimeMessage();
                 message.From.Add(new MailboxAddress(senderName, senderEmail));
                 message.To.Add(new MailboxAddress(hoaDon.TenNguoiThue, toEmail));
@@ -50,17 +52,14 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.Emails
 
                 var bodyBuilder = new BodyBuilder();
 
-                // Tạo định dạng số VND
                 string FormatVND(double amount)
                 {
                     return string.Format("{0:#,##0}", amount);
                 }
 
-                // Sinh link ảnh QR thanh toán
                 string memo = $"THANH TOAN {hoaDon.MaHoaDon}";
                 string qrUrl = $"https://img.vietqr.io/image/{bankId}-{accountNumber}-compact2.png?amount={hoaDon.TongTien}&addInfo={Uri.EscapeDataString(memo)}&accountName={Uri.EscapeDataString(accountName)}";
 
-                // Xây dựng các dòng chi tiết dịch vụ
                 var lineItemsHtml = new StringBuilder();
                 int stt = 1;
                 foreach (var ct in hoaDon.ChiTietHoaDons)
@@ -77,7 +76,6 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.Emails
                         </tr>");
                 }
 
-                // Template HTML
                 bodyBuilder.HtmlBody = $@"
 <!DOCTYPE html>
 <html>
@@ -100,9 +98,13 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.Emails
         .qr-section {{ background-color: #f9f9fb; border: 1px dashed #409eff; border-radius: 6px; padding: 20px; text-align: center; margin-top: 25px; }}
         .qr-section h3 {{ margin: 0 0 10px 0; color: #0056b3; font-size: 16px; }}
         .qr-section img {{ max-width: 180px; height: auto; border: 1px solid #ebeef5; border-radius: 4px; background-color: #ffffff; padding: 8px; display: inline-block; }}
-        .footer {{ text-align: center; margin-top: 30px; font-size: 12px; color: #999999; border-top: 1px solid #eeeeee; padding-top: 15px; }}
+        .signature-block {{ text-align: left; margin-top: 30px; margin-bottom: 20px; font-size: 14px; color: #444444; border-top: 1px solid #e1e4e8; padding-top: 20px; }}
+        .signature-title {{ font-size: 13px; color: #666666; font-style: italic; margin-bottom: 5px; }}
+        .signature-name {{ font-weight: bold; color: #0056b3; font-size: 16px; margin: 0 0 10px 0; }}
+        .signature-info {{ font-size: 13px; color: #555555; line-height: 1.5; }}
+        .signature-info div {{ margin-bottom: 4px; }}
+        .footer {{ text-align: center; margin-top: 20px; font-size: 12px; color: #999999; border-top: 1px dashed #eeeeee; padding-top: 15px; }}
 
-        /* Tương thích Dark Mode */
         @media (prefers-color-scheme: dark) {{
             body {{ background-color: #1a1f2c !important; color: #f4f6fa !important; }}
             .container {{ background-color: #232936 !important; border-color: #384252 !important; box-shadow: 0 4px 10px rgba(0,0,0,0.2) !important; }}
@@ -119,6 +121,11 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.Emails
             .qr-section h3 {{ color: #3080e6 !important; }}
             .qr-section td, .qr-section div {{ color: #a0aebf !important; }}
             .qr-section strong {{ color: #ffffff !important; }}
+            .signature-block {{ border-top-color: #384252 !important; color: #e1e8f2 !important; }}
+            .signature-title {{ color: #a0aebf !important; }}
+            .signature-name {{ color: #3080e6 !important; }}
+            .signature-info {{ color: #a0aebf !important; }}
+            .signature-info a {{ color: #3080e6 !important; }}
             .footer {{ color: #707d90 !important; border-top-color: #384252 !important; }}
         }}
     </style>
@@ -170,6 +177,15 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.Emails
             </div>
         </div>
         
+        <div class='signature-block'>
+            <div class='signature-title'>Trân trọng,</div>
+            <div class='signature-name'>Ban Quản Lý - {hoaDon.TenChiNhanh}</div>
+            <div class='signature-info'>
+                <div>📍 <strong>Địa chỉ:</strong> {hoaDon.DiaChiChiNhanh}</div>
+                <div>📞 <strong>Hotline hỗ trợ:</strong> <a href='tel:{hoaDon.SoDienThoaiChiNhanh}' style='color: #0056b3; text-decoration: none; font-weight: bold;'>{hoaDon.SoDienThoaiChiNhanh}</a></div>
+            </div>
+        </div>
+        
         <div class='footer'>
             <p>Email này được gửi tự động từ hệ thống quản lý nhà trọ.</p>
             <p>Vui lòng không phản hồi trực tiếp email này. Xin cảm ơn!</p>
@@ -178,7 +194,6 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.Emails
 </body>
 </html>";
 
-                // 4. Đính kèm file PDF hóa đơn
                 if (pdfBytes != null && pdfBytes.Length > 0)
                 {
                     string safeFileName = $"HoaDon_{hoaDon.MaHoaDon}.pdf";
@@ -187,10 +202,8 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.Emails
 
                 message.Body = bodyBuilder.ToMessageBody();
 
-                // 5. Kết nối SMTP và gửi
                 using (var client = new SmtpClient())
                 {
-                    // Cài đặt xử lý chứng chỉ SSL (cho phép chứng chỉ tự ký nếu cần, nhưng tốt nhất dùng StartTls)
                     client.ServerCertificateValidationCallback = (s, c, h, e) => true;
 
                     await client.ConnectAsync(smtpServer, port, SecureSocketOptions.StartTls);
@@ -199,11 +212,142 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.Emails
                     await client.DisconnectAsync(true);
                 }
 
-                return (true, null);
+                return (true, string.Empty);
             }
             catch (Exception ex)
             {
-                return (false, ex.Message);
+                _logger.LogError(ex, "Lỗi hệ thống khi gửi email hóa đơn {MaHoaDon} đến {Email}", hoaDon.MaHoaDon, toEmail);
+                return (false, "Lỗi hệ thống khi gửi email.");
+            }
+        }
+
+        public async Task<(bool IsSuccess, string ErrorMessage)> SendContractExpiryAlertAsync(string toEmail, string tenNguoiNhan, ContractExpiryAlertData alertData)
+        {
+            try
+            {
+                var smtpServer = _configuration["EmailSettings:SmtpServer"] ?? "smtp.gmail.com";
+                var portStr = _configuration["EmailSettings:Port"] ?? "587";
+                int port = int.TryParse(portStr, out int p) ? p : 587;
+                var senderName = _configuration["EmailSettings:SenderName"] ?? "Hệ thống Quản lý Nhà Trọ";
+                var senderEmail = _configuration["EmailSettings:SenderEmail"];
+                var password = _configuration["EmailSettings:Password"];
+
+                if (string.IsNullOrEmpty(senderEmail) || string.IsNullOrEmpty(password))
+                {
+                    return (false, "Chưa cấu hình tài khoản gửi thư (SenderEmail/Password) trong appsettings.json.");
+                }
+
+                var message = new MimeMessage();
+                message.From.Add(new MailboxAddress(senderName, senderEmail));
+                message.To.Add(new MailboxAddress(tenNguoiNhan, toEmail));
+                message.Subject = $"[CẢNH BÁO HẾT HẠN HỢP ĐỒNG] - Phòng {alertData.SoPhong} còn {alertData.SoNgayConLai} ngày";
+
+                var bodyBuilder = new BodyBuilder();
+
+                string FormatVND(double amount)
+                {
+                    return string.Format("{0:#,##0}", amount);
+                }
+
+                bodyBuilder.HtmlBody = $@"
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8' />
+    <style>
+        body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #333333; line-height: 1.6; background-color: #f4f6fa; margin: 0; padding: 20px; }}
+        .container {{ max-width: 600px; background-color: #ffffff; margin: 0 auto; border-radius: 8px; padding: 30px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); border: 1px solid #e1e4e8; }}
+        .header {{ text-align: center; border-bottom: 2px solid #d9001b; padding-bottom: 15px; margin-bottom: 25px; }}
+        .header h2 {{ color: #d9001b; margin: 0; font-size: 24px; text-transform: uppercase; }}
+        .header p {{ color: #666666; margin: 5px 0 0 0; font-size: 14px; }}
+        .info-table {{ width: 100%; border-collapse: collapse; margin-bottom: 25px; }}
+        .info-table td {{ padding: 8px 0; font-size: 15px; }}
+        .info-table td.label {{ font-weight: bold; color: #555555; width: 35%; }}
+        .info-table td.value {{ color: #111111; }}
+        .alert-box {{ background-color: #fff9db; border-left: 4px solid #f59f00; color: #664d03; padding: 15px; border-radius: 4px; font-size: 15px; margin-bottom: 25px; }}
+        .signature-block {{ text-align: left; margin-top: 30px; margin-bottom: 20px; font-size: 14px; color: #444444; border-top: 1px solid #e1e4e8; padding-top: 20px; }}
+        .signature-title {{ font-size: 13px; color: #666666; font-style: italic; margin-bottom: 5px; }}
+        .signature-name {{ font-weight: bold; color: #d9001b; font-size: 16px; margin: 0 0 10px 0; }}
+        .signature-info {{ font-size: 13px; color: #555555; line-height: 1.5; }}
+        .signature-info div {{ margin-bottom: 4px; }}
+        .footer {{ text-align: center; margin-top: 20px; font-size: 12px; color: #999999; border-top: 1px dashed #eeeeee; padding-top: 15px; }}
+
+        @media (prefers-color-scheme: dark) {{
+            body {{ background-color: #1a1f2c !important; color: #f4f6fa !important; }}
+            .container {{ background-color: #232936 !important; border-color: #384252 !important; box-shadow: 0 4px 10px rgba(0,0,0,0.2) !important; }}
+            .header {{ border-bottom-color: #ff4d61 !important; }}
+            .header h2 {{ color: #ff4d61 !important; }}
+            .header p {{ color: #a0aebf !important; }}
+            .info-table td.label {{ color: #a0aebf !important; }}
+            .info-table td.value {{ color: #ffffff !important; }}
+            .alert-box {{ background-color: #2b2515 !important; border-left-color: #f59f00 !important; color: #ffe066 !important; }}
+            .signature-block {{ border-top-color: #384252 !important; color: #e1e8f2 !important; }}
+            .signature-title {{ color: #a0aebf !important; }}
+            .signature-name {{ color: #ff4d61 !important; }}
+            .signature-info {{ color: #a0aebf !important; }}
+            .signature-info a {{ color: #ff4d61 !important; }}
+            .footer {{ color: #707d90 !important; border-top-color: #384252 !important; }}
+        }}
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='header'>
+            <h2>Cảnh Báo Hết Hạn Hợp Đồng</h2>
+            <p>{alertData.TenChiNhanh}</p>
+        </div>
+
+        <div class='alert-box'>
+            Hợp đồng thuê phòng của <strong>{alertData.TenNguoiThue}</strong> tại phòng <strong>{alertData.SoPhong}</strong> sẽ hết hạn trong vòng <strong>{alertData.SoNgayConLai}</strong> ngày tới.
+        </div>
+        
+        <table class='info-table'>
+            <tr><td class='label'>Mã hợp đồng:</td><td class='value'><strong>{alertData.MaHopDong}</strong></td></tr>
+            <tr><td class='label'>Phòng:</td><td class='value' style='color: #d9001b; font-weight: bold;'>{alertData.SoPhong}</td></tr>
+            <tr><td class='label'>Người thuê:</td><td class='value'>{alertData.TenNguoiThue}</td></tr>
+            <tr><td class='label'>Ngày hết hạn:</td><td class='value'>{alertData.ThoiDiemKetThuc.AddHours(7).ToString("dd/MM/yyyy")}</td></tr>
+            <tr><td class='label'>Số ngày còn lại:</td><td class='value' style='color: #f59f00; font-weight: bold;'>{alertData.SoNgayConLai} ngày</td></tr>
+            <tr><td class='label'>Giá thuê phòng:</td><td class='value'>{FormatVND(alertData.TienThuePhong)} đ/tháng</td></tr>
+        </table>
+
+        <div style='font-size: 15px; margin-top: 15px;'>
+            Quý khách/Quý ban quản lý vui lòng thực hiện liên hệ để gia hạn hợp đồng hoặc chuẩn bị các thủ tục bàn giao phòng theo quy định.
+        </div>
+        
+        <div class='signature-block'>
+            <div class='signature-title'>Trân trọng,</div>
+            <div class='signature-name'>Ban Quản Lý - {alertData.TenChiNhanh}</div>
+            <div class='signature-info'>
+                <div>📍 <strong>Địa chỉ:</strong> {alertData.DiaChiChiNhanh}</div>
+                <div>📞 <strong>Hotline hỗ trợ:</strong> <a href='tel:{alertData.SoDienThoaiChiNhanh}' style='color: #d9001b; text-decoration: none; font-weight: bold;'>{alertData.SoDienThoaiChiNhanh}</a></div>
+            </div>
+        </div>
+        
+        <div class='footer'>
+            <p>Email này được gửi tự động từ hệ thống quản lý nhà trọ.</p>
+            <p>Vui lòng không phản hồi trực tiếp email này. Xin cảm ơn!</p>
+        </div>
+    </div>
+</body>
+</html>";
+
+                message.Body = bodyBuilder.ToMessageBody();
+
+                using (var client = new SmtpClient())
+                {
+                    client.ServerCertificateValidationCallback = (s, c, h, e) => true;
+                    await client.ConnectAsync(smtpServer, port, SecureSocketOptions.StartTls);
+                    await client.AuthenticateAsync(senderEmail, password);
+                    await client.SendAsync(message);
+                    await client.DisconnectAsync(true);
+                }
+
+                return (true, string.Empty);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi hệ thống khi gửi email cảnh báo hết hạn hợp đồng {MaHopDong} đến {Email}", alertData.MaHopDong, toEmail);
+                return (false, "Lỗi hệ thống khi gửi email cảnh báo.");
             }
         }
     }

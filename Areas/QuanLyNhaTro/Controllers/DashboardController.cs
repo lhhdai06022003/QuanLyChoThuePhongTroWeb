@@ -8,6 +8,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
 {
     [Area("QuanLyNhaTro")]
     [Authorize]
+    [AutoValidateAntiforgeryToken]
     public class DashboardController : Controller
     {
         private readonly IDashboardService _dashboardService;

@@ -48,6 +48,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels
         public string TenNguoiThue { get; set; }
         public string TenChiNhanh { get; set; }
         public string DiaChiChiNhanh { get; set; }
+        public string SoDienThoaiChiNhanh { get; set; }
         public int Thang { get; set; }
         public int Nam { get; set; }
         public double TongTien { get; set; }

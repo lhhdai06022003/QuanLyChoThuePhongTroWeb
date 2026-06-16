@@ -51,21 +51,38 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HoaDons
             if (!hopDongs.Any())
                 return (false, "Không tìm thấy hợp đồng hợp lệ nào cho các phòng đã chọn.", 0);
 
+            // Tải trước (Pre-load) toàn bộ hóa đơn đã tồn tại trong tháng/năm này cho các hợp đồng
+            var hopDongIds = hopDongs.Select(h => h.HopDongId).ToList();
+            var existingInvoiceHopDongIds = await _context.HoaDons
+                .Where(x => hopDongIds.Contains(x.HopDongId) && x.Thang == thang && x.Nam == nam && !x.IsDeleted)
+                .Select(x => x.HopDongId)
+                .ToListAsync();
+            var existingInvoiceHopDongIdsSet = new HashSet<int>(existingInvoiceHopDongIds);
+
+            // Tải trước dữ liệu chốt điện nước của các phòng được chọn trong tháng/năm
+            var selectedPhongIds = hopDongs.Select(h => h.PhongTroId).Distinct().ToList();
+            var dienNuocRecords = await _context.DichVuDienNuocCuaPhongs
+                .Where(x => selectedPhongIds.Contains(x.PhongTroId) && x.Thang == thang && x.Nam == nam && !x.IsDeleted)
+                .ToListAsync();
+            var dienNuocDict = dienNuocRecords.ToDictionary(x => x.PhongTroId);
+
+            // Tải trước tất cả các dịch vụ đã đăng ký của các phòng được chọn
+            var dangKyDvs = await _context.DangKyDichVus
+                .Include(d => d.DichVuChiNhanh)
+                    .ThenInclude(dcn => dcn.DichVu)
+                .Where(d => selectedPhongIds.Contains(d.PhongTroId))
+                .ToListAsync();
+            var dangKyDvsLookup = dangKyDvs.ToLookup(d => d.PhongTroId);
+
             int soHoaDonMoi = 0;
 
             foreach (var hd in hopDongs)
             {
                 // 2. Kiểm tra đã tồn tại hóa đơn cho tháng/năm này chưa
-                bool exists = await _context.HoaDons.AnyAsync(x =>
-                    x.HopDongId == hd.HopDongId && x.Thang == thang && x.Nam == nam && !x.IsDeleted);
-                if (exists) continue;
+                if (existingInvoiceHopDongIdsSet.Contains(hd.HopDongId)) continue;
 
                 // 3. Tìm dữ liệu điện nước đã chốt
-                var dienNuoc = await _context.DichVuDienNuocCuaPhongs
-                    .FirstOrDefaultAsync(x => x.PhongTroId == hd.PhongTroId && x.Thang == thang && x.Nam == nam && !x.IsDeleted);
-                
-                // Ràng buộc nghiêm ngặt: Nếu chưa chốt điện nước, bỏ qua không sinh hóa đơn
-                if (dienNuoc == null) continue;
+                if (!dienNuocDict.TryGetValue(hd.PhongTroId, out var dienNuoc)) continue;
 
                 // 4. Tạo các dòng chi tiết hóa đơn
                 var chiTietList = new List<ChiTietHoaDon>();
@@ -115,13 +132,9 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HoaDons
                 });
 
                 // Dòng 4+: Các dịch vụ khác đã đăng ký cho phòng (có tính lẻ ngày nếu đăng ký giữa tháng)
-                var dangKyDvs = await _context.DangKyDichVus
-                    .Include(d => d.DichVuChiNhanh)
-                        .ThenInclude(dcn => dcn.DichVu)
-                    .Where(d => d.PhongTroId == hd.PhongTroId)
-                    .ToListAsync();
+                var phongDangKyDvs = dangKyDvsLookup[hd.PhongTroId];
 
-                foreach (var dk in dangKyDvs)
+                foreach (var dk in phongDangKyDvs)
                 {
                     // Bỏ qua dịch vụ Điện/Nước vì đã tính ở trên
                     var tenDv = dk.DichVuChiNhanh.DichVu.TenDichVu.ToLower();
@@ -200,6 +213,28 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HoaDons
                             (h.ThoiDiemKetThuc == null || h.ThoiDiemKetThuc.Value >= startOfMonth))
                 .ToListAsync();
 
+            // Tải trước (Pre-load) toàn bộ hóa đơn đã tồn tại trong tháng/năm này cho các hợp đồng
+            var hopDongIds = hopDongs.Select(h => h.HopDongId).ToList();
+            var existingInvoiceHopDongIds = await _context.HoaDons
+                .Where(x => hopDongIds.Contains(x.HopDongId) && x.Thang == thang && x.Nam == nam && !x.IsDeleted)
+                .Select(x => x.HopDongId)
+                .ToListAsync();
+            var existingInvoiceHopDongIdsSet = new HashSet<int>(existingInvoiceHopDongIds);
+
+            // Tải trước dữ liệu chốt điện nước của các phòng thuộc chi nhánh trong tháng/năm
+            var phongTroIds = phongTros.Select(p => p.PhongTroId).ToList();
+            var dienNuocRecords = await _context.DichVuDienNuocCuaPhongs
+                .Where(x => phongTroIds.Contains(x.PhongTroId) && x.Thang == thang && x.Nam == nam && !x.IsDeleted)
+                .ToListAsync();
+            var dienNuocDict = dienNuocRecords.ToDictionary(x => x.PhongTroId);
+
+            // Tải trước tất cả các dịch vụ đã đăng ký của các phòng
+            var dangKyDvs = await _context.DangKyDichVus
+                .Include(d => d.DichVuChiNhanh).ThenInclude(dcn => dcn.DichVu)
+                .Where(d => phongTroIds.Contains(d.PhongTroId))
+                .ToListAsync();
+            var dangKyDvsLookup = dangKyDvs.ToLookup(d => d.PhongTroId);
+
             var result = new List<PhatSinhPreviewRes>();
 
             foreach (var p in phongTros)
@@ -223,8 +258,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HoaDons
                 item.TenNguoiThue = hd.NguoiThue?.HoVaTen ?? "";
 
                 // Kiểm tra hóa đơn đã tồn tại
-                bool exists = await _context.HoaDons.AnyAsync(x =>
-                    x.HopDongId == hd.HopDongId && x.Thang == thang && x.Nam == nam && !x.IsDeleted);
+                bool exists = existingInvoiceHopDongIdsSet.Contains(hd.HopDongId);
 
                 if (exists)
                 {
@@ -236,8 +270,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HoaDons
                 }
 
                 // Kiểm tra chốt điện nước
-                var dienNuoc = await _context.DichVuDienNuocCuaPhongs
-                    .FirstOrDefaultAsync(x => x.PhongTroId == p.PhongTroId && x.Thang == thang && x.Nam == nam && !x.IsDeleted);
+                dienNuocDict.TryGetValue(p.PhongTroId, out var dienNuoc);
 
                 item.DaChotDienNuoc = (dienNuoc != null);
 
@@ -261,12 +294,9 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HoaDons
                 }
 
                 // Tính thêm các dịch vụ cố định (có tính lẻ ngày nếu đăng ký giữa tháng)
-                var dangKyDvs = await _context.DangKyDichVus
-                    .Include(d => d.DichVuChiNhanh).ThenInclude(dcn => dcn.DichVu)
-                    .Where(d => d.PhongTroId == p.PhongTroId)
-                    .ToListAsync();
+                var phongDangKyDvs = dangKyDvsLookup[p.PhongTroId];
 
-                foreach (var dk in dangKyDvs)
+                foreach (var dk in phongDangKyDvs)
                 {
                     var tenDv = dk.DichVuChiNhanh.DichVu.TenDichVu.ToLower();
                     if (tenDv.Contains("điện") || tenDv.Contains("nước")) continue;
@@ -347,7 +377,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HoaDons
             _context.HoaDons.Update(hd);
             await _context.SaveChangesAsync();
 
-            return (true, null);
+            return (true, string.Empty);
         }
 
         // =================== DANH SÁCH HÓA ĐƠN ===================
@@ -438,6 +468,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HoaDons
                 TenNguoiThue = hd.HopDong.NguoiThue.HoVaTen,
                 TenChiNhanh = hd.HopDong.PhongTro.ChiNhanh.TenChiNhanh,
                 DiaChiChiNhanh = hd.HopDong.PhongTro.ChiNhanh.DiaChi,
+                SoDienThoaiChiNhanh = hd.HopDong.PhongTro.ChiNhanh.SoDienThoai ?? "",
                 Thang = hd.Thang,
                 Nam = hd.Nam,
                 TongTien = hd.TongTien,
@@ -495,7 +526,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HoaDons
             _context.HoaDons.Update(hd);
 
             await _context.SaveChangesAsync();
-            return (true, null);
+            return (true, string.Empty);
         }
 
         // =================== XÓA HÓA ĐƠN ===================
@@ -510,7 +541,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HoaDons
             hd.NgayCapNhat = DateTime.UtcNow;
             _context.HoaDons.Update(hd);
             await _context.SaveChangesAsync();
-            return (true, null);
+            return (true, string.Empty);
         }
 
         // =================== XUẤT EXCEL ===================

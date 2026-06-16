@@ -199,10 +199,12 @@ Tài liệu này mô tả chi tiết tất cả các chức năng nghiệp vụ 
 4.  **Xuất bản tài liệu chất lượng cao**:
     *   *Excel*: Thư viện `ClosedXML` tạo một Workbook mới, vẽ bảng kê chi tiết hóa đơn, kẻ bảng, tô màu tiêu đề và định dạng số tiền tệ, trả về luồng byte tải về của trình duyệt.
     *   *PDF*: Thư viện `QuestPDF` vẽ bố cục hóa đơn A4 sắc nét gồm logo, thông tin chi nhánh, thông tin khách thuê, bảng chi phí chi tiết, và chữ ký người lập phiếu, trả về file PDF chuẩn.
-5.  **Gửi Email tự động & Gửi hàng loạt qua Modal**:
+5.  **Gửi Email tự động, Gửi hàng loạt qua Modal & Tự động gửi nhắc nợ**:
     *   *Gửi đơn lẻ:* Khi Admin bấm "Gửi Email" trên bảng thao tác, hệ thống sinh PDF hóa đơn dưới dạng mảng byte trong bộ nhớ RAM, gọi [EmailService.cs] khởi tạo kết nối SMTP (TLS) tới máy chủ thư điện tử (cấu hình trong `appsettings.json`) để gửi đính kèm file PDF hóa đơn và nội dung HTML tóm tắt đến email khách thuê phòng.
     *   *Gửi hàng loạt:* Bấm nút **"Gửi Email Hóa Đơn"** ở thanh công cụ chính, Modal gửi email mở ra hỗ trợ bộ lọc riêng biệt (Chi nhánh, Tháng, Năm). Hệ thống gọi API `/HoaDon/GetUnpaidList` để lấy toàn bộ các hóa đơn chưa thanh toán, hỗ trợ tích chọn hàng loạt. Khi bấm bắt đầu gửi, Javascript chạy vòng lặp tuần tự gọi API gửi email cho từng hóa đơn, đồng thời cập nhật thanh tiến trình (Progress Bar) động qua SweetAlert2 để đảm bảo UX trực quan và mượt mà.
-    *   *Tương thích giao diện tối (Dark Mode):* Email được thiết kế responsive với mã CSS thích ứng tự động (`prefers-color-scheme: dark`) giúp tự động chuyển tông màu nền và màu chữ dịu mắt khi khách thuê bật chế độ tối trên thiết bị. Mã QR Code VietQR được bọc trong viền trắng cố định giúp camera quét chuyển khoản nhanh và chính xác nhất.
+    *   *Tự động quét và gửi nhắc nợ (Auto-scheduler Background Service):* Hệ thống tích hợp một tác vụ chạy nền định kỳ mỗi giờ (`InvoiceReminderService` kế thừa từ `BackgroundService`). Cứ mỗi giờ, hệ thống quét các hóa đơn chưa thanh toán có ngày tạo quá 5 ngày (`NgayTao <= now - 5 days`) và tự động gửi email nhắc nợ kèm PDF hóa đơn. Tiến trình này ghi nhận lịch sử vào tệp `sent_reminders.json` để ngăn chặn gửi lặp lại và ghi nhật ký trực tiếp ra console, đảm bảo vận hành ổn định và độc lập không tốn chi phí.
+    *   *Cá nhân hóa chữ ký chi nhánh (Friendly Signature):* Các email gửi đi (bao gồm cả gửi thủ công và tự động) được tích hợp chữ ký động. Phần chân trang (Footer) hiển thị lời chúc trân trọng và thông tin liên hệ cụ thể của chi nhánh như Tên chi nhánh, Địa chỉ chi nhánh, và Hotline hỗ trợ lấy động từ cơ sở dữ liệu.
+    *   *Tương thích giao diện tối (Dark Mode):* Email được thiết kế responsive với mã CSS thích ứng tự động (`prefers-color-scheme: dark`) giúp tự động chuyển tông màu nền, màu chữ và màu chữ ký chi nhánh dịu mắt khi khách thuê bật chế độ tối trên thiết bị. Mã QR Code VietQR được bọc trong viền trắng cố định giúp camera quét chuyển khoản nhanh và chính xác nhất.
 
 ---
 

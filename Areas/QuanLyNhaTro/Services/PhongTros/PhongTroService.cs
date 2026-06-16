@@ -144,28 +144,36 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.PhongTros
 
             var phongs = await query.OrderBy(p => p.TangLau).ThenBy(p => p.SoPhong).ToListAsync();
 
+            // 1. Pre-load all active contracts for these rooms
+            var phongTroIds = phongs.Select(p => p.PhongTroId).ToList();
+            var hopDongs = await _context.HopDongs
+                .Include(h => h.NguoiThue)
+                .Where(h => phongTroIds.Contains(h.PhongTroId) &&
+                            h.TrangThaiHopDong == TrangThaiHopDong.DangHoatDong &&
+                            !h.IsDeleted)
+                .ToListAsync();
+
+            // 2. Pre-load the sum of unpaid invoices for these contracts in a single query
+            var hopDongIds = hopDongs.Select(h => h.HopDongId).ToList();
+            var unpaidInvoicesSums = await _context.HoaDons
+                .Where(hd => hopDongIds.Contains(hd.HopDongId) &&
+                             hd.TrangThaiHoaDon == TrangThaiHoaDon.ChuaThanhToan &&
+                             !hd.IsDeleted)
+                .GroupBy(hd => hd.HopDongId)
+                .Select(g => new { HopDongId = g.Key, Sum = g.Sum(hd => hd.TongTien) })
+                .ToDictionaryAsync(x => x.HopDongId, x => x.Sum);
+
             var result = new List<PhongCardRes>();
 
             foreach (var p in phongs)
             {
-                // Tìm hợp đồng đang hoạt động cho phòng này
-                var hopDong = await _context.HopDongs
-                    .Include(h => h.NguoiThue)
-                    .Where(h => h.PhongTroId == p.PhongTroId &&
-                                h.TrangThaiHopDong == TrangThaiHopDong.DangHoatDong &&
-                                !h.IsDeleted)
-                    .FirstOrDefaultAsync();
+                var hopDong = hopDongs.FirstOrDefault(h => h.PhongTroId == p.PhongTroId);
 
-                // Tìm hóa đơn nợ (chưa thanh toán)
                 double soTienNo = 0;
                 bool coNoTien = false;
                 if (hopDong != null)
                 {
-                    soTienNo = await _context.HoaDons
-                        .Where(hd => hd.HopDongId == hopDong.HopDongId &&
-                                     hd.TrangThaiHoaDon == TrangThaiHoaDon.ChuaThanhToan &&
-                                     !hd.IsDeleted)
-                        .SumAsync(hd => hd.TongTien);
+                    unpaidInvoicesSums.TryGetValue(hopDong.HopDongId, out soTienNo);
                     coNoTien = soTienNo > 0;
                 }
 

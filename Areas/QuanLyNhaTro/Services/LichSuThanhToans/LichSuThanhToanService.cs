@@ -9,15 +9,19 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
+using Microsoft.Extensions.Logging;
+
 namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.LichSuThanhToans
 {
     public class LichSuThanhToanService : ILichSuThanhToanService
     {
         private readonly ApplicationDbContext _context;
+        private readonly ILogger<LichSuThanhToanService> _logger;
 
-        public LichSuThanhToanService(ApplicationDbContext context)
+        public LichSuThanhToanService(ApplicationDbContext context, ILogger<LichSuThanhToanService> logger)
         {
             _context = context;
+            _logger = logger;
         }
 
         public async Task<DataTableResponse<LichSuThanhToanGiaoDichRes>> GetDanhSachThanhToanAsync(
@@ -174,12 +178,13 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.LichSuThanhToans
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
-                return (true, null);
+                return (true, string.Empty);
             }
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
-                return (false, $"Lỗi hệ thống khi hủy giao dịch: {ex.Message}");
+                _logger.LogError(ex, "Lỗi hệ thống khi hủy giao dịch thanh toán ID: {Id} bởi Admin: {AdminId}", id, adminUserId);
+                return (false, "Lỗi hệ thống khi hủy giao dịch thanh toán.");
             }
         }
     }

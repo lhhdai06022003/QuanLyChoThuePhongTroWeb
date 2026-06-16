@@ -362,6 +362,17 @@
         html += '</div>';
         $container.html(html);
 
+        // Auto-check khi chỉ có đúng 1 dịch vụ tùy chọn
+        let $optionalCheckboxes = $container.find('.dkdv-optional .dkdv-checkbox');
+        if ($optionalCheckboxes.length === 1 && !$optionalCheckboxes.first().is(':checked')) {
+            $optionalCheckboxes.first().prop('checked', true);
+            let $item = $optionalCheckboxes.first().closest('.dkdv-item');
+            let dvId = $optionalCheckboxes.first().data('id');
+            $item.addClass('selected');
+            $container.find(`[data-qty-for="${dvId}"]`).show();
+            $container.find(`[data-date-for="${dvId}"]`).show();
+        }
+
         // Event: checkbox change → toggle selected class + qty & date visibility (chỉ cho tùy chọn)
         $container.find('.dkdv-optional .dkdv-checkbox').on('change', function () {
             let $item = $(this).closest('.dkdv-item');

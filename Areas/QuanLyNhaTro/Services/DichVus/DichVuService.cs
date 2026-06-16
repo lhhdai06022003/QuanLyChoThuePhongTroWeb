@@ -47,7 +47,8 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.DichVus
                     DichVuId = x.DichVuId,
                     TenDichVu = x.TenDichVu,
                     DonVi = x.DonVi,
-                    GhiChu = x.GhiChu
+                    GhiChu = x.GhiChu,
+                    MacDinh = x.MacDinh
                 })
                 .Skip(request.Start)
                 .Take(request.Length)
@@ -66,7 +67,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.DichVus
         {
             var dv = await _context.DichVus.FirstOrDefaultAsync(x => x.DichVuId == id && !x.IsDeleted);
             if (dv == null) return null;
-            return new DichVuRes { DichVuId = dv.DichVuId, TenDichVu = dv.TenDichVu, DonVi = dv.DonVi, GhiChu = dv.GhiChu };
+            return new DichVuRes { DichVuId = dv.DichVuId, TenDichVu = dv.TenDichVu, DonVi = dv.DonVi, GhiChu = dv.GhiChu, MacDinh = dv.MacDinh };
         }
 
         public async Task<(bool IsSuccess, string ErrorMessage)> CreateDichVuAsync(DichVuReq input)
@@ -78,7 +79,8 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.DichVus
             {
                 TenDichVu = input.TenDichVu,
                 DonVi = input.DonVi,
-                GhiChu = input.GhiChu
+                GhiChu = input.GhiChu,
+                MacDinh = input.MacDinh
             };
             _context.DichVus.Add(dv);
             await _context.SaveChangesAsync();
@@ -96,6 +98,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.DichVus
             dv.TenDichVu = input.TenDichVu;
             dv.DonVi = input.DonVi;
             dv.GhiChu = input.GhiChu;
+            dv.MacDinh = input.MacDinh;
             dv.NgayCapNhat = DateTime.UtcNow;
 
             _context.DichVus.Update(dv);

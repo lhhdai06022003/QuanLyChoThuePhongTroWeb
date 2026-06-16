@@ -12,6 +12,7 @@ using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.PhongTros;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.LichSuThanhToans;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.Emails;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.Dashboard;
+using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.BackgroundJobs;
 using QuanLyChoThuePhongTroWeb.Data;
 using System;
 
@@ -47,6 +48,9 @@ builder.Services.AddScoped<INguoiDungService, NguoiDungService>();
 builder.Services.AddScoped<IHoaDonService, HoaDonService>();
 builder.Services.AddScoped<ILichSuThanhToanService, LichSuThanhToanService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddHostedService<InvoiceReminderService>();
+builder.Services.AddHostedService<ContractAutoCloseService>();
+builder.Services.AddHostedService<ContractExpiryAlertService>();
 
 // Cấu hình Authentication
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)

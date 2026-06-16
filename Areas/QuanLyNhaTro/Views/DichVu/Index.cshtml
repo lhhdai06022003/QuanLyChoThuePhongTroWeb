@@ -24,12 +24,13 @@
                                     <h4 class="m-0"><i class="fas fa-list"></i> Danh sách Dịch vụ Chung</h4>
                                     <button class="btn btn-success" id="btnOpenAddDichVu"><i class="fas fa-plus"></i> Thêm Dịch vụ</button>
                                 </div>
-                                <table id="dichVuTable" class="table table-bordered table-striped w-100">
+                                 <table id="dichVuTable" class="table table-bordered table-striped w-100">
                                     <thead>
                                         <tr>
                                             <th class="text-center" width="5%">STT</th>
                                             <th>Tên Dịch Vụ</th>
                                             <th>Đơn Vị Tính</th>
+                                            <th class="text-center" width="12%">Mặc Định</th>
                                             <th>Ghi Chú</th>
                                             <th class="text-center" width="15%">Thao tác</th>
                                         </tr>
@@ -100,6 +101,15 @@
                 <div class="form-group mb-3">
                     <label for="GhiChuDichVu">Ghi Chú</label>
                     <textarea class="form-control" id="GhiChuDichVu" rows="2"></textarea>
+                </div>
+                <div class="form-group mb-3">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="MacDinhDichVu" role="switch">
+                        <label class="form-check-label" for="MacDinhDichVu">
+                            <strong>Dịch vụ mặc định</strong>
+                            <span class="text-muted" style="font-size:0.85rem;"> — Tự động bao gồm trong mọi hợp đồng, không cần chọn thủ công</span>
+                        </label>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
@@ -174,6 +184,14 @@
                     { "data": null, "className": "text-center", "orderable": false, "render": (d,t,r,m) => m.row + m.settings._iDisplayStart + 1 },
                     { "data": "tenDichVu", "name": "tenDichVu" },
                     { "data": "donVi" },
+                    {
+                        "data": "macDinh", "orderable": false, "className": "text-center",
+                        "render": function(data) {
+                            return data
+                                ? `<span class="badge bg-primary"><i class="fas fa-lock me-1"></i>Mặc định</span>`
+                                : `<span class="badge bg-light text-secondary">Tùy chọn</span>`;
+                        }
+                    },
                     { "data": "ghiChu", "orderable": false },
                     {
                         "data": "dichVuId", "orderable": false, "className": "text-center align-middle",
@@ -198,6 +216,7 @@
                 $('#TenDichVu').val('');
                 $('#DonVi').val('');
                 $('#GhiChuDichVu').val('');
+                $('#MacDinhDichVu').prop('checked', false);
                 $('#dichVuModalTitle').text('Thêm Dịch Vụ Mới');
                 $('#dichVuModal').modal('show');
             });
@@ -207,10 +226,11 @@
                 let ten = $('#TenDichVu').val().trim();
                 let dvi = $('#DonVi').val().trim();
                 let ghiChu = $('#GhiChuDichVu').val().trim();
+                let macDinh = $('#MacDinhDichVu').is(':checked');
 
                 if(!ten || !dvi) { Swal.fire('Thông báo', 'Vui lòng nhập tên và đơn vị!', 'warning'); return; }
 
-                let req = { dichVuId: parseInt(id), tenDichVu: ten, donVi: dvi, ghiChu: ghiChu };
+                let req = { dichVuId: parseInt(id), tenDichVu: ten, donVi: dvi, ghiChu: ghiChu, macDinh: macDinh };
                 let isUpdate = id > 0;
                 let $btn = $(this);
                 $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang lưu...');
@@ -237,6 +257,7 @@
                     $('#TenDichVu').val(res.tenDichVu);
                     $('#DonVi').val(res.donVi);
                     $('#GhiChuDichVu').val(res.ghiChu);
+                    $('#MacDinhDichVu').prop('checked', res.macDinh === true);
                     $('#dichVuModalTitle').text('Cập nhật Dịch Vụ');
                     $('#dichVuModal').modal('show');
                 });

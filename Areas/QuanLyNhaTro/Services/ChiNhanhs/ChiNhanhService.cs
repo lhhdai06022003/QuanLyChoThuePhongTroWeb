@@ -3,15 +3,19 @@ using QuanLyChoThuePhongTroWeb.Data;
 using QuanLyChoThuePhongTroWeb.Models;
 using System;
 
+using Microsoft.Extensions.Logging;
+
 namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.ChiNhanhs
 {
     public class ChiNhanhService : IChiNhanhService
     {
         private readonly ApplicationDbContext _context;
+        private readonly ILogger<ChiNhanhService> _logger;
 
-        public ChiNhanhService(ApplicationDbContext context)
+        public ChiNhanhService(ApplicationDbContext context, ILogger<ChiNhanhService> logger)
         {
             _context = context;
+            _logger = logger;
         }
 
         public async Task<IEnumerable<ChiNhanh>> DanhSachChiNhanh()
@@ -71,8 +75,8 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.ChiNhanhs
             }
             catch (Exception ex)
             {
-                // Ở đây sau này có thể thêm thư viện ILogger để ghi log lỗi vào file
-                return (false, $"Lỗi hệ thống: {ex.Message}");
+                _logger.LogError(ex, "Lỗi hệ thống khi thêm/cập nhật chi nhánh. Mã: {MaChiNhanh}, Tên: {TenChiNhanh}", model.MaChiNhanh, model.TenChiNhanh);
+                return (false, "Lỗi hệ thống khi lưu thông tin chi nhánh.");
             }
         }
 
@@ -95,7 +99,8 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.ChiNhanhs
             }
             catch (Exception ex)
             {
-                return (false, $"Không thể xóa: {ex.Message}");
+                _logger.LogError(ex, "Lỗi hệ thống khi xóa chi nhánh ID: {Id}", id);
+                return (false, "Lỗi hệ thống khi xóa chi nhánh.");
             }
         }
     }
