@@ -15,8 +15,6 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Requests
         public string DonVi { get; set; }
 
         public string GhiChu { get; set; }
-
-        public bool MacDinh { get; set; } = false;
     }
 
     public class DichVuRes
@@ -25,6 +23,5 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Requests
         public string TenDichVu { get; set; }
         public string DonVi { get; set; }
         public string GhiChu { get; set; }
-        public bool MacDinh { get; set; }
     }
 }

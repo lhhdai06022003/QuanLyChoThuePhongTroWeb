@@ -30,7 +30,6 @@
                                             <th class="text-center" width="5%">STT</th>
                                             <th>Tên Dịch Vụ</th>
                                             <th>Đơn Vị Tính</th>
-                                            <th class="text-center" width="12%">Mặc Định</th>
                                             <th>Ghi Chú</th>
                                             <th class="text-center" width="15%">Thao tác</th>
                                         </tr>
@@ -66,6 +65,7 @@
                                             <th>Chi Nhánh</th>
                                             <th>Tên Dịch Vụ</th>
                                             <th>Giá Dịch Vụ (VNĐ)</th>
+                                            <th class="text-center" width="12%">Mặc Định</th>
                                             <th class="text-center" width="15%">Thao tác</th>
                                         </tr>
                                     </thead>
@@ -101,15 +101,6 @@
                 <div class="form-group mb-3">
                     <label for="GhiChuDichVu">Ghi Chú</label>
                     <textarea class="form-control" id="GhiChuDichVu" rows="2"></textarea>
-                </div>
-                <div class="form-group mb-3">
-                    <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" id="MacDinhDichVu" role="switch">
-                        <label class="form-check-label" for="MacDinhDichVu">
-                            <strong>Dịch vụ mặc định</strong>
-                            <span class="text-muted" style="font-size:0.85rem;"> — Tự động bao gồm trong mọi hợp đồng, không cần chọn thủ công</span>
-                        </label>
-                    </div>
                 </div>
             </div>
             <div class="modal-footer">
@@ -153,6 +144,15 @@
                     <label for="GiaDichVu">Giá Dịch Vụ (VNĐ) <span class="text-danger">*</span></label>
                     <input type="number" class="form-control" id="GiaDichVu" value="0" min="0">
                 </div>
+                <div class="form-group mb-3">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="MacDinhBangGia" role="switch">
+                        <label class="form-check-label" for="MacDinhBangGia">
+                            <strong>Bắt buộc sử dụng</strong>
+                            <span class="text-muted" style="font-size:0.85rem;"> — Dịch vụ mặc định bắt buộc đăng ký ở chi nhánh này</span>
+                        </label>
+                    </div>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i> Đóng</button>
@@ -184,14 +184,6 @@
                     { "data": null, "className": "text-center", "orderable": false, "render": (d,t,r,m) => m.row + m.settings._iDisplayStart + 1 },
                     { "data": "tenDichVu", "name": "tenDichVu" },
                     { "data": "donVi" },
-                    {
-                        "data": "macDinh", "orderable": false, "className": "text-center",
-                        "render": function(data) {
-                            return data
-                                ? `<span class="badge bg-primary"><i class="fas fa-lock me-1"></i>Mặc định</span>`
-                                : `<span class="badge bg-light text-secondary">Tùy chọn</span>`;
-                        }
-                    },
                     { "data": "ghiChu", "orderable": false },
                     {
                         "data": "dichVuId", "orderable": false, "className": "text-center align-middle",
@@ -216,7 +208,6 @@
                 $('#TenDichVu').val('');
                 $('#DonVi').val('');
                 $('#GhiChuDichVu').val('');
-                $('#MacDinhDichVu').prop('checked', false);
                 $('#dichVuModalTitle').text('Thêm Dịch Vụ Mới');
                 $('#dichVuModal').modal('show');
             });
@@ -226,11 +217,10 @@
                 let ten = $('#TenDichVu').val().trim();
                 let dvi = $('#DonVi').val().trim();
                 let ghiChu = $('#GhiChuDichVu').val().trim();
-                let macDinh = $('#MacDinhDichVu').is(':checked');
 
                 if(!ten || !dvi) { Swal.fire('Thông báo', 'Vui lòng nhập tên và đơn vị!', 'warning'); return; }
 
-                let req = { dichVuId: parseInt(id), tenDichVu: ten, donVi: dvi, ghiChu: ghiChu, macDinh: macDinh };
+                let req = { dichVuId: parseInt(id), tenDichVu: ten, donVi: dvi, ghiChu: ghiChu };
                 let isUpdate = id > 0;
                 let $btn = $(this);
                 $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang lưu...');
@@ -257,7 +247,6 @@
                     $('#TenDichVu').val(res.tenDichVu);
                     $('#DonVi').val(res.donVi);
                     $('#GhiChuDichVu').val(res.ghiChu);
-                    $('#MacDinhDichVu').prop('checked', res.macDinh === true);
                     $('#dichVuModalTitle').text('Cập nhật Dịch Vụ');
                     $('#dichVuModal').modal('show');
                 });
@@ -307,6 +296,14 @@
                     { "data": "tenDichVu", "orderable": false },
                     { "data": "giaDichVu", "orderable": false, "render": function(d) { return formatVND(d); } },
                     {
+                        "data": "macDinh", "orderable": false, "className": "text-center",
+                        "render": function(data) {
+                            return data
+                                ? `<span class="badge bg-primary"><i class="fas fa-lock me-1"></i>Bắt buộc</span>`
+                                : `<span class="badge bg-light text-secondary">Tùy chọn</span>`;
+                        }
+                    },
+                    {
                         "data": "dichVuChiNhanhId", "orderable": false, "className": "text-center align-middle",
                         "render": function(data) {
                             return `
@@ -342,6 +339,7 @@
                 $('#BgChiNhanhId').val('');
                 loadDichVuDropdown();
                 $('#GiaDichVu').val(0);
+                $('#MacDinhBangGia').prop('checked', false);
                 $('#bangGiaModalTitle').text('Thêm Bảng Giá');
                 $('#bangGiaModal').modal('show');
             });
@@ -351,11 +349,12 @@
                 let cn = $('#BgChiNhanhId').val();
                 let dv = $('#BgDichVuId').val();
                 let gia = parseFloat($('#GiaDichVu').val() || 0);
+                let macDinh = $('#MacDinhBangGia').is(':checked');
 
                 if(!cn || !dv) { Swal.fire('Thông báo', 'Vui lòng chọn chi nhánh và dịch vụ!', 'warning'); return; }
                 if(gia < 0) { Swal.fire('Thông báo', 'Giá không được âm!', 'warning'); return; }
 
-                let req = { dichVuChiNhanhId: parseInt(id), chiNhanhId: parseInt(cn), dichVuId: parseInt(dv), giaDichVu: gia };
+                let req = { dichVuChiNhanhId: parseInt(id), chiNhanhId: parseInt(cn), dichVuId: parseInt(dv), giaDichVu: gia, macDinh: macDinh };
                 let isUpdate = id > 0;
                 let $btn = $(this);
                 $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang lưu...');
@@ -382,6 +381,7 @@
                     $('#BgChiNhanhId').val(res.chiNhanhId);
                     loadDichVuDropdown(res.dichVuId);
                     $('#GiaDichVu').val(res.giaDichVu);
+                    $('#MacDinhBangGia').prop('checked', res.macDinh === true);
                     $('#bangGiaModalTitle').text('Cập nhật Bảng Giá');
                     $('#bangGiaModal').modal('show');
                 });

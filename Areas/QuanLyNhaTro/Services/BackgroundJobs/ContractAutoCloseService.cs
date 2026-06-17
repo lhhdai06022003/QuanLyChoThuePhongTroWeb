@@ -85,6 +85,11 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.BackgroundJobs
                 {
                     try
                     {
+                        var phongTroIds = expiredContracts.Select(hd => hd.PhongTroId).ToList();
+                        var activeServices = await dbContext.DangKyDichVus
+                            .Where(x => phongTroIds.Contains(x.PhongTroId) && x.NgayKetThuc == null)
+                            .ToListAsync(stoppingToken);
+
                         foreach (var contract in expiredContracts)
                         {
                             contract.TrangThaiHopDong = TrangThaiHopDong.DaKetThuc;
@@ -106,6 +111,12 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.BackgroundJobs
                                 {
                                     member.NgayChuyenDi = DateTime.UtcNow;
                                 }
+                            }
+
+                            var servicesToClose = activeServices.Where(x => x.PhongTroId == contract.PhongTroId).ToList();
+                            foreach (var s in servicesToClose)
+                            {
+                                s.NgayKetThuc = DateTime.UtcNow;
                             }
                         }
 

@@ -47,8 +47,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.DichVus
                     DichVuId = x.DichVuId,
                     TenDichVu = x.TenDichVu,
                     DonVi = x.DonVi,
-                    GhiChu = x.GhiChu,
-                    MacDinh = x.MacDinh
+                    GhiChu = x.GhiChu
                 })
                 .Skip(request.Start)
                 .Take(request.Length)
@@ -67,7 +66,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.DichVus
         {
             var dv = await _context.DichVus.FirstOrDefaultAsync(x => x.DichVuId == id && !x.IsDeleted);
             if (dv == null) return null;
-            return new DichVuRes { DichVuId = dv.DichVuId, TenDichVu = dv.TenDichVu, DonVi = dv.DonVi, GhiChu = dv.GhiChu, MacDinh = dv.MacDinh };
+            return new DichVuRes { DichVuId = dv.DichVuId, TenDichVu = dv.TenDichVu, DonVi = dv.DonVi, GhiChu = dv.GhiChu };
         }
 
         public async Task<(bool IsSuccess, string ErrorMessage)> CreateDichVuAsync(DichVuReq input)
@@ -79,8 +78,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.DichVus
             {
                 TenDichVu = input.TenDichVu,
                 DonVi = input.DonVi,
-                GhiChu = input.GhiChu,
-                MacDinh = input.MacDinh
+                GhiChu = input.GhiChu
             };
             _context.DichVus.Add(dv);
             await _context.SaveChangesAsync();
@@ -98,7 +96,6 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.DichVus
             dv.TenDichVu = input.TenDichVu;
             dv.DonVi = input.DonVi;
             dv.GhiChu = input.GhiChu;
-            dv.MacDinh = input.MacDinh;
             dv.NgayCapNhat = DateTime.UtcNow;
 
             _context.DichVus.Update(dv);
@@ -153,7 +150,8 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.DichVus
                     TenChiNhanh = x.ChiNhanh.TenChiNhanh,
                     DichVuId = x.DichVuId,
                     TenDichVu = x.DichVu.TenDichVu,
-                    GiaDichVu = x.GiaDichVu
+                    GiaDichVu = x.GiaDichVu,
+                    MacDinh = x.MacDinh
                 })
                 .Skip(request.Start)
                 .Take(request.Length)
@@ -183,7 +181,8 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.DichVus
                 TenChiNhanh = dcn.ChiNhanh.TenChiNhanh,
                 DichVuId = dcn.DichVuId,
                 TenDichVu = dcn.DichVu.TenDichVu,
-                GiaDichVu = dcn.GiaDichVu
+                GiaDichVu = dcn.GiaDichVu,
+                MacDinh = dcn.MacDinh
             };
         }
 
@@ -196,7 +195,8 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.DichVus
             {
                 ChiNhanhId = input.ChiNhanhId,
                 DichVuId = input.DichVuId,
-                GiaDichVu = input.GiaDichVu
+                GiaDichVu = input.GiaDichVu,
+                MacDinh = input.MacDinh
             };
             _context.Set<DichVuChiNhanh>().Add(dcn);
             await _context.SaveChangesAsync();
@@ -214,6 +214,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.DichVus
             dcn.ChiNhanhId = input.ChiNhanhId;
             dcn.DichVuId = input.DichVuId;
             dcn.GiaDichVu = input.GiaDichVu;
+            dcn.MacDinh = input.MacDinh;
             dcn.NgayCapNhat = DateTime.UtcNow;
 
             _context.Set<DichVuChiNhanh>().Update(dcn);
@@ -249,9 +250,9 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.DichVus
                 .Where(x => x.ChiNhanhId == chiNhanhId && !x.IsDeleted && !x.DichVu.IsDeleted)
                 .ToListAsync();
 
-            // Lấy tất cả đăng ký hiện tại của phòng
+            // Lấy tất cả đăng ký hiện tại đang hoạt động của phòng
             var dangKys = await _context.DangKyDichVus
-                .Where(x => x.PhongTroId == phongTroId)
+                .Where(x => x.PhongTroId == phongTroId && x.NgayKetThuc == null)
                 .ToListAsync();
 
             // Map kết hợp
@@ -264,7 +265,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.DichVus
                     TenDichVu = dcn.DichVu.TenDichVu,
                     DonVi = dcn.DichVu.DonVi,
                     GiaDichVu = dcn.GiaDichVu,
-                    MacDinh = dcn.DichVu.MacDinh,
+                    MacDinh = dcn.MacDinh,
                     IsSelected = dk != null,
                     SoLuong = dk?.SoLuong ?? 1,
                     DangKyDichVuId = dk?.DangKyDichVuId,
@@ -283,37 +284,57 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.DichVus
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                // Lấy tất cả đăng ký cũ của phòng
-                var existingDangKys = await _context.DangKyDichVus
-                    .Where(x => x.PhongTroId == input.PhongTroId)
+                // Lấy tất cả đăng ký đang hoạt động của phòng
+                var activeDangKys = await _context.DangKyDichVus
+                    .Where(x => x.PhongTroId == input.PhongTroId && x.NgayKetThuc == null)
                     .ToListAsync();
 
                 foreach (var item in input.DichVus)
                 {
-                    var existing = existingDangKys.FirstOrDefault(x => x.DichVuChiNhanhId == item.DichVuChiNhanhId);
+                    var existing = activeDangKys.FirstOrDefault(x => x.DichVuChiNhanhId == item.DichVuChiNhanhId);
 
                     if (item.IsSelected)
                     {
+                        int targetQty = item.SoLuong > 0 ? item.SoLuong : 1;
+                        DateTime targetStart = item.NgayBatDau.HasValue
+                            ? DateTime.SpecifyKind(item.NgayBatDau.Value, DateTimeKind.Utc)
+                            : DateTime.UtcNow;
+
                         if (existing != null)
                         {
-                            // UPDATE: cập nhật số lượng
-                            existing.SoLuong = item.SoLuong > 0 ? item.SoLuong : 1;
-                            if (item.NgayBatDau.HasValue)
+                            if (existing.SoLuong != targetQty)
                             {
-                                existing.NgayBatDau = DateTime.SpecifyKind(item.NgayBatDau.Value, DateTimeKind.Utc);
+                                // Khách thay đổi số lượng: Đóng bản ghi cũ và tạo bản ghi mới
+                                existing.NgayKetThuc = item.NgayBatDau.HasValue
+                                    ? DateTime.SpecifyKind(item.NgayBatDau.Value.AddDays(-1), DateTimeKind.Utc)
+                                    : DateTime.UtcNow;
+
+                                _context.DangKyDichVus.Add(new DangKyDichVu
+                                {
+                                    PhongTroId = input.PhongTroId,
+                                    DichVuChiNhanhId = item.DichVuChiNhanhId,
+                                    SoLuong = targetQty,
+                                    NgayBatDau = targetStart
+                                });
+                            }
+                            else
+                            {
+                                // Giữ nguyên số lượng, chỉ cập nhật ngày bắt đầu (nếu có đổi)
+                                if (item.NgayBatDau.HasValue)
+                                {
+                                    existing.NgayBatDau = targetStart;
+                                }
                             }
                         }
                         else
                         {
-                            // INSERT: thêm mới
+                            // Chưa đăng ký hoặc đã đóng đăng ký cũ -> thêm mới bản ghi hoạt động
                             _context.DangKyDichVus.Add(new DangKyDichVu
                             {
                                 PhongTroId = input.PhongTroId,
                                 DichVuChiNhanhId = item.DichVuChiNhanhId,
-                                SoLuong = item.SoLuong > 0 ? item.SoLuong : 1,
-                                NgayBatDau = item.NgayBatDau.HasValue
-                                    ? DateTime.SpecifyKind(item.NgayBatDau.Value, DateTimeKind.Utc)
-                                    : DateTime.UtcNow
+                                SoLuong = targetQty,
+                                NgayBatDau = targetStart
                             });
                         }
                     }
@@ -321,8 +342,8 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.DichVus
                     {
                         if (existing != null)
                         {
-                            // DELETE: bỏ chọn → xóa cứng
-                            _context.DangKyDichVus.Remove(existing);
+                            // Soft-end: Đóng đăng ký dịch vụ
+                            existing.NgayKetThuc = DateTime.UtcNow;
                         }
                     }
                 }

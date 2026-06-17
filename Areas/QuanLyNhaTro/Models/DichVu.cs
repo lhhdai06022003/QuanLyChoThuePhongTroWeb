@@ -1,4 +1,4 @@
-﻿using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Models;
+using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Models;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -16,7 +16,6 @@ namespace QuanLyChoThuePhongTroWeb.Models
         public string GhiChu { get; set; }
         public DateTime NgayTao { get; set; } = DateTime.UtcNow;
         public DateTime? NgayCapNhat { get; set; }
-        public bool MacDinh { get; set; } = false; // Mặc định là false, chỉ có dịch vụ mặc định mới là true
         public bool IsDeleted { get; set; } = false;
 
         // Quan hệ hướng tới bảng trung gian

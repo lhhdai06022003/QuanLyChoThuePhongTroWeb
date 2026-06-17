@@ -66,11 +66,13 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HoaDons
                 .ToListAsync();
             var dienNuocDict = dienNuocRecords.ToDictionary(x => x.PhongTroId);
 
-            // Tải trước tất cả các dịch vụ đã đăng ký của các phòng được chọn
+            // Tải trước tất cả các dịch vụ đã đăng ký của các phòng được chọn có hiệu lực trong tháng
             var dangKyDvs = await _context.DangKyDichVus
                 .Include(d => d.DichVuChiNhanh)
                     .ThenInclude(dcn => dcn.DichVu)
-                .Where(d => selectedPhongIds.Contains(d.PhongTroId))
+                .Where(d => selectedPhongIds.Contains(d.PhongTroId) &&
+                            d.NgayBatDau <= endOfMonth &&
+                            (d.NgayKetThuc == null || d.NgayKetThuc >= startOfMonth))
                 .ToListAsync();
             var dangKyDvsLookup = dangKyDvs.ToLookup(d => d.PhongTroId);
 
@@ -144,7 +146,8 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HoaDons
                     if (dk.NgayBatDau.Date <= activeEnd)
                     {
                         DateTime serviceStart = dk.NgayBatDau.Date > activeStart ? dk.NgayBatDau.Date : activeStart;
-                        int serviceActiveDays = (activeEnd - serviceStart).Days + 1;
+                        DateTime serviceEnd = (dk.NgayKetThuc != null && dk.NgayKetThuc.Value < activeEnd) ? dk.NgayKetThuc.Value.Date : activeEnd;
+                        int serviceActiveDays = (serviceEnd - serviceStart).Days + 1;
 
                         if (serviceActiveDays > 0)
                         {
@@ -228,10 +231,12 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HoaDons
                 .ToListAsync();
             var dienNuocDict = dienNuocRecords.ToDictionary(x => x.PhongTroId);
 
-            // Tải trước tất cả các dịch vụ đã đăng ký của các phòng
+            // Tải trước tất cả các dịch vụ đã đăng ký của các phòng có hiệu lực trong tháng
             var dangKyDvs = await _context.DangKyDichVus
                 .Include(d => d.DichVuChiNhanh).ThenInclude(dcn => dcn.DichVu)
-                .Where(d => phongTroIds.Contains(d.PhongTroId))
+                .Where(d => phongTroIds.Contains(d.PhongTroId) &&
+                            d.NgayBatDau <= endOfMonth &&
+                            (d.NgayKetThuc == null || d.NgayKetThuc >= startOfMonth))
                 .ToListAsync();
             var dangKyDvsLookup = dangKyDvs.ToLookup(d => d.PhongTroId);
 
@@ -304,7 +309,8 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HoaDons
                     if (dk.NgayBatDau.Date <= activeEnd)
                     {
                         DateTime serviceStart = dk.NgayBatDau.Date > activeStart ? dk.NgayBatDau.Date : activeStart;
-                        int serviceActiveDays = (activeEnd - serviceStart).Days + 1;
+                        DateTime serviceEnd = (dk.NgayKetThuc != null && dk.NgayKetThuc.Value < activeEnd) ? dk.NgayKetThuc.Value.Date : activeEnd;
+                        int serviceActiveDays = (serviceEnd - serviceStart).Days + 1;
 
                         if (serviceActiveDays > 0)
                         {

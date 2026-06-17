@@ -1,4 +1,4 @@
-﻿using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Models;
+using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Models;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -20,5 +20,6 @@ namespace QuanLyChoThuePhongTroWeb.Models
 
         public int SoLuong { get; set; }
         public DateTime NgayBatDau { get; set; }
+        public DateTime? NgayKetThuc { get; set; }
     }
 }

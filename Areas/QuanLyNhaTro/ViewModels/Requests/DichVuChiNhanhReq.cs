@@ -14,6 +14,8 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Requests
 
         [Range(0, double.MaxValue, ErrorMessage = "Giá dịch vụ phải lớn hơn hoặc bằng 0.")]
         public double GiaDichVu { get; set; }
+
+        public bool MacDinh { get; set; } = false;
     }
 
     public class DichVuChiNhanhRes
@@ -24,5 +26,6 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Requests
         public int DichVuId { get; set; }
         public string TenDichVu { get; set; }
         public double GiaDichVu { get; set; }
+        public bool MacDinh { get; set; }
     }
 }
