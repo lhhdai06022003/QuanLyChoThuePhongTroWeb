@@ -48,11 +48,11 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.Dashboard
             var monthsList = new List<SelectListItem>();
             for (int m = 1; m <= 12; m++)
             {
-                monthsList.Add(new SelectListItem 
-                { 
-                    Value = m.ToString(), 
-                    Text = $"Tháng {m}", 
-                    Selected = (m == selectedMonth) 
+                monthsList.Add(new SelectListItem
+                {
+                    Value = m.ToString(),
+                    Text = $"Tháng {m}",
+                    Selected = (m == selectedMonth)
                 });
             }
             model.Months = monthsList;
@@ -70,10 +70,9 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.Dashboard
             model.SoPhongBaoTri = phongTros.Count(p => p.TrangThai == TrangThaiPhong.BaoTri);
 
             // Tỷ lệ lấp đầy
-            model.TyLeLapDay = model.TongSoPhong > 0 
-                ? Math.Round((double)model.SoPhongDaThue / model.TongSoPhong * 100, 1) 
+            model.TyLeLapDay = model.TongSoPhong > 0
+                ? Math.Round((double)model.SoPhongDaThue / model.TongSoPhong * 100, 1)
                 : 0;
-
             // --- 3. THỐNG KÊ HỢP ĐỒNG ĐANG HOẠT ĐỘNG ---
             var hopDongsQuery = _context.HopDongs
                 .Where(h => !h.IsDeleted && h.TrangThaiHopDong == TrangThaiHopDong.DangHoatDong);
@@ -102,8 +101,20 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.Dashboard
                 .Where(h => h.TrangThaiHoaDon == TrangThaiHoaDon.ChuaThanhToan)
                 .Sum(h => h.TongTien);
 
-            model.SoPhongChuaThanhToan = hoaDonThangNay
-                .Count(h => h.TrangThaiHoaDon == TrangThaiHoaDon.ChuaThanhToan);
+            // [THAY ĐỔI YÊU CẦU 1]: Đếm tổng số phòng DUY NHẤT chưa thanh toán từ trước tới nay (Xuyên suốt lịch sử)
+            var allUnpaidBillsQuery = _context.HoaDons
+                .Where(h => !h.IsDeleted && h.TrangThaiHoaDon == TrangThaiHoaDon.ChuaThanhToan);
+
+            if (branchId.HasValue)
+            {
+                allUnpaidBillsQuery = allUnpaidBillsQuery.Where(h => h.HopDong.PhongTro.ChiNhanhId == branchId.Value);
+            }
+
+            model.SoPhongChuaThanhToan = await allUnpaidBillsQuery
+                .Select(h => h.HopDong.PhongTroId)
+                .Distinct() // Loại bỏ trùng lặp phòng (Phòng nợ nhiều tháng chỉ tính là 1 phòng)
+                .CountAsync();
+
 
             // --- 5. BIỂU ĐỒ DOANH THU 12 THÁNG (Theo năm được chọn) ---
             for (int month = 1; month <= 12; month++)
@@ -126,7 +137,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.Dashboard
             var thanhToansQuery = _context.LichSuThanhToans
                 .Include(l => l.HoaDon)
                     .ThenInclude(h => h.HopDong)
-                        .ThenInclude(hd => hd.PhongTro)
+.ThenInclude(hd => hd.PhongTro)
                 .Where(l => !l.IsDeleted && l.NgayThanhToan.Year == selectedYear && l.NgayThanhToan.Month == selectedMonth);
             if (branchId.HasValue)
             {
@@ -135,7 +146,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.Dashboard
             var thanhToans = await thanhToansQuery.ToListAsync();
             var cashTotal = thanhToans.Where(l => l.PhuongThucThanhToan == PhuongThucThanhToan.TienMat).Sum(l => l.SoTienThanhToan);
             var bankTotal = thanhToans.Where(l => l.PhuongThucThanhToan == PhuongThucThanhToan.ChuyenKhoan).Sum(l => l.SoTienThanhToan);
-            
+
             model.PaymentMethodLabels.Add("Tiền mặt");
             model.PaymentMethodLabels.Add("Chuyển khoản");
             model.PaymentMethodData.Add(cashTotal);
@@ -192,30 +203,35 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.Dashboard
                 });
             }
 
-            // 7c. Hóa đơn quá hạn của các kỳ trước chưa thanh toán (Group theo tháng và năm)
-            var dateLimit = new DateTime(selectedYear, selectedMonth, 1);
-            var overdueQuery = _context.HoaDons
+            // [THAY ĐỔI YÊU CẦU 2]: 7c. Hóa đơn chưa thanh toán gom theo từng PHÒNG từ trước tới nay
+            var unpaidQuery = _context.HoaDons
                 .Where(h => !h.IsDeleted && h.TrangThaiHoaDon == TrangThaiHoaDon.ChuaThanhToan);
+
             if (branchId.HasValue)
             {
-                overdueQuery = overdueQuery.Where(h => h.HopDong.PhongTro.ChiNhanhId == branchId.Value);
+                unpaidQuery = unpaidQuery.Where(h => h.HopDong.PhongTro.ChiNhanhId == branchId.Value);
             }
-            var overdueListRaw = await overdueQuery.ToListAsync();
-            var overdueList = overdueListRaw.Where(h => new DateTime(h.Nam, h.Thang, 1) < dateLimit).ToList();
-            
-            var overdueGrouped = overdueList
-                .GroupBy(h => new { h.Thang, h.Nam })
-                .OrderBy(g => g.Key.Nam).ThenBy(g => g.Key.Thang)
-                .ToList();
 
-            foreach (var g in overdueGrouped)
+            // Group theo PhongTroId và SoPhong để thống kê số tháng nợ tổng quát
+            var unpaidGroupedByRoom = await unpaidQuery
+                .GroupBy(h => new { h.HopDong.PhongTroId, h.HopDong.PhongTro.SoPhong })
+                .Select(g => new
+                {
+                    PhongTroId = g.Key.PhongTroId,
+                    SoPhong = g.Key.SoPhong,
+                    UnpaidMonthsCount = g.Count() // Số lượng hóa đơn chưa trả = số tháng nợ
+                })
+                .OrderByDescending(g => g.UnpaidMonthsCount) // Ưu tiên đưa phòng nợ dai nhất lên đầu
+                .ToListAsync();
+
+            foreach (var item in unpaidGroupedByRoom)
             {
                 model.ToDos.Add(new ToDoItemViewModel
                 {
                     Type = "danger",
-                    Title = $"Hóa đơn Tháng {g.Key.Thang}/{g.Key.Nam} chưa thu",
-                    Description = $"Có {g.Count()} phòng chưa thanh toán hóa đơn kỳ Tháng {g.Key.Thang}/{g.Key.Nam}.",
-                    Link = $"/QuanLyNhaTro/QuanLyHoaDon?thang={g.Key.Thang}&nam={g.Key.Nam}&trangThai=0" + (branchId.HasValue ? $"&chiNhanhId={branchId.Value}" : ""),
+                    Title = $"Hóa đơn Phòng {item.SoPhong} chưa thu",
+                    Description = $"Phòng {item.SoPhong} chưa thanh toán hóa đơn (Nợ {item.UnpaidMonthsCount} tháng).",
+                    Link = $"/QuanLyNhaTro/QuanLyHoaDon?phongTroId={item.PhongTroId}&trangThai=0" + (branchId.HasValue ? $"&chiNhanhId={branchId.Value}" : ""),
                     Icon = "fas fa-exclamation-circle"
                 });
             }
@@ -233,7 +249,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.Dashboard
             var recentPayments = await recentPaymentsQuery.OrderByDescending(l => l.NgayThanhToan).Take(5).ToListAsync();
 
             var recentContractsQuery = _context.HopDongs
-                .Include(h => h.PhongTro)
+.Include(h => h.PhongTro)
                 .Include(h => h.NguoiThue)
                 .Where(h => !h.IsDeleted);
             if (branchId.HasValue)
@@ -245,18 +261,18 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.Dashboard
             var activities = new List<(DateTime Time, string Title, string Description, string Icon, string ColorClass)>();
             foreach (var p in recentPayments)
             {
-                activities.Add((p.NgayThanhToan, 
-                    $"Đã thu tiền Phòng {p.HoaDon.HopDong.PhongTro.SoPhong}", 
-                    $"Số tiền: {p.SoTienThanhToan:N0} ₫ - {(p.PhuongThucThanhToan == PhuongThucThanhToan.TienMat ? "Tiền mặt" : "Chuyển khoản")}", 
-                    "fas fa-check-circle", 
+                activities.Add((p.NgayThanhToan,
+                    $"Đã thu tiền Phòng {p.HoaDon.HopDong.PhongTro.SoPhong}",
+                    $"Số tiền: {p.SoTienThanhToan:N0} ₫ - {(p.PhuongThucThanhToan == PhuongThucThanhToan.TienMat ? "TienMat" : "ChuyenKhoan")}",
+                    "fas fa-check-circle",
                     "bg-success-lt"));
             }
             foreach (var c in recentContracts)
             {
-                activities.Add((c.NgayTao, 
-                    $"Hợp đồng mới - Phòng {c.PhongTro.SoPhong}", 
-                    $"Khách thuê: {c.NguoiThue.HoVaTen} - Giá thuê: {c.TienThuePhong:N0} ₫", 
-                    "fas fa-file-signature", 
+                activities.Add((c.NgayTao,
+                    $"Hợp đồng mới - Phòng {c.PhongTro.SoPhong}",
+                    $"Khách thuê: {c.NguoiThue.HoVaTen} - Giá thuê: {c.TienThuePhong:N0} ₫",
+                    "fas fa-file-signature",
                     "bg-primary-lt"));
             }
 
