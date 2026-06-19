@@ -96,13 +96,13 @@ body {
 }
 
 /* Active menu item highlighted with vertical border and light blue tint */
-.navbar-vertical .nav-item.active > .nav-link,
+.navbar-vertical .nav-item.active>.nav-link,
 .navbar-vertical .nav-item .nav-link:hover {
   color: var(--tblr-primary, #206bc4) !important;
   background-color: rgba(32, 107, 196, 0.05) !important;
 }
 
-.navbar-vertical .nav-item.active > .nav-link {
+.navbar-vertical .nav-item.active>.nav-link {
   font-weight: 600 !important;
   border-left: 3px solid var(--tblr-primary, #206bc4) !important;
   padding-left: calc(var(--tblr-navbar-padding-x, 1rem) - 3px) !important;
@@ -139,4 +139,10 @@ html[data-bs-theme="dark"] .border-bottom,
 [data-bs-theme="dark"] .border-dashed,
 [data-bs-theme="dark"] .border-bottom {
   border-color: rgba(255, 255, 255, 0.15) !important;
-}
+}
+
+/* Đồng bộ text-dark trong chế độ Dark Mode để không bị chìm vào nền tối */
+html[data-bs-theme="dark"] .text-dark,
+[data-bs-theme="dark"] .text-dark {
+  color: var(--tblr-body-color, #f4f6fa) !important;
+}

@@ -175,48 +175,57 @@
                 let moTa = $('#MoTa').val() || "";
 
                 if (ma.trim() === "") {
-                    Swal.fire('Thông báo', 'Vui lòng nhập mã chi nhánh!', 'warning');
+                    showWarning('Vui lòng nhập mã chi nhánh!');
                     return;
                 }
                 if (ten.trim() === "") {
-                    Swal.fire('Thông báo', 'Vui lòng nhập tên chi nhánh!', 'warning');
+                    showWarning('Vui lòng nhập tên chi nhánh!');
                     return;
                 }
                 if (diaChi.trim() === "") {
-                    Swal.fire('Thông báo', 'Vui lòng nhập địa chỉ!', 'warning');
+                    showWarning('Vui lòng nhập địa chỉ!');
                     return;
                 }
 
-                let $btn = $(this);
-                $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang xử lý...');
+                let isUpdate = currentChiNhanhId > 0;
+                let actionUrl = isUpdate ? '/ChiNhanhs/CapNhatChiNhanh' : '/ChiNhanhs/ThemChiNhanhMoi';
 
-                // 🌟 KIỂM TRA ĐIỀU KIỆN ĐỂ CHỌN URL BẮN LÊN BACKEND
-                let actionUrl = (currentChiNhanhId === 0)
-                                ? '/ChiNhanhs/ThemChiNhanhMoi'
-                                : '/ChiNhanhs/CapNhatChiNhanh';
+                Swal.fire({
+                    title: isUpdate ? 'Xác nhận cập nhật?' : 'Xác nhận thêm mới?',
+                    text: isUpdate ? 'Bạn có chắc chắn muốn cập nhật chi nhánh này?' : 'Bạn có chắc chắn muốn thêm chi nhánh này?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Đồng ý',
+                    cancelButtonText: 'Hủy bỏ'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        let $btn = $(this);
+                        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang xử lý...');
 
-                $.ajax({
-                    url: actionUrl,
-                    type: 'POST',
-                    data: {
-                        ChiNhanhId: currentChiNhanhId, // Gửi biến này về backend
-                        MaChiNhanh: ma,
-                        TenChiNhanh: ten,
-                        SoDienThoai: sdt,
-                        DiaChi: diaChi,
-                        MoTa: moTa
-                    },
-                    success: function (res) {
-                        if (res.success) {
-                            Swal.fire('Thành công', res.message, 'success');
-                            $('#chiNhanhModal').modal('hide');
-                            table.ajax.reload(null, false);
-                        } else {
-                            Swal.fire('Lỗi', 'Lỗi: ' + res.message, 'error');
-                        }
-                    },
-                    complete: function () {
-                        $btn.prop('disabled', false).html('<i class="fas fa-save"></i> Lưu thông tin');
+                        $.ajax({
+                            url: actionUrl,
+                            type: 'POST',
+                            data: {
+                                ChiNhanhId: currentChiNhanhId,
+                                MaChiNhanh: ma,
+                                TenChiNhanh: ten,
+                                SoDienThoai: sdt,
+                                DiaChi: diaChi,
+                                MoTa: moTa
+                            },
+                            success: function (res) {
+                                if (res.success) {
+                                    showSuccess(res.message);
+                                    $('#chiNhanhModal').modal('hide');
+                                    table.ajax.reload(null, false);
+                                } else {
+                                    showError('Lỗi: ' + res.message);
+                                }
+                            },
+                            complete: function () {
+                                $btn.prop('disabled', false).html('<i class="fas fa-save"></i> Lưu thông tin');
+                            }
+                        });
                     }
                 });
             });

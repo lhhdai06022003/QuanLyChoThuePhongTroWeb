@@ -458,7 +458,7 @@
             error: function (xhr) {
                 let msg = xhr.responseJSON?.message || 'Lỗi khi lưu dịch vụ!';
                 if (onError) onError(msg);
-                else alert(msg);
+                else showError(msg);
             }
         });
     }

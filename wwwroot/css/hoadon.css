@@ -2,15 +2,18 @@
 
 /* Định dạng in ấn cho Hóa đơn (Print-friendly layout) */
 @media print {
+
     /* Ẩn các thành phần giao diện web xung quanh */
     body * {
         visibility: hidden;
     }
+
     /* Chỉ hiển thị khu vực hóa đơn chi tiết bên trong modal */
     #chiTietModal,
     #chiTietModal * {
         visibility: visible;
     }
+
     #chiTietModal {
         position: absolute;
         left: 0;
@@ -21,6 +24,7 @@
         border: none;
         box-shadow: none;
     }
+
     /* Ẩn tiêu đề modal header, chân trang modal footer khi in */
     #chiTietModal .modal-header,
     #chiTietModal .modal-footer,
@@ -111,6 +115,7 @@ html[data-bs-theme="dark"] #editLinesTable th {
     font-weight: 500;
 }
 
-.edit-gia, .edit-sl {
+.edit-gia,
+.edit-sl {
     font-family: var(--tb-font-monospace, monospace);
 }

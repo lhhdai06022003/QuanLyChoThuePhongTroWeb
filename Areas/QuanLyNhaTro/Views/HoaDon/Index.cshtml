@@ -56,7 +56,7 @@
                             }
                         </select>
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-md-3">
                         <label class="form-label font-weight-bold text-secondary mb-1">
                             <i class="fas fa-calendar-alt me-1"></i> Tháng
                         </label>
@@ -75,7 +75,7 @@
                             }
                         </select>
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-md-3">
                         <label class="form-label font-weight-bold text-secondary mb-1">
                             <i class="fas fa-calendar-check me-1"></i> Năm
                         </label>
@@ -90,11 +90,6 @@
                             <option value="0">Chưa thanh toán</option>
                             <option value="1">Đã thanh toán</option>
                         </select>
-                    </div>
-                    <div class="col-md-2">
-                        <button class="btn btn-primary btn-sm w-100 font-weight-bold" id="btnFilter" style="height: 36px;">
-                            <i class="fas fa-search me-1"></i> Lọc danh sách
-                        </button>
                     </div>
                 </div>
             </div>
@@ -565,7 +560,17 @@
             });
 
             // ========== Filter ==========
-            $('#btnFilter').click(function() { table.ajax.reload(); });
+            $('#filterChiNhanh, #filterThang, #filterTrangThai').change(function() {
+                table.ajax.reload();
+            });
+
+            var filterNamTimeout = null;
+            $('#filterNam').on('change input keyup', function() {
+                clearTimeout(filterNamTimeout);
+                filterNamTimeout = setTimeout(function() {
+                    table.ajax.reload();
+                }, 400);
+            });
 
             // ========== Xem trước & Phát sinh hóa đơn ==========
             var previewDataList = [];
@@ -599,9 +604,9 @@
                 let th = $('#previewThang').val();
                 let na = $('#previewNam').val();
 
-                if (!cn || cn === '0') { alert('Vui lòng chọn Chi nhánh cụ thể!'); return; }
-                if (!th || th === '0') { alert('Vui lòng chọn Tháng cụ thể!'); return; }
-                if (!na || na < 2000) { alert('Vui lòng nhập Năm hợp lệ!'); return; }
+                if (!cn || cn === '0') { showWarning('Vui lòng chọn Chi nhánh cụ thể!'); return; }
+                if (!th || th === '0') { showWarning('Vui lòng chọn Tháng cụ thể!'); return; }
+                if (!na || na < 2000) { showWarning('Vui lòng nhập Năm hợp lệ!'); return; }
 
                 let $btn = $(this);
                 $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Đang tải...');
@@ -613,7 +618,7 @@
                         previewDataList = res;
                         renderPreviewModal();
                     },
-                    error: function(xhr) { alert(xhr.responseJSON?.message || 'Có lỗi khi chuẩn bị xem trước.'); },
+                    error: function(xhr) { showError(xhr.responseJSON?.message || 'Có lỗi khi chuẩn bị xem trước.'); },
                     complete: function() { $btn.prop('disabled', false).html('<i class="fas fa-sync-alt me-1"></i> Tải dữ liệu'); }
                 });
             });
@@ -715,26 +720,37 @@
                 let th = $('#previewThang').val();
                 let na = $('#previewNam').val();
 
-                let $btn = $(this);
-                $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Đang xử lý...');
+                Swal.fire({
+                    title: 'Xác nhận phát sinh hóa đơn?',
+                    text: `Bạn có chắc chắn muốn phát sinh hóa đơn cho ${selectedIds.length} phòng đã chọn?`,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Đồng ý',
+                    cancelButtonText: 'Hủy bỏ'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        let $btn = $(this);
+                        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Đang xử lý...');
 
-                $.ajax({
-                    url: '/HoaDon/PhatSinh',
-                    type: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify({
-                        chiNhanhId: parseInt(cn),
-                        thang: parseInt(th),
-                        nam: parseInt(na),
-                        selectedPhongTroIds: selectedIds
-                    }),
-                    success: function(res) {
-                        alert(res.message);
-                        bootstrap.Modal.getOrCreateInstance(document.getElementById('previewModal')).hide();
-                        table.ajax.reload();
-                    },
-                    error: function(xhr) { alert(xhr.responseJSON?.message || 'Có lỗi xảy ra.'); },
-                    complete: function() { $btn.prop('disabled', false).html('<i class="fas fa-magic me-1"></i> Phát sinh HĐ'); }
+                        $.ajax({
+                            url: '/HoaDon/PhatSinh',
+                            type: 'POST',
+                            contentType: 'application/json',
+                            data: JSON.stringify({
+                                chiNhanhId: parseInt(cn),
+                                thang: parseInt(th),
+                                nam: parseInt(na),
+                                selectedPhongTroIds: selectedIds
+                            }),
+                            success: function(res) {
+                                showSuccess(res.message);
+                                bootstrap.Modal.getOrCreateInstance(document.getElementById('previewModal')).hide();
+                                table.ajax.reload();
+                            },
+                            error: function(xhr) { showError(xhr.responseJSON?.message || 'Có lỗi xảy ra.'); },
+                            complete: function() { $btn.prop('disabled', false).html('<i class="fas fa-magic me-1"></i> Phát sinh HĐ'); }
+                        });
+                    }
                 });
             });
 
@@ -751,7 +767,7 @@
                             <div class="col-md-6 mb-2"><strong>Người thuê:</strong> ${res.tenNguoiThue}</div>
                             <div class="col-md-6 mb-2"><strong>Trạng thái:</strong> <span class="badge ${res.trangThaiHoaDon === 'Đã thanh toán' ? 'bg-success-lt' : 'bg-warning-lt'} px-2 py-1">${res.trangThaiHoaDon}</span></div>
                         </div>
-                        <h4 class="font-weight-bold border-bottom pb-2 mt-4 text-dark"><i class="fas fa-list me-1"></i> Chi tiết các khoản phí</h4>
+                        <h4 class="font-weight-bold border-bottom pb-2 mt-4"><i class="fas fa-list me-1"></i> Chi tiết các khoản phí</h4>
                         <div class="table-responsive mb-3">
                             <table class="table card-table table-vcenter table-striped table-hover w-100 table-sm">
                                 <thead>
@@ -774,7 +790,7 @@
                             <td class="text-right align-middle">${formatVND(ct.donGia)}</td>
                             <td class="text-center align-middle">${ct.soLuong}</td>
                             <td class="text-center align-middle">${donViText}</td>
-                            <td class="text-right align-middle font-weight-bold text-dark">${formatVND(ct.tongTien)}</td>
+                            <td class="text-right align-middle font-weight-bold">${formatVND(ct.tongTien)}</td>
                         </tr>`;
                     });
 
@@ -790,7 +806,7 @@
 
                     // Lịch sử thanh toán
                     if (res.lichSuThanhToans && res.lichSuThanhToans.length > 0) {
-                        html += `<h4 class="font-weight-bold border-bottom pb-2 mt-4 text-dark"><i class="fas fa-history me-1"></i> Lịch sử thanh toán</h4>
+                        html += `<h4 class="font-weight-bold border-bottom pb-2 mt-4"><i class="fas fa-history me-1"></i> Lịch sử thanh toán</h4>
                             <div class="table-responsive">
                             <table class="table card-table table-vcenter table-striped table-hover w-100 table-sm">
                                 <thead>
@@ -919,12 +935,12 @@
                     let dvIdVal = $(this).find('.edit-dv-id').val();
                     
                     if (!ten || ten.trim() === '') {
-                        alert('Tên khoản phí không được để trống.');
+                        showWarning('Tên khoản phí không được để trống.');
                         valid = false;
                         return false;
                     }
                     if (isNaN(gia) || gia < 0 || isNaN(sl) || sl < 0) {
-                        alert('Đơn giá và số lượng phải lớn hơn hoặc bằng 0.');
+                        showWarning('Đơn giá và số lượng phải lớn hơn hoặc bằng 0.');
                         valid = false;
                         return false;
                     }
@@ -940,25 +956,36 @@
 
                 if (!valid) return;
                 if (req.chiTiets.length === 0) {
-                    alert('Hóa đơn phải có ít nhất một dòng chi phí.');
+                    showWarning('Hóa đơn phải có ít nhất một dòng chi phí.');
                     return;
                 }
 
-                let $btn = $(this);
-                $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Đang lưu...');
+                Swal.fire({
+                    title: 'Xác nhận lưu thay đổi?',
+                    text: 'Bạn có chắc chắn muốn cập nhật các khoản phí của hóa đơn này?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Đồng ý',
+                    cancelButtonText: 'Hủy bỏ'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        let $btn = $(this);
+                        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Đang lưu...');
 
-                $.ajax({
-                    url: `/HoaDon/Update/${id}`,
-                    type: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify(req),
-                    success: function(res) {
-                        alert(res.message);
-                        bootstrap.Modal.getOrCreateInstance(document.getElementById('editModal')).hide();
-                        table.ajax.reload(null, false);
-                    },
-                    error: function(xhr) { alert(xhr.responseJSON?.message || 'Có lỗi xảy ra.'); },
-                    complete: function() { $btn.prop('disabled', false).html('<i class="fas fa-save"></i> Lưu thay đổi'); }
+                        $.ajax({
+                            url: `/HoaDon/Update/${id}`,
+                            type: 'POST',
+                            contentType: 'application/json',
+                            data: JSON.stringify(req),
+                            success: function(res) {
+                                showSuccess(res.message);
+                                bootstrap.Modal.getOrCreateInstance(document.getElementById('editModal')).hide();
+                                table.ajax.reload(null, false);
+                            },
+                            error: function(xhr) { showError(xhr.responseJSON?.message || 'Có lỗi xảy ra.'); },
+                            complete: function() { $btn.prop('disabled', false).html('<i class="fas fa-save"></i> Lưu thay đổi'); }
+                        });
+                    }
                 });
             });
 
@@ -979,21 +1006,32 @@
                     ghiChu: $('#thuTienGhiChu').val()
                 };
 
-                let $btn = $(this);
-                $btn.prop('disabled', true);
+                Swal.fire({
+                    title: 'Xác nhận thu tiền?',
+                    text: 'Bạn có chắc chắn muốn xác nhận thanh toán cho hóa đơn này?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Đồng ý',
+                    cancelButtonText: 'Hủy bỏ'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        let $btn = $(this);
+                        $btn.prop('disabled', true);
 
-                $.ajax({
-                    url: '/HoaDon/ThuTien',
-                    type: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify(req),
-                    success: function(res) {
-                        alert(res.message);
-                        bootstrap.Modal.getOrCreateInstance(document.getElementById('thuTienModal')).hide();
-                        table.ajax.reload(null, false);
-                    },
-                    error: function(xhr) { alert(xhr.responseJSON?.message || 'Có lỗi xảy ra.'); },
-                    complete: function() { $btn.prop('disabled', false); }
+                        $.ajax({
+                            url: '/HoaDon/ThuTien',
+                            type: 'POST',
+                            contentType: 'application/json',
+                            data: JSON.stringify(req),
+                            success: function(res) {
+                                showSuccess(res.message);
+                                bootstrap.Modal.getOrCreateInstance(document.getElementById('thuTienModal')).hide();
+                                table.ajax.reload(null, false);
+                            },
+                            error: function(xhr) { showError(xhr.responseJSON?.message || 'Có lỗi xảy ra.'); },
+                            complete: function() { $btn.prop('disabled', false); }
+                        });
+                    }
                 });
             });
 
@@ -1094,7 +1132,7 @@
                 let na = $('#emailBulkNam').val();
 
                 if (!na || na < 2000) {
-                    alert('Vui lòng nhập năm hợp lệ!');
+                    showWarning('Vui lòng nhập năm hợp lệ!');
                     return;
                 }
 
@@ -1109,7 +1147,7 @@
                         renderEmailBulkTable();
                     },
                     error: function(xhr) {
-                        alert(xhr.responseJSON?.message || 'Có lỗi khi tải danh sách hóa đơn chưa thanh toán.');
+                        showError(xhr.responseJSON?.message || 'Có lỗi khi tải danh sách hóa đơn chưa thanh toán.');
                     },
                     complete: function() {
                         $btn.prop('disabled', false).html('<i class="fas fa-sync-alt me-1"></i> Tải dữ liệu');

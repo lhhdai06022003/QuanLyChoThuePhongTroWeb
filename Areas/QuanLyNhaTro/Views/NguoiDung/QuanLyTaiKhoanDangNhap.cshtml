@@ -171,14 +171,14 @@
                 let isActive = $('#IsActive').is(':checked');
 
                 if (!tenDangNhap) {
-                    alert("Vui lòng điền Tên đăng nhập!");
+                    showWarning("Vui lòng điền Tên đăng nhập!");
                     return;
                 }
 
                 let isUpdate = currentNguoiDungId > 0;
 
                 if (!isUpdate && !matKhau) {
-                    alert("Vui lòng nhập mật khẩu cho tài khoản mới!");
+                    showWarning("Vui lòng nhập mật khẩu cho tài khoản mới!");
                     return;
                 }
 
@@ -196,28 +196,39 @@
                     requestData.nguoiDungId = parseInt(currentNguoiDungId, 10);
                 }
 
-                let $btn = $(this);
-                $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang xử lý...');
+                Swal.fire({
+                    title: isUpdate ? 'Xác nhận cập nhật?' : 'Xác nhận thêm mới?',
+                    text: isUpdate ? 'Bạn có chắc chắn muốn cập nhật tài khoản này?' : 'Bạn có chắc chắn muốn tạo tài khoản mới này?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Đồng ý',
+                    cancelButtonText: 'Hủy bỏ'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        let $btn = $(this);
+                        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang xử lý...');
 
-                $.ajax({
-                    url: apiUrl,
-                    type: httpMethod,
-                    contentType: 'application/json',
-                    data: JSON.stringify(requestData),
-                    success: function (res) {
-                        if(res.success) {
-                            alert(res.message || "Lưu thành công!");
-                            $('#nguoiDungModal').modal('hide');
-                            table.ajax.reload(null, false);
-                        } else {
-                            alert(res.message || "Đã xảy ra lỗi khi lưu dữ liệu.");
-                        }
-                    },
-                    error: function () {
-                        alert("Lỗi hệ thống máy chủ hoặc dữ liệu không hợp lệ!");
-                    },
-                    complete: function () {
-                        $btn.prop('disabled', false).html('<i class="fas fa-save"></i> Lưu thông tin');
+                        $.ajax({
+                            url: apiUrl,
+                            type: httpMethod,
+                            contentType: 'application/json',
+                            data: JSON.stringify(requestData),
+                            success: function (res) {
+                                if(res.success) {
+                                    showSuccess(res.message || "Lưu thành công!");
+                                    $('#nguoiDungModal').modal('hide');
+                                    table.ajax.reload(null, false);
+                                } else {
+                                    showError(res.message || "Đã xảy ra lỗi khi lưu dữ liệu.");
+                                }
+                            },
+                            error: function () {
+                                showError("Lỗi hệ thống máy chủ hoặc dữ liệu không hợp lệ!");
+                            },
+                            complete: function () {
+                                $btn.prop('disabled', false).html('<i class="fas fa-save"></i> Lưu thông tin');
+                            }
+                        });
                     }
                 });
             });
@@ -242,7 +253,7 @@
                         }
                     },
                     error: function() {
-                        alert("Không thể tải thông tin tài khoản này.");
+                        showError("Không thể tải thông tin tài khoản này.");
                     }
                 });
             });
@@ -252,28 +263,37 @@
                 let id = $(this).data('id');
                 let $btn = $(this);
 
-                if (confirm('Bạn có chắc chắn muốn xóa tài khoản người dùng này? (Tài khoản sẽ bị hủy kích hoạt và ẩn khỏi danh sách)')) {
-                    let originalHtml = $btn.html();
-                    $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
+                Swal.fire({
+                    title: 'Xác nhận xóa?',
+                    text: 'Bạn có chắc chắn muốn xóa tài khoản người dùng này? (Tài khoản sẽ bị hủy kích hoạt và ẩn khỏi danh sách)',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Đồng ý xóa',
+                    cancelButtonText: 'Hủy bỏ'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        let originalHtml = $btn.html();
+                        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
 
-                    $.ajax({
-                        url: '/QuanLyNhaTro/NguoiDung/DeleteApi/' + id,
-                        type: 'POST',
-                        success: function (res) {
-                            if (res.success) {
-                                alert(res.message || "Xóa thành công!");
-                                table.ajax.reload(null, false);
-                            } else {
-                                alert(res.message || "Không thể xóa!");
+                        $.ajax({
+                            url: '/QuanLyNhaTro/NguoiDung/DeleteApi/' + id,
+                            type: 'POST',
+                            success: function (res) {
+                                if (res.success) {
+                                    showSuccess(res.message || "Xóa thành công!");
+                                    table.ajax.reload(null, false);
+                                } else {
+                                    showError(res.message || "Không thể xóa!");
+                                    $btn.prop('disabled', false).html(originalHtml);
+                                }
+                            },
+                            error: function () {
+                                showError("Lỗi kết nối máy chủ khi thực hiện xóa!");
                                 $btn.prop('disabled', false).html(originalHtml);
                             }
-                        },
-                        error: function () {
-                            alert("Lỗi kết nối máy chủ khi thực hiện xóa!");
-                            $btn.prop('disabled', false).html(originalHtml);
-                        }
-                    });
-                }
+                        });
+                    }
+                });
             });
 
             // --- MỞ MODAL THÊM MỚI ---

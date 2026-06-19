@@ -273,9 +273,20 @@
     <script>
         // Hàm hiển thị thông báo thay cho alert() mặc định
         function showToastr(message, type = 'info') {
-            // Chuẩn bị tích hợp Toastr/SweetAlert2 sau này
-            // Hiện tạm dùng alert, nhưng đã quy về một hàm duy nhất
-            alert(`[${type.toUpperCase()}] ${message}`);
+            if (type === 'success') {
+                showSuccess(message);
+            } else if (type === 'error') {
+                showError(message);
+            } else if (type === 'warning') {
+                showWarning(message);
+            } else {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Thông báo',
+                    text: message,
+                    confirmButtonColor: '#3085d6'
+                });
+            }
         }
 
         window.currentHopDongId = 0;
@@ -757,26 +768,37 @@
                     ngayVao: flatpickr.formatDate(ngayVaoDate, "Y-m-d")
                 };
 
-                let $btn = $(this);
-                $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang lưu...');
+                Swal.fire({
+                    title: 'Xác nhận thêm thành viên?',
+                    text: 'Bạn có chắc chắn muốn thêm thành viên này vào hợp đồng?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Đồng ý',
+                    cancelButtonText: 'Hủy bỏ'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        let $btn = $(this);
+                        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang lưu...');
 
-                $.ajax({
-                    url: '/ThanhVienHopDong/AddThanhVien',
-                    type: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify(requestData),
-                    success: function (res) {
-                        showToastr(res.message, "success");
-                        bootstrap.Modal.getOrCreateInstance(document.getElementById('addMemberModal')).hide();
-                        window.loadDanhSachThanhVien(hopDongId);
-                    },
-                    error: function (xhr) {
-                        let msg = "Đã xảy ra lỗi!";
-                        if (xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
-                        showToastr(msg, "error");
-                    },
-                    complete: function () {
-                        $btn.prop('disabled', false).html('<i class="fas fa-save"></i> Lưu thành viên');
+                        $.ajax({
+                            url: '/ThanhVienHopDong/AddThanhVien',
+                            type: 'POST',
+                            contentType: 'application/json',
+                            data: JSON.stringify(requestData),
+                            success: function (res) {
+                                showToastr(res.message, "success");
+                                bootstrap.Modal.getOrCreateInstance(document.getElementById('addMemberModal')).hide();
+                                window.loadDanhSachThanhVien(hopDongId);
+                            },
+                            error: function (xhr) {
+                                let msg = "Đã xảy ra lỗi!";
+                                if (xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
+                                showToastr(msg, "error");
+                            },
+                            complete: function () {
+                                $btn.prop('disabled', false).html('<i class="fas fa-save"></i> Lưu thành viên');
+                            }
+                        });
                     }
                 });
             });
@@ -869,52 +891,63 @@
                 let apiUrl = isUpdate ? `/HopDong/Update/${window.currentHopDongId}` : `/HopDong/Create`;
                 let httpMethod = isUpdate ? 'PUT' : 'POST';
 
-                let $btn = $(this);
-                $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang xử lý...');
+                Swal.fire({
+                    title: isUpdate ? 'Xác nhận cập nhật?' : 'Xác nhận thêm mới?',
+                    text: isUpdate ? 'Bạn có chắc chắn muốn cập nhật hợp đồng này?' : 'Bạn có chắc chắn muốn tạo hợp đồng này?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Đồng ý',
+                    cancelButtonText: 'Hủy bỏ'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        let $btn = $(this);
+                        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang xử lý...');
 
-                // Bước 1: Lưu hợp đồng
-                $.ajax({
-                    url: apiUrl,
-                    type: httpMethod,
-                    contentType: 'application/json',
-                    data: JSON.stringify(requestData),
-                    success: function (res) {
-                        // Bước 2: Lưu dịch vụ đăng ký (nếu có dịch vụ nào được render)
-                        let hasDichVu = $('#hopDongDichVuContainer .dkdv-checkbox').length > 0;
-                        if (hasDichVu) {
-                            saveDangKyDichVu(
-                                parseInt(phongTroId),
-                                'hopDongDichVuContainer',
-                                function () {
+                        // Bước 1: Lưu hợp đồng
+                        $.ajax({
+                            url: apiUrl,
+                            type: httpMethod,
+                            contentType: 'application/json',
+                            data: JSON.stringify(requestData),
+                            success: function (res) {
+                                // Bước 2: Lưu dịch vụ đăng ký (nếu có dịch vụ nào được render)
+                                let hasDichVu = $('#hopDongDichVuContainer .dkdv-checkbox').length > 0;
+                                if (hasDichVu) {
+                                    saveDangKyDichVu(
+                                        parseInt(phongTroId),
+                                        'hopDongDichVuContainer',
+                                        function () {
+                                            showToastr(res.message || "Thao tác thành công!", "success");
+                                            bootstrap.Modal.getOrCreateInstance(document.getElementById('hopDongModal')).hide();
+                                            table.ajax.reload(null, false);
+                                        },
+                                        function (errMsg) {
+                                            showToastr("Hợp đồng đã lưu, nhưng lỗi khi lưu dịch vụ: " + errMsg, "warning");
+                                            bootstrap.Modal.getOrCreateInstance(document.getElementById('hopDongModal')).hide();
+                                            table.ajax.reload(null, false);
+                                        }
+                                    );
+                                } else {
                                     showToastr(res.message || "Thao tác thành công!", "success");
                                     bootstrap.Modal.getOrCreateInstance(document.getElementById('hopDongModal')).hide();
                                     table.ajax.reload(null, false);
-                                },
-                                function (errMsg) {
-                                    showToastr("Hợp đồng đã lưu, nhưng lỗi khi lưu dịch vụ: " + errMsg, "warning");
-                                    bootstrap.Modal.getOrCreateInstance(document.getElementById('hopDongModal')).hide();
-                                    table.ajax.reload(null, false);
                                 }
-                            );
-                        } else {
-                            showToastr(res.message || "Thao tác thành công!", "success");
-                            bootstrap.Modal.getOrCreateInstance(document.getElementById('hopDongModal')).hide();
-                            table.ajax.reload(null, false);
-                        }
-                    },
-                    error: function (xhr) {
-                        let errorMessage = "Đã xảy ra lỗi!";
-                        if (xhr.responseJSON) {
-                            if (xhr.responseJSON.message) {
-                                errorMessage = xhr.responseJSON.message;
-                            } else if (xhr.responseJSON.errors) {
-                                errorMessage = Object.values(xhr.responseJSON.errors).flat().join('\n');
+                            },
+                            error: function (xhr) {
+                                let errorMessage = "Đã xảy ra lỗi!";
+                                if (xhr.responseJSON) {
+                                    if (xhr.responseJSON.message) {
+                                        errorMessage = xhr.responseJSON.message;
+                                    } else if (xhr.responseJSON.errors) {
+                                        errorMessage = Object.values(xhr.responseJSON.errors).flat().join('\n');
+                                    }
+                                }
+                                showToastr(errorMessage, "error");
+                            },
+                            complete: function () {
+                                $btn.prop('disabled', false).html('<i class="fas fa-save"></i> Lưu thông tin');
                             }
-                        }
-                        showToastr(errorMessage, "error");
-                    },
-                    complete: function () {
-                        $btn.prop('disabled', false).html('<i class="fas fa-save"></i> Lưu thông tin');
+                        });
                     }
                 });
             });

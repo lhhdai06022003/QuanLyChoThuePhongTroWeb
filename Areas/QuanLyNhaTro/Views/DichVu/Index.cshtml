@@ -1,6 +1,59 @@
 @{
     ViewData["Title"] = "Quản lý Dịch vụ";
 }
+<style>
+    /* Custom Badges for Light & Dark Modes using opacity */
+    .badge-service-required {
+        background-color: rgba(13, 110, 253, 0.15) !important;
+        color: #0d6efd !important;
+        border: 1px solid rgba(13, 110, 253, 0.25) !important;
+        font-weight: 600;
+        padding: 5px 10px;
+        border-radius: 6px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 0.85rem;
+    }
+
+    .badge-service-optional {
+        background-color: rgba(108, 117, 125, 0.15) !important;
+        color: #6c757d !important;
+        border: 1px solid rgba(108, 117, 125, 0.25) !important;
+        font-weight: 600;
+        padding: 5px 10px;
+        border-radius: 6px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 0.85rem;
+    }
+    
+    [data-bs-theme="dark"] .badge-service-required {
+        background-color: rgba(110, 168, 254, 0.2) !important;
+        color: #6ea8fe !important;
+        border-color: rgba(110, 168, 254, 0.3) !important;
+    }
+    [data-bs-theme="dark"] .badge-service-optional {
+        background-color: rgba(173, 181, 189, 0.2) !important;
+        color: #adb5bd !important;
+        border-color: rgba(173, 181, 189, 0.3) !important;
+    }
+
+    /* Standardized SweetAlert2 custom popup */
+    .swal2-popup.swal2-custom-popup {
+        border-radius: 12px !important;
+        font-family: inherit !important;
+    }
+    .swal2-custom-popup .swal2-title {
+        font-weight: 600 !important;
+    }
+    .swal2-custom-popup .swal2-actions button {
+        border-radius: 6px !important;
+        font-weight: 500 !important;
+        padding: 8px 20px !important;
+    }
+</style>
 <section class="content">
     <div class="container-fluid">
         <div class="row">
@@ -171,6 +224,37 @@
                 return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n);
             }
 
+            // Hàm helper hiển thị thông báo đồng bộ SweetAlert2
+            function showSuccess(msg) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Thành công',
+                    text: msg,
+                    confirmButtonColor: '#3085d6',
+                    customClass: { popup: 'swal2-custom-popup' }
+                });
+            }
+
+            function showError(msg) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Lỗi',
+                    text: msg,
+                    confirmButtonColor: '#3085d6',
+                    customClass: { popup: 'swal2-custom-popup' }
+                });
+            }
+
+            function showWarning(msg) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Thông báo',
+                    text: msg,
+                    confirmButtonColor: '#3085d6',
+                    customClass: { popup: 'swal2-custom-popup' }
+                });
+            }
+
             // ================== TAB 1: DỊCH VỤ ==================
             var tableDichVu = $('#dichVuTable').DataTable({
                 "language": { "url": "https://cdn.datatables.net/plug-ins/1.13.6/i18n/vi.json" },
@@ -218,25 +302,40 @@
                 let dvi = $('#DonVi').val().trim();
                 let ghiChu = $('#GhiChuDichVu').val().trim();
 
-                if(!ten || !dvi) { Swal.fire('Thông báo', 'Vui lòng nhập tên và đơn vị!', 'warning'); return; }
+                if(!ten || !dvi) { showWarning('Vui lòng nhập tên và đơn vị!'); return; }
 
                 let req = { dichVuId: parseInt(id), tenDichVu: ten, donVi: dvi, ghiChu: ghiChu };
                 let isUpdate = id > 0;
-                let $btn = $(this);
-                $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang lưu...');
 
-                $.ajax({
-                    url: isUpdate ? `/DichVu/Update/${id}` : '/DichVu/Create',
-                    type: isUpdate ? 'PUT' : 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify(req),
-                    success: function(res) {
-                        Swal.fire('Thành công', res.message, 'success');
-                        $('#dichVuModal').modal('hide');
-                        tableDichVu.ajax.reload(null, false);
-                    },
-                    error: function(xhr) { Swal.fire('Lỗi', xhr.responseJSON?.message || 'Có lỗi xảy ra', 'error'); },
-                    complete: function() { $btn.prop('disabled', false).text('Lưu Dịch Vụ'); }
+                Swal.fire({
+                    title: isUpdate ? 'Xác nhận cập nhật?' : 'Xác nhận thêm mới?',
+                    text: isUpdate ? 'Bạn có chắc chắn muốn cập nhật dịch vụ này?' : 'Bạn có chắc chắn muốn thêm dịch vụ này?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Đồng ý',
+                    cancelButtonText: 'Hủy bỏ',
+                    customClass: { popup: 'swal2-custom-popup' }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        let $btn = $(this);
+                        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang lưu...');
+
+                        $.ajax({
+                            url: isUpdate ? `/DichVu/Update/${id}` : '/DichVu/Create',
+                            type: isUpdate ? 'PUT' : 'POST',
+                            contentType: 'application/json',
+                            data: JSON.stringify(req),
+                            success: function(res) {
+                                showSuccess(res.message);
+                                $('#dichVuModal').modal('hide');
+                                tableDichVu.ajax.reload(null, false);
+                            },
+                            error: function(xhr) { showError(xhr.responseJSON?.message || 'Có lỗi xảy ra'); },
+                            complete: function() { $btn.prop('disabled', false).text('Lưu Dịch Vụ'); }
+                        });
+                    }
                 });
             });
 
@@ -259,18 +358,21 @@
                     text: 'Bạn có chắc chắn muốn xóa dịch vụ này?',
                     icon: 'warning',
                     showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#6c757d',
                     confirmButtonText: 'Đồng ý xóa',
-                    cancelButtonText: 'Hủy bỏ'
+                    cancelButtonText: 'Hủy bỏ',
+                    customClass: { popup: 'swal2-custom-popup' }
                 }).then((result) => {
                     if (result.isConfirmed) {
                         $.ajax({
                             url: `/DichVu/Delete/${id}`, type: 'DELETE',
                             success: function(res) {
-                                Swal.fire('Thành công', res.message, 'success');
+                                showSuccess(res.message);
                                 tableDichVu.ajax.reload(null, false);
                             },
                             error: function(xhr) {
-                                Swal.fire('Lỗi', xhr.responseJSON?.message || 'Có lỗi xảy ra', 'error');
+                                showError(xhr.responseJSON?.message || 'Có lỗi xảy ra');
                             }
                         });
                     }
@@ -286,7 +388,6 @@
                     "url": "/DichVuChiNhanh/GetList",
                     "type": "POST",
                     "data": function(d) {
-                        // Gán 0 nếu select bị null hoặc rỗng
                         d.chiNhanhId = $('#filterChiNhanh').val() || 0;
                     }
                 },
@@ -299,8 +400,8 @@
                         "data": "macDinh", "orderable": false, "className": "text-center",
                         "render": function(data) {
                             return data
-                                ? `<span class="badge bg-primary"><i class="fas fa-lock me-1"></i>Bắt buộc</span>`
-                                : `<span class="badge bg-light text-secondary">Tùy chọn</span>`;
+                                ? `<span class="badge-service-required"><i class="fas fa-lock"></i> Bắt buộc</span>`
+                                : `<span class="badge-service-optional"><i class="fas fa-hand-pointer"></i> Tùy chọn</span>`;
                         }
                     },
                     {
@@ -351,26 +452,41 @@
                 let gia = parseFloat($('#GiaDichVu').val() || 0);
                 let macDinh = $('#MacDinhBangGia').is(':checked');
 
-                if(!cn || !dv) { Swal.fire('Thông báo', 'Vui lòng chọn chi nhánh và dịch vụ!', 'warning'); return; }
-                if(gia < 0) { Swal.fire('Thông báo', 'Giá không được âm!', 'warning'); return; }
+                if(!cn || !dv) { showWarning('Vui lòng chọn chi nhánh và dịch vụ!'); return; }
+                if(gia < 0) { showWarning('Giá không được âm!'); return; }
 
                 let req = { dichVuChiNhanhId: parseInt(id), chiNhanhId: parseInt(cn), dichVuId: parseInt(dv), giaDichVu: gia, macDinh: macDinh };
                 let isUpdate = id > 0;
-                let $btn = $(this);
-                $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang lưu...');
 
-                $.ajax({
-                    url: isUpdate ? `/DichVuChiNhanh/Update/${id}` : '/DichVuChiNhanh/Create',
-                    type: isUpdate ? 'PUT' : 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify(req),
-                    success: function(res) {
-                        Swal.fire('Thành công', res.message, 'success');
-                        $('#bangGiaModal').modal('hide');
-                        tableBangGia.ajax.reload(null, false);
-                    },
-                    error: function(xhr) { Swal.fire('Lỗi', xhr.responseJSON?.message || 'Có lỗi xảy ra', 'error'); },
-                    complete: function() { $btn.prop('disabled', false).text('Lưu Bảng Giá'); }
+                Swal.fire({
+                    title: isUpdate ? 'Xác nhận cập nhật?' : 'Xác nhận thêm mới?',
+                    text: isUpdate ? 'Bạn có chắc chắn muốn cập nhật bảng giá này?' : 'Bạn có chắc chắn muốn cài đặt bảng giá này?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Đồng ý',
+                    cancelButtonText: 'Hủy bỏ',
+                    customClass: { popup: 'swal2-custom-popup' }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        let $btn = $(this);
+                        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang lưu...');
+
+                        $.ajax({
+                            url: isUpdate ? `/DichVuChiNhanh/Update/${id}` : '/DichVuChiNhanh/Create',
+                            type: isUpdate ? 'PUT' : 'POST',
+                            contentType: 'application/json',
+                            data: JSON.stringify(req),
+                            success: function(res) {
+                                showSuccess(res.message);
+                                $('#bangGiaModal').modal('hide');
+                                tableBangGia.ajax.reload(null, false);
+                            },
+                            error: function(xhr) { showError(xhr.responseJSON?.message || 'Có lỗi xảy ra'); },
+                            complete: function() { $btn.prop('disabled', false).text('Lưu Bảng Giá'); }
+                        });
+                    }
                 });
             });
 
@@ -387,6 +503,7 @@
                 });
             });
 
+            // Đồng bộ xác nhận xóa bảng giá
             $('#bangGiaTable').on('click', '.btn-delete-bg', function() {
                 let id = $(this).data('id');
                 Swal.fire({
@@ -394,18 +511,21 @@
                     text: 'Bạn có chắc chắn muốn xóa bảng giá này?',
                     icon: 'warning',
                     showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#6c757d',
                     confirmButtonText: 'Đồng ý xóa',
-                    cancelButtonText: 'Hủy bỏ'
+                    cancelButtonText: 'Hủy bỏ',
+                    customClass: { popup: 'swal2-custom-popup' }
                 }).then((result) => {
                     if (result.isConfirmed) {
                         $.ajax({
                             url: `/DichVuChiNhanh/Delete/${id}`, type: 'DELETE',
                             success: function(res) {
-                                Swal.fire('Thành công', res.message, 'success');
+                                showSuccess(res.message);
                                 tableBangGia.ajax.reload(null, false);
                             },
                             error: function(xhr) {
-                                Swal.fire('Lỗi', xhr.responseJSON?.message || 'Có lỗi xảy ra', 'error');
+                                showError(xhr.responseJSON?.message || 'Có lỗi xảy ra');
                             }
                         });
                     }

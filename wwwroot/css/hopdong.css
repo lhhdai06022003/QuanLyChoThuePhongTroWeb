@@ -9,7 +9,8 @@
     position: relative;
     user-select: none;
     font-weight: 500;
-    padding-top: 3.0rem !important; /* Tránh vòng tròn số đè lên chữ tiêu đề bên dưới */
+    padding-top: 3.0rem !important;
+    /* Tránh vòng tròn số đè lên chữ tiêu đề bên dưới */
 }
 
 .steps-counter .step-item::before {
@@ -133,9 +134,10 @@ html[data-bs-theme="dark"] .select2-results__option--highlighted[aria-selected] 
 }
 
 /* Ẩn Tabs mặc định khi xài Stepper Wizard */
-#hopDongModal .tab-content > .tab-pane {
+#hopDongModal .tab-content>.tab-pane {
     display: none;
 }
-#hopDongModal .tab-content > .active {
+
+#hopDongModal .tab-content>.active {
     display: block;
 }

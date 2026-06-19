@@ -28,6 +28,22 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/select2-bootstrap4-theme/1.5.2/select2-bootstrap4.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 
+    <style>
+        /* Standardized SweetAlert2 custom popup */
+        .swal2-popup.swal2-custom-popup {
+            border-radius: 12px !important;
+            font-family: inherit !important;
+        }
+        .swal2-custom-popup .swal2-title {
+            font-weight: 600 !important;
+        }
+        .swal2-custom-popup .swal2-actions button {
+            border-radius: 6px !important;
+            font-weight: 500 !important;
+            padding: 8px 20px !important;
+        }
+    </style>
+
     <script>
         // Set theme immediately to avoid flashing
         const savedTheme = localStorage.getItem('tablerTheme') || 'light';
@@ -79,6 +95,54 @@
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        // Đồng bộ giao diện SweetAlert2 toàn hệ thống
+        if (typeof Swal !== 'undefined') {
+            const originalFire = Swal.fire;
+            Swal.fire = function(...args) {
+                if (args.length === 1 && typeof args[0] === 'object') {
+                    let options = args[0];
+                    options.customClass = options.customClass || {};
+                    options.customClass.popup = (options.customClass.popup || '') + ' swal2-custom-popup';
+                    
+                    // Thiết lập màu sắc nút bấm đồng bộ
+                    if (!options.confirmButtonColor) {
+                        options.confirmButtonColor = (options.icon === 'error' || options.icon === 'warning') ? '#d33' : '#3085d6';
+                    }
+                    if (!options.cancelButtonColor) {
+                        options.cancelButtonColor = '#6c757d';
+                    }
+                }
+                return originalFire.apply(this, args);
+            };
+            
+            // Định nghĩa các hàm thông báo toàn cục để dùng trong các view
+            window.showSuccess = function(msg) {
+                return Swal.fire({
+                    icon: 'success',
+                    title: 'Thành công',
+                    text: msg,
+                    confirmButtonColor: '#3085d6'
+                });
+            };
+            window.showError = function(msg) {
+                return Swal.fire({
+                    icon: 'error',
+                    title: 'Lỗi',
+                    text: msg,
+                    confirmButtonColor: '#3085d6'
+                });
+            };
+            window.showWarning = function(msg) {
+                return Swal.fire({
+                    icon: 'warning',
+                    title: 'Thông báo',
+                    text: msg,
+                    confirmButtonColor: '#3085d6'
+                });
+            };
+        }
+    </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/l10n/vn.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.full.min.js"></script>

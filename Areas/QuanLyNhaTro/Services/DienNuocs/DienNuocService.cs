@@ -3,16 +3,19 @@ using QuanLyChoThuePhongTroWeb.Data;
 using QuanLyChoThuePhongTroWeb.Models;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Models;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Requests;
+using Microsoft.Extensions.Logging;
 
 namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.DienNuocs
 {
     public class DienNuocService : IDienNuocService
     {
         private readonly ApplicationDbContext _context;
+        private readonly ILogger<DienNuocService> _logger;
 
-        public DienNuocService(ApplicationDbContext context)
+        public DienNuocService(ApplicationDbContext context, ILogger<DienNuocService> logger)
         {
             _context = context;
+            _logger = logger;
         }
 
         public async Task<List<DienNuocPhongRes>> GetDanhSachDienNuocAsync(int chiNhanhId, int thang, int nam)
@@ -211,31 +214,22 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.DienNuocs
                     }
 
                     // e. Lưu/Cập nhật dữ liệu
-                    DichVuDienNuocCuaPhong currentRecord = null;
-                    bool hasRecord = req.DichVuDienNuocCuaPhongId > 0 || currentRecords.TryGetValue(req.PhongTroId, out currentRecord);
-                    if (hasRecord)
+                    if (currentRecords.TryGetValue(req.PhongTroId, out var record))
                     {
                         // Update
-                        var record = req.DichVuDienNuocCuaPhongId > 0
-                            ? await _context.DichVuDienNuocCuaPhongs.FindAsync(req.DichVuDienNuocCuaPhongId)
-                            : currentRecord;
-
-                        if (record != null && !record.IsDeleted)
-                        {
-                            record.ChiSoDienCu = req.ChiSoDienCu;
-                            record.ChiSoDienMoi = req.ChiSoDienMoi;
-                            record.ChiSoNuocCu = req.ChiSoNuocCu;
-                            record.ChiSoNuocMoi = req.ChiSoNuocMoi;
-                            record.DonGiaDien = donGiaDien;
-                            record.DonGiaNuoc = donGiaNuoc;
-                            record.NgayCapNhat = DateTime.UtcNow;
-                            _context.DichVuDienNuocCuaPhongs.Update(record);
-                        }
+                        record.ChiSoDienCu = req.ChiSoDienCu;
+                        record.ChiSoDienMoi = req.ChiSoDienMoi;
+                        record.ChiSoNuocCu = req.ChiSoNuocCu;
+                        record.ChiSoNuocMoi = req.ChiSoNuocMoi;
+                        record.DonGiaDien = donGiaDien;
+                        record.DonGiaNuoc = donGiaNuoc;
+                        record.NgayCapNhat = DateTime.UtcNow;
+                        _context.DichVuDienNuocCuaPhongs.Update(record);
                     }
                     else
                     {
                         // Create
-                        var record = new DichVuDienNuocCuaPhong
+                        var newRecord = new DichVuDienNuocCuaPhong
                         {
                             PhongTroId = req.PhongTroId,
                             Thang = input.Thang,
@@ -248,18 +242,19 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.DienNuocs
                             DonGiaNuoc = donGiaNuoc,
                             NgayTao = DateTime.UtcNow
                         };
-                        _context.DichVuDienNuocCuaPhongs.Add(record);
+                        _context.DichVuDienNuocCuaPhongs.Add(newRecord);
                     }
                 }
 
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
-                return (true, null);
+                return (true, string.Empty);
             }
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
-                throw;
+                _logger.LogError(ex, "Lỗi hệ thống khi lưu chốt điện nước.");
+                return (false, "Lỗi hệ thống khi lưu chốt điện nước.");
             }
         }
     }

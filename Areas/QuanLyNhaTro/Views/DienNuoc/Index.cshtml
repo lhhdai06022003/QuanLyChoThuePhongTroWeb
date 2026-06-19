@@ -31,7 +31,7 @@
     <!-- Unified Card Layout -->
     <div class="card border-0 shadow-sm mb-5">
         <div class="card-header d-flex justify-content-between align-items-center py-3 border-bottom">
-            <h3 class="card-title font-weight-bold text-dark mb-0">
+            <h3 class="card-title font-weight-bold mb-0">
                 <i class="fas fa-list me-2 text-primary"></i> Danh sách ghi nhận chỉ số
             </h3>
             <div class="ms-auto" id="saveActionArea" style="display: none;">
@@ -255,21 +255,21 @@
                         html += `
                             <tr data-index="${index}" class="${rowClass}">
                                 <td class="text-center align-middle">${index + 1}</td>
-                                <td class="align-middle font-weight-bold text-dark">${item.tenPhong}</td>
+                                <td class="align-middle font-weight-bold">${item.tenPhong}</td>
                                 <td class="align-middle">${item.tenNguoiDaiDien}</td>
                                 <td class="text-center align-middle bg-warning-light-td diennuoc-input-td">
                                     <input type="number" class="form-control text-center in-dien-cu" value="${item.chiSoDienCu}" readonly>
                                 </td>
                                 <td class="text-center align-middle bg-danger-light-td diennuoc-input-td">
                                     <input type="number" class="form-control text-center text-danger font-weight-bold in-dien-moi" value="${defaultDienMoi}" min="0" ${disabledAttr}>
-                                    <div class="invalid-feedback text-start small" style="display: none;">Mới phải ≥ Cũ</div>
+                                    <div class="invalid-feedback text-center small" style="display: none;">Mới phải ≥ Cũ</div>
                                 </td>
                                 <td class="text-center align-middle bg-info-light-td diennuoc-input-td">
                                     <input type="number" class="form-control text-center in-nuoc-cu" value="${item.chiSoNuocCu}" readonly>
                                 </td>
                                 <td class="text-center align-middle bg-primary-light-td diennuoc-input-td">
                                     <input type="number" class="form-control text-center text-primary font-weight-bold in-nuoc-moi" value="${defaultNuocMoi}" min="0" ${disabledAttr}>
-                                    <div class="invalid-feedback text-start small" style="display: none;">Mới phải ≥ Cũ</div>
+                                    <div class="invalid-feedback text-center small" style="display: none;">Mới phải ≥ Cũ</div>
                                 </td>
                                 <td class="text-center align-middle">${statusBadge}</td>
                             </tr>
@@ -467,34 +467,36 @@
                 let originalHtml = $btn.html();
                 let originalStickyHtml = $btnSticky.html();
 
-                $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Đang lưu...');
-                $btnSticky.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Đang lưu...');
+                Swal.fire({
+                    title: 'Xác nhận chốt chỉ số?',
+                    text: `Bạn có chắc chắn muốn chốt và lưu chỉ số điện/nước cho các phòng của tháng ${thang}/${nam}?`,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Đồng ý',
+                    cancelButtonText: 'Hủy bỏ'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Đang lưu...');
+                        $btnSticky.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Đang lưu...');
 
-                $.ajax({
-                    url: '/DienNuoc/SaveChotDienNuoc',
-                    type: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify(payload),
-                    success: function (res) {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Thành công',
-                            text: res.message
-                        }).then(() => {
-                            // Tải lại dữ liệu tự động
-                            loadData();
+                        $.ajax({
+                            url: '/DienNuoc/SaveChotDienNuoc',
+                            type: 'POST',
+                            contentType: 'application/json',
+                            data: JSON.stringify(payload),
+                            success: function (res) {
+                                showSuccess(res.message).then(() => {
+                                    loadData();
+                                });
+                            },
+                            error: function (xhr) {
+                                showError(xhr.responseJSON?.message || 'Có lỗi xảy ra khi lưu chỉ số.');
+                            },
+                            complete: function () {
+                                $btn.prop('disabled', false).html(originalHtml);
+                                $btnSticky.prop('disabled', false).html(originalStickyHtml);
+                            }
                         });
-                    },
-                    error: function (xhr) {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Thất bại',
-                            text: xhr.responseJSON?.message || 'Có lỗi xảy ra khi lưu chỉ số.'
-                        });
-                    },
-                    complete: function () {
-                        $btn.prop('disabled', false).html(originalHtml);
-                        $btnSticky.prop('disabled', false).html(originalStickyHtml);
                     }
                 });
             }

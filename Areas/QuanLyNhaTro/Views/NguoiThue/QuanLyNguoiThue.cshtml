@@ -194,13 +194,13 @@
 
                 // Validation giao diện: Không ép buộc Email
                 if (!hoVaTen || !sdt || !cccd) {
-                    Swal.fire('Thông báo', 'Vui lòng nhập đầy đủ Họ tên, Số điện thoại và CCCD!', 'warning');
+                    showWarning('Vui lòng nhập đầy đủ Họ tên, Số điện thoại và CCCD!');
                     return;
                 }
 
                 // Nếu có nhập email thì kiểm tra định dạng sơ bộ ở client
                 if (email && !/^[^\s\x40]+\x40[^\s\x40]+\.[^\s\x40]+$/.test(email)) {
-                    Swal.fire('Thông báo', 'Vui lòng nhập đúng định dạng Email!', 'warning');
+                    showWarning('Vui lòng nhập đúng định dạng Email!');
                     return;
                 }
 
@@ -224,37 +224,50 @@
                     requestData.nguoiThueId = parseInt(currentNguoiThueId, 10);
                 }
 
-                let $btn = $(this);
-                $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang xử lý...');
+                Swal.fire({
+                    title: isUpdate ? 'Xác nhận cập nhật?' : 'Xác nhận thêm mới?',
+                    text: isUpdate ? 'Bạn có chắc chắn muốn cập nhật thông tin người thuê này?' : 'Bạn có chắc chắn muốn thêm người thuê này?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Đồng ý',
+                    cancelButtonText: 'Hủy bỏ'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        let $btn = $(this);
+                        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang xử lý...');
 
-                $.ajax({
-                    url: apiUrl,
-                    type: httpMethod,
-                    contentType: 'application/json',
-                    data: JSON.stringify(requestData),
-                    success: function (res) {
-                        Swal.fire('Thành công', res.message || 'Lưu thành công!', 'success');
-                        $('#nguoiThueModal').modal('hide');
-                        table.ajax.reload(null, false);
-                    },
-                    error: function (xhr) {
-                        let errorMessage = "Đã xảy ra lỗi!";
-                        if (xhr.status === 400) {
-                            if (xhr.responseJSON && xhr.responseJSON.errors) {
-                                errorMessage = "Chi tiết lỗi:\n";
-                                for (let key in xhr.responseJSON.errors) {
-                                    errorMessage += "- " + xhr.responseJSON.errors[key][0] + "\n";
+                        $.ajax({
+                            url: apiUrl,
+                            type: httpMethod,
+                            contentType: 'application/json',
+                            data: JSON.stringify(requestData),
+                            success: function (res) {
+                                showSuccess(res.message || 'Lưu thành công!');
+                                $('#nguoiThueModal').modal('hide');
+                                table.ajax.reload(null, false);
+                            },
+                            error: function (xhr) {
+                                let errorMessage = "Đã xảy ra lỗi!";
+                                if (xhr.status === 400) {
+                                    if (xhr.responseJSON && xhr.responseJSON.errors) {
+                                        errorMessage = "Chi tiết lỗi:\n";
+                                        for (let key in xhr.responseJSON.errors) {
+                                            errorMessage += "- " + xhr.responseJSON.errors[key][0] + "\n";
+                                        }
+                                    } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                                        errorMessage = xhr.responseJSON.message;
+                                    } else {
+                                        errorMessage = "Dữ liệu không hợp lệ. Vui lòng kiểm tra lại!";
+                                    }
                                 }
-                            } else if (xhr.responseJSON && xhr.responseJSON.message) {
-                                errorMessage = xhr.responseJSON.message;
-                            } else {
-                                errorMessage = "Dữ liệu không hợp lệ. Vui lòng kiểm tra lại!";
+                                showError(errorMessage);
+                            },
+                            complete: function () {
+                                $btn.prop('disabled', false).html('<i class="fas fa-save"></i> Lưu thông tin');
                             }
-                        }
-                        Swal.fire('Lỗi', errorMessage, 'error');
-                    },
-                    complete: function () {
-                        $btn.prop('disabled', false).html('<i class="fas fa-save"></i> Lưu thông tin');
+                        });
                     }
                 });
             });
@@ -283,7 +296,7 @@
                         }
                     },
                     error: function() {
-                        Swal.fire('Lỗi', 'Không thể tải thông tin người thuê.', 'error');
+                        showError('Không thể tải thông tin người thuê.');
                     }
                 });
             });
@@ -298,6 +311,8 @@
                     text: 'Hành động này không thể hoàn tác. Bạn có chắc chắn muốn xóa người thuê này?',
                     icon: 'warning',
                     showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#6c757d',
                     confirmButtonText: 'Đồng ý xóa',
                     cancelButtonText: 'Hủy bỏ'
                 }).then((result) => {
@@ -309,7 +324,7 @@
                             url: '/NguoiThue/Delete/' + id, 
                             type: 'DELETE',
                             success: function (res) {
-                                Swal.fire('Thành công', res.message || 'Xóa thành công!', 'success');
+                                showSuccess(res.message || 'Xóa thành công!');
                                 table.ajax.reload(null, false);
                             },
                             error: function (xhr) {
@@ -317,7 +332,7 @@
                                 if (xhr.responseJSON && xhr.responseJSON.message) {
                                     msg = xhr.responseJSON.message;
                                 }
-                                Swal.fire('Lỗi', 'Không thể xóa: ' + msg, 'error');
+                                showError('Không thể xóa: ' + msg);
                                 $btn.prop('disabled', false).html(originalHtml);
                             }
                         });
@@ -351,11 +366,11 @@
                             url: '/NguoiThue/PhatSinhNgauNhien',
                             type: 'POST',
                             success: function (res) {
-                                Swal.fire('Thành công', res.message, 'success');
+                                showSuccess(res.message);
                                 table.ajax.reload(null, false);
                             },
                             error: function (xhr) {
-                                Swal.fire('Lỗi', 'Lỗi khi phát sinh khách thuê: ' + (xhr.responseJSON?.message || 'Lỗi hệ thống'), 'error');
+                                showError('Lỗi khi phát sinh khách thuê: ' + (xhr.responseJSON?.message || 'Lỗi hệ thống'));
                             },
                             complete: function () {
                                 $btn.prop('disabled', false).html('<i class="fas fa-magic"></i> Phát sinh 10 khách ngẫu nhiên');
