@@ -368,3 +368,6 @@ appsettings.Development.json
 
 # không up file agent antigravity Visual Studio lên git vì nó có th? ch?a thông tin.
 .agent
+
+appsettings.json
+appsettings.Development.json
