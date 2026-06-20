@@ -28,14 +28,6 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.LichSuThanhToans
             DataTableRequest request, int chiNhanhId, int phuongThuc, DateTime? tuNgay, DateTime? denNgay)
         {
             var query = _context.LichSuThanhToans
-                .Include(l => l.NguoiXacNhan)
-                .Include(l => l.HoaDon)
-                    .ThenInclude(h => h.HopDong)
-                        .ThenInclude(hd => hd.PhongTro)
-                            .ThenInclude(p => p.ChiNhanh)
-                .Include(l => l.HoaDon)
-                    .ThenInclude(h => h.HopDong)
-                        .ThenInclude(hd => hd.NguoiThue)
                 .Where(l => !l.IsDeleted);
 
             // Lọc theo chi nhánh
@@ -110,9 +102,6 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.LichSuThanhToans
         public async Task<ThongKeThanhToanRes> GetThongKeThanhToanAsync(int chiNhanhId, DateTime? tuNgay, DateTime? denNgay)
         {
             var query = _context.LichSuThanhToans
-                .Include(l => l.HoaDon)
-                    .ThenInclude(h => h.HopDong)
-                        .ThenInclude(hd => hd.PhongTro)
                 .Where(l => !l.IsDeleted);
 
             // Lọc theo chi nhánh
@@ -133,14 +122,23 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.LichSuThanhToans
                 query = query.Where(l => l.NgayThanhToan <= utcDen);
             }
 
-            var payments = await query.ToListAsync();
+            var stats = await query
+                .GroupBy(x => 1) // gom nhóm tổng thể để tính toán SQL
+                .Select(g => new ThongKeThanhToanRes
+                {
+                    TongDoanhThu = g.Sum(p => p.SoTienThanhToan),
+                    TongSoGiaoDich = g.Count(),
+                    DoanhThuTienMat = g.Where(p => p.PhuongThucThanhToan == PhuongThucThanhToan.TienMat).Sum(p => p.SoTienThanhToan),
+                    DoanhThuChuyenKhoan = g.Where(p => p.PhuongThucThanhToan == PhuongThucThanhToan.ChuyenKhoan).Sum(p => p.SoTienThanhToan)
+                })
+                .FirstOrDefaultAsync();
 
-            var thongKe = new ThongKeThanhToanRes
+            var thongKe = stats ?? new ThongKeThanhToanRes
             {
-                TongDoanhThu = payments.Sum(p => p.SoTienThanhToan),
-                TongSoGiaoDich = payments.Count,
-                DoanhThuTienMat = payments.Where(p => p.PhuongThucThanhToan == PhuongThucThanhToan.TienMat).Sum(p => p.SoTienThanhToan),
-                DoanhThuChuyenKhoan = payments.Where(p => p.PhuongThucThanhToan == PhuongThucThanhToan.ChuyenKhoan).Sum(p => p.SoTienThanhToan)
+                TongDoanhThu = 0,
+                TongSoGiaoDich = 0,
+                DoanhThuTienMat = 0,
+                DoanhThuChuyenKhoan = 0
             };
 
             return thongKe;

@@ -33,9 +33,9 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Responses
         public List<double> ChartData { get; set; } = new List<double>();
         public List<double> ChartDataChoThu { get; set; } = new List<double>(); // Doanh thu chờ thu để làm stacked chart
 
-        // --- DỮ LIỆU PHƯƠNG THỨC THANH TOÁN ---
-        public List<string> PaymentMethodLabels { get; set; } = new List<string>();
-        public List<double> PaymentMethodData { get; set; } = new List<double>();
+        // --- DỮ LIỆU TÌNH TRẠNG PHÒNG ---
+        public List<string> RoomStatusLabels { get; set; } = new List<string>();
+        public List<int> RoomStatusData { get; set; } = new List<int>();
 
         // --- VIỆC CẦN LÀM & HOẠT ĐỘNG GẦN ĐÂY ---
         public List<ToDoItemViewModel> ToDos { get; set; } = new List<ToDoItemViewModel>();

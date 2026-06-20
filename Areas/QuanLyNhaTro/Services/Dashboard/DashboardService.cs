@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Responses;
+using Microsoft.Extensions.Configuration;
 using QuanLyChoThuePhongTroWeb.Data;
 using QuanLyChoThuePhongTroWeb.Models;
 using System;
@@ -13,15 +14,17 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.Dashboard
     public class DashboardService : IDashboardService
     {
         private readonly ApplicationDbContext _context;
+        private readonly IConfiguration _configuration;
 
-        public DashboardService(ApplicationDbContext context)
+        public DashboardService(ApplicationDbContext context, IConfiguration configuration)
         {
             _context = context;
+            _configuration = configuration;
         }
 
         public async Task<DashboardViewModel> GetDashboardDataAsync(int? branchId, int selectedYear, int selectedMonth)
         {
-            var today = DateTime.Now;
+            var today = DateTime.UtcNow.AddHours(7);
             var model = new DashboardViewModel
             {
                 SelectedBranchId = branchId,
@@ -63,11 +66,16 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.Dashboard
             {
                 phongTrosQuery = phongTrosQuery.Where(p => p.ChiNhanhId == branchId.Value);
             }
-            var phongTros = await phongTrosQuery.ToListAsync();
-            model.TongSoPhong = phongTros.Count;
-            model.SoPhongTrong = phongTros.Count(p => p.TrangThai == TrangThaiPhong.Trong);
-            model.SoPhongDaThue = phongTros.Count(p => p.TrangThai == TrangThaiPhong.DaThue);
-            model.SoPhongBaoTri = phongTros.Count(p => p.TrangThai == TrangThaiPhong.BaoTri);
+            
+            var phongStats = await phongTrosQuery
+                .GroupBy(p => p.TrangThai)
+                .Select(g => new { TrangThai = g.Key, Count = g.Count() })
+                .ToListAsync();
+
+            model.SoPhongTrong = phongStats.FirstOrDefault(s => s.TrangThai == TrangThaiPhong.Trong)?.Count ?? 0;
+            model.SoPhongDaThue = phongStats.FirstOrDefault(s => s.TrangThai == TrangThaiPhong.DaThue)?.Count ?? 0;
+            model.SoPhongBaoTri = phongStats.FirstOrDefault(s => s.TrangThai == TrangThaiPhong.BaoTri)?.Count ?? 0;
+            model.TongSoPhong = model.SoPhongTrong + model.SoPhongDaThue + model.SoPhongBaoTri;
 
             // Tỷ lệ lấp đầy
             model.TyLeLapDay = model.TongSoPhong > 0
@@ -90,15 +98,22 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.Dashboard
                 hoaDonsQuery = hoaDonsQuery.Where(h => h.HopDong.PhongTro.ChiNhanhId == branchId.Value);
             }
 
-            var hoaDonsTheoNam = await hoaDonsQuery.ToListAsync();
-            var hoaDonThangNay = hoaDonsTheoNam.Where(h => h.Thang == selectedMonth).ToList();
+            var hoaDonStats = await hoaDonsQuery
+                .GroupBy(h => new { h.Thang, h.TrangThaiHoaDon })
+                .Select(g => new
+                {
+                    Thang = g.Key.Thang,
+                    TrangThai = g.Key.TrangThaiHoaDon,
+                    TongTien = g.Sum(h => h.TongTien)
+                })
+                .ToListAsync();
 
-            model.DoanhThuThangNay = hoaDonThangNay
-                .Where(h => h.TrangThaiHoaDon == TrangThaiHoaDon.DaThanhToan)
+            model.DoanhThuThangNay = hoaDonStats
+                .Where(h => h.Thang == selectedMonth && h.TrangThai == TrangThaiHoaDon.DaThanhToan)
                 .Sum(h => h.TongTien);
 
-            model.TongTienChoThu = hoaDonThangNay
-                .Where(h => h.TrangThaiHoaDon == TrangThaiHoaDon.ChuaThanhToan)
+            model.TongTienChoThu = hoaDonStats
+                .Where(h => h.Thang == selectedMonth && h.TrangThai == TrangThaiHoaDon.ChuaThanhToan)
                 .Sum(h => h.TongTien);
 
             // [THAY ĐỔI YÊU CẦU 1]: Đếm tổng số phòng DUY NHẤT chưa thanh toán từ trước tới nay (Xuyên suốt lịch sử)
@@ -121,84 +136,140 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.Dashboard
             {
                 model.ChartLabels.Add($"T{month}");
 
-                var daThu = hoaDonsTheoNam
-                    .Where(h => h.Thang == month && h.TrangThaiHoaDon == TrangThaiHoaDon.DaThanhToan)
+                var daThu = hoaDonStats
+                    .Where(h => h.Thang == month && h.TrangThai == TrangThaiHoaDon.DaThanhToan)
                     .Sum(h => h.TongTien);
 
-                var choThu = hoaDonsTheoNam
-                    .Where(h => h.Thang == month && h.TrangThaiHoaDon == TrangThaiHoaDon.ChuaThanhToan)
+                var choThu = hoaDonStats
+                    .Where(h => h.Thang == month && h.TrangThai == TrangThaiHoaDon.ChuaThanhToan)
                     .Sum(h => h.TongTien);
 
                 model.ChartData.Add(daThu);
                 model.ChartDataChoThu.Add(choThu);
             }
 
-            // --- 6. BIỂU ĐỒ PHƯƠNG THỨC THANH TOÁN (Của tháng được chọn) ---
-            var thanhToansQuery = _context.LichSuThanhToans
-                .Include(l => l.HoaDon)
-                    .ThenInclude(h => h.HopDong)
-.ThenInclude(hd => hd.PhongTro)
-                .Where(l => !l.IsDeleted && l.NgayThanhToan.Year == selectedYear && l.NgayThanhToan.Month == selectedMonth);
-            if (branchId.HasValue)
-            {
-                thanhToansQuery = thanhToansQuery.Where(l => l.HoaDon.HopDong.PhongTro.ChiNhanhId == branchId.Value);
-            }
-            var thanhToans = await thanhToansQuery.ToListAsync();
-            var cashTotal = thanhToans.Where(l => l.PhuongThucThanhToan == PhuongThucThanhToan.TienMat).Sum(l => l.SoTienThanhToan);
-            var bankTotal = thanhToans.Where(l => l.PhuongThucThanhToan == PhuongThucThanhToan.ChuyenKhoan).Sum(l => l.SoTienThanhToan);
-
-            model.PaymentMethodLabels.Add("Tiền mặt");
-            model.PaymentMethodLabels.Add("Chuyển khoản");
-            model.PaymentMethodData.Add(cashTotal);
-            model.PaymentMethodData.Add(bankTotal);
+            // --- 6. BIỂU ĐỒ TÌNH TRẠNG PHÒNG ---
+            model.RoomStatusLabels.Add("Phòng trống");
+            model.RoomStatusLabels.Add("Đã thuê");
+            model.RoomStatusLabels.Add("Đang bảo trì");
+            model.RoomStatusData.Add(model.SoPhongTrong);
+            model.RoomStatusData.Add(model.SoPhongDaThue);
+            model.RoomStatusData.Add(model.SoPhongBaoTri);
 
             // --- 7. DANH SÁCH VIỆC CẦN LÀM (To-Dos) ---
-            // 7a. Cảnh báo phòng chưa chốt điện nước
-            var chotDienNuocs = await _context.DichVuDienNuocCuaPhongs
-                .Where(d => !d.IsDeleted && d.Thang == selectedMonth && d.Nam == selectedYear)
-                .Select(d => d.PhongTroId)
-                .ToListAsync();
+            // 7a. Cảnh báo phòng chưa chốt điện nước (Toàn cục - Các tháng trước)
+            int triggerDay = _configuration.GetValue<int>("DashboardSettings:ChotDienNuocDay", 5);
+            
+            // Xác định tháng/năm tối đa cần phải chốt
+            int targetMonth = today.Month;
+            int targetYear = today.Year;
 
-            var activePhongIdsQuery = _context.HopDongs
+            if (today.Day < triggerDay) {
+                targetMonth -= 2;
+            } else {
+                targetMonth -= 1;
+            }
+
+            if (targetMonth < 1) {
+                targetMonth += 12;
+                targetYear -= 1;
+            }
+            if (targetMonth < 1) { // Trường hợp trừ 2 bị âm
+                targetMonth += 12;
+                targetYear -= 1;
+            }
+
+            // Chỉ kiểm tra trong 6 tháng gần nhất để tối ưu hiệu năng
+            var checkStartDate = new DateTime(targetYear, targetMonth, 1).AddMonths(-5);
+
+            var activeContractsQuery = _context.HopDongs
                 .Where(h => !h.IsDeleted && h.TrangThaiHopDong == TrangThaiHopDong.DangHoatDong);
             if (branchId.HasValue)
             {
-                activePhongIdsQuery = activePhongIdsQuery.Where(h => h.PhongTro.ChiNhanhId == branchId.Value);
+                activeContractsQuery = activeContractsQuery.Where(h => h.PhongTro.ChiNhanhId == branchId.Value);
             }
-            var activePhongIds = await activePhongIdsQuery.Select(h => h.PhongTroId).ToListAsync();
+            var activeContracts = await activeContractsQuery
+                .Select(h => new { h.PhongTroId, h.ThoiDiemBatDau, ChiNhanhId = h.PhongTro.ChiNhanhId, TenChiNhanh = h.PhongTro.ChiNhanh.TenChiNhanh })
+                .ToListAsync();
 
-            var needingRecordCount = activePhongIds.Except(chotDienNuocs).Count();
-            model.SoPhongChuaChotDienNuoc = needingRecordCount;
-            if (needingRecordCount > 0)
+            var recordedUtilities = await _context.DichVuDienNuocCuaPhongs
+                .Where(d => !d.IsDeleted && 
+                       (d.Nam > checkStartDate.Year || (d.Nam == checkStartDate.Year && d.Thang >= checkStartDate.Month)))
+                .Select(d => new { d.PhongTroId, d.Thang, d.Nam })
+                .ToListAsync();
+
+            int totalMissing = 0;
+
+            // Kiểm tra từng tháng từ checkStartDate đến targetMonth
+            var currentCheck = checkStartDate;
+            var targetDate = new DateTime(targetYear, targetMonth, 1);
+
+            while (currentCheck <= targetDate)
             {
-                model.ToDos.Add(new ToDoItemViewModel
+                int m = currentCheck.Month;
+                int y = currentCheck.Year;
+
+                // Các phòng đang thuê và đã bắt đầu thuê từ tháng này hoặc trước đó (Cộng 7 tiếng để fix lỗi múi giờ khi so sánh)
+                var validRoomsForThisMonth = activeContracts
+                    .Where(c => {
+                        var localStart = c.ThoiDiemBatDau.AddHours(7);
+                        return new DateTime(localStart.Year, localStart.Month, 1) <= new DateTime(y, m, 1);
+                    })
+                    .ToList();
+
+                var recordedRoomsThisMonth = recordedUtilities
+                    .Where(r => r.Thang == m && r.Nam == y)
+                    .Select(r => r.PhongTroId)
+                    .ToHashSet();
+
+                var missingRooms = validRoomsForThisMonth
+                    .Where(r => !recordedRoomsThisMonth.Contains(r.PhongTroId))
+                    .ToList();
+                
+                if (missingRooms.Count > 0)
                 {
-                    Type = "warning",
-                    Title = "Chưa chốt chỉ số điện nước",
-                    Description = $"Có {needingRecordCount} phòng chưa chốt chỉ số điện nước Tháng {selectedMonth}/{selectedYear}.",
-                    Link = "/QuanLyNhaTro/ChotDienNuoc",
-                    Icon = "fas fa-bolt"
-                });
+                    totalMissing += missingRooms.Count;
+
+                    var branchGroups = missingRooms.GroupBy(r => r.TenChiNhanh)
+                        .Select(g => $"{g.Key}: {g.Count()} phòng")
+                        .ToList();
+                    var branchText = string.Join(", ", branchGroups);
+
+                    var targetBranchId = branchId ?? missingRooms.FirstOrDefault()?.ChiNhanhId;
+
+                    model.ToDos.Add(new ToDoItemViewModel
+                    {
+                        Type = "warning",
+                        Title = $"Chưa chốt điện nước (T{m}/{y})",
+                        Description = $"Tháng {m}/{y} còn {missingRooms.Count} phòng chưa chốt ({branchText}).",
+                        Link = $"/QuanLyNhaTro/ChotDienNuoc?thang={m}&nam={y}{(targetBranchId.HasValue ? $"&chiNhanhId={targetBranchId.Value}" : "")}",
+                        Icon = "fas fa-bolt"
+                    });
+                }
+
+                currentCheck = currentCheck.AddMonths(1);
             }
+
+            model.SoPhongChuaChotDienNuoc = totalMissing; // Hiển thị tổng số lượng cảnh báo lên Badge nếu có
 
             // 7b. Hợp đồng sắp hết hạn (trong vòng 30 ngày)
-            var limitDate = DateTime.UtcNow.AddDays(30);
+            var limitDate = today.AddDays(30);
             var sapHetHanQuery = _context.HopDongs
-                .Where(h => !h.IsDeleted && h.TrangThaiHopDong == TrangThaiHopDong.DangHoatDong && h.ThoiDiemKetThuc.HasValue && h.ThoiDiemKetThuc.Value <= limitDate && h.ThoiDiemKetThuc.Value >= DateTime.UtcNow);
+                .Where(h => !h.IsDeleted && h.TrangThaiHopDong == TrangThaiHopDong.DangHoatDong && h.ThoiDiemKetThuc.HasValue && h.ThoiDiemKetThuc.Value <= limitDate && h.ThoiDiemKetThuc.Value >= today);
             if (branchId.HasValue)
             {
                 sapHetHanQuery = sapHetHanQuery.Where(h => h.PhongTro.ChiNhanhId == branchId.Value);
             }
-            var sapHetHanList = await sapHetHanQuery.ToListAsync();
-            model.SoHopDongSapHetHan = sapHetHanList.Count;
-            if (sapHetHanList.Count > 0)
+            var sapHetHanCount = await sapHetHanQuery.CountAsync();
+            model.SoHopDongSapHetHan = sapHetHanCount;
+            if (sapHetHanCount > 0)
             {
                 model.ToDos.Add(new ToDoItemViewModel
                 {
                     Type = "danger",
                     Title = "Hợp đồng sắp hết hạn",
-                    Description = $"Có {sapHetHanList.Count} hợp đồng sắp hết hiệu lực trong 30 ngày tới.",
-                    Link = "/QuanLyNhaTro/HopDong",
+                    Description = $"Có {sapHetHanCount} hợp đồng sắp hết hiệu lực trong 30 ngày tới.",
+                    Link = $"/QuanLyNhaTro/QuanLyHopDong{(branchId.HasValue ? $"?chiNhanhId={branchId.Value}" : "")}",
                     Icon = "fas fa-file-contract"
                 });
             }
@@ -231,7 +302,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.Dashboard
                     Type = "danger",
                     Title = $"Hóa đơn Phòng {item.SoPhong} chưa thu",
                     Description = $"Phòng {item.SoPhong} chưa thanh toán hóa đơn (Nợ {item.UnpaidMonthsCount} tháng).",
-                    Link = $"/QuanLyNhaTro/QuanLyHoaDon?phongTroId={item.PhongTroId}&trangThai=0" + (branchId.HasValue ? $"&chiNhanhId={branchId.Value}" : ""),
+                    Link = $"/QuanLyNhaTro/QuanLyHoaDon?search={item.SoPhong}&trangThai=0" + (branchId.HasValue ? $"&chiNhanhId={branchId.Value}" : ""),
                     Icon = "fas fa-exclamation-circle"
                 });
             }

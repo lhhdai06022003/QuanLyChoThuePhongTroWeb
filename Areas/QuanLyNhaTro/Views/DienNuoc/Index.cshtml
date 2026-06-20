@@ -136,6 +136,30 @@
             let currentData = [];
             let table = null;
 
+            // Đọc query params (nếu có, VD click từ Dashboard qua)
+            const urlParams = new URLSearchParams(window.location.search);
+            let hasQueryParams = false;
+            
+            if (urlParams.has('chiNhanhId')) {
+                $('#filterChiNhanh').val(urlParams.get('chiNhanhId'));
+                hasQueryParams = true;
+            }
+            if (urlParams.has('thang')) {
+                $('#filterThang').val(urlParams.get('thang'));
+                hasQueryParams = true;
+            }
+            if (urlParams.has('nam')) {
+                $('#filterNam').val(urlParams.get('nam'));
+                hasQueryParams = true;
+            }
+
+            // Nếu có param thì tự động load data luôn
+            if (hasQueryParams) {
+                setTimeout(function() {
+                    loadData();
+                }, 100);
+            }
+
             // Auto-tab navigation between input fields using Enter and Arrow keys
             $('#tbodyDienNuoc').on('keydown', '.in-dien-moi, .in-nuoc-moi', function (e) {
                 const key = e.key;

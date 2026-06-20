@@ -475,6 +475,12 @@
                 });
             });
 
+            // Đọc query parameters từ URL
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('chiNhanhId')) {
+                $('#filterChiNhanh').val(urlParams.get('chiNhanhId'));
+            }
+
             // KHỞI TẠO DATATABLE SERVER-SIDE
             var table = $('#hopDongTable').DataTable({
                 "language": { "url": "https://cdn.datatables.net/plug-ins/1.13.6/i18n/vi.json" },

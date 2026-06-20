@@ -41,68 +41,44 @@
     <div class="row row-cards mb-4">
         <!-- Card 1: Tổng doanh thu -->
         <div class="col-sm-6 col-lg-3">
-            <div class="card card-sm shadow-sm border-0" style="border-left: 4px solid var(--tblr-success, #2fb344) !important;">
-                <div class="card-body">
-                    <div class="row align-items-center">
-                        <div class="col-auto">
-                            <span class="bg-success-lt text-success avatar rounded"><i class="fas fa-wallet"></i></span>
-                        </div>
-                        <div class="col text-end">
-                            <div class="text-secondary small font-weight-medium">Tổng doanh thu</div>
-                            <div class="h3 mb-0 font-weight-bold text-success" id="statTongDoanhThu">0 ₫</div>
-                        </div>
-                    </div>
+            <div class="card shadow border-0 bg-success text-white" style="position: relative; overflow: hidden;">
+                <div class="card-body p-4">
+                    <div class="subheader text-white text-opacity-75 font-weight-bold mb-2 fs-4">TỔNG DOANH THU</div>
+                    <div class="h1 mb-0 text-white font-weight-bold" id="statTongDoanhThu" style="font-size: 2rem;">0 ₫</div>
+                    <i class="fas fa-wallet fa-4x text-white text-opacity-25" style="position: absolute; right: 15px; top: 15px;"></i>
                 </div>
             </div>
         </div>
 
         <!-- Card 2: Số giao dịch -->
         <div class="col-sm-6 col-lg-3">
-            <div class="card card-sm shadow-sm border-0" style="border-left: 4px solid var(--tblr-primary, #206bc4) !important;">
-                <div class="card-body">
-                    <div class="row align-items-center">
-                        <div class="col-auto">
-                            <span class="bg-primary-lt text-primary avatar rounded"><i class="fas fa-receipt"></i></span>
-                        </div>
-                        <div class="col text-end">
-                            <div class="text-secondary small font-weight-medium">Số giao dịch</div>
-                            <div class="h3 mb-0 font-weight-bold text-primary" id="statTongSoGiaoDich">0</div>
-                        </div>
-                    </div>
+            <div class="card shadow border-0 bg-primary text-white" style="position: relative; overflow: hidden;">
+                <div class="card-body p-4">
+                    <div class="subheader text-white text-opacity-75 font-weight-bold mb-2 fs-4">SỐ GIAO DỊCH</div>
+                    <div class="h1 mb-0 text-white font-weight-bold" id="statTongSoGiaoDich" style="font-size: 2rem;">0</div>
+                    <i class="fas fa-receipt fa-4x text-white text-opacity-25" style="position: absolute; right: 15px; top: 15px;"></i>
                 </div>
             </div>
         </div>
 
         <!-- Card 3: Thu tiền mặt -->
         <div class="col-sm-6 col-lg-3">
-            <div class="card card-sm shadow-sm border-0" style="border-left: 4px solid var(--tblr-info, #4299e1) !important;">
-                <div class="card-body">
-                    <div class="row align-items-center">
-                        <div class="col-auto">
-                            <span class="bg-info-lt text-info avatar rounded"><i class="fas fa-money-bill-wave"></i></span>
-                        </div>
-                        <div class="col text-end">
-                            <div class="text-secondary small font-weight-medium">Thu tiền mặt</div>
-                            <div class="h3 mb-0 font-weight-bold text-info" id="statDoanhThuTienMat">0 ₫</div>
-                        </div>
-                    </div>
+            <div class="card shadow border-0 bg-info text-white" style="position: relative; overflow: hidden;">
+                <div class="card-body p-4">
+                    <div class="subheader text-white text-opacity-75 font-weight-bold mb-2 fs-4">THU TIỀN MẶT</div>
+                    <div class="h1 mb-0 text-white font-weight-bold" id="statDoanhThuTienMat" style="font-size: 2rem;">0 ₫</div>
+                    <i class="fas fa-money-bill-wave fa-4x text-white text-opacity-25" style="position: absolute; right: 15px; top: 15px;"></i>
                 </div>
             </div>
         </div>
 
         <!-- Card 4: Chuyển khoản -->
         <div class="col-sm-6 col-lg-3">
-            <div class="card card-sm shadow-sm border-0" style="border-left: 4px solid var(--tblr-indigo, #6574cd) !important;">
-                <div class="card-body">
-                    <div class="row align-items-center">
-                        <div class="col-auto">
-                            <span class="bg-indigo-lt text-indigo avatar rounded"><i class="fas fa-university"></i></span>
-                        </div>
-                        <div class="col text-end">
-                            <div class="text-secondary small font-weight-medium">Chuyển khoản</div>
-                            <div class="h3 mb-0 font-weight-bold text-indigo" id="statDoanhThuChuyenKhoan">0 ₫</div>
-                        </div>
-                    </div>
+            <div class="card shadow border-0 bg-indigo text-white" style="position: relative; overflow: hidden;">
+                <div class="card-body p-4">
+                    <div class="subheader text-white text-opacity-75 font-weight-bold mb-2 fs-4">CHUYỂN KHOẢN</div>
+                    <div class="h1 mb-0 text-white font-weight-bold" id="statDoanhThuChuyenKhoan" style="font-size: 2rem;">0 ₫</div>
+                    <i class="fas fa-university fa-4x text-white text-opacity-25" style="position: absolute; right: 15px; top: 15px;"></i>
                 </div>
             </div>
         </div>
@@ -139,11 +115,19 @@
                             <option value="1">Chuyển khoản</option>
                         </select>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-5">
                         <label class="form-label font-weight-bold text-secondary mb-1">
                             <i class="fas fa-calendar-alt me-1"></i> Khoảng thời gian
                         </label>
-                        <input type="text" id="filterDateRange" class="form-control form-control-sm" placeholder="Chọn khoảng ngày thanh toán..." readonly />
+                        <div class="d-flex gap-2">
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-primary active" id="btnDateAll">Tất cả</button>
+                                <button type="button" class="btn btn-outline-primary" id="btnDateToday">Hôm nay</button>
+                                <button type="button" class="btn btn-outline-primary" id="btnDateWeek">Tuần này</button>
+                                <button type="button" class="btn btn-outline-primary" id="btnDateMonth">Tháng này</button>
+                            </div>
+                            <input type="text" id="filterDateRange" class="form-control form-control-sm" placeholder="Tùy chỉnh..." readonly style="max-width: 200px;" />
+                        </div>
                     </div>
                 </div>
             </div>
@@ -212,6 +196,7 @@
                 altFormat: "d/m/Y",
                 locale: "vn",
                 onChange: function(selectedDates, dateStr, instance) {
+                    $('.btn-group .btn').removeClass('active');
                     if (selectedDates.length === 2 || selectedDates.length === 0) {
                         table.ajax.reload();
                         loadStats();
@@ -222,9 +207,51 @@
                     clearBtn.on('click', function() {
                         instance.clear();
                         instance.close();
+                        $('#btnDateAll').addClass('active');
                     });
                     $(instance.calendarContainer).append(clearBtn);
                 }
+            });
+
+            // Logic các nút lọc nhanh
+            function setActiveDateBtn(btnId) {
+                $('.btn-group .btn').removeClass('active');
+                $('#' + btnId).addClass('active');
+            }
+
+            $('#btnDateAll').click(function() {
+                setActiveDateBtn('btnDateAll');
+                flatpickrInstance.clear();
+            });
+
+            $('#btnDateToday').click(function() {
+                setActiveDateBtn('btnDateToday');
+                let today = new Date();
+                flatpickrInstance.setDate([today, today]);
+                table.ajax.reload();
+                loadStats();
+            });
+
+            $('#btnDateWeek').click(function() {
+                setActiveDateBtn('btnDateWeek');
+                let curr = new Date();
+                let first = curr.getDate() - curr.getDay() + (curr.getDay() === 0 ? -6 : 1); // Monday
+                let last = first + 6; // Sunday
+                let firstDay = new Date(curr.setDate(first));
+                let lastDay = new Date(curr.setDate(last));
+                flatpickrInstance.setDate([firstDay, lastDay]);
+                table.ajax.reload();
+                loadStats();
+            });
+
+            $('#btnDateMonth').click(function() {
+                setActiveDateBtn('btnDateMonth');
+                let date = new Date();
+                let firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
+                let lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+                flatpickrInstance.setDate([firstDay, lastDay]);
+                table.ajax.reload();
+                loadStats();
             });
 
             // Tải thống kê

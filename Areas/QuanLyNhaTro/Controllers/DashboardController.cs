@@ -53,8 +53,8 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
                 chartData = model.ChartData,
                 chartDataChoThu = model.ChartDataChoThu,
                 
-                paymentMethodLabels = model.PaymentMethodLabels,
-                paymentMethodData = model.PaymentMethodData,
+                roomStatusLabels = model.RoomStatusLabels,
+                roomStatusData = model.RoomStatusData,
                 
                 toDos = model.ToDos,
                 recentActivities = model.RecentActivities
