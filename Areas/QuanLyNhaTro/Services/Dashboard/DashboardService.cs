@@ -274,7 +274,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.Dashboard
                 });
             }
 
-            // [THAY ĐỔI YÊU CẦU 2]: 7c. Hóa đơn chưa thanh toán gom theo từng PHÒNG từ trước tới nay
+            // [THAY ĐỔI YÊU CẦU MỚI]: 7c. Hóa đơn chưa thanh toán (Hiển thị riêng rẽ từng hóa đơn để link tới chính xác tháng/năm)
             var unpaidQuery = _context.HoaDons
                 .Where(h => !h.IsDeleted && h.TrangThaiHoaDon == TrangThaiHoaDon.ChuaThanhToan);
 
@@ -283,27 +283,28 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.Dashboard
                 unpaidQuery = unpaidQuery.Where(h => h.HopDong.PhongTro.ChiNhanhId == branchId.Value);
             }
 
-            // Group theo PhongTroId và SoPhong để thống kê số tháng nợ tổng quát
-            var unpaidGroupedByRoom = await unpaidQuery
-                .GroupBy(h => new { h.HopDong.PhongTroId, h.HopDong.PhongTro.SoPhong })
+            var unpaidGroupedByMonthBranch = await unpaidQuery
+                .GroupBy(h => new { h.Nam, h.Thang, h.HopDong.PhongTro.ChiNhanhId, TenChiNhanh = h.HopDong.PhongTro.ChiNhanh.TenChiNhanh })
                 .Select(g => new
                 {
-                    PhongTroId = g.Key.PhongTroId,
-                    SoPhong = g.Key.SoPhong,
-                    UnpaidMonthsCount = g.Count() // Số lượng hóa đơn chưa trả = số tháng nợ
+                    Nam = g.Key.Nam,
+                    Thang = g.Key.Thang,
+                    ChiNhanhId = g.Key.ChiNhanhId,
+                    TenChiNhanh = g.Key.TenChiNhanh,
+                    Count = g.Count()
                 })
-                .OrderByDescending(g => g.UnpaidMonthsCount) // Ưu tiên đưa phòng nợ dai nhất lên đầu
+                .OrderBy(g => g.Nam).ThenBy(g => g.Thang).ThenBy(g => g.TenChiNhanh)
                 .ToListAsync();
 
-            foreach (var item in unpaidGroupedByRoom)
+            foreach (var item in unpaidGroupedByMonthBranch)
             {
                 model.ToDos.Add(new ToDoItemViewModel
                 {
                     Type = "danger",
-                    Title = $"Hóa đơn Phòng {item.SoPhong} chưa thu",
-                    Description = $"Phòng {item.SoPhong} chưa thanh toán hóa đơn (Nợ {item.UnpaidMonthsCount} tháng).",
-                    Link = $"/QuanLyNhaTro/QuanLyHoaDon?search={item.SoPhong}&trangThai=0" + (branchId.HasValue ? $"&chiNhanhId={branchId.Value}" : ""),
-                    Icon = "fas fa-exclamation-circle"
+                    Title = $"Hóa đơn T{item.Thang}/{item.Nam} chưa thu ({item.TenChiNhanh})",
+                    Description = $"Có {item.Count} hóa đơn tháng {item.Thang}/{item.Nam} của {item.TenChiNhanh} chưa được thanh toán.",
+                    Link = $"/QuanLyNhaTro/QuanLyHoaDon?thang={item.Thang}&nam={item.Nam}&trangThai=0&chiNhanhId={item.ChiNhanhId}",
+                    Icon = "fas fa-file-invoice-dollar"
                 });
             }
 
