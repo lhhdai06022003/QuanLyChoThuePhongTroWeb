@@ -27,5 +27,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Responses
 
         // --- Trạng thái ---
         public int TrangThaiHopDong { get; set; }
+
+        public List<string> DanhSachTieuDeDieuKhoan { get; set; } = new List<string>();
     }
 }

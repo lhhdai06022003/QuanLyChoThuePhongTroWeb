@@ -16,12 +16,14 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         private readonly IHopDongService _hopDongService;
         private readonly IPhongTroService _phongTroService;
         private readonly INguoiThueService _nguoiThueService;
+        private readonly QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.DieuKhoanMaus.IDieuKhoanMauService _dieuKhoanMauService;
 
-        public HopDongController(IHopDongService hopDongService, IPhongTroService phongTroService, INguoiThueService nguoiThueService)
+        public HopDongController(IHopDongService hopDongService, IPhongTroService phongTroService, INguoiThueService nguoiThueService, QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.DieuKhoanMaus.IDieuKhoanMauService dieuKhoanMauService)
         {
             _hopDongService = hopDongService;
             _phongTroService = phongTroService;
             _nguoiThueService = nguoiThueService;
+            _dieuKhoanMauService = dieuKhoanMauService;
         }
 
         [Route("QuanLyNhaTro/QuanLyHopDong")]
@@ -31,6 +33,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
              ViewBag.ListChiNhanh = await _phongTroService.GetDanhSachChiNhanhDropdownAsync();
              ViewBag.ListPhongTro = await _phongTroService.DanhSachPhongTroConTrong(); 
              ViewBag.ListNguoiThue = await _nguoiThueService.DanhSachNguoiThue();
+             ViewBag.ListDieuKhoanMau = await _dieuKhoanMauService.GetAllAsync();
             return View(); // Trả về view Index của chức năng quản lý hợp đồng
         }
 
@@ -104,6 +107,32 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
                 return BadRequest(new { Message = result.ErrorMessage });
             }
             return Ok(new { Message = "Đã xóa hợp đồng thành công." });
+        }
+
+        [HttpGet("/HopDong/Print/{id}")]
+        public async Task<IActionResult> Print(int id)
+        {
+            var data = await _hopDongService.GetPrintDataAsync(id);
+            if (data == null) return NotFound(new { message = "Không tìm thấy hợp đồng." });
+            return View(data);
+        }
+
+        [HttpGet("/HopDong/DownloadWord/{id}")]
+        public async Task<IActionResult> DownloadWord(int id)
+        {
+            var data = await _hopDongService.GetPrintDataAsync(id);
+            if (data == null) return NotFound(new { message = "Không tìm thấy hợp đồng." });
+
+            try
+            {
+                var fileBytes = QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HopDongs.WordExportService.GenerateHopDongWord(data);
+                var fileName = $"HopDong_{data.MaHopDong}_{DateTime.Now:yyyyMMdd}.docx";
+                return File(fileBytes, "application/vnd.openxmlformats-officedocument.wordprocessingml.document", fileName);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = "Lỗi khi tạo file Word: " + ex.Message });
+            }
         }
     }
 }

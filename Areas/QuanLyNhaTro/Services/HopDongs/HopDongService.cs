@@ -145,7 +145,8 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HopDongs
                     ThoiDiemKetThuc = x.ThoiDiemKetThuc,
                     TienCocPhong = x.TienCocPhong,
                     TienThuePhong = x.TienThuePhong,
-                    TrangThaiHopDong = (int)x.TrangThaiHopDong
+                    TrangThaiHopDong = (int)x.TrangThaiHopDong,
+                    DanhSachTieuDeDieuKhoan = x.HopDongDieuKhoans.Select(d => d.TieuDe).ToList()
                 })
                 .FirstOrDefaultAsync();
         }
@@ -312,6 +313,26 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HopDongs
                     _context.ChiTietThanhVienHopDongs.AddRange(members);
                 }
 
+                // Thêm các điều khoản mẫu được chọn (Snapshot data)
+                if (input.DieuKhoanMauIds != null && input.DieuKhoanMauIds.Any())
+                {
+                    var selectedTerms = await _context.DieuKhoanMaus
+                        .Where(x => input.DieuKhoanMauIds.Contains(x.DieuKhoanMauId) && !x.IsDeleted)
+                        .ToListAsync();
+
+                    int thutu = 1;
+                    foreach (var term in selectedTerms)
+                    {
+                        _context.HopDongDieuKhoans.Add(new HopDongDieuKhoan
+                        {
+                            HopDongId = hopDong.HopDongId,
+                            TieuDe = term.TieuDe,
+                            NoiDung = term.NoiDung,
+                            ThuTu = thutu++
+                        });
+                    }
+                }
+
                 // Cập nhật trạng thái của PhongTro thành "Đã cho thuê"
                 phong.TrangThai = TrangThaiPhong.DaThue;
                 phong.NgayCapNhat = DateTime.UtcNow;
@@ -402,6 +423,29 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HopDongs
                 entity.TrangThaiHopDong = input.TrangThaiHopDong;
                 entity.NgayCapNhat = DateTime.UtcNow;
 
+                // Bước 2.5: Cập nhật điều khoản hợp đồng
+                var oldTerms = await _context.HopDongDieuKhoans.Where(x => x.HopDongId == id).ToListAsync();
+                _context.HopDongDieuKhoans.RemoveRange(oldTerms);
+
+                if (input.DieuKhoanMauIds != null && input.DieuKhoanMauIds.Any())
+                {
+                    var selectedTerms = await _context.DieuKhoanMaus
+                        .Where(x => input.DieuKhoanMauIds.Contains(x.DieuKhoanMauId) && !x.IsDeleted)
+                        .ToListAsync();
+
+                    int thutu = 1;
+                    foreach (var term in selectedTerms)
+                    {
+                        _context.HopDongDieuKhoans.Add(new HopDongDieuKhoan
+                        {
+                            HopDongId = id,
+                            TieuDe = term.TieuDe,
+                            NoiDung = term.NoiDung,
+                            ThuTu = thutu++
+                        });
+                    }
+                }
+
                 // Bước 3: Lưu tất cả thay đổi trong cùng 1 SaveChanges
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
@@ -455,6 +499,62 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HopDongs
 
             await _context.SaveChangesAsync();
             return (true, string.Empty);
+        }
+
+        public async Task<HopDongPrintRes> GetPrintDataAsync(int id)
+        {
+            var hopDong = await _context.HopDongs
+                .Include(x => x.PhongTro)
+                .ThenInclude(p => p.ChiNhanh)
+                .Include(x => x.NguoiThue)
+                .Include(x => x.HopDongDieuKhoans)
+                .FirstOrDefaultAsync(x => x.HopDongId == id && !x.IsDeleted);
+
+            if (hopDong == null) return null;
+
+            var dichVus = await _context.DangKyDichVus
+                .Include(x => x.DichVuChiNhanh).ThenInclude(x => x.DichVu)
+                .Where(x => x.PhongTroId == hopDong.PhongTroId)
+                .Select(x => new HopDongDichVuPrintRes
+                {
+                    TenDichVu = x.DichVuChiNhanh.DichVu.TenDichVu,
+                    DonGia = x.DichVuChiNhanh.GiaDichVu,
+                    DonViTinh = x.DichVuChiNhanh.DichVu.DonVi
+                })
+                .ToListAsync();
+
+            var result = new HopDongPrintRes
+            {
+                HopDongId = hopDong.HopDongId,
+                MaHopDong = hopDong.MaHopDong,
+                ThoiDiemBatDau = hopDong.ThoiDiemBatDau,
+                ThoiDiemKetThuc = hopDong.ThoiDiemKetThuc,
+                TienCocPhong = hopDong.TienCocPhong,
+                TienThuePhong = hopDong.TienThuePhong,
+                NgayTao = hopDong.NgayTao,
+
+                TenChiNhanh = hopDong.PhongTro.ChiNhanh.TenChiNhanh,
+                DiaChiChiNhanh = hopDong.PhongTro.ChiNhanh.DiaChi,
+                SoDienThoaiChiNhanh = hopDong.PhongTro.ChiNhanh.SoDienThoai,
+                SoPhong = hopDong.PhongTro.SoPhong,
+
+                HoVaTenNguoiThue = hopDong.NguoiThue.HoVaTen,
+                SoDienThoaiNguoiThue = hopDong.NguoiThue.SoDienThoai,
+                CCCDNguoiThue = hopDong.NguoiThue.CCCD,
+                NgayCapCCCD = hopDong.NguoiThue.NgayCapCCCD,
+                NoiCapCCCD = hopDong.NguoiThue.NoiCapCCCD,
+                QueQuan = hopDong.NguoiThue.QueQuan,
+
+                DichVus = dichVus,
+                DieuKhoans = hopDong.HopDongDieuKhoans.OrderBy(x => x.ThuTu).Select(d => new HopDongDieuKhoanPrintRes
+                {
+                    TieuDe = d.TieuDe,
+                    NoiDung = d.NoiDung,
+                    ThuTu = d.ThuTu
+                }).ToList()
+            };
+
+            return result;
         }
     }
 }

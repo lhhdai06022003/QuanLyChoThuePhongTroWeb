@@ -116,6 +116,7 @@ Tài liệu này mô tả chi tiết tất cả các chức năng nghiệp vụ 
 *   **Cập nhật hợp đồng**: Điều chỉnh thời hạn hoặc giá trị thỏa thuận thuê phòng.
 *   **Xóa / Chấm dứt hợp đồng**: Thanh lý hợp đồng và giải phóng phòng về trạng thái trống.
 *   **Quản lý thành viên ở ghép**: Thêm thành viên ở cùng phòng, báo rời phòng (giảm số người ở), và xóa thành viên nhập nhầm.
+*   **Xuất hợp đồng sang Word (.docx)**: Tạo file Word chứa toàn bộ thông tin hợp đồng để lưu trữ, sửa đổi thủ công hoặc in ấn ngoại tuyến.
 
 #### C. Cách thức hoạt động chi tiết:
 1.  **Quy trình lập hợp đồng (`CreateAsync`)**:
@@ -126,6 +127,12 @@ Tài liệu này mô tả chi tiết tất cả các chức năng nghiệp vụ 
 2.  **Chấm dứt/Xóa hợp đồng**: Khi hợp đồng bị xóa hoặc hết hạn thanh lý, thuộc tính `IsDeleted` của hợp đồng được cập nhật thành `true` (hoặc chuyển trạng thái sang `DaKetThuc`). Đồng thời, trạng thái của phòng trọ liên kết được tự động chuyển về "Trống" (`Trong`) để sẵn sàng cho khách thuê tiếp theo.
 3.  **Ràng buộc sức chứa thành viên**: Khi thêm thành viên ở ghép thông qua API `/ThanhVienHopDong/AddThanhVien`, hệ thống đếm số lượng thành viên đang ở thực tế trong phòng (các bản ghi trong bảng `ChiTietThanhVienHopDongs` có ngày vào ở và trường `NgayChuyenDi == null`) cộng thêm người đại diện ký hợp đồng, sau đó so sánh với trường `SoNguoiToiDa` cấu hình tại bảng `PhongTros`. Nếu vượt quá sức chứa tối đa của phòng, hệ thống sẽ từ chối thêm mới và báo lỗi.
 4.  **Báo rời phòng (`BaoRoiPhongAsync`)**: Khi một thành viên ở ghép dọn đi trước khi hợp đồng kết thúc, nhân viên nhấn nút "Báo rời phòng". Hệ thống cập nhật cột `NgayChuyenDi` của bản ghi đó thành ngày hiện tại để ghi nhận lịch sử tạm trú, đồng thời giảm số người ở thực tế của phòng đó xuống phục vụ việc tính toán các dịch vụ tính theo đầu người (nếu có).
+5.  **Quy trình Xuất hợp đồng sang Word (.docx) (`ExportToWordAsync`)**:
+    *   Khi người dùng click vào nút "Xuất Word" trên bảng thao tác của hợp đồng, AJAX gửi request kèm `id` hợp đồng lên API `/QuanLyNhaTro/HopDong/ExportWord/{id}`.
+    *   `WordExportService.cs` tiếp nhận, truy vấn thông tin hợp đồng từ database và chuẩn bị dữ liệu dạng `HopDongPrintRes` (thông tin khách thuê, chi nhánh sở hữu phòng, danh sách dịch vụ đăng ký, các điều khoản hợp đồng).
+    *   Sử dụng thư viện `DocX` để thiết lập văn bản Word theo chuẩn khổ giấy A4, căn lề trái 1 inch, lề phải 0.75 inch, các lề trên và dưới 1 inch.
+    *   Hệ thống dùng các đoạn văn bản (`Paragraph`), bảng biểu (`Table`) để trình bày nội dung hợp đồng đẹp mắt và rõ ràng. Dữ liệu động được thay thế trực tiếp vào tiêu đề, thông tin bên A (chủ trọ), bên B (khách thuê) và lập bảng kê dịch vụ đăng ký kèm đơn giá chi tiết.
+    *   Kết quả trả về dưới dạng luồng byte (`FileStreamResult` với Content-Type là `application/vnd.openxmlformats-officedocument.wordprocessingml.document`), trình duyệt của người dùng sẽ tự động tải về tệp tin `.docx` mà không lưu file tạm trên máy chủ.
 
 ---
 
@@ -230,3 +237,25 @@ Tài liệu này mô tả chi tiết tất cả các chức năng nghiệp vụ 
     *   Thiết lập trạng thái xóa mềm của giao dịch: `IsDeleted = true`.
     *   Tìm hóa đơn liên kết với giao dịch này. Khôi phục trạng thái của hóa đơn về **Chưa thanh toán** (`TrangThaiHoaDon = ChuaThanhToan`), cập nhật ngày thanh toán của hóa đơn về `null` và cập nhật lại số tiền đã thanh toán của hóa đơn về 0.
     *   Lưu thay đổi vào DB. Giao dịch biến mất khỏi danh sách lịch sử, và hóa đơn tương ứng lập tức hiển thị nợ trở lại trên Sơ đồ phòng và trang Hóa đơn để thu ngân có thể tiến hành thu tiền lại đúng chuẩn.
+
+---
+
+### 11. QUẢN LÝ ĐIỀU KHOẢN MẪU (CONTRACT TEMPLATE CLAUSES)
+
+#### A. Các giao diện xuất hiện trên Website:
+*   **Trang Quản lý Điều khoản mẫu**: Xuất hiện khi người dùng truy cập từ thanh Menu bên trái: **Quản lý nhà trọ** -> **Điều khoản mẫu**.
+
+#### B. Danh sách chức năng:
+*   **Xem danh sách điều khoản**: Hiển thị bảng danh mục điều khoản mẫu dùng chung cho các hợp đồng của hệ thống, hỗ trợ tìm kiếm và phân trang bằng DataTables.
+*   **Thêm mới điều khoản mẫu**: Tạo nội dung điều khoản mặc định qua Bootstrap Modal & AJAX.
+*   **Chỉnh sửa điều khoản mẫu**: Cập nhật tiêu đề và nội dung điều khoản qua Bootstrap Modal & AJAX.
+*   **Xóa mềm điều khoản mẫu**: Ngăn chặn hiển thị điều khoản cũ trên giao diện nhưng giữ nguyên cấu trúc liên kết các hợp đồng đã ký trong quá khứ.
+
+#### C. Cách thức hoạt động chi tiết:
+1.  **Thiết kế Single Page Application (SPA) tiện dụng**: Để nâng cao trải nghiệm người dùng (UX) và tối giản quy trình chuyển trang, toàn bộ thao tác Thêm, Sửa, Xóa đều được xử lý trên một trang `Index.cshtml` duy nhất. Các view con `Create.cshtml` và `Edit.cshtml` trước đây đã bị xóa bỏ hoàn toàn.
+2.  **Giao tiếp AJAX & Bootstrap Modal**:
+    *   *Xem dữ liệu*: Khi tải trang, thư viện jQuery DataTables gọi API Endpoint `/DieuKhoanMau/GetList` để lấy toàn bộ danh sách điều khoản chưa bị xóa mềm và hiển thị trực quan.
+    *   *Thêm mới & Sửa*: Khi nhấn nút thêm mới hoặc biểu tượng sửa, Javascript sẽ hiển thị Bootstrap Modal `#dieuKhoanModal`. Đối với hành động sửa, hệ thống gọi API `/DieuKhoanMau/GetById/{id}` để tự động đổ dữ liệu (Tiêu đề, Nội dung) vào các trường nhập liệu của form. Khi người dùng bấm lưu, form sẽ gửi yêu cầu bất đồng bộ POST lên API `/DieuKhoanMau/Save`. Backend lưu trữ thành công và trả về trạng thái JSON (`success: true`), Javascript đóng modal và reload lại danh sách bảng DataTables dưới nền, mang lại phản hồi ngay lập tức cho người dùng.
+3.  **Xóa mềm an toàn dữ liệu**: Khi người dùng nhấn nút xóa điều khoản mẫu, SweetAlert2 sẽ kích hoạt popup yêu cầu xác nhận. Sau khi xác nhận, AJAX gửi yêu cầu lên API `/DieuKhoanMau/Delete/{id}`. Service cập nhật thuộc tính `IsDeleted = true` trong cơ sở dữ liệu PostgreSQL. Điều khoản bị ẩn khỏi màn hình quản lý, nhưng vẫn tồn tại trong database để bảo toàn tính toàn vẹn của các dữ liệu lịch sử liên kết trước đó.
+4.  **Đồng bộ thiết kế Tabler Theme**: CSS và cấu trúc HTML của trang điều khoản mẫu được đồng bộ chuẩn với layout hệ thống. Khoảng cách (margin-top/bottom) của bảng hiển thị dữ liệu đối với card phía trên được thiết kế tối ưu, khắc phục lỗi dính sát lề thường gặp. Màu sắc giao diện, bảng biểu, hộp thoại SweetAlert2 và các Modals tự động đồng bộ khi kích hoạt chế độ Dark Mode trên trình duyệt.
+

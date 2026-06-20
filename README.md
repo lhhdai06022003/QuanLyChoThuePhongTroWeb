@@ -15,6 +15,7 @@ Dự án được phát triển theo mô hình ứng dụng web hiện đại, t
 - **Thư viện xuất bản file**:
   - **ClosedXML**: Dùng để xử lý đọc/ghi và xuất dữ liệu báo cáo ra file Excel (.xlsx).
   - **QuestPDF**: Thư viện thế hệ mới để xuất hóa đơn/hợp đồng ra file PDF chất lượng cao.
+  - **DocX**: Thư viện xử lý và xuất hợp đồng thuê phòng ra file Word (.docx) định dạng A4 chuyên nghiệp.
   - **QRCoder**: Dùng để sinh mã QR chuyển khoản ngân hàng nhanh tiêu chuẩn VietQR động, hoàn toàn offline trên server.
 - **Tác vụ nền**: `InvoiceReminderService` (kế thừa `BackgroundService`) chạy định kỳ mỗi giờ, tự động quét và gửi email nhắc nợ.
 
@@ -72,11 +73,12 @@ QuanLyChoThuePhongTroWeb/
 2. **Chi nhánh (Branches)**: Quản lý nhiều cơ sở nhà trọ khác nhau. Mỗi chi nhánh có bảng giá dịch vụ riêng biệt.
 3. **Phòng trọ (Rooms)**: Quản lý số phòng, đơn giá thuê gốc, diện tích và trạng thái phòng (Trống / Đã thuê / Đang bảo trì). Hỗ trợ sơ đồ phòng trực quan và thanh toán nhanh.
 4. **Khách thuê (Tenants)**: Lưu trữ thông tin cá nhân khách thuê đại diện và các thành viên ở ghép. Tích hợp autocomplete khi lập hợp đồng.
-5. **Hợp đồng (Contracts)**: Quản lý thời hạn thuê phòng, số tiền cọc, giá thuê thỏa thuận. Tích hợp quản lý thành viên ở ghép (`_DanhSachThanhVienPartial`) và danh sách dịch vụ đăng ký đi kèm (`_DangKyDichVuPartial`).
+5. **Hợp đồng (Contracts)**: Quản lý thời hạn thuê phòng, số tiền cọc, giá thuê thỏa thuận. Tích hợp quản lý thành viên ở ghép (`_DanhSachThanhVienPartial`), danh sách dịch vụ đăng ký đi kèm (`_DangKyDichVuPartial`), và chức năng xuất hợp đồng ra file Word (.docx) chuẩn A4 thông qua `WordExportService` bên cạnh PDF để tải về máy.
 6. **Dịch vụ (Services)**: Định nghĩa danh mục dịch vụ và cấu hình bảng giá riêng theo từng chi nhánh.
 7. **Chỉ số Điện nước (Utilities)**: Ghi chỉ số điện/nước hàng tháng của từng phòng trọ. Hỗ trợ kế thừa chỉ số và khóa dữ liệu sau khi phát sinh hóa đơn.
 8. **Hóa đơn (Invoices)**: Tự động phát sinh hóa đơn theo kỳ dựa vào tiền phòng thỏa thuận, tiền điện/nước tiêu thụ thực tế và các dịch vụ đăng ký. Hỗ trợ sinh VietQR chuyển khoản, in báo cáo PDF/Excel, gửi email thông báo đơn lẻ hoặc hàng loạt, và chạy ngầm nhắc nợ tự động (`InvoiceReminderService`).
 9. **Lịch sử Thanh toán (Payment History)**: Quản lý toàn bộ giao dịch đóng tiền mặt hoặc quét VietQR chuyển khoản, cho phép Admin thực hiện hủy/hoàn tác giao dịch thu tiền khi bị lỗi.
+10. **Điều khoản mẫu (Contract Clauses)**: Quản lý các điều khoản mẫu dùng trong hợp đồng thuê phòng. Được thiết kế dưới dạng Single-Page Application (SPA) qua AJAX và Bootstrap Modals giúp thực hiện toàn bộ thao tác Thêm, Sửa, Xóa trên một màn hình duy nhất mà không cần tải lại trang.
 
 ---
 

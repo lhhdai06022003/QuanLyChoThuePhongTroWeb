@@ -33,5 +33,8 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Requests
 
         // Danh sách những người ở ghép (nếu có)
         public List<int>? ThanhVienKhacIds { get; set; }
+
+        // Danh sách các ID điều khoản mẫu được chọn
+        public List<int>? DieuKhoanMauIds { get; set; }
     }
 }

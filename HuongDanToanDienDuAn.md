@@ -32,6 +32,7 @@ Dự án được xây dựng dưới dạng ứng dụng Web theo kiến trúc 
 ### 3. Thư viện tích hợp nâng cao
 
 *   **QuestPDF**: Thư viện sinh tệp PDF chất lượng cao dùng để in hợp đồng, xuất hóa đơn hàng tháng.
+*   **DocX**: Thư viện tạo, chỉnh sửa và xuất hợp đồng thuê phòng sang định dạng Word (.docx) chuyên nghiệp theo chuẩn A4.
 *   **ClosedXML**: Thư viện đọc/ghi Excel dùng xuất báo cáo kế toán dưới định dạng `.xlsx`.
 *   **QRCoder**: Sinh mã QR chuyển khoản VietQR Napas động dưới dạng luồng byte ảnh PNG hoàn toàn offline trên server (không phụ thuộc internet).
 *   **SMTP (TLS)**: Gửi email thông báo hóa đơn và nhắc nợ tự động qua tài khoản cấu hình trong `appsettings.json`.
@@ -138,6 +139,7 @@ Dưới đây là mô tả chi tiết 10 module chức năng chính của hệ t
     *   *Lập hợp đồng*: Khi tạo hợp đồng mới, hệ thống chuyển trạng thái phòng sang "Đã thuê", đồng thời tự động gán các dịch vụ mặc định bắt buộc (Điện, Nước) vào danh sách đăng ký dịch vụ của phòng.
     *   *Quản lý thành viên*: Khi thêm thành viên qua Modal thêm thành viên, hệ thống hỗ trợ autocomplete tìm kiếm khách cũ hoặc nhập mới hoàn toàn. Hệ thống đếm số người ở thực tế (bao gồm khách đại diện + thành viên cũ đang ở) so khớp với sức chứa tối đa của phòng (`SoNguoiToiDa`). Nếu vượt quá, hệ thống sẽ chặn hành động.
     *   *Báo rời phòng*: Ghi nhận ngày rời phòng là ngày hiện tại của thành viên để lưu lịch sử tạm trú và giảm số người ở thực tế của phòng.
+    *   *Xuất hợp đồng sang Word (.docx)*: Cho phép người dùng xuất toàn bộ nội dung hợp đồng (bao gồm thông tin khách thuê, thông tin chi nhánh, các điều khoản và bảng đăng ký dịch vụ) ra file Word `.docx` định dạng A4 chuẩn bằng `WordExportService`. Tính năng này được gọi thông qua AJAX hoặc tải trực tiếp về máy từ bộ nhớ RAM, rất hữu ích khi người dùng không kết nối trực tiếp với máy in để in PDF mà cần lưu trữ file offline hoặc tự chỉnh sửa nội dung bằng Microsoft Word.
 
 ### 7. Quản lý Dịch vụ & Đăng ký dịch vụ
 
@@ -179,6 +181,15 @@ Dưới đây là mô tả chi tiết 10 module chức năng chính của hệ t
     *   Lưu lại toàn bộ lịch sử nộp tiền mặt hoặc chuyển khoản quét mã của khách thuê.
     *   *Giao diện lọc*: Hỗ trợ lọc giao dịch theo chi nhánh, phương thức đóng tiền, và khoảng ngày (sử dụng Flatpickr Date Range).
     *   *Hoàn tác giao dịch (Hủy thanh toán)*: Khi Admin bấm hủy một giao dịch do nhân viên nhập nhầm, hệ thống xóa mềm giao dịch đó, khôi phục trạng thái hóa đơn tương ứng về "Chưa thanh toán", đưa số tiền đã thanh toán của hóa đơn về 0 và ghi nhận lại ID của quản trị viên thực hiện để phục vụ kiểm toán nội bộ.
+
+### 11. Quản lý Điều khoản mẫu
+
+*   **Giao diện xuất hiện**: Truy cập từ Menu: **Quản lý nhà trọ** -> **Điều khoản mẫu**.
+*   **Cách thức hoạt động**:
+    *   *Thiết kế SPA (Single-Page Application)*: Nhằm mang lại trải nghiệm tối ưu, toàn bộ giao diện quản lý được tập trung trên một trang duy nhất (`Index.cshtml`). Các trang con thêm mới (`Create.cshtml`) và chỉnh sửa (`Edit.cshtml`) riêng lẻ trước đây đã bị loại bỏ để giảm tải thời gian chuyển hướng trang.
+    *   *Quản lý qua AJAX & Modals*: Khi nhân viên bấm nút "Thêm điều khoản" hoặc biểu tượng "Sửa" trên danh sách, một Bootstrap Modal sẽ xuất hiện chứa form nhập liệu (gồm Tiêu đề và Nội dung điều khoản). Khi lưu, dữ liệu được truyền bất đồng bộ thông qua AJAX lên Controller API (`/DieuKhoanMau/Save`), sau đó DataTables sẽ tự động tải lại danh sách dưới nền mà không tải lại toàn bộ trang.
+    *   *Xóa mềm tích hợp SweetAlert2*: Khi bấm nút xóa, SweetAlert2 sẽ hiển thị popup cảnh báo. Nếu được xác nhận, AJAX sẽ gửi yêu cầu xóa mềm (`IsDeleted = true`), đảm bảo dữ liệu lịch sử của các hợp đồng cũ liên kết điều khoản này không bị ảnh hưởng.
+    *   *Tương thích Dark Mode & Thống nhất giao diện*: Giao diện bảng (Table) đã được căn chỉnh khoảng cách lề (margin/padding) hợp lý với khối Card phía trên, đảm bảo độ thẩm mỹ cao và tương thích hoàn hảo với chế độ tối của Tabler Theme.
 
 ---
 

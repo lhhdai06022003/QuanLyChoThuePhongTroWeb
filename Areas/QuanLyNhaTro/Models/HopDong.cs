@@ -1,4 +1,4 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -30,6 +30,7 @@ namespace QuanLyChoThuePhongTroWeb.Models
 
         public ICollection<HoaDon> HoaDons { get; set; }
         public ICollection<ChiTietThanhVienHopDong> ChiTietThanhVienHopDongs { get; set; }
+        public ICollection<HopDongDieuKhoan> HopDongDieuKhoans { get; set; }
     }
     public enum TrangThaiHopDong
     {

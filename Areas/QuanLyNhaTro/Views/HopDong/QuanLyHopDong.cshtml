@@ -130,7 +130,8 @@
                 <div class="steps steps-counter steps-blue mb-4" id="hopDongStepper">
                     <span class="step-item active" data-step="1" id="step-tab-thongtin">Thông tin chung</span>
                     <span class="step-item" data-step="2" id="step-tab-dichvu">Dịch vụ đăng ký</span>
-                    <span class="step-item" data-step="3" id="stepHeaderThanhVien" style="display:none;">Thành viên ở ghép</span>
+                    <span class="step-item" data-step="3" id="step-tab-dieukhoan">Điều khoản hợp đồng</span>
+                    <span class="step-item" data-step="4" id="stepHeaderThanhVien" style="display:none;">Thành viên ở ghép</span>
                 </div>
 
                 <div class="tab-content mt-3">
@@ -242,7 +243,37 @@
                         </div>
                     </div>
 
-                    <!-- Tab 3: Danh sách thành viên -->
+                    <!-- Tab 3: Điều khoản hợp đồng -->
+                    <div class="tab-pane fade" id="content-dieukhoan" role="tabpanel">
+                        <div class="alert alert-info py-2 mb-3 shadow-sm border-0">
+                            <i class="fas fa-info-circle me-2"></i> Chọn các điều khoản sẽ được áp dụng cho hợp đồng này.
+                        </div>
+                        <div class="row">
+                            @if (ViewBag.ListDieuKhoanMau != null)
+                            {
+                                foreach (var dk in ViewBag.ListDieuKhoanMau)
+                                {
+                                    <div class="col-md-6 mb-3">
+                                        <div class="card shadow-none border">
+                                            <div class="card-header p-2 bg-light d-flex align-items-center">
+                                                <div class="form-check m-0">
+                                                    <input class="form-check-input chk-dieukhoan" type="checkbox" id="dk_@dk.DieuKhoanMauId" value="@dk.DieuKhoanMauId">
+                                                    <label class="form-check-label font-weight-bold" for="dk_@dk.DieuKhoanMauId">
+                                                        @dk.TieuDe
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div class="card-body p-2" style="max-height: 100px; overflow-y: auto; font-size: 0.9rem;">
+                                                @dk.NoiDung
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Tab 4: Danh sách thành viên -->
                     <div class="tab-pane fade" id="content-thanhvien" role="tabpanel">
                         @await Html.PartialAsync("~/Areas/QuanLyNhaTro/Views/Shared/_DanhSachThanhVienPartial.cshtml")
                     </div>
@@ -295,7 +326,7 @@
         // Quản lý các bước của Stepper Wizard
         function goToStep(step) {
             let hasThanhVien = window.currentHopDongId > 0;
-            let maxStepVal = hasThanhVien ? 3 : 2;
+            let maxStepVal = hasThanhVien ? 4 : 3;
 
             if (step > maxStepVal || step < 1) return;
 
@@ -337,6 +368,8 @@
             } else if (window.currentStep === 2) {
                 $('#content-dichvu').addClass('show active');
             } else if (window.currentStep === 3) {
+                $('#content-dieukhoan').addClass('show active');
+            } else if (window.currentStep === 4) {
                 $('#content-thanhvien').addClass('show active');
             }
 
@@ -345,9 +378,9 @@
 
         function updateWizardButtons() {
             let hasThanhVien = window.currentHopDongId > 0;
-            let maxStepVal = hasThanhVien ? 3 : 2;
+            let maxStepVal = hasThanhVien ? 4 : 3;
 
-            // Hiển thị tiêu đề bước 3 trong stepper
+            // Hiển thị tiêu đề bước 4 trong stepper
             if (hasThanhVien) {
                 $('#stepHeaderThanhVien').show();
             } else {
@@ -549,6 +582,12 @@
                         "render": function (data) {
                             return `
                                 <div class="btn-list flex-nowrap justify-content-center">
+                                    <a href="/HopDong/Print/${data}" target="_blank" class="btn btn-icon btn-ghost-info btn-sm" title="In Hợp Đồng">
+                                        <i class="fas fa-print"></i>
+                                    </a>
+                                    <a href="/HopDong/DownloadWord/${data}" class="btn btn-icon btn-ghost-success btn-sm" title="Tải Word">
+                                        <i class="fas fa-file-word"></i>
+                                    </a>
                                     <button class="btn btn-icon btn-ghost-warning btn-sm btn-edit" data-id="${data}" title="Sửa">
                                         <i class="fas fa-edit"></i>
                                     </button>
@@ -587,6 +626,7 @@
                 $('#TrangThaiHopDong').val(1);
                 $('#groupNguoiDungCoO').show();
                 $('#NguoiDungCoOPhongKhong').prop('checked', true);
+                $('.chk-dieukhoan').prop('checked', false);
 
                 // Reset tab dịch vụ
                 $('#hopDongDichVuContainer').html(`
@@ -890,7 +930,8 @@
                     tienCocPhong: tienCocPhong,
                     tienThuePhong: tienThuePhong,
                     trangThaiHopDong: parseInt($('#TrangThaiHopDong').val() || 1),
-                    nguoiDungCoOPhongKhong: $('#NguoiDungCoOPhongKhong').is(':checked')
+                    nguoiDungCoOPhongKhong: $('#NguoiDungCoOPhongKhong').is(':checked'),
+                    dieuKhoanMauIds: $('.chk-dieukhoan:checked').map(function() { return parseInt($(this).val()); }).get()
                 };
 
                 let isUpdate = window.currentHopDongId > 0;
@@ -1011,6 +1052,17 @@
 
                         $('#TienCocPhong').val(res.tienCocPhong);
                         $('#TienThuePhong').val(res.tienThuePhong);
+
+                        // Check checkbox điều khoản
+                        $('.chk-dieukhoan').prop('checked', false);
+                        if (res.danhSachTieuDeDieuKhoan && res.danhSachTieuDeDieuKhoan.length > 0) {
+                            $('.chk-dieukhoan').each(function() {
+                                let labelText = $(this).siblings('label').text().trim();
+                                if (res.danhSachTieuDeDieuKhoan.includes(labelText)) {
+                                    $(this).prop('checked', true);
+                                }
+                            });
+                        }
 
                         // Load danh sách thành viên và chuyển bước 1
                         if (typeof window.loadDanhSachThanhVien === "function") {
