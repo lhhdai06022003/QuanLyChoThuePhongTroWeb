@@ -1,0 +1,575 @@
+<div class="ai-chat-wrapper">
+    <!-- Floating Action Button (FAB) -->
+    <button type="button" class="btn-ai-fab shadow-lg" id="btnAiOpenChat" title="Trò chuyện với Trợ lý AI">
+        <i class="fa-solid fa-robot"></i>
+        <span class="ai-badge-pulse"></span>
+    </button>
+
+    <!-- Chat Box Window -->
+    <div class="ai-chat-box shadow-2xl" id="aiChatBox">
+        <!-- Chat Header -->
+        <div class="ai-chat-header d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center gap-2">
+                <div class="ai-header-avatar">
+                    <i class="fa-solid fa-brain"></i>
+                </div>
+                <div>
+                    <h4 class="m-0 text-white fw-bold" style="font-size: 14px;">Trợ lý AI Vận Hành</h4>
+                    <small class="text-white-50" style="font-size: 10px;"><i class="fa-solid fa-circle text-success me-1"></i>Trực tuyến</small>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <button type="button" class="btn-ai-header" id="btnAiReset" title="Xóa lịch sử chat">
+                    <i class="fa-solid fa-trash-can"></i>
+                </button>
+                <button type="button" class="btn-ai-header" id="btnAiClose" title="Thu nhỏ">
+                    <i class="fa-solid fa-chevron-down"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Chat Body -->
+        <div class="ai-chat-body" id="aiChatBody">
+            <div class="ai-message ai-message-model">
+                <div class="ai-msg-bubble">
+                    Xin chào! Tôi là **Trợ lý AI Vận Hành**. Bạn có thể hỏi tôi các câu hỏi như:
+                    <ul>
+                        <li>Tháng này còn phòng nào chưa chốt điện nước không?</li>
+                        <li>Có hóa đơn nào chưa thanh toán trong tháng 5 không?</li>
+                        <li>Doanh thu của quý này hoặc năm nay là bao nhiêu?</li>
+                    </ul>
+                    Tôi có thể hỗ trợ gì cho bạn hôm nay?
+                </div>
+            </div>
+        </div>
+
+        <!-- Typing Indicator -->
+        <div class="ai-typing-indicator d-none" id="aiTypingIndicator">
+            <div class="ai-msg-avatar">
+                <i class="fa-solid fa-robot"></i>
+            </div>
+            <div class="ai-typing-bubbles">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+
+        <!-- Quick Suggestions -->
+        <div class="ai-quick-suggestions d-flex gap-1 flex-wrap p-2 border-top border-light-subtle bg-body-tertiary">
+            <button type="button" class="badge bg-indigo-lt border border-indigo-subtle py-1.5 px-2.5 text-start btn-ai-suggest" data-prompt="Doanh thu thực thu tháng này là bao nhiêu?">
+                <i class="fa-solid fa-chart-line me-1"></i>Doanh thu tháng này
+            </button>
+            <button type="button" class="badge bg-purple-lt border border-purple-subtle py-1.5 px-2.5 text-start btn-ai-suggest" data-prompt="Phòng nào chưa chốt điện nước tháng này?">
+                <i class="fa-solid fa-bolt me-1"></i>Chưa chốt điện nước
+            </button>
+            <button type="button" class="badge bg-orange-lt border border-orange-subtle py-1.5 px-2.5 text-start btn-ai-suggest" data-prompt="Hóa đơn chưa thanh toán tháng này?">
+                <i class="fa-solid fa-file-invoice-dollar me-1"></i>Hóa đơn trễ hạn
+            </button>
+        </div>
+
+        <!-- Chat Footer (Input) -->
+        <div class="ai-chat-footer p-2 border-top border-light-subtle bg-body">
+            <form id="frmAiChat" class="d-flex align-items-center gap-1.5 m-0">
+                <input type="text" id="txtAiMessage" class="form-control ai-input" placeholder="Hỏi tôi bất cứ điều gì..." autocomplete="off" required />
+                <button type="submit" class="btn btn-primary btn-icon ai-btn-send" id="btnAiSend" title="Gửi">
+                    <i class="fa-solid fa-paper-plane"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Chat FAB Style */
+    .btn-ai-fab {
+        position: fixed;
+        bottom: 25px;
+        right: 25px;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #4f46e5, #7c3aed);
+        color: #ffffff;
+        border: none;
+        outline: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        z-index: 1050;
+        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .btn-ai-fab:hover {
+        transform: scale(1.1);
+        box-shadow: 0 8px 24px rgba(99, 102, 241, 0.5) !important;
+    }
+    
+    /* Badge Pulse Animation */
+    .ai-badge-pulse {
+        position: absolute;
+        top: 2px;
+        right: 2px;
+        width: 12px;
+        height: 12px;
+        background-color: #22c55e;
+        border-radius: 50%;
+        border: 2px solid #ffffff;
+    }
+    .ai-badge-pulse::after {
+        content: '';
+        position: absolute;
+        top: -2px;
+        left: -2px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        border: 2px solid #22c55e;
+        animation: ai-pulse 2s infinite;
+        opacity: 0;
+    }
+    @@keyframes ai-pulse {
+        0% { transform: scale(1); opacity: 1; }
+        100% { transform: scale(2.2); opacity: 0; }
+    }
+
+    /* Chat Box Window */
+    .ai-chat-box {
+        position: fixed;
+        bottom: 95px;
+        right: 25px;
+        width: 380px;
+        height: 520px;
+        border-radius: 16px;
+        background-color: var(--tblr-bg-surface);
+        border: 1px solid var(--tblr-border-color);
+        display: none;
+        flex-direction: column;
+        z-index: 1050;
+        overflow: hidden;
+        animation: ai-slide-in 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    }
+    @@keyframes ai-slide-in {
+        from { transform: translateY(30px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+
+    /* Chat Header */
+    .ai-chat-header {
+        background: linear-gradient(135deg, #3b82f6, #6366f1);
+        padding: 12px 16px;
+        color: #ffffff;
+    }
+    .ai-header-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background-color: rgba(255, 255, 255, 0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+    }
+    .btn-ai-header {
+        background: none;
+        border: none;
+        color: rgba(255, 255, 255, 0.85);
+        padding: 4px 8px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: color 0.2s;
+    }
+    .btn-ai-header:hover {
+        color: #ffffff;
+    }
+
+    /* Chat Body */
+    .ai-chat-body {
+        flex: 1;
+        padding: 16px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        background-color: var(--tblr-bg-surface-secondary, #f8fafc);
+    }
+    .ai-message {
+        display: flex;
+        max-width: 85%;
+        animation: ai-fade-in 0.2s ease-out;
+    }
+    @@keyframes ai-fade-in {
+        from { opacity: 0; transform: translateY(5px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .ai-message-user {
+        align-self: flex-end;
+        justify-content: flex-end;
+    }
+    .ai-message-model {
+        align-self: flex-start;
+        justify-content: flex-start;
+    }
+    .ai-msg-bubble {
+        padding: 10px 14px;
+        border-radius: 14px;
+        font-size: 13.5px;
+        line-height: 1.5;
+        word-break: break-word;
+    }
+    .ai-message-user .ai-msg-bubble {
+        background-color: #4f46e5;
+        color: #ffffff;
+        border-bottom-right-radius: 2px;
+    }
+    .ai-message-model .ai-msg-bubble {
+        background-color: var(--tblr-bg-surface);
+        border: 1px solid var(--tblr-border-color);
+        color: var(--tblr-body-color);
+        border-bottom-left-radius: 2px;
+    }
+
+    /* Table styling inside AI response */
+    .ai-msg-bubble table {
+        width: 100%;
+        margin-top: 8px;
+        margin-bottom: 8px;
+        border-collapse: collapse;
+        font-size: 12px;
+        background-color: var(--tblr-bg-surface);
+    }
+    .ai-msg-bubble th, .ai-msg-bubble td {
+        border: 1px solid var(--tblr-border-color);
+        padding: 6px 8px;
+        text-align: left;
+    }
+    .ai-msg-bubble th {
+        background-color: var(--tblr-bg-surface-secondary, #f1f5f9);
+        font-weight: 600;
+    }
+
+    /* Typing Indicator */
+    .ai-typing-indicator {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding-left: 16px;
+        margin-bottom: 12px;
+    }
+    .ai-msg-avatar {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background-color: #6366f1;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+    }
+    .ai-typing-bubbles {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        background-color: var(--tblr-bg-surface);
+        border: 1px solid var(--tblr-border-color);
+        padding: 8px 14px;
+        border-radius: 14px;
+        border-bottom-left-radius: 2px;
+    }
+    .ai-typing-bubbles span {
+        width: 6px;
+        height: 6px;
+        background-color: #888888;
+        border-radius: 50%;
+        display: inline-block;
+        animation: ai-bounce 1.4s infinite ease-in-out both;
+    }
+    .ai-typing-bubbles span:nth-child(1) { animation-delay: -0.32s; }
+    .ai-typing-bubbles span:nth-child(2) { animation-delay: -0.16s; }
+    @@keyframes ai-bounce {
+        0%, 80%, 100% { transform: scale(0); }
+        40% { transform: scale(1); }
+    }
+
+    /* Suggestion Buttons */
+    .btn-ai-suggest {
+        font-size: 11px;
+        cursor: pointer;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+    .btn-ai-suggest:hover {
+        transform: translateY(-1px);
+        opacity: 0.9;
+    }
+
+    /* Footer & Input */
+    .ai-input {
+        border-radius: 8px !important;
+        font-size: 13px;
+        padding: 8px 12px;
+    }
+    .ai-btn-send {
+        background-color: #4f46e5;
+        border-color: #4f46e5;
+        color: white;
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    .ai-btn-send:hover {
+        background-color: #4338ca !important;
+        border-color: #4338ca !important;
+    }
+</style>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const fab = document.getElementById("btnAiOpenChat");
+        const box = document.getElementById("aiChatBox");
+        const closeBtn = document.getElementById("btnAiClose");
+        const resetBtn = document.getElementById("btnAiReset");
+        const form = document.getElementById("frmAiChat");
+        const input = document.getElementById("txtAiMessage");
+        const body = document.getElementById("aiChatBody");
+        const typingIndicator = document.getElementById("aiTypingIndicator");
+
+        // Tải lịch sử trò chuyện từ sessionStorage
+        loadChatHistory();
+
+        // Mở/đóng khung chat
+        fab.addEventListener("click", function () {
+            const isVisible = box.style.display === "flex";
+            if (isVisible) {
+                box.style.display = "none";
+            } else {
+                box.style.display = "flex";
+                scrollToBottom();
+                input.focus();
+            }
+        });
+
+        closeBtn.addEventListener("click", function () {
+            box.style.display = "none";
+        });
+
+        // Reset chat
+        resetBtn.addEventListener("click", function () {
+            sessionStorage.removeItem("ai_chat_history");
+            body.innerHTML = `
+                <div class="ai-message ai-message-model">
+                    <div class="ai-msg-bubble">
+                        Xin chào! Tôi là **Trợ lý AI Vận Hành**. Bạn có thể hỏi tôi các câu hỏi như:
+                        <ul>
+                            <li>Tháng này còn phòng nào chưa chốt điện nước không?</li>
+                            <li>Có hóa đơn nào chưa thanh toán trong tháng 5 không?</li>
+                            <li>Doanh thu của quý này hoặc năm nay là bao nhiêu?</li>
+                        </ul>
+                        Tôi có thể hỗ trợ gì cho bạn hôm nay?
+                    </div>
+                </div>
+            `;
+            formatAllMessages();
+        });
+
+        // Submit câu hỏi
+        form.addEventListener("submit", function (e) {
+            e.preventDefault();
+            const text = input.value.trim();
+            if (!text) return;
+
+            sendMessage(text);
+        });
+
+        // Click nút gợi ý nhanh
+        document.querySelectorAll(".btn-ai-suggest").forEach(button => {
+            button.addEventListener("click", function () {
+                const text = this.getAttribute("data-prompt");
+                sendMessage(text);
+            });
+        });
+
+        function sendMessage(text) {
+            // Append tin nhắn của User
+            appendMessage("user", text);
+            input.value = "";
+            scrollToBottom();
+
+            // Hiển thị Typing Indicator
+            typingIndicator.classList.remove("d-none");
+            scrollToBottom();
+
+            // Lấy lịch sử hiện tại
+            const history = getSessionHistory();
+
+            // Gọi API
+            fetch("/QuanLyNhaTro/AiAssistant/Chat", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "RequestVerificationToken": document.querySelector('input[name="__RequestVerificationToken"]')?.value || ""
+                },
+                body: JSON.stringify({
+                    message: text,
+                    history: history
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                typingIndicator.classList.add("d-none");
+                if (data.success) {
+                    appendMessage("model", data.reply);
+                    // Lưu lại lịch sử
+                    saveSessionHistory(text, data.reply);
+                } else {
+                    appendMessage("model", "⚠️ " + (data.message || "Đã xảy ra lỗi khi trao đổi với AI."));
+                }
+                scrollToBottom();
+            })
+            .catch(err => {
+                typingIndicator.classList.add("d-none");
+                appendMessage("model", "⚠️ Lỗi kết nối mạng: Không thể liên hệ với máy chủ AI.");
+                scrollToBottom();
+            });
+        }
+
+        function appendMessage(role, text) {
+            const msgDiv = document.createElement("div");
+            msgDiv.className = `ai-message ai-message-${role}`;
+            
+            const bubble = document.createElement("div");
+            bubble.className = "ai-msg-bubble";
+            bubble.innerHTML = parseMarkdown(text);
+            
+            msgDiv.appendChild(bubble);
+            body.appendChild(msgDiv);
+        }
+
+        function scrollToBottom() {
+            body.scrollTop = body.scrollHeight;
+        }
+
+        // Lấy lịch sử chat từ sessionStorage
+        function getSessionHistory() {
+            const histStr = sessionStorage.getItem("ai_chat_history");
+            return histStr ? JSON.parse(histStr) : [];
+        }
+
+        // Lưu lịch sử chat mới
+        function saveSessionHistory(userMsg, aiMsg) {
+            const hist = getSessionHistory();
+            hist.push({ role: "user", message: userMsg });
+            hist.push({ role: "model", message: aiMsg });
+            // Giới hạn lịch sử lưu tối đa 16 tin nhắn để tránh quá tải token
+            if (hist.length > 16) {
+                hist.splice(0, 2);
+            }
+            sessionStorage.setItem("ai_chat_history", JSON.stringify(hist));
+        }
+
+        // Tải lịch sử khi load trang
+        function loadChatHistory() {
+            const hist = getSessionHistory();
+            if (hist && hist.length > 0) {
+                hist.forEach(msg => {
+                    appendMessage(msg.role, msg.message);
+                });
+                scrollToBottom();
+            } else {
+                formatAllMessages();
+            }
+        }
+
+        // Định dạng Markdown cho tin nhắn tĩnh ban đầu
+        function formatAllMessages() {
+            document.querySelectorAll(".ai-msg-bubble").forEach(el => {
+                // Chỉ parse nếu chưa parse
+                if (el.innerHTML.includes("**") || el.innerHTML.includes("<ul>")) {
+                    el.innerHTML = parseMarkdown(el.textContent.trim());
+                }
+            });
+        }
+
+        // Hàm parse Markdown sang HTML đơn giản
+        function parseMarkdown(text) {
+            if (!text) return "";
+            
+            // Xử lý xuống dòng
+            let html = text.replace(/\r\n/g, "\n").replace(/\n/g, "<br/>");
+            
+            // In đậm: **text**
+            html = html.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+            
+            // Định dạng danh sách không thứ tự (ul/li)
+            // Thay thế: * hoặc - ở đầu dòng
+            html = html.replace(/(?:^|<br\/>)[*-]\s+(.*?)(?=<br\/>|$)/g, "<li>$1</li>");
+            // Bao bọc các khối <li> bằng <ul>
+            html = html.replace(/(<li>.*?<\/li>)/g, "<ul>$1</ul>");
+            // Dọn dẹp các <ul> lân cận bị thừa
+            html = html.replace(/<\/ul><br\/><ul>/g, "");
+            html = html.replace(/<\/ul><ul>/g, "");
+
+            // Xử lý Bảng biểu Markdown
+            // Cú pháp: | Cột 1 | Cột 2 | \n |---|---| \n | Dữ liệu | Dữ liệu |
+            if (html.includes("|")) {
+                const lines = html.split("<br/>");
+                let inTable = false;
+                let tableHtml = "";
+                let newLines = [];
+
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (line.startsWith("|") && line.endsWith("|")) {
+                        // Bỏ qua dòng gạch ngang phân cách tiêu đề |---|---|
+                        if (line.includes("---") || line.includes("===")) {
+                            continue;
+                        }
+                        
+                        const cells = line.split("|").slice(1, -1);
+                        let rowHtml = "<tr>";
+                        
+                        for (let c = 0; c < cells.length; c++) {
+                            const cellText = cells[c].trim();
+                            if (!inTable) {
+                                // Dòng đầu tiên của bảng là Header
+                                rowHtml += `<th>${cellText}</th>`;
+                            } else {
+                                rowHtml += `<td>${cellText}</td>`;
+                            }
+                        }
+                        rowHtml += "</tr>";
+
+                        if (!inTable) {
+                            inTable = true;
+                            tableHtml += "<table><thead>" + rowHtml + "</thead><tbody>";
+                        } else {
+                            tableHtml += rowHtml;
+                        }
+                    } else {
+                        if (inTable) {
+                            inTable = false;
+                            tableHtml += "</tbody></table>";
+                            newLines.push(tableHtml);
+                            tableHtml = "";
+                        }
+                        newLines.push(lines[i]);
+                    }
+                }
+                if (inTable) {
+                    tableHtml += "</tbody></table>";
+                    newLines.push(tableHtml);
+                }
+                html = newLines.join("<br/>");
+            }
+
+            return html;
+        }
+    });
+</script>
