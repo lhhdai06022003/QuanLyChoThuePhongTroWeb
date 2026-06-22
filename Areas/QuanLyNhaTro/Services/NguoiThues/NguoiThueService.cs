@@ -53,11 +53,10 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.NguoiThues
                 (
                     x.CCCD == input.CCCD ||
                     x.SoDienThoai == input.SoDienThoai ||
-                    // Chỉ kiểm tra trùng Email nếu input.Email có dữ liệu (khác null)
-                    (!string.IsNullOrWhiteSpace(input.Email) && x.Email == input.Email)
+                    x.Email == input.Email
                 ));
 
-                if (isDuplicate) return (false, "CCCD hoặc Số điện thoại đã tồn tại trong hệ thống.");
+                if (isDuplicate) return (false, "CCCD, Số điện thoại hoặc Email đã tồn tại trong hệ thống.");
 
                 // 2. Ép kiểu UTC cho PostgreSQL để tránh lỗi Múi giờ
                 var entity = new NguoiThue
@@ -100,9 +99,9 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.NguoiThues
             // Kiểm tra trùng lặp dữ liệu với người KHÁC
             bool isDuplicate = await _context.NguoiThues.AnyAsync(x =>
                 x.NguoiThueId != id && !x.IsDeleted &&
-                (x.CCCD == input.CCCD || x.SoDienThoai == input.SoDienThoai));
+                (x.CCCD == input.CCCD || x.SoDienThoai == input.SoDienThoai || x.Email == input.Email));
 
-            if (isDuplicate) return (false, "CCCD hoặc Số điện thoại bị trùng với khách khác.");
+            if (isDuplicate) return (false, "CCCD, Số điện thoại hoặc Email bị trùng với khách khác.");
 
             // Cập nhật dữ liệu
             entity.HoVaTen = input.HoVaTen;

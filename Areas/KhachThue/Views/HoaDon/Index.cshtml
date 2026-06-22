@@ -1,0 +1,213 @@
+@model IEnumerable<QuanLyChoThuePhongTroWeb.Models.HoaDon>
+@{
+    ViewBag.Title = "Hóa đơn & Thanh toán";
+}
+<link rel="stylesheet" href="~/css/hoadon.css" asp-append-version="true" />
+
+<div class="page-header d-print-none">
+    <div class="row align-items-center">
+        <div class="col">
+            <h2 class="page-title">Danh sách Hóa đơn</h2>
+        </div>
+    </div>
+</div>
+
+<div class="page-body">
+    <div class="container-xl">
+        <div class="card">
+            <div class="table-responsive">
+                <table class="table table-vcenter card-table">
+                    <thead>
+                        <tr>
+                            <th>Mã HĐ</th>
+                            <th>Kỳ Hóa Đơn</th>
+                            <th>Tổng Tiền</th>
+                            <th>Trạng Thái</th>
+                            <th>Ngày Lập</th>
+                            <th class="w-1"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!Model.Any())
+                        {
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-4">Chưa có hóa đơn nào.</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            foreach (var item in Model)
+                            {
+                                <tr>
+                                    <td>@item.MaHoaDon</td>
+                                    <td>Tháng @item.Thang / @item.Nam</td>
+                                    <td class="font-weight-bold text-danger">@item.TongTien.ToString("N0") VNĐ</td>
+                                    <td>
+                                        @if (item.TrangThaiHoaDon == QuanLyChoThuePhongTroWeb.Models.TrangThaiHoaDon.ChuaThanhToan)
+                                        {
+                                            <span class="badge bg-warning-lt">Chưa thanh toán</span>
+                                        }
+                                        else if (item.TrangThaiHoaDon == QuanLyChoThuePhongTroWeb.Models.TrangThaiHoaDon.DaThanhToan)
+                                        {
+                                            <span class="badge bg-success-lt">Đã thanh toán</span>
+                                        }
+                                    </td>
+                                    <td>@item.NgayTao.ToString("dd/MM/yyyy")</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-primary" onclick="showChiTiet(@item.HoaDonId)"><i class="fas fa-eye me-1"></i> Xem chi tiết</button>
+                                        @if (item.TrangThaiHoaDon == QuanLyChoThuePhongTroWeb.Models.TrangThaiHoaDon.ChuaThanhToan)
+                                        {
+                                            <button class="btn btn-sm btn-success mt-1 mt-md-0" onclick="showThanhToan('@item.MaHoaDon', @item.TongTien, @item.HoaDonId)"><i class="fas fa-qrcode me-1"></i> Thanh toán</button>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Chi tiết Hóa đơn -->
+<div class="modal modal-blur fade" id="chiTietModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+        <div class="modal-content shadow-lg border-0">
+            <div class="modal-header bg-info text-white py-3">
+                <h5 class="modal-title font-weight-bold"><i class="fas fa-file-invoice-dollar me-1"></i> Chi tiết Hóa đơn</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body py-4" id="chiTietBody">
+                <div class="text-center"><i class="fas fa-spinner fa-spin fa-2x"></i> Đang tải dữ liệu...</div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i> Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        var bankId = '@ViewBag.BankId';
+        var accountNumber = '@ViewBag.AccountNumber';
+        var accountName = '@ViewBag.AccountName';
+
+        function formatVND(n) {
+            if (n === null || n === undefined) return "0 ₫";
+            return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n);
+        }
+
+        function showChiTiet(hoaDonId) {
+            var modal = new bootstrap.Modal(document.getElementById('chiTietModal'));
+            modal.show();
+
+            $('#chiTietBody').html('<div class="text-center"><i class="fas fa-spinner fa-spin fa-2x"></i> Đang tải dữ liệu...</div>');
+
+            $.get(`/KhachThue/HoaDon/XemChiTiet?id=${hoaDonId}`, function(res) {
+                let html = `
+                    <div class="row mb-3 fs-3">
+                        <div class="col-md-6 mb-2"><strong>Mã HĐ:</strong> <span class="text-primary font-weight-bold">${res.maHoaDon}</span></div>
+                        <div class="col-md-6 mb-2"><strong>Ngày tạo:</strong> ${res.ngayTao}</div>
+                        <div class="col-md-6 mb-2"><strong>Phòng:</strong> <span class="text-primary font-weight-bold">${res.tenPhong}</span></div>
+                        <div class="col-md-6 mb-2"><strong>Kỳ:</strong> Tháng ${res.thang}/${res.nam}</div>
+                        <div class="col-md-6 mb-2"><strong>Người thuê:</strong> ${res.tenNguoiThue}</div>
+                        <div class="col-md-6 mb-2"><strong>Trạng thái:</strong> <span class="badge ${res.trangThaiHoaDon === 'Đã thanh toán' ? 'bg-success-lt' : 'bg-warning-lt'} px-2 py-1">${res.trangThaiHoaDon}</span></div>
+                    </div>
+                    <h4 class="font-weight-bold border-bottom pb-2 mt-4"><i class="fas fa-list me-1"></i> Chi tiết các khoản phí</h4>
+                    <div class="table-responsive mb-3">
+                        <table class="table card-table table-vcenter table-striped table-hover w-100 table-sm">
+                            <thead>
+                                <tr>
+                                    <th class="text-center" width="6%">STT</th>
+                                    <th>Dịch vụ</th>
+                                    <th class="text-right" width="18%">Đơn giá</th>
+                                    <th class="text-center" width="12%">SL</th>
+                                    <th class="text-center" width="12%">Đơn vị</th>
+                                    <th class="text-right" width="20%">Thành tiền</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+
+                res.chiTietHoaDons.forEach((ct, idx) => {
+                    let donViText = ct.donVi ? ct.donVi : '-';
+                    html += `<tr>
+                        <td class="text-center align-middle">${idx+1}</td>
+                        <td class="align-middle">${ct.tenDichVu}</td>
+                        <td class="text-right align-middle">${formatVND(ct.donGia)}</td>
+                        <td class="text-center align-middle">${ct.soLuong}</td>
+                        <td class="text-center align-middle">${donViText}</td>
+                        <td class="text-right align-middle font-weight-bold">${formatVND(ct.tongTien)}</td>
+                    </tr>`;
+                });
+
+                html += `</tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="5" class="text-right font-weight-bold align-middle fs-2 text-uppercase">TỔNG CỘNG</td>
+                                <td class="text-right font-weight-bold text-danger align-middle fs-2">${formatVND(res.tongTien)}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                    </div>`;
+
+                // Lịch sử thanh toán
+                if (res.lichSuThanhToans && res.lichSuThanhToans.length > 0) {
+                    html += `<h4 class="font-weight-bold border-bottom pb-2 mt-4"><i class="fas fa-history me-1"></i> Lịch sử thanh toán</h4>
+                        <div class="table-responsive">
+                        <table class="table card-table table-vcenter table-striped table-hover w-100 table-sm">
+                            <thead>
+                                <tr><th>Mã GD</th><th class="text-right">Số tiền</th><th>Phương thức</th><th>Ngày</th><th>Người xác nhận</th><th>Ghi chú</th></tr>
+                            </thead><tbody>`;
+                    res.lichSuThanhToans.forEach(ls => {
+                        html += `<tr><td>${ls.maGiaoDich}</td><td class="text-right font-weight-bold text-success">${formatVND(ls.soTienThanhToan)}</td><td>${ls.phuongThucThanhToan}</td><td>${ls.ngayThanhToan}</td><td>${ls.nguoiXacNhan}</td><td>${ls.ghiChu || ''}</td></tr>`;
+                    });
+                    html += `</tbody></table></div>`;
+                }
+
+                // Nhúng mã QR thanh toán nếu chưa thanh toán
+                if (res.trangThaiHoaDon === 'Chưa thanh toán') {
+                    html += `
+                    <div class="row mt-4 pt-3 border-top justify-content-center">
+                        <div class="col-md-7 text-center">
+                            <div class="qr-payment-box p-4 shadow-sm">
+                                <h4 class="qr-title text-primary font-weight-bold mb-3"><i class="fas fa-qrcode me-1"></i> Quét mã QR để chuyển khoản nhanh</h4>
+                                <div class="mb-3">
+                                    <img src="/HoaDon/GetVietQR?hoaDonId=${res.hoaDonId}" alt="VietQR" />
+                                </div>
+                                <p class="small text-muted mb-3">Sử dụng ứng dụng ngân hàng hoặc ví điện tử để quét mã QR</p>
+                                <div class="qr-details-list bg-light p-3 rounded text-start">
+                                    <div class="qr-detail-item"><span>Ngân hàng:</span><strong>${bankId}</strong></div>
+                                    <div class="qr-detail-item"><span>Số tài khoản:</span><strong>${accountNumber}</strong></div>
+                                    <div class="qr-detail-item"><span>Chủ tài khoản:</span><strong>${accountName}</strong></div>
+                                    <div class="qr-detail-item"><span>Số tiền:</span><strong class="text-danger">${formatVND(res.tongTien)}</strong></div>
+                                    <div class="qr-detail-item"><span>Nội dung CK:</span><code class="text-primary font-weight-bold">THANH TOAN ${res.maHoaDon}</code></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    `;
+                }
+
+                $('#chiTietBody').html(html);
+            }).fail(function(xhr) {
+                $('#chiTietModal').modal('hide');
+                Swal.fire('Lỗi', xhr.responseText || 'Không thể tải chi tiết hóa đơn.', 'error');
+            });
+        }
+
+        function showThanhToan(maHD, tongTien, hoaDonId) {
+            Swal.fire({
+                title: 'Thanh toán VietQR',
+                html: `<p>Quý khách vui lòng quét mã QR bên dưới bằng ứng dụng Ngân hàng để thanh toán cho hóa đơn <b>${maHD}</b>.</p>
+                       <p class="text-danger h3">${formatVND(tongTien)}</p>
+                       <div class="text-center my-3">
+                           <img src="/HoaDon/GetVietQR?hoaDonId=${hoaDonId}" alt="QR Code" class="img-fluid border rounded p-2" style="max-width: 250px; min-height: 250px;" onerror="this.onerror=null;this.src='';this.alt='Lỗi tải QR Code';" />
+                       </div>
+                       <p class="small text-muted">Hệ thống sẽ tự động ghi nhận thanh toán sau khi giao dịch thành công (tùy ngân hàng).</p>`,
+                confirmButtonText: 'Đóng',
+            });
+        }
+    </script>
+}

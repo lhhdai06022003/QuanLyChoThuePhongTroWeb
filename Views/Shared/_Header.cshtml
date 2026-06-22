@@ -23,7 +23,9 @@
                         <span class="avatar avatar-sm rounded-circle bg-blue-lt"><i class="fas fa-user-circle fa-lg text-blue"></i></span>
                         <div class="d-none d-xl-block ps-2 text-start">
                             <div class="font-weight-bold">@User.Identity.Name</div>
-                            <div class="mt-1 small text-secondary" style="font-size: 0.72rem;">Quản trị viên</div>
+                            <div class="mt-1 small text-secondary" style="font-size: 0.72rem;">
+                                @(User.IsInRole("KhachThue") ? "Người thuê" : "Quản trị viên")
+                            </div>
                         </div>
                     </a>
                     <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">

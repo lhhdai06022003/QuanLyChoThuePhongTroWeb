@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <title>Khách Thuê - Quản Lý Trọ</title>
+
+    <!-- Google Font Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="~/Theme/tabler/dist/css/tabler.min.css" />
+    <link rel="stylesheet" href="~/Theme/tabler/dist/css/tabler-vendors.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+
+    <style>
+        .swal2-popup.swal2-custom-popup {
+            border-radius: 12px !important;
+            font-family: inherit !important;
+        }
+        .swal2-custom-popup .swal2-title { font-weight: 600 !important; }
+        .swal2-custom-popup .swal2-actions button {
+            border-radius: 6px !important; font-weight: 500 !important; padding: 8px 20px !important;
+        }
+    </style>
+    <script>
+        const savedTheme = localStorage.getItem('tablerTheme') || 'light';
+        document.documentElement.setAttribute('data-bs-theme', savedTheme);
+    </script>
+</head>
+
+<body class="layout-fluid">
+    @Html.AntiForgeryToken()
+    <div class="page">
+        <!-- Sidebar -->
+        @Html.Partial("_SidebarKhachThue")
+
+        <div class="page-wrapper">
+            <!-- Header (Navbar) -->
+            @Html.Partial("~/Views/Shared/_Header.cshtml")
+
+            <main class="page-body m-0 pt-3" role="main">
+                <div class="container-fluid">
+                    @RenderBody()
+                </div>
+            </main>
+
+            <!-- Footer -->
+            @Html.Partial("~/Views/Shared/_Footer.cshtml")
+        </div>
+    </div>
+
+    <!-- JS -->
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script>
+        $.ajaxSetup({
+            beforeSend: function (xhr, settings) {
+                if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type)) {
+                    var token = $('input[name="__RequestVerificationToken"]').val();
+                    if (token) {
+                        xhr.setRequestHeader("RequestVerificationToken", token);
+                    }
+                }
+            }
+        });
+    </script>
+    <script src="~/Theme/tabler/dist/js/tabler.min.js"></script>
+    <script>
+        window.bootstrap = window.tabler;
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        if (typeof Swal !== 'undefined') {
+            const originalFire = Swal.fire;
+            Swal.fire = function(...args) {
+                if (args.length === 1 && typeof args[0] === 'object') {
+                    let options = args[0];
+                    options.customClass = options.customClass || {};
+                    options.customClass.popup = (options.customClass.popup || '') + ' swal2-custom-popup';
+                    if (!options.confirmButtonColor) {
+                        options.confirmButtonColor = (options.icon === 'error' || options.icon === 'warning') ? '#d33' : '#3085d6';
+                    }
+                    if (!options.cancelButtonColor) { options.cancelButtonColor = '#6c757d'; }
+                }
+                return originalFire.apply(this, args);
+            };
+            window.showSuccess = msg => Swal.fire({ icon: 'success', title: 'Thành công', text: msg, confirmButtonColor: '#3085d6' });
+            window.showError = msg => Swal.fire({ icon: 'error', title: 'Lỗi', text: msg, confirmButtonColor: '#3085d6' });
+        }
+    </script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

@@ -1,0 +1,39 @@
+@{
+    ViewBag.Title = "Tổng quan";
+}
+
+<div class="page-header d-print-none">
+    <div class="row g-2 align-items-center">
+        <div class="col">
+            <div class="page-pretitle">Tổng quan</div>
+            <h2 class="page-title">Xin chào người thuê @ViewBag.NguoiThueName</h2>
+        </div>
+    </div>
+</div>
+
+<div class="page-body">
+    <div class="container-xl">
+        <div class="row row-deck row-cards">
+            <div class="col-sm-6 col-lg-3">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="subheader">Tình trạng hợp đồng</div>
+                        </div>
+                        <div class="h1 mb-3">Đang hoạt động</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="subheader">Hóa đơn chưa thanh toán</div>
+                        </div>
+                        <div class="h1 mb-3">0 VNĐ</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

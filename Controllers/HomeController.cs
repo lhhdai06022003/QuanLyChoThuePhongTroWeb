@@ -16,7 +16,13 @@ namespace QuanLyChoThuePhongTroWeb.Controllers
 
         public IActionResult Index()
         {
-            
+            if (User.Identity != null && User.Identity.IsAuthenticated)
+            {
+                if (User.IsInRole("KhachThue"))
+                {
+                    return RedirectToAction("Index", "Dashboard", new { area = "KhachThue" });
+                }
+            }
             return RedirectToAction("Index", "Dashboard", new { area = "QuanLyNhaTro" });
         }
 

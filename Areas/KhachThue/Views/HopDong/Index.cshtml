@@ -1,0 +1,236 @@
+@model IEnumerable<QuanLyChoThuePhongTroWeb.Models.HopDong>
+@{
+    ViewBag.Title = "Hợp đồng thuê phòng";
+}
+
+<div class="page-header d-print-none">
+    <div class="row align-items-center">
+        <div class="col">
+            <h2 class="page-title">Hợp đồng thuê phòng</h2>
+        </div>
+    </div>
+</div>
+
+<div class="page-body">
+    <div class="container-xl">
+        <div class="card">
+            <div class="table-responsive">
+                <table class="table table-vcenter card-table">
+                    <thead>
+                        <tr>
+                            <th>Mã hợp đồng</th>
+                            <th>Phòng / Chi nhánh</th>
+                            <th>Ngày bắt đầu</th>
+                            <th>Ngày kết thúc</th>
+                            <th>Tiền thuê</th>
+                            <th>Trạng thái</th>
+                            <th class="w-1"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!Model.Any())
+                        {
+                            <tr>
+                                <td colspan="7" class="text-center text-muted py-4">Không có hợp đồng nào.</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            foreach (var item in Model)
+                            {
+                                <tr>
+                                    <td>@item.MaHopDong</td>
+                                    <td>
+                                        <div class="font-weight-bold">Phòng @item.PhongTro.SoPhong</div>
+                                        <div class="text-muted">@item.PhongTro.ChiNhanh.TenChiNhanh</div>
+                                    </td>
+                                    <td>@item.ThoiDiemBatDau.ToString("dd/MM/yyyy")</td>
+                                    <td>@(item.ThoiDiemKetThuc?.ToString("dd/MM/yyyy") ?? "Vô thời hạn")</td>
+                                    <td>@item.TienThuePhong.ToString("N0") VNĐ</td>
+                                    <td>
+                                        @if (item.TrangThaiHopDong == QuanLyChoThuePhongTroWeb.Models.TrangThaiHopDong.DangHoatDong)
+                                        {
+                                            <span class="badge bg-success-lt">Đang hoạt động</span>
+                                        }
+                                        else if (item.TrangThaiHopDong == QuanLyChoThuePhongTroWeb.Models.TrangThaiHopDong.DaKetThuc)
+                                        {
+                                            <span class="badge bg-secondary-lt">Đã kết thúc</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-danger-lt">Đã hủy</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <button type="button" class="btn btn-primary btn-sm" onclick="showChiTiet(@item.HopDongId, '@item.PhongTro.SoPhong')"><i class="fas fa-eye me-1"></i> Xem chi tiết</button>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Xem nhanh hợp đồng -->
+<div class="modal fade" id="quickContractModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="fas fa-file-contract"></i> Xem Chi Tiết Hợp Đồng - Phòng <span id="quickContractRoom"></span></h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-md-6 border-end">
+                        <h6 class="font-weight-bold text-primary border-bottom pb-1 mb-2"><i class="fas fa-info-circle"></i> Thông tin hợp đồng</h6>
+                        <table class="table table-sm table-borderless">
+                            <tr><td width="40%">Mã HĐ:</td><td><strong id="qcMaHD"></strong></td></tr>
+                            <tr><td>Ngày bắt đầu:</td><td id="qcNgayBatDau"></td></tr>
+                            <tr><td>Ngày kết thúc:</td><td id="qcNgayKetThuc"></td></tr>
+                            <tr><td>Tiền cọc:</td><td><strong id="qcTienCoc" class="text-danger"></strong></td></tr>
+                            <tr><td>Tiền thuê:</td><td><strong id="qcTienThue" class="text-danger"></strong></td></tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="font-weight-bold text-primary border-bottom pb-1 mb-2"><i class="fas fa-user-tie"></i> Đại diện ký hợp đồng</h6>
+                        <table class="table table-sm table-borderless">
+                            <tr><td width="40%">Họ tên:</td><td><strong id="qcTenDaiDien"></strong></td></tr>
+                            <tr><td>Số điện thoại:</td><td id="qcSDTDaiDien"></td></tr>
+                            <tr><td>Số CCCD:</td><td id="qcCCCDDaiDien"></td></tr>
+                        </table>
+                    </div>
+                </div>
+
+                <ul class="nav nav-tabs mb-3" id="quickContractTabs" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link active font-weight-bold" id="qc-members-tab" data-bs-toggle="tab" href="#qc-members-pane" role="tab"><i class="fas fa-users me-1"></i> Khách ở ghép (<span id="qcMemberCount">0</span>)</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link font-weight-bold" id="qc-services-tab" data-bs-toggle="tab" href="#qc-services-pane" role="tab"><i class="fas fa-concierge-bell me-1"></i> Dịch vụ đăng ký (<span id="qcServiceCount">0</span>)</a>
+                    </li>
+                </ul>
+
+                <div class="tab-content" id="quickContractTabContent">
+                    <div class="tab-pane fade show active" id="qc-members-pane" role="tabpanel">
+                        <table class="table table-bordered table-sm table-striped">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th class="text-center" width="8%">STT</th>
+                                    <th>Họ và Tên</th>
+                                    <th class="text-center" width="25%">Số Điện Thoại</th>
+                                    <th class="text-center" width="25%">Số CCCD</th>
+                                    <th class="text-center" width="20%">Ngày vào ở</th>
+                                </tr>
+                            </thead>
+                            <tbody id="qcMembersBody">
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="tab-pane fade" id="qc-services-pane" role="tabpanel">
+                        <table class="table table-bordered table-sm table-striped">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th class="text-center" width="8%">STT</th>
+                                    <th>Tên dịch vụ</th>
+                                    <th class="text-right" width="25%">Đơn giá</th>
+                                    <th class="text-center" width="20%">Số lượng</th>
+                                    <th class="text-center" width="20%">Đơn vị</th>
+                                </tr>
+                            </thead>
+                            <tbody id="qcServicesBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i> Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function formatVND(n) {
+            return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n || 0);
+        }
+
+        function showChiTiet(hopDongId, soPhong) {
+            $('#quickContractRoom').text(soPhong);
+
+            $('#qcMaHD').text('Đang tải...');
+            $('#qcNgayBatDau').text('Đang tải...');
+            $('#qcNgayKetThuc').text('Đang tải...');
+            $('#qcTienCoc').text('Đang tải...');
+            $('#qcTienThue').text('Đang tải...');
+            $('#qcTenDaiDien').text('Đang tải...');
+            $('#qcSDTDaiDien').text('Đang tải...');
+            $('#qcCCCDDaiDien').text('Đang tải...');
+            $('#qcMembersBody').html('<tr><td colspan="5" class="text-center"><i class="fas fa-spinner fa-spin"></i> Đang tải thành viên...</td></tr>');
+            $('#qcServicesBody').html('<tr><td colspan="5" class="text-center"><i class="fas fa-spinner fa-spin"></i> Đang tải dịch vụ...</td></tr>');
+            $('#qcMemberCount').text(0);
+            $('#qcServiceCount').text(0);
+
+            var modal = new bootstrap.Modal(document.getElementById('quickContractModal'));
+            modal.show();
+
+            $.get(`/KhachThue/HopDong/XemChiTiet?id=${hopDongId}`, function (res) {
+                $('#qcMaHD').text(res.maHopDong);
+                $('#qcNgayBatDau').text(res.thoiDiemBatDau);
+                $('#qcNgayKetThuc').text(res.thoiDiemKetThuc);
+                $('#qcTienCoc').text(formatVND(res.tienCocPhong));
+                $('#qcTienThue').text(formatVND(res.tienThuePhong));
+                $('#qcTenDaiDien').text(res.tenNguoiDaiDien);
+                $('#qcSDTDaiDien').text(res.soDienThoaiDaiDien || '-');
+                $('#qcCCCDDaiDien').text(res.cccdDaiDien || '-');
+
+                let mHtml = '';
+                if (res.members && res.members.length > 0) {
+                    res.members.forEach((m, idx) => {
+                        mHtml += `
+                            <tr>
+                                <td class="text-center">${idx + 1}</td>
+                                <td class="font-weight-bold">${m.hoVaTen}</td>
+                                <td class="text-center">${m.soDienThoai || '-'}</td>
+                                <td class="text-center">${m.cccd || '-'}</td>
+                                <td class="text-center">${m.ngayVao}</td>
+                            </tr>`;
+                    });
+                    $('#qcMemberCount').text(res.members.length);
+                } else {
+                    mHtml = '<tr><td colspan="5" class="text-center text-muted">Chưa có thành viên nào khác ở ghép.</td></tr>';
+                }
+                $('#qcMembersBody').html(mHtml);
+
+                let sHtml = '';
+                if (res.services && res.services.length > 0) {
+                    res.services.forEach((s, idx) => {
+                        sHtml += `
+                            <tr>
+                                <td class="text-center">${idx + 1}</td>
+                                <td class="font-weight-bold">${s.tenDichVu}</td>
+                                <td class="text-right">${formatVND(s.donGia)}</td>
+                                <td class="text-center">${s.soLuong}</td>
+                                <td class="text-center">${s.donVi || '-'}</td>
+                            </tr>`;
+                    });
+                    $('#qcServiceCount').text(res.services.length);
+                } else {
+                    sHtml = '<tr><td colspan="5" class="text-center text-muted">Không có dịch vụ đăng ký nào.</td></tr>';
+                }
+                $('#qcServicesBody').html(sHtml);
+            }).fail(function (xhr) {
+                $('#quickContractModal').modal('hide');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Lỗi',
+                    text: xhr.responseText || 'Không thể tải thông tin hợp đồng.'
+                });
+            });
+        }
+    </script>
+}

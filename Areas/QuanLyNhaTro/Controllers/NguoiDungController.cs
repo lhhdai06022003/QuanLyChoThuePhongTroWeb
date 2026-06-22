@@ -34,6 +34,10 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         {
             if (User.Identity != null && User.Identity.IsAuthenticated)
             {
+                if (User.IsInRole("KhachThue"))
+                {
+                    return RedirectToAction("Index", "Dashboard", new { area = "KhachThue" });
+                }
                 return RedirectToAction("Index", "Home", new { area = "" });
             }
 
@@ -70,7 +74,12 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
                 new Claim(ClaimTypes.Role, user.Role.ToString())
             };
 
-            var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            if (user.Role == Role.KhachThue && user.NguoiThueId.HasValue)
+            {
+                claims.Add(new Claim("NguoiThueId", user.NguoiThueId.Value.ToString()));
+            }
+
+            var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme, ClaimTypes.Name, ClaimTypes.Role);
             var principal = new ClaimsPrincipal(identity);
             var props = new AuthenticationProperties
             {
@@ -79,6 +88,11 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             };
 
             await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal, props);
+
+            if (user.Role == Role.KhachThue)
+            {
+                return RedirectToAction("Index", "Dashboard", new { area = "KhachThue" });
+            }
 
             return RedirectToAction("Index", "Home", new { area = "" });
         }

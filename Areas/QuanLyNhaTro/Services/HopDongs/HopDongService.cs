@@ -337,6 +337,31 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HopDongs
                 phong.TrangThai = TrangThaiPhong.DaThue;
                 phong.NgayCapNhat = DateTime.UtcNow;
 
+                // TẠO TÀI KHOẢN CHO NGƯỜI THUÊ ĐẠI DIỆN NẾU CHƯA CÓ
+                var nguoiThueDaiDien = await _context.NguoiThues.FindAsync(input.NguoiThueId);
+                if (nguoiThueDaiDien != null && !string.IsNullOrWhiteSpace(nguoiThueDaiDien.Email))
+                {
+                    bool hasAccount = await _context.NguoiDungs.AnyAsync(u => u.NguoiThueId == input.NguoiThueId && !u.IsDeleted);
+                    if (!hasAccount)
+                    {
+                        using var sha256 = System.Security.Cryptography.SHA256.Create();
+                        var hashedBytes = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(nguoiThueDaiDien.SoDienThoai));
+                        var hashString = BitConverter.ToString(hashedBytes).Replace("-", "").ToLower();
+
+                        var newTenantUser = new NguoiDung
+                        {
+                            TenDangNhap = nguoiThueDaiDien.Email,
+                            MatKhauHash = hashString,
+                            Role = Role.KhachThue,
+                            NguoiThueId = input.NguoiThueId,
+                            IsActive = true,
+                            NgayTao = DateTime.UtcNow,
+                            IsDeleted = false
+                        };
+                        _context.NguoiDungs.Add(newTenantUser);
+                    }
+                }
+
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 

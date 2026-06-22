@@ -1,0 +1,72 @@
+@model IEnumerable<QuanLyChoThuePhongTroWeb.Models.LichSuThanhToan>
+@{
+    ViewBag.Title = "Lịch sử thanh toán";
+}
+
+<div class="page-header d-print-none">
+    <div class="row align-items-center">
+        <div class="col">
+            <h2 class="page-title"><i class="fas fa-history me-2 text-primary"></i> Lịch sử thanh toán</h2>
+        </div>
+    </div>
+</div>
+
+<div class="page-body">
+    <div class="container-xl">
+        <div class="card shadow-sm border-0">
+            <div class="table-responsive">
+                <table class="table table-vcenter card-table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th class="text-center" width="5%">STT</th>
+                            <th>Mã Giao Dịch</th>
+                            <th>Mã Hóa Đơn</th>
+                            <th>Phòng</th>
+                            <th class="text-right">Số Tiền (VNĐ)</th>
+                            <th class="text-center">Phương Thức</th>
+                            <th>Ngày Thanh Toán</th>
+                            <th>Ghi Chú</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!Model.Any())
+                        {
+                            <tr>
+                                <td colspan="8" class="text-center text-muted py-5">
+                                    <i class="fas fa-file-invoice-dollar fa-2x mb-2 d-block"></i>
+                                    Bạn chưa có lịch sử thanh toán nào.
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            int stt = 1;
+                            foreach (var item in Model)
+                            {
+                                <tr>
+                                    <td class="text-center">@(stt++)</td>
+                                    <td class="font-weight-bold">@item.MaGiaoDich</td>
+                                    <td><span class="text-primary font-weight-bold">@item.HoaDon.MaHoaDon</span></td>
+                                    <td>Phòng @item.HoaDon.HopDong.PhongTro.SoPhong</td>
+                                    <td class="text-right text-danger font-weight-bold">@item.SoTienThanhToan.ToString("N0")</td>
+                                    <td class="text-center">
+                                        @if (item.PhuongThucThanhToan == QuanLyChoThuePhongTroWeb.Models.PhuongThucThanhToan.TienMat)
+                                        {
+                                            <span class="badge bg-secondary-lt"><i class="fas fa-money-bill-wave me-1"></i> Tiền mặt</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-primary-lt"><i class="fas fa-university me-1"></i> Chuyển khoản</span>
+                                        }
+                                    </td>
+                                    <td>@item.NgayThanhToan.ToString("dd/MM/yyyy HH:mm")</td>
+                                    <td class="text-muted text-wrap" style="max-width: 200px;">@(string.IsNullOrWhiteSpace(item.GhiChu) ? "-" : item.GhiChu)</td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace QuanLyChoThuePhongTroWeb.Models
@@ -23,6 +23,7 @@ namespace QuanLyChoThuePhongTroWeb.Models
     public enum Role
     {
         Admin = 0,
-        NguoiDung = 1
+        NhanVien = 1,
+        KhachThue = 2
     }
 }

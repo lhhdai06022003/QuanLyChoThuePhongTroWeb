@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Diagnostics.Contracts;
 
@@ -11,7 +11,9 @@ namespace QuanLyChoThuePhongTroWeb.Models
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int NguoiThueId { get; set; }
         public string HoVaTen { get; set; }
-        public string? Email { get; set; }
+        [Required(ErrorMessage = "Email là bắt buộc để cấp tài khoản đăng nhập")]
+        [EmailAddress(ErrorMessage = "Email không đúng định dạng")]
+        public string Email { get; set; }
         public string SoDienThoai { get; set; }
         public string CCCD { get; set; }
         public DateTime? NgayCapCCCD { get; set; }
