@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using QuanLyChoThuePhongTroWeb.Models;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.ChiNhanhs;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.DichVus;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.DienNuocs;
@@ -47,6 +49,7 @@ builder.Services.AddScoped<IThanhVienHopDongService, ThanhVienHopDongService>();
 builder.Services.AddScoped<IDichVuService, DichVuService>();
 builder.Services.AddScoped<IDienNuocService, DienNuocService>();
 builder.Services.AddScoped<INguoiDungService, NguoiDungService>();
+builder.Services.AddScoped<IPasswordHasher<NguoiDung>, PasswordHasher<NguoiDung>>();
 builder.Services.AddScoped<IHoaDonService, HoaDonService>();
 builder.Services.AddScoped<ILichSuThanhToanService, LichSuThanhToanService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
@@ -64,6 +67,9 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.LogoutPath = "/QuanLyNhaTro/DangXuat";
         options.AccessDeniedPath = "/QuanLyNhaTro/DangNhap";
         options.ExpireTimeSpan = TimeSpan.FromDays(30);
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+        options.Cookie.SameSite = SameSiteMode.Lax;
     });
 
 var app = builder.Build();
@@ -76,6 +82,10 @@ using (var scope = app.Services.CreateScope())
         var context = services.GetRequiredService<ApplicationDbContext>();
         // Lệnh này sẽ tự động chạy các Migration còn thiếu lên Database
         context.Database.Migrate();
+
+        // Tự động khởi tạo/nâng cấp tài khoản admin mẫu khi khởi động ứng dụng
+        var nguoiDungService = services.GetRequiredService<INguoiDungService>();
+        await nguoiDungService.SeedAdminAccountAsync();
     }
     catch (Exception ex)
     {

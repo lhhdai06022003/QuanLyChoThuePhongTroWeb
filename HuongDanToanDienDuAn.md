@@ -191,6 +191,91 @@ Dưới đây là mô tả chi tiết 10 module chức năng chính của hệ t
     *   *Xóa mềm tích hợp SweetAlert2*: Khi bấm nút xóa, SweetAlert2 sẽ hiển thị popup cảnh báo. Nếu được xác nhận, AJAX sẽ gửi yêu cầu xóa mềm (`IsDeleted = true`), đảm bảo dữ liệu lịch sử của các hợp đồng cũ liên kết điều khoản này không bị ảnh hưởng.
     *   *Tương thích Dark Mode & Thống nhất giao diện*: Giao diện bảng (Table) đã được căn chỉnh khoảng cách lề (margin/padding) hợp lý với khối Card phía trên, đảm bảo độ thẩm mỹ cao và tương thích hoàn hảo với chế độ tối của Tabler Theme.
 
+### 12. Trợ lý AI Vận Hành (AiAssistant)
+
+*   **Giao diện xuất hiện**: Widget chat nổi (Floating Action Button - FAB) màu tím có biểu tượng robot ở góc dưới bên phải màn hình trên tất cả các trang quản lý của Admin.
+*   **Cách thức hoạt động**:
+    *   *Tích hợp API Gemini*: Widget chat gửi tin nhắn qua AJAX lên API `/QuanLyNhaTro/AiAssistant/Chat` để giao tiếp với `AiAssistantService`. Lịch sử chat được lưu trữ tạm thời trong `sessionStorage` (tối đa 16 tin nhắn) để giữ ngữ cảnh hội thoại.
+    *   *Cơ chế Function Calling*: Trợ lý AI được huấn luyện để tự động nhận diện ý định của người dùng và gọi các hàm nghiệp vụ C# để truy vấn trực tiếp cơ sở dữ liệu hệ thống thông qua **9 chức năng tích hợp**:
+        1. `GetPhongTrongAsync`: Tìm kiếm phòng trống (có hỗ trợ lọc theo mức giá tối đa).
+        2. `GetHopDongSapHetHanAsync`: Tra cứu các hợp đồng chuẩn bị hết hạn trong vòng X ngày tới.
+        3. `GetThongTinKhachThueAsync`: Tìm kiếm thông tin khách thuê (tên, số điện thoại) theo tên khách hoặc theo số phòng.
+        4. `GetPhongTroChuaChotDienNuocAsync`: Tìm danh sách phòng chưa chốt chỉ số điện nước trong tháng hiện tại.
+        5. `GetCongNoPhongAsync`: Kiểm tra tổng số dư công nợ chưa đóng của một phòng cụ thể.
+        6. `GetHoaDonChuaThanhToanAsync`: Liệt kê các hóa đơn chưa đóng tiền của một tháng/năm chỉ định.
+        7. `GetDoanhThuThucThuAsync`: Tính tổng doanh thu thực nhận (tiền mặt & chuyển khoản) trong một khoảng thời gian.
+        8. `GetDoanhThuChiNhanhAsync`: Thống kê doanh thu thực thu phân nhóm theo từng chi nhánh cụ thể.
+        9. `GetChiSoDienNuocAsync`: Xem chỉ số điện nước và lượng tiêu thụ thực tế của phòng trong kỳ trước.
+    *   *Trình diễn Markdown & Bảng biểu*: Phản hồi từ AI được định dạng tự động bằng mã JavaScript Custom Parser sang HTML, hỗ trợ in đậm, danh sách gạch đầu dòng và tự động vẽ bảng dữ liệu dạng lưới kẻ viền đẹp mắt, tương thích hoàn toàn với chế độ tối (Dark Mode).
+
+---
+
+### B. PHÂN HỆ KHÁCH THUÊ (TENANT PORTAL - AREA `KHACHTHUE`)
+
+Phân hệ dành riêng cho khách thuê phòng đăng nhập để tự tra cứu thông tin cá nhân và hóa đơn của phòng mình, giúp giảm tải công việc hỗ trợ thủ công của chủ trọ.
+
+### 1. Dashboard Khách thuê
+
+*   **Giao diện xuất hiện**: Xuất hiện ngay sau khi tài khoản vai trò `KhachThue` đăng nhập thành công vào hệ thống.
+*   **Cách thức hoạt động**:
+    *   Hệ thống kiểm tra xác thực vai trò và lấy mã liên kết hồ sơ `NguoiThueId` từ Claims của User.
+    *   Hiển thị thông tin chào mừng mang tên khách thuê lấy từ database.
+    *   Hiển thị 2 thẻ chỉ số nhanh: **Tình trạng hợp đồng** (ví dụ: Đang hoạt động) và **Hóa đơn chưa thanh toán** (hiển thị tổng số tiền nợ hiện tại của phòng đó, ví dụ: 0 VNĐ).
+
+### 2. Hồ sơ cá nhân & Đổi mật khẩu (HoSo)
+
+*   **Giao diện xuất hiện**: Truy cập từ Menu bên trái: **Thông tin cá nhân**.
+*   **Cách thức hoạt động**:
+    *   *Xem hồ sơ*: Hiển thị ảnh đại diện tự động (sinh qua API ui-avatars theo tên), tên, email, số CCCD, số điện thoại và quê quán đã ký kết trên hợp đồng. Các trường này ở trạng thái chỉ đọc (readonly) để bảo toàn tính pháp lý của hợp đồng. Nếu muốn chỉnh sửa, khách thuê được hướng dẫn liên hệ ban quản lý.
+    *   *Đổi mật khẩu*: Khách thuê nhập Mật khẩu cũ, Mật khẩu mới và Xác nhận mật khẩu mới. Khi nhấn lưu, AJAX gửi request dạng JSON lên `/KhachThue/HoSo/DoiMatKhau`. Server tiến hành so khớp mật khẩu cũ đã băm SHA256 với database, tiến hành băm SHA256 mật khẩu mới và lưu lại. Toàn bộ thông báo thành công/thất bại được điều phối mượt mà qua SweetAlert2.
+
+### 3. Thông tin Hợp đồng (HopDong)
+
+*   **Giao diện xuất hiện**: Truy cập từ Menu bên trái: **Hợp đồng của tôi**.
+*   **Cách thức hoạt động**:
+    *   Hiển thị danh sách các hợp đồng thuê phòng mà khách thuê làm người đại diện (bao gồm hợp đồng cũ và hợp đồng đang hoạt động).
+    *   *Xem chi tiết hợp đồng*: Bấm nút "Xem chi tiết", AJAX gọi Endpoint `/KhachThue/HopDong/XemChiTiet/{id}` trả về cấu trúc dữ liệu JSON để hiển thị popup Modal:
+        - Mã hợp đồng, thời hạn thuê, số tiền đặt cọc phòng và giá thuê phòng thỏa thuận.
+        - Danh sách các thành viên ở ghép cùng phòng trọ (Họ tên, SĐT, CCCD, ngày vào ở).
+        - Danh sách các dịch vụ đang đăng ký áp dụng cho phòng (Internet, Vệ sinh, Gửi xe...) kèm số lượng và đơn giá thỏa thuận.
+
+### 4. Hóa đơn & QR Thanh toán VietQR (HoaDon)
+
+*   **Giao diện xuất hiện**: Truy cập từ Menu bên trái: **Hóa đơn & Thanh toán**.
+*   **Cách thức hoạt động**:
+    *   Hiển thị bảng danh sách toàn bộ hóa đơn tiền phòng & dịch vụ của khách thuê theo từng kỳ (Tháng/Năm) kèm mã hóa đơn, tổng tiền, ngày lập và trạng thái (Đã thanh toán / Chưa thanh toán).
+    *   *Xem chi tiết phí*: Bấm "Xem chi tiết", popup Modal hiện ra hiển thị bảng kê chi tiết từng khoản phí trong hóa đơn (tiền phòng, số kWh điện tiêu thụ, số khối nước tiêu thụ, và các dịch vụ khác).
+    *   *Thanh toán VietQR động*: Đối với hóa đơn chưa thanh toán, hệ thống hiển thị nút **"Thanh toán"**. Khi bấm vào, một popup nổi lên hiển thị mã VietQR động được tạo hoàn toàn offline trên server qua API `/HoaDon/GetVietQR?hoaDonId=...`. Mã QR chứa thông tin số tài khoản của chủ nhà, số tiền hóa đơn và nội dung chuyển khoản tự động: `THANH TOAN [MaHoaDon]`. Khách thuê chỉ cần dùng ứng dụng ngân hàng quét mã để thực hiện chuyển khoản nhanh mà không cần nhập số tiền hay nội dung thủ công, tránh tối đa sai sót.
+
+### 5. Lịch sử thanh toán (LichSuThanhToan)
+
+*   **Giao diện xuất hiện**: Truy cập từ Menu bên trái: **Lịch sử đóng tiền**.
+*   **Cách thức hoạt động**:
+    *   Hiển thị bảng danh sách các giao dịch đóng tiền nhà thành công của khách thuê (qua quét VietQR hoặc tiền mặt).
+    *   Mỗi dòng hiển thị: Mã giao dịch, số tiền đã đóng, phương thức thanh toán, ngày giờ giao dịch và ghi chú của thu ngân.
+
+---
+
+### C. CÁC TÁC VỤ CHẠY NỀN TỰ ĐỘNG (BACKGROUND JOBS)
+
+Hệ thống tích hợp 3 dịch vụ chạy ngầm kế thừa lớp `BackgroundService` của .NET Core để tự động hóa các tác vụ quản lý vận hành mà không cần con người can thiệp:
+
+1.  **Dịch vụ Nhắc nợ Hóa đơn Tự động (`InvoiceReminderService`)**:
+    *   *Cơ chế vận hành*: Chạy định kỳ mỗi giờ một lần.
+    *   *Logic nghiệp vụ*: Quét bảng `HoaDons` tìm các hóa đơn có trạng thái "Chưa thanh toán" và đã quá hạn 5 ngày kể từ ngày lập (`NgayTao <= now - 5 ngày`). Hệ thống tự động sinh PDF hóa đơn từ bộ nhớ RAM và gửi email thông báo nhắc đóng tiền nhà đính kèm PDF hóa đơn cho khách thuê qua giao thức SMTP.
+    *   *Chống lặp*: Lịch sử gửi email nhắc nợ được ghi nhận vào tệp cấu trúc JSON `sent_reminders.json` trên server. Mỗi hóa đơn chỉ gửi nhắc nợ tối đa 1 lần/kỳ để tránh làm phiền khách thuê.
+2.  **Dịch vụ Đóng Hợp đồng Hết hạn Tự động (`ContractAutoCloseService`)**:
+    *   *Cơ chế vận hành*: Tự động kích hoạt chạy một lần vào lúc nửa đêm hàng ngày (00:00).
+    *   *Logic nghiệp vụ*: Quét database tìm các hợp đồng đang ở trạng thái "Đang hoạt động" (`TrangThaiHopDong == DangHoatDong`) nhưng có ngày kết thúc nhỏ hơn ngày hiện tại (`ThoiDiemKetThuc < Today`). Hệ thống mở một DB Transaction thực thi đồng thời:
+        - Cập nhật trạng thái hợp đồng sang "Đã kết thúc" (`DaKetThuc`).
+        - Cập nhật trạng thái phòng trọ liên kết về "Trống" (`Trong`).
+        - Điền ngày chuyển đi (`NgayChuyenDi = Now`) cho toàn bộ thành viên đang ở ghép của hợp đồng đó.
+        - Điền ngày kết thúc dịch vụ (`NgayKetThuc = Now`) cho toàn bộ đăng ký dịch vụ của phòng đó.
+3.  **Dịch vụ Cảnh báo Hết hạn Hợp đồng (`ContractExpiryAlertService`)**:
+    *   *Cơ chế vận hành*: Tự động kích hoạt chạy một lần vào lúc 8:00 sáng hàng ngày.
+    *   *Logic nghiệp vụ*: Quét các hợp đồng đang hoạt động có ngày kết thúc. Tính toán số ngày còn lại đến khi hết hạn. Nếu số ngày còn lại khớp với cấu hình trong `appsettings.json` (mặc định là trước **30 ngày** và **15 ngày**), hệ thống tự động soạn email cảnh báo hết hiệu lực hợp đồng gửi đến email người thuê đại diện và gửi một bản sao đến email của Ban quản trị để chủ động lên lịch gia hạn hoặc tìm khách mới.
+    *   *Chống lặp*: Ghi nhận các khóa gửi dạng `[HopDongId]_[SoNgayConLai]` vào tệp cấu trúc JSON `sent_contract_alerts.json` để bảo đảm mỗi mốc thời gian cảnh báo chỉ gửi đúng một lần duy nhất.
+
 ---
 
 ## PHẦN V: HƯỚNG DẪN KHỞI CHẠY & PHÁT TRIỂN (HOW TO RUN)

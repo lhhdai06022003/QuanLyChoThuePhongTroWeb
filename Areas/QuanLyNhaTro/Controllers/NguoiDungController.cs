@@ -30,7 +30,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         [AllowAnonymous]
         [Route("QuanLyNhaTro/DangNhap")]
         [HttpGet]
-        public async Task<IActionResult> DangNhap()
+        public IActionResult DangNhap(string? returnUrl = null)
         {
             if (User.Identity != null && User.Identity.IsAuthenticated)
             {
@@ -41,17 +41,17 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
                 return RedirectToAction("Index", "Home", new { area = "" });
             }
 
-            // Tự động khởi tạo tài khoản admin mẫu nếu database trống
-            await _nguoiDungService.SeedAdminAccountAsync();
-
+            ViewBag.ReturnUrl = returnUrl;
             return View();
         }
 
         [AllowAnonymous]
         [Route("QuanLyNhaTro/DangNhap")]
         [HttpPost]
-        public async Task<IActionResult> DangNhap([FromForm] DangNhapReq req)
+        public async Task<IActionResult> DangNhap([FromForm] DangNhapReq req, string? returnUrl = null)
         {
+            ViewBag.ReturnUrl = returnUrl;
+
             if (!ModelState.IsValid)
             {
                 ViewBag.Error = "Vui lòng nhập đầy đủ thông tin.";
@@ -89,6 +89,11 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
 
             await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal, props);
 
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+            {
+                return Redirect(returnUrl);
+            }
+
             if (user.Role == Role.KhachThue)
             {
                 return RedirectToAction("Index", "Dashboard", new { area = "KhachThue" });
@@ -99,7 +104,8 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
 
         [AllowAnonymous]
         [Route("QuanLyNhaTro/DangXuat")]
-        [HttpGet]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> DangXuat()
         {
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
@@ -158,7 +164,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             }
         }
 
-        // 4. API: Cập nhật tài khoản (ĐÃ SỬA LỖI ĐÈ TRACKER)
+        // 4. API: Cập nhật tài khoản
         [HttpPost]
         [Route("QuanLyNhaTro/NguoiDung/EditApi/{id}")]
         public async Task<IActionResult> EditApi(int id, [FromBody] NguoiDung dataGiaoDien)
@@ -170,25 +176,11 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
 
             try
             {
-                // Lấy thực thể gốc đang được theo dõi từ DB lên để chỉnh sửa trực tiếp
-                var existingUser = await _nguoiDungService.GetByIdAsync(id);
-                if (existingUser == null)
+                var success = await _nguoiDungService.UpdateUserAsync(id, dataGiaoDien.Role, dataGiaoDien.IsActive, dataGiaoDien.MatKhauHash);
+                if (!success)
                 {
                     return Json(new { success = false, message = "Tài khoản không tồn tại trên hệ thống." });
                 }
-
-                // Cập nhật các thông tin thay đổi từ giao diện vào thực thể gốc
-                existingUser.Role = dataGiaoDien.Role;
-                existingUser.IsActive = dataGiaoDien.IsActive;
-
-                // Nếu người dùng có gõ mật khẩu mới -> thay thế chuỗi mã băm cũ
-                if (!string.IsNullOrEmpty(dataGiaoDien.MatKhauHash))
-                {
-                    existingUser.MatKhauHash = BamMatKhauSHA256(dataGiaoDien.MatKhauHash);
-                }
-
-                // Thực hiện cập nhật dòng dữ liệu (Tuyệt đối không dùng AddAsync tại đây)
-                await _nguoiDungService.UpdateAsync(existingUser);
 
                 return Json(new { success = true, message = "Cập nhật thông tin tài khoản thành công!" });
             }
@@ -219,21 +211,6 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             {
                 _logger.LogError(ex, "Lỗi khi xóa tài khoản {NguoiDungId}.", id);
                 return Json(new { success = false, message = "Lỗi hệ thống khi xóa tài khoản!" });
-            }
-        }
-
-        [NonAction]
-        private string BamMatKhauSHA256(string password)
-        {
-            using (System.Security.Cryptography.SHA256 sha256Hash = System.Security.Cryptography.SHA256.Create())
-            {
-                byte[] bytes = sha256Hash.ComputeHash(System.Text.Encoding.UTF8.GetBytes(password));
-                System.Text.StringBuilder builder = new System.Text.StringBuilder();
-                for (int i = 0; i < bytes.Length; i++)
-                {
-                    builder.Append(bytes[i].ToString("x2"));
-                }
-                return builder.ToString();
             }
         }
     }

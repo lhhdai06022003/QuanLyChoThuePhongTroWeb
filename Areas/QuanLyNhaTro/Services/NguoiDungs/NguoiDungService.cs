@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using QuanLyChoThuePhongTroWeb.Data;
 using QuanLyChoThuePhongTroWeb.Models;
@@ -13,49 +14,97 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.NguoiDungs
     public class NguoiDungService : INguoiDungService
     {
         private readonly ApplicationDbContext _context;
+        private readonly IPasswordHasher<NguoiDung> _passwordHasher;
 
-        public NguoiDungService(ApplicationDbContext context)
+        public NguoiDungService(ApplicationDbContext context, IPasswordHasher<NguoiDung> passwordHasher)
         {
             _context = context;
+            _passwordHasher = passwordHasher;
         }
 
-        // --- CHỨC NĂNG ĐĂNG NHẬP & SEED DATA (GIỮ NGUYÊN CỦA BẠN) ---
+        // --- CHỨC NĂNG ĐĂNG NHẬP & SEED DATA ---
 
         public async Task SeedAdminAccountAsync()
         {
-            if (!await _context.NguoiDungs.AnyAsync(x => !x.IsDeleted))
+            var admin = await _context.NguoiDungs.FirstOrDefaultAsync(x => x.TenDangNhap == "admin" && !x.IsDeleted);
+            if (admin == null)
             {
-                var admin = new NguoiDung
+                admin = new NguoiDung
                 {
                     TenDangNhap = "admin",
-                    MatKhauHash = HashPassword("admin"),
                     Role = Role.Admin,
-                    IsActive = true
+                    IsActive = true,
+                    NgayTao = DateTime.UtcNow
                 };
+                admin.MatKhauHash = _passwordHasher.HashPassword(admin, "admin");
                 _context.NguoiDungs.Add(admin);
                 await _context.SaveChangesAsync();
             }
+            else
+            {
+                // Tự động nâng cấp mật khẩu của admin cũ từ SHA256 sang PBKDF2
+                // SHA256 của "admin" = 8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918
+                if (admin.MatKhauHash == "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918")
+                {
+                    admin.MatKhauHash = _passwordHasher.HashPassword(admin, "admin");
+                    _context.NguoiDungs.Update(admin);
+                    await _context.SaveChangesAsync();
+                }
+            }
         }
 
-        public async Task<NguoiDung> ValidateUserAsync(string username, string password)
+        public async Task<NguoiDung?> ValidateUserAsync(string username, string password)
         {
-            var hashPassword = HashPassword(password);
-
             var user = await _context.NguoiDungs
-                .FirstOrDefaultAsync(x => x.TenDangNhap == username && x.MatKhauHash == hashPassword && x.IsActive && !x.IsDeleted);
+                .FirstOrDefaultAsync(x => x.TenDangNhap == username && x.IsActive && !x.IsDeleted);
 
             if (user != null)
             {
-                // Cập nhật lần đăng nhập cuối
-                user.LanDangNhapCuoi = DateTime.UtcNow;
-                _context.NguoiDungs.Update(user);
-                await _context.SaveChangesAsync();
+                bool isPasswordValid = false;
+                bool needsRehash = false;
+
+                // 1. Kiểm tra bằng IPasswordHasher (PBKDF2)
+                var verificationResult = _passwordHasher.VerifyHashedPassword(user, user.MatKhauHash, password);
+                if (verificationResult == PasswordVerificationResult.Success)
+                {
+                    isPasswordValid = true;
+                }
+                else if (verificationResult == PasswordVerificationResult.SuccessRehashNeeded)
+                {
+                    isPasswordValid = true;
+                    needsRehash = true;
+                }
+                else
+                {
+                    // 2. Thử so khớp bằng SHA256 cũ (đối với tài khoản chưa nâng cấp)
+                    var oldSha256Hash = HashPasswordSha256(password);
+                    if (user.MatKhauHash == oldSha256Hash)
+                    {
+                        isPasswordValid = true;
+                        needsRehash = true; // Yêu cầu băm lại sang PBKDF2
+                    }
+                }
+
+                if (isPasswordValid)
+                {
+                    // Cập nhật lần đăng nhập cuối
+                    user.LanDangNhapCuoi = DateTime.UtcNow;
+
+                    if (needsRehash)
+                    {
+                        user.MatKhauHash = _passwordHasher.HashPassword(user, password);
+                    }
+
+                    _context.NguoiDungs.Update(user);
+                    await _context.SaveChangesAsync();
+                    return user;
+                }
             }
 
-            return user;
+            return null;
         }
 
-        private string HashPassword(string password)
+        private string HashPasswordSha256(string password)
         {
             using (var sha256 = SHA256.Create())
             {
@@ -65,55 +114,104 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.NguoiDungs
         }
 
 
-        // --- BỔ SUNG CÁC CHỨC NĂNG CRUD ---
+        // --- CÁC CHỨC NĂNG CRUD ---
 
-        // 1. Lấy danh sách tất cả người dùng chưa bị xóa
         public async Task<IEnumerable<NguoiDung>> GetAllAsync()
         {
             return await _context.NguoiDungs
                 .Where(x => !x.IsDeleted)
-                .Include(x => x.NguoiThue) // Kèm theo thông tin người thuê nếu có
+                .Include(x => x.NguoiThue)
                 .ToListAsync();
         }
 
-        // 2. Lấy chi tiết một người dùng theo Id
-        public async Task<NguoiDung> GetByIdAsync(int id)
+        public async Task<NguoiDung?> GetByIdAsync(int id)
         {
             return await _context.NguoiDungs
                 .Include(x => x.NguoiThue)
                 .FirstOrDefaultAsync(x => x.NguoiDungId == id && !x.IsDeleted);
         }
 
-        // 3. Thêm mới người dùng (Tự động băm mật khẩu)
         public async Task AddAsync(NguoiDung nguoiDung)
         {
             if (!string.IsNullOrEmpty(nguoiDung.MatKhauHash))
             {
-                // Sử dụng chính hàm HashPassword SHA256 của bạn để bảo mật
-                nguoiDung.MatKhauHash = HashPassword(nguoiDung.MatKhauHash);
+                nguoiDung.MatKhauHash = _passwordHasher.HashPassword(nguoiDung, nguoiDung.MatKhauHash);
             }
 
             _context.NguoiDungs.Add(nguoiDung);
             await _context.SaveChangesAsync();
         }
 
-        // 4. Cập nhật thông tin người dùng
         public async Task UpdateAsync(NguoiDung nguoiDung)
         {
-            // Lưu ý: Nếu ở giao diện Edit bạn cho phép đổi mật khẩu, 
-            // bạn nên xử lý băm mật khẩu trước khi truyền model vào hàm này.
             _context.NguoiDungs.Update(nguoiDung);
             await _context.SaveChangesAsync();
         }
 
-        // 5. Xóa mềm người dùng (Soft Delete bằng cờ IsDeleted)
+        public async Task<bool> UpdateUserAsync(int id, Role role, bool isActive, string? newPassword)
+        {
+            var existingUser = await _context.NguoiDungs.FirstOrDefaultAsync(x => x.NguoiDungId == id && !x.IsDeleted);
+            if (existingUser == null)
+            {
+                return false;
+            }
+
+            existingUser.Role = role;
+            existingUser.IsActive = isActive;
+
+            if (!string.IsNullOrEmpty(newPassword))
+            {
+                existingUser.MatKhauHash = _passwordHasher.HashPassword(existingUser, newPassword);
+            }
+
+            _context.NguoiDungs.Update(existingUser);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<(bool IsSuccess, string Message)> ChangePasswordAsync(int userId, string oldPassword, string newPassword)
+        {
+            var user = await _context.NguoiDungs.FirstOrDefaultAsync(u => u.NguoiDungId == userId && !u.IsDeleted);
+            if (user == null)
+            {
+                return (false, "Tài khoản không tồn tại.");
+            }
+
+            var verificationResult = _passwordHasher.VerifyHashedPassword(user, user.MatKhauHash, oldPassword);
+            bool isOldPasswordValid = false;
+
+            if (verificationResult == PasswordVerificationResult.Success || verificationResult == PasswordVerificationResult.SuccessRehashNeeded)
+            {
+                isOldPasswordValid = true;
+            }
+            else
+            {
+                var oldSha256Hash = HashPasswordSha256(oldPassword);
+                if (user.MatKhauHash == oldSha256Hash)
+                {
+                    isOldPasswordValid = true;
+                }
+            }
+
+            if (!isOldPasswordValid)
+            {
+                return (false, "Mật khẩu hiện tại không chính xác.");
+            }
+
+            user.MatKhauHash = _passwordHasher.HashPassword(user, newPassword);
+            _context.NguoiDungs.Update(user);
+            await _context.SaveChangesAsync();
+
+            return (true, "Đổi mật khẩu thành công!");
+        }
+
         public async Task DeleteAsync(int id)
         {
             var user = await _context.NguoiDungs.FindAsync(id);
             if (user != null)
             {
                 user.IsDeleted = true;
-                user.IsActive = false; // Hủy kích hoạt tài khoản luôn khi xóa
+                user.IsActive = false;
 
                 _context.NguoiDungs.Update(user);
                 await _context.SaveChangesAsync();

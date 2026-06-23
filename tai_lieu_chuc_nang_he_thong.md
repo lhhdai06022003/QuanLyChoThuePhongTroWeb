@@ -259,3 +259,165 @@ Tài liệu này mô tả chi tiết tất cả các chức năng nghiệp vụ 
 3.  **Xóa mềm an toàn dữ liệu**: Khi người dùng nhấn nút xóa điều khoản mẫu, SweetAlert2 sẽ kích hoạt popup yêu cầu xác nhận. Sau khi xác nhận, AJAX gửi yêu cầu lên API `/DieuKhoanMau/Delete/{id}`. Service cập nhật thuộc tính `IsDeleted = true` trong cơ sở dữ liệu PostgreSQL. Điều khoản bị ẩn khỏi màn hình quản lý, nhưng vẫn tồn tại trong database để bảo toàn tính toàn vẹn của các dữ liệu lịch sử liên kết trước đó.
 4.  **Đồng bộ thiết kế Tabler Theme**: CSS và cấu trúc HTML của trang điều khoản mẫu được đồng bộ chuẩn với layout hệ thống. Khoảng cách (margin-top/bottom) của bảng hiển thị dữ liệu đối với card phía trên được thiết kế tối ưu, khắc phục lỗi dính sát lề thường gặp. Màu sắc giao diện, bảng biểu, hộp thoại SweetAlert2 và các Modals tự động đồng bộ khi kích hoạt chế độ Dark Mode trên trình duyệt.
 
+---
+
+### 12. TRỢ LÝ AI VẬN HÀNH (AI ASSISTANT FOR OPERATIONS)
+
+#### A. Các giao diện xuất hiện trên Website:
+*   **Widget Chat Trợ lý AI**: Xuất hiện dưới dạng một nút hành động nổi (Floating Action Button - FAB) tròn màu tím, có biểu tượng robot phát xung sáng nhấp nháy, nằm cố định ở góc dưới bên phải màn hình. Widget này xuất hiện trên tất cả các trang giao diện của Phân hệ Quản lý (Admin Portal).
+
+#### B. Danh sách chức năng:
+*   **Trò chuyện qua ngôn ngữ tự nhiên**: Tiếp nhận yêu cầu dạng văn bản từ người quản trị và trả về câu trả lời định dạng Markdown/Bảng biểu.
+*   **Đề xuất câu hỏi nhanh**: Hiển thị các nhãn gợi ý có sẵn để người dùng click hỏi nhanh về doanh thu, công nợ, chỉ số điện nước.
+*   **Truy vấn dữ liệu thời gian thực (Function Calling)**: AI tự động phân tích câu hỏi để ánh xạ sang các hàm nghiệp vụ, trực tiếp chạy truy vấn SQL để lấy dữ liệu mới nhất từ PostgreSQL.
+*   **Ghi nhớ ngữ cảnh hội thoại**: Lưu trữ lịch sử chat lên tới 16 tin nhắn trong phiên làm việc hiện tại.
+*   **Xóa lịch sử chat**: Nút dọn dẹp để khởi tạo lại hội thoại ban đầu.
+
+#### C. Cách thức hoạt động chi tiết:
+1.  **Cấu trúc Widget**: Giao diện FAB (`_AiChatWidget.cshtml`) được nhúng trực tiếp trong Layout chung của Admin. Khi người dùng click, widget mở ra khung Chat Box kích thước `380px x 520px` thiết kế theo phong cách Tabler Theme, hỗ trợ tự động bo góc và đổ bóng nâng cao.
+2.  **Xử lý Logic Gemini Function Calling**:
+    *   Khi nhận tin nhắn, JavaScript gọi API POST `/QuanLyNhaTro/AiAssistant/Chat` truyền kèm nội dung tin nhắn và mảng lịch sử chat dạng JSON.
+    *   `AiAssistantService` gọi API Gemini Model. AI dựa vào định nghĩa schema `toolsConfig` để quyết định xem có cần gọi hàm nghiệp vụ hay không.
+    *   Hệ thống hỗ trợ **9 hàm nghiệp vụ**:
+        - `GetPhongTrongAsync(double? maxPrice)`: Quét bảng `PhongTros` lọc theo trạng thái trống và mức giá.
+        - `GetHopDongSapHetHanAsync(int days)`: Quét bảng `HopDongs` lọc theo ngày kết thúc.
+        - `GetThongTinKhachThueAsync(string keyword)`: Tìm kiếm thông tin liên hệ của khách thuê.
+        - `GetPhongTroChuaChotDienNuocAsync(int thang, int nam)`: Tìm các phòng chưa chốt chỉ số điện nước.
+        - `GetCongNoPhongAsync(string soPhong)`: Tính dư nợ chưa thanh toán của phòng.
+        - `GetHoaDonChuaThanhToanAsync(int thang, int nam)`: Liệt kê các hóa đơn chưa thu tiền.
+        - `GetDoanhThuThucThuAsync(DateTime startDate, DateTime endDate)`: Tính tổng tiền đã thu thực tế.
+        - `GetDoanhThuChiNhanhAsync(int thang, int nam)`: Thống kê doanh thu theo chi nhánh.
+        - `GetChiSoDienNuocAsync(string soPhong, int thang, int nam)`: Lấy dữ liệu tiêu thụ điện nước.
+    *   Sau khi thực thi hàm C# tương ứng, kết quả dạng JSON được gửi trả lại cho Gemini Model để AI tổng hợp thành một câu trả lời mạch lạc bằng ngôn ngữ tự nhiên gửi về Client.
+3.  **Xử lý Markdown & Render Bảng ở Client**: Nhằm mang lại giao diện trực quan, JavaScript trên widget chat tích hợp một bộ Custom Parser (`parseMarkdown`). Bộ parser này sử dụng biểu thức chính quy (Regex) để chuyển đổi các cú pháp Markdown (in đậm `**`, danh sách không thứ tự `*`, xuống dòng) và đặc biệt là chuyển đổi cú pháp bảng Markdown dạng `| Cột 1 | Cột 2 |` thành các bảng HTML `<table>` được định dạng CSS chỉn chu, có màu nền xen kẽ (striped) và tự động thu nhỏ vừa khít khung chat.
+4.  **Quản lý lịch sử bằng SessionStorage**: Để tránh việc gửi quá nhiều token làm chậm thời gian phản hồi hoặc tốn tài nguyên, lịch sử trò chuyện được lưu trữ cục bộ tại `sessionStorage` của trình duyệt. Mỗi lượt chat mới sẽ append vào mảng lịch sử và hệ thống tự động cắt bỏ các tin nhắn cũ nhất nếu vượt quá 16 tin nhắn (tương đương 8 cặp hội thoại).
+
+---
+
+## PHẦN B: PHÂN HỆ KHÁCH THUÊ (TENANT PORTAL - AREA KHACHTHUE)
+
+Phân hệ dành riêng cho Khách thuê phòng đăng nhập để quản lý và theo dõi thông tin thuê nhà của mình.
+
+### 1. DASHBOARD KHÁCH THUÊ (OVERVIEW)
+
+#### A. Các giao diện xuất hiện trên Website:
+*   **Trang Tổng quan Khách thuê**: Xuất hiện ngay sau khi đăng nhập tài khoản có role `KhachThue` thành công.
+
+#### B. Danh sách chức năng:
+*   **Xem lời chào cá nhân**: Hiển thị tên đầy đủ của khách thuê lấy động từ database.
+*   **Xem nhanh trạng thái hợp đồng**: Thể hiện tình trạng thuê phòng hiện tại (Đang hoạt động / Sắp hết hạn).
+*   **Thống kê nợ hóa đơn**: Hiển thị tổng số tiền nợ hóa đơn chưa đóng trong kỳ.
+
+#### C. Cách thức hoạt động chi tiết:
+1.  **Liên kết hồ sơ từ Claim**: Tài khoản khách thuê được tạo và liên kết với một hồ sơ người thuê thông qua trường `NguoiThueId`. Khi đăng nhập, thông tin này được ghi vào Claim `NguoiThueId` của Cookie xác thực.
+2.  **Truy vấn thông tin nhanh**: `DashboardController` của Area `KhachThue` đọc Claim `NguoiThueId`, truy vấn thông tin họ tên từ bảng `NguoiThues` truyền vào ViewBag hiển thị lời chào. Giao diện hiển thị các ô thống kê tình trạng hoạt động và số tiền dư nợ hóa đơn hiện có mà không cần gọi các tác vụ quản trị phức tạp.
+
+---
+
+### 2. HỒ SƠ CÁ NHÂN & ĐỔI MẬT KHẨU (PERSONAL PROFILE & SECURITY)
+
+#### A. Các giao diện xuất hiện trên Website:
+*   **Trang Hồ sơ của tôi**: Xuất hiện khi khách thuê truy cập từ menu bên trái: **Thông tin cá nhân**.
+
+#### B. Danh sách chức năng:
+*   **Xem hồ sơ đã đăng ký**: Hiển thị ảnh đại diện tự động, Họ tên, Email, CCCD, Số điện thoại và Quê quán ghi trên hợp đồng.
+*   **Đổi mật khẩu tài khoản**: Cho phép khách thuê tự thay đổi mật khẩu đăng nhập để bảo mật thông tin.
+
+#### C. Cách thức hoạt động chi tiết:
+1.  **Hồ sơ chỉ đọc (Readonly)**: Để tránh việc khách thuê tự ý thay đổi thông tin định danh (như số CCCD hay Số điện thoại) làm lệch dữ liệu pháp lý của hợp đồng thuê, toàn bộ form thông tin cá nhân đều được thiết lập thuộc tính `readonly`. Giao diện hiển thị khung cảnh báo hướng dẫn khách liên hệ chủ nhà nếu có thay đổi thông tin thực tế.
+2.  **Đổi mật khẩu bất đồng bộ (AJAX)**:
+    *   Form đổi mật khẩu yêu cầu nhập Mật khẩu cũ, Mật khẩu mới (tối thiểu 6 ký tự) và Xác nhận mật khẩu mới. Hệ thống kiểm tra trùng khớp mật khẩu mới thời gian thực bằng Javascript.
+    *   Khi người dùng nhấn lưu, JavaScript gọi AJAX POST dạng JSON tới `/KhachThue/HoSo/DoiMatKhau`.
+    *   Tại `HoSoController`, server lấy ID người dùng hiện tại, truy vấn mật khẩu cũ và băm SHA256 để so sánh. Nếu đúng, server băm SHA256 mật khẩu mới và lưu vào bảng `NguoiDungs`. Trả kết quả JSON thành công/thất bại về trình duyệt để hiển thị SweetAlert2 thông báo cho người dùng.
+
+---
+
+### 3. THÔNG TIN HỢP ĐỒNG (MY CONTRACT DETAILS)
+
+#### A. Các giao diện xuất hiện trên Website:
+*   **Trang Hợp đồng của tôi**: Xuất hiện khi khách thuê truy cập từ menu bên trái: **Hợp đồng của tôi**.
+
+#### B. Danh sách chức năng:
+*   **Xem danh sách hợp đồng**: Hiển thị các hợp đồng thuê nhà mà khách thuê là người đại diện ký kết.
+*   **Xem chi tiết hợp đồng**: Hiển thị popup chi tiết về điều khoản, tiền cọc, thành viên ở ghép và dịch vụ đăng ký của hợp đồng được chọn.
+
+#### C. Cách thức hoạt động chi tiết:
+1.  **Lọc dữ liệu hợp đồng**: Hệ thống tìm kiếm các bản ghi trong bảng `HopDongs` có trường `NguoiThueId` trùng với ID của khách thuê hiện tại và chưa bị xóa mềm (`!IsDeleted`), sắp xếp theo ngày tạo giảm dần.
+2.  **Xem chi tiết qua Modal**: Khi khách thuê bấm nút "Xem chi tiết", AJAX gọi API `/KhachThue/HopDong/XemChiTiet/{id}`. API này thực hiện nạp thông tin hợp đồng, đồng thời `Include` bảng `ChiTietThanhVienHopDongs` để lấy các thành viên đang ở ghép và bảng `DangKyDichVus` để lấy các dịch vụ đang đăng ký áp dụng cho phòng của hợp đồng đó. Dữ liệu được trả về dạng JSON và render trực tiếp lên popup Modal của trang hiện tại, giúp khách dễ dàng đối soát điều khoản và dịch vụ.
+
+---
+
+### 4. HÓA ĐƠN & QR THANH TOÁN (INVOICES & VIETQR PAYMENT)
+
+#### A. Các giao diện xuất hiện trên Website:
+*   **Trang Hóa đơn**: Xuất hiện khi khách thuê truy cập từ menu bên trái: **Hóa đơn & Thanh toán**.
+
+#### B. Danh sách chức năng:
+*   **Danh sách hóa đơn theo kỳ**: Hiển thị các hóa đơn đã phát sinh của phòng qua từng tháng.
+*   **Xem chi tiết hóa đơn**: Hiển thị bảng kê chi tiết các khoản phí trong tháng (tiền phòng, số kWh điện, số khối nước tiêu thụ, phí dịch vụ).
+*   **Thanh toán nhanh qua VietQR động**: Hiển thị popup mã QR ngân hàng để khách thuê quét mã thanh toán.
+
+#### C. Cách thức hoạt động chi tiết:
+1.  **Truy xuất hóa đơn phòng**: Server tìm kiếm các hợp đồng của khách thuê này, sau đó truy vấn bảng `HoaDons` chứa các hóa đơn liên kết với danh sách hợp đồng đó.
+2.  **Xem chi tiết phí**: Bấm chọn "Xem chi tiết", AJAX gọi Endpoint `/KhachThue/HoaDon/XemChiTiet?id={hoaDonId}` trả về dữ liệu cấu trúc hóa đơn. Giao diện render một bảng chi tiết hiển thị rõ ràng chỉ số điện (Cũ/Mới/Tiêu thụ), chỉ số nước (Cũ/Mới/Tiêu thụ) và các dịch vụ khác kèm đơn giá.
+3.  **Tạo QR động tại chỗ**: Đối với hóa đơn có trạng thái "Chưa thanh toán", nút "Thanh toán" được hiển thị. Khi click, hệ thống mở một SweetAlert2 chứa mã QR ngân hàng. Mã QR này trỏ trực tiếp đến API `/HoaDon/GetVietQR?hoaDonId={id}` của hệ thống. API này sinh mã QR động EMVCo offline chứa thông tin tài khoản chủ nhà cấu hình ở `appsettings.json`, số tiền chính xác của hóa đơn và nội dung chuyển khoản tự động: `THANH TOAN [MaHoaDon]`. Khách thuê chỉ cần mở app ngân hàng quét mã, toàn bộ thông tin tài khoản nhận, số tiền và nội dung sẽ được điền tự động chính xác 100%.
+
+---
+
+### 5. LẠI LỊCH SỬ THANH TOÁN (PAYMENT HISTORY)
+
+#### A. Các giao diện xuất hiện trên Website:
+*   **Trang Lịch sử đóng tiền**: Xuất hiện khi khách thuê truy cập từ menu bên trái: **Lịch sử đóng tiền**.
+
+#### B. Danh sách chức năng:
+*   **Xem lịch sử giao dịch đóng tiền**: Liệt kê các lần đóng tiền nhà thành công của phòng.
+
+#### C. Cách thức hoạt động chi tiết:
+1.  **Lọc giao dịch thanh toán**: Hệ thống thực hiện câu lệnh join bảng giữa `LichSuThanhToans` và `HoaDons`, tìm các giao dịch thanh toán có hóa đơn thuộc về hợp đồng của khách thuê hiện tại.
+2.  **Hiển thị thông tin đối soát**: Danh sách hiển thị rõ ràng ngày giờ thanh toán, số tiền đóng, phương thức (Tiền mặt hoặc Chuyển khoản), mã giao dịch và ghi chú của nhân viên thu ngân để khách thuê có bằng chứng đối soát tài chính khi cần thiết.
+
+---
+
+## PHẦN C: CÁC TÁC VỤ CHẠY NỀN TỰ ĐỘNG (BACKGROUND SERVICES)
+
+Các dịch vụ chạy ngầm của hệ thống hoạt động liên tục dưới nền, kế thừa lớp `Microsoft.Extensions.Hosting.BackgroundService` để thực thi tự động hóa nghiệp vụ.
+
+### 1. DỊCH VỤ NHẮC NỢ HÓA ĐƠN TỰ ĐỘNG (INVOICE REMINDER JOB)
+
+*   **Mục đích**: Tự động gửi email nhắc nợ cho khách thuê khi hóa đơn bị trễ hạn thanh toán.
+*   **Cách thức hoạt động**:
+    1.  **Chu kỳ chạy**: Cấu hình chạy định kỳ **mỗi giờ một lần** (`Task.Delay` 1 giờ).
+    2.  **Quét nợ trễ hạn**: Service mở một Scope truy cập `ApplicationDbContext`, quét bảng `HoaDons` tìm các hóa đơn chưa thanh toán (`TrangThaiHoaDon == ChuaThanhToan`) và thời điểm tạo đã quá 5 ngày (`NgayTao <= DateTime.UtcNow.AddDays(-5)`).
+    3.  **Gửi email kèm PDF**: Với mỗi hóa đơn quá hạn, hệ thống sinh file PDF chi tiết hóa đơn từ RAM qua `QuestPDF`, gọi `EmailService` thiết lập kết nối SMTP gửi email thông báo nhắc nợ đính kèm PDF hóa đơn tới email khách thuê đại diện.
+    4.  **Ghi lịch sử gửi**: Khóa gửi `[HoaDonId]` được ghi vào file `sent_reminders.json` tại thư mục root. Lần quét tiếp theo hệ thống sẽ kiểm tra file này, nếu hóa đơn đã được gửi nhắc nợ trước đó thì sẽ bỏ qua để tránh spam hòm thư khách thuê.
+
+---
+
+### 2. DỊCH VỤ ĐÓNG HỢP ĐỒNG HẾT HẠN TỰ ĐỘNG (CONTRACT AUTO CLOSE JOB)
+
+*   **Mục đích**: Tự động thanh lý hợp đồng và trả phòng về trạng thái trống khi hết thời hạn thuê.
+*   **Cách thức hoạt động**:
+    1.  **Chu kỳ chạy**: Chạy tự động **mỗi ngày một lần vào lúc nửa đêm** (00:00). Service tự động tính toán thời gian trễ từ thời điểm hiện tại đến nửa đêm hôm sau của múi giờ Việt Nam (GMT+7) để đặt lệnh ngủ (`Task.Delay`).
+    2.  **Quét hợp đồng quá hạn**: Tìm trong bảng `HopDongs` các hợp đồng đang hoạt động (`TrangThaiHopDong == DangHoatDong`) và có ngày kết thúc nhỏ hơn thời điểm hiện tại (`ThoiDiemKetThuc != null && ThoiDiemKetThuc < DateTime.UtcNow`).
+    3.  **Giao dịch DB đồng bộ (Transaction)**: Hệ thống mở một Database Transaction, duyệt qua danh sách hợp đồng quá hạn và thực hiện:
+        - Cập nhật `TrangThaiHopDong = DaKetThuc`.
+        - Cập nhật trạng thái phòng trọ tương ứng thành trống (`TrangThai = Trong`).
+        - Đặt ngày dời đi (`NgayChuyenDi = DateTime.UtcNow`) cho tất cả các thành viên ở ghép đang hoạt động thuộc hợp đồng đó.
+        - Đặt ngày kết thúc (`NgayKetThuc = DateTime.UtcNow`) cho toàn bộ các dịch vụ đang đăng ký sử dụng của phòng đó để dừng tính phí cho kỳ sau.
+        - Lưu thay đổi và commit Transaction. Ghi nhật ký (Logger) tiến trình hoàn tất ra console để phục vụ giám sát.
+
+---
+
+### 3. DỊCH VỤ CẢNH BÁO HẾT HẠN HỢP ĐỒNG TỰ ĐỘNG (CONTRACT EXPIRY ALERT JOB)
+
+*   **Mục đích**: Tự động thông báo cho khách thuê và ban quản lý chuẩn bị kế hoạch gia hạn hoặc dọn đi trước khi hợp đồng chính thức hết hạn.
+*   **Cách thức hoạt động**:
+    1.  **Chu kỳ chạy**: Chạy tự động **mỗi ngày một lần lúc 8:00 sáng**.
+    2.  **Đọc cấu hình**: Service đọc các mốc ngày cảnh báo từ `appsettings.json` tại mục `ContractAlertSettings:AlertDays` (mặc định cấu hình cảnh báo trước **30 ngày** và **15 ngày**), và email quản trị `ContractAlertSettings:AdminEmail`.
+    3.  **Quét hợp đồng**: Tìm kiếm các hợp đồng đang hoạt động có ngày kết thúc. Tính toán số ngày còn lại đến khi hết hạn: `daysLeft = NgayKetThuc - Today`.
+    4.  **Gửi email cảnh báo**: Nếu `daysLeft` trùng khớp với các mốc cấu hình (30 hoặc 15):
+        - Hệ thống gọi `EmailService.SendContractExpiryAlertAsync` gửi email chi tiết cho khách thuê (Họ tên, mã hợp đồng, số phòng, số ngày còn lại và ngày hết hạn chính thức).
+        - Đồng thời gửi email thông báo tương ứng cho Admin để chủ nhà chủ động quản lý.
+    5.  **Ghi lịch sử cảnh báo**: Ghi nhận khóa gửi `[HopDongId]_[daysLeft]` vào tệp JSON `sent_contract_alerts.json` trên server để chống gửi lặp lại trong ngày.
+
+

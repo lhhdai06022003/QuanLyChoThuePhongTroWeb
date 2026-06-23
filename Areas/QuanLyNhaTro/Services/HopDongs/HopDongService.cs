@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.PhongTros;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Requests;
@@ -11,10 +12,12 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HopDongs
     public class HopDongService : IHopDongService
     {
         private readonly ApplicationDbContext _context;
+        private readonly IPasswordHasher<NguoiDung> _passwordHasher;
 
-        public HopDongService(ApplicationDbContext context)
+        public HopDongService(ApplicationDbContext context, IPasswordHasher<NguoiDung> passwordHasher)
         {
             _context = context;
+            _passwordHasher = passwordHasher;
         }
 
         public async Task<DataTableResponse<HopDongRes>> DanhSachHopDongSideAsync(HopDongFilterReq request)
@@ -344,20 +347,16 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HopDongs
                     bool hasAccount = await _context.NguoiDungs.AnyAsync(u => u.NguoiThueId == input.NguoiThueId && !u.IsDeleted);
                     if (!hasAccount)
                     {
-                        using var sha256 = System.Security.Cryptography.SHA256.Create();
-                        var hashedBytes = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(nguoiThueDaiDien.SoDienThoai));
-                        var hashString = BitConverter.ToString(hashedBytes).Replace("-", "").ToLower();
-
                         var newTenantUser = new NguoiDung
                         {
                             TenDangNhap = nguoiThueDaiDien.Email,
-                            MatKhauHash = hashString,
                             Role = Role.KhachThue,
                             NguoiThueId = input.NguoiThueId,
                             IsActive = true,
                             NgayTao = DateTime.UtcNow,
                             IsDeleted = false
                         };
+                        newTenantUser.MatKhauHash = _passwordHasher.HashPassword(newTenantUser, nguoiThueDaiDien.SoDienThoai);
                         _context.NguoiDungs.Add(newTenantUser);
                     }
                 }

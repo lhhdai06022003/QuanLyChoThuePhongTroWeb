@@ -17,7 +17,10 @@ Dự án được phát triển theo mô hình ứng dụng web hiện đại, t
   - **QuestPDF**: Thư viện thế hệ mới để xuất hóa đơn/hợp đồng ra file PDF chất lượng cao.
   - **DocX**: Thư viện xử lý và xuất hợp đồng thuê phòng ra file Word (.docx) định dạng A4 chuyên nghiệp.
   - **QRCoder**: Dùng để sinh mã QR chuyển khoản ngân hàng nhanh tiêu chuẩn VietQR động, hoàn toàn offline trên server.
-- **Tác vụ nền**: `InvoiceReminderService` (kế thừa `BackgroundService`) chạy định kỳ mỗi giờ, tự động quét và gửi email nhắc nợ.
+- **Tác vụ nền (Background Services)**:
+  - `InvoiceReminderService`: Chạy định kỳ mỗi giờ, quét và gửi email nhắc nợ tự động cho các hóa đơn quá hạn 5 ngày.
+  - `ContractAutoCloseService`: Chạy tự động hàng ngày lúc nửa đêm, tự động kết thúc các hợp đồng hết hạn và giải phóng trạng thái phòng, thành viên, dịch vụ.
+  - `ContractExpiryAlertService`: Chạy tự động hàng ngày lúc 8:00 sáng, gửi email cảnh báo sắp hết hạn hợp đồng trước 30 và 15 ngày cho khách thuê và quản lý.
 
 ### B. Frontend & Libraries
 - **CSS Framework**: **Tabler Theme** (được phát triển trên nền tảng **Bootstrap 5**), mang phong cách UI chuyên nghiệp, hỗ trợ tối ưu giao diện sáng/tối (Dark/Light mode) và các hiệu ứng động.
@@ -39,13 +42,17 @@ Dự án phân chia các module chính vào thư mục `Areas` để cô lập l
 QuanLyChoThuePhongTroWeb/
 │
 ├── Areas/
-│   └── QuanLyNhaTro/             <-- Phân hệ nghiệp vụ Quản lý nhà trọ chính
-│       ├── Controllers/          <-- Nơi nhận request, điều phối hiển thị và API Endpoints
-│       ├── Models/               <-- Các Entity Map trực tiếp với bảng PostgreSQL qua EF Core
-│       ├── Services/             <-- Chứa lớp nghiệp vụ (Business Logic), truy vấn cơ sở dữ liệu
-│       ├── ViewModels/           <-- Chứa DTOs, Requests và Responses phục vụ truyền tải dữ liệu
-│       └── Views/                <-- Giao diện Razor Views (.cshtml) phân chia theo thực thể
-│           └── Shared/           <-- Giao diện dùng chung (_DangKyDichVuPartial, _DanhSachThanhVienPartial)
+│   ├── QuanLyNhaTro/             <-- Phân hệ nghiệp vụ Quản lý nhà trọ chính (Admin Portal)
+│   │   ├── Controllers/          <-- Nơi nhận request, điều phối hiển thị và API Endpoints
+│   │   ├── Models/               <-- Các Entity Map trực tiếp với bảng PostgreSQL qua EF Core
+│   │   ├── Services/             <-- Chứa lớp nghiệp vụ (Business Logic), truy vấn cơ sở dữ liệu
+│   │   ├── ViewModels/           <-- Chứa DTOs, Requests và Responses phục vụ truyền tải dữ liệu
+│   │   └── Views/                <-- Giao diện Razor Views (.cshtml) phân chia theo thực thể
+│   │
+│   └── KhachThue/                <-- Phân hệ dành riêng cho Khách thuê (Tenant Portal)
+│       ├── Controllers/          <-- Controllers điều phối (Dashboard, HoSo, HoaDon, HopDong, LichSu)
+│       ├── ViewModels/           <-- ViewModels hỗ trợ đổi mật khẩu, hiển thị dữ liệu
+│       └── Views/                <-- Các Views hiển thị thông tin cho khách thuê
 │
 ├── Data/
 │   └── ApplicationDbContext.cs   <-- Khai báo DbSet, cấu hình quan hệ (Fluent API) và Seed dữ liệu
@@ -67,6 +74,10 @@ QuanLyChoThuePhongTroWeb/
 
 ## 3. MÔ TẢ CÁC MODULE NGHIỆP VỤ CHÍNH
 
+Hệ thống được chia làm hai phân hệ nghiệp vụ chính: **Phân hệ Quản lý (Admin Portal)** và **Phân hệ Khách thuê (Tenant Portal)**.
+
+### A. Phân Hệ Quản Lý (Admin Portal - Area `QuanLyNhaTro`)
+
 1. **Dashboard (Bảng điều khiển)**:
    - Hiển thị các chỉ số vận hành quan trọng như doanh thu thực thu, doanh thu chờ thu, số phòng trống/đã thuê, tỷ lệ lấp đầy.
    - Chứa biểu đồ cột chồng doanh thu 12 tháng, cơ cấu phương thức thanh toán, bảng việc cần làm/cảnh báo và timeline hoạt động.
@@ -79,6 +90,15 @@ QuanLyChoThuePhongTroWeb/
 8. **Hóa đơn (Invoices)**: Tự động phát sinh hóa đơn theo kỳ dựa vào tiền phòng thỏa thuận, tiền điện/nước tiêu thụ thực tế và các dịch vụ đăng ký. Hỗ trợ sinh VietQR chuyển khoản, in báo cáo PDF/Excel, gửi email thông báo đơn lẻ hoặc hàng loạt, và chạy ngầm nhắc nợ tự động (`InvoiceReminderService`).
 9. **Lịch sử Thanh toán (Payment History)**: Quản lý toàn bộ giao dịch đóng tiền mặt hoặc quét VietQR chuyển khoản, cho phép Admin thực hiện hủy/hoàn tác giao dịch thu tiền khi bị lỗi.
 10. **Điều khoản mẫu (Contract Clauses)**: Quản lý các điều khoản mẫu dùng trong hợp đồng thuê phòng. Được thiết kế dưới dạng Single-Page Application (SPA) qua AJAX và Bootstrap Modals giúp thực hiện toàn bộ thao tác Thêm, Sửa, Xóa trên một màn hình duy nhất mà không cần tải lại trang.
+11. **Trợ lý AI (AiAssistant)**: Tích hợp widget chat Gemini AI ở góc màn hình. AI sử dụng cơ chế **Function Calling** để chạy truy vấn trực tiếp SQL dưới nền, cho phép trả lời ngôn ngữ tự nhiên các số liệu vận hành và tài chính của nhà trọ (tìm phòng trống, thống kê doanh thu, hóa đơn nợ...).
+
+### B. Phân Hệ Khách Thuê (Tenant Portal - Area `KhachThue`)
+
+1. **Dashboard Khách thuê**: Xem tổng quan trạng thái phòng đang thuê hiện tại, số lượng hóa đơn trễ hạn và các ghi chú chào mừng.
+2. **Thông tin Hồ sơ (HoSo)**: Xem chi tiết thông tin cá nhân trên hợp đồng thuê đã đăng ký. Hỗ trợ thay đổi mật khẩu tài khoản trực tiếp qua giao diện AJAX băm bảo mật SHA256.
+3. **Chi tiết Hợp đồng (HopDong)**: Xem toàn bộ hợp đồng hiện tại và quá khứ, các thành viên ở ghép cùng phòng, danh sách dịch vụ đang đăng ký áp dụng cho phòng trọ.
+4. **Hóa đơn & QR Thanh toán (HoaDon)**: Tra cứu lịch sử hóa đơn tiền phòng/dịch vụ theo các tháng. Đối với hóa đơn chưa thanh toán, hệ thống hiển thị mã VietQR động được tạo offline chứa số tiền và nội dung chuyển khoản động chứa mã hóa đơn để chuyển khoản nhanh.
+5. **Lịch sử Giao dịch (LichSuThanhToan)**: Truy cập danh sách các giao dịch thanh toán thành công đã đóng trước đó.
 
 ---
 

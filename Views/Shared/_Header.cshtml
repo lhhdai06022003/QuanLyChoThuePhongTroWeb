@@ -29,7 +29,10 @@
                         </div>
                     </a>
                     <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
-                        <a href="/QuanLyNhaTro/DangXuat" class="dropdown-item text-danger py-2">
+                        <form id="logoutForm" action="/QuanLyNhaTro/DangXuat" method="post" class="d-none">
+                            @Html.AntiForgeryToken()
+                        </form>
+                        <a href="javascript:void(0);" onclick="document.getElementById('logoutForm').submit();" class="dropdown-item text-danger py-2">
                             <i class="fas fa-sign-out-alt me-2" style="font-size: 0.85rem;"></i> Đăng xuất
                         </a>
                     </div>
