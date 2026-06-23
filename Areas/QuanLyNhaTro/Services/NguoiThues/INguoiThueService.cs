@@ -1,4 +1,4 @@
-
+﻿
 
 using Microsoft.AspNetCore.Mvc.Rendering;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Requests;
@@ -17,5 +17,9 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.NguoiThues
         Task<List<SelectListItem>> DanhSachNguoiThue();
         Task<object> SearchAutocompleteAsync(string searchTerm);
         Task<(bool IsSuccess, string ErrorMessage)> PhatSinhNgauNhienAsync();
+        
+
+        // THÊM DÒNG NÀY: Khai báo hàm lấy danh sách người chưa thuê
+        Task<List<SelectListItem>> DanhSachNguoiThueChuaCoPhong();
     }
 }
