@@ -3,6 +3,9 @@
 
 Tài liệu này mô tả chi tiết tất cả các chức năng nghiệp vụ của hệ thống **Quản lý cho thuê phòng trọ** cùng với cách thức vận hành và vị trí xuất hiện của từng chức năng trên giao diện khi người dùng mở trang web.
 
+> **Đối tượng đọc**: Lập trình viên mới, QA tester, nhân viên nghiệp vụ muốn hiểu hệ thống hoạt động.
+> **Tham chiếu kỹ thuật**: Xem thêm `HuongDanToanDienDuAn.md` để biết chi tiết kiến trúc và quy chuẩn code.
+
 ---
 
 ### 1. QUẢN LÝ TÀI KHOẢN & PHÂN QUYỀN (AUTHENTICATION & AUTHORIZATION)
@@ -15,7 +18,7 @@ Tài liệu này mô tả chi tiết tất cả các chức năng nghiệp vụ 
 *   **Đăng nhập hệ thống**: Xác thực tài khoản người dùng (Admin hoặc Staff) để cấp quyền truy cập.
 *   **Đăng xuất hệ thống**: Hủy phiên làm việc hiện tại, xóa thông tin định danh trên thiết bị.
 *   **Quản lý tài khoản nội bộ (CRUD)**: Cho phép Admin tạo mới, sửa đổi phân quyền, cập nhật trạng thái hoạt động hoặc xóa tài khoản nhân viên.
-*   **Khởi tạo dữ liệu mẫu (Seeding)**: Tự động tạo tài khoản quản trị tối cao ban đầu nếu cơ sở dữ liệu chưa có dữ liệu.
+*   **Khởi tạo dữ liệu mẫu (Seeding)**: Tự động tạo tài khoản quản trị tối cao ban đầu nếu cơ sở dữ liệu chưa có dữ liệu. Tài khoản mặc định: `admin` / `admin123`.
 
 #### C. Cách thức hoạt động chi tiết:
 1.  **Xác thực Cookie**: Hệ thống sử dụng cơ chế xác thực dựa trên Cookie của ASP.NET Core (`CookieAuthenticationDefaults`). Khi đăng nhập thành công, một Cookie chứa các thông tin định danh (`ClaimsIdentity`) như ID người dùng, tên đăng nhập và vai trò (Role) sẽ được ghi xuống trình duyệt của người dùng với thời hạn tối đa 30 ngày (nếu chọn ghi nhớ).
@@ -67,7 +70,7 @@ Tài liệu này mô tả chi tiết tất cả các chức năng nghiệp vụ 
 
 #### A. Các giao diện xuất hiện trên Website:
 *   **Trang Quản lý Phòng trọ**: Xuất hiện khi người dùng truy cập từ thanh Menu: **Quản lý nhà trọ** -> **Phòng trọ**.
-*   **Trang Sơ đồ trạng thái phòng**: Xuất hiện khi người dùng nhấn vào nút **Sơ đồ phòng** (Hoặc biểu tượng sơ đồ nhà trọ góc trên).
+*   **Trang Sơ đồ trạng thái phòng**: Xuất hiện khi người dùng nhấn vào nút **Sơ đồ phòng** (hoặc biểu tượng sơ đồ nhà trọ góc trên).
 
 #### B. Danh sách chức năng:
 *   **Quản lý danh sách phòng (CRUD)**: Quản lý thông tin số phòng, tầng lầu, diện tích, giá thuê gốc, số người ở tối đa và trạng thái của phòng.
@@ -182,9 +185,9 @@ Tài liệu này mô tả chi tiết tất cả các chức năng nghiệp vụ 
 #### C. Cách thức hoạt động chi tiết:
 1.  **Công thức tính toán tiền hóa đơn**:
     *   *Tiền phòng*: Lấy giá thuê phòng thỏa thuận trong hợp đồng.
-    *   *Tiền điện*: Lấy `(Chỉ số điện mới - Chỉ số điện cũ) * Đơn giá điện của chi nhánh`.
-    *   *Tiền nước*: Lấy `(Chỉ số nước mới - Chỉ số nước cũ) * Đơn giá nước của chi nhánh`.
-    *   *Tiền dịch vụ khác*: Lấy `Số lượng đăng ký * Đơn giá dịch vụ tương ứng`.
+    *   *Tiền điện*: Lấy `(Chỉ số điện mới - Chỉ số điện cũ) × Đơn giá điện của chi nhánh`.
+    *   *Tiền nước*: Lấy `(Chỉ số nước mới - Chỉ số nước cũ) × Đơn giá nước của chi nhánh`.
+    *   *Tiền dịch vụ khác*: Lấy `Số lượng đăng ký × Đơn giá dịch vụ tương ứng`.
     *   *Tổng tiền hóa đơn*: Bằng tổng cộng tất cả các khoản chi phí trên.
 2.  **Quy trình Phát sinh hóa đơn (`PhatSinhHoaDonAsync`)**:
     *   Hệ thống kiểm tra xem các phòng được chọn đã chốt chỉ số điện nước của tháng/năm đó chưa. Nếu chưa chốt, hệ thống sẽ từ chối tạo hóa đơn và yêu cầu đi chốt số trước.
@@ -193,18 +196,18 @@ Tài liệu này mô tả chi tiết tất cả các chức năng nghiệp vụ 
     *   Cập nhật trạng thái chỉ số điện nước sang trạng thái khóa (`IsLocked = true`).
 3.  **Tạo mã VietQR động ngoại tuyến**:
     *   Khi người dùng bấm "Xem mã QR" trên giao diện hóa đơn chưa thanh toán, hệ thống gọi API `/HoaDon/GetVietQR?hoaDonId=x`.
-    *   [VietQRHelper.cs] đọc thông tin tài khoản ngân hàng thụ hưởng cấu hình tại tệp `appsettings.json`, cộng với tổng số tiền hóa đơn và nội dung chuyển khoản chuẩn hóa không dấu: `THANH TOAN [MaHoaDon]`.
+    *   `VietQRHelper.cs` đọc thông tin tài khoản ngân hàng thụ hưởng cấu hình tại tệp `appsettings.json`, cộng với tổng số tiền hóa đơn và nội dung chuyển khoản chuẩn hóa không dấu: `THANH TOAN [MaHoaDon]`.
     *   Helper thực hiện mã hóa thông tin theo chuẩn EMVCo và tính toán mã kiểm tra CRC16 để sinh chuỗi VietQR thô.
     *   Sử dụng thư viện `QRCoder` kết xuất chuỗi này thành định dạng ảnh PNG lưu trong bộ nhớ đệm RAM và truyền thẳng luồng byte ảnh về thẻ `<img>` trên giao diện người dùng. Việc này diễn ra hoàn toàn offline trên server, đảm bảo tính bảo mật và tốc độ tối đa.
 4.  **Xuất bản tài liệu chất lượng cao**:
     *   *Excel*: Thư viện `ClosedXML` tạo một Workbook mới, vẽ bảng kê chi tiết hóa đơn, kẻ bảng, tô màu tiêu đề và định dạng số tiền tệ, trả về luồng byte tải về của trình duyệt.
     *   *PDF*: Thư viện `QuestPDF` vẽ bố cục hóa đơn A4 sắc nét gồm logo, thông tin chi nhánh, thông tin khách thuê, bảng chi phí chi tiết, và chữ ký người lập phiếu, trả về file PDF chuẩn.
 5.  **Gửi Email tự động, Gửi hàng loạt qua Modal & Tự động gửi nhắc nợ**:
-    *   *Gửi đơn lẻ:* Khi Admin bấm "Gửi Email" trên bảng thao tác, hệ thống sinh PDF hóa đơn dưới dạng mảng byte trong bộ nhớ RAM, gọi [EmailService.cs] khởi tạo kết nối SMTP (TLS) tới máy chủ thư điện tử (cấu hình trong `appsettings.json`) để gửi đính kèm file PDF hóa đơn và nội dung HTML tóm tắt đến email khách thuê phòng.
-    *   *Gửi hàng loạt:* Bấm nút **"Gửi Email Hóa Đơn"** ở thanh công cụ chính, Modal gửi email mở ra hỗ trợ bộ lọc riêng biệt (Chi nhánh, Tháng, Năm). Hệ thống gọi API `/HoaDon/GetUnpaidList` để lấy toàn bộ các hóa đơn chưa thanh toán, hỗ trợ tích chọn hàng loạt. Khi bấm bắt đầu gửi, Javascript chạy vòng lặp tuần tự gọi API gửi email cho từng hóa đơn, đồng thời cập nhật thanh tiến trình (Progress Bar) động qua SweetAlert2 để đảm bảo UX trực quan và mượt mà.
-    *   *Tự động quét và gửi nhắc nợ (Auto-scheduler Background Service):* Hệ thống tích hợp một tác vụ chạy nền định kỳ mỗi giờ (`InvoiceReminderService` kế thừa từ `BackgroundService`). Cứ mỗi giờ, hệ thống quét các hóa đơn chưa thanh toán có ngày tạo quá 5 ngày (`NgayTao <= now - 5 days`) và tự động gửi email nhắc nợ kèm PDF hóa đơn. Tiến trình này ghi nhận lịch sử vào tệp `sent_reminders.json` để ngăn chặn gửi lặp lại và ghi nhật ký trực tiếp ra console, đảm bảo vận hành ổn định và độc lập không tốn chi phí.
-    *   *Cá nhân hóa chữ ký chi nhánh (Friendly Signature):* Các email gửi đi (bao gồm cả gửi thủ công và tự động) được tích hợp chữ ký động. Phần chân trang (Footer) hiển thị lời chúc trân trọng và thông tin liên hệ cụ thể của chi nhánh như Tên chi nhánh, Địa chỉ chi nhánh, và Hotline hỗ trợ lấy động từ cơ sở dữ liệu.
-    *   *Tương thích giao diện tối (Dark Mode):* Email được thiết kế responsive với mã CSS thích ứng tự động (`prefers-color-scheme: dark`) giúp tự động chuyển tông màu nền, màu chữ và màu chữ ký chi nhánh dịu mắt khi khách thuê bật chế độ tối trên thiết bị. Mã QR Code VietQR được bọc trong viền trắng cố định giúp camera quét chuyển khoản nhanh và chính xác nhất.
+    *   *Gửi đơn lẻ*: Khi Admin bấm "Gửi Email" trên bảng thao tác, hệ thống sinh PDF hóa đơn dưới dạng mảng byte trong bộ nhớ RAM, gọi `EmailService.cs` khởi tạo kết nối SMTP (TLS) tới máy chủ thư điện tử (cấu hình trong `appsettings.json`) để gửi đính kèm file PDF hóa đơn và nội dung HTML tóm tắt đến email khách thuê phòng.
+    *   *Gửi hàng loạt*: Bấm nút **"Gửi Email Hóa Đơn"** ở thanh công cụ chính, Modal gửi email mở ra hỗ trợ bộ lọc riêng biệt (Chi nhánh, Tháng, Năm). Hệ thống gọi API `/HoaDon/GetUnpaidList` để lấy toàn bộ các hóa đơn chưa thanh toán, hỗ trợ tích chọn hàng loạt. Khi bấm bắt đầu gửi, Javascript chạy vòng lặp tuần tự gọi API gửi email cho từng hóa đơn, đồng thời cập nhật thanh tiến trình (Progress Bar) động qua SweetAlert2 để đảm bảo UX trực quan và mượt mà.
+    *   *Tự động quét và gửi nhắc nợ (Auto-scheduler Background Service)*: Hệ thống tích hợp một tác vụ chạy nền định kỳ mỗi giờ (`InvoiceReminderService` kế thừa từ `BackgroundService`). Cứ mỗi giờ, hệ thống quét các hóa đơn chưa thanh toán có ngày tạo quá 5 ngày (`NgayTao <= now - 5 days`) và tự động gửi email nhắc nợ kèm PDF hóa đơn. Tiến trình này ghi nhận lịch sử vào tệp `sent_reminders.json` để ngăn chặn gửi lặp lại và ghi nhật ký trực tiếp ra console, đảm bảo vận hành ổn định và độc lập không tốn chi phí.
+    *   *Cá nhân hóa chữ ký chi nhánh (Friendly Signature)*: Các email gửi đi (bao gồm cả gửi thủ công và tự động) được tích hợp chữ ký động. Phần chân trang (Footer) hiển thị lời chúc trân trọng và thông tin liên hệ cụ thể của chi nhánh như Tên chi nhánh, Địa chỉ chi nhánh, và Hotline hỗ trợ lấy động từ cơ sở dữ liệu.
+    *   *Tương thích giao diện tối (Dark Mode)*: Email được thiết kế responsive với mã CSS thích ứng tự động (`prefers-color-scheme: dark`) giúp tự động chuyển tông màu nền, màu chữ và màu chữ ký chi nhánh dịu mắt khi khách thuê bật chế độ tối trên thiết bị. Mã QR Code VietQR được bọc trong viền trắng cố định giúp camera quét chuyển khoản nhanh và chính xác nhất.
 
 ---
 

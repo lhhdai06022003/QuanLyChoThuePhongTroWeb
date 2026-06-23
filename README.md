@@ -15,7 +15,8 @@ Dự án được phát triển theo mô hình ứng dụng web hiện đại, t
 - **Thư viện xuất bản file**:
   - **ClosedXML**: Dùng để xử lý đọc/ghi và xuất dữ liệu báo cáo ra file Excel (.xlsx).
   - **QuestPDF**: Thư viện thế hệ mới để xuất hóa đơn/hợp đồng ra file PDF chất lượng cao.
-  - **QRCoder**: Dùng để sinh mã QR chuyển khoản ngân hàng nhanh tiêu chuẩn VietQR động.
+  - **QRCoder**: Dùng để sinh mã QR chuyển khoản ngân hàng nhanh tiêu chuẩn VietQR động, hoàn toàn offline trên server.
+- **Tác vụ nền**: `InvoiceReminderService` (kế thừa `BackgroundService`) chạy định kỳ mỗi giờ, tự động quét và gửi email nhắc nợ.
 
 ### B. Frontend & Libraries
 - **CSS Framework**: **Tabler Theme** (được phát triển trên nền tảng **Bootstrap 5**), mang phong cách UI chuyên nghiệp, hỗ trợ tối ưu giao diện sáng/tối (Dark/Light mode) và các hiệu ứng động.
@@ -43,19 +44,22 @@ QuanLyChoThuePhongTroWeb/
 │       ├── Services/             <-- Chứa lớp nghiệp vụ (Business Logic), truy vấn cơ sở dữ liệu
 │       ├── ViewModels/           <-- Chứa DTOs, Requests và Responses phục vụ truyền tải dữ liệu
 │       └── Views/                <-- Giao diện Razor Views (.cshtml) phân chia theo thực thể
+│           └── Shared/           <-- Giao diện dùng chung (_DangKyDichVuPartial, _DanhSachThanhVienPartial)
 │
 ├── Data/
 │   └── ApplicationDbContext.cs   <-- Khai báo DbSet, cấu hình quan hệ (Fluent API) và Seed dữ liệu
+│
+├── Services/                     <-- Các dịch vụ dùng chung hệ thống (MenuService, InvoiceReminderService)
 │
 ├── wwwroot/                      <-- Thư mục chứa tài nguyên tĩnh
 │   ├── css/                      <-- File CSS tự viết phục vụ từng module (hopdong.css, hoadon.css...)
 │   └── Theme/                    <-- Thư mục chứa thư viện Tabler, JS, hình ảnh logo...
 │
-├── Services/                     <-- Các dịch vụ dùng chung hệ thống (ví dụ: MenuService)
-│
-├── appsettings.json              <-- Cấu hình kết nối DB (PostgreSQL), tham số VietQR
+├── appsettings.json              <-- Cấu hình kết nối DB (PostgreSQL), tham số SMTP, VietQR
 ├── Program.cs                    <-- Nơi khởi chạy ứng dụng, cấu hình DI (Dependency Injection), Routing
-└── README.md                     <-- Chính là tài liệu hướng dẫn này
+├── HuongDanToanDienDuAn.md       <-- Tài liệu hướng dẫn chi tiết toàn diện cho lập trình viên mới
+├── tai_lieu_chuc_nang_he_thong.md <-- Tài liệu mô tả chi tiết các chức năng nghiệp vụ hệ thống
+└── README.md                     <-- Chính là tài liệu hướng dẫn tổng quan này
 ```
 
 ---
@@ -65,13 +69,14 @@ QuanLyChoThuePhongTroWeb/
 1. **Dashboard (Bảng điều khiển)**:
    - Hiển thị các chỉ số vận hành quan trọng như doanh thu thực thu, doanh thu chờ thu, số phòng trống/đã thuê, tỷ lệ lấp đầy.
    - Chứa biểu đồ cột chồng doanh thu 12 tháng, cơ cấu phương thức thanh toán, bảng việc cần làm/cảnh báo và timeline hoạt động.
-2. **Chi nhánh (Branches)**: Quản lý nhiều cơ sở nhà trọ khác nhau.
-3. **Phòng trọ (Rooms)**: Quản lý số phòng, đơn giá thuê gốc, diện tích và trạng thái phòng (Trống/Đã thuê/Đang bảo trì).
-4. **Khách thuê (Tenants)**: Lưu trữ thông tin cá nhân khách thuê đại diện và các thành viên ở ghép.
-5. **Hợp đồng (Contracts)**: Quản lý thời hạn thuê phòng, số tiền cọc, giá thuê thỏa thuận và danh sách dịch vụ đăng ký đi kèm.
-6. **Chỉ số Điện nước (Utilities)**: Ghi chỉ số điện/nước hàng tháng của từng phòng trọ.
-7. **Hóa đơn (Invoices)**: Tự động phát sinh hóa đơn theo kỳ dựa vào tiền phòng thỏa thuận, tiền điện/nước tiêu thụ thực tế và các dịch vụ đăng ký lẻ ngày (pro-rated).
-8. **Lịch sử Thanh toán (Payment History)**: Quản lý toàn bộ giao dịch đóng tiền mặt hoặc quét VietQR chuyển khoản, cho phép Admin thực hiện hủy/hoàn tác giao dịch thu tiền khi bị lỗi.
+2. **Chi nhánh (Branches)**: Quản lý nhiều cơ sở nhà trọ khác nhau. Mỗi chi nhánh có bảng giá dịch vụ riêng biệt.
+3. **Phòng trọ (Rooms)**: Quản lý số phòng, đơn giá thuê gốc, diện tích và trạng thái phòng (Trống / Đã thuê / Đang bảo trì). Hỗ trợ sơ đồ phòng trực quan và thanh toán nhanh.
+4. **Khách thuê (Tenants)**: Lưu trữ thông tin cá nhân khách thuê đại diện và các thành viên ở ghép. Tích hợp autocomplete khi lập hợp đồng.
+5. **Hợp đồng (Contracts)**: Quản lý thời hạn thuê phòng, số tiền cọc, giá thuê thỏa thuận. Tích hợp quản lý thành viên ở ghép (`_DanhSachThanhVienPartial`) và danh sách dịch vụ đăng ký đi kèm (`_DangKyDichVuPartial`).
+6. **Dịch vụ (Services)**: Định nghĩa danh mục dịch vụ và cấu hình bảng giá riêng theo từng chi nhánh.
+7. **Chỉ số Điện nước (Utilities)**: Ghi chỉ số điện/nước hàng tháng của từng phòng trọ. Hỗ trợ kế thừa chỉ số và khóa dữ liệu sau khi phát sinh hóa đơn.
+8. **Hóa đơn (Invoices)**: Tự động phát sinh hóa đơn theo kỳ dựa vào tiền phòng thỏa thuận, tiền điện/nước tiêu thụ thực tế và các dịch vụ đăng ký. Hỗ trợ sinh VietQR chuyển khoản, in báo cáo PDF/Excel, gửi email thông báo đơn lẻ hoặc hàng loạt, và chạy ngầm nhắc nợ tự động (`InvoiceReminderService`).
+9. **Lịch sử Thanh toán (Payment History)**: Quản lý toàn bộ giao dịch đóng tiền mặt hoặc quét VietQR chuyển khoản, cho phép Admin thực hiện hủy/hoàn tác giao dịch thu tiền khi bị lỗi.
 
 ---
 
@@ -106,6 +111,10 @@ Hệ thống sử dụng các class của theme Tabler. Để tránh bị lỗi 
 - **Tuyệt đối không** sử dụng class `bg-white` trên các ô nhập liệu dạng văn bản hoặc bộ chọn ngày. Hãy để class mặc định `.form-control` tự động điều chỉnh.
 - Sử dụng các CSS Variables dùng chung như `var(--tblr-bg-surface)` hay `var(--tblr-body-color)` khi viết CSS tùy biến để tự động tương thích với Dark Mode.
 
+### E. Xóa mềm (Soft Delete)
+- Mọi thực thể chính đều có trường `IsDeleted`. Khi thực hiện hành động xóa, chỉ cập nhật `IsDeleted = true`.
+- Luôn lọc dữ liệu bằng `.Where(x => !x.IsDeleted)`. Không dùng lệnh xóa cứng khỏi database nhằm bảo toàn dữ liệu lịch sử.
+
 ---
 
 ## 5. HƯỚNG DẪN KHỞI CHẠY & PHÁT TRIỂN (HOW TO RUN)
@@ -122,3 +131,5 @@ Hệ thống sử dụng các class của theme Tabler. Để tránh bị lỗi 
    dotnet watch run
    ```
    Trình duyệt sẽ tự động mở trang web. Khi sửa code ở file C# hay HTML, server sẽ tự động reload giúp quá trình phát triển nhanh chóng hơn.
+
+

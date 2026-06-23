@@ -14,26 +14,61 @@
 }
 
 /* Styling meter inputs inside table cells */
+.diennuoc-input-td {
+    position: relative !important;
+    padding-bottom: 1.65rem !important; /* Dành khoảng trống cố định cho thông báo lỗi absolute */
+}
+
 .diennuoc-input-td input {
     max-width: 120px;
     margin: 0 auto;
     font-weight: 600;
 }
 
+/* Định vị tuyệt đối cho thông báo lỗi để không dịch chuyển ô input và không thay đổi chiều cao dòng */
+.diennuoc-input-td .invalid-feedback {
+    position: absolute !important;
+    bottom: 4px !important;
+    left: 0 !important;
+    right: 0 !important;
+    margin: 0 auto !important;
+    width: 120px !important;
+    text-align: center !important;
+    font-size: 0.72rem !important;
+    line-height: 1.2 !important;
+    white-space: nowrap !important;
+}
+
 .bg-warning-light-td {
-    background-color: rgba(245, 159, 0, 0.03) !important;
+    background-color: rgba(245, 159, 0, 0.06) !important;
 }
 
 .bg-danger-light-td {
-    background-color: rgba(214, 57, 57, 0.03) !important;
+    background-color: rgba(214, 57, 57, 0.06) !important;
 }
 
 .bg-info-light-td {
-    background-color: rgba(66, 153, 225, 0.03) !important;
+    background-color: rgba(66, 153, 225, 0.06) !important;
 }
 
 .bg-primary-light-td {
-    background-color: rgba(32, 107, 196, 0.03) !important;
+    background-color: rgba(32, 107, 196, 0.06) !important;
+}
+
+[data-bs-theme="dark"] .bg-warning-light-td {
+    background-color: rgba(245, 159, 0, 0.15) !important;
+}
+
+[data-bs-theme="dark"] .bg-danger-light-td {
+    background-color: rgba(214, 57, 57, 0.15) !important;
+}
+
+[data-bs-theme="dark"] .bg-info-light-td {
+    background-color: rgba(66, 153, 225, 0.15) !important;
+}
+
+[data-bs-theme="dark"] .bg-primary-light-td {
+    background-color: rgba(32, 107, 196, 0.15) !important;
 }
 
 /* Sticky Action Bar styling */
@@ -41,8 +76,8 @@
     transform: translateY(100%);
     box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.08) !important;
 }
+
 #stickyActionBar.show-bar {
     transform: translateY(0) !important;
     display: flex !important;
 }
-

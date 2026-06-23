@@ -139,16 +139,11 @@
                             <option value="1">Chuyển khoản</option>
                         </select>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <label class="form-label font-weight-bold text-secondary mb-1">
                             <i class="fas fa-calendar-alt me-1"></i> Khoảng thời gian
                         </label>
                         <input type="text" id="filterDateRange" class="form-control form-control-sm" placeholder="Chọn khoảng ngày thanh toán..." readonly />
-                    </div>
-                    <div class="col-md-2">
-                        <button class="btn btn-primary btn-sm w-100 font-weight-bold" id="btnFilter" style="height: 36px;">
-                            <i class="fas fa-search me-1"></i> Lọc danh sách
-                        </button>
                     </div>
                 </div>
             </div>
@@ -216,6 +211,12 @@
                 altInput: true,
                 altFormat: "d/m/Y",
                 locale: "vn",
+                onChange: function(selectedDates, dateStr, instance) {
+                    if (selectedDates.length === 2 || selectedDates.length === 0) {
+                        table.ajax.reload();
+                        loadStats();
+                    }
+                },
                 onReady: function(selectedDates, dateStr, instance) {
                     var clearBtn = $('<div class="flatpickr-clear-btn text-end p-2 border-top" style="cursor: pointer; color: var(--tblr-danger); font-weight: bold;"><i class="fas fa-times me-1"></i>Xóa chọn</div>');
                     clearBtn.on('click', function() {
@@ -271,7 +272,7 @@
                         "orderable": false, 
                         "render": (d, t, r, m) => m.row + m.settings._iDisplayStart + 1 
                     },
-                    { "data": "maGiaoDich", "className": "align-middle font-weight-bold text-dark" },
+                    { "data": "maGiaoDich", "className": "align-middle font-weight-bold" },
                     { "data": "maHoaDon", "className": "align-middle font-weight-bold text-info" },
                     { "data": "tenPhong", "className": "align-middle font-weight-bold text-primary" },
                     { "data": "tenNguoiThue", "className": "align-middle" },
@@ -322,8 +323,8 @@
             // Tải thống kê & dữ liệu ban đầu
             loadStats();
 
-            // Lọc dữ liệu
-            $('#btnFilter').click(function () {
+            // Tự động lọc khi thay đổi input/select
+            $('#filterChiNhanh, #filterPhuongThuc').change(function () {
                 table.ajax.reload();
                 loadStats();
             });
@@ -341,7 +342,7 @@
                             <div class="col-md-6 mb-2"><strong>Người thuê:</strong> ${res.tenNguoiThue}</div>
                             <div class="col-md-6 mb-2"><strong>Trạng thái:</strong> <span class="badge ${res.trangThaiHoaDon === 'Đã thanh toán' ? 'bg-success-lt' : 'bg-warning-lt'} px-2 py-1">${res.trangThaiHoaDon}</span></div>
                         </div>
-                        <h4 class="font-weight-bold border-bottom pb-2 mt-4 text-dark"><i class="fas fa-list me-1"></i> Chi tiết các khoản phí</h4>
+                        <h4 class="font-weight-bold border-bottom pb-2 mt-4"><i class="fas fa-list me-1"></i> Chi tiết các khoản phí</h4>
                         <div class="table-responsive mb-3">
                             <table class="table card-table table-vcenter table-striped table-hover w-100 table-sm">
                                 <thead>
@@ -364,7 +365,7 @@
                             <td class="text-right align-middle">${formatVND(ct.donGia)}</td>
                             <td class="text-center align-middle">${ct.soLuong}</td>
                             <td class="text-center align-middle">${donViText}</td>
-                            <td class="text-right align-middle font-weight-bold text-dark">${formatVND(ct.tongTien)}</td>
+                            <td class="text-right align-middle font-weight-bold">${formatVND(ct.tongTien)}</td>
                         </tr>`;
                     });
 
@@ -380,7 +381,7 @@
 
                     // Lịch sử thanh toán
                     if (res.lichSuThanhToans && res.lichSuThanhToans.length > 0) {
-                        html += `<h4 class="font-weight-bold border-bottom pb-2 mt-4 text-dark"><i class="fas fa-history me-1"></i> Lịch sử thanh toán</h4>
+                        html += `<h4 class="font-weight-bold border-bottom pb-2 mt-4"><i class="fas fa-history me-1"></i> Lịch sử thanh toán</h4>
                             <div class="table-responsive">
                             <table class="table card-table table-vcenter table-striped table-hover w-100 table-sm">
                                 <thead>

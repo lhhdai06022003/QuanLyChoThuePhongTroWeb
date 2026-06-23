@@ -147,19 +147,19 @@
                     </select>
                 </div>
             </div>
-            <div class="card-body p-0">
+            <div class="card-body">
                 <div class="table-responsive">
-                    <table id="phongTroTable" class="table card-table table-vcenter text-nowrap datatable w-100">
-                        <thead>
+                    <table id="phongTroTable" class="table table-bordered table-striped table-hover text-nowrap datatable w-100">
+                        <thead class="thead-light">
                             <tr>
-                                <th>STT</th>
-                                <th>Chi Nhánh</th>
-                                <th>Số Phòng</th>
-                                <th>Tầng</th>
-                                <th>Giá Thuê</th>
-                                <th>Diện Tích</th>
-                                <th>Trạng Thái</th>
-                                <th class="text-center">Thao Tác</th>
+                                <th class="text-center" width="5%">STT</th>
+                                <th width="25%">Chi Nhánh</th>
+                                <th width="12%">Số Phòng</th>
+                                <th class="text-center" width="10%">Tầng</th>
+                                <th class="text-end" width="15%">Giá Thuê</th>
+                                <th class="text-center" width="10%">Diện Tích</th>
+                                <th class="text-center" width="13%">Trạng Thái</th>
+                                <th class="text-center" width="10%">Thao Tác</th>
                             </tr>
                         </thead>
                         <tbody></tbody>
@@ -874,21 +874,35 @@
         // Nút lưu dịch vụ từ modal phòng trọ
         $(document).on('click', '#btnSaveDichVuPhong', function () {
             let $btn = $(this);
-            $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang lưu...');
-
-            saveDangKyDichVu(
-                currentDichVuPhongId,
-                'dichVuPhongContainer',
-                function (res) {
-                    alert(res?.message || 'Đăng ký dịch vụ thành công!');
-                    $('#dichVuPhongModal').modal('hide');
-                },
-                function (errMsg) {
-                    alert('Lỗi: ' + errMsg);
+            Swal.fire({
+                title: 'Xác nhận lưu đăng ký dịch vụ?',
+                text: 'Bạn có chắc chắn muốn lưu thông tin đăng ký dịch vụ cho phòng này?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Đồng ý',
+                cancelButtonText: 'Hủy bỏ'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang lưu...');
+                    saveDangKyDichVu(
+                        currentDichVuPhongId,
+                        'dichVuPhongContainer',
+                        function (res) {
+                            $btn.prop('disabled', false).html('<i class="fas fa-save"></i> Lưu dịch vụ');
+                            if (res && res.success) {
+                                showSuccess(res.message || 'Đăng ký dịch vụ thành công!');
+                                $('#dichVuPhongModal').modal('hide');
+                            } else {
+                                showError(res?.message || 'Đã có lỗi xảy ra!');
+                            }
+                        },
+                        function (errMsg) {
+                            $btn.prop('disabled', false).html('<i class="fas fa-save"></i> Lưu dịch vụ');
+                            showError(errMsg);
+                        }
+                    );
                 }
-            );
-
-            $btn.prop('disabled', false).html('<i class="fas fa-save"></i> Lưu dịch vụ');
+            });
         });
 
         function showDetail(id) {
@@ -932,12 +946,12 @@
                 "columns": [
                     { "data": null, "className": "text-center align-middle", "orderable": false, "searchable": false,
                         "render": (d,t,r,m) => m.row + m.settings._iDisplayStart + 1 },
-                    { "data": "tenChiNhanh" },
-                    { "data": "soPhong", "render": d => `<span class="font-weight-bold text-primary">${d}</span>` },
-                    { "data": "tangLau", "className": "text-center" },
-                    { "data": "giaThue", "className": "text-end", "render": d => formatVND(d) },
-                    { "data": "dienTich", "className": "text-center", "render": d => d + " m²" },
-                    { "data": "trangThai", "className": "text-center",
+                    { "data": "tenChiNhanh", "className": "align-middle" },
+                    { "data": "soPhong", "className": "align-middle", "render": d => `<span class="font-weight-bold text-primary">${d}</span>` },
+                    { "data": "tangLau", "className": "text-center align-middle" },
+                    { "data": "giaThue", "className": "text-end align-middle", "render": d => formatVND(d) },
+                    { "data": "dienTich", "className": "text-center align-middle", "render": d => d + " m²" },
+                    { "data": "trangThai", "className": "text-center align-middle",
                         "render": d => d === 0 ? '<span class="badge bg-success-lt text-success"><i class="fas fa-door-open me-1"></i> Trống</span>'
                                      : d === 1 ? '<span class="badge bg-blue-lt text-blue"><i class="fas fa-user-check me-1"></i> Đã Thuê</span>'
                                      : '<span class="badge bg-warning-lt text-warning"><i class="fas fa-tools me-1"></i> Bảo Trì</span>' },
@@ -1014,33 +1028,56 @@
                 let chiNhanhId = $('#ChiNhanhId').val();
                 let soPhong = $('#SoPhong').val() || "";
                 let giaThue = $('#GiaThue').val() || 0;
-                if (!chiNhanhId) { alert("Vui lòng chọn chi nhánh!"); return; }
-                if (soPhong.trim() === "") { alert("Vui lòng nhập số phòng!"); return; }
-                if (giaThue <= 0) { alert("Giá thuê phải lớn hơn 0!"); return; }
+                if (!chiNhanhId) { showWarning("Vui lòng chọn chi nhánh!"); return; }
+                if (soPhong.trim() === "") { showWarning("Vui lòng nhập số phòng!"); return; }
+                if (giaThue <= 0) { showWarning("Giá thuê phải lớn hơn 0!"); return; }
 
-                let $btn = $(this);
-                $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang lưu...');
+                let isUpdate = currentPhongTroId > 0;
+                let actionUrl = isUpdate ? '/PhongTros/CapNhatPhongTro' : '/PhongTros/ThemPhongTro';
 
-                let actionUrl = currentPhongTroId === 0 ? '/PhongTros/ThemPhongTro' : '/PhongTros/CapNhatPhongTro';
-                $.ajax({
-                    url: actionUrl, type: 'POST',
-                    data: {
-                        PhongTroId: currentPhongTroId, ChiNhanhId: chiNhanhId,
-                        SoPhong: soPhong, TangLau: $('#TangLau').val() || 0,
-                        GiaThue: giaThue, DienTich: $('#DienTich').val() || 0,
-                        SoNguoiToiDa: $('#SoNguoiToiDa').val() || 0,
-                        TrangThai: $('#TrangThai').val() || 0, MoTa: $('#MoTa').val() || ""
-                    },
-                    success: function (res) {
-                        if (res.success) {
-                            alert(res.message);
-                            $('#phongTroModal').modal('hide');
-                            table.ajax.reload(null, false);
-                            loadGridData();
-                        } else alert("Lỗi: " + res.message);
-                    },
-                    error: function () { alert("Không thể kết nối đến máy chủ!"); },
-                    complete: function () { $btn.prop('disabled', false).html('<i class="fas fa-save"></i> Lưu thông tin'); }
+                Swal.fire({
+                    title: isUpdate ? 'Xác nhận cập nhật?' : 'Xác nhận thêm mới?',
+                    text: isUpdate ? 'Bạn có chắc chắn muốn cập nhật thông tin phòng trọ này?' : 'Bạn có chắc chắn muốn thêm phòng trọ này?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Đồng ý',
+                    cancelButtonText: 'Hủy bỏ'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        let $btn = $(this);
+                        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang lưu...');
+                        $.ajax({
+                            url: actionUrl,
+                            type: 'POST',
+                            data: {
+                                PhongTroId: currentPhongTroId,
+                                ChiNhanhId: chiNhanhId,
+                                SoPhong: soPhong,
+                                TangLau: $('#TangLau').val() || 0,
+                                GiaThue: giaThue,
+                                DienTich: $('#DienTich').val() || 0,
+                                SoNguoiToiDa: $('#SoNguoiToiDa').val() || 0,
+                                TrangThai: $('#TrangThai').val() || 0,
+                                MoTa: $('#MoTa').val() || ""
+                            },
+                            success: function (res) {
+                                if (res.success) {
+                                    showSuccess(res.message);
+                                    $('#phongTroModal').modal('hide');
+                                    table.ajax.reload(null, false);
+                                    loadGridData();
+                                } else {
+                                    showError("Lỗi: " + res.message);
+                                }
+                            },
+                            error: function () {
+                                showError("Không thể kết nối đến máy chủ!");
+                            },
+                            complete: function () {
+                                $btn.prop('disabled', false).html('<i class="fas fa-save"></i> Lưu thông tin');
+                            }
+                        });
+                    }
                 });
             });
 
@@ -1059,7 +1096,7 @@
                         $('#TrangThai').val(d.trangThai); $('#MoTa').val(d.moTa);
                         $('#modalTitle').text('Chỉnh sửa: Phòng ' + (d.soPhong || ""));
                         $('#phongTroModal').modal('show');
-                    } else alert("Lỗi: " + (res.message || "Không tải được."));
+                    } else showError("Lỗi: " + (res.message || "Không tải được."));
                     $btn.prop('disabled', false).html(orig);
                 });
             });
