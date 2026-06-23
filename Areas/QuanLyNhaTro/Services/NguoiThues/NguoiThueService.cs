@@ -88,7 +88,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.NguoiThues
                 // Bạn nên dùng ILogger để ghi log ở đây thay vì trả về cho Client
                 // _logger.LogError($"Lỗi tạo người thuê: {errorDetails}");
 
-                return (false, $"Lỗi hệ thống: {errorDetails}"); 
+                return (false, $"Lỗi hệ thống: {errorDetails}");
             }
         }
 
@@ -141,10 +141,24 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.NguoiThues
 
             return (true, string.Empty);
         }
+
         public async Task<List<SelectListItem>> DanhSachNguoiThue()
         {
             return await _context.NguoiThues
                 .Where(p => !p.IsDeleted)
+                .Select(p => new SelectListItem { Value = p.NguoiThueId.ToString(), Text = p.HoVaTen + " - " + p.CCCD })
+                .ToListAsync();
+        }
+
+        // ==========================================
+        // ĐÂY LÀ HÀM MỚI ĐƯỢC THÊM VÀO ĐỂ LỌC DROPDOWN
+        // ==========================================
+        public async Task<List<SelectListItem>> DanhSachNguoiThueChuaCoPhong()
+        {
+            return await _context.NguoiThues
+                .Where(x => !x.IsDeleted)
+                .Where(x => !x.HopDongs.Any(h => h.TrangThaiHopDong == TrangThaiHopDong.DangHoatDong))
+                .Where(x => !x.ChiTietThanhVienHopDongs.Any(tv => tv.NgayChuyenDi == null && tv.HopDong.TrangThaiHopDong == TrangThaiHopDong.DangHoatDong))
                 .Select(p => new SelectListItem { Value = p.NguoiThueId.ToString(), Text = p.HoVaTen + " - " + p.CCCD })
                 .ToListAsync();
         }
@@ -154,9 +168,9 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.NguoiThues
             searchTerm = (searchTerm ?? "").Trim().ToLower();
             return await _context.NguoiThues
                 .Where(x => !x.IsDeleted && (
-                    string.IsNullOrEmpty(searchTerm) || 
-                    x.HoVaTen.ToLower().Contains(searchTerm) || 
-                    x.SoDienThoai.Contains(searchTerm) || 
+                    string.IsNullOrEmpty(searchTerm) ||
+                    x.HoVaTen.ToLower().Contains(searchTerm) ||
+                    x.SoDienThoai.Contains(searchTerm) ||
                     x.CCCD.Contains(searchTerm)
                 ))
                 .Select(x => new
@@ -184,7 +198,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.NguoiThues
             for (int i = 0; i < 10; i++)
             {
                 string hoTen = $"{hoList[random.Next(hoList.Length)]} {demList[random.Next(demList.Length)]} {tenList[random.Next(tenList.Length)]}";
-                
+
                 var nguoiThue = new NguoiThue
                 {
                     HoVaTen = hoTen,

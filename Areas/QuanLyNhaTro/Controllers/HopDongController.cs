@@ -30,7 +30,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         {
              ViewBag.ListChiNhanh = await _phongTroService.GetDanhSachChiNhanhDropdownAsync();
              ViewBag.ListPhongTro = await _phongTroService.DanhSachPhongTroConTrong(); 
-             ViewBag.ListNguoiThue = await _nguoiThueService.DanhSachNguoiThue();
+             ViewBag.ListNguoiThue = await _nguoiThueService.DanhSachNguoiThueChuaCoPhong();
             return View(); // Trả về view Index của chức năng quản lý hợp đồng
         }
 
