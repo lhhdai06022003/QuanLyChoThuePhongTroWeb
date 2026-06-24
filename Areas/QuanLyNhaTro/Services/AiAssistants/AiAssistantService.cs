@@ -206,11 +206,11 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.AiAssistants
             };
         }
 
-        public async Task<string> ChatWithAssistantAsync(string userMessage, List<ChatMessageDto> history)
+        public async Task<QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.ServiceResult> ChatWithAssistantAsync(string userMessage, List<ChatMessageDto> history, string userRole, int? nguoiThueId = null)
         {
             if (string.IsNullOrWhiteSpace(_apiKey))
             {
-                return "Lỗi cấu hình: Chưa thiết lập Gemini API Key trong hệ thống.";
+                return QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.ServiceResult.Fail("Lỗi cấu hình: Chưa thiết lập Gemini API Key trong hệ thống.");
             }
 
             // Tạo danh sách contents theo chuẩn API Gemini
@@ -237,153 +237,21 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.AiAssistants
             });
 
             // Khai báo tools (Function Declarations) gửi sang Gemini
-            var toolsConfig = new object[]
-            {
-                new
-                {
-                    function_declarations = new object[]
-                    {
-                        new
-                        {
-                            name = "GetPhongTroChuaChotDienNuocAsync",
-                            description = "Lấy danh sách các phòng đang thuê nhưng chưa được chốt số điện nước trong tháng và năm chỉ định.",
-                            parameters = new
-                            {
-                                type = "OBJECT",
-                                properties = new
-                                {
-                                    thang = new { type = "INTEGER", description = "Tháng cần kiểm tra (1-12)" },
-                                    nam = new { type = "INTEGER", description = "Năm cần kiểm tra (ví dụ 2026)" }
-                                },
-                                required = new string[] { "thang", "nam" }
-                            }
-                        },
-                        new
-                        {
-                            name = "GetHoaDonChuaThanhToanAsync",
-                            description = "Lấy danh sách các hóa đơn chưa được thanh toán trong tháng và năm chỉ định.",
-                            parameters = new
-                            {
-                                type = "OBJECT",
-                                properties = new
-                                {
-                                    thang = new { type = "INTEGER", description = "Tháng cần kiểm tra (1-12)" },
-                                    nam = new { type = "INTEGER", description = "Năm cần kiểm tra (ví dụ 2026)" }
-                                },
-                                required = new string[] { "thang", "nam" }
-                            }
-                        },
-                        new
-                        {
-                            name = "GetDoanhThuThucThuAsync",
-                            description = "Tính tổng doanh thu thực tế đã thu được từ lịch sử thanh toán trong khoảng thời gian từ ngày bắt đầu đến ngày kết thúc.",
-                            parameters = new
-                            {
-                                type = "OBJECT",
-                                properties = new
-                                {
-                                    tuNgay = new { type = "STRING", description = "Ngày bắt đầu (định dạng YYYY-MM-DD)" },
-                                    denNgay = new { type = "STRING", description = "Ngày kết thúc (định dạng YYYY-MM-DD)" }
-                                },
-                                required = new string[] { "tuNgay", "denNgay" }
-                            }
-                        },
-                        new
-                        {
-                            name = "GetPhongTrongAsync",
-                            description = "Lấy danh sách các phòng đang trống. Có thể lọc theo mức giá tối đa.",
-                            parameters = new
-                            {
-                                type = "OBJECT",
-                                properties = new
-                                {
-                                    mucGiaToiDa = new { type = "NUMBER", description = "Mức giá thuê tối đa (nếu có, ví dụ 3000000)" }
-                                }
-                            }
-                        },
-                        new
-                        {
-                            name = "GetHopDongSapHetHanAsync",
-                            description = "Lấy danh sách các hợp đồng sắp hết hạn trong X ngày tới.",
-                            parameters = new
-                            {
-                                type = "OBJECT",
-                                properties = new
-                                {
-                                    soNgay = new { type = "INTEGER", description = "Số ngày tới (ví dụ 30)" }
-                                },
-                                required = new string[] { "soNgay" }
-                            }
-                        },
-                        new
-                        {
-                            name = "GetThongTinKhachThueAsync",
-                            description = "Tra cứu thông tin khách thuê dựa vào tên hoặc số phòng.",
-                            parameters = new
-                            {
-                                type = "OBJECT",
-                                properties = new
-                                {
-                                    tuKhoa = new { type = "STRING", description = "Tên khách thuê hoặc số phòng (ví dụ 'Nguyễn Văn A' hoặc '101')" }
-                                },
-                                required = new string[] { "tuKhoa" }
-                            }
-                        },
-                        new
-                        {
-                            name = "GetCongNoPhongAsync",
-                            description = "Tra cứu tổng công nợ (số tiền chưa thanh toán) của một phòng cụ thể.",
-                            parameters = new
-                            {
-                                type = "OBJECT",
-                                properties = new
-                                {
-                                    soPhong = new { type = "STRING", description = "Số phòng cần tra cứu (ví dụ '101')" }
-                                },
-                                required = new string[] { "soPhong" }
-                            }
-                        },
-                        new
-                        {
-                            name = "GetDoanhThuChiNhanhAsync",
-                            description = "Tính doanh thu thu được theo từng chi nhánh trong tháng và năm chỉ định.",
-                            parameters = new
-                            {
-                                type = "OBJECT",
-                                properties = new
-                                {
-                                    thang = new { type = "INTEGER", description = "Tháng (1-12)" },
-                                    nam = new { type = "INTEGER", description = "Năm (ví dụ 2026)" }
-                                },
-                                required = new string[] { "thang", "nam" }
-                            }
-                        },
-                        new
-                        {
-                            name = "GetChiSoDienNuocAsync",
-                            description = "Lấy thông tin chỉ số điện nước (cũ, mới, tiêu thụ) của một phòng trong tháng và năm chỉ định.",
-                            parameters = new
-                            {
-                                type = "OBJECT",
-                                properties = new
-                                {
-                                    soPhong = new { type = "STRING", description = "Số phòng (ví dụ '101')" },
-                                    thang = new { type = "INTEGER", description = "Tháng (1-12)" },
-                                    nam = new { type = "INTEGER", description = "Năm (ví dụ 2026)" }
-                                },
-                                required = new string[] { "soPhong", "thang", "nam" }
-                            }
-                        }
-                    }
-                }
-            };
+            object[] toolsConfig = userRole == "Admin" ? GetAdminToolsConfig() : GetTenantToolsConfig();
+            
+            int currentYear = DateTime.Now.Year;
+            string timeInstruction = $"Lưu ý: Năm hiện tại đang là {currentYear}. Nếu người dùng hỏi về một tháng mà không nói rõ năm (ví dụ 'tháng 10'), bạn phải tự động ngầm định và truyền vào công cụ năm là {currentYear}. Nếu người dùng nói rõ cả tháng và năm thì lấy đúng năm đó.";
+            
+            string systemInstructionText = userRole == "Admin" 
+                ? $"Bạn là Trợ lý AI của hệ thống Quản lý nhà trọ dành cho Quản trị viên. Hãy dùng các công cụ (tools) được cung cấp để trả lời câu hỏi về: phòng trống, hợp đồng, khách thuê, doanh thu, công nợ, điện nước, hóa đơn. {timeInstruction} Chỉ dùng thông tin từ công cụ. Trả lời lịch sự bằng Markdown."
+                : $"Bạn là Trợ lý AI chăm sóc khách hàng của khu trọ. Hãy giúp Khách Thuê tra cứu hợp đồng, điện nước và hóa đơn của họ. {timeInstruction} Tuyệt đối không tiết lộ thông tin người khác. Chỉ dùng thông tin từ công cụ. Trả lời thân thiện bằng Markdown.";
 
             // Payload chung cho yêu cầu gửi đi
             var requestPayload = new
             {
                 systemInstruction = new
                 {
-                    parts = new[] { new { text = "Bạn là Trợ lý AI của hệ thống Quản lý nhà trọ. Hãy dùng các công cụ (tools) được cung cấp để trả lời các câu hỏi về: phòng trống, hợp đồng, thông tin khách, doanh thu, công nợ, điện nước, hóa đơn. Chỉ sử dụng thông tin từ công cụ. Nếu không có dữ liệu, hãy nói rõ. Trả lời bằng tiếng Việt lịch sự, thân thiện, và định dạng Markdown rõ ràng, đẹp mắt (sử dụng bảng biểu hoặc danh sách nếu có nhiều dữ liệu)." } }
+                    parts = new[] { new { text = systemInstructionText } }
                 },
                 contents = formattedContents,
                 tools = toolsConfig
@@ -402,7 +270,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.AiAssistants
             if (!response.IsSuccessStatusCode)
             {
                 var errContent = await response.Content.ReadAsStringAsync();
-                return $"Lỗi kết nối Gemini API (HTTP {response.StatusCode}): {errContent}";
+                return QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.ServiceResult.Fail($"Lỗi kết nối Gemini API (HTTP {response.StatusCode}): {errContent}");
             }
 
             var responseJsonStr = await response.Content.ReadAsStringAsync();
@@ -411,7 +279,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.AiAssistants
 
             if (part == null)
             {
-                return "Trợ lý AI tạm thời không phản hồi. Vui lòng thử lại sau.";
+                return QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.ServiceResult.Fail("Trợ lý AI tạm thời không phản hồi. Vui lòng thử lại sau.");
             }
 
             // Kiểm tra xem Gemini có yêu cầu gọi hàm (Function Call) không
@@ -421,73 +289,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.AiAssistants
                 var functionName = functionCall["name"]?.ToString();
                 var args = functionCall["args"];
 
-                object functionResult = null;
-                try
-                {
-                    if (functionName == "GetPhongTroChuaChotDienNuocAsync")
-                    {
-                        int thang = int.Parse(args["thang"]?.ToString() ?? "0");
-                        int nam = int.Parse(args["nam"]?.ToString() ?? "0");
-                        functionResult = await GetPhongTroChuaChotDienNuocAsync(thang, nam);
-                    }
-                    else if (functionName == "GetHoaDonChuaThanhToanAsync")
-                    {
-                        int thang = int.Parse(args["thang"]?.ToString() ?? "0");
-                        int nam = int.Parse(args["nam"]?.ToString() ?? "0");
-                        functionResult = await GetHoaDonChuaThanhToanAsync(thang, nam);
-                    }
-                    else if (functionName == "GetDoanhThuThucThuAsync")
-                    {
-                        DateTime tuNgay = DateTime.Parse(args["tuNgay"]?.ToString() ?? DateTime.MinValue.ToString());
-                        DateTime denNgay = DateTime.Parse(args["denNgay"]?.ToString() ?? DateTime.MaxValue.ToString());
-                        // Đặt mốc thời gian kết thúc đến cuối ngày
-                        denNgay = denNgay.Date.AddDays(1).AddTicks(-1);
-                        var totalRevenue = await GetDoanhThuThucThuAsync(tuNgay, denNgay);
-                        functionResult = new { totalRevenue = totalRevenue, currency = "VND" };
-                    }
-                    else if (functionName == "GetPhongTrongAsync")
-                    {
-                        double? mucGiaToiDa = null;
-                        if (args["mucGiaToiDa"] != null && double.TryParse(args["mucGiaToiDa"].ToString(), out double price))
-                        {
-                            mucGiaToiDa = price;
-                        }
-                        functionResult = await GetPhongTrongAsync(mucGiaToiDa);
-                    }
-                    else if (functionName == "GetHopDongSapHetHanAsync")
-                    {
-                        int soNgay = int.Parse(args["soNgay"]?.ToString() ?? "30");
-                        functionResult = await GetHopDongSapHetHanAsync(soNgay);
-                    }
-                    else if (functionName == "GetThongTinKhachThueAsync")
-                    {
-                        string tuKhoa = args["tuKhoa"]?.ToString() ?? "";
-                        functionResult = await GetThongTinKhachThueAsync(tuKhoa);
-                    }
-                    else if (functionName == "GetCongNoPhongAsync")
-                    {
-                        string soPhong = args["soPhong"]?.ToString() ?? "";
-                        var debt = await GetCongNoPhongAsync(soPhong);
-                        functionResult = new { totalDebt = debt, currency = "VND" };
-                    }
-                    else if (functionName == "GetDoanhThuChiNhanhAsync")
-                    {
-                        int thang = int.Parse(args["thang"]?.ToString() ?? "0");
-                        int nam = int.Parse(args["nam"]?.ToString() ?? "0");
-                        functionResult = await GetDoanhThuChiNhanhAsync(thang, nam);
-                    }
-                    else if (functionName == "GetChiSoDienNuocAsync")
-                    {
-                        string soPhong = args["soPhong"]?.ToString() ?? "";
-                        int thang = int.Parse(args["thang"]?.ToString() ?? "0");
-                        int nam = int.Parse(args["nam"]?.ToString() ?? "0");
-                        functionResult = await GetChiSoDienNuocAsync(soPhong, thang, nam);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    functionResult = new { error = $"Lỗi thực thi hàm C#: {ex.Message}" };
-                }
+                object functionResult = await HandleFunctionCallAsync(functionName, args, userRole, nguoiThueId);
 
                 // Thực hiện lượt gọi thứ 2 gửi kết quả của function cho Gemini để tổng hợp câu trả lời
                 // Ta cần thêm model's functionCall và function's response vào contents gửi đi
@@ -533,7 +335,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.AiAssistants
                 {
                     systemInstruction = new
                     {
-                        parts = new[] { new { text = "Bạn là Trợ lý AI của hệ thống Quản lý nhà trọ. Hãy dùng các công cụ (tools) được cung cấp để trả lời các câu hỏi về: phòng trống, hợp đồng, thông tin khách, doanh thu, công nợ, điện nước, hóa đơn. Chỉ sử dụng thông tin từ công cụ. Nếu không có dữ liệu, hãy nói rõ. Trả lời bằng tiếng Việt lịch sự, thân thiện, và định dạng Markdown rõ ràng, đẹp mắt (sử dụng bảng biểu hoặc danh sách nếu có nhiều dữ liệu)." } }
+                        parts = new[] { new { text = systemInstructionText } }
                     },
                     contents = formattedContents,
                     tools = toolsConfig
@@ -545,18 +347,164 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.AiAssistants
                 if (!secondResponse.IsSuccessStatusCode)
                 {
                     var errContent = await secondResponse.Content.ReadAsStringAsync();
-                    return $"Lỗi kết nối Gemini API lượt 2 (HTTP {secondResponse.StatusCode}): {errContent}";
+                    return QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.ServiceResult.Fail($"Lỗi kết nối Gemini API lượt 2 (HTTP {secondResponse.StatusCode}): {errContent}");
                 }
 
                 var secondResponseJsonStr = await secondResponse.Content.ReadAsStringAsync();
                 var secondRootNode = JsonNode.Parse(secondResponseJsonStr);
                 var finalAnswer = secondRootNode?["candidates"]?[0]?["content"]?["parts"]?[0]?["text"]?.ToString();
 
-                return finalAnswer ?? "Trợ lý AI không phản hồi sau khi lấy dữ liệu.";
+                return QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.ServiceResult.Ok(finalAnswer ?? "Trợ lý AI không phản hồi sau khi lấy dữ liệu.");
             }
 
             // Nếu không gọi hàm, trả về text bình thường
-            return part["text"]?.ToString() ?? "Trợ lý AI không phản hồi.";
+            return QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.ServiceResult.Ok(part["text"]?.ToString() ?? "Trợ lý AI không phản hồi.");
+        }
+
+        private async Task<object> HandleFunctionCallAsync(string functionName, JsonNode args, string userRole, int? nguoiThueId)
+        {
+            try
+            {
+                if (userRole == "KhachThue" && nguoiThueId.HasValue)
+                {
+                    switch (functionName)
+                    {
+                        case "GetMyHopDongInfoAsync":
+                            return await GetMyHopDongInfoAsync(nguoiThueId.Value);
+                        case "GetMyChiSoDienNuocAsync":
+                            return await GetMyChiSoDienNuocAsync(nguoiThueId.Value, int.Parse(args["thang"]?.ToString() ?? "0"), int.Parse(args["nam"]?.ToString() ?? "0"));
+                        case "GetMyHoaDonChuaThanhToanAsync":
+                            return await GetMyHoaDonChuaThanhToanAsync(nguoiThueId.Value);
+                    }
+                }
+
+                return functionName switch
+                {
+                    "GetPhongTroChuaChotDienNuocAsync" => await GetPhongTroChuaChotDienNuocAsync(int.Parse(args["thang"]?.ToString() ?? "0"), int.Parse(args["nam"]?.ToString() ?? "0")),
+                    "GetHoaDonChuaThanhToanAsync" => await GetHoaDonChuaThanhToanAsync(int.Parse(args["thang"]?.ToString() ?? "0"), int.Parse(args["nam"]?.ToString() ?? "0")),
+                    "GetDoanhThuThucThuAsync" => new
+                    {
+                        totalRevenue = await GetDoanhThuThucThuAsync(
+                            DateTime.Parse(args["tuNgay"]?.ToString() ?? DateTime.MinValue.ToString()),
+                            DateTime.Parse(args["denNgay"]?.ToString() ?? DateTime.MaxValue.ToString()).Date.AddDays(1).AddTicks(-1)),
+                        currency = "VND"
+                    },
+                    "GetPhongTrongAsync" => await GetPhongTrongAsync(args["mucGiaToiDa"] != null && double.TryParse(args["mucGiaToiDa"].ToString(), out double price) ? price : null),
+                    "GetHopDongSapHetHanAsync" => await GetHopDongSapHetHanAsync(int.Parse(args["soNgay"]?.ToString() ?? "30")),
+                    "GetThongTinKhachThueAsync" => await GetThongTinKhachThueAsync(args["tuKhoa"]?.ToString() ?? ""),
+                    "GetCongNoPhongAsync" => new { totalDebt = await GetCongNoPhongAsync(args["soPhong"]?.ToString() ?? ""), currency = "VND" },
+                    "GetDoanhThuChiNhanhAsync" => await GetDoanhThuChiNhanhAsync(int.Parse(args["thang"]?.ToString() ?? "0"), int.Parse(args["nam"]?.ToString() ?? "0")),
+                    "GetChiSoDienNuocAsync" => await GetChiSoDienNuocAsync(args["soPhong"]?.ToString() ?? "", int.Parse(args["thang"]?.ToString() ?? "0"), int.Parse(args["nam"]?.ToString() ?? "0")),
+                    _ => new { error = $"Hàm {functionName} không được hỗ trợ." }
+                };
+            }
+            catch (Exception ex)
+            {
+                return new { error = $"Lỗi thực thi hàm C#: {ex.Message}" };
+            }
+        }
+
+        private object[] GetAdminToolsConfig()
+        {
+            return new object[]
+            {
+                new
+                {
+                    function_declarations = new object[]
+                    {
+                        new { name = "GetPhongTroChuaChotDienNuocAsync", description = "Lấy danh sách các phòng đang thuê nhưng chưa được chốt số điện nước trong tháng và năm chỉ định.", parameters = new { type = "OBJECT", properties = new { thang = new { type = "INTEGER", description = "Tháng cần kiểm tra (1-12)" }, nam = new { type = "INTEGER", description = "Năm cần kiểm tra (ví dụ 2026)" } }, required = new string[] { "thang", "nam" } } },
+                        new { name = "GetHoaDonChuaThanhToanAsync", description = "Lấy danh sách các hóa đơn chưa được thanh toán trong tháng và năm chỉ định.", parameters = new { type = "OBJECT", properties = new { thang = new { type = "INTEGER", description = "Tháng cần kiểm tra (1-12)" }, nam = new { type = "INTEGER", description = "Năm cần kiểm tra (ví dụ 2026)" } }, required = new string[] { "thang", "nam" } } },
+                        new { name = "GetDoanhThuThucThuAsync", description = "Tính tổng doanh thu thực tế đã thu được từ lịch sử thanh toán trong khoảng thời gian từ ngày bắt đầu đến ngày kết thúc.", parameters = new { type = "OBJECT", properties = new { tuNgay = new { type = "STRING", description = "Ngày bắt đầu (định dạng YYYY-MM-DD)" }, denNgay = new { type = "STRING", description = "Ngày kết thúc (định dạng YYYY-MM-DD)" } }, required = new string[] { "tuNgay", "denNgay" } } },
+                        new { name = "GetPhongTrongAsync", description = "Lấy danh sách các phòng đang trống. Có thể lọc theo mức giá tối đa.", parameters = new { type = "OBJECT", properties = new { mucGiaToiDa = new { type = "NUMBER", description = "Mức giá thuê tối đa (nếu có, ví dụ 3000000)" } } } },
+                        new { name = "GetHopDongSapHetHanAsync", description = "Lấy danh sách các hợp đồng sắp hết hạn trong X ngày tới.", parameters = new { type = "OBJECT", properties = new { soNgay = new { type = "INTEGER", description = "Số ngày tới (ví dụ 30)" } }, required = new string[] { "soNgay" } } },
+                        new { name = "GetThongTinKhachThueAsync", description = "Tra cứu thông tin khách thuê dựa vào tên hoặc số phòng.", parameters = new { type = "OBJECT", properties = new { tuKhoa = new { type = "STRING", description = "Tên khách thuê hoặc số phòng (ví dụ 'Nguyễn Văn A' hoặc '101')" } }, required = new string[] { "tuKhoa" } } },
+                        new { name = "GetCongNoPhongAsync", description = "Tra cứu tổng công nợ (số tiền chưa thanh toán) của một phòng cụ thể.", parameters = new { type = "OBJECT", properties = new { soPhong = new { type = "STRING", description = "Số phòng cần tra cứu (ví dụ '101')" } }, required = new string[] { "soPhong" } } },
+                        new { name = "GetDoanhThuChiNhanhAsync", description = "Tính doanh thu thu được theo từng chi nhánh trong tháng và năm chỉ định.", parameters = new { type = "OBJECT", properties = new { thang = new { type = "INTEGER", description = "Tháng (1-12)" }, nam = new { type = "INTEGER", description = "Năm (ví dụ 2026)" } }, required = new string[] { "thang", "nam" } } },
+                        new { name = "GetChiSoDienNuocAsync", description = "Lấy thông tin chỉ số điện nước (cũ, mới, tiêu thụ) của một phòng trong tháng và năm chỉ định.", parameters = new { type = "OBJECT", properties = new { soPhong = new { type = "STRING", description = "Số phòng (ví dụ '101')" }, thang = new { type = "INTEGER", description = "Tháng (1-12)" }, nam = new { type = "INTEGER", description = "Năm (ví dụ 2026)" } }, required = new string[] { "soPhong", "thang", "nam" } } }
+                    }
+                }
+            };
+        }
+
+        private object[] GetTenantToolsConfig()
+        {
+            return new object[]
+            {
+                new
+                {
+                    function_declarations = new object[]
+                    {
+                        new { name = "GetMyHopDongInfoAsync", description = "Tra cứu thông tin chi tiết về hợp đồng thuê phòng hiện tại của tôi (phòng nào, giá thuê, ngày hết hạn...)" },
+                        new { name = "GetMyChiSoDienNuocAsync", description = "Xem chỉ số điện nước của phòng tôi đang thuê trong một tháng cụ thể.", parameters = new { type = "OBJECT", properties = new { thang = new { type = "INTEGER", description = "Tháng (1-12)" }, nam = new { type = "INTEGER", description = "Năm (ví dụ 2026)" } }, required = new string[] { "thang", "nam" } } },
+                        new { name = "GetMyHoaDonChuaThanhToanAsync", description = "Tra cứu các hóa đơn hoặc công nợ mà tôi chưa thanh toán." }
+                    }
+                }
+            };
+        }
+
+        private async Task<object> GetMyHopDongInfoAsync(int nguoiThueId)
+        {
+            var hd = await _db.HopDongs
+                .AsNoTracking()
+                .Include(h => h.PhongTro).ThenInclude(p => p.ChiNhanh)
+                .Where(h => !h.IsDeleted && h.NguoiThueId == nguoiThueId && h.TrangThaiHopDong == TrangThaiHopDong.DangHoatDong)
+                .FirstOrDefaultAsync();
+
+            if (hd == null) return new { message = "Hiện tại bạn không có hợp đồng nào đang hoạt động." };
+
+            return new
+            {
+                SoPhong = hd.PhongTro.SoPhong,
+                ChiNhanh = hd.PhongTro.ChiNhanh.TenChiNhanh,
+                NgayBatDau = hd.ThoiDiemBatDau.ToString("dd/MM/yyyy"),
+                NgayKetThuc = hd.ThoiDiemKetThuc?.ToString("dd/MM/yyyy") ?? "Không thời hạn",
+                GiaThue = hd.TienThuePhong,
+                TienCoc = hd.TienCocPhong
+            };
+        }
+
+        private async Task<object> GetMyChiSoDienNuocAsync(int nguoiThueId, int thang, int nam)
+        {
+            var hd = await _db.HopDongs.AsNoTracking()
+                .Where(h => !h.IsDeleted && h.NguoiThueId == nguoiThueId && h.TrangThaiHopDong == TrangThaiHopDong.DangHoatDong)
+                .FirstOrDefaultAsync();
+            if (hd == null) return new { message = "Không tìm thấy hợp đồng." };
+
+            var dv = await _db.DichVuDienNuocCuaPhongs.AsNoTracking()
+                .Where(d => !d.IsDeleted && d.PhongTroId == hd.PhongTroId && d.Thang == thang && d.Nam == nam)
+                .FirstOrDefaultAsync();
+
+            if (dv == null) return new { message = $"Chưa có số điện nước cho tháng {thang}/{nam}." };
+
+            return new
+            {
+                Thang = thang,
+                Nam = nam,
+                ChiSoDienCu = dv.ChiSoDienCu,
+                ChiSoDienMoi = dv.ChiSoDienMoi,
+                SoDienTieuThu = dv.ChiSoDienMoi - dv.ChiSoDienCu,
+                ChiSoNuocCu = dv.ChiSoNuocCu,
+                ChiSoNuocMoi = dv.ChiSoNuocMoi,
+                SoNuocTieuThu = dv.ChiSoNuocMoi - dv.ChiSoNuocCu
+            };
+        }
+
+        private async Task<object> GetMyHoaDonChuaThanhToanAsync(int nguoiThueId)
+        {
+            var hoaDons = await _db.HoaDons.AsNoTracking()
+                .Include(h => h.HopDong)
+                .Where(h => !h.IsDeleted && h.HopDong.NguoiThueId == nguoiThueId && h.TrangThaiHoaDon == TrangThaiHoaDon.ChuaThanhToan)
+                .ToListAsync();
+
+            if (!hoaDons.Any()) return new { message = "Tuyệt vời, bạn không có hóa đơn nào chưa thanh toán." };
+
+            return hoaDons.Select(h => new
+            {
+                MaHoaDon = h.MaHoaDon,
+                Thang = h.Thang,
+                Nam = h.Nam,
+                TongTien = h.TongTien
+            });
         }
     }
 }

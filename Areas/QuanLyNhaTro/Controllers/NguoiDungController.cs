@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
 {
     [Area("QuanLyNhaTro")]
-    [Authorize] // Mặc định yêu cầu đăng nhập cho toàn bộ tính năng bên dưới
+    [Authorize(Roles = "Admin,NhanVien")]
     [AutoValidateAntiforgeryToken]
     public class NguoiDungController : Controller
     {
@@ -38,7 +38,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
                 {
                     return RedirectToAction("Index", "Dashboard", new { area = "KhachThue" });
                 }
-                return RedirectToAction("Index", "Home", new { area = "" });
+                return RedirectToAction("Index", "Dashboard", new { area = "QuanLyNhaTro" });
             }
 
             ViewBag.ReturnUrl = returnUrl;
@@ -89,17 +89,21 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
 
             await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal, props);
 
+            if (user.Role == Role.KhachThue)
+            {
+                if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl) && !returnUrl.Contains("/QuanLyNhaTro", StringComparison.OrdinalIgnoreCase))
+                {
+                    return Redirect(returnUrl);
+                }
+                return RedirectToAction("Index", "Dashboard", new { area = "KhachThue" });
+            }
+
             if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
             {
                 return Redirect(returnUrl);
             }
 
-            if (user.Role == Role.KhachThue)
-            {
-                return RedirectToAction("Index", "Dashboard", new { area = "KhachThue" });
-            }
-
-            return RedirectToAction("Index", "Home", new { area = "" });
+            return RedirectToAction("Index", "Dashboard", new { area = "QuanLyNhaTro" });
         }
 
         [AllowAnonymous]
@@ -146,6 +150,11 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         [Route("QuanLyNhaTro/NguoiDung/CreateApi")]
         public async Task<IActionResult> CreateApi([FromBody] NguoiDung nguoiDung)
         {
+            if (nguoiDung.Role == Role.KhachThue && !nguoiDung.NguoiThueId.HasValue)
+            {
+                return Json(new { success = false, message = "Vui lòng chọn người thuê khi tạo tài khoản Khách Thuê." });
+            }
+
             if (!ModelState.IsValid)
             {
                 return Json(new { success = false, message = "Dữ liệu form gửi lên không hợp lệ." });
@@ -153,14 +162,13 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
 
             try
             {
-                // Tầng service AddAsync của bạn đã tự động băm SHA256 dựa vào trường MatKhauHash gửi lên
-                await _nguoiDungService.AddAsync(nguoiDung);
-                return Json(new { success = true, message = "Thêm mới tài khoản thành công!" });
+                var result = await _nguoiDungService.AddAsync(nguoiDung);
+                return Json(result);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Lỗi khi thêm mới tài khoản.");
-                return Json(new { success = false, message = "Lỗi hệ thống khi tạo tài khoản!" });
+                return Json(QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.ServiceResult.Fail("Lỗi hệ thống khi tạo tài khoản!"));
             }
         }
 
@@ -174,20 +182,20 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
                 return Json(new { success = false, message = "Mã định danh tài khoản bất đồng bộ." });
             }
 
+            if (dataGiaoDien.Role == Role.KhachThue && !dataGiaoDien.NguoiThueId.HasValue)
+            {
+                return Json(new { success = false, message = "Vui lòng chọn người thuê khi đặt quyền thành Khách Thuê." });
+            }
+
             try
             {
-                var success = await _nguoiDungService.UpdateUserAsync(id, dataGiaoDien.Role, dataGiaoDien.IsActive, dataGiaoDien.MatKhauHash);
-                if (!success)
-                {
-                    return Json(new { success = false, message = "Tài khoản không tồn tại trên hệ thống." });
-                }
-
-                return Json(new { success = true, message = "Cập nhật thông tin tài khoản thành công!" });
+                var result = await _nguoiDungService.UpdateUserAsync(id, dataGiaoDien.Role, dataGiaoDien.IsActive, dataGiaoDien.MatKhauHash, dataGiaoDien.NguoiThueId);
+                return Json(result);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Lỗi khi cập nhật tài khoản {NguoiDungId}.", id);
-                return Json(new { success = false, message = "Lỗi hệ thống khi lưu trữ thay đổi tài khoản!" });
+                return Json(QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.ServiceResult.Fail("Lỗi hệ thống khi lưu trữ thay đổi tài khoản!"));
             }
         }
 
@@ -198,19 +206,30 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         {
             try
             {
-                var user = await _nguoiDungService.GetByIdAsync(id);
-                if (user == null)
-                {
-                    return Json(new { success = false, message = "Không tìm thấy tài khoản để xóa." });
-                }
-
-                await _nguoiDungService.DeleteAsync(id);
-                return Json(new { success = true, message = "Đã xóa tài khoản ra khỏi hệ thống quản lý." });
+                var result = await _nguoiDungService.DeleteAsync(id);
+                return Json(result);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Lỗi khi xóa tài khoản {NguoiDungId}.", id);
-                return Json(new { success = false, message = "Lỗi hệ thống khi xóa tài khoản!" });
+                return Json(QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.ServiceResult.Fail("Lỗi hệ thống khi xóa tài khoản!"));
+            }
+        }
+
+        // 6. API: Đặt lại mật khẩu về số điện thoại
+        [HttpPost]
+        [Route("QuanLyNhaTro/NguoiDung/ResetPasswordToPhoneApi/{id}")]
+        public async Task<IActionResult> ResetPasswordToPhoneApi(int id)
+        {
+            try
+            {
+                var result = await _nguoiDungService.ResetPasswordToPhoneAsync(id);
+                return Json(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi đặt lại mật khẩu cho tài khoản {NguoiDungId}.", id);
+                return Json(QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.ServiceResult.Fail("Lỗi hệ thống khi đặt lại mật khẩu!"));
             }
         }
     }

@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
+using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -131,7 +132,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.NguoiDungs
                 .FirstOrDefaultAsync(x => x.NguoiDungId == id && !x.IsDeleted);
         }
 
-        public async Task AddAsync(NguoiDung nguoiDung)
+        public async Task<ServiceResult> AddAsync(NguoiDung nguoiDung)
         {
             if (!string.IsNullOrEmpty(nguoiDung.MatKhauHash))
             {
@@ -140,24 +141,27 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.NguoiDungs
 
             _context.NguoiDungs.Add(nguoiDung);
             await _context.SaveChangesAsync();
+            return ServiceResult.Ok("Thêm mới tài khoản thành công!");
         }
 
-        public async Task UpdateAsync(NguoiDung nguoiDung)
+        public async Task<ServiceResult> UpdateAsync(NguoiDung nguoiDung)
         {
             _context.NguoiDungs.Update(nguoiDung);
             await _context.SaveChangesAsync();
+            return ServiceResult.Ok("Cập nhật thông tin tài khoản thành công!");
         }
 
-        public async Task<bool> UpdateUserAsync(int id, Role role, bool isActive, string? newPassword)
+        public async Task<ServiceResult> UpdateUserAsync(int id, Role role, bool isActive, string? newPassword, int? nguoiThueId)
         {
             var existingUser = await _context.NguoiDungs.FirstOrDefaultAsync(x => x.NguoiDungId == id && !x.IsDeleted);
             if (existingUser == null)
             {
-                return false;
+                return ServiceResult.Fail("Tài khoản không tồn tại trên hệ thống.");
             }
 
             existingUser.Role = role;
             existingUser.IsActive = isActive;
+            existingUser.NguoiThueId = nguoiThueId;
 
             if (!string.IsNullOrEmpty(newPassword))
             {
@@ -166,15 +170,15 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.NguoiDungs
 
             _context.NguoiDungs.Update(existingUser);
             await _context.SaveChangesAsync();
-            return true;
+            return ServiceResult.Ok("Cập nhật thông tin tài khoản thành công!");
         }
 
-        public async Task<(bool IsSuccess, string Message)> ChangePasswordAsync(int userId, string oldPassword, string newPassword)
+        public async Task<ServiceResult> ChangePasswordAsync(int userId, string oldPassword, string newPassword)
         {
             var user = await _context.NguoiDungs.FirstOrDefaultAsync(u => u.NguoiDungId == userId && !u.IsDeleted);
             if (user == null)
             {
-                return (false, "Tài khoản không tồn tại.");
+                return ServiceResult.Fail("Tài khoản không tồn tại.");
             }
 
             var verificationResult = _passwordHasher.VerifyHashedPassword(user, user.MatKhauHash, oldPassword);
@@ -195,17 +199,34 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.NguoiDungs
 
             if (!isOldPasswordValid)
             {
-                return (false, "Mật khẩu hiện tại không chính xác.");
+                return ServiceResult.Fail("Mật khẩu hiện tại không chính xác.");
             }
 
             user.MatKhauHash = _passwordHasher.HashPassword(user, newPassword);
             _context.NguoiDungs.Update(user);
             await _context.SaveChangesAsync();
 
-            return (true, "Đổi mật khẩu thành công!");
+            return ServiceResult.Ok("Đổi mật khẩu thành công!");
         }
 
-        public async Task DeleteAsync(int id)
+        public async Task<ServiceResult> ResetPasswordToPhoneAsync(int id)
+        {
+            var user = await _context.NguoiDungs
+                .Include(x => x.NguoiThue)
+                .FirstOrDefaultAsync(x => x.NguoiDungId == id && !x.IsDeleted);
+
+            if (user == null || user.Role != Role.KhachThue || user.NguoiThue == null || string.IsNullOrEmpty(user.NguoiThue.SoDienThoai))
+            {
+                return ServiceResult.Fail("Không thể đặt lại mật khẩu. Tài khoản không phải là Khách Thuê hoặc không có số điện thoại hợp lệ.");
+            }
+
+            user.MatKhauHash = _passwordHasher.HashPassword(user, user.NguoiThue.SoDienThoai);
+            _context.NguoiDungs.Update(user);
+            await _context.SaveChangesAsync();
+            return ServiceResult.Ok("Đặt lại mật khẩu thành số điện thoại thành công!");
+        }
+
+        public async Task<ServiceResult> DeleteAsync(int id)
         {
             var user = await _context.NguoiDungs.FindAsync(id);
             if (user != null)
@@ -215,7 +236,9 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.NguoiDungs
 
                 _context.NguoiDungs.Update(user);
                 await _context.SaveChangesAsync();
+                return ServiceResult.Ok("Đã xóa tài khoản ra khỏi hệ thống quản lý.");
             }
+            return ServiceResult.Fail("Không tìm thấy tài khoản để xóa.");
         }
     }
 }

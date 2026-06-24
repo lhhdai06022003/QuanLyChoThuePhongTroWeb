@@ -90,7 +90,7 @@
             window.showError = msg => Swal.fire({ icon: 'error', title: 'Lỗi', text: msg, confirmButtonColor: '#3085d6' });
         }
     </script>
-
+    @Html.Partial("~/Views/Shared/_AiChatWidget.cshtml")
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

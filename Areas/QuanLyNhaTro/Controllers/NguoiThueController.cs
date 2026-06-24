@@ -10,7 +10,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
 {
     [Area("QuanLyNhaTro")]
     [ApiController]
-    [Authorize]
+    [Authorize(Roles = "Admin,NhanVien")]
     [AutoValidateAntiforgeryToken]
     public class NguoiThueController : Controller
     {
@@ -41,6 +41,13 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         public async Task<IActionResult> GetAvailable()
         {
             var data = await _nguoiThueService.GetAvailableAsync();
+            return Ok(data);
+        }
+
+        [HttpGet("/NguoiThue/GetCoHopDong")]
+        public async Task<IActionResult> GetCoHopDong()
+        {
+            var data = await _nguoiThueService.DanhSachNguoiThueCoHopDongAsync();
             return Ok(data);
         }
 
@@ -138,3 +145,4 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         }
     }
 }
+

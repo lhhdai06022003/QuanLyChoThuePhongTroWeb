@@ -44,20 +44,48 @@
 
     /* === Base item row === */
     .dkdv-item {
-        display: flex;
+        display: grid;
+        grid-template-columns: 1fr 1fr; /* Chia đôi 50% - 50% */
         align-items: center;
         padding: 10px 12px;
-        border: 1px solid #e9ecef;
+        border: 1px solid var(--tblr-border-color, #e9ecef);
         border-radius: 8px;
         margin-bottom: 8px;
         transition: all 0.2s ease;
-        background: #fff;
+        background: var(--tblr-bg-surface, #fff);
+        gap: 12px;
+    }
+
+    /* Phân nhóm Trái / Phải */
+    .dkdv-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+        width: 100%;
+    }
+    .dkdv-right {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 16px;
+        width: 100%;
+    }
+
+    /* Cột thao tác (checkbox hoặc icon mặc định) */
+    .dkdv-action-col {
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
     }
 
     /* === DEFAULT SERVICE ITEMS (no checkbox, informational) === */
     .dkdv-item.dkdv-default {
-        background: linear-gradient(135deg, #eff6ff 0%, #f0f7ff 100%);
-        border-color: #b6d4fe;
+        background: linear-gradient(135deg, rgba(var(--tblr-primary-rgb, 13, 110, 253), 0.06) 0%, rgba(var(--tblr-primary-rgb, 13, 110, 253), 0.02) 100%);
+        border-color: rgba(var(--tblr-primary-rgb, 13, 110, 253), 0.25);
         cursor: default;
     }
     .dkdv-default-icon {
@@ -90,8 +118,8 @@
         box-shadow: 0 2px 8px rgba(0,123,255,0.08);
     }
     .dkdv-item.dkdv-optional.selected {
-        border-color: #198754;
-        background: #f0fdf4;
+        border-color: var(--tblr-success, #198754);
+        background: rgba(var(--tblr-success-rgb, 25, 135, 84), 0.06);
     }
     .dkdv-checkbox {
         width: 20px;
@@ -103,53 +131,52 @@
 
     /* === Shared === */
     .dkdv-info {
-        flex: 1;
-        min-width: 280px;
-        margin-left: 12px;
+        flex: 1 1 0%;
+        min-width: 150px;
     }
     .dkdv-name {
         font-weight: 600;
         font-size: 0.95rem;
-        color: #333;
+        color: var(--tblr-body-color, #333);
     }
     .dkdv-detail {
         font-size: 0.8rem;
-        color: #777;
+        color: var(--tblr-secondary, #777);
         margin-top: 2px;
     }
 
+    .dkdv-qty-group, .dkdv-qty-spacer {
+        width: 100px;
+        flex-shrink: 0;
+    }
     .dkdv-qty-group {
         display: flex;
         align-items: center;
-        margin-left: 12px;
-        flex-shrink: 0;
-        width: 110px;
     }
     .dkdv-qty-group label {
         font-size: 0.8rem;
         margin-right: 6px;
         margin-bottom: 0;
         white-space: nowrap;
-        color: #555;
+        color: var(--tblr-secondary, #555);
     }
     .dkdv-qty-input {
-        width: 70px;
+        width: 60px;
         text-align: center;
     }
 
     .dkdv-date-group {
         display: flex;
         align-items: center;
-        margin-left: 12px;
         flex-shrink: 0;
-        width: 220px;
+        width: 180px;
     }
     .dkdv-date-group label {
         font-size: 0.8rem;
         margin-right: 6px;
         margin-bottom: 0;
         white-space: nowrap;
-        color: #555;
+        color: var(--tblr-secondary, #555);
     }
     .dkdv-date-input {
         width: 125px;
@@ -158,20 +185,19 @@
     .dkdv-price {
         font-size: 0.85rem;
         font-weight: 600;
-        color: #198754;
-        margin-left: 12px;
+        color: var(--tblr-success, #198754);
         white-space: nowrap;
         flex-shrink: 0;
-        width: 140px;
         text-align: right;
+        width: 150px;
     }
     .dkdv-price-default {
-        color: #0d6efd;
+        color: var(--tblr-primary, #0d6efd);
     }
     .dkdv-empty {
         text-align: center;
         padding: 30px;
-        color: #999;
+        color: var(--tblr-secondary, #999);
     }
     .dkdv-empty i {
         font-size: 2rem;
@@ -179,20 +205,27 @@
         display: block;
     }
 
-    /* Responsive */
-    @@media (max-width: 576px) {
-        .dkdv-item {
-            flex-wrap: wrap;
-            gap: 6px;
+    /* Responsive cho màn hình hoặc container nhỏ */
+    @@media (max-width: 768px) {
+        .dkdv-right {
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 8px;
         }
-        .dkdv-qty-group {
-            margin-left: 32px;
+        .dkdv-qty-group, .dkdv-qty-spacer {
+            width: 100px;
         }
         .dkdv-date-group {
-            margin-left: 32px;
+            width: 100%;
+            justify-content: flex-end;
+        }
+        .dkdv-date-input {
+            width: 125px;
         }
         .dkdv-price {
-            margin-left: 32px;
+            width: 100%;
+            text-align: right;
+            margin-top: 2px;
         }
     }
 </style>
@@ -285,29 +318,36 @@
                 // Dịch vụ mặc định: luôn selected, dùng hidden checkbox để collectDangKyDichVu vẫn thu thập được
                 html += `
                     <div class="dkdv-item dkdv-default" data-dkdv-id="${item.dichVuChiNhanhId}">
-                        <input type="checkbox" class="dkdv-checkbox" 
-                               data-id="${item.dichVuChiNhanhId}" 
-                               data-macdinh="true" 
-                               checked style="display:none;">
-                        <div class="dkdv-default-icon">
-                            <i class="fas fa-check"></i>
-                        </div>
-                        <div class="dkdv-info">
-                            <div class="dkdv-name">
-                                ${item.tenDichVu}
-                                <span class="dkdv-badge-included"><i class="fas fa-lock" style="font-size:0.6rem;"></i> Luôn bao gồm</span>
+                        <div class="dkdv-left">
+                            <input type="checkbox" class="dkdv-checkbox" 
+                                   data-id="${item.dichVuChiNhanhId}" 
+                                   data-macdinh="true" 
+                                   checked style="display:none;">
+                            <div class="dkdv-action-col">
+                                <div class="dkdv-default-icon">
+                                    <i class="fas fa-check"></i>
+                                </div>
                             </div>
-                            <div class="dkdv-detail">
-                                <i class="fas fa-tag"></i> ${item.donVi}
+                            <div class="dkdv-info">
+                                <div class="dkdv-name">
+                                    ${item.tenDichVu}
+                                    <span class="dkdv-badge-included"><i class="fas fa-lock" style="font-size:0.6rem;"></i> Luôn bao gồm</span>
+                                </div>
+                                <div class="dkdv-detail">
+                                    <i class="fas fa-tag"></i> ${item.donVi}
+                                </div>
                             </div>
                         </div>
-                        <div class="dkdv-date-group">
-                            <label>Bắt đầu:</label>
-                            <input type="date" class="form-control form-control-sm dkdv-date-input" 
-                                   data-date-id="${item.dichVuChiNhanhId}" 
-                                   value="${ngayBatDauStr}">
+                        <div class="dkdv-right">
+                            <div class="dkdv-qty-spacer"></div>
+                            <div class="dkdv-date-group">
+                                <label>Bắt đầu:</label>
+                                <input type="date" class="form-control form-control-sm dkdv-date-input" 
+                                       data-date-id="${item.dichVuChiNhanhId}" 
+                                       value="${ngayBatDauStr}">
+                            </div>
+                            <div class="dkdv-price dkdv-price-default">${formatVNDShort(item.giaDichVu)}/${item.donVi}</div>
                         </div>
-                        <div class="dkdv-price dkdv-price-default">${formatVNDShort(item.giaDichVu)}/${item.donVi}</div>
                     </div>
                 `;
             });
@@ -338,29 +378,35 @@
 
                 html += `
                     <div class="dkdv-item dkdv-optional ${selectedClass}" data-dkdv-id="${item.dichVuChiNhanhId}">
-                        <input type="checkbox" class="dkdv-checkbox" 
-                               data-id="${item.dichVuChiNhanhId}" 
-                               data-macdinh="false" 
-                               ${checkedAttr}>
-                        <div class="dkdv-info">
-                            <div class="dkdv-name">${item.tenDichVu}</div>
-                            <div class="dkdv-detail">
-                                <i class="fas fa-tag"></i> ${item.donVi}
+                        <div class="dkdv-left">
+                            <div class="dkdv-action-col">
+                                <input type="checkbox" class="dkdv-checkbox" 
+                                       data-id="${item.dichVuChiNhanhId}" 
+                                       data-macdinh="false" 
+                                       ${checkedAttr}>
+                            </div>
+                            <div class="dkdv-info">
+                                <div class="dkdv-name">${item.tenDichVu}</div>
+                                <div class="dkdv-detail">
+                                    <i class="fas fa-tag"></i> ${item.donVi}
+                                </div>
                             </div>
                         </div>
-                        <div class="dkdv-qty-group" data-qty-for="${item.dichVuChiNhanhId}" style="${qtyDisplay}">
-                            <label>SL:</label>
-                            <input type="number" class="form-control form-control-sm dkdv-qty-input" 
-                                   data-qty-id="${item.dichVuChiNhanhId}" 
-                                   value="${soLuong}" min="1" max="99">
+                        <div class="dkdv-right">
+                            <div class="dkdv-qty-group" data-qty-for="${item.dichVuChiNhanhId}" style="${qtyDisplay}">
+                                <label>SL:</label>
+                                <input type="number" class="form-control form-control-sm dkdv-qty-input" 
+                                       data-qty-id="${item.dichVuChiNhanhId}" 
+                                       value="${soLuong}" min="1" max="99">
+                            </div>
+                            <div class="dkdv-date-group" data-date-for="${item.dichVuChiNhanhId}" style="${qtyDisplay}">
+                                <label>Bắt đầu:</label>
+                                <input type="date" class="form-control form-control-sm dkdv-date-input" 
+                                       data-date-id="${item.dichVuChiNhanhId}" 
+                                       value="${ngayBatDauStr}">
+                            </div>
+                            <div class="dkdv-price">${formatVNDShort(item.giaDichVu)}/${item.donVi}</div>
                         </div>
-                        <div class="dkdv-date-group" data-date-for="${item.dichVuChiNhanhId}" style="${qtyDisplay}">
-                            <label>Bắt đầu:</label>
-                            <input type="date" class="form-control form-control-sm dkdv-date-input" 
-                                   data-date-id="${item.dichVuChiNhanhId}" 
-                                   value="${ngayBatDauStr}">
-                        </div>
-                        <div class="dkdv-price">${formatVNDShort(item.giaDichVu)}/${item.donVi}</div>
                     </div>
                 `;
             });

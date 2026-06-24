@@ -104,7 +104,7 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i> Đóng</button>
                 <button type="button" class="btn btn-primary" id="btnSaveData">
-                    <i class="fas fa-save"></i> Lưu thông tin
+                    <i class="fas fa-plus"></i> Thêm dữ liệu
                 </button>
             </div>
         </div>
@@ -265,7 +265,11 @@
                                 showError(errorMessage);
                             },
                             complete: function () {
-                                $btn.prop('disabled', false).html('<i class="fas fa-save"></i> Lưu thông tin');
+                                if (isUpdate) {
+                                    $btn.prop('disabled', false).html('<i class="fas fa-save"></i> Lưu dữ liệu');
+                                } else {
+                                    $btn.prop('disabled', false).html('<i class="fas fa-plus"></i> Thêm dữ liệu');
+                                }
                             }
                         });
                     }
@@ -292,6 +296,7 @@
                             $('#GhiChu').val(res.ghiChu);
 
                             $('#modalTitle').text('Cập nhật Người Thuê');
+                            $('#btnSaveData').removeClass('btn-primary').addClass('btn-success').html('<i class="fas fa-save"></i> Lưu dữ liệu');
                             $('#nguoiThueModal').modal('show');
                         }
                     },
@@ -345,6 +350,7 @@
                 currentNguoiThueId = 0;
                 $('#frmNguoiThue')[0].reset(); 
                 $('#modalTitle').text('Thêm Người Thuê Mới');
+                $('#btnSaveData').removeClass('btn-success').addClass('btn-primary').html('<i class="fas fa-plus"></i> Thêm dữ liệu');
                 $('#nguoiThueModal').modal('show');
             });
 

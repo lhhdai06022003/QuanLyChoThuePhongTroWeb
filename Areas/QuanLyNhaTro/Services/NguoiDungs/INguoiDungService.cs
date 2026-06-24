@@ -1,4 +1,5 @@
 using QuanLyChoThuePhongTroWeb.Models;
+using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -8,12 +9,13 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.NguoiDungs
     {
         Task<IEnumerable<NguoiDung>> GetAllAsync();
         Task<NguoiDung?> GetByIdAsync(int id);
-        Task AddAsync(NguoiDung nguoiDung);
-        Task UpdateAsync(NguoiDung nguoiDung);
-        Task DeleteAsync(int id);
+        Task<ServiceResult> AddAsync(NguoiDung nguoiDung);
+        Task<ServiceResult> UpdateAsync(NguoiDung nguoiDung);
+        Task<ServiceResult> DeleteAsync(int id);
         Task SeedAdminAccountAsync();
         Task<NguoiDung?> ValidateUserAsync(string username, string password);
-        Task<bool> UpdateUserAsync(int id, Role role, bool isActive, string? newPassword);
-        Task<(bool IsSuccess, string Message)> ChangePasswordAsync(int userId, string oldPassword, string newPassword);
+        Task<ServiceResult> UpdateUserAsync(int id, Role role, bool isActive, string? newPassword, int? nguoiThueId);
+        Task<ServiceResult> ChangePasswordAsync(int userId, string oldPassword, string newPassword);
+        Task<ServiceResult> ResetPasswordToPhoneAsync(int id);
     }
 }

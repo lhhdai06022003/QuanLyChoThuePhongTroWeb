@@ -162,6 +162,15 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.NguoiThues
                 .ToListAsync();
         }
 
+        public async Task<List<SelectListItem>> DanhSachNguoiThueCoHopDongAsync()
+        {
+            return await _context.NguoiThues
+                .Where(x => !x.IsDeleted)
+                .Where(x => x.HopDongs.Any()) // Chỉ lấy người đại diện hợp đồng (không lấy ChiTietThanhVienHopDongs)
+                .Select(p => new SelectListItem { Value = p.NguoiThueId.ToString(), Text = p.HoVaTen + " - " + p.CCCD })
+                .ToListAsync();
+        }
+
         public async Task<object> SearchAutocompleteAsync(string searchTerm)
         {
             searchTerm = (searchTerm ?? "").Trim().ToLower();

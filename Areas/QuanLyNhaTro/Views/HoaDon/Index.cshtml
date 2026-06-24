@@ -158,9 +158,9 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i> Hủy</button>
+                <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i> Đóng</button>
                 <button type="button" class="btn btn-success shadow-sm" id="btnConfirmThuTien">
-                    <i class="fas fa-check me-1"></i> Xác nhận Thu tiền
+                    <i class="fas fa-save me-1"></i> Lưu dữ liệu
                 </button>
             </div>
         </div>
@@ -306,7 +306,7 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i> Đóng</button>
                 <button type="button" class="btn btn-primary shadow-sm" id="btnConfirmPhatSinh">
-                    <i class="fas fa-magic me-1"></i> Phát sinh Hóa đơn (<span id="selected-preview-count">0</span> phòng)
+                    <i class="fas fa-plus me-1"></i> Thêm dữ liệu (<span id="selected-preview-count">0</span> phòng)
                 </button>
             </div>
         </div>
@@ -452,9 +452,9 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i> Hủy</button>
-                <button type="button" class="btn btn-warning shadow-sm" id="btnSaveEdit">
-                    <i class="fas fa-save me-1"></i> Lưu thay đổi
+                <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i> Đóng</button>
+                <button type="button" class="btn btn-success shadow-sm" id="btnSaveEdit">
+                    <i class="fas fa-save me-1"></i> Lưu dữ liệu
                 </button>
             </div>
         </div>
@@ -748,7 +748,7 @@
                                 table.ajax.reload();
                             },
                             error: function(xhr) { showError(xhr.responseJSON?.message || 'Có lỗi xảy ra.'); },
-                            complete: function() { $btn.prop('disabled', false).html('<i class="fas fa-magic me-1"></i> Phát sinh HĐ'); }
+                            complete: function() { $btn.prop('disabled', false).html('<i class="fas fa-plus me-1"></i> Thêm dữ liệu'); }
                         });
                     }
                 });
@@ -983,7 +983,7 @@
                                 table.ajax.reload(null, false);
                             },
                             error: function(xhr) { showError(xhr.responseJSON?.message || 'Có lỗi xảy ra.'); },
-                            complete: function() { $btn.prop('disabled', false).html('<i class="fas fa-save"></i> Lưu thay đổi'); }
+                            complete: function() { $btn.prop('disabled', false).html('<i class="fas fa-save me-1"></i> Lưu dữ liệu'); }
                         });
                     }
                 });

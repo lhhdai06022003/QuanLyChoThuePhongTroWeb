@@ -158,7 +158,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i> Đóng</button>
-                <button type="button" class="btn btn-primary" id="btnSaveDichVu">Lưu Dịch Vụ</button>
+                <button type="button" class="btn btn-primary shadow-sm" id="btnSaveDichVu"><i class="fas fa-plus me-1"></i> Thêm dữ liệu</button>
             </div>
         </div>
     </div>
@@ -209,7 +209,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i> Đóng</button>
-                <button type="button" class="btn btn-success" id="btnSaveBangGia">Lưu Bảng Giá</button>
+                <button type="button" class="btn btn-primary shadow-sm" id="btnSaveBangGia"><i class="fas fa-plus me-1"></i> Thêm dữ liệu</button>
             </div>
         </div>
     </div>
@@ -293,6 +293,7 @@
                 $('#DonVi').val('');
                 $('#GhiChuDichVu').val('');
                 $('#dichVuModalTitle').text('Thêm Dịch Vụ Mới');
+                $('#btnSaveDichVu').removeClass('btn-success').addClass('btn-primary').html('<i class="fas fa-plus me-1"></i> Thêm dữ liệu');
                 $('#dichVuModal').modal('show');
             });
 
@@ -333,7 +334,13 @@
                                 tableDichVu.ajax.reload(null, false);
                             },
                             error: function(xhr) { showError(xhr.responseJSON?.message || 'Có lỗi xảy ra'); },
-                            complete: function() { $btn.prop('disabled', false).text('Lưu Dịch Vụ'); }
+                            complete: function() { 
+                                if (isUpdate) {
+                                    $btn.prop('disabled', false).html('<i class="fas fa-save me-1"></i> Lưu dữ liệu');
+                                } else {
+                                    $btn.prop('disabled', false).html('<i class="fas fa-plus me-1"></i> Thêm dữ liệu');
+                                }
+                            }
                         });
                     }
                 });
@@ -347,6 +354,7 @@
                     $('#DonVi').val(res.donVi);
                     $('#GhiChuDichVu').val(res.ghiChu);
                     $('#dichVuModalTitle').text('Cập nhật Dịch Vụ');
+                    $('#btnSaveDichVu').removeClass('btn-primary').addClass('btn-success').html('<i class="fas fa-save me-1"></i> Lưu dữ liệu');
                     $('#dichVuModal').modal('show');
                 });
             });
@@ -442,6 +450,7 @@
                 $('#GiaDichVu').val(0);
                 $('#MacDinhBangGia').prop('checked', false);
                 $('#bangGiaModalTitle').text('Thêm Bảng Giá');
+                $('#btnSaveBangGia').removeClass('btn-success').addClass('btn-primary').html('<i class="fas fa-plus me-1"></i> Thêm dữ liệu');
                 $('#bangGiaModal').modal('show');
             });
 
@@ -484,7 +493,13 @@
                                 tableBangGia.ajax.reload(null, false);
                             },
                             error: function(xhr) { showError(xhr.responseJSON?.message || 'Có lỗi xảy ra'); },
-                            complete: function() { $btn.prop('disabled', false).text('Lưu Bảng Giá'); }
+                            complete: function() { 
+                                if (isUpdate) {
+                                    $btn.prop('disabled', false).html('<i class="fas fa-save me-1"></i> Lưu dữ liệu');
+                                } else {
+                                    $btn.prop('disabled', false).html('<i class="fas fa-plus me-1"></i> Thêm dữ liệu');
+                                }
+                            }
                         });
                     }
                 });
@@ -499,6 +514,7 @@
                     $('#GiaDichVu').val(res.giaDichVu);
                     $('#MacDinhBangGia').prop('checked', res.macDinh === true);
                     $('#bangGiaModalTitle').text('Cập nhật Bảng Giá');
+                    $('#btnSaveBangGia').removeClass('btn-primary').addClass('btn-success').html('<i class="fas fa-save me-1"></i> Lưu dữ liệu');
                     $('#bangGiaModal').modal('show');
                 });
             });

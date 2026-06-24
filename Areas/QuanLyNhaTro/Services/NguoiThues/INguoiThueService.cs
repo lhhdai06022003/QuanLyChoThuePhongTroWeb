@@ -1,4 +1,4 @@
-﻿
+
 
 using Microsoft.AspNetCore.Mvc.Rendering;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Requests;
@@ -21,5 +21,8 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.NguoiThues
 
         // THÊM DÒNG NÀY: Khai báo hàm lấy danh sách người chưa thuê
         Task<List<SelectListItem>> DanhSachNguoiThueChuaCoPhong();
+        
+        // Hàm lấy những người thuê đã có hợp đồng
+        Task<List<SelectListItem>> DanhSachNguoiThueCoHopDongAsync();
     }
 }

@@ -7,7 +7,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
 {
     [Area("QuanLyNhaTro")]
     [Route("[controller]/[action]")]
-    [Authorize]
+    [Authorize(Roles = "Admin,NhanVien")]
     [AutoValidateAntiforgeryToken]
     public class ChiNhanhsController : Controller
     {
@@ -70,3 +70,4 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         }
     }
 }
+

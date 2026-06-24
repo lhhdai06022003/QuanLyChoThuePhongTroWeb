@@ -12,7 +12,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
 {
     [Area("QuanLyNhaTro")]
     [ApiController]
-    [Authorize]
+    [Authorize(Roles = "Admin,NhanVien")]
     [AutoValidateAntiforgeryToken]
     public class LichSuThanhToanController : Controller
     {
@@ -117,3 +117,4 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         }
     }
 }
+

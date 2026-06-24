@@ -71,3 +71,4 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         }
     }
 }
+

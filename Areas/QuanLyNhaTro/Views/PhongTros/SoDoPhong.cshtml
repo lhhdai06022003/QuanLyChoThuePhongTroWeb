@@ -35,39 +35,39 @@
 
     /* Trạng thái phòng */
     .room-trong {
-        background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%);
-        border-color: #66bb6a;
+        background-color: var(--tblr-success-lt, #e8f5e9);
+        border-color: var(--tblr-success);
     }
-    .room-trong::before { background: #43a047; }
+    .room-trong::before { background: var(--tblr-success); }
 
     .room-dathue {
-        background: linear-gradient(135deg, #ffebee 0%, #fce4ec 100%);
-        border-color: #ef5350;
+        background-color: var(--tblr-danger-lt, #ffebee);
+        border-color: var(--tblr-danger);
     }
-    .room-dathue::before { background: #e53935; }
+    .room-dathue::before { background: var(--tblr-danger); }
 
     .room-baotri {
-        background: linear-gradient(135deg, #fff8e1 0%, #fff3e0 100%);
-        border-color: #ffa726;
+        background-color: var(--tblr-warning-lt, #fff8e1);
+        border-color: var(--tblr-warning);
     }
-    .room-baotri::before { background: #fb8c00; }
+    .room-baotri::before { background: var(--tblr-warning); }
 
     .room-number {
         font-size: 1.3rem;
         font-weight: 700;
-        color: #333;
+        color: var(--tblr-body-color, #333);
         margin-bottom: 4px;
     }
 
     .room-price {
         font-size: 0.85rem;
         font-weight: 600;
-        color: #555;
+        color: var(--tblr-muted, #555);
     }
 
     .room-tenant {
         font-size: 0.8rem;
-        color: #666;
+        color: var(--tblr-muted, #666);
         margin-top: 6px;
         white-space: nowrap;
         overflow: hidden;
@@ -76,7 +76,7 @@
 
     .room-meta {
         font-size: 0.75rem;
-        color: #888;
+        color: var(--tblr-muted, #888);
         margin-top: 2px;
     }
 
@@ -100,13 +100,13 @@
     }
 
     .badge-debt {
-        background: #e53935;
-        box-shadow: 0 0 8px rgba(229, 57, 53, 0.5);
+        background: var(--tblr-danger);
+        box-shadow: 0 0 8px rgba(var(--tblr-danger-rgb, 229, 57, 53), 0.5);
     }
 
     .badge-expiring {
-        background: #ff9800;
-        box-shadow: 0 0 8px rgba(255, 152, 0, 0.5);
+        background: var(--tblr-warning);
+        box-shadow: 0 0 8px rgba(var(--tblr-warning-rgb, 255, 152, 0), 0.5);
     }
 
     @@keyframes pulse-badge {
@@ -121,88 +121,75 @@
         margin-right: 6px;
     }
 
-    .dot-trong { background: #43a047; }
-    .dot-dathue { background: #e53935; }
-    .dot-baotri { background: #fb8c00; }
+    .dot-trong { background: var(--tblr-success); }
+    .dot-dathue { background: var(--tblr-danger); }
+    .dot-baotri { background: var(--tblr-warning); }
 
-    /* Quick Filter buttons */
-    .filter-btn {
-        border-radius: 20px;
-        padding: 6px 16px;
-        font-size: 0.85rem;
-        font-weight: 500;
-        border: 2px solid #ddd;
-        background: #fff;
-        color: #555;
-        cursor: pointer;
-        transition: all 0.2s;
-        margin-right: 6px;
-        margin-bottom: 6px;
-    }
 
-    .filter-btn:hover, .filter-btn.active {
-        color: #fff;
-        border-color: transparent;
-    }
-
-    .filter-btn[data-filter="all"].active { background: #5c6bc0; border-color: #5c6bc0; }
-    .filter-btn[data-filter="trong"].active { background: #43a047; border-color: #43a047; }
-    .filter-btn[data-filter="dathue"].active { background: #e53935; border-color: #e53935; }
-    .filter-btn[data-filter="baotri"].active { background: #fb8c00; border-color: #fb8c00; }
-    .filter-btn[data-filter="notien"].active { background: #c62828; border-color: #c62828; }
-    .filter-btn[data-filter="saphethan"].active { background: #ef6c00; border-color: #ef6c00; }
-
-    /* Stats summary */
-    .stat-card {
-        border-radius: 10px;
-        padding: 14px 20px;
-        text-align: center;
-        color: #fff;
-        font-weight: 600;
-    }
-
-    .stat-card .stat-number {
-        font-size: 1.8rem;
-        font-weight: 700;
-    }
-
-    .stat-card .stat-label {
-        font-size: 0.8rem;
-        opacity: 0.9;
-    }
-
-    /* Detail popup */
-    .detail-row { margin-bottom: 8px; }
-    .detail-label { font-weight: 600; color: #555; font-size: 0.85rem; }
-    .detail-value { color: #333; font-size: 0.9rem; }
 </style>
 
 <section class="content mt-3">
     <div class="container-fluid">
         <!-- Thống kê tóm tắt -->
-        <div class="row mb-3" id="statsRow">
-            <div class="col-md-3 col-6 mb-2">
-                <div class="stat-card" style="background: linear-gradient(135deg, #43a047, #66bb6a);">
-                    <div class="stat-number" id="statTrong">0</div>
-                    <div class="stat-label"><i class="fas fa-door-open"></i> Phòng trống</div>
+        <div class="row row-cards mb-3" id="statsRow">
+            <div class="col-sm-6 col-lg-3">
+                <div class="card card-sm shadow-sm border-0" style="border-left: 4px solid var(--tblr-success) !important;">
+                    <div class="card-body py-3">
+                        <div class="row align-items-center">
+                            <div class="col-auto">
+                                <span class="bg-success-lt text-success avatar rounded"><i class="fas fa-door-open"></i></span>
+                            </div>
+                            <div class="col text-end">
+                                <div class="text-secondary small fw-medium">Phòng trống</div>
+                                <div class="h3 mb-0 fw-bold" id="statTrong">0</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="col-md-3 col-6 mb-2">
-                <div class="stat-card" style="background: linear-gradient(135deg, #e53935, #ef5350);">
-                    <div class="stat-number" id="statDaThue">0</div>
-                    <div class="stat-label"><i class="fas fa-user-check"></i> Đã thuê</div>
+            <div class="col-sm-6 col-lg-3">
+                <div class="card card-sm shadow-sm border-0" style="border-left: 4px solid var(--tblr-primary) !important;">
+                    <div class="card-body py-3">
+                        <div class="row align-items-center">
+                            <div class="col-auto">
+                                <span class="bg-primary-lt text-primary avatar rounded"><i class="fas fa-user-check"></i></span>
+                            </div>
+                            <div class="col text-end">
+                                <div class="text-secondary small fw-medium">Đã thuê</div>
+                                <div class="h3 mb-0 fw-bold" id="statDaThue">0</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="col-md-3 col-6 mb-2">
-                <div class="stat-card" style="background: linear-gradient(135deg, #c62828, #e53935);">
-                    <div class="stat-number" id="statNoTien">0</div>
-                    <div class="stat-label"><i class="fas fa-exclamation-triangle"></i> Đang nợ tiền</div>
+            <div class="col-sm-6 col-lg-3">
+                <div class="card card-sm shadow-sm border-0" style="border-left: 4px solid var(--tblr-danger) !important;">
+                    <div class="card-body py-3">
+                        <div class="row align-items-center">
+                            <div class="col-auto">
+                                <span class="bg-danger-lt text-danger avatar rounded"><i class="fas fa-exclamation-triangle"></i></span>
+                            </div>
+                            <div class="col text-end">
+                                <div class="text-secondary small fw-medium">Đang nợ tiền</div>
+                                <div class="h3 mb-0 fw-bold" id="statNoTien">0</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="col-md-3 col-6 mb-2">
-                <div class="stat-card" style="background: linear-gradient(135deg, #ef6c00, #ff9800);">
-                    <div class="stat-number" id="statSapHetHan">0</div>
-                    <div class="stat-label"><i class="fas fa-hourglass-half"></i> Sắp hết hạn</div>
+            <div class="col-sm-6 col-lg-3">
+                <div class="card card-sm shadow-sm border-0" style="border-left: 4px solid var(--tblr-warning) !important;">
+                    <div class="card-body py-3">
+                        <div class="row align-items-center">
+                            <div class="col-auto">
+                                <span class="bg-warning-lt text-warning avatar rounded"><i class="fas fa-hourglass-half"></i></span>
+                            </div>
+                            <div class="col text-end">
+                                <div class="text-secondary small fw-medium">Sắp hết hạn</div>
+                                <div class="h3 mb-0 fw-bold" id="statSapHetHan">0</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -223,13 +210,13 @@
                             }
                         </select>
                     </div>
-                    <div class="d-flex flex-wrap">
-                        <button class="filter-btn active" data-filter="all"><i class="fas fa-th"></i> Tất cả</button>
-                        <button class="filter-btn" data-filter="trong"><span class="room-status-dot dot-trong"></span> Trống</button>
-                        <button class="filter-btn" data-filter="dathue"><span class="room-status-dot dot-dathue"></span> Đã thuê</button>
-                        <button class="filter-btn" data-filter="baotri"><span class="room-status-dot dot-baotri"></span> Bảo trì</button>
-                        <button class="filter-btn" data-filter="notien"><i class="fas fa-exclamation-circle text-danger"></i> Nợ tiền</button>
-                        <button class="filter-btn" data-filter="saphethan"><i class="fas fa-hourglass-half text-warning"></i> Sắp hết hạn</button>
+                    <div class="d-flex flex-wrap gap-2">
+                        <button class="btn btn-outline-primary filter-btn active" data-filter="all"><i class="fas fa-th me-2"></i> Tất cả</button>
+                        <button class="btn btn-outline-success filter-btn" data-filter="trong"><i class="fas fa-door-open me-2"></i> Trống</button>
+                        <button class="btn btn-outline-primary filter-btn" data-filter="dathue"><i class="fas fa-user-check me-2"></i> Đã thuê</button>
+                        <button class="btn btn-outline-warning filter-btn" data-filter="baotri"><i class="fas fa-tools me-2"></i> Bảo trì</button>
+                        <button class="btn btn-outline-danger filter-btn" data-filter="notien"><i class="fas fa-exclamation-circle me-2"></i> Nợ tiền</button>
+                        <button class="btn btn-outline-warning filter-btn" data-filter="saphethan"><i class="fas fa-hourglass-half me-2"></i> Sắp hết hạn</button>
                     </div>
                 </div>
             </div>
@@ -248,16 +235,17 @@
 </section>
 
 <!-- Modal chi tiết phòng -->
-<div class="modal fade" id="roomDetailModal" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-dialog" role="document">
+<div class="modal modal-blur fade" id="roomDetailModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
         <div class="modal-content">
-            <div class="modal-header" id="roomDetailHeader">
-                <h5 class="modal-title"><i class="fas fa-door-open"></i> <span id="detailRoomName"></span></h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            <div class="modal-status" id="roomDetailStatus"></div>
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-door-open me-2 text-muted"></i> <span id="detailRoomName"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body" id="roomDetailBody"></div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i> Đóng</button>
+                <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Đóng</button>
             </div>
         </div>
     </div>
@@ -348,41 +336,72 @@
             let r = allRooms.find(x => x.phongTroId === id);
             if (!r) return;
 
-            let statusColors = { 0: '#43a047', 1: '#e53935', 2: '#fb8c00' };
-            let headerColor = statusColors[r.trangThai] || '#5c6bc0';
+            let statusClasses = { 0: 'bg-success', 1: 'bg-danger', 2: 'bg-warning' };
+            let headerClass = statusClasses[r.trangThai] || 'bg-primary';
 
-            $('#roomDetailHeader').css('background', headerColor).css('color', '#fff');
+            $('#roomDetailStatus').removeClass('bg-success bg-danger bg-warning bg-primary').addClass(headerClass);
             $('#detailRoomName').text(`Phòng ${r.soPhong} - ${r.trangThaiText}`);
 
             let html = `
-                <div class="detail-row"><span class="detail-label">Chi nhánh:</span> <span class="detail-value">${r.tenChiNhanh}</span></div>
-                <div class="detail-row"><span class="detail-label">Giá thuê:</span> <span class="detail-value text-danger font-weight-bold">${formatVND(r.giaThue)}/tháng</span></div>
-                <div class="detail-row"><span class="detail-label">Diện tích:</span> <span class="detail-value">${r.dienTich} m²</span></div>
-                <div class="detail-row"><span class="detail-label">Tầng:</span> <span class="detail-value">${r.tangLau}</span></div>
-                <div class="detail-row"><span class="detail-label">Số người tối đa:</span> <span class="detail-value">${r.soNguoiToiDa}</span></div>
-                <hr>
+                <div class="datagrid">
+                    <div class="datagrid-item">
+                        <div class="datagrid-title">Chi nhánh</div>
+                        <div class="datagrid-content">${r.tenChiNhanh}</div>
+                    </div>
+                    <div class="datagrid-item">
+                        <div class="datagrid-title">Giá thuê</div>
+                        <div class="datagrid-content text-danger fw-bold fs-3">${formatVND(r.giaThue)}/tháng</div>
+                    </div>
+                    <div class="datagrid-item">
+                        <div class="datagrid-title">Diện tích</div>
+                        <div class="datagrid-content">${r.dienTich} m²</div>
+                    </div>
+                    <div class="datagrid-item">
+                        <div class="datagrid-title">Tầng</div>
+                        <div class="datagrid-content">${r.tangLau}</div>
+                    </div>
+                    <div class="datagrid-item">
+                        <div class="datagrid-title">Số người tối đa</div>
+                        <div class="datagrid-content">${r.soNguoiToiDa}</div>
+                    </div>
+                </div>
             `;
 
             if (r.trangThai === 1 && r.tenNguoiThue) {
                 html += `
-                    <h6 class="font-weight-bold"><i class="fas fa-user"></i> Thông tin người thuê</h6>
-                    <div class="detail-row"><span class="detail-label">Họ tên:</span> <span class="detail-value">${r.tenNguoiThue}</span></div>
-                    <div class="detail-row"><span class="detail-label">SĐT:</span> <span class="detail-value">${r.sdtNguoiThue || 'N/A'}</span></div>
+                    <hr class="my-3">
+                    <h3 class="card-title mb-3"><i class="fas fa-user text-muted me-2"></i>Thông tin người thuê</h3>
+                    <div class="datagrid">
+                        <div class="datagrid-item">
+                            <div class="datagrid-title">Họ tên</div>
+                            <div class="datagrid-content fw-bold">${r.tenNguoiThue}</div>
+                        </div>
+                        <div class="datagrid-item">
+                            <div class="datagrid-title">SĐT</div>
+                            <div class="datagrid-content">${r.sdtNguoiThue || 'N/A'}</div>
+                        </div>
                 `;
                 if (r.ngayHetHan) {
                     let ngay = new Date(r.ngayHetHan).toLocaleDateString('vi-VN');
-                    html += `<div class="detail-row"><span class="detail-label">Hết hạn HĐ:</span> <span class="detail-value">${ngay}</span></div>`;
+                    html += `
+                        <div class="datagrid-item">
+                            <div class="datagrid-title">Hết hạn HĐ</div>
+                            <div class="datagrid-content">${ngay}</div>
+                        </div>
+                    `;
                 }
+                html += `</div>`; // Close datagrid
+
                 if (r.sapHetHan) {
-                    html += `<div class="alert alert-warning mt-2 py-2"><i class="fas fa-hourglass-half"></i> <strong>Cảnh báo:</strong> Hợp đồng sắp hết hạn (còn ${r.soNgayConLai} ngày)!</div>`;
+                    html += `<div class="alert alert-warning mt-3 mb-0"><i class="fas fa-hourglass-half me-2"></i> <strong>Cảnh báo:</strong> Hợp đồng sắp hết hạn (còn ${r.soNgayConLai} ngày)!</div>`;
                 }
                 if (r.coNoTien) {
-                    html += `<div class="alert alert-danger mt-2 py-2"><i class="fas fa-exclamation-triangle"></i> <strong>Nợ tiền:</strong> Phòng này đang nợ <strong>${formatVND(r.soTienNo)}</strong>!</div>`;
+                    html += `<div class="alert alert-danger mt-3 mb-0"><i class="fas fa-exclamation-triangle me-2"></i> <strong>Nợ tiền:</strong> Phòng này đang nợ <strong>${formatVND(r.soTienNo)}</strong>!</div>`;
                 }
             } else if (r.trangThai === 0) {
-                html += `<div class="alert alert-success mt-2 py-2"><i class="fas fa-check-circle"></i> Phòng đang trống, sẵn sàng cho thuê.</div>`;
+                html += `<div class="alert alert-success mt-3 mb-0"><i class="fas fa-check-circle me-2"></i> Phòng đang trống, sẵn sàng cho thuê.</div>`;
             } else if (r.trangThai === 2) {
-                html += `<div class="alert alert-warning mt-2 py-2"><i class="fas fa-tools"></i> Phòng đang bảo trì.</div>`;
+                html += `<div class="alert alert-warning mt-3 mb-0"><i class="fas fa-tools me-2"></i> Phòng đang bảo trì.</div>`;
             }
 
             $('#roomDetailBody').html(html);

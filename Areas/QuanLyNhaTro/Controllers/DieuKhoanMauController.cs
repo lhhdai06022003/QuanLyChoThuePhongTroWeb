@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
 {
     [Area("QuanLyNhaTro")]
-    [Authorize]
+    [Authorize(Roles = "Admin,NhanVien")]
     public class DieuKhoanMauController : Controller
     {
         private readonly IDieuKhoanMauService _dieuKhoanMauService;
@@ -64,3 +64,4 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         }
     }
 }
+

@@ -289,8 +289,8 @@
                     <button type="button" class="btn btn-primary shadow-sm" id="btnWizardNext">
                         Tiếp theo <i class="fas fa-arrow-right ms-1"></i>
                     </button>
-                    <button type="button" class="btn btn-success shadow-sm" id="btnSaveData" style="display: none;">
-                        <i class="fas fa-save me-1"></i> Lưu thông tin
+                    <button type="button" class="btn btn-primary shadow-sm" id="btnSaveData" style="display: none;">
+                        <i class="fas fa-plus me-1"></i> Thêm dữ liệu
                     </button>
                 </div>
             </div>
@@ -640,6 +640,7 @@
                 goToStep(1);
 
                 $('#modalTitle').text('Thêm Hợp Đồng Mới');
+                $('#btnSaveData').removeClass('btn-success').addClass('btn-primary').html('<i class="fas fa-plus me-1"></i> Thêm dữ liệu');
                 bootstrap.Modal.getOrCreateInstance(document.getElementById('hopDongModal')).show();
             });
 
@@ -842,7 +843,7 @@
                                 showToastr(msg, "error");
                             },
                             complete: function () {
-                                $btn.prop('disabled', false).html('<i class="fas fa-save"></i> Lưu thành viên');
+                                $btn.prop('disabled', false).html('<i class="fas fa-plus"></i> Thêm dữ liệu');
                             }
                         });
                     }
@@ -992,7 +993,11 @@
                                 showToastr(errorMessage, "error");
                             },
                             complete: function () {
-                                $btn.prop('disabled', false).html('<i class="fas fa-save"></i> Lưu thông tin');
+                                if (isUpdate) {
+                                    $btn.prop('disabled', false).html('<i class="fas fa-save me-1"></i> Lưu dữ liệu');
+                                } else {
+                                    $btn.prop('disabled', false).html('<i class="fas fa-plus me-1"></i> Thêm dữ liệu');
+                                }
                             }
                         });
                     }
@@ -1072,6 +1077,7 @@
                         goToStep(1);
 
                         $('#modalTitle').text('Cập nhật Hợp Đồng');
+                        $('#btnSaveData').removeClass('btn-primary').addClass('btn-success').html('<i class="fas fa-save me-1"></i> Lưu dữ liệu');
                         bootstrap.Modal.getOrCreateInstance(document.getElementById('hopDongModal')).show();
                     },
                     error: function () { showToastr("Không thể tải thông tin.", "error"); },

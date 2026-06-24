@@ -57,12 +57,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers
             int userId = int.Parse(userIdClaim.Value);
             
             var result = await _nguoiDungService.ChangePasswordAsync(userId, model.MatKhauCu, model.MatKhauMoi);
-            if (!result.IsSuccess)
-            {
-                return Json(new { success = false, message = result.Message });
-            }
-
-            return Json(new { success = true, message = result.Message });
+            return Json(result);
         }
     }
 }

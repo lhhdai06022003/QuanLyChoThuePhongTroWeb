@@ -3,6 +3,38 @@
     ViewData["Title"] = "Quản lý Tài Khoản Đăng Nhập";
 }
 
+<style>
+    /* CSS hỗ trợ Select2 tương thích với Dark Mode của Tabler */
+    .select2-container--default .select2-selection--single {
+        background-color: var(--tblr-bg-surface);
+        border-color: var(--tblr-border-color);
+        color: var(--tblr-color);
+        height: 38px;
+        padding-top: 4px;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        color: var(--tblr-color);
+    }
+    .select2-dropdown {
+        background-color: var(--tblr-bg-surface);
+        border-color: var(--tblr-border-color);
+        color: var(--tblr-color);
+    }
+    .select2-search--dropdown .select2-search__field {
+        background-color: var(--tblr-bg-surface);
+        border-color: var(--tblr-border-color);
+        color: var(--tblr-color);
+    }
+    .select2-container--default .select2-results__option--highlighted[aria-selected] {
+        background-color: var(--tblr-primary);
+        color: #ffffff;
+    }
+    .select2-container--default .select2-results__option[aria-selected=true] {
+        background-color: var(--tblr-bg-surface-secondary);
+        color: var(--tblr-color);
+    }
+</style>
+
 <section class="content">
     <div class="container-fluid">
         <div class="card card-primary card-outline">
@@ -43,6 +75,22 @@
             <div class="modal-body">
                 <form id="frmNguoiDung">
                     <div class="form-group">
+                        <label>Quyền Hạn (Role) <span class="text-danger">*</span></label>
+                        <select class="form-control" id="Role">
+                            <option value="0">Admin</option>
+                            <option value="1">Nhân Viên</option>
+                            <option value="2">Khách Thuê</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group d-none" id="divNguoiThue">
+                        <label>Người Thuê (Khách có hợp đồng) <span class="text-danger">*</span></label>
+                        <select class="form-control select2" id="NguoiThueId" style="width: 100%;">
+                            <option value="">-- Chọn khách thuê --</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
                         <label>Tên Đăng Nhập <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" id="TenDangNhap" required placeholder="Nhập tên đăng nhập...">
                     </div>
@@ -51,14 +99,6 @@
                         <label>Mật Khẩu <span class="text-danger">*</span></label>
                         <input type="password" class="form-control" id="MatKhau" placeholder="Nhập mật khẩu...">
                         <small class="text-muted class-edit-note d-none">Để trống nếu không muốn thay đổi mật khẩu</small>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Quyền Hạn (Role) <span class="text-danger">*</span></label>
-                        <select class="form-control" id="Role">
-                            <option value="0">Admin</option>
-                            <option value="1" selected>NguoiDung</option>
-                        </select>
                     </div>
 
                     <div class="form-group">
@@ -73,7 +113,7 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i> Đóng</button>
                 <button type="button" class="btn btn-primary" id="btnSaveData">
-                    <i class="fas fa-save"></i> Lưu thông tin
+                    <i class="fas fa-plus"></i> Thêm dữ liệu
                 </button>
             </div>
         </div>
@@ -90,6 +130,60 @@
                 var date = new Date(dateString);
                 return date.toLocaleString('vi-VN');
             }
+
+            function loadNguoiThueDropdown() {
+                $.ajax({
+                    url: '/NguoiThue/GetCoHopDong',
+                    type: 'GET',
+                    success: function (res) {
+                        let html = '<option value="">-- Chọn khách thuê --</option>';
+                        res.forEach(function (item) {
+                            html += `<option value="${item.value}">${item.text}</option>`;
+                        });
+                        $('#NguoiThueId').html(html);
+                    }
+                });
+            }
+            loadNguoiThueDropdown();
+
+            if ($.fn.select2) {
+                $('#NguoiThueId').select2({ dropdownParent: $('#nguoiDungModal') });
+            }
+
+            $('#Role').on('change', function () {
+                if ($(this).val() == "2") {
+                    $('#divNguoiThue').removeClass('d-none');
+                    if (currentNguoiDungId === 0) {
+                        $('#TenDangNhap').prop('disabled', true).val('');
+                    }
+                } else {
+                    $('#divNguoiThue').addClass('d-none');
+                    $('#NguoiThueId').val('').trigger('change.select2');
+                    if (currentNguoiDungId === 0) {
+                        $('#TenDangNhap').prop('disabled', false).val('');
+                    }
+                }
+            });
+
+            $('#NguoiThueId').on('change', function () {
+                if ($('#Role').val() != "2") return;
+                
+                let id = $(this).val();
+                if (id && currentNguoiDungId === 0) {
+                    $.ajax({
+                        url: '/NguoiThue/GetById/' + id,
+                        type: 'GET',
+                        success: function (res) {
+                            if (res && res.email) {
+                                $('#TenDangNhap').val(res.email);
+                            } else {
+                                showWarning("Người thuê này chưa có Email, vui lòng nhập tay tên đăng nhập!");
+                                $('#TenDangNhap').val('').prop('disabled', false);
+                            }
+                        }
+                    });
+                }
+            });
 
             // Khởi tạo Datatable gọi về cấu trúc chuẩn của NguoiDungController
             var table = $('#nguoiDungTable').DataTable({
@@ -120,9 +214,10 @@
                     {
                         "data": "role",
                         "render": function(data) {
-                            return data === 0
-                                ? `<span class="badge bg-danger-lt text-danger">Admin</span>`
-                                : `<span class="badge bg-info-lt text-info">Người Dùng</span>`;
+                            if (data === 0) return `<span class="badge bg-danger-lt text-danger">Admin</span>`;
+                            if (data === 1) return `<span class="badge bg-primary-lt text-primary">Nhân Viên</span>`;
+                            if (data === 2) return `<span class="badge bg-info-lt text-info">Khách Thuê</span>`;
+                            return `<span class="badge bg-secondary-lt text-secondary">N/A</span>`;
                         }
                     },
                     {
@@ -146,9 +241,18 @@
                         "data": "nguoiDungId",
                         "className": "text-center align-middle",
                         "orderable": false,
-                        "render": function (data) {
+                        "render": function (data, type, row) {
+                            let resetBtn = '';
+                            if (row.role === 2) {
+                                resetBtn = `
+                                    <button class="btn btn-icon btn-ghost-info btn-sm btn-reset" data-id="${data}" title="Đặt lại mật khẩu">
+                                        <i class="fas fa-key"></i>
+                                    </button>
+                                `;
+                            }
                             return `
                                 <div class="btn-list flex-nowrap justify-content-center">
+                                    ${resetBtn}
                                     <button class="btn btn-icon btn-ghost-warning btn-sm btn-edit" data-id="${data}" title="Sửa">
                                         <i class="fas fa-edit"></i>
                                     </button>
@@ -169,9 +273,15 @@
                 let matKhau = $('#MatKhau').val();
                 let role = parseInt($('#Role').val(), 10);
                 let isActive = $('#IsActive').is(':checked');
+                let nguoiThueId = $('#NguoiThueId').val();
 
                 if (!tenDangNhap) {
                     showWarning("Vui lòng điền Tên đăng nhập!");
+                    return;
+                }
+
+                if (role === 2 && !nguoiThueId) {
+                    showWarning("Vui lòng chọn người thuê khi chọn quyền là Khách Thuê!");
                     return;
                 }
 
@@ -186,7 +296,8 @@
                     tenDangNhap: tenDangNhap,
                     role: role,
                     isActive: isActive,
-                    matKhauHash: matKhau // Truyền chuỗi thô, NguoiDungService.AddAsync sẽ tự động băm SHA256 cho bạn
+                    matKhauHash: matKhau,
+                    nguoiThueId: nguoiThueId ? parseInt(nguoiThueId, 10) : null
                 };
 
                 let apiUrl = isUpdate ? `/QuanLyNhaTro/NguoiDung/EditApi/${currentNguoiDungId}` : `/QuanLyNhaTro/NguoiDung/CreateApi`;
@@ -226,7 +337,11 @@
                                 showError("Lỗi hệ thống máy chủ hoặc dữ liệu không hợp lệ!");
                             },
                             complete: function () {
-                                $btn.prop('disabled', false).html('<i class="fas fa-save"></i> Lưu thông tin');
+                                if (isUpdate) {
+                                    $btn.prop('disabled', false).html('<i class="fas fa-save"></i> Lưu dữ liệu');
+                                } else {
+                                    $btn.prop('disabled', false).html('<i class="fas fa-plus"></i> Thêm dữ liệu');
+                                }
                             }
                         });
                     }
@@ -244,11 +359,18 @@
                         if (res) {
                             $('#TenDangNhap').val(res.tenDangNhap).prop('disabled', true); // Khóa không cho sửa username
                             $('#MatKhau').val(''); // Không đổ lại mật khẩu cũ vì đã băm
-                            $('#Role').val(res.role);
+                            $('#Role').val(res.role).trigger('change');
                             $('#IsActive').prop('checked', res.isActive);
+
+                            if (res.role === 2 && res.nguoiThueId) {
+                                $('#NguoiThueId').val(res.nguoiThueId).trigger('change');
+                            } else {
+                                $('#NguoiThueId').val('').trigger('change');
+                            }
 
                             $('.class-edit-note').removeClass('d-none');
                             $('#modalTitle').text('Cập nhật Tài Khoản');
+                            $('#btnSaveData').removeClass('btn-primary').addClass('btn-success').html('<i class="fas fa-save"></i> Lưu dữ liệu');
                             $('#nguoiDungModal').modal('show');
                         }
                     },
@@ -300,10 +422,51 @@
             $('#btnOpenAddModal').on('click', function () {
                 currentNguoiDungId = 0;
                 $('#frmNguoiDung')[0].reset();
+                $('#NguoiThueId').val('').trigger('change.select2');
+                $('#Role').val(1).trigger('change');
                 $('#TenDangNhap').prop('disabled', false);
                 $('.class-edit-note').addClass('d-none');
                 $('#modalTitle').text('Thêm Tài Khoản Mới');
+                $('#btnSaveData').removeClass('btn-success').addClass('btn-primary').html('<i class="fas fa-plus"></i> Thêm dữ liệu');
                 $('#nguoiDungModal').modal('show');
+            });
+
+            // --- ĐẶT LẠI MẬT KHẨU CHO KHÁCH THUÊ ---
+            $('#nguoiDungTable tbody').on('click', '.btn-reset', function () {
+                let id = $(this).data('id');
+                let $btn = $(this);
+
+                Swal.fire({
+                    title: 'Đặt lại mật khẩu?',
+                    text: 'Mật khẩu sẽ được đặt lại thành số điện thoại của người thuê. Bạn có chắc chắn?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Đồng ý',
+                    cancelButtonText: 'Hủy bỏ'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        let originalHtml = $btn.html();
+                        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
+
+                        $.ajax({
+                            url: '/QuanLyNhaTro/NguoiDung/ResetPasswordToPhoneApi/' + id,
+                            type: 'POST',
+                            success: function (res) {
+                                if (res.success) {
+                                    showSuccess(res.message);
+                                } else {
+                                    showError(res.message);
+                                }
+                            },
+                            error: function () {
+                                showError("Lỗi kết nối máy chủ!");
+                            },
+                            complete: function () {
+                                $btn.prop('disabled', false).html(originalHtml);
+                            }
+                        });
+                    }
+                });
             });
         });
     </script>

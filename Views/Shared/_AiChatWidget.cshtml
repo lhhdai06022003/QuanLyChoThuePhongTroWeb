@@ -32,12 +32,8 @@
         <div class="ai-chat-body" id="aiChatBody">
             <div class="ai-message ai-message-model">
                 <div class="ai-msg-bubble">
-                    Xin chào! Tôi là **Trợ lý AI Vận Hành**. Bạn có thể hỏi tôi các câu hỏi như:
-                    <ul>
-                        <li>Tháng này còn phòng nào chưa chốt điện nước không?</li>
-                        <li>Có hóa đơn nào chưa thanh toán trong tháng 5 không?</li>
-                        <li>Doanh thu của quý này hoặc năm nay là bao nhiêu?</li>
-                    </ul>
+                    Xin chào! Tôi là **Trợ lý AI Vận Hành**.
+                    
                     Tôi có thể hỗ trợ gì cho bạn hôm nay?
                 </div>
             </div>
@@ -54,20 +50,6 @@
                 <span></span>
             </div>
         </div>
-
-        <!-- Quick Suggestions -->
-        <div class="ai-quick-suggestions d-flex gap-1 flex-wrap p-2 border-top border-light-subtle bg-body-tertiary">
-            <button type="button" class="badge bg-indigo-lt border border-indigo-subtle py-1.5 px-2.5 text-start btn-ai-suggest" data-prompt="Doanh thu thực thu tháng này là bao nhiêu?">
-                <i class="fa-solid fa-chart-line me-1"></i>Doanh thu tháng này
-            </button>
-            <button type="button" class="badge bg-purple-lt border border-purple-subtle py-1.5 px-2.5 text-start btn-ai-suggest" data-prompt="Phòng nào chưa chốt điện nước tháng này?">
-                <i class="fa-solid fa-bolt me-1"></i>Chưa chốt điện nước
-            </button>
-            <button type="button" class="badge bg-orange-lt border border-orange-subtle py-1.5 px-2.5 text-start btn-ai-suggest" data-prompt="Hóa đơn chưa thanh toán tháng này?">
-                <i class="fa-solid fa-file-invoice-dollar me-1"></i>Hóa đơn trễ hạn
-            </button>
-        </div>
-
         <!-- Chat Footer (Input) -->
         <div class="ai-chat-footer p-2 border-top border-light-subtle bg-body">
             <form id="frmAiChat" class="d-flex align-items-center gap-1.5 m-0">
@@ -89,8 +71,8 @@
         width: 56px;
         height: 56px;
         border-radius: 50%;
-        background: linear-gradient(135deg, #4f46e5, #7c3aed);
-        color: #ffffff;
+        background: var(--tblr-primary);
+        color: var(--tblr-primary-fg, #ffffff);
         border: none;
         outline: none;
         cursor: pointer;
@@ -103,7 +85,7 @@
     }
     .btn-ai-fab:hover {
         transform: scale(1.1);
-        box-shadow: 0 8px 24px rgba(99, 102, 241, 0.5) !important;
+        box-shadow: 0 8px 24px rgba(var(--tblr-primary-rgb), 0.5) !important;
     }
     
     /* Badge Pulse Animation */
@@ -113,9 +95,9 @@
         right: 2px;
         width: 12px;
         height: 12px;
-        background-color: #22c55e;
+        background-color: var(--tblr-success);
         border-radius: 50%;
-        border: 2px solid #ffffff;
+        border: 2px solid var(--tblr-bg-surface);
     }
     .ai-badge-pulse::after {
         content: '';
@@ -125,7 +107,7 @@
         width: 12px;
         height: 12px;
         border-radius: 50%;
-        border: 2px solid #22c55e;
+        border: 2px solid var(--tblr-success);
         animation: ai-pulse 2s infinite;
         opacity: 0;
     }
@@ -157,9 +139,9 @@
 
     /* Chat Header */
     .ai-chat-header {
-        background: linear-gradient(135deg, #3b82f6, #6366f1);
+        background: var(--tblr-primary);
         padding: 12px 16px;
-        color: #ffffff;
+        color: var(--tblr-primary-fg, #ffffff);
     }
     .ai-header-avatar {
         width: 32px;
@@ -219,8 +201,8 @@
         word-break: break-word;
     }
     .ai-message-user .ai-msg-bubble {
-        background-color: #4f46e5;
-        color: #ffffff;
+        background-color: var(--tblr-primary);
+        color: var(--tblr-primary-fg, #ffffff);
         border-bottom-right-radius: 2px;
     }
     .ai-message-model .ai-msg-bubble {
@@ -261,8 +243,8 @@
         width: 26px;
         height: 26px;
         border-radius: 50%;
-        background-color: #6366f1;
-        color: white;
+        background-color: var(--tblr-primary);
+        color: var(--tblr-primary-fg, #ffffff);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -281,10 +263,11 @@
     .ai-typing-bubbles span {
         width: 6px;
         height: 6px;
-        background-color: #888888;
+        background-color: var(--tblr-body-color);
         border-radius: 50%;
         display: inline-block;
         animation: ai-bounce 1.4s infinite ease-in-out both;
+        opacity: 0.6;
     }
     .ai-typing-bubbles span:nth-child(1) { animation-delay: -0.32s; }
     .ai-typing-bubbles span:nth-child(2) { animation-delay: -0.16s; }
@@ -312,9 +295,9 @@
         padding: 8px 12px;
     }
     .ai-btn-send {
-        background-color: #4f46e5;
-        border-color: #4f46e5;
-        color: white;
+        background-color: var(--tblr-primary);
+        border-color: var(--tblr-primary);
+        color: var(--tblr-primary-fg, #ffffff);
         width: 36px;
         height: 36px;
         border-radius: 8px;
@@ -325,8 +308,7 @@
         transition: background-color 0.2s;
     }
     .ai-btn-send:hover {
-        background-color: #4338ca !important;
-        border-color: #4338ca !important;
+        opacity: 0.9;
     }
 </style>
 
@@ -366,12 +348,8 @@
             body.innerHTML = `
                 <div class="ai-message ai-message-model">
                     <div class="ai-msg-bubble">
-                        Xin chào! Tôi là **Trợ lý AI Vận Hành**. Bạn có thể hỏi tôi các câu hỏi như:
-                        <ul>
-                            <li>Tháng này còn phòng nào chưa chốt điện nước không?</li>
-                            <li>Có hóa đơn nào chưa thanh toán trong tháng 5 không?</li>
-                            <li>Doanh thu của quý này hoặc năm nay là bao nhiêu?</li>
-                        </ul>
+                        Xin chào! Tôi là **Trợ lý AI Vận Hành**.
+
                         Tôi có thể hỗ trợ gì cho bạn hôm nay?
                     </div>
                 </div>
@@ -425,9 +403,9 @@
             .then(data => {
                 typingIndicator.classList.add("d-none");
                 if (data.success) {
-                    appendMessage("model", data.reply);
+                    appendMessage("model", data.message);
                     // Lưu lại lịch sử
-                    saveSessionHistory(text, data.reply);
+                    saveSessionHistory(text, data.message);
                 } else {
                     appendMessage("model", "⚠️ " + (data.message || "Đã xảy ra lỗi khi trao đổi với AI."));
                 }

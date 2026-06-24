@@ -18,6 +18,6 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.AiAssistants
         Task<List<DoanhThuChiNhanhRes>> GetDoanhThuChiNhanhAsync(int thang, int nam);
         Task<ChiSoDienNuocRes> GetChiSoDienNuocAsync(string soPhong, int thang, int nam);
         
-        Task<string> ChatWithAssistantAsync(string userMessage, List<ChatMessageDto> history);
+        Task<QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.ServiceResult> ChatWithAssistantAsync(string userMessage, List<ChatMessageDto> history, string userRole, int? nguoiThueId = null);
     }
 }

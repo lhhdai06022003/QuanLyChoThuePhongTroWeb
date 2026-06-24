@@ -174,7 +174,7 @@
 <div class="modal fade" id="phongTroModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
-            <div class="modal-header">
+            <div class="modal-header bg-primary text-white">
                 <h5 class="modal-title" id="modalTitle">Cập nhật thông tin phòng</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
@@ -229,7 +229,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i> Đóng</button>
-                <button type="button" class="btn btn-primary" id="btnSaveData"><i class="fas fa-save"></i> Lưu thông tin</button>
+                <button type="button" class="btn btn-primary" id="btnSaveData"><i class="fas fa-plus"></i> Thêm dữ liệu</button>
             </div>
         </div>
     </div>
@@ -271,7 +271,7 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i> Đóng</button>
                 <button type="button" class="btn btn-success" id="btnSaveDichVuPhong">
-                    <i class="fas fa-save"></i> Lưu dịch vụ
+                    <i class="fas fa-save"></i> Lưu dữ liệu
                 </button>
             </div>
         </div>
@@ -441,8 +441,8 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i> Đóng</button>
-                <button type="button" class="btn btn-success font-weight-bold px-4" id="btnConfirmQuickPayment">
-                    <i class="fas fa-check-circle me-1"></i> Xác nhận thanh toán thành công
+                <button type="button" class="btn btn-primary font-weight-bold px-4" id="btnConfirmQuickPayment">
+                    <i class="fas fa-check-circle me-1"></i> Thêm dữ liệu
                 </button>
             </div>
         </div>
@@ -624,6 +624,7 @@
                     $('#TrangThai').val(d.trangThai);
                     $('#MoTa').val(d.moTa);
                     $('#modalTitle').text('Chỉnh sửa: Phòng ' + (d.soPhong || ""));
+                    $('#btnSaveData').removeClass('btn-primary').addClass('btn-success').html('<i class="fas fa-save"></i> Lưu dữ liệu');
                     $('#phongTroModal').modal('show');
                 }
             });
@@ -888,7 +889,7 @@
                         currentDichVuPhongId,
                         'dichVuPhongContainer',
                         function (res) {
-                            $btn.prop('disabled', false).html('<i class="fas fa-save"></i> Lưu dịch vụ');
+                            $btn.prop('disabled', false).html('<i class="fas fa-save"></i> Lưu dữ liệu');
                             if (res && res.success) {
                                 showSuccess(res.message || 'Đăng ký dịch vụ thành công!');
                                 $('#dichVuPhongModal').modal('hide');
@@ -897,7 +898,7 @@
                             }
                         },
                         function (errMsg) {
-                            $btn.prop('disabled', false).html('<i class="fas fa-save"></i> Lưu dịch vụ');
+                            $btn.prop('disabled', false).html('<i class="fas fa-save"></i> Lưu dữ liệu');
                             showError(errMsg);
                         }
                     );
@@ -1021,6 +1022,7 @@
                 $('#GiaThue').val(''); $('#DienTich').val(''); $('#SoNguoiToiDa').val('2');
                 $('#TrangThai').val('0'); $('#MoTa').val('');
                 $('#modalTitle').text('Thêm Phòng Trọ Mới');
+                $('#btnSaveData').removeClass('btn-success').addClass('btn-primary').html('<i class="fas fa-plus"></i> Thêm dữ liệu');
                 $('#phongTroModal').modal('show');
             });
 
@@ -1074,7 +1076,11 @@
                                 showError("Không thể kết nối đến máy chủ!");
                             },
                             complete: function () {
-                                $btn.prop('disabled', false).html('<i class="fas fa-save"></i> Lưu thông tin');
+                                if (isUpdate) {
+                                    $btn.prop('disabled', false).html('<i class="fas fa-save"></i> Lưu dữ liệu');
+                                } else {
+                                    $btn.prop('disabled', false).html('<i class="fas fa-plus"></i> Thêm dữ liệu');
+                                }
                             }
                         });
                     }
@@ -1095,6 +1101,7 @@
                         $('#DienTich').val(d.dienTich); $('#SoNguoiToiDa').val(d.soNguoiToiDa);
                         $('#TrangThai').val(d.trangThai); $('#MoTa').val(d.moTa);
                         $('#modalTitle').text('Chỉnh sửa: Phòng ' + (d.soPhong || ""));
+                        $('#btnSaveData').removeClass('btn-primary').addClass('btn-success').html('<i class="fas fa-save"></i> Lưu dữ liệu');
                         $('#phongTroModal').modal('show');
                     } else showError("Lỗi: " + (res.message || "Không tải được."));
                     $btn.prop('disabled', false).html(orig);
