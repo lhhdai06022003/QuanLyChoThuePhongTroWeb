@@ -1,0 +1,214 @@
+<mxfile host="app.diagrams.net" modified="2026-06-25T19:43:00.000Z" agent="5.0" version="20.0.0" type="device">
+  <diagram id="mockup-contract" name="Mockup Create Contract">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="800" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- 1. Background Shell (Underneath the Modal) -->
+        <mxCell id="main_bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#94a3b8;strokeWidth=1.5;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="50" y="50" width="1100" height="700" as="geometry" />
+        </mxCell>
+
+        <!-- 1.1. Sidebar (Wireframe Sketch Style) -->
+        <mxCell id="sidebar" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f1f5f9;strokeColor=#475569;strokeWidth=1.2;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="50" y="50" width="240" height="700" as="geometry" />
+        </mxCell>
+        <!-- Sidebar Brand Logo & Text -->
+        <mxCell id="brand_logo" value="SYSTEM RENTAL" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1;fontSize=14;fontColor=#0f172a;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="50" y="65" width="240" height="30" as="geometry" />
+        </mxCell>
+        <!-- Sidebar Menu Items -->
+        <mxCell id="menu_dashboard" value="   Dashboard" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontColor=#475569;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="110" width="220" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="menu_users" value="   Quản lý người dùng" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontColor=#475569;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="145" width="220" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="menu_branch" value="     Chi nhánh" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontColor=#475569;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="180" width="220" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="menu_rooms" value="     Phòng trọ" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontColor=#475569;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="210" width="220" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="menu_tenants" value="     Người thuê" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontColor=#475569;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="240" width="220" height="30" as="geometry" />
+        </mxCell>
+        <!-- Active Contract Menu Item -->
+        <mxCell id="menu_contracts" value="     Hợp đồng" style="rounded=1;text;html=1;strokeColor=#0f172a;strokeWidth=1.5;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;fontStyle=1;fontSize=12;fontColor=#0f172a;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="270" width="220" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="menu_services" value="     Dịch vụ" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontColor=#475569;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="300" width="220" height="30" as="geometry" />
+        </mxCell>
+        <!-- Inactive Electricity & Water Menu Item -->
+        <mxCell id="menu_diennuoc" value="     Điện nước" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontColor=#475569;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="330" width="220" height="30" as="geometry" />
+        </mxCell>
+        <!-- Inactive Billing Menu Item -->
+        <mxCell id="menu_billing" value="     Hóa đơn" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontColor=#475569;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="360" width="220" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- 1.2. Header (Navbar) -->
+        <mxCell id="navbar" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#cbd5e1;strokeWidth=1.2;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="290" y="50" width="860" height="60" as="geometry" />
+        </mxCell>
+        <!-- Breadcrumb -->
+        <mxCell id="breadcrumb" value="Quản lý nhà trọ / Hợp đồng" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontColor=#64748b;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="310" y="65" width="200" height="30" as="geometry" />
+        </mxCell>
+        <!-- User Profile Avatar -->
+        <mxCell id="user_profile" value="Admin" style="text;html=1;strokeColor=none;fillColor=none;align=right;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1;fontSize=12;fontColor=#475569;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="65" width="130" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- 1.3. Page Content Body -->
+        <mxCell id="page_title" value="Quản lý Hợp Đồng" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1;fontSize=20;fontColor=#0f172a;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="310" y="130" width="300" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="bg_card" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#cbd5e1;strokeWidth=1.2;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="310" y="180" width="820" height="540" as="geometry" />
+        </mxCell>
+
+        <!-- 2. Modal Backdrop Overlay -->
+        <mxCell id="modal_backdrop" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;opacity=40;strokeColor=#94a3b8;strokeWidth=1.5;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="50" y="50" width="1100" height="700" as="geometry" />
+        </mxCell>
+
+        <!-- 3. Modal Dialog Container (Wireframe container) -->
+        <mxCell id="modal_container" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#0f172a;strokeWidth=2;arcSize=2;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="200" y="120" width="800" height="560" as="geometry" />
+        </mxCell>
+
+        <!-- 4. Modal Header (Hand-drawn header block) -->
+        <mxCell id="modal_header" value="Thêm Hợp Đồng Mới" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f1f5f9;strokeColor=#0f172a;strokeWidth=1.5;fontColor=#0f172a;fontStyle=1;fontSize=14;align=left;spacingLeft=15;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="200" y="120" width="800" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Close X Icon -->
+        <mxCell id="btn_close" value="" style="shape=mxgraph.fontAwesome.remove;fillColor=#0f172a;strokeColor=none;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="960" y="137" width="16" height="16" as="geometry" />
+        </mxCell>
+
+        <!-- 5. Stepper Progress Bar -->
+        <!-- Step 1: Active -->
+        <mxCell id="step_1" value="1. Thông tin chung" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e2e8f0;strokeColor=#0f172a;strokeWidth=1.5;fontColor=#0f172a;fontStyle=1;align=center;fontSize=11;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="240" y="190" width="220" height="30" as="geometry" />
+        </mxCell>
+        <!-- Step 2: Inactive -->
+        <mxCell id="step_2" value="2. Dịch vụ đăng ký" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;fontColor=#64748b;align=center;fontSize=11;strokeColor=#cbd5e1;strokeWidth=1;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="490" y="190" width="220" height="30" as="geometry" />
+        </mxCell>
+        <!-- Step 3: Inactive -->
+        <mxCell id="step_3" value="3. Điều khoản hợp đồng" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;fontColor=#64748b;align=center;fontSize=11;strokeColor=#cbd5e1;strokeWidth=1;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="740" y="190" width="220" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Separator -->
+        <mxCell id="sep_stepper" value="" style="line;strokeWidth=1.2;fillColor=none;align=left;verticalAlign=middle;spacingTop=-1;strokeColor=#cbd5e1;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="200" y="240" width="800" height="10" as="geometry" />
+        </mxCell>
+
+        <!-- 6. Form Fields Left Column -->
+        <!-- Mã Hợp Đồng -->
+        <mxCell id="lbl_ma_hd" value="Mã Hợp Đồng" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1;fontSize=11;fontColor=#475569;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="240" y="260" width="330" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="input_ma_hd" value="Hệ thống tự sinh khi lưu" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f1f5f9;strokeColor=#cbd5e1;strokeWidth=1;align=left;spacingLeft=10;fontColor=#64748b;fontStyle=1;fontSize=12;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="240" y="285" width="330" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- Chi Nhánh -->
+        <mxCell id="lbl_chi_nhanh" value="Chi Nhánh *" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1;fontSize=11;fontColor=#475569;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="240" y="335" width="330" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="input_chi_nhanh" value="-- Chọn chi nhánh --" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#cbd5e1;strokeWidth=1;align=left;spacingLeft=10;fontColor=#475569;fontSize=12;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="240" y="360" width="330" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- Phòng Trọ -->
+        <mxCell id="lbl_phong_tro" value="Phòng Trọ *" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1;fontSize=11;fontColor=#475569;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="240" y="410" width="330" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="input_phong_tro" value="-- Vui lòng chọn chi nhánh trước --" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#cbd5e1;strokeWidth=1;align=left;spacingLeft=10;fontColor=#94a3b8;fontSize=12;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="240" y="435" width="330" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- Người Đại Diện -->
+        <mxCell id="lbl_dai_dien" value="Người Đại Diện *" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1;fontSize=11;fontColor=#475569;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="240" y="485" width="330" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="input_dai_dien" value="-- Chọn khách thuê --" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#cbd5e1;strokeWidth=1;align=left;spacingLeft=10;fontColor=#475569;fontSize=12;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="240" y="510" width="330" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- Checkbox: Người đại diện có ở tại phòng này không? -->
+        <mxCell id="chk_co_o" value="" style="whiteSpace=wrap;html=1;rounded=1;strokeColor=#475569;fillColor=#ffffff;arcSize=20;strokeWidth=1.5;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="240" y="565" width="15" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="chk_co_o_indicator" value="" style="shape=mxgraph.arrows2.arrow;dy=0;dx=0;direction=south;fillColor=#0f172a;strokeColor=none;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="244" y="569" width="7" height="7" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl_co_o" value="Người đại diện có ở tại phòng này không?" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontColor=#475569;fontStyle=1;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="263" y="563" width="300" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- 7. Form Fields Right Column -->
+        <!-- Ngày Bắt Đầu -->
+        <mxCell id="lbl_ngay_bd" value="Ngày Bắt Đầu *" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1;fontSize=11;fontColor=#475569;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="630" y="260" width="330" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="input_ngay_bd" value="Chọn ngày bắt đầu..." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#cbd5e1;strokeWidth=1;align=left;spacingLeft=10;fontColor=#94a3b8;fontSize=12;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="630" y="285" width="330" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- Ngày Kết Thúc -->
+        <mxCell id="lbl_ngay_kt" value="Ngày Kết Thúc (Dự kiến)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1;fontSize=11;fontColor=#475569;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="630" y="335" width="330" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="input_ngay_kt" value="Chọn ngày kết thúc..." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#cbd5e1;strokeWidth=1;align=left;spacingLeft=10;fontColor=#94a3b8;fontSize=12;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="630" y="360" width="330" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- Tiền Cọc -->
+        <mxCell id="lbl_tien_coc" value="Tiền Cọc (VNĐ) *" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1;fontSize=11;fontColor=#475569;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="630" y="410" width="330" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="input_tien_coc" value="0" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#cbd5e1;strokeWidth=1;align=left;spacingLeft=10;fontColor=#475569;fontSize=12;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="630" y="435" width="330" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- Tiền Thuê -->
+        <mxCell id="lbl_tien_thue" value="Tiền Thuê/Tháng (VNĐ) *" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1;fontSize=11;fontColor=#475569;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="630" y="485" width="330" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="input_tien_thue" value="Nhập số tiền..." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#cbd5e1;strokeWidth=1;align=left;spacingLeft=10;fontColor=#94a3b8;fontSize=12;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="630" y="510" width="330" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- Footer Separator -->
+        <mxCell id="sep_footer" value="" style="line;strokeWidth=1.2;fillColor=none;align=left;verticalAlign=middle;spacingTop=-1;strokeColor=#cbd5e1;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="200" y="605" width="800" height="10" as="geometry" />
+        </mxCell>
+
+        <!-- 8. Modal Footer Navigation Buttons -->
+        <!-- Quay lại -->
+        <mxCell id="btn_back" value="Quay lại" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#cbd5e1;strokeWidth=1.2;fontColor=#94a3b8;fontSize=12;align=center;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="220" y="625" width="100" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- Đóng -->
+        <mxCell id="btn_cancel" value="Đóng" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#475569;strokeWidth=1.2;fontColor=#475569;fontSize=12;align=center;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="760" y="625" width="100" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- Tiếp theo -->
+        <mxCell id="btn_next" value="Tiếp theo" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f1f5f9;strokeColor=#0f172a;strokeWidth=1.5;fontColor=#0f172a;fontStyle=1;fontSize=12;align=center;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="870" y="625" width="100" height="35" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

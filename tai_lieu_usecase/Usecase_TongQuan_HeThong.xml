@@ -1,0 +1,159 @@
+<mxfile host="app.diagrams.net" modified="2026-06-24T14:15:00.000Z" agent="5.0" version="20.0.0" type="device">
+  <diagram id="general-system-usecase" name="General System Use Cases">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- System Boundary Box (Drawn as background) -->
+        <mxCell id="boundary" value="Hệ thống Quản lý Cho thuê Phòng trọ (Rental Management System)" style="swimlane;whiteSpace=wrap;html=1;startSize=23;fillColor=#f5f5f5;strokeColor=#666666;collapsible=0;" parent="1" vertex="1">
+          <mxGeometry x="240" y="40" width="600" height="700" as="geometry" />
+        </mxCell>
+
+        <!-- Actors -->
+        <!-- Admin Actor (Left) -->
+        <mxCell id="admin" value="Chủ nhà / Nhân viên&#xa;(Admin / Staff)" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="80" y="320" width="30" height="60" as="geometry" />
+        </mxCell>
+        <!-- Renter Actor (Right) -->
+        <mxCell id="renter" value="Khách thuê&#xa;(Renter)" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#d5e8d4;strokeColor=#82b366;" parent="1" vertex="1">
+          <mxGeometry x="920" y="220" width="30" height="60" as="geometry" />
+        </mxCell>
+        <!-- System Actor (Right/Bottom) -->
+        <mxCell id="system" value="&lt;&lt;system&gt;&gt;&#xa;Hệ thống chạy ngầm&#xa;(Background Job)" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#fff2cc;strokeColor=#d6b656;" parent="1" vertex="1">
+          <mxGeometry x="920" y="440" width="30" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Use Cases - Column 1: Admin Portal (x=300 relative to page) -->
+        <mxCell id="uc1" value="Đăng nhập / Đăng xuất" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffff8d;strokeColor=#b8b800;" parent="1" vertex="1">
+          <mxGeometry x="300" y="80" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2" value="Quản lý Tài khoản &amp; Phân quyền" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffff8d;strokeColor=#b8b800;" parent="1" vertex="1">
+          <mxGeometry x="300" y="130" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="uc3" value="Xem Dashboard thống kê" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffff8d;strokeColor=#b8b800;" parent="1" vertex="1">
+          <mxGeometry x="300" y="180" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="uc4" value="Quản lý Chi nhánh" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffff8d;strokeColor=#b8b800;" parent="1" vertex="1">
+          <mxGeometry x="300" y="230" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="uc5" value="Quản lý Phòng trọ" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffff8d;strokeColor=#b8b800;" parent="1" vertex="1">
+          <mxGeometry x="300" y="280" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="uc5_2" value="Quản lý Dịch vụ &amp; Đơn giá" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffff8d;strokeColor=#b8b800;" parent="1" vertex="1">
+          <mxGeometry x="300" y="330" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="uc6" value="Quản lý Khách thuê" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffff8d;strokeColor=#b8b800;" parent="1" vertex="1">
+          <mxGeometry x="300" y="380" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="uc7" value="Quản lý Hợp đồng thuê phòng" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffff8d;strokeColor=#b8b800;" parent="1" vertex="1">
+          <mxGeometry x="300" y="430" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="uc8" value="Quản lý Chỉ số Điện nước" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffff8d;strokeColor=#b8b800;" parent="1" vertex="1">
+          <mxGeometry x="300" y="480" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="uc9" value="Quản lý Hóa đơn &amp; Thu tiền" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffff8d;strokeColor=#b8b800;" parent="1" vertex="1">
+          <mxGeometry x="300" y="530" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="uc10" value="Quản lý Điều khoản mẫu" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffff8d;strokeColor=#b8b800;" parent="1" vertex="1">
+          <mxGeometry x="300" y="580" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="uc11" value="Tương tác Trợ lý AI Vận hành" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffff8d;strokeColor=#b8b800;" parent="1" vertex="1">
+          <mxGeometry x="300" y="630" width="220" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Use Cases - Column 2: Tenant Portal & Background Jobs (x=580 relative to page) -->
+        <mxCell id="uc12" value="Xem Hồ sơ &amp; Đổi mật khẩu" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#b85450;" parent="1" vertex="1">
+          <mxGeometry x="580" y="120" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="uc13" value="Tra cứu Hợp đồng &amp; Dịch vụ" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#b85450;" parent="1" vertex="1">
+          <mxGeometry x="580" y="180" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="uc14" value="Tra cứu Hóa đơn &amp; Quét VietQR" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#b85450;" parent="1" vertex="1">
+          <mxGeometry x="580" y="240" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="uc15" value="Tự động gửi email nhắc nợ" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1">
+          <mxGeometry x="580" y="380" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="uc16" value="Tự động đóng hợp đồng hết hạn" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1">
+          <mxGeometry x="580" y="460" width="220" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Connections for Admin (Nối Admin -> Bong bóng cột 1) -->
+        <mxCell id="edge_ad1" style="endArrow=none;html=1;exitX=1;exitY=0.3333333333333333;entryX=0;entryY=0.5;" parent="1" source="admin" target="uc1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_ad2" style="endArrow=none;html=1;exitX=1;exitY=0.3333333333333333;entryX=0;entryY=0.5;" parent="1" source="admin" target="uc2" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_ad3" style="endArrow=none;html=1;exitX=1;exitY=0.3333333333333333;entryX=0;entryY=0.5;" parent="1" source="admin" target="uc3" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_ad4" style="endArrow=none;html=1;exitX=1;exitY=0.3333333333333333;entryX=0;entryY=0.5;" parent="1" source="admin" target="uc4" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_ad5" style="endArrow=none;html=1;exitX=1;exitY=0.3333333333333333;entryX=0;entryY=0.5;" parent="1" source="admin" target="uc5" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_ad5_2" style="endArrow=none;html=1;exitX=1;exitY=0.3333333333333333;entryX=0;entryY=0.5;" parent="1" source="admin" target="uc5_2" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_ad6" style="endArrow=none;html=1;exitX=1;exitY=0.3333333333333333;entryX=0;entryY=0.5;" parent="1" source="admin" target="uc6" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_ad7" style="endArrow=none;html=1;exitX=1;exitY=0.3333333333333333;entryX=0;entryY=0.5;" parent="1" source="admin" target="uc7" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_ad8" style="endArrow=none;html=1;exitX=1;exitY=0.3333333333333333;entryX=0;entryY=0.5;" parent="1" source="admin" target="uc8" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_ad9" style="endArrow=none;html=1;exitX=1;exitY=0.3333333333333333;entryX=0;entryY=0.5;" parent="1" source="admin" target="uc9" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_ad10" style="endArrow=none;html=1;exitX=1;exitY=0.3333333333333333;entryX=0;entryY=0.5;" parent="1" source="admin" target="uc10" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_ad11" style="endArrow=none;html=1;exitX=1;exitY=0.3333333333333333;entryX=0;entryY=0.5;" parent="1" source="admin" target="uc11" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Connections for Renter (Nối Renter -> Bong bóng cột 2) -->
+        <mxCell id="edge_rt1" style="endArrow=none;html=1;exitX=0;exitY=0.3333333333333333;entryX=1;entryY=0.5;" parent="1" source="renter" target="uc12" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_rt2" style="endArrow=none;html=1;exitX=0;exitY=0.3333333333333333;entryX=1;entryY=0.5;" parent="1" source="renter" target="uc13" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_rt3" style="endArrow=none;html=1;exitX=0;exitY=0.3333333333333333;entryX=1;entryY=0.5;" parent="1" source="renter" target="uc14" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_rt_ai" style="endArrow=none;html=1;exitX=0;exitY=0.3333333333333333;entryX=1;entryY=0.5;" parent="1" source="renter" target="uc11" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Connections for Background Jobs (System) -->
+        <mxCell id="edge_sys1" style="endArrow=none;html=1;exitX=0;exitY=0.3333333333333333;entryX=1;entryY=0.5;" parent="1" source="system" target="uc15" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_sys2" style="endArrow=none;html=1;exitX=0;exitY=0.3333333333333333;entryX=1;entryY=0.5;" parent="1" source="system" target="uc16" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Relationships between Use Cases (include/extend) -->
+        <!-- Nhắc nợ tự động gửi mail tới khách thuê -->
+        <mxCell id="rel_mail" value="" style="endArrow=classic;html=1;entryX=0;entryY=0.3333333333333333;exitX=1;exitY=0.5;" parent="1" source="uc15" target="renter" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry" />
+        </mxCell>
+        <!-- Nhắc nợ tự động liên kết với Hóa đơn (include) -->
+        <mxCell id="rel_inc1" value="&lt;&lt;include&gt;&gt;" style="endArrow=classic;dashed=1;html=1;entryX=1;entryY=0.5;exitX=0;exitY=0.5;" parent="1" source="uc15" target="uc9" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry" />
+        </mxCell>
+        <!-- Đóng hợp đồng liên kết với Hợp đồng (include) -->
+        <mxCell id="rel_inc2" value="&lt;&lt;include&gt;&gt;" style="endArrow=classic;dashed=1;html=1;entryX=1;entryY=0.5;exitX=0;exitY=0.5;" parent="1" source="uc16" target="uc7" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,286 @@
+<mxfile host="app.diagrams.net" modified="2026-06-24T15:20:00.000Z" agent="5.0" version="20.0.0" type="device">
+  <diagram id="act-contract" name="Activity Contract Diagram">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Row 1 (y = 100): Start -> Input -> DecForm -> BeginTx -> DecRoom -->
+        <!-- Start Node -->
+        <mxCell id="start" value="" style="ellipse;html=1;fillColor=#000000;strokeColor=none;" parent="1" vertex="1">
+          <mxGeometry x="40" y="105" width="30" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Input Form -->
+        <mxCell id="input" value="Nhập thông tin hợp đồng &amp; thành viên" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="110" y="100" width="180" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- DecForm -->
+        <mxCell id="dec_form" value="Form hợp lệ?" style="shape=rhombus;whiteSpace=wrap;html=1;fillColor=#ffff8d;strokeColor=#b8b800;" parent="1" vertex="1">
+          <mxGeometry x="330" y="90" width="120" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- ErrForm (down from DecForm) -->
+        <mxCell id="err_form" value="Hiển thị lỗi nhập liệu" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1">
+          <mxGeometry x="310" y="190" width="160" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- End Fail Node -->
+        <mxCell id="end_fail" value="" style="ellipse;html=1;fillColor=#ff0000;strokeColor=#ff0000;strokeWidth=4;" parent="1" vertex="1">
+          <mxGeometry x="40" y="195" width="30" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- BeginTx -->
+        <mxCell id="begin_tx" value="Khởi tạo PostgreSQL Transaction" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="500" y="100" width="180" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- DecRoom -->
+        <mxCell id="dec_room" value="Phòng trống?" style="shape=rhombus;whiteSpace=wrap;html=1;fillColor=#ffff8d;strokeColor=#b8b800;" parent="1" vertex="1">
+          <mxGeometry x="720" y="90" width="120" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- ErrRoom (down from DecRoom) -->
+        <mxCell id="err_room" value="Hủy giao dịch &amp; Báo phòng bận" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1">
+          <mxGeometry x="700" y="190" width="160" height="40" as="geometry" />
+        </mxCell>
+
+
+        <!-- Row 2 (y = 300): DecRep -> DecMembers -> DecCapacity -> GenerateId -->
+        <!-- DecRep (down from DecRoom) -->
+        <mxCell id="dec_rep" value="Đại diện hợp lệ?" style="shape=rhombus;whiteSpace=wrap;html=1;fillColor=#ffff8d;strokeColor=#b8b800;" parent="1" vertex="1">
+          <mxGeometry x="720" y="280" width="120" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- ErrRep -->
+        <mxCell id="err_rep" value="Hủy giao dịch &amp; Báo đại diện bận" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1">
+          <mxGeometry x="870" y="290" width="170" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- DecMembers -->
+        <mxCell id="dec_members" value="Thành viên không trùng?" style="shape=rhombus;whiteSpace=wrap;html=1;fillColor=#ffff8d;strokeColor=#b8b800;" parent="1" vertex="1">
+          <mxGeometry x="500" y="280" width="120" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- ErrMembers -->
+        <mxCell id="err_members" value="Hủy giao dịch &amp; Báo trùng lịch" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1">
+          <mxGeometry x="480" y="380" width="160" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- DecCapacity -->
+        <mxCell id="dec_capacity" value="Số người &lt;= Sức chứa?" style="shape=rhombus;whiteSpace=wrap;html=1;fillColor=#ffff8d;strokeColor=#b8b800;" parent="1" vertex="1">
+          <mxGeometry x="290" y="280" width="120" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- ErrCapacity -->
+        <mxCell id="err_capacity" value="Hủy giao dịch &amp; Báo quá tải" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1">
+          <mxGeometry x="270" y="380" width="160" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- GenerateId -->
+        <mxCell id="generate_code" value="Sinh mã hợp đồng duy nhất" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="60" y="290" width="180" height="40" as="geometry" />
+        </mxCell>
+
+
+        <!-- Row 3 (y = 500): InsertDb -> UpdateRoom -> DecAccount -> HashPassword / CreateAccount -> CommitTx -> ShowSuccess -> EndSuccess -->
+        <!-- InsertDb (down from GenerateId) -->
+        <mxCell id="insert_db" value="Lưu HĐ, Thành viên &amp; Điều khoản" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="60" y="490" width="180" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- UpdateRoom -->
+        <mxCell id="update_room" value="Cập nhật TrangThaiPhong = DaThue" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="270" y="490" width="180" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- DecAccount -->
+        <mxCell id="dec_account" value="Đã có tài khoản?" style="shape=rhombus;whiteSpace=wrap;html=1;fillColor=#ffff8d;strokeColor=#b8b800;" parent="1" vertex="1">
+          <mxGeometry x="480" y="480" width="120" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- HashPassword -->
+        <mxCell id="hash_pwd" value="Băm mật khẩu từ SĐT" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="630" y="440" width="140" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- CreateAccount -->
+        <mxCell id="create_acc" value="Tạo tài khoản KhachThue" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="630" y="520" width="140" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- CommitTx -->
+        <mxCell id="commit_tx" value="Commit Transaction" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="810" y="490" width="140" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ShowSuccess -->
+        <mxCell id="show_success" value="Báo thành công &amp; Reset UI" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="1" vertex="1">
+          <mxGeometry x="980" y="490" width="150" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- End Success Node -->
+        <mxCell id="end_success" value="" style="ellipse;html=1;fillColor=#000000;strokeColor=#000000;strokeWidth=4;" parent="1" vertex="1">
+          <mxGeometry x="1155" y="495" width="30" height="30" as="geometry" />
+        </mxCell>
+
+
+        <!-- Edges -->
+        <!-- Row 1 -->
+        <mxCell id="edge1" value="" style="endArrow=classic;html=1;" parent="1" source="start" target="input" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge2" value="" style="endArrow=classic;html=1;" parent="1" source="input" target="dec_form" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge3" value="Không" style="endArrow=classic;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" parent="1" source="dec_form" target="err_form" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="-10" y="10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge4" value="" style="endArrow=classic;html=1;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" parent="1" source="err_form" target="end_fail" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge5" value="Có" style="endArrow=classic;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" parent="1" source="dec_form" target="begin_tx" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="-10" y="-10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge6" value="" style="endArrow=classic;html=1;" parent="1" source="begin_tx" target="dec_room" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge7" value="Không" style="endArrow=classic;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" parent="1" source="dec_room" target="err_room" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="-10" y="10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge8" value="" style="endArrow=classic;html=1;exitX=0;exitY=0.5;entryX=0.5;entryY=0;" parent="1" source="err_room" target="end_fail" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="590" y="210" />
+              <mxPoint x="590" y="170" />
+              <mxPoint x="55" y="170" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Down to Row 2 -->
+        <mxCell id="edge9" value="Có" style="endArrow=classic;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" parent="1" source="dec_room" target="dec_rep" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="10" y="10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Row 2 (Right to Left) -->
+        <mxCell id="edge10" value="Không" style="endArrow=classic;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" parent="1" source="dec_rep" target="err_rep" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="-10" y="-10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge11" value="" style="endArrow=classic;html=1;exitX=0.5;exitY=0;entryX=0.5;entryY=0;" parent="1" source="err_rep" target="end_fail" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="955" y="170" />
+              <mxPoint x="55" y="170" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge12" value="Có" style="endArrow=classic;html=1;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" parent="1" source="dec_rep" target="dec_members" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="10" y="-10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge13" value="Không" style="endArrow=classic;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" parent="1" source="dec_members" target="err_members" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="-10" y="10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge14" value="" style="endArrow=classic;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" parent="1" source="err_members" target="end_fail" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="560" y="450" />
+              <mxPoint x="20" y="450" />
+              <mxPoint x="20" y="240" />
+              <mxPoint x="55" y="240" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge15" value="Có" style="endArrow=classic;html=1;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" parent="1" source="dec_members" target="dec_capacity" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="10" y="-10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge16" value="Không" style="endArrow=classic;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" parent="1" source="dec_capacity" target="err_capacity" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="-10" y="10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge17" value="" style="endArrow=classic;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" parent="1" source="err_capacity" target="end_fail" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="350" y="450" />
+              <mxPoint x="20" y="450" />
+              <mxPoint x="20" y="240" />
+              <mxPoint x="55" y="240" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge18" value="Có" style="endArrow=classic;html=1;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" parent="1" source="dec_capacity" target="generate_code" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="10" y="-10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Down to Row 3 -->
+        <mxCell id="edge19" value="" style="endArrow=classic;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" parent="1" source="generate_code" target="insert_db" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Row 3 (Left to Right) -->
+        <mxCell id="edge20" value="" style="endArrow=classic;html=1;" parent="1" source="insert_db" target="update_room" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge21" value="" style="endArrow=classic;html=1;" parent="1" source="update_room" target="dec_account" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- CheckAccount: Không -> Hash & Create -->
+        <mxCell id="edge22" value="Không" style="endArrow=classic;html=1;exitX=0.5;exitY=0;entryX=0;entryY=0.5;" parent="1" source="dec_account" target="hash_pwd" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="10" y="-10" as="offset" />
+            <Array as="points">
+              <mxPoint x="540" y="460" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge23" value="" style="endArrow=classic;html=1;" parent="1" source="hash_pwd" target="create_acc" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge24" value="" style="endArrow=classic;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" parent="1" source="create_acc" target="commit_tx" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="790" y="540" />
+              <mxPoint x="790" y="510" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- CheckAccount: Có -> CommitTx -->
+        <mxCell id="edge25" value="Có" style="endArrow=classic;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" parent="1" source="dec_account" target="commit_tx" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="-10" y="-10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="edge26" value="" style="endArrow=classic;html=1;" parent="1" source="commit_tx" target="show_success" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge27" value="" style="endArrow=classic;html=1;" parent="1" source="show_success" target="end_success" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

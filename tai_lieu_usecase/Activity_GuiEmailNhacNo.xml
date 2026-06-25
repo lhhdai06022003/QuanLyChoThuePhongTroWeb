@@ -1,0 +1,234 @@
+<mxfile host="app.diagrams.net" modified="2026-06-24T15:20:00.000Z" agent="5.0" version="20.0.0" type="device">
+  <diagram id="act-reminder" name="Activity Reminder Diagram">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Row 1 (y = 100): Start -> CheckEnabled -> ReadCache -> QueryDb -> LoopStart -> CheckSent -> CheckEmail -->
+        <!-- Start Node -->
+        <mxCell id="start" value="" style="ellipse;html=1;fillColor=#000000;strokeColor=none;" parent="1" vertex="1">
+          <mxGeometry x="40" y="105" width="30" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- CheckEnabled Decision -->
+        <mxCell id="check_enabled" value="Enabled == true?" style="shape=rhombus;whiteSpace=wrap;html=1;fillColor=#ffff8d;strokeColor=#b8b800;" parent="1" vertex="1">
+          <mxGeometry x="110" y="90" width="120" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Sleep -->
+        <mxCell id="sleep" value="Ngủ chờ chu kỳ kế tiếp" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="90" y="190" width="160" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- End Success Node -->
+        <mxCell id="end_success" value="" style="ellipse;html=1;fillColor=#000000;strokeColor=#000000;strokeWidth=4;" parent="1" vertex="1">
+          <mxGeometry x="30" y="195" width="30" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- ReadCache -->
+        <mxCell id="read_cache" value="Đọc file sent_reminders.json" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="270" y="100" width="180" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- QueryDb -->
+        <mxCell id="query_db" value="Query hóa đơn quá hạn &gt; 5 ngày" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="480" y="100" width="180" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- LoopStart Decision -->
+        <mxCell id="loop_start" value="Duyệt từng HĐ?" style="shape=rhombus;whiteSpace=wrap;html=1;fillColor=#ffff8d;strokeColor=#b8b800;" parent="1" vertex="1">
+          <mxGeometry x="690" y="90" width="120" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- CheckSent Decision -->
+        <mxCell id="check_sent" value="Đã gửi trước đó?" style="shape=rhombus;whiteSpace=wrap;html=1;fillColor=#ffff8d;strokeColor=#b8b800;" parent="1" vertex="1">
+          <mxGeometry x="840" y="90" width="120" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- CheckEmail Decision -->
+        <mxCell id="check_email" value="Email hợp lệ?" style="shape=rhombus;whiteSpace=wrap;html=1;fillColor=#ffff8d;strokeColor=#b8b800;" parent="1" vertex="1">
+          <mxGeometry x="990" y="90" width="120" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- LogWarning (placed to the right to avoid vertical stack crossing) -->
+        <mxCell id="log_warning" value="Log warning: Thiếu email" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1">
+          <mxGeometry x="1140" y="100" width="160" height="40" as="geometry" />
+        </mxCell>
+
+
+        <!-- Row 2 (y = 240): RenderPdf -> SendMail -> CheckMailResult -> UpdateCache -> LogInfo -->
+        <!-- RenderPdf -->
+        <mxCell id="render_pdf" value="Gọi ExportPdfAsync" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="975" y="240" width="150" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- SendMail -->
+        <mxCell id="send_mail" value="Gửi email đính kèm qua SMTP" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="760" y="240" width="180" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- CheckMailResult Decision -->
+        <mxCell id="check_mail_res" value="Gửi thành công?" style="shape=rhombus;whiteSpace=wrap;html=1;fillColor=#ffff8d;strokeColor=#b8b800;" parent="1" vertex="1">
+          <mxGeometry x="580" y="230" width="120" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- LogError (down from CheckMailResult) -->
+        <mxCell id="log_error" value="Log error: SMTP thất bại" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1">
+          <mxGeometry x="560" y="330" width="160" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- UpdateCache -->
+        <mxCell id="update_cache" value="Thêm ID vào sent_reminders" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="370" y="240" width="170" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- LogInfo -->
+        <mxCell id="log_info" value="Log info: Đã gửi nhắc nợ" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="170" y="240" width="160" height="40" as="geometry" />
+        </mxCell>
+
+
+        <!-- Edges -->
+        <!-- Row 1 -->
+        <mxCell id="edge1" style="endArrow=classic;html=1;" parent="1" source="start" target="check_enabled" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge2" value="Không" style="endArrow=classic;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" parent="1" source="check_enabled" target="sleep" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="-10" y="10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge3" style="endArrow=classic;html=1;" parent="1" source="sleep" target="end_success" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge4" value="Có" style="endArrow=classic;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" parent="1" source="check_enabled" target="read_cache" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="-10" y="-10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge5" style="endArrow=classic;html=1;" parent="1" source="read_cache" target="query_db" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge6" style="endArrow=classic;html=1;" parent="1" source="query_db" target="loop_start" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Loop: Hết HĐ -> Sleep (Routes under Row 1, down and left) -->
+        <mxCell id="edge7" value="Hết" style="endArrow=classic;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" parent="1" source="loop_start" target="sleep" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="-10" y="10" as="offset" />
+            <Array as="points">
+              <mxPoint x="750" y="170" />
+              <mxPoint x="170" y="170" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Loop: Còn HĐ -> CheckSent -->
+        <mxCell id="edge8" value="Còn" style="endArrow=classic;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" parent="1" source="loop_start" target="check_sent" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="-10" y="-10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- CheckSent: Có -> LoopStart (skip loop, routes up and left) -->
+        <mxCell id="edge9" value="Có" style="endArrow=classic;html=1;exitX=0.5;exitY=0;entryX=0.5;entryY=0;" parent="1" source="check_sent" target="loop_start" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="10" y="10" as="offset" />
+            <Array as="points">
+              <mxPoint x="900" y="60" />
+              <mxPoint x="750" y="60" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- CheckSent: Chưa -> CheckEmail -->
+        <mxCell id="edge10" value="Chưa" style="endArrow=classic;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" parent="1" source="check_sent" target="check_email" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="-10" y="-10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- CheckEmail: Không -> LogWarning -->
+        <mxCell id="edge11" value="Không" style="endArrow=classic;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" parent="1" source="check_email" target="log_warning" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="-10" y="-10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- LogWarning -> LoopStart (routes up and left) -->
+        <mxCell id="edge12" style="endArrow=classic;html=1;exitX=0.5;exitY=0;entryX=0.5;entryY=0;" parent="1" source="log_warning" target="loop_start" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1220" y="60" />
+              <mxPoint x="750" y="60" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- CheckEmail: Có -> RenderPdf (Straight down) -->
+        <mxCell id="edge13" value="Có" style="endArrow=classic;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" parent="1" source="check_email" target="render_pdf" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="10" y="10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+
+        <!-- Row 2 -->
+        <!-- RenderPdf -> SendMail -->
+        <mxCell id="edge14" style="endArrow=classic;html=1;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" parent="1" source="render_pdf" target="send_mail" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- SendMail -> CheckMailResult -->
+        <mxCell id="edge15" style="endArrow=classic;html=1;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" parent="1" source="send_mail" target="check_mail_res" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- CheckMailResult: Không -> LogError -->
+        <mxCell id="edge16" value="Không" style="endArrow=classic;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" parent="1" source="check_mail_res" target="log_error" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="-10" y="10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- LogError -> LoopStart (routes left, up, and right to merge entry) -->
+        <mxCell id="edge17" style="endArrow=classic;html=1;exitX=0;exitY=0.5;entryX=0;entryY=0.5;" parent="1" source="log_error" target="loop_start" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="550" y="350" />
+              <mxPoint x="550" y="320" />
+              <mxPoint x="660" y="320" />
+              <mxPoint x="660" y="120" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- CheckMailResult: Có -> UpdateCache -->
+        <mxCell id="edge18" value="Có" style="endArrow=classic;html=1;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" parent="1" source="check_mail_res" target="update_cache" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="10" y="-10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- UpdateCache -> LogInfo -->
+        <mxCell id="edge19" style="endArrow=classic;html=1;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" parent="1" source="update_cache" target="log_info" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Loop back from LogInfo to LoopStart (routes down, right, and up to merge entry) -->
+        <mxCell id="edge20" style="endArrow=classic;html=1;exitX=0.5;exitY=1;entryX=0;entryY=0.5;" parent="1" source="log_info" target="loop_start" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="250" y="320" />
+              <mxPoint x="660" y="320" />
+              <mxPoint x="660" y="120" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

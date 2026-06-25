@@ -1,0 +1,184 @@
+<mxfile host="app.diagrams.net" modified="2026-06-24T15:20:00.000Z" agent="5.0" version="20.0.0" type="device">
+  <diagram id="act-payment" name="Activity Payment Diagram">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Row 1 (y = 100): Start -> SelectInvoice -> CheckStatus -> ReadConfig -> BuildPayload -> RenderQR -> WaitScan -->
+        <!-- Start Node -->
+        <mxCell id="start" value="" style="ellipse;html=1;fillColor=#000000;strokeColor=none;" parent="1" vertex="1">
+          <mxGeometry x="40" y="105" width="30" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Select Invoice -->
+        <mxCell id="select_invoice" value="Chọn hóa đơn cần thu tiền" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="110" y="100" width="170" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- CheckStatus Decision -->
+        <mxCell id="check_status" value="Chưa thanh toán?" style="shape=rhombus;whiteSpace=wrap;html=1;fillColor=#ffff8d;strokeColor=#b8b800;" parent="1" vertex="1">
+          <mxGeometry x="320" y="90" width="120" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- BlockPayment (down from CheckStatus) -->
+        <mxCell id="block_payment" value="Báo lỗi: HĐ đã thanh toán" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1">
+          <mxGeometry x="290" y="190" width="180" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- End Fail Node -->
+        <mxCell id="end_fail" value="" style="ellipse;html=1;fillColor=#ff0000;strokeColor=#ff0000;strokeWidth=4;" parent="1" vertex="1">
+          <mxGeometry x="40" y="195" width="30" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- ReadConfig -->
+        <mxCell id="read_config" value="Đọc ngân hàng từ cấu hình" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="480" y="100" width="170" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- BuildPayload -->
+        <mxCell id="build_payload" value="Tạo VietQR (EMVCo &amp; CRC16)" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="680" y="100" width="170" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- RenderQR -->
+        <mxCell id="render_qr" value="Render QR Code lên popup" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="880" y="100" width="170" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- WaitScan -->
+        <mxCell id="wait_scan" value="Khách quét mã &amp; chuyển khoản" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="1080" y="100" width="180" height="40" as="geometry" />
+        </mxCell>
+
+
+        <!-- Row 2 (y = 250): ConfirmReceipt -> SelectMethod -> ClickConfirm -> StartTx -> UpdateInvoice -> InsertHistory -->
+        <!-- ConfirmReceipt Decision -->
+        <mxCell id="confirm_receipt" value="Đã nhận đủ tiền?" style="shape=rhombus;whiteSpace=wrap;html=1;fillColor=#ffff8d;strokeColor=#b8b800;" parent="1" vertex="1">
+          <mxGeometry x="1110" y="230" width="120" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- SelectMethod -->
+        <mxCell id="select_method" value="Chọn phương thức &amp; ghi chú" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="880" y="240" width="180" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ClickConfirm -->
+        <mxCell id="click_confirm" value="Nhấn &quot;Xác nhận thu tiền&quot;" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="680" y="240" width="170" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- StartTx -->
+        <mxCell id="start_tx" value="Khởi tạo Transaction cập nhật" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="480" y="240" width="170" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- UpdateInvoice -->
+        <mxCell id="update_invoice" value="Cập nhật status = DaThanhToan" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="280" y="240" width="180" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- InsertHistory -->
+        <mxCell id="insert_history" value="Ghi lịch sử giao dịch" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="110" y="240" width="150" height="40" as="geometry" />
+        </mxCell>
+
+
+        <!-- Row 3 (y = 400): CommitTx -> ShowSuccess -> EndSuccess -->
+        <!-- CommitTx (down from InsertHistory) -->
+        <mxCell id="commit_tx" value="Commit Transaction" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="110" y="400" width="150" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ShowSuccess -->
+        <mxCell id="show_success" value="Thông báo thành công &amp; In biên lai" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="1" vertex="1">
+          <mxGeometry x="290" y="400" width="190" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- End Success Node -->
+        <mxCell id="end_success" value="" style="ellipse;html=1;fillColor=#000000;strokeColor=#000000;strokeWidth=4;" parent="1" vertex="1">
+          <mxGeometry x="510" y="405" width="30" height="30" as="geometry" />
+        </mxCell>
+
+
+        <!-- Edges -->
+        <!-- Row 1 -->
+        <mxCell id="edge1" style="endArrow=classic;html=1;" parent="1" source="start" target="select_invoice" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge2" style="endArrow=classic;html=1;" parent="1" source="select_invoice" target="check_status" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge3" value="Không" style="endArrow=classic;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" parent="1" source="check_status" target="block_payment" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="-10" y="10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge4" style="endArrow=classic;html=1;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" parent="1" source="block_payment" target="end_fail" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge5" value="Có" style="endArrow=classic;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" parent="1" source="check_status" target="read_config" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="-10" y="-10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge6" style="endArrow=classic;html=1;" parent="1" source="read_config" target="build_payload" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge7" style="endArrow=classic;html=1;" parent="1" source="build_payload" target="render_qr" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge8" style="endArrow=classic;html=1;" parent="1" source="render_qr" target="wait_scan" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Down to Row 2 -->
+        <mxCell id="edge9" style="endArrow=classic;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" parent="1" source="wait_scan" target="confirm_receipt" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Row 2 -->
+        <mxCell id="edge10" value="Không / Hủy" style="endArrow=classic;html=1;exitX=0.5;exitY=0;entryX=0.5;entryY=0;" parent="1" source="confirm_receipt" target="end_fail" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="-10" y="10" as="offset" />
+            <Array as="points">
+              <mxPoint x="1170" y="170" />
+              <mxPoint x="55" y="170" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge11" value="Có" style="endArrow=classic;html=1;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" parent="1" source="confirm_receipt" target="select_method" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="10" y="-10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge12" style="endArrow=classic;html=1;" parent="1" source="select_method" target="click_confirm" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge13" style="endArrow=classic;html=1;" parent="1" source="click_confirm" target="start_tx" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge14" style="endArrow=classic;html=1;" parent="1" source="start_tx" target="update_invoice" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge15" style="endArrow=classic;html=1;" parent="1" source="update_invoice" target="insert_history" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Down to Row 3 -->
+        <mxCell id="edge16" style="endArrow=classic;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" parent="1" source="insert_history" target="commit_tx" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Row 3 -->
+        <mxCell id="edge17" style="endArrow=classic;html=1;" parent="1" source="commit_tx" target="show_success" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge18" style="endArrow=classic;html=1;" parent="1" source="show_success" target="end_success" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,73 @@
+<mxfile host="app.diagrams.net" modified="2026-06-25T19:43:00.000Z" agent="5.0" version="20.0.0" type="device">
+  <diagram id="mockup-login" name="Mockup Login Page">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1000" pageHeight="700" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Web Page Canvas (Grayscale wireframe canvas with sketch style) -->
+        <mxCell id="body_bg" value="" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=#475569;strokeWidth=1.5;fillColor=#ffffff;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="50" y="50" width="900" height="600" as="geometry" />
+        </mxCell>
+
+        <!-- Wireframe Login Card Container (Centered, clean hand-drawn border) -->
+        <mxCell id="login_card" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#0f172a;strokeWidth=2;arcSize=4;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="290" y="130" width="420" height="440" as="geometry" />
+        </mxCell>
+
+        <!-- Header Titles -->
+        <mxCell id="title_main" value="Xin Chào!" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1;fontSize=24;fontColor=#0f172a;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="300" y="165" width="400" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="title_sub" value="Đăng nhập để quản lý hệ thống phòng trọ" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontColor=#475569;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="300" y="200" width="400" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Username Input Group -->
+        <mxCell id="lbl_username" value="Tên đăng nhập" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1;fontSize=11;fontColor=#475569;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="330" y="245" width="340" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="input_username" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#475569;strokeWidth=1.2;arcSize=10;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="330" y="270" width="340" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="icon_user" value="" style="shape=mxgraph.fontAwesome.user;fillColor=#475569;strokeColor=none;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="345" y="280" width="16" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="txt_username" value="Tên đăng nhập (admin)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontColor=#94a3b8;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="375" y="270" width="280" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Password Input Group -->
+        <mxCell id="lbl_password" value="Mật khẩu" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1;fontSize=11;fontColor=#475569;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="330" y="325" width="340" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="input_password" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#475569;strokeWidth=1.2;arcSize=10;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="330" y="350" width="340" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="icon_lock" value="" style="shape=mxgraph.fontAwesome.lock;fillColor=#475569;strokeColor=none;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="345" y="360" width="16" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="txt_password" value="••••••••" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontColor=#94a3b8;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="375" y="350" width="280" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Remember Me Checkbox -->
+        <mxCell id="chk_remember" value="" style="whiteSpace=wrap;html=1;rounded=1;strokeColor=#475569;fillColor=none;arcSize=20;strokeWidth=1.5;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="330" y="418" width="15" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="chk_remember_ind" value="" style="shape=mxgraph.arrows2.arrow;dy=0;dx=0;direction=south;fillColor=#0f172a;strokeColor=none;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="334" y="422" width="7" height="7" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl_remember" value="Ghi nhớ đăng nhập" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontColor=#334155;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="355" y="415" width="200" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Submit Button -->
+        <mxCell id="btn_login" value="ĐĂNG NHẬP" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f1f5f9;strokeColor=#0f172a;strokeWidth=1.5;fontColor=#0f172a;fontStyle=1;fontSize=13;align=center;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="330" y="465" width="340" height="45" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

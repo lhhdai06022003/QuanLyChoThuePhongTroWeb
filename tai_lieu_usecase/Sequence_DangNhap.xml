@@ -1,0 +1,150 @@
+<mxfile host="app.diagrams.net" modified="2026-06-24T16:15:00.000Z" agent="5.0" version="20.0.0" type="device">
+  <diagram id="seq-login" name="Sequence Login Diagram">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="950" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Participants -->
+        <!-- Actor: Người dùng -->
+        <mxCell id="part_nd" value="Người dùng" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="50" y="40" width="30" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="line_nd" value="" style="endArrow=none;dashed=1;html=1;" parent="1" source="part_nd" target="act_nd" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="65" y="100" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="act_nd" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="60" y="140" width="10" height="640" as="geometry" />
+        </mxCell>
+
+        <!-- Controller: AuthController -->
+        <mxCell id="part_c" value="AuthController" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="240" y="40" width="140" height="820" as="geometry" />
+        </mxCell>
+        <mxCell id="act_c" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="part_c" vertex="1">
+          <mxGeometry x="65" y="100" width="10" height="680" as="geometry" />
+        </mxCell>
+
+        <!-- Service: NguoiDungService -->
+        <mxCell id="part_s" value="NguoiDungService" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="480" y="40" width="140" height="820" as="geometry" />
+        </mxCell>
+        <mxCell id="act_s" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="part_s" vertex="1">
+          <mxGeometry x="65" y="140" width="10" height="510" as="geometry" />
+        </mxCell>
+
+        <!-- DbContext -->
+        <mxCell id="part_db" value="DbContext" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="720" y="40" width="140" height="820" as="geometry" />
+        </mxCell>
+        <mxCell id="act_db" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="part_db" vertex="1">
+          <mxGeometry x="65" y="180" width="10" height="420" as="geometry" />
+        </mxCell>
+
+        <!-- Messages with absolute Y coordinates -->
+        <!-- 1. ND -> C: POST Login -->
+        <mxCell id="msg1" value="POST /Login (Nhập tài khoản &amp; mật khẩu)" style="endArrow=classic;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="70" y="160" as="sourcePoint" />
+            <mxPoint x="305" y="160" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 2. C -> S: ValidateUserAsync -->
+        <mxCell id="msg2" value="Gọi xác thực người dùng (ValidateUserAsync)" style="endArrow=classic;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="315" y="210" as="sourcePoint" />
+            <mxPoint x="545" y="210" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 3. S -> DB: Query by Username -->
+        <mxCell id="msg3" value="Truy vấn Người dùng theo tài khoản" style="endArrow=classic;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="555" y="260" as="sourcePoint" />
+            <mxPoint x="785" y="260" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 4. DB -> S: Return User details -->
+        <mxCell id="msg4" value="Trả về thông tin mật khẩu (Hash, Salt, Vai trò)" style="endArrow=open;dashed=1;endSize=8;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="785" y="310" as="sourcePoint" />
+            <mxPoint x="555" y="310" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 5. S -> S: Self loop for Password verify -->
+        <mxCell id="msg5" value="Xác thực mật khẩu (PBKDF2/SHA256)" style="edgeStyle=orthogonalEdgeStyle;html=1;align=left;spacingLeft=5;verticalAlign=bottom;rounded=0;labelBackgroundColor=#ffffff;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="555" y="350" as="sourcePoint" />
+            <mxPoint x="555" y="390" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="590" y="350" />
+              <mxPoint x="590" y="390" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 6. S -> S: Self loop for Rehash check -->
+        <mxCell id="msg6" value="Nâng cấp băm mật khẩu PBKDF2 nếu cần (Re-hash)" style="edgeStyle=orthogonalEdgeStyle;html=1;align=left;spacingLeft=5;verticalAlign=bottom;rounded=0;labelBackgroundColor=#ffffff;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="555" y="430" as="sourcePoint" />
+            <mxPoint x="555" y="470" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="590" y="430" />
+              <mxPoint x="590" y="470" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 7. S -> DB: Save updates -->
+        <mxCell id="msg7" value="Lưu thay đổi (Lần đăng nhập cuối, Hash mới)" style="endArrow=classic;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="555" y="520" as="sourcePoint" />
+            <mxPoint x="785" y="520" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 8. DB -> S: Save success -->
+        <mxCell id="msg8" value="Lưu cơ sở dữ liệu thành công" style="endArrow=open;dashed=1;endSize=8;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="785" y="570" as="sourcePoint" />
+            <mxPoint x="555" y="570" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 9. S -> C: Validation result -->
+        <mxCell id="msg9" value="Trả về kết quả xác thực thành công (Đối tượng User)" style="endArrow=open;dashed=1;endSize=8;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="545" y="620" as="sourcePoint" />
+            <mxPoint x="315" y="620" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 10. C -> C: Sign in -->
+        <mxCell id="msg10" value="Thiết lập quyền (Claims) &amp; Lưu Cookie phiên làm việc" style="edgeStyle=orthogonalEdgeStyle;html=1;align=left;spacingLeft=5;verticalAlign=bottom;rounded=0;labelBackgroundColor=#ffffff;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="315" y="660" as="sourcePoint" />
+            <mxPoint x="315" y="700" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="350" y="660" />
+              <mxPoint x="350" y="700" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 11. C -> ND: Redirect -->
+        <mxCell id="msg11" value="Chuyển hướng trang (Khách thuê hoặc Trang chủ)" style="endArrow=open;dashed=1;endSize=8;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="305" y="750" as="sourcePoint" />
+            <mxPoint x="70" y="750" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

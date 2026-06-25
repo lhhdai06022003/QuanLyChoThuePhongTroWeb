@@ -1,0 +1,200 @@
+<mxfile host="app.diagrams.net" modified="2026-06-25T19:43:00.000Z" agent="5.0" version="20.0.0" type="device">
+  <diagram id="mockup-rooms" name="Mockup Room Management Grid">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="800" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- 1. Background Canvas -->
+        <mxCell id="main_bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#cbd5e1;strokeWidth=1.5;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="50" y="50" width="1100" height="700" as="geometry" />
+        </mxCell>
+
+        <!-- 1.1. Sidebar (Wireframe style) -->
+        <mxCell id="sidebar" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f1f5f9;strokeColor=#cbd5e1;strokeWidth=1.2;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="50" y="50" width="240" height="700" as="geometry" />
+        </mxCell>
+        <!-- Sidebar Brand Logo & Text -->
+        <mxCell id="brand_logo" value="SYSTEM RENTAL" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1;fontSize=14;fontColor=#475569;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="50" y="65" width="240" height="30" as="geometry" />
+        </mxCell>
+        <!-- Sidebar Menu Items -->
+        <mxCell id="menu_dashboard" value="   Dashboard" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontColor=#64748b;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="110" width="220" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="menu_users" value="   Quản lý người dùng" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontColor=#64748b;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="145" width="220" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="menu_branch" value="     Chi nhánh" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontColor=#64748b;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="180" width="220" height="30" as="geometry" />
+        </mxCell>
+        <!-- Active Rooms Menu Item -->
+        <mxCell id="menu_rooms" value="     Phòng trọ" style="rounded=1;text;html=1;strokeColor=#cbd5e1;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;fontStyle=1;fontSize=12;fontColor=#0f172a;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="210" width="220" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="menu_tenants" value="     Người thuê" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontColor=#64748b;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="240" width="220" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="menu_contracts" value="     Hợp đồng" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontColor=#64748b;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="270" width="220" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="menu_services" value="     Dịch vụ" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontColor=#64748b;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="300" width="220" height="30" as="geometry" />
+        </mxCell>
+        <!-- Inactive Electricity & Water Menu Item -->
+        <mxCell id="menu_diennuoc" value="     Điện nước" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontColor=#64748b;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="330" width="220" height="30" as="geometry" />
+        </mxCell>
+        <!-- Inactive Billing Menu Item -->
+        <mxCell id="menu_billing" value="     Hóa đơn" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontColor=#64748b;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="360" width="220" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- 1.2. Header (Navbar) -->
+        <mxCell id="navbar" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#cbd5e1;strokeWidth=1.2;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="290" y="50" width="860" height="60" as="geometry" />
+        </mxCell>
+        <!-- Breadcrumb -->
+        <mxCell id="breadcrumb" value="Quản lý nhà trọ / Sơ đồ phòng" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontColor=#64748b;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="310" y="65" width="200" height="30" as="geometry" />
+        </mxCell>
+        <!-- User Profile Avatar -->
+        <mxCell id="user_profile" value="Admin" style="text;html=1;strokeColor=none;fillColor=none;align=right;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1;fontSize=12;fontColor=#475569;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="65" width="130" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- 1.3. Page Content Title -->
+        <mxCell id="page_title" value="Sơ Đồ Trạng Thái Phòng Trọ" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1;fontSize=20;fontColor=#0f172a;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="310" y="130" width="350" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="bg_card" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#cbd5e1;strokeWidth=1.2;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="310" y="180" width="820" height="540" as="geometry" />
+        </mxCell>
+
+        <!-- 2. Filters Row -->
+        <!-- Branch Selector -->
+        <mxCell id="filter_branch" value="Chi nhánh Quận 9" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#cbd5e1;strokeWidth=1;align=left;spacingLeft=10;fontColor=#475569;fontSize=12;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="330" y="200" width="180" height="35" as="geometry" />
+        </mxCell>
+        <!-- State Selector -->
+        <mxCell id="filter_status" value="-- Tất cả trạng thái --" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#cbd5e1;strokeWidth=1;align=left;spacingLeft=10;fontColor=#64748b;fontSize=12;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="530" y="200" width="160" height="35" as="geometry" />
+        </mxCell>
+        <!-- Add Room Button -->
+        <mxCell id="btn_add_room" value="+ Thêm phòng mới" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f1f5f9;strokeColor=#0f172a;strokeWidth=1.5;fontColor=#0f172a;fontStyle=1;fontSize=12;align=center;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="940" y="200" width="160" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- 3. Legend (Trạng thái) -->
+        <!-- Empty room legend -->
+        <mxCell id="leg_empty_box" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#cbd5e1;strokeWidth=1.2;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="330" y="255" width="20" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_empty_lbl" value="Trống (3)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontColor=#475569;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="358" y="255" width="70" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Occupied room legend -->
+        <mxCell id="leg_occupied_box" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8fafc;strokeColor=#475569;strokeWidth=1.2;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="440" y="255" width="20" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_occupied_lbl" value="Đang ở (12)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontColor=#475569;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="468" y="255" width="80" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Overdue room legend -->
+        <mxCell id="leg_debt_box" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e2e8f0;strokeColor=#0f172a;strokeWidth=1.5;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="560" y="255" width="20" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_debt_lbl" value="Nợ tiền (2)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontColor=#0f172a;fontStyle=1;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="588" y="255" width="80" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Expiring room legend -->
+        <mxCell id="leg_expiring_box" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#475569;strokeWidth=1.2;dashed=1;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="680" y="255" width="20" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_expiring_lbl" value="Sắp hết hạn HĐ (1)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontColor=#475569;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="708" y="255" width="120" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- 4. Grid of Rooms (Sơ đồ phòng) -->
+        <!-- FLOOR 1 -->
+        <mxCell id="lbl_floor1" value="Tầng 1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1;fontSize=13;fontColor=#0f172a;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="330" y="295" width="100" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- Room 101 (Occupied) -->
+        <mxCell id="room_101" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8fafc;strokeColor=#475569;strokeWidth=1.2;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="330" y="325" width="170" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="room_101_txt" value="&lt;b&gt;P.101&lt;/b&gt;&lt;br&gt;Khách: Nguyễn Văn A&lt;br&gt;Giá: 3.500.000 ₫&lt;br&gt;&lt;font color=&quot;#475569&quot;&gt;● Đang ở&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=11;spacingLeft=10;spacingTop=10;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="330" y="325" width="170" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- Room 102 (Overdue/Debt) -->
+        <mxCell id="room_102" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e2e8f0;strokeColor=#0f172a;strokeWidth=2;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="520" y="325" width="170" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="room_102_txt" value="&lt;b&gt;P.102&lt;/b&gt;&lt;br&gt;Khách: Trần Thị B&lt;br&gt;Nợ: &lt;b&gt;4.300.000 ₫&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#0f172a&quot;&gt;▲ Nợ tiền (Tháng 6)&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=11;spacingLeft=10;spacingTop=10;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="520" y="325" width="170" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- Room 103 (Empty) -->
+        <mxCell id="room_103" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#cbd5e1;strokeWidth=1.2;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="710" y="325" width="170" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="room_103_txt" value="&lt;b&gt;P.103&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;font color=&quot;#94a3b8&quot;&gt;&lt;i&gt;-- TRỐNG --&lt;/i&gt;&lt;/font&gt;&lt;br&gt;Giá: 3.000.000 ₫" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=11;spacingLeft=10;spacingTop=10;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="710" y="325" width="170" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- Room 104 (Expiring) -->
+        <mxCell id="room_104" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#475569;strokeWidth=1.2;dashed=1;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="900" y="325" width="170" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="room_104_txt" value="&lt;b&gt;P.104&lt;/b&gt;&lt;br&gt;Khách: Lê Văn C&lt;br&gt;Hợp đồng: Còn 5 ngày&lt;br&gt;&lt;font color=&quot;#64748b&quot;&gt;⚠ Sắp hết hạn HĐ&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=11;spacingLeft=10;spacingTop=10;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="900" y="325" width="170" height="120" as="geometry" />
+        </mxCell>
+
+
+        <!-- FLOOR 2 -->
+        <mxCell id="lbl_floor2" value="Tầng 2" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1;fontSize=13;fontColor=#0f172a;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="330" y="475" width="100" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- Room 201 (Occupied) -->
+        <mxCell id="room_201" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8fafc;strokeColor=#475569;strokeWidth=1.2;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="330" y="505" width="170" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="room_201_txt" value="&lt;b&gt;P.201&lt;/b&gt;&lt;br&gt;Khách: Phạm Văn D&lt;br&gt;Giá: 3.500.000 ₫&lt;br&gt;&lt;font color=&quot;#475569&quot;&gt;● Đang ở&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=11;spacingLeft=10;spacingTop=10;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="330" y="505" width="170" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- Room 202 (Empty) -->
+        <mxCell id="room_202" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#cbd5e1;strokeWidth=1.2;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="520" y="505" width="170" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="room_202_txt" value="&lt;b&gt;P.202&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;font color=&quot;#94a3b8&quot;&gt;&lt;i&gt;-- TRỐNG --&lt;/i&gt;&lt;/font&gt;&lt;br&gt;Giá: 3.200.000 ₫" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=11;spacingLeft=10;spacingTop=10;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="520" y="505" width="170" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- Room 203 (Empty) -->
+        <mxCell id="room_203" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#cbd5e1;strokeWidth=1.2;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="710" y="505" width="170" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="room_203_txt" value="&lt;b&gt;P.203&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;font color=&quot;#94a3b8&quot;&gt;&lt;i&gt;-- TRỐNG --&lt;/i&gt;&lt;/font&gt;&lt;br&gt;Giá: 3.200.000 ₫" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=11;spacingLeft=10;spacingTop=10;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="710" y="505" width="170" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- Room 204 (Occupied) -->
+        <mxCell id="room_204" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8fafc;strokeColor=#475569;strokeWidth=1.2;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="900" y="505" width="170" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="room_204_txt" value="&lt;b&gt;P.204&lt;/b&gt;&lt;br&gt;Khách: Hoàng Văn E&lt;br&gt;Giá: 3.500.000 ₫&lt;br&gt;&lt;font color=&quot;#475569&quot;&gt;● Đang ở&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=11;spacingLeft=10;spacingTop=10;sketch=1;" vertex="1" parent="1">
+          <mxGeometry x="900" y="505" width="170" height="120" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

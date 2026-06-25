@@ -1,0 +1,178 @@
+<mxfile host="app.diagrams.net" modified="2026-06-24T16:30:00.000Z" agent="5.0" version="20.0.0" type="device">
+  <diagram id="erd-diagram" name="ERD Database Diagram">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="1400" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Tables (Vertices) -->
+        <!-- 1. ChiNhanh -->
+        <mxCell id="table_chinhanh" value="&lt;b&gt;ChiNhanh (chi_nhanh)&lt;/b&gt;&lt;hr/&gt;+ ChiNhanhId (PK) : int&lt;br/&gt;+ MaChiNhanh (UK) : string&lt;br/&gt;+ TenChiNhanh : string&lt;br/&gt;+ DiaChi : string&lt;br/&gt;+ MoTa : string&lt;br/&gt;+ SoDienThoai : string&lt;br/&gt;+ NgayTao : DateTime&lt;br/&gt;+ NgayCapNhat : DateTime?&lt;br/&gt;+ IsDeleted : bool" style="verticalAlign=top;align=left;overflow=hidden;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;spacingLeft=10;spacingTop=5;" vertex="1" parent="1">
+          <mxGeometry x="50" y="50" width="240" height="210" as="geometry" />
+        </mxCell>
+
+        <!-- 2. PhongTro -->
+        <mxCell id="table_phongtro" value="&lt;b&gt;PhongTro (phong_tro)&lt;/b&gt;&lt;hr/&gt;+ PhongTroId (PK) : int&lt;br/&gt;+ ChiNhanhId (FK) : int&lt;br/&gt;+ SoPhong : string&lt;br/&gt;+ TangLau : int&lt;br/&gt;+ GiaThue : double&lt;br/&gt;+ DienTich : double&lt;br/&gt;+ SoNguoiToiDa : int&lt;br/&gt;+ TrangThai : TrangThaiPhong&lt;br/&gt;+ MoTa : string&lt;br/&gt;+ NgayTao : DateTime&lt;br/&gt;+ NgayCapNhat : DateTime?&lt;br/&gt;+ IsDeleted : bool" style="verticalAlign=top;align=left;overflow=hidden;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;spacingLeft=10;spacingTop=5;" vertex="1" parent="1">
+          <mxGeometry x="380" y="50" width="240" height="250" as="geometry" />
+        </mxCell>
+
+        <!-- 3. DichVu -->
+        <mxCell id="table_dichvu" value="&lt;b&gt;DichVu (dich_vu)&lt;/b&gt;&lt;hr/&gt;+ DichVuId (PK) : int&lt;br/&gt;+ TenDichVu : string&lt;br/&gt;+ DonVi : string&lt;br/&gt;+ GhiChu : string&lt;br/&gt;+ NgayTao : DateTime&lt;br/&gt;+ NgayCapNhat : DateTime?&lt;br/&gt;+ IsDeleted : bool" style="verticalAlign=top;align=left;overflow=hidden;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;spacingLeft=10;spacingTop=5;" vertex="1" parent="1">
+          <mxGeometry x="710" y="50" width="240" height="170" as="geometry" />
+        </mxCell>
+
+        <!-- 4. DichVuChiNhanh -->
+        <mxCell id="table_dichvuchinhanh" value="&lt;b&gt;DichVuChiNhanh (dich_vu_cn)&lt;/b&gt;&lt;hr/&gt;+ DichVuChiNhanhId (PK) : int&lt;br/&gt;+ ChiNhanhId (FK) : int&lt;br/&gt;+ DichVuId (FK) : int&lt;br/&gt;+ GiaDichVu : double&lt;br/&gt;+ MacDinh : bool&lt;br/&gt;+ NgayTao : DateTime&lt;br/&gt;+ NgayCapNhat : DateTime?&lt;br/&gt;+ IsDeleted : bool" style="verticalAlign=top;align=left;overflow=hidden;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;spacingLeft=10;spacingTop=5;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="50" width="240" height="220" as="geometry" />
+        </mxCell>
+
+        <!-- 5. DangKyDichVu -->
+        <mxCell id="table_dangkydichvu" value="&lt;b&gt;DangKyDichVu (dang_ky_dv)&lt;/b&gt;&lt;hr/&gt;+ DangKyDichVuId (PK) : int&lt;br/&gt;+ PhongTroId (FK) : int&lt;br/&gt;+ DichVuChiNhanhId (FK) : int&lt;br/&gt;+ SoLuong : int&lt;br/&gt;+ NgayBatDau : DateTime&lt;br/&gt;+ NgayKetThuc : DateTime?" style="verticalAlign=top;align=left;overflow=hidden;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;spacingLeft=10;spacingTop=5;" vertex="1" parent="1">
+          <mxGeometry x="50" y="350" width="240" height="170" as="geometry" />
+        </mxCell>
+
+        <!-- 6. DichVuDienNuocCuaPhong -->
+        <mxCell id="table_diennuoc" value="&lt;b&gt;DichVuDienNuocCuaPhong&lt;/b&gt;&lt;hr/&gt;+ DichVuDienNuocCuaPhongId (PK) : int&lt;br/&gt;+ PhongTroId (FK) : int&lt;br/&gt;+ Thang : int&lt;br/&gt;+ Nam : int&lt;br/&gt;+ ChiSoDienCu : double&lt;br/&gt;+ ChiSoDienMoi : double&lt;br/&gt;+ DonGiaDien : double&lt;br/&gt;+ ChiSoNuocCu : double&lt;br/&gt;+ ChiSoNuocMoi : double&lt;br/&gt;+ DonGiaNuoc : double&lt;br/&gt;+ NgayTao : DateTime&lt;br/&gt;+ NgayCapNhat : DateTime?&lt;br/&gt;+ IsDeleted : bool" style="verticalAlign=top;align=left;overflow=hidden;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;spacingLeft=10;spacingTop=5;" vertex="1" parent="1">
+          <mxGeometry x="380" y="350" width="250" height="290" as="geometry" />
+        </mxCell>
+
+        <!-- 7. HopDong -->
+        <mxCell id="table_hopdong" value="&lt;b&gt;HopDong (hop_dong)&lt;/b&gt;&lt;hr/&gt;+ HopDongId (PK) : int&lt;br/&gt;+ MaHopDong (UK) : string&lt;br/&gt;+ PhongTroId (FK) : int&lt;br/&gt;+ NguoiThueId (FK) : int&lt;br/&gt;+ ThoiDiemBatDau : DateTime&lt;br/&gt;+ ThoiDiemKetThuc : DateTime?&lt;br/&gt;+ TienCocPhong : double&lt;br/&gt;+ TienThuePhong : double&lt;br/&gt;+ TrangThaiHopDong : TrangThaiHopDong&lt;br/&gt;+ NgayTao : DateTime&lt;br/&gt;+ NgayCapNhat : DateTime?&lt;br/&gt;+ IsDeleted : bool" style="verticalAlign=top;align=left;overflow=hidden;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;spacingLeft=10;spacingTop=5;" vertex="1" parent="1">
+          <mxGeometry x="710" y="350" width="240" height="290" as="geometry" />
+        </mxCell>
+
+        <!-- 8. ChiTietThanhVienHopDong -->
+        <mxCell id="table_ctthanhvien" value="&lt;b&gt;ChiTietThanhVienHopDong&lt;/b&gt;&lt;hr/&gt;+ ChiTietThanhVienHopDongId (PK) : int&lt;br/&gt;+ HopDongId (FK) : int&lt;br/&gt;+ NguoiThueId (FK) : int&lt;br/&gt;+ NgayVao : DateTime&lt;br/&gt;+ NgayChuyenDi : DateTime?&lt;br/&gt;+ IsDeleted : bool" style="verticalAlign=top;align=left;overflow=hidden;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;spacingLeft=10;spacingTop=5;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="350" width="240" height="190" as="geometry" />
+        </mxCell>
+
+        <!-- 9. HopDongDieuKhoan -->
+        <mxCell id="table_hddieukhoan" value="&lt;b&gt;HopDongDieuKhoan (dieu_khoan_hd)&lt;/b&gt;&lt;hr/&gt;+ Id (PK) : int&lt;br/&gt;+ HopDongId (FK) : int&lt;br/&gt;+ TieuDe : string&lt;br/&gt;+ NoiDung : string&lt;br/&gt;+ ThuTu : int" style="verticalAlign=top;align=left;overflow=hidden;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;spacingLeft=10;spacingTop=5;" vertex="1" parent="1">
+          <mxGeometry x="50" y="700" width="240" height="150" as="geometry" />
+        </mxCell>
+
+        <!-- 10. DieuKhoanMau -->
+        <mxCell id="table_dieukhoanmau" value="&lt;b&gt;DieuKhoanMau (dieu_khoan_mau)&lt;/b&gt;&lt;hr/&gt;+ DieuKhoanMauId (PK) : int&lt;br/&gt;+ TieuDe : string&lt;br/&gt;+ NoiDung : string&lt;br/&gt;+ NgayTao : DateTime&lt;br/&gt;+ NgayCapNhat : DateTime?&lt;br/&gt;+ IsDeleted : bool" style="verticalAlign=top;align=left;overflow=hidden;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;spacingLeft=10;spacingTop=5;" vertex="1" parent="1">
+          <mxGeometry x="380" y="700" width="240" height="170" as="geometry" />
+        </mxCell>
+
+        <!-- 11. NguoiThue -->
+        <mxCell id="table_nguoithue" value="&lt;b&gt;NguoiThue (nguoi_thue)&lt;/b&gt;&lt;hr/&gt;+ NguoiThueId (PK) : int&lt;br/&gt;+ HoVaTen : string&lt;br/&gt;+ Email : string&lt;br/&gt;+ SoDienThoai : string&lt;br/&gt;+ CCCD : string&lt;br/&gt;+ NgayCapCCCD : DateTime?&lt;br/&gt;+ NoiCapCCCD : string?&lt;br/&gt;+ NgaySinh : DateTime?&lt;br/&gt;+ QueQuan : string?&lt;br/&gt;+ GhiChu : string?&lt;br/&gt;+ NgayTao : DateTime&lt;br/&gt;+ NgayCapNhat : DateTime?&lt;br/&gt;+ IsDeleted : bool" style="verticalAlign=top;align=left;overflow=hidden;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;spacingLeft=10;spacingTop=5;" vertex="1" parent="1">
+          <mxGeometry x="710" y="700" width="240" height="290" as="geometry" />
+        </mxCell>
+
+        <!-- 12. NguoiDung -->
+        <mxCell id="table_nguoidung" value="&lt;b&gt;NguoiDung (nguoi_dung)&lt;/b&gt;&lt;hr/&gt;+ NguoiDungId (PK) : int&lt;br/&gt;+ TenDangNhap (UK) : string&lt;br/&gt;+ MatKhauHash : string&lt;br/&gt;+ IsActive : bool&lt;br/&gt;+ Role : Role&lt;br/&gt;+ NgayTao : DateTime&lt;br/&gt;+ LanDangNhapCuoi : DateTime?&lt;br/&gt;+ NguoiThueId (FK) : int?&lt;br/&gt;+ IsDeleted : bool" style="verticalAlign=top;align=left;overflow=hidden;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;spacingLeft=10;spacingTop=5;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="700" width="240" height="210" as="geometry" />
+        </mxCell>
+
+        <!-- 13. HoaDon -->
+        <mxCell id="table_hoadon" value="&lt;b&gt;HoaDon (hoa_don)&lt;/b&gt;&lt;hr/&gt;+ HoaDonId (PK) : int&lt;br/&gt;+ MaHoaDon (UK) : string&lt;br/&gt;+ HopDongId (FK) : int&lt;br/&gt;+ Thang : int&lt;br/&gt;+ Nam : int&lt;br/&gt;+ TongTien : double&lt;br/&gt;+ TrangThaiHoaDon : TrangThaiHoaDon&lt;br/&gt;+ NgayTao : DateTime&lt;br/&gt;+ NgayCapNhat : DateTime?&lt;br/&gt;+ IsDeleted : bool&lt;br/&gt;+ DichVuDienNuocCuaPhongId : int?" style="verticalAlign=top;align=left;overflow=hidden;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;spacingLeft=10;spacingTop=5;" vertex="1" parent="1">
+          <mxGeometry x="50" y="1050" width="270" height="260" as="geometry" />
+        </mxCell>
+
+        <!-- 14. ChiTietHoaDon -->
+        <mxCell id="table_chitiethoadon" value="&lt;b&gt;ChiTietHoaDon (ct_hoa_don)&lt;/b&gt;&lt;hr/&gt;+ ChiTietHoaDonId (PK) : int&lt;br/&gt;+ HoaDonId (FK) : int&lt;br/&gt;+ TenDichVu : string&lt;br/&gt;+ DonGia : double&lt;br/&gt;+ SoLuong : int&lt;br/&gt;+ TongTien : double&lt;br/&gt;+ IsDeleted : bool&lt;br/&gt;+ DichVuId (FK) : int?" style="verticalAlign=top;align=left;overflow=hidden;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;spacingLeft=10;spacingTop=5;" vertex="1" parent="1">
+          <mxGeometry x="380" y="1050" width="240" height="200" as="geometry" />
+        </mxCell>
+
+        <!-- 15. LichSuThanhToan -->
+        <mxCell id="table_lichsuthanhtoan" value="&lt;b&gt;LichSuThanhToan (lich_su_tt)&lt;/b&gt;&lt;hr/&gt;+ LichSuThanhToanId (PK) : int&lt;br/&gt;+ MaGiaoDich : string&lt;br/&gt;+ HoaDonId (FK) : int&lt;br/&gt;+ NguoiXacNhanId (FK) : int?&lt;br/&gt;+ SoTienThanhToan : double&lt;br/&gt;+ PhuongThucThanhToan : PhuongThucThanhToan&lt;br/&gt;+ NgayThanhToan : DateTime&lt;br/&gt;+ GhiChu : string&lt;br/&gt;+ IsDeleted : bool" style="verticalAlign=top;align=left;overflow=hidden;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;spacingLeft=10;spacingTop=5;" vertex="1" parent="1">
+          <mxGeometry x="710" y="1050" width="260" height="240" as="geometry" />
+        </mxCell>
+
+        <!-- Relationship Edges (Orthogonal Dynamic Routing) -->
+        <!-- ChiNhanh -> PhongTro (1-N) -->
+        <mxCell id="rel_cn_pt" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=open;endSize=8;startArrow=none;fillColor=none;strokeColor=#4c6ef5;strokeWidth=1.5;" edge="1" parent="1" source="table_chinhanh" target="table_phongtro">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ChiNhanh -> DichVuChiNhanh (1-N) -->
+        <mxCell id="rel_cn_dvcn" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=open;endSize=8;startArrow=none;fillColor=none;strokeColor=#4c6ef5;strokeWidth=1.5;" edge="1" parent="1" source="table_chinhanh" target="table_dichvuchinhanh">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- DichVu -> DichVuChiNhanh (1-N) -->
+        <mxCell id="rel_dv_dvcn" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=open;endSize=8;startArrow=none;fillColor=none;strokeColor=#4c6ef5;strokeWidth=1.5;" edge="1" parent="1" source="table_dichvu" target="table_dichvuchinhanh">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- DichVuChiNhanh -> DangKyDichVu (1-N) -->
+        <mxCell id="rel_dvcn_dkdv" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=open;endSize=8;startArrow=none;fillColor=none;strokeColor=#4c6ef5;strokeWidth=1.5;" edge="1" parent="1" source="table_dichvuchinhanh" target="table_dangkydichvu">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- PhongTro -> DangKyDichVu (1-N) -->
+        <mxCell id="rel_pt_dkdv" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=open;endSize=8;startArrow=none;fillColor=none;strokeColor=#4c6ef5;strokeWidth=1.5;" edge="1" parent="1" source="table_phongtro" target="table_dangkydichvu">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- PhongTro -> DichVuDienNuocCuaPhong (1-N) -->
+        <mxCell id="rel_pt_dvnd" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=open;endSize=8;startArrow=none;fillColor=none;strokeColor=#4c6ef5;strokeWidth=1.5;" edge="1" parent="1" source="table_phongtro" target="table_diennuoc">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- PhongTro -> HopDong (1-N) -->
+        <mxCell id="rel_pt_hd" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=open;endSize=8;startArrow=none;fillColor=none;strokeColor=#4c6ef5;strokeWidth=1.5;" edge="1" parent="1" source="table_phongtro" target="table_hopdong">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- NguoiThue -> HopDong (1-N) (Đại diện) -->
+        <mxCell id="rel_nt_hd" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=open;endSize=8;startArrow=none;fillColor=none;strokeColor=#4c6ef5;strokeWidth=1.5;" edge="1" parent="1" source="table_nguoithue" target="table_hopdong">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- NguoiThue -> ChiTietThanhVienHopDong (1-N) -->
+        <mxCell id="rel_nt_cttv" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=open;endSize=8;startArrow=none;fillColor=none;strokeColor=#4c6ef5;strokeWidth=1.5;" edge="1" parent="1" source="table_nguoithue" target="table_ctthanhvien">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- HopDong -> ChiTietThanhVienHopDong (1-N) -->
+        <mxCell id="rel_hd_cttv" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=open;endSize=8;startArrow=none;fillColor=none;strokeColor=#4c6ef5;strokeWidth=1.5;" edge="1" parent="1" source="table_hopdong" target="table_ctthanhvien">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- HopDong -> HopDongDieuKhoan (1-N) -->
+        <mxCell id="rel_hd_hddk" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=open;endSize=8;startArrow=none;fillColor=none;strokeColor=#4c6ef5;strokeWidth=1.5;" edge="1" parent="1" source="table_hopdong" target="table_hddieukhoan">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- HopDong -> HoaDon (1-N) -->
+        <mxCell id="rel_hd_hd" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=open;endSize=8;startArrow=none;fillColor=none;strokeColor=#4c6ef5;strokeWidth=1.5;" edge="1" parent="1" source="table_hopdong" target="table_hoadon">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- DichVuDienNuocCuaPhong -> HoaDon (1-1) -->
+        <mxCell id="rel_dvdn_hd" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=open;endSize=8;startArrow=none;fillColor=none;strokeColor=#4c6ef5;strokeWidth=1.5;" edge="1" parent="1" source="table_diennuoc" target="table_hoadon">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- HoaDon -> ChiTietHoaDon (1-N) -->
+        <mxCell id="rel_hd_cthd" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=open;endSize=8;startArrow=none;fillColor=none;strokeColor=#4c6ef5;strokeWidth=1.5;" edge="1" parent="1" source="table_hoadon" target="table_chitiethoadon">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- DichVu -> ChiTietHoaDon (1-N) -->
+        <mxCell id="rel_dv_cthd" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=open;endSize=8;startArrow=none;fillColor=none;strokeColor=#4c6ef5;strokeWidth=1.5;" edge="1" parent="1" source="table_dichvu" target="table_chitiethoadon">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- HoaDon -> LichSuThanhToan (1-N) -->
+        <mxCell id="rel_hd_lstt" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=open;endSize=8;startArrow=none;fillColor=none;strokeColor=#4c6ef5;strokeWidth=1.5;" edge="1" parent="1" source="table_hoadon" target="table_lichsuthanhtoan">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- NguoiDung -> LichSuThanhToan (1-N) -->
+        <mxCell id="rel_nd_lstt" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=open;endSize=8;startArrow=none;fillColor=none;strokeColor=#4c6ef5;strokeWidth=1.5;" edge="1" parent="1" source="table_nguoidung" target="table_lichsuthanhtoan">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- NguoiThue -> NguoiDung (1-1) -->
+        <mxCell id="rel_nt_nd" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=open;endSize=8;startArrow=none;fillColor=none;strokeColor=#4c6ef5;strokeWidth=1.5;" edge="1" parent="1" source="table_nguoithue" target="table_nguoidung">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,199 @@
+<mxfile host="app.diagrams.net" modified="2026-06-24T15:20:00.000Z" agent="5.0" version="20.0.0" type="device">
+  <diagram id="act-billing" name="Activity Billing Diagram">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Row 1 (y = 100): Start -> SelectBranch -> ClickPreview -> QueryPreview -> ShowPreviewTable -> SelectRooms -> ClickGenerate -->
+        <!-- Start Node -->
+        <mxCell id="start" value="" style="ellipse;html=1;fillColor=#000000;strokeColor=none;" parent="1" vertex="1">
+          <mxGeometry x="40" y="105" width="30" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Select Branch -->
+        <mxCell id="select_branch" value="Chọn chi nhánh, tháng và năm" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="110" y="100" width="170" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Click Preview -->
+        <mxCell id="click_prev" value="Nhấn &quot;Xem trước phát sinh&quot;" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="310" y="100" width="160" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Query Preview -->
+        <mxCell id="query_prev" value="Hệ thống đọc dữ liệu HĐ &amp; chỉ số" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="500" y="100" width="180" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Show Preview Table -->
+        <mxCell id="show_table" value="Hiển thị bảng kê tính toán dự kiến" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="710" y="100" width="180" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Select Rooms -->
+        <mxCell id="select_rooms" value="Tích chọn các phòng cần phát sinh" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="920" y="100" width="180" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Click Generate -->
+        <mxCell id="click_gen" value="Nhấn &quot;Phát sinh hóa đơn&quot;" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="1120" y="100" width="150" height="40" as="geometry" />
+        </mxCell>
+
+
+        <!-- Row 2 (y = 250): StartTx -> LoopStart -> CheckIndex -> CalcBill -> GenerateCode -> InsertInvoice -->
+        <!-- Start Transaction -->
+        <mxCell id="start_tx" value="Khởi động PostgreSQL Transaction" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="1110" y="240" width="170" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- LoopStart Decision -->
+        <mxCell id="loop_start" value="Duyệt từng phòng?" style="shape=rhombus;whiteSpace=wrap;html=1;fillColor=#ffff8d;strokeColor=#b8b800;" parent="1" vertex="1">
+          <mxGeometry x="920" y="230" width="120" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Check Index Decision -->
+        <mxCell id="dec_index" value="Đã chốt chỉ số?" style="shape=rhombus;whiteSpace=wrap;html=1;fillColor=#ffff8d;strokeColor=#b8b800;" parent="1" vertex="1">
+          <mxGeometry x="720" y="230" width="120" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- ErrRollback (down from CheckIndex) -->
+        <mxCell id="err_rollback" value="Hủy giao dịch &amp; Báo lỗi chưa chốt" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1">
+          <mxGeometry x="690" y="340" width="180" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- End Fail Node -->
+        <mxCell id="end_fail" value="" style="ellipse;html=1;fillColor=#ff0000;strokeColor=#ff0000;strokeWidth=4;" parent="1" vertex="1">
+          <mxGeometry x="40" y="345" width="30" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Calc Bill -->
+        <mxCell id="calc_bill" value="Tính toán tiền điện, nước, dịch vụ" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="500" y="240" width="180" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Generate Code -->
+        <mxCell id="gen_code" value="Sinh mã hóa đơn độc nhất" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="310" y="240" width="160" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Insert Invoice -->
+        <mxCell id="insert_inv" value="Lưu HoaDon và ChiTietHoaDon" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="110" y="240" width="170" height="40" as="geometry" />
+        </mxCell>
+
+
+        <!-- Row 3 (y = 400): LockIndex -> SaveDb / ShowSuccess / EndSuccess -->
+        <!-- Lock Index -->
+        <mxCell id="lock_idx" value="Khóa bản ghi chỉ số (IsLocked=true)" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="110" y="400" width="200" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Save DB & Commit -->
+        <mxCell id="save_db" value="Lưu thay đổi CSDL &amp; Commit" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="890" y="400" width="180" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Show Success -->
+        <mxCell id="show_success" value="Thông báo phát sinh thành công" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="1" vertex="1">
+          <mxGeometry x="680" y="400" width="180" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- End Success Node -->
+        <mxCell id="end_success" value="" style="ellipse;html=1;fillColor=#000000;strokeColor=#000000;strokeWidth=4;" parent="1" vertex="1">
+          <mxGeometry x="590" y="405" width="30" height="30" as="geometry" />
+        </mxCell>
+
+
+        <!-- Edges -->
+        <!-- Row 1 -->
+        <mxCell id="edge1" style="endArrow=classic;html=1;" parent="1" source="start" target="select_branch" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge2" style="endArrow=classic;html=1;" parent="1" source="select_branch" target="click_prev" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge3" style="endArrow=classic;html=1;" parent="1" source="click_prev" target="query_prev" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge4" style="endArrow=classic;html=1;" parent="1" source="query_prev" target="show_table" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge5" style="endArrow=classic;html=1;" parent="1" source="show_table" target="select_rooms" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge6" style="endArrow=classic;html=1;" parent="1" source="select_rooms" target="click_gen" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Down to Row 2 -->
+        <mxCell id="edge7" style="endArrow=classic;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" parent="1" source="click_gen" target="start_tx" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Row 2 -->
+        <mxCell id="edge8" style="endArrow=classic;html=1;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" parent="1" source="start_tx" target="loop_start" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge9" value="Còn" style="endArrow=classic;html=1;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" parent="1" source="loop_start" target="dec_index" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="10" y="-10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge10" value="Chưa" style="endArrow=classic;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" parent="1" source="dec_index" target="err_rollback" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="-10" y="10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge11" style="endArrow=classic;html=1;exitX=0;exitY=0.5;entryX=0.5;entryY=0;" parent="1" source="err_rollback" target="end_fail" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="55" y="320" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge12" value="Có" style="endArrow=classic;html=1;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" parent="1" source="dec_index" target="calc_bill" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="10" y="-10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge13" style="endArrow=classic;html=1;" parent="1" source="calc_bill" target="gen_code" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge14" style="endArrow=classic;html=1;" parent="1" source="gen_code" target="insert_inv" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Down to Row 3 -->
+        <mxCell id="edge15" style="endArrow=classic;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" parent="1" source="insert_inv" target="lock_idx" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Loop back connector -->
+        <mxCell id="edge16" style="endArrow=classic;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=1;" parent="1" source="lock_idx" target="loop_start" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="210" y="470" />
+              <mxPoint x="980" y="470" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Loop: Hết phòng -> Save DB (down from LoopStart) -->
+        <mxCell id="edge17" value="Hết" style="endArrow=classic;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" parent="1" source="loop_start" target="save_db" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="10" y="10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge18" style="endArrow=classic;html=1;" parent="1" source="save_db" target="show_success" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge19" style="endArrow=classic;html=1;" parent="1" source="show_success" target="end_success" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
