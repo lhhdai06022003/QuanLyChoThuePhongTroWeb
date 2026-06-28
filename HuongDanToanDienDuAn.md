@@ -89,13 +89,13 @@ Dưới đây là mô tả chi tiết 10 module chức năng chính của hệ t
 ### 1. Quản lý Tài khoản & Phân quyền
 
 *   **Giao diện xuất hiện**:
-    *   *Trang Đăng nhập*: Xuất hiện khi người dùng mở trang web chưa đăng nhập hoặc khi nhấn nút đăng xuất.
+    *   *Trang Đăng nhập*: Xuất hiện tại `/QuanLyNhaTro/DangNhap` khi người dùng chưa đăng nhập.
     *   *Trang Quản lý tài khoản*: Truy cập từ Menu bên trái: **Quản lý người dùng** -> **Quản lý tài khoản**.
 *   **Cách thức hoạt động**:
-    *   Sử dụng Cookie Authentication để duy trì phiên đăng nhập của nhân viên (`ClaimsIdentity`).
-    *   Mật khẩu được băm mã hóa một chiều bằng thuật toán **SHA256** trước khi so sánh hoặc lưu vào database.
-    *   Nếu cơ sở dữ liệu trống, hệ thống tự động chạy cơ chế Seeding để tạo một tài khoản quản trị mặc định (Tên đăng nhập: `admin` / Mật khẩu: `admin123`).
-    *   Các hành động của nhân viên được bảo vệ chặt chẽ bởi thuộc tính `[Authorize]` trên Controller.
+    *   **Cookie Authentication**: Sử dụng Cookie để duy trì phiên làm việc. Claims ghi nhận ID người dùng, Tên đăng nhập, Vai trò (Role) và trường liên kết `NguoiThueId` (nếu là khách thuê).
+    *   **Phân quyền & Điều hướng**: Hệ thống định nghĩa 3 vai trò: `Admin`, `NhanVien`, `KhachThue`. Khi đăng nhập tại trang trung tâm, `NguoiDungController` tự động điều hướng: khách thuê sang Portal Khách Thuê (`/KhachThue/Dashboard`), Admin/Nhân viên sang Portal quản lý (`/QuanLyNhaTro/Dashboard`).
+    *   **Bảo mật mật khẩu**: Mật khẩu băm một chiều SHA256 phía server. Seeding tạo tài khoản mặc định `admin` / `admin123` khi DB trống.
+    *   **Reset mật khẩu về số điện thoại**: Tại trang quản lý tài khoản, Admin có thể kích hoạt API `ResetPasswordToPhoneApi` để đặt lại mật khẩu của người dùng về số điện thoại liên kết trong hồ sơ (nếu là khách thuê thì lấy SĐT từ hồ sơ `NguoiThue` tương ứng) và tự động băm mật khẩu mới này.
 
 ### 2. Bảng điều khiển (Dashboard)
 
@@ -103,7 +103,8 @@ Dưới đây là mô tả chi tiết 10 module chức năng chính của hệ t
 *   **Cách thức hoạt động**:
     *   Khi tải trang, hệ thống nạp dữ liệu thống kê của chi nhánh đầu tiên và tháng hiện tại.
     *   Khi người dùng thay đổi bộ lọc trên giao diện (Chi nhánh, Tháng, Năm), một sự kiện JavaScript được kích hoạt gửi yêu cầu AJAX về Endpoint `/QuanLyNhaTro/Dashboard/GetAjaxData`. API trả về dữ liệu thống kê dạng JSON để vẽ lại biểu đồ Chart.js (biểu đồ doanh thu 12 tháng, biểu đồ cơ cấu phương thức thanh toán) và cập nhật số liệu trên các thẻ KPI mà không cần tải lại toàn bộ trang.
-    *   Hệ thống dùng thuật toán tập hợp để tự động hiển thị mục "Việc cần làm" (To-Dos) như: Lọc danh sách phòng chưa chốt điện nước, các hợp đồng sắp hết hạn trong 30 ngày, và các hóa đơn quá hạn kỳ trước chưa thanh toán.
+    *   **Cảnh báo chỉ số điện nước động (To-Dos)**: Dashboard tự động đọc ngày chốt điện nước định nghĩa tại `DashboardSettings:ChotDienNuocDay` trong `appsettings.json` (mặc định ngày 5). Nếu ngày hiện tại nhỏ hơn ngày chốt này, hệ thống sẽ cảnh báo các phòng chưa chốt của tháng trước nữa (tháng `T-2`); nếu ngày hiện tại lớn hơn hoặc bằng ngày chốt, hệ thống sẽ quét cảnh báo của tháng liền trước (tháng `T-1`). Logic này bảo đảm kế toán chốt sổ đúng hạn mà không gây cảnh báo phiền hà.
+    *   *To-Dos khác*: Các hợp đồng sắp hết hạn trong 30 ngày và các hóa đơn quá hạn kỳ trước chưa thanh toán (được gộp chi tiết theo từng tháng/năm/chi nhánh).
 
 ### 3. Quản lý Chi nhánh
 
@@ -137,6 +138,8 @@ Dưới đây là mô tả chi tiết 10 module chức năng chính của hệ t
     *   *Danh sách thành viên*: Giao diện quản lý thành viên ở ghép được nhúng động qua Partial View `_DanhSachThanhVienPartial.cshtml` và hiển thị trên tab/nút "Thành viên".
 *   **Cách thức hoạt động**:
     *   *Lập hợp đồng*: Khi tạo hợp đồng mới, hệ thống chuyển trạng thái phòng sang "Đã thuê", đồng thời tự động gán các dịch vụ mặc định bắt buộc (Điện, Nước) vào danh sách đăng ký dịch vụ của phòng.
+    *   **Tự động cấp tài khoản đăng nhập Khách Thuê**: Khi hợp đồng được lưu thành công (`CreateAsync`), hệ thống sẽ kiểm tra xem người đại diện ký hợp đồng đã có tài khoản trong bảng `NguoiDungs` chưa. Nếu chưa có và người thuê có email hợp lệ, hệ thống tự động tạo một tài khoản đăng nhập với Tên đăng nhập là Email và Mật khẩu mặc định ban đầu là Số điện thoại của người thuê đó (được băm SHA256 bảo mật). Khách thuê có thể dùng tài khoản này để đăng nhập ngay vào Tenant Portal.
+    *   **Bảo vệ điều khoản dạng Snapshot (`HopDongDieuKhoan`)**: Khi lưu hợp đồng, hệ thống sẽ thực hiện sao chép toàn bộ tiêu đề và nội dung các điều khoản mẫu được chọn tại thời điểm đó và lưu độc lập vào bảng `HopDongDieuKhoans`. Việc snapshot dữ liệu này đảm bảo tính pháp lý nguyên bản của hợp đồng, giúp tránh trường hợp Admin chỉnh sửa hoặc xóa điều khoản mẫu ở tương lai làm thay đổi sai lệch nội dung hợp đồng cũ.
     *   *Quản lý thành viên*: Khi thêm thành viên qua Modal thêm thành viên, hệ thống hỗ trợ autocomplete tìm kiếm khách cũ hoặc nhập mới hoàn toàn. Hệ thống đếm số người ở thực tế (bao gồm khách đại diện + thành viên cũ đang ở) so khớp với sức chứa tối đa của phòng (`SoNguoiToiDa`). Nếu vượt quá, hệ thống sẽ chặn hành động.
     *   *Báo rời phòng*: Ghi nhận ngày rời phòng là ngày hiện tại của thành viên để lưu lịch sử tạm trú và giảm số người ở thực tế của phòng.
     *   *Xuất hợp đồng sang Word (.docx)*: Cho phép người dùng xuất toàn bộ nội dung hợp đồng (bao gồm thông tin khách thuê, thông tin chi nhánh, các điều khoản và bảng đăng ký dịch vụ) ra file Word `.docx` định dạng A4 chuẩn bằng `WordExportService`. Tính năng này được gọi thông qua AJAX hoặc tải trực tiếp về máy từ bộ nhớ RAM, rất hữu ích khi người dùng không kết nối trực tiếp với máy in để in PDF mà cần lưu trữ file offline hoặc tự chỉnh sửa nội dung bằng Microsoft Word.

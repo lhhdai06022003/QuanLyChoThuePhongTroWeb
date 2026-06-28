@@ -63,7 +63,7 @@ QuanLyChoThuePhongTroWeb/
 │   ├── css/                      <-- File CSS tự viết phục vụ từng module (hopdong.css, hoadon.css...)
 │   └── Theme/                    <-- Thư mục chứa thư viện Tabler, JS, hình ảnh logo...
 │
-├── appsettings.json              <-- Cấu hình kết nối DB (PostgreSQL), tham số SMTP, VietQR
+├── appsettings.json              <-- Cấu hình DB (PostgreSQL), SMTP Email, VietQR, DashboardSettings (ngày chốt điện nước), và Gemini AI API Key
 ├── Program.cs                    <-- Nơi khởi chạy ứng dụng, cấu hình DI (Dependency Injection), Routing
 ├── HuongDanToanDienDuAn.md       <-- Tài liệu hướng dẫn chi tiết toàn diện cho lập trình viên mới
 ├── tai_lieu_chuc_nang_he_thong.md <-- Tài liệu mô tả chi tiết các chức năng nghiệp vụ hệ thống
@@ -99,6 +99,13 @@ Hệ thống được chia làm hai phân hệ nghiệp vụ chính: **Phân h�
 3. **Chi tiết Hợp đồng (HopDong)**: Xem toàn bộ hợp đồng hiện tại và quá khứ, các thành viên ở ghép cùng phòng, danh sách dịch vụ đang đăng ký áp dụng cho phòng trọ.
 4. **Hóa đơn & QR Thanh toán (HoaDon)**: Tra cứu lịch sử hóa đơn tiền phòng/dịch vụ theo các tháng. Đối với hóa đơn chưa thanh toán, hệ thống hiển thị mã VietQR động được tạo offline chứa số tiền và nội dung chuyển khoản động chứa mã hóa đơn để chuyển khoản nhanh.
 5. **Lịch sử Giao dịch (LichSuThanhToan)**: Truy cập danh sách các giao dịch thanh toán thành công đã đóng trước đó.
+
+### C. Các Cơ Chế Vận Hành Đặc Thù & Bảo Mật
+
+1. **Phân quyền và điều hướng tự động**: Hệ thống định nghĩa 3 vai trò: `Admin`, `NhanVien`, và `KhachThue`. Khi người dùng đăng nhập tại trang trung tâm `/QuanLyNhaTro/DangNhap`, hệ thống sẽ dựa trên vai trò trong Cookie Claims để tự động chuyển hướng: Khách thuê sang Portal của khách thuê (`/KhachThue/Dashboard`), Quản trị viên và Nhân viên sang Portal quản lý (`/QuanLyNhaTro/Dashboard`).
+2. **Tự động cấp tài khoản Khách thuê**: Khi tạo Hợp đồng mới, nếu người thuê đại diện có nhập email và chưa có tài khoản, hệ thống tự động sinh một tài khoản đăng nhập với tên đăng nhập là Email, mật khẩu mặc định là Số điện thoại của người thuê (được băm SHA256 bảo mật).
+3. **Bảo vệ Điều khoản Hợp đồng dạng Snapshot**: Các điều khoản được chọn từ mẫu điều khoản sẽ được sao chép toàn bộ nội dung và lưu độc lập tại bảng `HopDongDieuKhoans` thay vì tham chiếu động. Điều này ngăn ngừa việc chỉnh sửa điều khoản mẫu trong tương lai làm thay đổi tính pháp lý của các hợp đồng đã ký trong quá khứ.
+4. **Cảnh báo chỉ số điện nước động**: Dashboard tự động đọc ngày chốt điện nước cấu hình tại `DashboardSettings:ChotDienNuocDay` trong `appsettings.json` (mặc định ngày 5) để hiển thị danh sách cảnh báo To-Dos chốt điện nước của tháng trước/tháng hiện tại một cách thông minh và tối ưu.
 
 ---
 

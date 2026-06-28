@@ -15,16 +15,20 @@ Tài liệu này mô tả chi tiết tất cả các chức năng nghiệp vụ 
 *   **Trang Quản lý Tài khoản**: Xuất hiện khi người dùng truy cập từ thanh Menu bên trái: **Quản lý người dùng** -> **Quản lý tài khoản**.
 
 #### B. Danh sách chức năng:
-*   **Đăng nhập hệ thống**: Xác thực tài khoản người dùng (Admin hoặc Staff) để cấp quyền truy cập.
+*   **Đăng nhập hệ thống**: Xác thực tài khoản người dùng với 3 phân hệ vai trò (Admin, Staff, KhachThue) để cấp quyền truy cập.
 *   **Đăng xuất hệ thống**: Hủy phiên làm việc hiện tại, xóa thông tin định danh trên thiết bị.
-*   **Quản lý tài khoản nội bộ (CRUD)**: Cho phép Admin tạo mới, sửa đổi phân quyền, cập nhật trạng thái hoạt động hoặc xóa tài khoản nhân viên.
+*   **Quản lý tài khoản nội bộ (CRUD)**: Cho phép Admin tạo mới, sửa đổi vai trò (Role), cập nhật trạng thái hoạt động (Active/Inactive), liên kết tài khoản với hồ sơ Khách thuê (`NguoiThueId`), hoặc xóa mềm tài khoản nhân viên.
+*   **Đặt lại mật khẩu về số điện thoại**: Admin có thể bấm nút Reset trên giao diện tài khoản để tự động đặt lại mật khẩu về số điện thoại liên kết (SĐT của hồ sơ `NguoiThue` tương ứng) và tự động băm SHA256 để lưu.
 *   **Khởi tạo dữ liệu mẫu (Seeding)**: Tự động tạo tài khoản quản trị tối cao ban đầu nếu cơ sở dữ liệu chưa có dữ liệu. Tài khoản mặc định: `admin` / `admin123`.
 
 #### C. Cách thức hoạt động chi tiết:
-1.  **Xác thực Cookie**: Hệ thống sử dụng cơ chế xác thực dựa trên Cookie của ASP.NET Core (`CookieAuthenticationDefaults`). Khi đăng nhập thành công, một Cookie chứa các thông tin định danh (`ClaimsIdentity`) như ID người dùng, tên đăng nhập và vai trò (Role) sẽ được ghi xuống trình duyệt của người dùng với thời hạn tối đa 30 ngày (nếu chọn ghi nhớ).
-2.  **Mã hóa bảo mật**: Mật khẩu người dùng nhập vào được mã hóa một chiều sử dụng thuật toán băm **SHA256** (hàm `BamMatKhauSHA256` trong Controller) trước khi lưu vào DB hoặc đem so khớp. Hệ thống không bao giờ lưu trữ mật khẩu dưới dạng văn bản thuần (plain text).
-3.  **Tự động tạo Admin**: Khi người dùng truy cập trang Đăng nhập (`/QuanLyNhaTro/DangNhap`), hàm `SeedAdminAccountAsync()` trong `NguoiDungService` sẽ kiểm tra số lượng bản ghi trong bảng `NguoiDungs`. Nếu bằng 0, hệ thống tự động chèn một tài khoản quản trị mặc định: Tên đăng nhập `admin` / Mật khẩu `admin123` (đã được băm SHA256) để người dùng có tài khoản đăng nhập ban đầu.
-4.  **Kiểm soát truy cập**: Các Controller nghiệp vụ được bảo vệ bằng thuộc tính đầu lọc `[Authorize]`. Khi người dùng chưa đăng nhập, hệ thống tự động chuyển hướng về trang `/QuanLyNhaTro/DangNhap`.
+1.  **Xác thực Cookie & Phân quyền**: Hệ thống sử dụng Cookie của ASP.NET Core. Khi đăng nhập thành công, Cookie chứa các thông tin Claims định danh như ID người dùng, Tên đăng nhập và vai trò (Role). Đối với vai trò `KhachThue`, hệ thống tự động ghi nhận thêm Claim `NguoiThueId` để phục vụ việc truy xuất thông tin riêng tư.
+2.  **Logic Điều hướng Sau Đăng nhập**: Khi người dùng submit form đăng nhập tại `/QuanLyNhaTro/DangNhap`, `NguoiDungController` kiểm tra vai trò:
+    - Nếu Role là `KhachThue`, hệ thống tự động chuyển hướng trực tiếp sang Portal Khách thuê tại `/KhachThue/Dashboard`.
+    - Nếu Role là `Admin` hoặc `NhanVien`, hệ thống chuyển hướng sang Portal Vận hành tại `/QuanLyNhaTro/Dashboard`.
+3.  **Mã hóa bảo mật & Reset mật khẩu**: Mật khẩu người dùng nhập vào được mã hóa một chiều sử dụng thuật toán băm **SHA256** (hàm `BamMatKhauSHA256` hoặc HashPassword của Identity) trước khi lưu vào DB. Admin có thể reset mật khẩu của một tài khoản về số điện thoại của hồ sơ `NguoiThue` liên kết thông qua API `ResetPasswordToPhoneApi` trong `NguoiDungController` (mật khẩu mới được băm SHA256 tự động).
+4.  **Tự động tạo Admin**: Khi người dùng truy cập trang Đăng nhập, hàm `SeedAdminAccountAsync()` trong `NguoiDungService` sẽ kiểm tra số lượng bản ghi trong bảng `NguoiDungs`. Nếu bằng 0, hệ thống tự động chèn một tài khoản quản trị mặc định: Tên đăng nhập `admin` / Mật khẩu `admin123`.
+5.  **Kiểm soát truy cập**: Các Controller nghiệp vụ được bảo vệ bằng thuộc tính đầu lọc `[Authorize]`. Khi người dùng chưa đăng nhập, hệ thống tự động chuyển hướng về trang `/QuanLyNhaTro/DangNhap`.
 
 ---
 
@@ -36,16 +40,20 @@ Tài liệu này mô tả chi tiết tất cả các chức năng nghiệp vụ 
 #### B. Danh sách chức năng:
 *   **Thống kê chỉ số nhanh (KPIs)**: Đếm số lượng phòng theo trạng thái (Trống, Đang thuê, Bảo trì), tỷ lệ lấp đầy, số hợp đồng sắp hết hạn trong 30 ngày, doanh thu thực tế và nợ hóa đơn trong tháng.
 *   **Biểu đồ cột chồng doanh thu**: Thể hiện tỷ lệ tiền phòng đã thu so với tiền phòng chờ thu trong 12 tháng của năm được chọn.
-*   **Biểu đồ tròn phương thức thanh toán**: Thống kê tỷ trọng tiền thu được qua Tiền mặt so với Chuyển khoản trong tháng được chọn.
-*   **Danh sách việc cần làm (To-Dos)**: Cảnh báo tự động các phòng chưa chốt điện nước, các hợp đồng chuẩn bị hết hiệu lực và các hóa đơn của các tháng trước vẫn còn nợ tiền.
+*   **Biểu đồ tròn phương thức thanh toán**: Thống kê tỷ lệ tiền thu được qua Tiền mặt so với Chuyển khoản trong tháng được chọn.
+*   **Danh sách việc cần làm (To-Dos)**: Cảnh báo tự động các phòng chưa chốt điện nước, các hợp đồng chuẩn bị hết hiệu lực và các hóa đơn của các tháng trước vẫn còn nợ tiền (được gộp chi tiết theo tháng/năm/chi nhánh).
 *   **Dòng thời gian hoạt động (Timeline)**: Hiển thị danh sách 5 giao dịch thanh toán hoặc hợp đồng mới phát sinh gần nhất.
 
 #### C. Cách thức hoạt động chi tiết:
-1.  **Tải dữ liệu bất đồng bộ (AJAX)**: Khi truy cập giao diện dashboard, hệ thống tải dữ liệu mặc định của Chi nhánh đầu tiên và tháng/năm hiện tại. Khi người dùng thay đổi bộ lọc Chi nhánh, Tháng hoặc Năm trên dropdown, một lệnh gọi AJAX sẽ được gửi tới API Endpoint `/QuanLyNhaTro/Dashboard/GetAjaxData`. API này gọi hàm `GetDashboardDataAsync` truy vấn dữ liệu từ PostgreSQL và trả về định dạng JSON, sau đó JavaScript sẽ vẽ lại biểu đồ Chart.js và cập nhật các con số thống kê mà không cần reload trang.
-2.  **Tính toán To-Dos động**:
-    *   *Chưa chốt điện nước*: Lấy danh sách ID phòng có hợp đồng đang hoạt động trong tháng trừ đi (Except) danh sách ID phòng đã được chốt chỉ số trong bảng `DichVuDienNuocCuaPhongs`. Nếu kết quả > 0, lập tức hiển thị cảnh báo.
-    *   *Hợp đồng sắp hết hạn*: Truy vấn trong bảng `HopDongs` các hợp đồng có trạng thái đang hoạt động và có ngày kết thúc thỏa mãn điều kiện `NgayKetThuc <= Ngày hiện tại + 30 ngày`.
-    *   *Hóa đơn quá hạn*: Tìm trong bảng `HoaDons` các hóa đơn chưa thanh toán mà có thời gian kỳ hóa đơn nhỏ hơn tháng/năm đang được chọn.
+1.  **Tải dữ liệu bất đồng bộ (AJAX)**: Khi truy cập giao diện dashboard, hệ thống tải dữ liệu mặc định của Chi nhánh đầu tiên và tháng/năm hiện tại. Khi người dùng thay đổi bộ lọc Chi nhánh, Tháng hoặc Năm trên dropdown, một lệnh gọi AJAX sẽ được gửi tới API Endpoint `/QuanLyNhaTro/Dashboard/GetAjaxData` truy vấn dữ liệu từ PostgreSQL và trả về định dạng JSON để vẽ lại biểu đồ Chart.js.
+2.  **Thuật toán To-Dos Điện Nước Động**:
+    - Hệ thống đọc cấu hình `"DashboardSettings:ChotDienNuocDay"` từ `appsettings.json` (mặc định là ngày 5).
+    - Nếu ngày hiện hành nhỏ hơn ngày chốt này, hệ thống sẽ xác định thời điểm bắt buộc phải hoàn thành việc chốt chỉ số là tháng trước nữa (tháng `T-2`).
+    - Nếu ngày hiện hành lớn hơn hoặc bằng ngày chốt, hệ thống sẽ kiểm tra và cảnh báo chốt chỉ số cho tháng liền trước (tháng `T-1`).
+    - Sau khi xác định tháng mục tiêu, hệ thống lấy danh sách phòng đang thuê và so khớp với bảng `DichVuDienNuocCuaPhongs`. Những phòng nào chưa có bản ghi chốt của tháng mục tiêu sẽ được đưa vào danh sách cảnh báo To-Dos kèm link chốt nhanh tiện dụng.
+3.  **To-Dos Hợp đồng & Hóa đơn**:
+    *   *Hợp đồng sắp hết hạn*: Truy vấn các hợp đồng có trạng thái đang hoạt động và có ngày kết thúc thỏa mãn điều kiện `NgayKetThuc <= Ngày hiện tại + 30 ngày`.
+    *   *Hóa đơn quá hạn*: Tìm trong bảng `HoaDons` các hóa đơn chưa thanh toán, nhóm theo tháng/năm/chi nhánh để xuất ra danh sách cảnh báo riêng lẻ kèm link dẫn tới đúng trang hóa đơn của tháng đó với bộ lọc trạng thái "Chưa thanh toán".
 
 ---
 
@@ -113,6 +121,7 @@ Tài liệu này mô tả chi tiết tất cả các chức năng nghiệp vụ 
 
 #### B. Danh sách chức năng:
 *   **Lập hợp đồng thuê phòng**: Thiết lập ngày bắt đầu/kết thúc thuê, số tiền đặt cọc phòng, giá thuê thỏa thuận hàng tháng và gán người thuê đại diện.
+*   **Tự động cấp tài khoản Khách thuê**: Tạo ngay tài khoản đăng nhập cho người đại diện nếu họ chưa có tài khoản và nhập email hợp lệ.
 *   **Cập nhật hợp đồng**: Điều chỉnh thời hạn hoặc giá trị thỏa thuận thuê phòng.
 *   **Xóa / Chấm dứt hợp đồng**: Thanh lý hợp đồng và giải phóng phòng về trạng thái trống.
 *   **Quản lý thành viên ở ghép**: Thêm thành viên ở cùng phòng, báo rời phòng (giảm số người ở), và xóa thành viên nhập nhầm.
@@ -122,6 +131,8 @@ Tài liệu này mô tả chi tiết tất cả các chức năng nghiệp vụ 
 1.  **Quy trình lập hợp đồng (`CreateAsync`)**:
     *   Hệ thống kiểm tra trạng thái phòng trọ được chọn. Nếu phòng không ở trạng thái "Trống" (`Trong`), hệ thống báo lỗi không cho phép lập hợp đồng.
     *   Lưu thông tin hợp đồng vào bảng `HopDongs`, sinh mã hợp đồng tự động theo định dạng độc bản.
+    *   **Tự động tạo tài khoản đăng nhập Khách Thuê**: Khi lưu hợp đồng, hệ thống quét bảng `NguoiDungs`. Nếu khách thuê đại diện có email và chưa có tài khoản, hệ thống tự động chèn một bản ghi `NguoiDung` mới với Username là Email, Role `KhachThue`, và Password được băm SHA256 từ Số điện thoại của khách thuê đó.
+    *   **Bảo vệ điều khoản dạng Snapshot (`HopDongDieuKhoan`)**: Hệ thống lấy danh sách điều khoản mẫu được chọn, sao chép toàn bộ tiêu đề/nội dung tại thời điểm lập hợp đồng và ghi nhận trực tiếp vào bảng `HopDongDieuKhoans`. Việc snapshot này đảm bảo hợp đồng cũ giữ nguyên vẹn nội dung pháp lý đã ký kể cả khi Admin thay đổi hoặc xóa các điều khoản mẫu ở tương lai.
     *   Cập nhật trạng thái của phòng trọ sang "Đã thuê" (`DaThue`).
     *   Tự động đăng ký các dịch vụ bắt buộc (như Điện, Nước) vào bảng `DangKyDichVus` cho phòng này để đảm bảo kỳ chốt số điện nước hàng tháng hoạt động bình thường.
 2.  **Chấm dứt/Xóa hợp đồng**: Khi hợp đồng bị xóa hoặc hết hạn thanh lý, thuộc tính `IsDeleted` của hợp đồng được cập nhật thành `true` (hoặc chuyển trạng thái sang `DaKetThuc`). Đồng thời, trạng thái của phòng trọ liên kết được tự động chuyển về "Trống" (`Trong`) để sẵn sàng cho khách thuê tiếp theo.
