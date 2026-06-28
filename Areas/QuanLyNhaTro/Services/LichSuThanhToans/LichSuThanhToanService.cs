@@ -185,5 +185,16 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.LichSuThanhToans
                 return (false, "Lỗi hệ thống khi hủy giao dịch thanh toán.");
             }
         }
+
+        public async Task<System.Collections.Generic.IEnumerable<QuanLyChoThuePhongTroWeb.Models.LichSuThanhToan>> GetLichSuByNguoiThueIdAsync(int nguoiThueId)
+        {
+            var lichSuThanhToans = await _context.LichSuThanhToans
+                .Include(ls => ls.HoaDon).ThenInclude(hd => hd.HopDong).ThenInclude(h => h.PhongTro)
+                .Where(ls => ls.HoaDon.HopDong.NguoiThueId == nguoiThueId && !ls.IsDeleted)
+                .OrderByDescending(ls => ls.NgayThanhToan)
+                .ToListAsync();
+
+            return lichSuThanhToans;
+        }
     }
 }

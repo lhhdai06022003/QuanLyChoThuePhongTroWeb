@@ -14,5 +14,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.LichSuThanhToans
         Task<ThongKeThanhToanRes> GetThongKeThanhToanAsync(int chiNhanhId, DateTime? tuNgay, DateTime? denNgay);
 
         Task<(bool IsSuccess, string ErrorMessage)> HuyGiaoDichAsync(int id, int adminUserId);
+
+        Task<System.Collections.Generic.IEnumerable<QuanLyChoThuePhongTroWeb.Models.LichSuThanhToan>> GetLichSuByNguoiThueIdAsync(int nguoiThueId);
     }
 }

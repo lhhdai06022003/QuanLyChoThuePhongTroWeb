@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuanLyChoThuePhongTroWeb.Data;
 using System.Linq;
+using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.LichSuThanhToans;
 using System.Threading.Tasks;
 
 namespace QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers
@@ -11,14 +12,14 @@ namespace QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers
     [Authorize]
     public class LichSuThanhToanController : Controller
     {
-        private readonly ApplicationDbContext _context;
+        private readonly ILichSuThanhToanService _lichSuThanhToanService;
 
-        public LichSuThanhToanController(ApplicationDbContext context)
+        public LichSuThanhToanController(ILichSuThanhToanService lichSuThanhToanService)
         {
-            _context = context;
+            _lichSuThanhToanService = lichSuThanhToanService;
         }
 
-        public async Task<IActionResult> Index()
+        public IActionResult Index()
         {
             if (!User.IsInRole("KhachThue"))
             {
@@ -28,16 +29,30 @@ namespace QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers
             var nguoiThueIdClaim = User.FindFirst("NguoiThueId");
             if (nguoiThueIdClaim == null) return Content("LỖI HỆ THỐNG: Tài khoản của bạn không được liên kết với hồ sơ người thuê nào (NguoiThueId bị trống). Vui lòng liên hệ Admin.");
 
+            return View();
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetDanhSach()
+        {
+            var nguoiThueIdClaim = User.FindFirst("NguoiThueId");
+            if (nguoiThueIdClaim == null) return Unauthorized();
             int nguoiThueId = int.Parse(nguoiThueIdClaim.Value);
 
-            // Tìm lịch sử thanh toán mà hóa đơn thuộc về hợp đồng của người thuê này
-            var lichSuThanhToans = await _context.LichSuThanhToans
-                .Include(ls => ls.HoaDon).ThenInclude(hd => hd.HopDong).ThenInclude(h => h.PhongTro)
-                .Where(ls => ls.HoaDon.HopDong.NguoiThueId == nguoiThueId && !ls.IsDeleted)
-                .OrderByDescending(ls => ls.NgayThanhToan)
-                .ToListAsync();
+            var lichSuThanhToans = await _lichSuThanhToanService.GetLichSuByNguoiThueIdAsync(nguoiThueId);
 
-            return View(lichSuThanhToans);
+            var result = lichSuThanhToans.Select(l => new {
+                l.LichSuThanhToanId,
+                l.MaGiaoDich,
+                MaHoaDon = l.HoaDon?.MaHoaDon ?? "",
+                SoPhong = l.HoaDon?.HopDong?.PhongTro?.SoPhong ?? "",
+                l.SoTienThanhToan,
+                PhuongThucThanhToan = (int)l.PhuongThucThanhToan,
+                NgayThanhToan = l.NgayThanhToan.ToString("dd/MM/yyyy HH:mm"),
+                GhiChu = l.GhiChu ?? "-"
+            });
+
+            return Json(result);
         }
     }
 }

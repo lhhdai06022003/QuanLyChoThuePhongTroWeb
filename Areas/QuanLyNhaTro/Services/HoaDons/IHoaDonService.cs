@@ -17,5 +17,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HoaDons
         Task<byte[]> ExportExcelAsync(int hoaDonId);
         Task<byte[]> ExportPdfAsync(int hoaDonId);
         Task<List<HoaDonRes>> GetDanhSachHoaDonChuaThanhToanAsync(int chiNhanhId, int thang, int nam);
+        Task<IEnumerable<QuanLyChoThuePhongTroWeb.Models.HoaDon>> GetHoaDonsByNguoiThueIdAsync(int nguoiThueId);
+        Task<bool> CheckHoaDonOwnershipAsync(int hoaDonId, int nguoiThueId);
     }
 }

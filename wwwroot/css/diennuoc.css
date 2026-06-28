@@ -74,10 +74,23 @@
 /* Sticky Action Bar styling */
 #stickyActionBar {
     transform: translateY(100%);
+    visibility: hidden;
+    transition: transform 0.3s ease, visibility 0.3s ease;
     box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.08) !important;
 }
 
 #stickyActionBar.show-bar {
     transform: translateY(0) !important;
-    display: flex !important;
+    visibility: visible !important;
+}
+
+/* Align table headers perfectly with inputs by removing sorting padding on centered columns */
+#dienNuocTable thead th.text-center {
+    padding-right: 8px !important;
+    padding-left: 8px !important;
+}
+
+#dienNuocTable thead th.text-center::before,
+#dienNuocTable thead th.text-center::after {
+    display: none !important;
 }

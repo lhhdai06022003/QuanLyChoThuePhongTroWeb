@@ -1,4 +1,3 @@
-@model IEnumerable<QuanLyChoThuePhongTroWeb.Models.HopDong>
 @{
     ViewBag.Title = "Hợp đồng thuê phòng";
 }
@@ -14,61 +13,24 @@
 <div class="page-body">
     <div class="container-xl">
         <div class="card">
-            <div class="table-responsive">
-                <table class="table table-vcenter card-table">
-                    <thead>
-                        <tr>
-                            <th>Mã hợp đồng</th>
-                            <th>Phòng / Chi nhánh</th>
-                            <th>Ngày bắt đầu</th>
-                            <th>Ngày kết thúc</th>
-                            <th>Tiền thuê</th>
-                            <th>Trạng thái</th>
-                            <th class="w-1"></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @if (!Model.Any())
-                        {
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped table-hover w-100" id="hopDongTable">
+                        <thead>
                             <tr>
-                                <td colspan="7" class="text-center text-muted py-4">Không có hợp đồng nào.</td>
+                                <th>Mã hợp đồng</th>
+                                <th>Phòng / Chi nhánh</th>
+                                <th>Ngày bắt đầu</th>
+                                <th>Ngày kết thúc</th>
+                                <th>Tiền thuê</th>
+                                <th>Trạng thái</th>
+                                <th class="w-1"></th>
                             </tr>
-                        }
-                        else
-                        {
-                            foreach (var item in Model)
-                            {
-                                <tr>
-                                    <td>@item.MaHopDong</td>
-                                    <td>
-                                        <div class="font-weight-bold">Phòng @item.PhongTro.SoPhong</div>
-                                        <div class="text-muted">@item.PhongTro.ChiNhanh.TenChiNhanh</div>
-                                    </td>
-                                    <td>@item.ThoiDiemBatDau.ToString("dd/MM/yyyy")</td>
-                                    <td>@(item.ThoiDiemKetThuc?.ToString("dd/MM/yyyy") ?? "Vô thời hạn")</td>
-                                    <td>@item.TienThuePhong.ToString("N0") VNĐ</td>
-                                    <td>
-                                        @if (item.TrangThaiHopDong == QuanLyChoThuePhongTroWeb.Models.TrangThaiHopDong.DangHoatDong)
-                                        {
-                                            <span class="badge bg-success-lt">Đang hoạt động</span>
-                                        }
-                                        else if (item.TrangThaiHopDong == QuanLyChoThuePhongTroWeb.Models.TrangThaiHopDong.DaKetThuc)
-                                        {
-                                            <span class="badge bg-secondary-lt">Đã kết thúc</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="badge bg-danger-lt">Đã hủy</span>
-                                        }
-                                    </td>
-                                    <td>
-                                        <button type="button" class="btn btn-primary btn-sm" onclick="showChiTiet(@item.HopDongId, '@item.PhongTro.SoPhong')"><i class="fas fa-eye me-1"></i> Xem chi tiết</button>
-                                    </td>
-                                </tr>
-                            }
-                        }
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -78,9 +40,9 @@
 <div class="modal fade" id="quickContractModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
+            <div class="modal-header py-3">
                 <h5 class="modal-title"><i class="fas fa-file-contract"></i> Xem Chi Tiết Hợp Đồng - Phòng <span id="quickContractRoom"></span></h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <div class="row mb-3">
@@ -116,7 +78,7 @@
                 <div class="tab-content" id="quickContractTabContent">
                     <div class="tab-pane fade show active" id="qc-members-pane" role="tabpanel">
                         <table class="table table-bordered table-sm table-striped">
-                            <thead class="bg-light">
+                            <thead class="bg-body-tertiary">
                                 <tr>
                                     <th class="text-center" width="8%">STT</th>
                                     <th>Họ và Tên</th>
@@ -131,7 +93,7 @@
                     </div>
                     <div class="tab-pane fade" id="qc-services-pane" role="tabpanel">
                         <table class="table table-bordered table-sm table-striped">
-                            <thead class="bg-light">
+                            <thead class="bg-body-tertiary">
                                 <tr>
                                     <th class="text-center" width="8%">STT</th>
                                     <th>Tên dịch vụ</th>
@@ -155,6 +117,59 @@
 
 @section Scripts {
     <script>
+        $(document).ready(function () {
+            $('#hopDongTable').DataTable({
+                "ajax": {
+                    "url": "/KhachThue/HopDong/GetDanhSach",
+                    "dataSrc": ""
+                },
+                "columns": [
+                    { "data": "maHopDong" },
+                    { 
+                        "data": null,
+                        "render": function (data, type, row) {
+                            return '<div class="font-weight-bold">Phòng ' + row.soPhong + '</div>' +
+                                   '<div class="text-muted">' + row.tenChiNhanh + '</div>';
+                        }
+                    },
+                    { "data": "thoiDiemBatDau" },
+                    { "data": "thoiDiemKetThuc" },
+                    { 
+                        "data": "tienThuePhong",
+                        "render": function (data) {
+                            return formatVND(data);
+                        }
+                    },
+                    { 
+                        "data": "trangThaiHopDong",
+                        "render": function (data) {
+                            if (data === 1) {
+                                return '<span class="badge bg-success-lt">Đang hoạt động</span>';
+                            } else if (data === 2) {
+                                return '<span class="badge bg-secondary-lt">Đã kết thúc</span>';
+                            } else if (data === 3) {
+                                return '<span class="badge bg-danger-lt">Đã hủy</span>';
+                            }
+                            return '';
+                        }
+                    },
+                    { 
+                        "data": "hopDongId",
+                        "render": function (data, type, row) {
+                            return '<button type="button" class="btn btn-primary btn-sm" onclick="showChiTiet(' + data + ', \'' + row.soPhong + '\')"><i class="fas fa-eye me-1"></i> Xem chi tiết</button>';
+                        }
+                    }
+                ],
+                "language": {
+                    "url": "//cdn.datatables.net/plug-ins/1.13.6/i18n/vi.json"
+                },
+                "pageLength": 10,
+                "ordering": true,
+                "info": true,
+                "autoWidth": false
+            });
+        });
+
         function formatVND(n) {
             return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n || 0);
         }

@@ -580,5 +580,62 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HopDongs
 
             return result;
         }
+
+        public async Task<IEnumerable<HopDong>> GetHopDongsByNguoiThueIdAsync(int nguoiThueId)
+        {
+            var hopDongs = await _context.HopDongs
+                .Include(x => x.PhongTro).ThenInclude(p => p.ChiNhanh)
+                .Include(x => x.NguoiThue)
+                .Include(x => x.HopDongDieuKhoans)
+                .Where(x => x.NguoiThueId == nguoiThueId && !x.IsDeleted)
+                .OrderByDescending(x => x.NgayTao)
+                .ToListAsync();
+            return hopDongs;
+        }
+
+        public async Task<object> GetChiTietHopDongKhachThueAsync(int id, int nguoiThueId)
+        {
+            var hopDong = await _context.HopDongs
+                .Include(h => h.NguoiThue)
+                .Include(h => h.PhongTro)
+                .FirstOrDefaultAsync(h => h.HopDongId == id && h.NguoiThueId == nguoiThueId && !h.IsDeleted);
+
+            if (hopDong == null) return null;
+
+            var members = await _context.ChiTietThanhVienHopDongs
+                .Include(m => m.NguoiThue)
+                .Where(m => m.HopDongId == id && !m.IsDeleted)
+                .Select(m => new {
+                    hoVaTen = m.NguoiThue.HoVaTen,
+                    soDienThoai = m.NguoiThue.SoDienThoai,
+                    cccd = m.NguoiThue.CCCD,
+                    ngayVao = m.NgayVao.ToString("dd/MM/yyyy")
+                }).ToListAsync();
+
+            var services = await _context.DangKyDichVus
+                .Include(s => s.DichVuChiNhanh).ThenInclude(dcn => dcn.DichVu)
+                .Where(s => s.PhongTroId == hopDong.PhongTroId)
+                .Select(s => new {
+                    tenDichVu = s.DichVuChiNhanh.DichVu.TenDichVu,
+                    donGia = s.DichVuChiNhanh.GiaDichVu,
+                    donVi = s.DichVuChiNhanh.DichVu.DonVi,
+                    soLuong = s.SoLuong
+                }).ToListAsync();
+
+            var data = new {
+                maHopDong = hopDong.MaHopDong,
+                thoiDiemBatDau = hopDong.ThoiDiemBatDau.ToString("dd/MM/yyyy"),
+                thoiDiemKetThuc = hopDong.ThoiDiemKetThuc?.ToString("dd/MM/yyyy") ?? "Không thời hạn",
+                tienCocPhong = hopDong.TienCocPhong,
+                tienThuePhong = hopDong.TienThuePhong,
+                tenNguoiDaiDien = hopDong.NguoiThue?.HoVaTen,
+                soDienThoaiDaiDien = hopDong.NguoiThue?.SoDienThoai,
+                cccdDaiDien = hopDong.NguoiThue?.CCCD,
+                members = members,
+                services = services
+            };
+
+            return data;
+        }
     }
 }

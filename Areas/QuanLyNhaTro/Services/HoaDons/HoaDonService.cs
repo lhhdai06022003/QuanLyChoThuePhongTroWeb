@@ -848,5 +848,34 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HoaDons
                 })
                 .ToListAsync();
         }
+
+        public async Task<IEnumerable<QuanLyChoThuePhongTroWeb.Models.HoaDon>> GetHoaDonsByNguoiThueIdAsync(int nguoiThueId)
+        {
+            var hopDongIds = await _context.HopDongs
+                .Where(x => x.NguoiThueId == nguoiThueId && !x.IsDeleted)
+                .Select(x => x.HopDongId)
+                .ToListAsync();
+
+            if (!hopDongIds.Any())
+            {
+                return Enumerable.Empty<QuanLyChoThuePhongTroWeb.Models.HoaDon>();
+            }
+
+            var hoaDons = await _context.HoaDons
+                .Include(x => x.HopDong).ThenInclude(h => h.PhongTro)
+                .Where(x => hopDongIds.Contains(x.HopDongId) && !x.IsDeleted)
+                .OrderByDescending(x => x.NgayTao)
+                .ToListAsync();
+
+            return hoaDons;
+        }
+
+        public async Task<bool> CheckHoaDonOwnershipAsync(int hoaDonId, int nguoiThueId)
+        {
+            var isOwn = await _context.HoaDons
+                .Include(h => h.HopDong)
+                .AnyAsync(h => h.HoaDonId == hoaDonId && h.HopDong.NguoiThueId == nguoiThueId && !h.IsDeleted);
+            return isOwn;
+        }
     }
 }

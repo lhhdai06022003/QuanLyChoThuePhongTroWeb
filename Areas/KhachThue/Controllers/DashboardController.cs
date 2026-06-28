@@ -3,20 +3,28 @@ using Microsoft.AspNetCore.Mvc;
 using QuanLyChoThuePhongTroWeb.Data;
 using System.Security.Claims;
 
+using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.NguoiThues;
+using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HoaDons;
+using System.Threading.Tasks;
+using System.Linq;
+using QuanLyChoThuePhongTroWeb.Models;
+
 namespace QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers
 {
     [Area("KhachThue")]
     [Authorize]
     public class DashboardController : Controller
     {
-        private readonly ApplicationDbContext _context;
+        private readonly INguoiThueService _nguoiThueService;
+        private readonly IHoaDonService _hoaDonService;
 
-        public DashboardController(ApplicationDbContext context)
+        public DashboardController(INguoiThueService nguoiThueService, IHoaDonService hoaDonService)
         {
-            _context = context;
+            _nguoiThueService = nguoiThueService;
+            _hoaDonService = hoaDonService;
         }
 
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
             if (!User.IsInRole("KhachThue"))
             {
@@ -32,9 +40,18 @@ namespace QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers
 
             int nguoiThueId = int.Parse(nguoiThueIdClaim.Value);
 
-            var nguoiThue = _context.NguoiThues.Find(nguoiThueId);
+            var nguoiThue = await _nguoiThueService.GetByIdAsync(nguoiThueId);
             ViewBag.NguoiThueName = nguoiThue?.HoVaTen ?? "Khách";
             ViewBag.NguoiThueId = nguoiThueId;
+
+            // Lấy hóa đơn chưa thanh toán
+            var hoaDons = await _hoaDonService.GetHoaDonsByNguoiThueIdAsync(nguoiThueId);
+            double tongTienChuaThanhToan = hoaDons
+                .Where(h => h.TrangThaiHoaDon == TrangThaiHoaDon.ChuaThanhToan)
+                .Sum(h => h.TongTien);
+            
+            ViewBag.TongTienChuaThanhToan = tongTienChuaThanhToan;
+
             return View();
         }
     }

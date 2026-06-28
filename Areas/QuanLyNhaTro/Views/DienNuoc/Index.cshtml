@@ -117,7 +117,7 @@
 </div>
 
 <!-- Sticky Bottom Action Bar -->
-<div class="fixed-bottom bg-body border-top shadow-lg py-3 px-4 d-flex align-items-center justify-content-between d-print-none" id="stickyActionBar" style="display: none !important; z-index: 1050; transition: transform 0.3s ease;">
+<div class="fixed-bottom bg-body border-top shadow-lg py-3 px-4 d-flex align-items-center justify-content-between d-print-none" id="stickyActionBar" style="z-index: 1050;">
     <div class="d-flex align-items-center">
         <span class="badge bg-yellow-lt text-warning me-2"><i class="fas fa-exclamation-triangle"></i></span>
         <span class="font-weight-medium">Bạn có chỉ số mới chưa được lưu lại vào hệ thống.</span>
@@ -313,9 +313,16 @@
                         "info": false,
                         "autoWidth": false,
                         "columnDefs": [
-                            { "orderable": false, "targets": [3, 4, 5, 6, 7] } // Không sort trên các cột input và status
+                            { "orderable": false, "targets": [0, 3, 4, 5, 6, 7] } // Không sort trên STT, các cột chỉ số và trạng thái
                         ]
                     });
+                    
+                    // Tự động căn chỉnh lại độ rộng cột của header sau khi vẽ để thẳng hàng tuyệt đối với body
+                    setTimeout(function() {
+                        if (table) {
+                            table.columns.adjust().draw();
+                        }
+                    }, 50);
                 }
             }
 

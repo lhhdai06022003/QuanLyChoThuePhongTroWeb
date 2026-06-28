@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuanLyChoThuePhongTroWeb.Data;
 using QuanLyChoThuePhongTroWeb.Models;
-using System.Linq;
+using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HopDongs;
 using System.Threading.Tasks;
 
 namespace QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers
@@ -12,14 +12,14 @@ namespace QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers
     [Authorize]
     public class HopDongController : Controller
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IHopDongService _hopDongService;
 
-        public HopDongController(ApplicationDbContext context)
+        public HopDongController(IHopDongService hopDongService)
         {
-            _context = context;
+            _hopDongService = hopDongService;
         }
 
-        public async Task<IActionResult> Index()
+        public IActionResult Index()
         {
             if (!User.IsInRole("KhachThue"))
             {
@@ -29,18 +29,30 @@ namespace QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers
             var nguoiThueIdClaim = User.FindFirst("NguoiThueId");
             if (nguoiThueIdClaim == null) return Content("LỖI HỆ THỐNG: Tài khoản của bạn không được liên kết với hồ sơ người thuê nào (NguoiThueId bị trống). Vui lòng liên hệ Admin.");
 
+            return View();
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetDanhSach()
+        {
+            var nguoiThueIdClaim = User.FindFirst("NguoiThueId");
+            if (nguoiThueIdClaim == null) return Unauthorized();
             int nguoiThueId = int.Parse(nguoiThueIdClaim.Value);
 
-            // Tìm hợp đồng mà người thuê làm đại diện (có thể có nhiều nhưng thường lấy cái đang hoạt động)
-            var hopDongs = await _context.HopDongs
-                .Include(x => x.PhongTro).ThenInclude(p => p.ChiNhanh)
-                .Include(x => x.NguoiThue)
-                .Include(x => x.HopDongDieuKhoans)
-                .Where(x => x.NguoiThueId == nguoiThueId && !x.IsDeleted)
-                .OrderByDescending(x => x.NgayTao)
-                .ToListAsync();
+            var hopDongs = await _hopDongService.GetHopDongsByNguoiThueIdAsync(nguoiThueId);
 
-            return View(hopDongs);
+            var result = hopDongs.Select(h => new {
+                h.HopDongId,
+                h.MaHopDong,
+                SoPhong = h.PhongTro?.SoPhong ?? "",
+                TenChiNhanh = h.PhongTro?.ChiNhanh?.TenChiNhanh ?? "",
+                ThoiDiemBatDau = h.ThoiDiemBatDau.ToString("dd/MM/yyyy"),
+                ThoiDiemKetThuc = h.ThoiDiemKetThuc?.ToString("dd/MM/yyyy") ?? "Vô thời hạn",
+                h.TienThuePhong,
+                TrangThaiHopDong = (int)h.TrangThaiHopDong
+            });
+
+            return Json(result);
         }
 
         [HttpGet]
@@ -50,45 +62,9 @@ namespace QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers
             if (nguoiThueIdClaim == null) return Unauthorized();
             int nguoiThueId = int.Parse(nguoiThueIdClaim.Value);
 
-            var hopDong = await _context.HopDongs
-                .Include(h => h.NguoiThue)
-                .Include(h => h.PhongTro)
-                .FirstOrDefaultAsync(h => h.HopDongId == id && h.NguoiThueId == nguoiThueId && !h.IsDeleted);
+            var data = await _hopDongService.GetChiTietHopDongKhachThueAsync(id, nguoiThueId);
 
-            if (hopDong == null) return NotFound("Không tìm thấy hợp đồng.");
-
-            var members = await _context.ChiTietThanhVienHopDongs
-                .Include(m => m.NguoiThue)
-                .Where(m => m.HopDongId == id && !m.IsDeleted)
-                .Select(m => new {
-                    hoVaTen = m.NguoiThue.HoVaTen,
-                    soDienThoai = m.NguoiThue.SoDienThoai,
-                    cccd = m.NguoiThue.CCCD,
-                    ngayVao = m.NgayVao.ToString("dd/MM/yyyy")
-                }).ToListAsync();
-
-            var services = await _context.DangKyDichVus
-                .Include(s => s.DichVuChiNhanh).ThenInclude(dcn => dcn.DichVu)
-                .Where(s => s.PhongTroId == hopDong.PhongTroId)
-                .Select(s => new {
-                    tenDichVu = s.DichVuChiNhanh.DichVu.TenDichVu,
-                    donGia = s.DichVuChiNhanh.GiaDichVu,
-                    donVi = s.DichVuChiNhanh.DichVu.DonVi,
-                    soLuong = s.SoLuong
-                }).ToListAsync();
-
-            var data = new {
-                maHopDong = hopDong.MaHopDong,
-                thoiDiemBatDau = hopDong.ThoiDiemBatDau.ToString("dd/MM/yyyy"),
-                thoiDiemKetThuc = hopDong.ThoiDiemKetThuc?.ToString("dd/MM/yyyy") ?? "Không thời hạn",
-                tienCocPhong = hopDong.TienCocPhong,
-                tienThuePhong = hopDong.TienThuePhong,
-                tenNguoiDaiDien = hopDong.NguoiThue?.HoVaTen,
-                soDienThoaiDaiDien = hopDong.NguoiThue?.SoDienThoai,
-                cccdDaiDien = hopDong.NguoiThue?.CCCD,
-                members = members,
-                services = services
-            };
+            if (data == null) return NotFound("Không tìm thấy hợp đồng hoặc không có quyền truy cập.");
 
             return Json(data);
         }

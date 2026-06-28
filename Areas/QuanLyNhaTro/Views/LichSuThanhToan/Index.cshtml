@@ -23,6 +23,22 @@
         height: 2.5rem;
         font-size: 1.25rem;
     }
+
+    /* Hiệu ứng zoom và background khi hover nút thao tác */
+    .btn-list .btn-icon {
+        transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease, color 0.2s ease;
+    }
+    .btn-list .btn-icon:hover {
+        transform: scale(1.15);
+    }
+    .btn-ghost-info:hover {
+        background-color: rgba(32, 107, 196, 0.15) !important;
+        color: var(--tblr-info) !important;
+    }
+    .btn-ghost-danger:hover {
+        background-color: rgba(214, 63, 63, 0.15) !important;
+        color: var(--tblr-danger) !important;
+    }
 </style>
 
 <div class="container-xl mt-3">
@@ -63,7 +79,7 @@
 
         <!-- Card 3: Thu tiền mặt -->
         <div class="col-sm-6 col-lg-3">
-            <div class="card shadow border-0 bg-info text-white" style="position: relative; overflow: hidden;">
+            <div class="card shadow border-0 bg-info-lt" style="position: relative; overflow: hidden;">
                 <div class="card-body p-4">
                     <div class="subheader text-white text-opacity-75 font-weight-bold mb-2 fs-4">THU TIỀN MẶT</div>
                     <div class="h1 mb-0 text-white font-weight-bold" id="statDoanhThuTienMat" style="font-size: 2rem;">0 ₫</div>
@@ -91,7 +107,7 @@
             <div class="bg-light p-3 border border-dashed rounded-3 mb-4">
                 <div class="row g-3 align-items-end">
                     <div class="col-md-3">
-                        <label class="form-label font-weight-bold text-secondary mb-1">
+                        <label for="filterChiNhanh" class="form-label font-weight-bold text-secondary mb-1">
                             <i class="fas fa-building me-1"></i> Chi Nhánh
                         </label>
                         <select id="filterChiNhanh" class="form-select form-select-sm">
@@ -106,7 +122,7 @@
                         </select>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label font-weight-bold text-secondary mb-1">
+                        <label for="filterPhuongThuc" class="form-label font-weight-bold text-secondary mb-1">
                             <i class="fas fa-hand-holding-usd me-1"></i> Phương thức
                         </label>
                         <select id="filterPhuongThuc" class="form-select form-select-sm">
@@ -116,7 +132,7 @@
                         </select>
                     </div>
                     <div class="col-md-5">
-                        <label class="form-label font-weight-bold text-secondary mb-1">
+                        <label for="filterDateRange" class="form-label font-weight-bold text-secondary mb-1">
                             <i class="fas fa-calendar-alt me-1"></i> Khoảng thời gian
                         </label>
                         <div class="d-flex gap-2">
@@ -147,7 +163,7 @@
                             <th class="text-center">Phương thức</th>
                             <th>Ngày thanh toán</th>
                             <th>Người thực hiện</th>
-                            <th class="text-center" width="12%">Thao tác</th>
+                            <th class="text-center" style="min-width: 90px;">Thao tác</th>
                         </tr>
                     </thead>
                     <tbody></tbody>
@@ -161,9 +177,9 @@
 <div class="modal modal-blur fade" id="chiTietModal" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
         <div class="modal-content shadow-lg border-0">
-            <div class="modal-header bg-info text-white py-3">
+            <div class="modal-header bg-info-lt py-3">
                 <h5 class="modal-title font-weight-bold"><i class="fas fa-file-alt me-1"></i> Chi tiết Hóa đơn</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body py-4" id="chiTietBody">
                 <!-- JS render -->
@@ -177,6 +193,15 @@
 
 @section Scripts {
     <script>
+        function escapeHtml(unsafe) {
+            return (unsafe || "").toString()
+                 .replace(/&/g, "&amp;")
+                 .replace(/</g, "&lt;")
+                 .replace(/>/g, "&gt;")
+                 .replace(/"/g, "&quot;")
+                 .replace(/'/g, "&#039;");
+        }
+
         $(document).ready(function () {
             var isAdmin = @isAdmin;
             var bankId = '@(Configuration["VietQRSettings:BankId"] ?? "MB")';
@@ -328,15 +353,15 @@
                         "className": "text-center align-middle",
                         "render": function (data, t, row) {
                             let actionHtml = `
-                                <div class="d-flex justify-content-center gap-1">
-                                    <button class="btn btn-outline-info btn-xs btn-detail" data-id="${row.hoaDonId}" title="Xem hóa đơn">
-                                        <i class="fas fa-eye me-1"></i>Xem HĐ
+                                <div class="btn-list flex-nowrap justify-content-center">
+                                    <button class="btn btn-icon btn-ghost-info btn-sm btn-detail" data-id="${row.hoaDonId}" title="Xem chi tiết hóa đơn">
+                                        <i class="fas fa-eye"></i>
                                     </button>
                             `;
                             if (isAdmin) {
                                 actionHtml += `
-                                    <button class="btn btn-outline-danger btn-xs btn-void" data-id="${row.lichSuThanhToanId}" data-code="${row.maGiaoDich}" title="Hủy giao dịch thanh toán">
-                                        <i class="fas fa-trash-alt me-1"></i>Hủy
+                                    <button class="btn btn-icon btn-ghost-danger btn-sm btn-void" data-id="${row.lichSuThanhToanId}" data-code="${escapeHtml(row.maGiaoDich)}" title="Hủy giao dịch thanh toán">
+                                        <i class="fas fa-trash-alt"></i>
                                     </button>
                                 `;
                             }
@@ -362,12 +387,12 @@
                 $.get(`/HoaDon/GetById/${id}`, function (res) {
                     let html = `
                         <div class="row mb-3 fs-3">
-                            <div class="col-md-6 mb-2"><strong>Mã HĐ:</strong> <span class="text-primary font-weight-bold">${res.maHoaDon}</span></div>
-                            <div class="col-md-6 mb-2"><strong>Ngày tạo:</strong> ${res.ngayTao}</div>
-                            <div class="col-md-6 mb-2"><strong>Phòng:</strong> <span class="text-primary font-weight-bold">${res.tenPhong}</span></div>
+                            <div class="col-md-6 mb-2"><strong>Mã HĐ:</strong> <span class="text-primary font-weight-bold">${escapeHtml(res.maHoaDon)}</span></div>
+                            <div class="col-md-6 mb-2"><strong>Ngày tạo:</strong> ${escapeHtml(res.ngayTao)}</div>
+                            <div class="col-md-6 mb-2"><strong>Phòng:</strong> <span class="text-primary font-weight-bold">${escapeHtml(res.tenPhong)}</span></div>
                             <div class="col-md-6 mb-2"><strong>Kỳ:</strong> Tháng ${res.thang}/${res.nam}</div>
-                            <div class="col-md-6 mb-2"><strong>Người thuê:</strong> ${res.tenNguoiThue}</div>
-                            <div class="col-md-6 mb-2"><strong>Trạng thái:</strong> <span class="badge ${res.trangThaiHoaDon === 'Đã thanh toán' ? 'bg-success-lt' : 'bg-warning-lt'} px-2 py-1">${res.trangThaiHoaDon}</span></div>
+                            <div class="col-md-6 mb-2"><strong>Người thuê:</strong> ${escapeHtml(res.tenNguoiThue)}</div>
+                            <div class="col-md-6 mb-2"><strong>Trạng thái:</strong> <span class="badge ${res.trangThaiHoaDon === 'Đã thanh toán' ? 'bg-success-lt' : 'bg-warning-lt'} px-2 py-1">${escapeHtml(res.trangThaiHoaDon)}</span></div>
                         </div>
                         <h4 class="font-weight-bold border-bottom pb-2 mt-4"><i class="fas fa-list me-1"></i> Chi tiết các khoản phí</h4>
                         <div class="table-responsive mb-3">
@@ -388,7 +413,7 @@
                         let donViText = ct.donVi ? ct.donVi : '-';
                         html += `<tr>
                             <td class="text-center align-middle">${idx + 1}</td>
-                            <td class="align-middle">${ct.tenDichVu}</td>
+                            <td class="align-middle">${escapeHtml(ct.tenDichVu)}</td>
                             <td class="text-right align-middle">${formatVND(ct.donGia)}</td>
                             <td class="text-center align-middle">${ct.soLuong}</td>
                             <td class="text-center align-middle">${donViText}</td>
@@ -415,7 +440,7 @@
                                     <tr><th>Mã GD</th><th class="text-right">Số tiền</th><th>Phương thức</th><th>Ngày</th><th>Người xác nhận</th><th>Ghi chú</th></tr>
                                 </thead><tbody>`;
                         res.lichSuThanhToans.forEach(ls => {
-                            html += `<tr><td>${ls.maGiaoDich}</td><td class="text-right font-weight-bold text-success">${formatVND(ls.soTienThanhToan)}</td><td>${ls.phuongThucThanhToan}</td><td>${ls.ngayThanhToan}</td><td>${ls.nguoiXacNhan}</td><td>${ls.ghiChu || ''}</td></tr>`;
+                            html += `<tr><td>${escapeHtml(ls.maGiaoDich)}</td><td class="text-right font-weight-bold text-success">${formatVND(ls.soTienThanhToan)}</td><td>${escapeHtml(ls.phuongThucThanhToan)}</td><td>${escapeHtml(ls.ngayThanhToan)}</td><td>${escapeHtml(ls.nguoiXacNhan)}</td><td>${escapeHtml(ls.ghiChu || '')}</td></tr>`;
                         });
                         html += `</tbody></table></div>`;
                     }
@@ -432,11 +457,11 @@
                                     </div>
                                     <p class="small text-muted mb-3">Sử dụng ứng dụng ngân hàng hoặc ví điện tử để quét mã QR</p>
                                     <div class="qr-details-list bg-light p-3 rounded text-start" style="font-size: 0.9rem;">
-                                        <div class="d-flex justify-content-between mb-1"><span>Ngân hàng:</span><strong>${bankId}</strong></div>
-                                        <div class="d-flex justify-content-between mb-1"><span>Số tài khoản:</span><strong>${accountNumber}</strong></div>
-                                        <div class="d-flex justify-content-between mb-1"><span>Chủ tài khoản:</span><strong>${accountName}</strong></div>
+                                        <div class="d-flex justify-content-between mb-1"><span>Ngân hàng:</span><strong>${escapeHtml(bankId)}</strong></div>
+                                        <div class="d-flex justify-content-between mb-1"><span>Số tài khoản:</span><strong>${escapeHtml(accountNumber)}</strong></div>
+                                        <div class="d-flex justify-content-between mb-1"><span>Chủ tài khoản:</span><strong>${escapeHtml(accountName)}</strong></div>
                                         <div class="d-flex justify-content-between mb-1"><span>Số tiền:</span><strong class="text-danger">${formatVND(res.tongTien)}</strong></div>
-                                        <div class="d-flex justify-content-between"><span>Nội dung CK:</span><code class="text-primary font-weight-bold">THANH TOAN ${res.maHoaDon}</code></div>
+                                        <div class="d-flex justify-content-between"><span>Nội dung CK:</span><code class="text-primary font-weight-bold">THANH TOAN ${escapeHtml(res.maHoaDon)}</code></div>
                                     </div>
                                 </div>
                             </div>

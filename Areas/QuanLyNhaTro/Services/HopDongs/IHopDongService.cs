@@ -13,5 +13,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HopDongs
         Task<(bool IsSuccess, string ErrorMessage)> UpdateAsync(int id, HopDongReq input);
         Task<(bool IsSuccess, string ErrorMessage)> DeleteAsync(int id);
         Task<HopDongPrintRes> GetPrintDataAsync(int id);
+        Task<IEnumerable<HopDong>> GetHopDongsByNguoiThueIdAsync(int nguoiThueId);
+        Task<object> GetChiTietHopDongKhachThueAsync(int id, int nguoiThueId);
     }
 }

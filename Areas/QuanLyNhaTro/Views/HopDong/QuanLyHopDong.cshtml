@@ -42,7 +42,7 @@
             <div class="bg-light p-3 border border-dashed rounded-3 mb-4">
                 <div class="row g-3 align-items-end">
                     <div class="col-md-3">
-                        <label class="form-label font-weight-bold text-secondary mb-1">
+                        <label for="filterChiNhanh" class="form-label font-weight-bold text-secondary mb-1">
                             <i class="fas fa-building me-1"></i> Chi Nhánh
                         </label>
                         <select id="filterChiNhanh" class="form-select form-select-sm">
@@ -57,7 +57,7 @@
                         </select>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label font-weight-bold text-secondary mb-1">
+                        <label for="filterNguoiThue" class="form-label font-weight-bold text-secondary mb-1">
                             <i class="fas fa-user me-1"></i> Người Thuê
                         </label>
                         <select id="filterNguoiThue" class="form-select form-select-sm">
@@ -72,13 +72,13 @@
                         </select>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label font-weight-bold text-secondary mb-1">
+                        <label for="filterDateRange" class="form-label font-weight-bold text-secondary mb-1">
                             <i class="fas fa-calendar-alt me-1"></i> Thời hạn hợp đồng
                         </label>
                         <input type="text" class="form-control form-control-sm" id="filterDateRange" placeholder="Chọn khoảng thời gian...">
                     </div>
-                    <div class="col-md-2">
-                        <label class="form-label font-weight-bold text-secondary mb-1">
+                    <div class="col-md-3">
+                        <label for="filterTrangThai" class="form-label font-weight-bold text-secondary mb-1">
                             <i class="fas fa-info-circle me-1"></i> Trạng thái
                         </label>
                         <select id="filterTrangThai" class="form-select form-select-sm">
@@ -87,11 +87,6 @@
                             <option value="2">Đã kết thúc</option>
                             <option value="3">Đã hủy</option>
                         </select>
-                    </div>
-                    <div class="col-md-1">
-                        <button type="button" class="btn btn-primary btn-sm w-100 font-weight-bold" id="btnFilter" style="height: 36px;">
-                            <i class="fas fa-search me-1"></i> Lọc
-                        </button>
                     </div>
                 </div>
             </div>
@@ -120,9 +115,9 @@
 <div class="modal modal-blur fade" id="hopDongModal" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
         <div class="modal-content shadow-lg border-0">
-            <div class="modal-header bg-primary text-white py-3">
+            <div class="modal-header bg-primary-lt py-3">
                 <h5 class="modal-title font-weight-bold" id="modalTitle">Thêm Hợp Đồng Mới</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
 
             <div class="modal-body py-4">
@@ -143,7 +138,7 @@
                                     <label for="MaHopDong" class="form-label">Mã Hợp Đồng</label>
                                     <input type="text" class="form-control" id="MaHopDong" readonly 
                                            placeholder="Hệ thống tự sinh khi lưu" 
-                                           style="background-color: #f4f6f9; font-weight: bold; color: #206bc4;">
+                                           style="font-weight: bold; color: #206bc4;">
                                 </div>
 
                                 <div class="mb-3">
@@ -404,6 +399,15 @@
             }
         }
 
+        function escapeHtml(unsafe) {
+            return (unsafe || "").toString()
+                 .replace(/&/g, "&amp;")
+                 .replace(/</g, "&lt;")
+                 .replace(/>/g, "&gt;")
+                 .replace(/\"/g, "&quot;")
+                 .replace(/'/g, "&#039;");
+        }
+
         $(document).ready(function () {
             // Khởi tạo Partial View Thành Viên
             let allNguoiThues = [];
@@ -467,7 +471,7 @@
                     phongsFilter = phongsFilter.filter(p => p.trangThai == @((int)TrangThaiPhong.Trong));
                 }
                 phongsFilter.forEach(p => {
-                    $phongTroSelect.append(`<option value="${p.phongTroId}" data-gia-thue="${p.giaThue || 0}">${p.soPhong}</option>`);
+                    $phongTroSelect.append(`<option value="${p.phongTroId}" data-gia-thue="${p.giaThue || 0}">${escapeHtml(p.soPhong)}</option>`);
                 });
             });
 
@@ -581,19 +585,27 @@
                         "className": "text-center align-middle",
                         "render": function (data) {
                             return `
-                                <div class="btn-list flex-nowrap justify-content-center">
-                                    <a href="/HopDong/Print/${data}" target="_blank" class="btn btn-icon btn-ghost-info btn-sm" title="In Hợp Đồng">
-                                        <i class="fas fa-print"></i>
-                                    </a>
-                                    <a href="/HopDong/DownloadWord/${data}" class="btn btn-icon btn-ghost-success btn-sm" title="Tải Word">
-                                        <i class="fas fa-file-word"></i>
-                                    </a>
-                                    <button class="btn btn-icon btn-ghost-warning btn-sm btn-edit" data-id="${data}" title="Sửa">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <button class="btn btn-icon btn-ghost-danger btn-sm btn-delete" data-id="${data}" title="Xóa">
-                                        <i class="fas fa-trash-alt"></i>
-                                    </button>
+                                <div class="d-flex justify-content-center">
+                                    <div class="dropdown">
+                                        <button class="btn btn-icon btn-light btn-sm" data-bs-toggle="dropdown" aria-expanded="false" title="Thao tác">
+                                            <i class="fas fa-cog"></i>
+                                        </button>
+                                        <div class="dropdown-menu dropdown-menu-end">
+                                            <a href="/HopDong/Print/${data}" target="_blank" class="dropdown-item text-info py-2">
+                                                <i class="fas fa-print me-2"></i> In Hợp Đồng
+                                            </a>
+                                            <a href="/HopDong/DownloadWord/${data}" class="dropdown-item text-success py-2">
+                                                <i class="fas fa-file-word me-2"></i> Tải Word
+                                            </a>
+                                            <div class="dropdown-divider"></div>
+                                            <button class="dropdown-item btn-edit text-warning py-2" data-id="${data}">
+                                                <i class="fas fa-edit me-2"></i> Chỉnh sửa
+                                            </button>
+                                            <button class="dropdown-item btn-delete text-danger py-2" data-id="${data}">
+                                                <i class="fas fa-trash-alt me-2"></i> Xóa hợp đồng
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                             `;
                         }
@@ -602,9 +614,18 @@
                 "order": [[4, 'desc']]
             });
 
-            // Nút tìm kiếm / Lọc danh sách
-            $('#btnFilter').on('click', function () {
+            // Tự động tải lại dữ liệu khi thay đổi các bộ lọc
+            $('#filterChiNhanh, #filterNguoiThue, #filterTrangThai').on('change', function () {
                 table.ajax.reload();
+            });
+
+            // Đối với khoảng ngày, tải lại khi đóng lịch (đã chọn xong)
+            filterPicker.config.onClose = [function () {
+                table.ajax.reload();
+            }];
+            // Đề phòng trường hợp người dùng xóa tay input
+            $('#filterDateRange').on('change', function () {
+                if (!$(this).val()) table.ajax.reload();
             });
 
             // Nút mở Modal Thêm mới
@@ -754,9 +775,9 @@
                                 html += `
                                     <tr>
                                         <td class="text-center align-middle">${index + 1}</td>
-                                        <td class="align-middle"><strong>${tv.hoVaTen}</strong> ${isChuHopDong}</td>
-                                        <td class="align-middle">${tv.soDienThoai || '-'}</td>
-                                        <td class="align-middle">${tv.cccd || '-'}</td>
+                                        <td class="align-middle"><strong>${escapeHtml(tv.hoVaTen)}</strong> ${isChuHopDong}</td>
+                                        <td class="align-middle">${escapeHtml(tv.soDienThoai || '-')}</td>
+                                        <td class="align-middle">${escapeHtml(tv.cccd || '-')}</td>
                                         <td class="align-middle">${ngayVao}</td>
                                         <td class="align-middle">${ngayRoi}</td>
                                         <td class="text-center align-middle">${trangThai}</td>
@@ -1024,7 +1045,7 @@
                             setTimeout(() => {
                                 if ($('#PhongTroId option[value="'+res.phongTroId+'"]').length === 0) {
                                     let soPhongName = res.soPhong || res.phongTroId;
-                                    $('#PhongTroId').append(`<option value="${res.phongTroId}" data-gia-thue="${res.tienThuePhong}">${soPhongName}</option>`);
+                                    $('#PhongTroId').append(`<option value="${res.phongTroId}" data-gia-thue="${res.tienThuePhong}">${escapeHtml(soPhongName)}</option>`);
                                 }
                                 $('#PhongTroId').val(res.phongTroId).change();
                                 window.isBindingData = false;
@@ -1038,7 +1059,7 @@
                         }
 
                         if ($('#NguoiThueId option[value="'+res.nguoiThueId+'"]').length === 0) {
-                            $('#NguoiThueId').append(`<option value="${res.nguoiThueId}">${res.tenNguoiThue || "Khách thuê (ID: " + res.nguoiThueId + ")"}</option>`);
+                            $('#NguoiThueId').append(`<option value="${res.nguoiThueId}">${escapeHtml(res.tenNguoiThue || "Khách thuê (ID: " + res.nguoiThueId + ")")}</option>`);
                         }
                         $('#NguoiThueId').val(res.nguoiThueId).trigger('change');
 

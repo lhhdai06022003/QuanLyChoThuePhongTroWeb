@@ -1,4 +1,3 @@
-@model IEnumerable<QuanLyChoThuePhongTroWeb.Models.HoaDon>
 @{
     ViewBag.Title = "Hóa đơn & Thanh toán";
 }
@@ -15,56 +14,23 @@
 <div class="page-body">
     <div class="container-xl">
         <div class="card">
-            <div class="table-responsive">
-                <table class="table table-vcenter card-table">
-                    <thead>
-                        <tr>
-                            <th>Mã HĐ</th>
-                            <th>Kỳ Hóa Đơn</th>
-                            <th>Tổng Tiền</th>
-                            <th>Trạng Thái</th>
-                            <th>Ngày Lập</th>
-                            <th class="w-1"></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @if (!Model.Any())
-                        {
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped table-hover w-100" id="hoaDonTable">
+                        <thead>
                             <tr>
-                                <td colspan="6" class="text-center text-muted py-4">Chưa có hóa đơn nào.</td>
+                                <th>Mã HĐ</th>
+                                <th>Kỳ Hóa Đơn</th>
+                                <th>Tổng Tiền</th>
+                                <th>Trạng Thái</th>
+                                <th>Ngày Lập</th>
+                                <th class="w-1"></th>
                             </tr>
-                        }
-                        else
-                        {
-                            foreach (var item in Model)
-                            {
-                                <tr>
-                                    <td>@item.MaHoaDon</td>
-                                    <td>Tháng @item.Thang / @item.Nam</td>
-                                    <td class="font-weight-bold text-danger">@item.TongTien.ToString("N0") VNĐ</td>
-                                    <td>
-                                        @if (item.TrangThaiHoaDon == QuanLyChoThuePhongTroWeb.Models.TrangThaiHoaDon.ChuaThanhToan)
-                                        {
-                                            <span class="badge bg-warning-lt">Chưa thanh toán</span>
-                                        }
-                                        else if (item.TrangThaiHoaDon == QuanLyChoThuePhongTroWeb.Models.TrangThaiHoaDon.DaThanhToan)
-                                        {
-                                            <span class="badge bg-success-lt">Đã thanh toán</span>
-                                        }
-                                    </td>
-                                    <td>@item.NgayTao.ToString("dd/MM/yyyy")</td>
-                                    <td>
-                                        <button class="btn btn-sm btn-primary" onclick="showChiTiet(@item.HoaDonId)"><i class="fas fa-eye me-1"></i> Xem chi tiết</button>
-                                        @if (item.TrangThaiHoaDon == QuanLyChoThuePhongTroWeb.Models.TrangThaiHoaDon.ChuaThanhToan)
-                                        {
-                                            <button class="btn btn-sm btn-success mt-1 mt-md-0" onclick="showThanhToan('@item.MaHoaDon', @item.TongTien, @item.HoaDonId)"><i class="fas fa-qrcode me-1"></i> Thanh toán</button>
-                                        }
-                                    </td>
-                                </tr>
-                            }
-                        }
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -74,9 +40,9 @@
 <div class="modal modal-blur fade" id="chiTietModal" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
         <div class="modal-content shadow-lg border-0">
-            <div class="modal-header bg-info text-white py-3">
+            <div class="modal-header py-3">
                 <h5 class="modal-title font-weight-bold"><i class="fas fa-file-invoice-dollar me-1"></i> Chi tiết Hóa đơn</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body py-4" id="chiTietBody">
                 <div class="text-center"><i class="fas fa-spinner fa-spin fa-2x"></i> Đang tải dữ liệu...</div>
@@ -90,9 +56,54 @@
 
 @section Scripts {
     <script>
-        var bankId = '@ViewBag.BankId';
-        var accountNumber = '@ViewBag.AccountNumber';
-        var accountName = '@ViewBag.AccountName';
+        $(document).ready(function () {
+            $('#hoaDonTable').DataTable({
+                "ajax": {
+                    "url": "/KhachThue/HoaDon/GetDanhSach",
+                    "dataSrc": ""
+                },
+                "columns": [
+                    { "data": "maHoaDon" },
+                    { 
+                        "data": null,
+                        "render": function (data, type, row) {
+                            return "Tháng " + row.thang + " / " + row.nam;
+                        }
+                    },
+                    { 
+                        "data": "tongTien",
+                        "render": function (data) {
+                            return '<span class="font-weight-bold text-danger">' + formatVND(data) + '</span>';
+                        }
+                    },
+                    { 
+                        "data": "trangThaiHoaDon",
+                        "render": function (data) {
+                            if (data === 0) {
+                                return '<span class="badge bg-warning-lt">Chưa thanh toán</span>';
+                            } else if (data === 1) {
+                                return '<span class="badge bg-success-lt">Đã thanh toán</span>';
+                            }
+                            return '';
+                        }
+                    },
+                    { "data": "ngayTao" },
+                    { 
+                        "data": "hoaDonId",
+                        "render": function (data) {
+                            return '<button class="btn btn-sm btn-primary" onclick="showChiTiet(' + data + ')"><i class="fas fa-eye me-1"></i> Xem chi tiết</button>';
+                        }
+                    }
+                ],
+                "language": {
+                    "url": "//cdn.datatables.net/plug-ins/1.13.6/i18n/vi.json"
+                },
+                "pageLength": 10,
+                "ordering": true,
+                "info": true,
+                "autoWidth": false
+            });
+        });
 
         function formatVND(n) {
             if (n === null || n === undefined) return "0 ₫";
@@ -174,13 +185,13 @@
                             <div class="qr-payment-box p-4 shadow-sm">
                                 <h4 class="qr-title text-primary font-weight-bold mb-3"><i class="fas fa-qrcode me-1"></i> Quét mã QR để chuyển khoản nhanh</h4>
                                 <div class="mb-3">
-                                    <img src="/HoaDon/GetVietQR?hoaDonId=${res.hoaDonId}" alt="VietQR" />
+                                    <img src="/KhachThue/HoaDon/GetVietQR?hoaDonId=${res.hoaDonId}" alt="VietQR" />
                                 </div>
                                 <p class="small text-muted mb-3">Sử dụng ứng dụng ngân hàng hoặc ví điện tử để quét mã QR</p>
-                                <div class="qr-details-list bg-light p-3 rounded text-start">
-                                    <div class="qr-detail-item"><span>Ngân hàng:</span><strong>${bankId}</strong></div>
-                                    <div class="qr-detail-item"><span>Số tài khoản:</span><strong>${accountNumber}</strong></div>
-                                    <div class="qr-detail-item"><span>Chủ tài khoản:</span><strong>${accountName}</strong></div>
+                                <div class="qr-details-list bg-body-secondary p-3 rounded text-start">
+                                    <div class="qr-detail-item"><span>Ngân hàng:</span><strong>${res.bankId}</strong></div>
+                                    <div class="qr-detail-item"><span>Số tài khoản:</span><strong>${res.accountNumber}</strong></div>
+                                    <div class="qr-detail-item"><span>Chủ tài khoản:</span><strong>${res.accountName}</strong></div>
                                     <div class="qr-detail-item"><span>Số tiền:</span><strong class="text-danger">${formatVND(res.tongTien)}</strong></div>
                                     <div class="qr-detail-item"><span>Nội dung CK:</span><code class="text-primary font-weight-bold">THANH TOAN ${res.maHoaDon}</code></div>
                                 </div>
@@ -194,19 +205,6 @@
             }).fail(function(xhr) {
                 $('#chiTietModal').modal('hide');
                 Swal.fire('Lỗi', xhr.responseText || 'Không thể tải chi tiết hóa đơn.', 'error');
-            });
-        }
-
-        function showThanhToan(maHD, tongTien, hoaDonId) {
-            Swal.fire({
-                title: 'Thanh toán VietQR',
-                html: `<p>Quý khách vui lòng quét mã QR bên dưới bằng ứng dụng Ngân hàng để thanh toán cho hóa đơn <b>${maHD}</b>.</p>
-                       <p class="text-danger h3">${formatVND(tongTien)}</p>
-                       <div class="text-center my-3">
-                           <img src="/HoaDon/GetVietQR?hoaDonId=${hoaDonId}" alt="QR Code" class="img-fluid border rounded p-2" style="max-width: 250px; min-height: 250px;" onerror="this.onerror=null;this.src='';this.alt='Lỗi tải QR Code';" />
-                       </div>
-                       <p class="small text-muted">Hệ thống sẽ tự động ghi nhận thanh toán sau khi giao dịch thành công (tùy ngân hàng).</p>`,
-                confirmButtonText: 'Đóng',
             });
         }
     </script>
