@@ -40,8 +40,8 @@
         <div class="card card-primary card-outline">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h3 class="card-title"><i class="fas fa-users-cog"></i> Danh sách Tài Khoản Đăng Nhập</h3>
-                <button type="button" class="btn btn-success btn-sm ml-auto" id="btnOpenAddModal">
-                    <i class="fas fa-plus"></i> Thêm Tài Khoản
+                <button type="button" class="btn btn-success font-weight-bold shadow-sm ms-auto" id="btnOpenAddModal">
+                    <i class="fas fa-plus-circle me-1"></i> Thêm Tài Khoản
                 </button>
             </div>
 
@@ -112,8 +112,8 @@
 
             <div class="modal-footer">
                 <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i> Đóng</button>
-                <button type="button" class="btn btn-primary" id="btnSaveData">
-                    <i class="fas fa-plus"></i> Thêm dữ liệu
+                <button type="button" class="btn btn-primary font-weight-bold shadow-sm" id="btnSaveData">
+                    <i class="fas fa-plus me-1"></i> Thêm dữ liệu
                 </button>
             </div>
         </div>
@@ -370,7 +370,7 @@
 
                             $('.class-edit-note').removeClass('d-none');
                             $('#modalTitle').text('Cập nhật Tài Khoản');
-                            $('#btnSaveData').removeClass('btn-primary').addClass('btn-success').html('<i class="fas fa-save"></i> Lưu dữ liệu');
+                            $('#btnSaveData').removeClass('btn-primary').addClass('btn-success').addClass('font-weight-bold').addClass('shadow-sm').html('<i class="fas fa-save me-1"></i> Lưu dữ liệu');
                             $('#nguoiDungModal').modal('show');
                         }
                     },
@@ -427,7 +427,7 @@
                 $('#TenDangNhap').prop('disabled', false);
                 $('.class-edit-note').addClass('d-none');
                 $('#modalTitle').text('Thêm Tài Khoản Mới');
-                $('#btnSaveData').removeClass('btn-success').addClass('btn-primary').html('<i class="fas fa-plus"></i> Thêm dữ liệu');
+                $('#btnSaveData').removeClass('btn-success').addClass('btn-primary').addClass('font-weight-bold').addClass('shadow-sm').html('<i class="fas fa-plus me-1"></i> Thêm dữ liệu');
                 $('#nguoiDungModal').modal('show');
             });
 

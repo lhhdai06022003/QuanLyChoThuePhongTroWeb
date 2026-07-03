@@ -14,11 +14,11 @@
                 </div>
             </div>
             <div class="col-auto ms-auto">
-                <button type="button" class="btn btn-success me-2 font-weight-bold" id="btnPhatSinhPhong">
+                @* <button type="button" class="btn btn-success me-2 font-weight-bold" id="btnPhatSinhPhong">
                     <i class="fas fa-magic"></i> Phát sinh 10 phòng ngẫu nhiên
-                </button>
-                <button type="button" class="btn btn-primary font-weight-bold" id="btnOpenAddModal">
-                    <i class="fas fa-plus"></i> Thêm Mới Phòng
+                </button> *@
+                <button type="button" class="btn btn-success font-weight-bold shadow-sm" id="btnOpenAddModal">
+                    <i class="fas fa-plus-circle me-1"></i> Thêm Mới Phòng
                 </button>
             </div>
         </div>
@@ -229,7 +229,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i> Đóng</button>
-                <button type="button" class="btn btn-primary" id="btnSaveData"><i class="fas fa-plus"></i> Thêm dữ liệu</button>
+                <button type="button" class="btn btn-primary font-weight-bold shadow-sm" id="btnSaveData"><i class="fas fa-plus me-1"></i> Thêm dữ liệu</button>
             </div>
         </div>
     </div>
@@ -624,7 +624,7 @@
                     $('#TrangThai').val(d.trangThai);
                     $('#MoTa').val(d.moTa);
                     $('#modalTitle').text('Chỉnh sửa: Phòng ' + (d.soPhong || ""));
-                    $('#btnSaveData').removeClass('btn-primary').addClass('btn-success').html('<i class="fas fa-save"></i> Lưu dữ liệu');
+                    $('#btnSaveData').removeClass('btn-primary').addClass('btn-success').addClass('font-weight-bold').addClass('shadow-sm').html('<i class="fas fa-save me-1"></i> Lưu dữ liệu');
                     $('#phongTroModal').modal('show');
                 }
             });
@@ -1022,7 +1022,7 @@
                 $('#GiaThue').val(''); $('#DienTich').val(''); $('#SoNguoiToiDa').val('2');
                 $('#TrangThai').val('0'); $('#MoTa').val('');
                 $('#modalTitle').text('Thêm Phòng Trọ Mới');
-                $('#btnSaveData').removeClass('btn-success').addClass('btn-primary').html('<i class="fas fa-plus"></i> Thêm dữ liệu');
+                $('#btnSaveData').removeClass('btn-success').addClass('btn-primary').addClass('font-weight-bold').addClass('shadow-sm').html('<i class="fas fa-plus me-1"></i> Thêm dữ liệu');
                 $('#phongTroModal').modal('show');
             });
 
@@ -1101,7 +1101,7 @@
                         $('#DienTich').val(d.dienTich); $('#SoNguoiToiDa').val(d.soNguoiToiDa);
                         $('#TrangThai').val(d.trangThai); $('#MoTa').val(d.moTa);
                         $('#modalTitle').text('Chỉnh sửa: Phòng ' + (d.soPhong || ""));
-                        $('#btnSaveData').removeClass('btn-primary').addClass('btn-success').html('<i class="fas fa-save"></i> Lưu dữ liệu');
+                        $('#btnSaveData').removeClass('btn-primary').addClass('btn-success').addClass('font-weight-bold').addClass('shadow-sm').html('<i class="fas fa-save me-1"></i> Lưu dữ liệu');
                         $('#phongTroModal').modal('show');
                     } else showError("Lỗi: " + (res.message || "Không tải được."));
                     $btn.prop('disabled', false).html(orig);

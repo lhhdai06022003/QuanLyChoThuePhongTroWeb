@@ -122,15 +122,26 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.NguoiThues
         public async Task<(bool IsSuccess, string ErrorMessage)> DeleteAsync(int id)
         {
             var entity = await _context.NguoiThues
-                .Include(x => x.HopDongs) // Kéo theo hợp đồng để kiểm tra
                 .FirstOrDefaultAsync(x => x.NguoiThueId == id && !x.IsDeleted);
 
             if (entity == null) return (false, "Không tìm thấy người thuê.");
 
-            // Kiểm tra ràng buộc: Nếu đang có hợp đồng Active thì không cho xóa
-            if (entity.HopDongs != null && entity.HopDongs.Any(h => h.TrangThaiHopDong == TrangThaiHopDong.DangHoatDong)) // Giả sử bạn có cờ TrangThai
+            // 1. Kiểm tra nếu người thuê đang là đại diện ký hợp đồng đang hoạt động
+            bool laDaiDienHopDongHoatDong = await _context.HopDongs
+                .AnyAsync(h => h.NguoiThueId == id && h.TrangThaiHopDong == TrangThaiHopDong.DangHoatDong && !h.IsDeleted);
+
+            if (laDaiDienHopDongHoatDong)
             {
-                return (false, "Không thể xóa do người thuê đang có hợp đồng hiệu lực.");
+                return (false, "Không thể xóa do người thuê đang là đại diện ký hợp đồng còn hiệu lực.");
+            }
+
+            // 2. Kiểm tra nếu người thuê đang là thành viên ở chung chưa chuyển đi trong hợp đồng đang hoạt động
+            bool laThanhVienHopDongHoatDong = await _context.ChiTietThanhVienHopDongs
+                .AnyAsync(tv => tv.NguoiThueId == id && tv.NgayChuyenDi == null && !tv.IsDeleted && tv.HopDong.TrangThaiHopDong == TrangThaiHopDong.DangHoatDong);
+
+            if (laThanhVienHopDongHoatDong)
+            {
+                return (false, "Không thể xóa do người thuê đang là thành viên ở chung trong một hợp đồng còn hiệu lực.");
             }
 
             // Xóa mềm
@@ -175,12 +186,17 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.NguoiThues
         {
             searchTerm = (searchTerm ?? "").Trim().ToLower();
             return await _context.NguoiThues
-                .Where(x => !x.IsDeleted && (
+                .Where(x => !x.IsDeleted)
+                // Loại trừ người thuê đang là đại diện ký hợp đồng đang hoạt động
+                .Where(x => !x.HopDongs.Any(h => h.TrangThaiHopDong == TrangThaiHopDong.DangHoatDong && !h.IsDeleted))
+                // Loại trừ người thuê đang là thành viên ở chung chưa chuyển đi trong hợp đồng đang hoạt động
+                .Where(x => !x.ChiTietThanhVienHopDongs.Any(tv => tv.NgayChuyenDi == null && !tv.IsDeleted && tv.HopDong.TrangThaiHopDong == TrangThaiHopDong.DangHoatDong))
+                .Where(x =>
                     string.IsNullOrEmpty(searchTerm) ||
                     x.HoVaTen.ToLower().Contains(searchTerm) ||
                     x.SoDienThoai.Contains(searchTerm) ||
                     x.CCCD.Contains(searchTerm)
-                ))
+                )
                 .Select(x => new
                 {
                     Id = x.NguoiThueId,

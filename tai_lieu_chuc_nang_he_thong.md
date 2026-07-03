@@ -108,7 +108,9 @@ Tài liệu này mô tả chi tiết tất cả các chức năng nghiệp vụ 
 *   **Phát sinh khách thuê ngẫu nhiên**: Tạo nhanh 10 khách hàng mẫu ngẫu nhiên có đầy đủ thông tin định danh mẫu.
 
 #### C. Cách thức hoạt động chi tiết:
-1.  **Ràng buộc nghiệp vụ**: Khi thêm mới khách thuê qua API `/NguoiThue/Create`, service thực hiện kiểm tra kiểm trùng dữ liệu trên 3 cột: `CCCD`, `SoDienThoai`, `Email` đối với các bản ghi chưa bị xóa. Nếu phát hiện trùng lặp, hệ thống lập tức hủy thao tác ghi và trả về mã lỗi 400 kèm thông điệp cảnh báo chi tiết.
+1.  **Ràng buộc nghiệp vụ khi Thêm/Xóa**: 
+    - Khi thêm mới khách thuê qua API `/NguoiThue/Create`, service thực hiện kiểm tra trùng dữ liệu trên 3 cột: `CCCD`, `SoDienThoai`, `Email` đối với các bản ghi chưa bị xóa. Nếu phát hiện trùng lặp, hệ thống lập tức hủy thao tác ghi và trả về mã lỗi 400 kèm thông điệp cảnh báo chi tiết.
+    - Khi xóa khách thuê qua API `/NguoiThue/Delete/{id}` (hoặc các phương thức xóa mềm tương ứng), hệ thống kiểm tra xem người thuê này có đang ở chung trong một hợp đồng trọ đang hoạt động hay không (bao gồm cả tư cách đại diện hợp đồng và thành viên ở ghép chưa dọn đi). Nếu có, hệ thống sẽ ngăn chặn thao tác xóa và trả về thông báo lỗi chi tiết để bảo toàn tính toàn vẹn của hợp đồng.
 2.  **Autocomplete Select2**: Khi lập hợp đồng mới, tại ô nhập thông tin Khách thuê đại diện, hệ thống tích hợp Select2 gọi AJAX về `/NguoiThue/SearchAutocomplete`. Khi người dùng gõ từ khóa, SQL sinh câu lệnh truy vấn dạng `LIKE` tìm kiếm trên các trường `HoVaTen`, `SoDienThoai` hoặc `CCCD` và trả về danh sách tối đa 10 gợi ý khớp nhất để điền tự động thông tin.
 
 ---
@@ -136,7 +138,11 @@ Tài liệu này mô tả chi tiết tất cả các chức năng nghiệp vụ 
     *   Cập nhật trạng thái của phòng trọ sang "Đã thuê" (`DaThue`).
     *   Tự động đăng ký các dịch vụ bắt buộc (như Điện, Nước) vào bảng `DangKyDichVus` cho phòng này để đảm bảo kỳ chốt số điện nước hàng tháng hoạt động bình thường.
 2.  **Chấm dứt/Xóa hợp đồng**: Khi hợp đồng bị xóa hoặc hết hạn thanh lý, thuộc tính `IsDeleted` của hợp đồng được cập nhật thành `true` (hoặc chuyển trạng thái sang `DaKetThuc`). Đồng thời, trạng thái của phòng trọ liên kết được tự động chuyển về "Trống" (`Trong`) để sẵn sàng cho khách thuê tiếp theo.
-3.  **Ràng buộc sức chứa thành viên**: Khi thêm thành viên ở ghép thông qua API `/ThanhVienHopDong/AddThanhVien`, hệ thống đếm số lượng thành viên đang ở thực tế trong phòng (các bản ghi trong bảng `ChiTietThanhVienHopDongs` có ngày vào ở và trường `NgayChuyenDi == null`) cộng thêm người đại diện ký hợp đồng, sau đó so sánh với trường `SoNguoiToiDa` cấu hình tại bảng `PhongTros`. Nếu vượt quá sức chứa tối đa của phòng, hệ thống sẽ từ chối thêm mới và báo lỗi.
+3.  **Quản lý thành viên ở ghép & Ràng buộc sức chứa**: 
+    - Giao diện modal thêm thành viên ở ghép (`addMemberModal`) được thiết kế tối ưu 2 cột (cho SĐT/CCCD), tích hợp các icon chỉ dẫn trực quan trong ô nhập liệu và nút **Đóng** màu đỏ nổi bật ở chân trang.
+    - Ô tìm kiếm khách thuê ở ghép sử dụng thư viện **Select2** liên kết với API tìm kiếm khách thuê trống. Khi click vào ô tìm kiếm, hệ thống sẽ tự động tải trước và hiển thị danh sách khách thuê chưa tham gia hợp đồng nào để nhân viên chọn ngay mà không cần phải nhập từ khóa tìm kiếm.
+    - Danh sách kết quả tìm kiếm của Select2 được cấu hình giới hạn chiều cao tối đa `200px` và có thanh cuộn dọc (scroll) mượt mà để dễ dàng duyệt qua danh sách dài.
+    - Khi thêm thành viên ở ghép thông qua API `/ThanhVienHopDong/AddThanhVien`, hệ thống đếm số lượng thành viên đang ở thực tế trong phòng (các bản ghi trong bảng `ChiTietThanhVienHopDongs` có ngày vào ở và trường `NgayChuyenDi == null`) cộng thêm người đại diện ký hợp đồng, sau đó so sánh với trường `SoNguoiToiDa` cấu hình tại bảng `PhongTros`. Nếu vượt quá sức chứa tối đa của phòng, hệ thống sẽ từ chối thêm mới và báo lỗi.
 4.  **Báo rời phòng (`BaoRoiPhongAsync`)**: Khi một thành viên ở ghép dọn đi trước khi hợp đồng kết thúc, nhân viên nhấn nút "Báo rời phòng". Hệ thống cập nhật cột `NgayChuyenDi` của bản ghi đó thành ngày hiện tại để ghi nhận lịch sử tạm trú, đồng thời giảm số người ở thực tế của phòng đó xuống phục vụ việc tính toán các dịch vụ tính theo đầu người (nếu có).
 5.  **Quy trình Xuất hợp đồng sang Word (.docx) (`ExportToWordAsync`)**:
     *   Khi người dùng click vào nút "Xuất Word" trên bảng thao tác của hợp đồng, AJAX gửi request kèm `id` hợp đồng lên API `/QuanLyNhaTro/HopDong/ExportWord/{id}`.
@@ -430,5 +436,26 @@ Các dịch vụ chạy ngầm của hệ thống hoạt động liên tục dư
         - Hệ thống gọi `EmailService.SendContractExpiryAlertAsync` gửi email chi tiết cho khách thuê (Họ tên, mã hợp đồng, số phòng, số ngày còn lại và ngày hết hạn chính thức).
         - Đồng thời gửi email thông báo tương ứng cho Admin để chủ nhà chủ động quản lý.
     5.  **Ghi lịch sử cảnh báo**: Ghi nhận khóa gửi `[HopDongId]_[daysLeft]` vào tệp JSON `sent_contract_alerts.json` trên server để chống gửi lặp lại trong ngày.
+
+---
+
+## PHẦN D: QUY CHUẨN GIAO DIỆN VẬN HÀNH THỐNG NHẤT (UI SYNC)
+
+Để mang lại trải nghiệm chuyên nghiệp và nhất quán cho người quản trị trên phân hệ Vận hành (Admin Portal), hệ thống quy định các tiêu chuẩn đồng bộ giao diện như sau:
+
+### 1. NÚT MỞ MODAL THÊM MỚI (HEADER ACTIONS)
+- **Vị trí**: Ở góc trên bên phải của Header các bảng dữ liệu quản lý (Phòng trọ, Khách thuê, Chi nhánh, Dịch vụ, Điều khoản, Tài khoản).
+- **Quy chuẩn Style**:
+  - Lớp CSS: `class="btn btn-success font-weight-bold shadow-sm"`
+  - Kích thước: Sử dụng kích thước mặc định (không dùng `btn-sm`) để nút bấm rõ ràng, cân đối.
+  - Icon & Nội dung: Sử dụng icon hình tròn dấu cộng `<i class="fas fa-plus-circle me-1"></i>` đi kèm với nhãn hành động tương ứng (ví dụ: `Thêm Người Thuê`, `Thêm Mới Phòng`).
+
+### 2. NÚT LƯU VÀ ĐÓNG TRONG MODAL (MODAL FOOTER ACTIONS)
+- **Nút Xác nhận/Lưu**:
+  - Khi ở trạng thái **Thêm mới**: Sử dụng `class="btn btn-primary font-weight-bold shadow-sm"` đi kèm icon `<i class="fas fa-plus me-1"></i> Thêm dữ liệu`.
+  - Khi ở trạng thái **Chỉnh sửa**: Sử dụng `class="btn btn-success font-weight-bold shadow-sm"` đi kèm icon `<i class="fas fa-save me-1"></i> Lưu dữ liệu`.
+  - Việc chuyển màu (Xanh dương cho Thêm mới, Xanh lá cho Chỉnh sửa) giúp người vận hành nhận biết nhanh trạng thái hiện tại của biểu mẫu.
+- **Nút Hủy/Đóng**:
+  - Sử dụng nút màu đỏ `class="btn btn-danger"` đi kèm icon `<i class="fas fa-times me-1"></i> Đóng` nằm ở góc phải bên cạnh nút Lưu, thay thế cho các nút dạng link "Hủy bỏ" trước đây nhằm nâng cao tính thẩm mỹ và dễ thao tác.
 
 

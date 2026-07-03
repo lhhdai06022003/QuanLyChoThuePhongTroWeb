@@ -384,6 +384,37 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HopDongs
             var entity = await _context.HopDongs.FirstOrDefaultAsync(x => x.HopDongId == id && !x.IsDeleted);
             if (entity == null) return (false, "Không tìm thấy hợp đồng.");
 
+            // 1. Kiểm tra nếu hủy hợp đồng
+            if (input.TrangThaiHopDong == TrangThaiHopDong.DaHuy)
+            {
+                bool hasInvoices = await _context.HoaDons.AnyAsync(x => x.HopDongId == id && !x.IsDeleted);
+                if (hasInvoices)
+                {
+                    return (false, "Hợp đồng đã phát sinh giao dịch tài chính/hóa đơn, không thể hủy. Vui lòng chọn trạng thái Đã kết thúc.");
+                }
+            }
+
+            // 2. Kiểm tra khóa sửa đổi thông tin cốt lõi khi đang hoạt động
+            if (entity.TrangThaiHopDong == TrangThaiHopDong.DangHoatDong)
+            {
+                bool isCoreInfoChanged = input.PhongTroId != entity.PhongTroId ||
+                                         input.NguoiThueId != entity.NguoiThueId ||
+                                         input.TienThuePhong != entity.TienThuePhong ||
+                                         input.TienCocPhong != entity.TienCocPhong ||
+                                         input.ThoiDiemBatDau.ToUniversalTime().Date != entity.ThoiDiemBatDau.Date;
+
+                if (isCoreInfoChanged)
+                {
+                    return (false, "Không được phép sửa đổi thông tin cốt lõi (Tiền thuê, Tiền cọc, Ngày bắt đầu, Phòng trọ, Người đại diện) của hợp đồng đang hoạt động. Vui lòng kết thúc hợp đồng này và ký hợp đồng mới nếu muốn thay đổi.");
+                }
+            }
+
+            // 3. Tự động gán ngày kết thúc nếu kết thúc hợp đồng mà chưa điền
+            if (input.TrangThaiHopDong == TrangThaiHopDong.DaKetThuc && !input.ThoiDiemKetThuc.HasValue)
+            {
+                input.ThoiDiemKetThuc = DateTime.UtcNow;
+            }
+
             if (input.ThoiDiemKetThuc.HasValue && input.ThoiDiemKetThuc.Value.Date < input.ThoiDiemBatDau.Date)
                 return (false, "Ngày kết thúc không được trước ngày bắt đầu.");
 

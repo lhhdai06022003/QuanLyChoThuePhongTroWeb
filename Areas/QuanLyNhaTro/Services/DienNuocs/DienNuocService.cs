@@ -20,16 +20,29 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.DienNuocs
 
         public async Task<List<DienNuocPhongRes>> GetDanhSachDienNuocAsync(int chiNhanhId, int thang, int nam)
         {
-            // 1. Lấy danh sách các phòng đang được thuê tại chi nhánh
-            var phongĐangThue = await _context.HopDongs
+            // 1. Lấy danh sách các phòng có hợp đồng hiệu lực tại chi nhánh trong tháng
+            var startOfMonth = new DateTime(nam, thang, 1, 0, 0, 0, DateTimeKind.Utc);
+            var endOfMonth = startOfMonth.AddMonths(1).AddDays(-1).AddHours(23).AddMinutes(59).AddSeconds(59);
+
+            var hopDongsActive = await _context.HopDongs
                 .Include(h => h.PhongTro)
                 .Include(h => h.NguoiThue)
                 .Where(h => h.PhongTro.ChiNhanhId == chiNhanhId &&
-                            h.TrangThaiHopDong == TrangThaiHopDong.DangHoatDong &&
-                            !h.IsDeleted)
+                            !h.IsDeleted &&
+                            h.TrangThaiHopDong != TrangThaiHopDong.DaHuy &&
+                            h.ThoiDiemBatDau <= endOfMonth &&
+                            (h.ThoiDiemKetThuc == null || h.ThoiDiemKetThuc.Value >= startOfMonth))
                 .ToListAsync();
 
-            if (!phongĐangThue.Any()) return new List<DienNuocPhongRes>();
+            if (!hopDongsActive.Any()) return new List<DienNuocPhongRes>();
+
+            // Nhóm theo PhongTroId để đảm bảo mỗi phòng trọ chỉ hiển thị 1 dòng duy nhất trên giao diện chốt số
+            var phongĐangThue = hopDongsActive
+                .GroupBy(h => h.PhongTroId)
+                .Select(g => g.OrderByDescending(h => h.TrangThaiHopDong == TrangThaiHopDong.DangHoatDong)
+                              .ThenByDescending(h => h.ThoiDiemBatDau)
+                              .First())
+                .ToList();
 
             var phongTroIds = phongĐangThue.Select(h => h.PhongTroId).ToList();
 
@@ -82,9 +95,19 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.DienNuocs
                 }
                 else
                 {
-                    prevRecords.TryGetValue(phongTroId, out var prevRecord);
-                    double dienCu = prevRecord != null ? prevRecord.ChiSoDienMoi : 0;
-                    double nuocCu = prevRecord != null ? prevRecord.ChiSoNuocMoi : 0;
+                    double dienCu = 0;
+                    double nuocCu = 0;
+                    if (prevRecords.TryGetValue(phongTroId, out var prevRecord))
+                    {
+                        dienCu = prevRecord.ChiSoDienMoi;
+                        nuocCu = prevRecord.ChiSoNuocMoi;
+                    }
+                    else
+                    {
+                        var ganNhat = await GetChiSoDienNuocGanNhatAsync(phongTroId, thang, nam);
+                        dienCu = ganNhat.ChiSoDienMoi;
+                        nuocCu = ganNhat.ChiSoNuocMoi;
+                    }
 
                     result.Add(new DienNuocPhongRes
                     {
@@ -200,9 +223,19 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.DienNuocs
                     }
 
                     // d. Kiểm tra tính chính xác của chỉ số đầu kỳ gửi lên từ Client
-                    prevRecords.TryGetValue(req.PhongTroId, out var prevRecord);
-                    double actualPrevDienMoi = prevRecord != null ? prevRecord.ChiSoDienMoi : 0;
-                    double actualPrevNuocMoi = prevRecord != null ? prevRecord.ChiSoNuocMoi : 0;
+                    double actualPrevDienMoi = 0;
+                    double actualPrevNuocMoi = 0;
+                    if (prevRecords.TryGetValue(req.PhongTroId, out var prevRecord))
+                    {
+                        actualPrevDienMoi = prevRecord.ChiSoDienMoi;
+                        actualPrevNuocMoi = prevRecord.ChiSoNuocMoi;
+                    }
+                    else
+                    {
+                        var ganNhat = await GetChiSoDienNuocGanNhatAsync(req.PhongTroId, input.Thang, input.Nam);
+                        actualPrevDienMoi = ganNhat.ChiSoDienMoi;
+                        actualPrevNuocMoi = ganNhat.ChiSoNuocMoi;
+                    }
 
                     if (req.ChiSoDienCu != actualPrevDienMoi)
                     {
@@ -256,6 +289,18 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.DienNuocs
                 _logger.LogError(ex, "Lỗi hệ thống khi lưu chốt điện nước.");
                 return (false, "Lỗi hệ thống khi lưu chốt điện nước.");
             }
+        }
+
+        private async Task<(double ChiSoDienMoi, double ChiSoNuocMoi)> GetChiSoDienNuocGanNhatAsync(int phongTroId, int thang, int nam)
+        {
+            var record = await _context.DichVuDienNuocCuaPhongs
+                .Where(x => x.PhongTroId == phongTroId && !x.IsDeleted && 
+                            (x.Nam < nam || (x.Nam == nam && x.Thang < thang)))
+                .OrderByDescending(x => x.Nam)
+                .ThenByDescending(x => x.Thang)
+                .FirstOrDefaultAsync();
+
+            return record != null ? (record.ChiSoDienMoi, record.ChiSoNuocMoi) : (0.0, 0.0);
         }
     }
 }

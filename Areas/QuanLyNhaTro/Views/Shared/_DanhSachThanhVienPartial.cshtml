@@ -34,64 +34,100 @@
 <div class="modal modal-blur fade" id="addMemberModal" tabindex="-1" role="dialog" aria-hidden="true" style="z-index: 1060;">
     <div class="modal-dialog modal-dialog-centered" role="document">
         <div class="modal-content shadow-lg border-0">
-            <div class="modal-header bg-success text-white py-3">
-                <h5 class="modal-title font-weight-bold">Thêm thành viên ở ghép</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title font-weight-bold text-success fs-3">
+                    <i class="fas fa-user-plus me-2"></i> Thêm thành viên ở ghép
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body py-4">
+            <div class="modal-body py-3">
                 <form id="formAddMember">
                     <!-- Input ẩn lưu NguoiThueId khi chọn từ danh sách autocomplete -->
                     <input type="hidden" id="addMember_NguoiThueId" value="" />
 
-                    <div class="mb-3">
-                        <label class="form-label">Tìm khách thuê có sẵn (Gõ Tên, SĐT hoặc CCCD)</label>
+                    <!-- Khu vực tìm kiếm khách hàng cũ -->
+                    <div class="bg-muted-lt p-3 rounded-3 border border-dashed mb-3">
+                        <label class="form-label font-weight-bold text-secondary mb-2">
+                            <i class="fas fa-search me-1"></i> Tìm khách thuê có sẵn (Gõ Tên, SĐT hoặc CCCD)
+                        </label>
                         <div class="row g-2">
                             <div class="col">
                                 <select class="form-select" id="addMember_SearchNguoiThue" style="width:100%">
                                     <option value="">-- Gõ để tìm kiếm --</option>
                                 </select>
                             </div>
-
                             <div class="col-auto">
                                 <button type="button"
                                         class="btn btn-outline-primary"
                                         id="btnToggleNewMember"
                                         title="Nhập mới hoàn toàn">
-                                    <i class="fas fa-plus me-1"></i> Nhập mới
+                                    <i class="fas fa-user-plus me-1"></i> Nhập mới
                                 </button>
                             </div>
                         </div>
-                        <small class="form-text text-muted d-block mt-1">Nhập từ khóa để tìm kiếm khách có sẵn, hoặc bấm "Nhập mới" để đăng ký thông tin mới.</small>
+                        <small class="form-text text-muted d-block mt-2">
+                            <i class="fas fa-info-circle me-1"></i> Tìm khách cũ để tránh nhập trùng dữ liệu. Nếu chưa có, chọn "Nhập mới".
+                        </small>
                     </div>
-                    <hr class="my-3 text-secondary opacity-25" />
+
+                    <div class="hr-text text-uppercase text-muted my-3 fs-5 font-weight-bold">Thông tin thành viên</div>
+
                     <div id="newMemberFields">
                         <div class="mb-3">
-                            <label class="form-label">Họ và Tên <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="addMember_HoVaTen" placeholder="Nhập họ tên..." disabled>
+                            <label class="form-label required font-weight-bold">Họ và Tên <span class="text-danger">*</span></label>
+                            <div class="input-icon">
+                                <span class="input-icon-addon">
+                                    <i class="fas fa-user text-muted"></i>
+                                </span>
+                                <input type="text" class="form-control" id="addMember_HoVaTen" placeholder="Nhập họ tên..." disabled>
+                            </div>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">Số điện thoại <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="addMember_SoDienThoai" placeholder="Nhập số ĐT..." disabled>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">CCCD/CMND <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="addMember_CCCD" placeholder="Nhập CCCD..." disabled>
+                        
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label required font-weight-bold">Số điện thoại <span class="text-danger">*</span></label>
+                                    <div class="input-icon">
+                                        <span class="input-icon-addon">
+                                            <i class="fas fa-phone text-muted"></i>
+                                        </span>
+                                        <input type="text" class="form-control" id="addMember_SoDienThoai" placeholder="Nhập số ĐT..." disabled>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label required font-weight-bold">CCCD/CMND <span class="text-danger">*</span></label>
+                                    <div class="input-icon">
+                                        <span class="input-icon-addon">
+                                            <i class="fas fa-id-card text-muted"></i>
+                                        </span>
+                                        <input type="text" class="form-control" id="addMember_CCCD" placeholder="Nhập CCCD..." disabled>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
+
                     <div class="mb-3">
-                        <label class="form-label">Ngày bắt đầu ở <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="addMember_NgayVao" placeholder="Chọn ngày...">
+                        <label class="form-label required font-weight-bold">Ngày bắt đầu ở <span class="text-danger">*</span></label>
+                        <div class="input-icon">
+                            <span class="input-icon-addon">
+                                <i class="fas fa-calendar-alt text-muted"></i>
+                            </span>
+                            <input type="text" class="form-control" id="addMember_NgayVao" placeholder="Chọn ngày...">
+                        </div>
                     </div>
                 </form>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i> Đóng</button>
-                <button type="button" class="btn btn-primary shadow-sm" id="btnSaveMember">
-                    <i class="fas fa-save me-1"></i> Thêm dữ liệu
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-danger me-2 shadow-sm" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i> Đóng
+                </button>
+                <button type="button" class="btn btn-success shadow-sm font-weight-bold" id="btnSaveMember">
+                    <i class="fas fa-plus me-1"></i> Thêm dữ liệu
                 </button>
             </div>
         </div>
     </div>
 </div>
-
-

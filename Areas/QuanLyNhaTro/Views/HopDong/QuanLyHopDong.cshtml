@@ -686,14 +686,14 @@
                 theme: 'bootstrap4',
                 placeholder: 'Gõ Tên, SĐT hoặc CCCD...',
                 allowClear: true,
-                minimumInputLength: 1,
+                minimumInputLength: 0,
                 ajax: {
                     url: '/NguoiThue/SearchAutocomplete',
                     dataType: 'json',
                     delay: 250,
                     data: function (params) {
                         return {
-                            searchTerm: params.term
+                            searchTerm: params.term || ""
                         };
                     },
                     processResults: function (data) {

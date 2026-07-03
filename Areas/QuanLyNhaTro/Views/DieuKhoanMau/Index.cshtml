@@ -15,8 +15,8 @@
             </div>
             <div class="col-auto ms-auto d-print-none">
                 <div class="btn-list">
-                    <button class="btn btn-success d-none d-sm-inline-block shadow-sm" id="btnOpenAddModal">
-                        <i class="fas fa-plus me-1"></i> Thêm điều khoản mới
+                    <button class="btn btn-success d-none d-sm-inline-block shadow-sm font-weight-bold" id="btnOpenAddModal">
+                        <i class="fas fa-plus-circle me-1"></i> Thêm điều khoản mới
                     </button>
                 </div>
             </div>
@@ -77,8 +77,8 @@
                                             Thư viện điều khoản hiện tại đang trống. Vui lòng thêm điều khoản mới.
                                         </p>
                                         <div class="empty-action mt-3">
-                                            <button class="btn btn-primary" id="btnOpenAddModalEmpty">
-                                                <i class="fas fa-plus me-1"></i> Thêm ngay
+                                            <button class="btn btn-success font-weight-bold shadow-sm" id="btnOpenAddModalEmpty">
+                                                <i class="fas fa-plus-circle me-1"></i> Thêm ngay
                                             </button>
                                         </div>
                                     </div>
@@ -121,7 +121,7 @@
             </div>
             <div class="modal-footer border-top-0 rounded-bottom-3 p-3">
                 <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i> Đóng</button>
-                <button type="button" class="btn btn-primary px-4 font-weight-bold" id="btnSaveDieuKhoan"><i class="fas fa-plus me-1"></i> Thêm dữ liệu</button>
+                <button type="button" class="btn btn-primary px-4 font-weight-bold shadow-sm" id="btnSaveDieuKhoan"><i class="fas fa-plus me-1"></i> Thêm dữ liệu</button>
             </div>
         </div>
     </div>
@@ -151,7 +151,7 @@
                 $('#NoiDung').val('');
                 $('#dieuKhoanModalTitle').html('<i class="fas fa-plus-circle me-2"></i>Thêm Điều khoản mẫu mới');
                 $('#dieuKhoanModalTitle').parent().removeClass('bg-warning').addClass('bg-primary');
-                $('#btnSaveDieuKhoan').removeClass('btn-success').addClass('btn-primary').html('<i class="fas fa-plus me-1"></i> Thêm dữ liệu');
+                $('#btnSaveDieuKhoan').removeClass('btn-success').addClass('btn-primary').addClass('font-weight-bold').addClass('shadow-sm').html('<i class="fas fa-plus me-1"></i> Thêm dữ liệu');
                 $('#dieuKhoanModal').modal('show');
             });
 
@@ -213,7 +213,7 @@
                     $('#NoiDung').val(res.noiDung);
                     $('#dieuKhoanModalTitle').html('<i class="fas fa-edit me-2"></i>Cập nhật Điều khoản mẫu');
                     $('#dieuKhoanModalTitle').parent().removeClass('bg-primary').addClass('bg-warning');
-                    $('#btnSaveDieuKhoan').removeClass('btn-primary').addClass('btn-success').html('<i class="fas fa-save me-1"></i> Lưu dữ liệu');
+                    $('#btnSaveDieuKhoan').removeClass('btn-primary').addClass('btn-success').addClass('font-weight-bold').addClass('shadow-sm').html('<i class="fas fa-save me-1"></i> Lưu dữ liệu');
                     $('#dieuKhoanModal').modal('show');
                 }).fail(function() {
                     showError('Không lấy được dữ liệu điều khoản');

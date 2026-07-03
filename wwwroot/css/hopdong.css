@@ -141,3 +141,9 @@ html[data-bs-theme="dark"] .select2-results__option--highlighted[aria-selected] 
 #hopDongModal .tab-content>.active {
     display: block;
 }
+
+/* Giới hạn chiều cao và thêm scrollbar cho danh sách kết quả Select2 */
+.select2-results__options {
+    max-height: 200px !important;
+    overflow-y: auto !important;
+}

@@ -87,6 +87,43 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.PhongTros
             if (isExist)
                 return ServiceResult.Fail("Số phòng này đã tồn tại trong chi nhánh!");
 
+            // Kiểm tra ràng buộc khi có hợp đồng đang hoạt động
+            bool coHopDongHoatDong = await _context.HopDongs.AnyAsync(h => 
+                h.PhongTroId == model.PhongTroId && 
+                h.TrangThaiHopDong == TrangThaiHopDong.DangHoatDong && 
+                !h.IsDeleted);
+
+            if (coHopDongHoatDong)
+            {
+                if (phongTonTai.ChiNhanhId != model.ChiNhanhId)
+                {
+                    return ServiceResult.Fail("Không thể chuyển chi nhánh cho phòng trọ đang có hợp đồng hoạt động!");
+                }
+                if (phongTonTai.SoPhong != model.SoPhong)
+                {
+                    return ServiceResult.Fail("Không thể đổi số phòng của phòng trọ đang có hợp đồng hoạt động!");
+                }
+                if (model.TrangThai == TrangThaiPhong.Trong || model.TrangThai == TrangThaiPhong.BaoTri)
+                {
+                    return ServiceResult.Fail("Không thể chuyển trạng thái phòng về Trống hoặc Bảo trì khi đang có hợp đồng hoạt động!");
+                }
+                if (model.SoNguoiToiDa < phongTonTai.SoNguoiToiDa)
+                {
+                    var hopDongActive = await _context.HopDongs
+                        .FirstOrDefaultAsync(h => h.PhongTroId == model.PhongTroId && h.TrangThaiHopDong == TrangThaiHopDong.DangHoatDong && !h.IsDeleted);
+                    if (hopDongActive != null)
+                    {
+                        int currentActiveMembers = await _context.ChiTietThanhVienHopDongs
+                            .CountAsync(x => x.HopDongId == hopDongActive.HopDongId && !x.IsDeleted && x.NgayChuyenDi == null);
+                        
+                        if (model.SoNguoiToiDa < currentActiveMembers)
+                        {
+                            return ServiceResult.Fail($"Số người tối đa mới ({model.SoNguoiToiDa} người) không được nhỏ hơn số người đang ở thực tế trong phòng ({currentActiveMembers} người)!");
+                        }
+                    }
+                }
+            }
+
             // Cập nhật dữ liệu
             phongTonTai.ChiNhanhId = model.ChiNhanhId;
             phongTonTai.SoPhong = model.SoPhong;
@@ -107,6 +144,21 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.PhongTros
             var phong = await _context.PhongTros.FirstOrDefaultAsync(p => p.PhongTroId == id && !p.IsDeleted);
             if (phong == null)
                 return ServiceResult.Fail("Không tìm thấy phòng trọ!");
+
+            if (phong.TrangThai == TrangThaiPhong.DaThue)
+            {
+                return ServiceResult.Fail("Không thể xóa phòng trọ đang trong trạng thái cho thuê!");
+            }
+
+            bool coHopDongHoatDong = await _context.HopDongs.AnyAsync(h => 
+                h.PhongTroId == id && 
+                h.TrangThaiHopDong == TrangThaiHopDong.DangHoatDong && 
+                !h.IsDeleted);
+
+            if (coHopDongHoatDong)
+            {
+                return ServiceResult.Fail("Không thể xóa phòng trọ đang có hợp đồng hoạt động!");
+            }
 
             // Xóa mềm
             phong.IsDeleted = true;
