@@ -5,11 +5,8 @@ using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Requests;
 
 namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
 {
-    [Area("QuanLyNhaTro")]
     [ApiController]
-    [Microsoft.AspNetCore.Authorization.Authorize]
-    [AutoValidateAntiforgeryToken]
-    public class DichVuController : Controller
+    public class DichVuController : AdminBaseController
     {
         private readonly IDichVuService _dichVuService;
         private readonly IPhongTroService _phongTroService;

@@ -3,20 +3,21 @@ using System.Threading.Tasks;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.AiAssistants;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.AiAssistant;
 
 namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
 {
-    [Area("QuanLyNhaTro")]
-    [Authorize]
-    public class AiAssistantController : Controller
+    public class AiAssistantController : AdminBaseController
     {
         private readonly IAiAssistantService _aiService;
+        private readonly ILogger<AiAssistantController> _logger;
 
-        public AiAssistantController(IAiAssistantService aiService)
+        public AiAssistantController(IAiAssistantService aiService, ILogger<AiAssistantController> logger)
         {
             _aiService = aiService;
+            _logger = logger;
         }
 
         [HttpPost]
@@ -29,24 +30,16 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
 
             try
             {
-                string userRole = User.IsInRole("Admin") ? "Admin" : User.IsInRole("KhachThue") ? "KhachThue" : "Unknown";
+                string userRole = User.IsInRole("Admin") ? "Admin" : "NhanVien";
                 int? nguoiThueId = null;
-
-                if (userRole == "KhachThue")
-                {
-                    var claim = User.FindFirst("NguoiThueId");
-                    if (claim != null && int.TryParse(claim.Value, out int parsedId))
-                    {
-                        nguoiThueId = parsedId;
-                    }
-                }
 
                 var result = await _aiService.ChatWithAssistantAsync(request.Message, request.History, userRole, nguoiThueId);
                 return Json(result);
             }
             catch (Exception ex)
             {
-                return Json(QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.ServiceResult.Fail($"Đã xảy ra lỗi hệ thống: {ex.Message}"));
+                _logger.LogError(ex, "Lỗi xảy ra trong quá trình chat với trợ lý ảo.");
+                return Json(QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.ServiceResult.Fail("Đã xảy ra lỗi hệ thống khi xử lý yêu cầu."));
             }
         }
     }

@@ -6,11 +6,8 @@ using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Requests;
 
 namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
 {
-    [Area("QuanLyNhaTro")]
     [ApiController]
-    [Microsoft.AspNetCore.Authorization.Authorize]
-    [AutoValidateAntiforgeryToken]
-    public class DienNuocController : Controller
+    public class DienNuocController : AdminBaseController
     {
         private readonly IDienNuocService _dienNuocService;
         private readonly IPhongTroService _phongTroService;

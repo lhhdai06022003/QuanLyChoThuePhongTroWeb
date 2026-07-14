@@ -5,25 +5,31 @@ using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.PhongTros;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Requests;
 
+using Microsoft.Extensions.Logging;
+
 namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
 {
-    [Area("QuanLyNhaTro")]
     [ApiController]
-    [Microsoft.AspNetCore.Authorization.Authorize]
-    [AutoValidateAntiforgeryToken]
-    public class HopDongController : Controller
+    public class HopDongController : AdminBaseController
     {
         private readonly IHopDongService _hopDongService;
         private readonly IPhongTroService _phongTroService;
         private readonly INguoiThueService _nguoiThueService;
         private readonly QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.DieuKhoanMaus.IDieuKhoanMauService _dieuKhoanMauService;
+        private readonly ILogger<HopDongController> _logger;
 
-        public HopDongController(IHopDongService hopDongService, IPhongTroService phongTroService, INguoiThueService nguoiThueService, QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.DieuKhoanMaus.IDieuKhoanMauService dieuKhoanMauService)
+        public HopDongController(
+            IHopDongService hopDongService, 
+            IPhongTroService phongTroService, 
+            INguoiThueService nguoiThueService, 
+            QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.DieuKhoanMaus.IDieuKhoanMauService dieuKhoanMauService,
+            ILogger<HopDongController> logger)
         {
             _hopDongService = hopDongService;
             _phongTroService = phongTroService;
             _nguoiThueService = nguoiThueService;
             _dieuKhoanMauService = dieuKhoanMauService;
+            _logger = logger;
         }
 
         [Route("QuanLyNhaTro/QuanLyHopDong")]
@@ -131,7 +137,8 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { message = "Lỗi khi tạo file Word: " + ex.Message });
+                _logger.LogError(ex, "Lỗi xảy ra khi sinh tệp Word cho hợp đồng {HopDongId}", id);
+                return BadRequest(new { message = "Đã xảy ra lỗi hệ thống khi tải file hợp đồng. Vui lòng thử lại sau." });
             }
         }
     }

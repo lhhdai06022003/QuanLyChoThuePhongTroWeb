@@ -8,11 +8,8 @@ using System.Threading.Tasks;
 
 namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
 {
-    [Area("QuanLyNhaTro")]
     [ApiController]
-    [Authorize(Roles = "Admin,NhanVien")]
-    [AutoValidateAntiforgeryToken]
-    public class NguoiThueController : Controller
+    public class NguoiThueController : AdminBaseController
     {
         private readonly INguoiThueService _nguoiThueService;
         private readonly ILogger<NguoiThueController> _logger;

@@ -8,11 +8,8 @@ using System.Threading.Tasks;
 
 namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
 {
-    [Area("QuanLyNhaTro")]
     [Route("[controller]/[action]")]
-    [Microsoft.AspNetCore.Authorization.Authorize]
-    [AutoValidateAntiforgeryToken]
-    public class PhongTrosController : Controller
+    public class PhongTrosController : AdminBaseController
     {
         private readonly IPhongTroService _phongTroService;
         private readonly IConfiguration _configuration;

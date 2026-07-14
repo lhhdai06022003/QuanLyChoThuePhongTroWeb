@@ -6,10 +6,7 @@ using System.Threading.Tasks;
 
 namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
 {
-    [Area("QuanLyNhaTro")]
-    [Authorize(Roles = "Admin,NhanVien")]
-    [AutoValidateAntiforgeryToken]
-    public class DashboardController : Controller
+    public class DashboardController : AdminBaseController
     {
         private readonly IDashboardService _dashboardService;
 

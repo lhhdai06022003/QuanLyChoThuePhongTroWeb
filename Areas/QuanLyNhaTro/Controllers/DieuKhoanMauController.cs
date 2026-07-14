@@ -6,9 +6,7 @@ using System.Threading.Tasks;
 
 namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
 {
-    [Area("QuanLyNhaTro")]
-    [Authorize(Roles = "Admin,NhanVien")]
-    public class DieuKhoanMauController : Controller
+    public class DieuKhoanMauController : AdminBaseController
     {
         private readonly IDieuKhoanMauService _dieuKhoanMauService;
 

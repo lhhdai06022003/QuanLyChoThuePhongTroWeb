@@ -4,11 +4,8 @@ using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Requests;
 
 namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
 {
-    [Area("QuanLyNhaTro")]
     [ApiController]
-    [Microsoft.AspNetCore.Authorization.Authorize]
-    [AutoValidateAntiforgeryToken]
-    public class ThanhVienHopDongController : Controller
+    public class ThanhVienHopDongController : AdminBaseController
     {
         private readonly IThanhVienHopDongService _thanhVienService;
 

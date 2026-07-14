@@ -10,11 +10,8 @@ using System.Threading.Tasks;
 
 namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
 {
-    [Area("QuanLyNhaTro")]
     [ApiController]
-    [Authorize(Roles = "Admin,NhanVien")]
-    [AutoValidateAntiforgeryToken]
-    public class LichSuThanhToanController : Controller
+    public class LichSuThanhToanController : AdminBaseController
     {
         private readonly ILichSuThanhToanService _lichSuThanhToanService;
         private readonly IPhongTroService _phongTroService;

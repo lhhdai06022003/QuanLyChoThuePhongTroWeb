@@ -5,11 +5,8 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
 {
-    [Area("QuanLyNhaTro")]
     [Route("[controller]/[action]")]
-    [Authorize(Roles = "Admin,NhanVien")]
-    [AutoValidateAntiforgeryToken]
-    public class ChiNhanhsController : Controller
+    public class ChiNhanhsController : AdminBaseController
     {
         private readonly IChiNhanhService _chiNhanhService;
         public ChiNhanhsController(IChiNhanhService chiNhanhService)

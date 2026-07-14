@@ -13,10 +13,7 @@ using System.Threading.Tasks;
 
 namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
 {
-    [Area("QuanLyNhaTro")]
-    [Authorize(Roles = "Admin,NhanVien")]
-    [AutoValidateAntiforgeryToken]
-    public class NguoiDungController : Controller
+    public class NguoiDungController : AdminBaseController
     {
         private readonly INguoiDungService _nguoiDungService;
         private readonly ILogger<NguoiDungController> _logger;

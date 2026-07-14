@@ -11,11 +11,8 @@ using Microsoft.Extensions.Logging;
 
 namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
 {
-    [Area("QuanLyNhaTro")]
     [ApiController]
-    [Authorize(Roles = "Admin,NhanVien")]
-    [AutoValidateAntiforgeryToken]
-    public class HoaDonController : Controller
+    public class HoaDonController : AdminBaseController
     {
         private readonly IHoaDonService _hoaDonService;
         private readonly IPhongTroService _phongTroService;
