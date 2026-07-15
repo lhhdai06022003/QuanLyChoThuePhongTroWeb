@@ -1,0 +1,142 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="app.diagrams.net" agent="5.0" pages="1">
+  <diagram id="seq-xoa-hop-dong" name="Sequence Xoa Hop Dong">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="1660" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="part_nd" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="Người dùng" vertex="1">
+          <mxGeometry height="60" width="30" x="50" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="line_nd" edge="1" parent="1" source="part_nd" style="endArrow=none;dashed=1;html=1;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="65" y="100" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="act_nd" parent="1" style="html=1;points=[];perimeter=orthogonalPerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="" vertex="1">
+          <mxGeometry height="1400" width="10" x="60" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="part_c" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="HopDongController" vertex="1">
+          <mxGeometry height="1570" width="140" x="240" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="act_c" parent="part_c" style="html=1;points=[];perimeter=orthogonalPerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="" vertex="1">
+          <mxGeometry height="1440" width="10" x="65" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="part_s" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="HopDongService" vertex="1">
+          <mxGeometry height="1570" width="140" x="480" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="act_s" parent="part_s" style="html=1;points=[];perimeter=orthogonalPerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="" vertex="1">
+          <mxGeometry height="1410" width="10" x="65" y="130" as="geometry" />
+        </mxCell>
+        <mxCell id="part_db" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="DbContext" vertex="1">
+          <mxGeometry height="1570" width="140" x="720" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="act_db" parent="part_db" style="html=1;points=[];perimeter=orthogonalPerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="" vertex="1">
+          <mxGeometry height="1360" width="10" x="65" y="180" as="geometry" />
+        </mxCell>
+        <mxCell id="msg1" edge="1" parent="1" style="endArrow=classic;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" value="1. Gửi yêu cầu xóa hợp đồng (DELETE /HopDong/Delete/{id})">
+          <mxGeometry height="50" width="50" relative="1" as="geometry">
+            <mxPoint x="70" y="160" as="sourcePoint" />
+            <mxPoint x="305" y="160" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg2" edge="1" parent="1" style="endArrow=classic;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" value="2. Gọi hàm thực thi xóa hợp đồng (DeleteAsync)">
+          <mxGeometry height="50" width="50" relative="1" as="geometry">
+            <mxPoint x="315" y="255" as="sourcePoint" />
+            <mxPoint x="545" y="255" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg3" edge="1" parent="1" style="endArrow=classic;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" value="3. Truy vấn thông tin hợp đồng theo ID">
+          <mxGeometry height="50" width="50" relative="1" as="geometry">
+            <mxPoint x="555" y="350" as="sourcePoint" />
+            <mxPoint x="785" y="350" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg4" edge="1" parent="1" style="endArrow=open;dashed=1;endSize=8;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" value="4. Trả về đối tượng hợp đồng">
+          <mxGeometry height="50" width="50" relative="1" as="geometry">
+            <mxPoint x="785" y="445" as="sourcePoint" />
+            <mxPoint x="555" y="445" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg5" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;html=1;align=left;spacingLeft=5;verticalAlign=bottom;rounded=0;labelBackgroundColor=#ffffff;" value="5. Kiểm tra trạng thái hoạt động (Chặn xóa nếu hợp đồng đang hoạt động)">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="555" y="540" as="sourcePoint" />
+            <mxPoint x="555" y="580" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="590" y="540" />
+              <mxPoint x="590" y="580" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg6" edge="1" parent="1" style="endArrow=classic;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" value="6. Truy vấn danh sách thành viên ở ghép của hợp đồng">
+          <mxGeometry height="50" width="50" relative="1" as="geometry">
+            <mxPoint x="555" y="635" as="sourcePoint" />
+            <mxPoint x="785" y="635" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg7" edge="1" parent="1" style="endArrow=open;dashed=1;endSize=8;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" value="7. Trả về danh sách thành viên liên kết">
+          <mxGeometry height="50" width="50" relative="1" as="geometry">
+            <mxPoint x="785" y="730" as="sourcePoint" />
+            <mxPoint x="555" y="730" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg8" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;html=1;align=left;spacingLeft=5;verticalAlign=bottom;rounded=0;labelBackgroundColor=#ffffff;" value="8. Cập nhật ngày rời đi của các thành viên (NgayChuyenDi = UtcNow)">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="555" y="825" as="sourcePoint" />
+            <mxPoint x="555" y="865" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="590" y="825" />
+              <mxPoint x="590" y="865" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg9" edge="1" parent="1" style="endArrow=classic;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" value="9. Kiểm tra xem phòng còn hợp đồng hoạt động khác không">
+          <mxGeometry height="50" width="50" relative="1" as="geometry">
+            <mxPoint x="555" y="920" as="sourcePoint" />
+            <mxPoint x="785" y="920" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg10" edge="1" parent="1" style="endArrow=open;dashed=1;endSize=8;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" value="10. Trả về kết quả kiểm tra">
+          <mxGeometry height="50" width="50" relative="1" as="geometry">
+            <mxPoint x="785" y="1015" as="sourcePoint" />
+            <mxPoint x="555" y="1015" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg11" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;html=1;align=left;spacingLeft=5;verticalAlign=bottom;rounded=0;labelBackgroundColor=#ffffff;" value="11. Đánh dấu xóa hợp đồng (IsDeleted = true) và chuyển trạng thái phòng thành Trống">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="555" y="1110" as="sourcePoint" />
+            <mxPoint x="555" y="1150" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="590" y="1110" />
+              <mxPoint x="590" y="1150" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg12" edge="1" parent="1" style="endArrow=classic;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" value="12. Thực thi lưu thay đổi vào DB (SaveChangesAsync)">
+          <mxGeometry height="50" width="50" relative="1" as="geometry">
+            <mxPoint x="555" y="1205" as="sourcePoint" />
+            <mxPoint x="785" y="1205" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg13" edge="1" parent="1" style="endArrow=open;dashed=1;endSize=8;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" value="13. Xác nhận lưu cơ sở dữ liệu thành công">
+          <mxGeometry height="50" width="50" relative="1" as="geometry">
+            <mxPoint x="785" y="1300" as="sourcePoint" />
+            <mxPoint x="555" y="1300" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg14" edge="1" parent="1" style="endArrow=open;dashed=1;endSize=8;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" value="14. Trả về kết quả xóa thành công">
+          <mxGeometry height="50" width="50" relative="1" as="geometry">
+            <mxPoint x="545" y="1395" as="sourcePoint" />
+            <mxPoint x="315" y="1395" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg15" edge="1" parent="1" style="endArrow=open;dashed=1;endSize=8;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" value="15. Phản hồi xóa hợp đồng thành công (HTTP 200 OK)">
+          <mxGeometry height="50" width="50" relative="1" as="geometry">
+            <mxPoint x="305" y="1490" as="sourcePoint" />
+            <mxPoint x="70" y="1490" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

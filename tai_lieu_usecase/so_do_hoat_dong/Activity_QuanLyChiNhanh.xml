@@ -1,0 +1,257 @@
+<mxfile host="app.diagrams.net" modified="2026-07-14T15:30:00.000Z" agent="5.0" version="20.0.0" type="device">
+  <diagram id="branch-management" name="Branch Management Activity Diagram">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Start Node -->
+        <mxCell id="start" value="" style="ellipse;html=1;fillColor=#000000;strokeColor=none;" parent="1" vertex="1">
+          <mxGeometry x="400" y="40" width="30" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Selection Node -->
+        <mxCell id="select_action" value="Chọn hành động quản lý?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffff8d;strokeColor=#b8b800;" parent="1" vertex="1">
+          <mxGeometry x="345" y="110" width="140" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== FLOW 1: THEM CHI NHANH ==================== -->
+        <mxCell id="add_input" value="Nhập: Mã, Tên, Địa chỉ, SĐT, Mô tả" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="80" y="220" width="180" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="add_check_dup" value="Mã chi nhánh đã tồn tại?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffff8d;strokeColor=#b8b800;" parent="1" vertex="1">
+          <mxGeometry x="100" y="300" width="140" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="add_err_dup" value="Báo lỗi: Mã chi nhánh đã tồn tại" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1">
+          <mxGeometry x="10" y="400" width="160" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="add_save" value="Thêm mới, chuẩn hóa mã, lưu DB" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="180" y="400" width="160" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== FLOW 2: CAP NHAT CHI NHANH ==================== -->
+        <mxCell id="edit_select" value="Chọn chi nhánh cần chỉnh sửa" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="325" y="220" width="180" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="edit_check_exist" value="Tồn tại &amp; chưa bị xóa?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffff8d;strokeColor=#b8b800;" parent="1" vertex="1">
+          <mxGeometry x="345" y="300" width="140" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="edit_err_exist" value="Báo lỗi: Không tìm thấy chi nhánh" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1">
+          <mxGeometry x="500" y="310" width="160" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="edit_input" value="Sửa thông tin chi nhánh" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="325" y="400" width="180" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="edit_check_dup" value="Trùng mã với chi nhánh khác?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffff8d;strokeColor=#b8b800;" parent="1" vertex="1">
+          <mxGeometry x="345" y="480" width="140" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="edit_err_dup" value="Báo lỗi: Mã chi nhánh bị trùng" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1">
+          <mxGeometry x="510" y="490" width="160" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="edit_save" value="Cập nhật thông tin, set NgayCapNhat, lưu DB" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="315" y="580" width="200" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== FLOW 3: XOA CHI NHANH ==================== -->
+        <mxCell id="del_select" value="Chọn chi nhánh cần xóa" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="570" y="220" width="180" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="del_check_exist" value="Tồn tại &amp; chưa bị xóa?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffff8d;strokeColor=#b8b800;" parent="1" vertex="1">
+          <mxGeometry x="590" y="380" width="140" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="del_err_exist" value="Báo lỗi: Chi nhánh không tồn tại" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1">
+          <mxGeometry x="750" y="390" width="160" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="del_soft" value="Đánh dấu IsDeleted = true, set NgayCapNhat, lưu DB" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="550" y="480" width="220" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== END NODES ==================== -->
+        <mxCell id="end_success" value="" style="ellipse;html=1;fillColor=#000000;strokeColor=#000000;strokeWidth=4;" parent="1" vertex="1">
+          <mxGeometry x="400" y="700" width="30" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="end_fail" value="" style="ellipse;html=1;fillColor=#ff0000;strokeColor=#ff0000;strokeWidth=4;" parent="1" vertex="1">
+          <mxGeometry x="100" y="700" width="30" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== EDGES ==================== -->
+        <!-- Start -> Selection -->
+        <mxCell id="edge1" style="endArrow=classic;html=1;" parent="1" source="start" target="select_action" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Selection -> Add -->
+        <mxCell id="edge_sel_add" style="endArrow=classic;html=1;exitX=0;exitY=0.5;entryX=0.5;entryY=0;" parent="1" source="select_action" target="add_input" edge="1">
+          <mxGeometry value="Thêm" relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="170" y="140" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Add Input -> Check Duplicate -->
+        <mxCell id="edge_add_1" style="endArrow=classic;html=1;" parent="1" source="add_input" target="add_check_dup" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Check Duplicate -> Err (Yes) -->
+        <mxCell id="edge_add_dup_y" style="endArrow=classic;html=1;exitX=0;exitY=0.5;entryX=0.5;entryY=0;" parent="1" source="add_check_dup" target="add_err_dup" edge="1">
+          <mxGeometry value="Có" relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="90" y="330" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Check Duplicate -> Save (No) -->
+        <mxCell id="edge_add_dup_n" style="endArrow=classic;html=1;exitX=1;exitY=0.5;entryX=0.5;entryY=0;" parent="1" source="add_check_dup" target="add_save" edge="1">
+          <mxGeometry value="Không" relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="260" y="330" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Err Add -> End Fail -->
+        <mxCell id="edge_err_add_end" style="endArrow=classic;html=1;entryX=0.5;entryY=0;" parent="1" source="add_err_dup" target="end_fail" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="90" y="660" />
+              <mxPoint x="115" y="660" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Save Add -> End Success -->
+        <mxCell id="edge_save_add_end" style="endArrow=classic;html=1;entryX=0;entryY=0.5;" parent="1" source="add_save" target="end_success" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="260" y="715" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Selection -> Edit -->
+        <mxCell id="edge_sel_edit" style="endArrow=classic;html=1;" parent="1" source="select_action" target="edit_select" edge="1">
+          <mxGeometry value="Sửa" relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Edit Select -> Check Exist -->
+        <mxCell id="edge_edit_1" style="endArrow=classic;html=1;" parent="1" source="edit_select" target="edit_check_exist" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Check Exist -> Err (No) -->
+        <mxCell id="edge_edit_exist_n" style="endArrow=classic;html=1;exitX=1;exitY=0.5;" parent="1" source="edit_check_exist" target="edit_err_exist" edge="1">
+          <mxGeometry value="Không" relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Check Exist -> Input (Yes) -->
+        <mxCell id="edge_edit_exist_y" style="endArrow=classic;html=1;" parent="1" source="edit_check_exist" target="edit_input" edge="1">
+          <mxGeometry value="Có" relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Edit Input -> Check Duplicate -->
+        <mxCell id="edge_edit_2" style="endArrow=classic;html=1;" parent="1" source="edit_input" target="edit_check_dup" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Check Duplicate -> Err (Yes) -->
+        <mxCell id="edge_edit_dup_y" style="endArrow=classic;html=1;exitX=1;exitY=0.5;" parent="1" source="edit_check_dup" target="edit_err_dup" edge="1">
+          <mxGeometry value="Có" relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Check Duplicate -> Save (No) -->
+        <mxCell id="edge_edit_dup_n" style="endArrow=classic;html=1;" parent="1" source="edit_check_dup" target="edit_save" edge="1">
+          <mxGeometry value="Không" relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Err Exist -> End Fail -->
+        <mxCell id="edge_err_exist_edit_end" style="endArrow=classic;html=1;exitX=0.5;exitY=1;entryX=1;entryY=0.5;" parent="1" source="edit_err_exist" target="end_fail" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="580" y="660" />
+              <mxPoint x="115" y="660" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Err Dup Edit -> End Fail -->
+        <mxCell id="edge_err_dup_edit_end" style="endArrow=classic;html=1;exitX=0.5;exitY=1;entryX=1;entryY=0.5;" parent="1" source="edit_err_dup" target="end_fail" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="590" y="660" />
+              <mxPoint x="115" y="660" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Save Edit -> End Success -->
+        <mxCell id="edge_save_edit_end" style="endArrow=classic;html=1;entryX=0.5;entryY=0;" parent="1" source="edit_save" target="end_success" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="415" y="660" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Selection -> Delete -->
+        <mxCell id="edge_sel_del" style="endArrow=classic;html=1;exitX=1;exitY=0.5;entryX=0.5;entryY=0;" parent="1" source="select_action" target="del_select" edge="1">
+          <mxGeometry value="Xóa" relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="660" y="140" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Delete Select -> Check Exist -->
+        <mxCell id="edge_del_1" style="endArrow=classic;html=1;entryX=0.5;entryY=0;" parent="1" source="del_select" target="del_check_exist" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Check Exist -> Err (No) -->
+        <mxCell id="edge_del_exist_n" style="endArrow=classic;html=1;exitX=1;exitY=0.5;" parent="1" source="del_check_exist" target="del_err_exist" edge="1">
+          <mxGeometry value="Không" relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Check Exist -> Soft Delete (Yes) -->
+        <mxCell id="edge_del_exist_y" style="endArrow=classic;html=1;" parent="1" source="del_check_exist" target="del_soft" edge="1">
+          <mxGeometry value="Có" relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Err Exist Delete -> End Fail -->
+        <mxCell id="edge_err_exist_del_end" style="endArrow=classic;html=1;exitX=0.5;exitY=1;entryX=1;entryY=0.5;" parent="1" source="del_err_exist" target="end_fail" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="830" y="660" />
+              <mxPoint x="115" y="660" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Soft Delete -> End Success -->
+        <mxCell id="edge_soft_del_end" style="endArrow=classic;html=1;exitX=0.5;exitY=1;entryX=1;entryY=0.5;" parent="1" source="del_soft" target="end_success" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="660" y="715" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,262 @@
+<mxfile host="app.diagrams.net" modified="2026-07-15T11:50:00.000Z" agent="5.0" version="20.0.0" type="device">
+  <diagram id="chot-dien-nuoc" name="Chot Dien Nuoc Activity Diagram">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Start Node -->
+        <mxCell id="2" value="" style="ellipse;html=1;fillColor=#000000;strokeColor=none;" parent="1" vertex="1">
+          <mxGeometry x="400" y="40" width="30" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Action: Chon Chi nhanh -->
+        <mxCell id="3" value="Chọn Chi nhánh, Tháng, Năm cần chốt" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="315" y="100" width="200" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Action: Nhap chi so -->
+        <mxCell id="4" value="Nhập chỉ số điện/nước đầu kỳ &amp; cuối kỳ của các phòng" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="290" y="170" width="250" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Action: Nhan Luu -->
+        <mxCell id="5" value="Nhấn &quot;Lưu chốt điện nước&quot;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="325" y="240" width="180" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Action: Query don gia -->
+        <mxCell id="6" value="Truy vấn đơn giá điện, nước tại Chi nhánh" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="315" y="310" width="200" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Action: Begin Tx -->
+        <mxCell id="7" value="Bắt đầu SQL Transaction" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="325" y="380" width="180" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Decision: Loop -->
+        <mxCell id="8" value="Duyệt từng phòng trọ trong danh sách?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" parent="1" vertex="1">
+          <mxGeometry x="325" y="450" width="180" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Decision: Check lock -->
+        <mxCell id="9" value="Tháng tiếp theo đã được chốt?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" parent="1" vertex="1">
+          <mxGeometry x="330" y="570" width="170" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Error: Lock -->
+        <mxCell id="10" value="Báo lỗi: Đã chốt tháng sau, không thể sửa tháng này" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1">
+          <mxGeometry x="100" y="590" width="190" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Decision: Check negative -->
+        <mxCell id="11" value="Có chỉ số nào âm (&lt; 0)?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" parent="1" vertex="1">
+          <mxGeometry x="335" y="690" width="160" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Error: Negative -->
+        <mxCell id="12" value="Báo lỗi: Chỉ số không được âm" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1">
+          <mxGeometry x="110" y="710" width="180" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Decision: Check order -->
+        <mxCell id="13" value="Chỉ số mới &lt; chỉ số cũ?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" parent="1" vertex="1">
+          <mxGeometry x="335" y="810" width="160" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Error: Order -->
+        <mxCell id="14" value="Báo lỗi: Chỉ số mới không được nhỏ hơn chỉ số cũ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1">
+          <mxGeometry x="90" y="830" width="210" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Decision: Check match -->
+        <mxCell id="15" value="Chỉ số cũ == Chỉ số mới tháng trước?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" parent="1" vertex="1">
+          <mxGeometry x="335" y="930" width="160" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Error: Match -->
+        <mxCell id="16" value="Báo lỗi: Chỉ số cũ không khớp chỉ số cuối tháng trước" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1">
+          <mxGeometry x="80" y="950" width="230" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Action: Save room -->
+        <mxCell id="17" value="Lưu/Cập nhật bản ghi chỉ số, gán đơn giá" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="315" y="1050" width="200" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Action: Commit Tx -->
+        <mxCell id="18" value="Commit SQL Transaction" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="1" vertex="1">
+          <mxGeometry x="580" y="470" width="180" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Action: Rollback Tx -->
+        <mxCell id="19" value="Rollback SQL Transaction" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1">
+          <mxGeometry x="100" y="1050" width="190" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Action: Success -->
+        <mxCell id="20" value="Thông báo: Lưu thành công! (HTTP 200)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="1" vertex="1">
+          <mxGeometry x="575" y="540" width="190" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- End Success -->
+        <mxCell id="21" value="" style="ellipse;html=1;aspect=fixed;fillColor=#000000;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="655" y="610" width="30" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- End Fail -->
+        <mxCell id="22" value="" style="ellipse;html=1;aspect=fixed;fillColor=#000000;strokeColor=#b85450;" parent="1" vertex="1">
+          <mxGeometry x="180" y="1130" width="30" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== EDGES ==================== -->
+        <!-- Start -> Chon CN -->
+        <mxCell id="30" style="endArrow=classic;html=1;" parent="1" source="2" target="3" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Chon CN -> Nhap chi so -->
+        <mxCell id="31" style="endArrow=classic;html=1;" parent="1" source="3" target="4" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Nhap chi so -> Nhan Luu -->
+        <mxCell id="32" style="endArrow=classic;html=1;" parent="1" source="4" target="5" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Nhan Luu -> Query don gia -->
+        <mxCell id="33" style="endArrow=classic;html=1;" parent="1" source="5" target="6" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Query don gia -> Begin Tx -->
+        <mxCell id="34" style="endArrow=classic;html=1;" parent="1" source="6" target="7" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Begin Tx -> Loop -->
+        <mxCell id="35" style="endArrow=classic;html=1;" parent="1" source="7" target="8" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Loop -> Check Lock (Con phong) -->
+        <mxCell id="36" value="Còn phòng" style="endArrow=classic;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="8" target="9" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Loop -> Commit Tx (Het phong) -->
+        <mxCell id="37" value="Hết phòng" style="endArrow=classic;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="8" target="18" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Check Lock -> Err Lock (Co) -->
+        <mxCell id="38" value="Có" style="endArrow=classic;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="9" target="10" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Check Lock -> Check Neg (Khong) -->
+        <mxCell id="39" value="Không" style="endArrow=classic;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="9" target="11" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Check Neg -> Err Neg (Co) -->
+        <mxCell id="40" value="Có" style="endArrow=classic;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="11" target="12" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Check Neg -> Check Order (Khong) -->
+        <mxCell id="41" value="Không" style="endArrow=classic;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="11" target="13" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Check Order -> Err Order (Co) -->
+        <mxCell id="42" value="Có" style="endArrow=classic;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="13" target="14" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Check Order -> Check Match (Khong) -->
+        <mxCell id="43" value="Không" style="endArrow=classic;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="13" target="15" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Check Match -> Err Match (Khong khop) -->
+        <mxCell id="44" value="Không khớp" style="endArrow=classic;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="15" target="16" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Check Match -> Save Room (Khop) -->
+        <mxCell id="45" value="Khớp" style="endArrow=classic;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="15" target="17" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Save Room -> Loop (quay lai) -->
+        <mxCell id="46" style="endArrow=classic;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="17" target="8" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="540" y="1070" />
+              <mxPoint x="540" y="490" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Commit Tx -> Success -->
+        <mxCell id="47" style="endArrow=classic;html=1;" parent="1" source="18" target="20" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Success -> End Success -->
+        <mxCell id="48" style="endArrow=classic;html=1;" parent="1" source="20" target="21" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Err Lock -> Rollback -->
+        <mxCell id="50" style="endArrow=classic;html=1;" parent="1" source="10" target="19" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="195" y="650" />
+              <mxPoint x="195" y="1050" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Err Neg -> Rollback -->
+        <mxCell id="51" style="endArrow=classic;html=1;" parent="1" source="12" target="19" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="200" y="770" />
+              <mxPoint x="200" y="1050" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Err Order -> Rollback -->
+        <mxCell id="52" style="endArrow=classic;html=1;" parent="1" source="14" target="19" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="195" y="890" />
+              <mxPoint x="195" y="1050" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Err Match -> Rollback -->
+        <mxCell id="53" style="endArrow=classic;html=1;" parent="1" source="16" target="19" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="195" y="1010" />
+              <mxPoint x="195" y="1050" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Rollback -> End Fail -->
+        <mxCell id="54" style="endArrow=classic;html=1;" parent="1" source="19" target="22" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

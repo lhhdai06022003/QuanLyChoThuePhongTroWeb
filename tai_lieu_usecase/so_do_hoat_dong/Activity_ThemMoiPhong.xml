@@ -1,0 +1,127 @@
+<mxfile host="app.diagrams.net" modified="2026-07-14T15:42:00.000Z" agent="5.0" version="20.0.0" type="device">
+  <diagram id="add-room" name="Add New Room Activity Diagram">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Start Node -->
+        <mxCell id="start" value="" style="ellipse;html=1;fillColor=#000000;strokeColor=none;" parent="1" vertex="1">
+          <mxGeometry x="400" y="40" width="30" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Action: Input Details -->
+        <mxCell id="input" value="Nhập thông tin phòng trọ: Số phòng, Chi nhánh, Tầng lầu, Diện tích, Giá thuê, Số người tối đa, Trạng thái, Mô tả" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="290" y="110" width="250" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Decision: Model valid? -->
+        <mxCell id="dec_valid" value="Số phòng trống hoặc Chi nhánh &lt;= 0?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffff8d;strokeColor=#b8b800;" parent="1" vertex="1">
+          <mxGeometry x="325" y="200" width="180" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Action: Error validation -->
+        <mxCell id="err_valid" value="Báo lỗi: Thiếu số phòng hoặc chi nhánh" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1">
+          <mxGeometry x="120" y="220" width="160" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Decision: Check Duplicate -->
+        <mxCell id="check_dup" value="Số phòng đã tồn tại trong chi nhánh?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffff8d;strokeColor=#b8b800;" parent="1" vertex="1">
+          <mxGeometry x="325" y="320" width="180" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Action: Error duplicate -->
+        <mxCell id="err_dup" value="Báo lỗi: Số phòng đã tồn tại trong chi nhánh" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1">
+          <mxGeometry x="100" y="340" width="180" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Action: Set defaults -->
+        <mxCell id="set_fields" value="Thiết lập: NgayTao = UtcNow, IsDeleted = false" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="315" y="440" width="200" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Action: Save DB -->
+        <mxCell id="save_db" value="Lưu phòng trọ vào PostgreSQL" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="325" y="510" width="180" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Action: Success -->
+        <mxCell id="success" value="Thông báo: Thêm phòng trọ thành công! (HTTP 200)" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="1" vertex="1">
+          <mxGeometry x="315" y="580" width="200" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- End Success Node -->
+        <mxCell id="end_success" value="" style="ellipse;html=1;fillColor=#000000;strokeColor=#000000;strokeWidth=4;" parent="1" vertex="1">
+          <mxGeometry x="400" y="650" width="30" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- End Fail Node -->
+        <mxCell id="end_fail" value="" style="ellipse;html=1;fillColor=#ff0000;strokeColor=#ff0000;strokeWidth=4;" parent="1" vertex="1">
+          <mxGeometry x="50" y="225" width="30" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== EDGES ==================== -->
+        <!-- Start -> Input -->
+        <mxCell id="edge1" style="endArrow=classic;html=1;" parent="1" source="start" target="input" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Input -> Decision Valid -->
+        <mxCell id="edge2" style="endArrow=classic;html=1;" parent="1" source="input" target="dec_valid" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Decision Valid -> Err Valid (Yes/Có) -->
+        <mxCell id="edge_valid_y" style="endArrow=classic;html=1;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" parent="1" source="dec_valid" target="err_valid" edge="1">
+          <mxGeometry value="Có" relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Decision Valid -> Check Dup (No/Không) -->
+        <mxCell id="edge_valid_n" style="endArrow=classic;html=1;" parent="1" source="dec_valid" target="check_dup" edge="1">
+          <mxGeometry value="Không" relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Err Valid -> End Fail -->
+        <mxCell id="edge_err_valid_end" style="endArrow=classic;html=1;" parent="1" source="err_valid" target="end_fail" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Check Dup -> Err Dup (Yes/Có) -->
+        <mxCell id="edge_dup_y" style="endArrow=classic;html=1;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" parent="1" source="check_dup" target="err_dup" edge="1">
+          <mxGeometry value="Có" relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Check Dup -> Set Fields (No/Không) -->
+        <mxCell id="edge_dup_n" style="endArrow=classic;html=1;" parent="1" source="check_dup" target="set_fields" edge="1">
+          <mxGeometry value="Không" relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Err Dup -> End Fail -->
+        <mxCell id="edge_err_dup_end" style="endArrow=classic;html=1;entryX=0.5;entryY=1;" parent="1" source="err_dup" target="end_fail" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="190" y="300" />
+              <mxPoint x="65" y="300" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Set Fields -> Save DB -->
+        <mxCell id="edge3" style="endArrow=classic;html=1;" parent="1" source="set_fields" target="save_db" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Save DB -> Success -->
+        <mxCell id="edge4" style="endArrow=classic;html=1;" parent="1" source="save_db" target="success" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Success -> End Success -->
+        <mxCell id="edge5" style="endArrow=classic;html=1;" parent="1" source="success" target="end_success" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,58 +1,59 @@
+<?xml version='1.0' encoding='utf-8'?>
 <mxfile host="app.diagrams.net" modified="2026-06-24T16:15:00.000Z" agent="5.0" version="20.0.0" type="device">
   <diagram id="seq-contract" name="Sequence Contract Diagram">
-    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="1100" math="0" shadow="0">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="1755" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
 
-        <!-- Participants -->
-        <!-- Actor: Nhân viên -->
+        
+        
         <mxCell id="part_nv" value="Nhân viên" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
           <mxGeometry x="50" y="40" width="30" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="line_nv" value="" style="endArrow=none;dashed=1;html=1;" parent="1" source="part_nv" target="act_nv" edge="1">
+        <mxCell id="line_nv" value="" style="endArrow=none;dashed=1;html=1;" parent="1" source="part_nv" edge="1">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="65" y="100" as="sourcePoint" />
           </mxGeometry>
         </mxCell>
         <mxCell id="act_nv" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
-          <mxGeometry x="60" y="140" width="10" height="800" as="geometry" />
+          <mxGeometry x="60" y="140" width="10" height="1495" as="geometry" />
         </mxCell>
 
-        <!-- Controller: HopDongController -->
+        
         <mxCell id="part_c" value="HopDongController" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
-          <mxGeometry x="240" y="40" width="140" height="960" as="geometry" />
+          <mxGeometry x="240" y="40" width="140" height="1665" as="geometry" />
         </mxCell>
         <mxCell id="act_c" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="part_c" vertex="1">
-          <mxGeometry x="65" y="100" width="10" height="820" as="geometry" />
+          <mxGeometry x="65" y="100" width="10" height="1535" as="geometry" />
         </mxCell>
 
-        <!-- Service: HopDongService -->
+        
         <mxCell id="part_s" value="HopDongService" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
-          <mxGeometry x="480" y="40" width="140" height="960" as="geometry" />
+          <mxGeometry x="480" y="40" width="140" height="1665" as="geometry" />
         </mxCell>
         <mxCell id="act_s" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="part_s" vertex="1">
-          <mxGeometry x="65" y="140" width="10" height="710" as="geometry" />
+          <mxGeometry x="65" y="140" width="10" height="1495" as="geometry" />
         </mxCell>
 
-        <!-- Service: NguoiDungService -->
+        
         <mxCell id="part_us" value="NguoiDungService" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
-          <mxGeometry x="720" y="40" width="140" height="960" as="geometry" />
+          <mxGeometry x="720" y="40" width="140" height="1665" as="geometry" />
         </mxCell>
         <mxCell id="act_us" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="part_us" vertex="1">
-          <mxGeometry x="65" y="570" width="10" height="150" as="geometry" />
+          <mxGeometry x="65" y="570" width="10" height="1065" as="geometry" />
         </mxCell>
 
-        <!-- DbContext -->
+        
         <mxCell id="part_db" value="DbContext (PostgreSQL)" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
-          <mxGeometry x="960" y="40" width="160" height="960" as="geometry" />
+          <mxGeometry x="960" y="40" width="160" height="1665" as="geometry" />
         </mxCell>
         <mxCell id="act_db" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="part_db" vertex="1">
-          <mxGeometry x="75" y="170" width="10" height="630" as="geometry" />
+          <mxGeometry x="75" y="170" width="10" height="1465" as="geometry" />
         </mxCell>
 
-        <!-- Messages (No source/target attributes to ensure absolute Y coordinates) -->
-        <!-- 1. NV -> C: POST -->
+        
+        
         <mxCell id="msg1" value="Yêu cầu lập Hợp đồng mới (POST /Create)" style="endArrow=classic;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" parent="1" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
             <mxPoint x="70" y="160" as="sourcePoint" />
@@ -60,123 +61,123 @@
           </mxGeometry>
         </mxCell>
 
-        <!-- 2. C -> S: CreateHopDongAsync -->
+        
         <mxCell id="msg2" value="Xử lý lập Hợp đồng (CreateHopDongAsync)" style="endArrow=classic;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" parent="1" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="315" y="210" as="sourcePoint" />
-            <mxPoint x="545" y="210" as="targetPoint" />
+            <mxPoint x="315" y="255" as="sourcePoint" />
+            <mxPoint x="545" y="255" as="targetPoint" />
           </mxGeometry>
         </mxCell>
 
-        <!-- 3. S -> DB: BeginTransaction -->
+        
         <mxCell id="msg3" value="Khởi tạo Giao dịch (BeginTransactionAsync)" style="endArrow=classic;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" parent="1" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="555" y="260" as="sourcePoint" />
-            <mxPoint x="1035" y="260" as="targetPoint" />
+            <mxPoint x="555" y="350" as="sourcePoint" />
+            <mxPoint x="1035" y="350" as="targetPoint" />
           </mxGeometry>
         </mxCell>
 
-        <!-- 4. DB -> S: Tx started -->
+        
         <mxCell id="msg4" value="Đã bắt đầu Giao dịch cơ sở dữ liệu" style="endArrow=open;dashed=1;endSize=8;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" parent="1" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="1035" y="310" as="sourcePoint" />
-            <mxPoint x="555" y="310" as="targetPoint" />
+            <mxPoint x="1035" y="445" as="sourcePoint" />
+            <mxPoint x="555" y="445" as="targetPoint" />
           </mxGeometry>
         </mxCell>
 
-        <!-- 5. S -> DB: Query Room -->
+        
         <mxCell id="msg5" value="Tìm phòng trống (Query Phong where TrangThai == Trong)" style="endArrow=classic;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" parent="1" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="555" y="360" as="sourcePoint" />
-            <mxPoint x="1035" y="360" as="targetPoint" />
+            <mxPoint x="555" y="540" as="sourcePoint" />
+            <mxPoint x="1035" y="540" as="targetPoint" />
           </mxGeometry>
         </mxCell>
 
-        <!-- 6. DB -> S: Room details -->
+        
         <mxCell id="msg6" value="Phòng còn trống và hợp lệ" style="endArrow=open;dashed=1;endSize=8;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" parent="1" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="1035" y="410" as="sourcePoint" />
-            <mxPoint x="555" y="410" as="targetPoint" />
+            <mxPoint x="1035" y="635" as="sourcePoint" />
+            <mxPoint x="555" y="635" as="targetPoint" />
           </mxGeometry>
         </mxCell>
 
-        <!-- 7. S -> DB: Query Representative active contracts -->
+        
         <mxCell id="msg7" value="Kiểm tra hợp đồng hiện tại của Khách đại diện" style="endArrow=classic;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" parent="1" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="555" y="460" as="sourcePoint" />
-            <mxPoint x="1035" y="460" as="targetPoint" />
+            <mxPoint x="555" y="730" as="sourcePoint" />
+            <mxPoint x="1035" y="730" as="targetPoint" />
           </mxGeometry>
         </mxCell>
 
-        <!-- 8. DB -> S: Rep ok -->
+        
         <mxCell id="msg8" value="Khách đại diện chưa có hợp đồng nào đang hoạt động" style="endArrow=open;dashed=1;endSize=8;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" parent="1" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="1035" y="510" as="sourcePoint" />
-            <mxPoint x="555" y="510" as="targetPoint" />
+            <mxPoint x="1035" y="825" as="sourcePoint" />
+            <mxPoint x="555" y="825" as="targetPoint" />
           </mxGeometry>
         </mxCell>
 
-        <!-- 9. S -> DB: Save HopDong & Update Room -->
+        
         <mxCell id="msg9" value="Thêm hợp đồng mới &amp; Đổi trạng thái phòng thành Đã thuê" style="endArrow=classic;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" parent="1" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="555" y="560" as="sourcePoint" />
-            <mxPoint x="1035" y="560" as="targetPoint" />
+            <mxPoint x="555" y="920" as="sourcePoint" />
+            <mxPoint x="1035" y="920" as="targetPoint" />
           </mxGeometry>
         </mxCell>
 
-        <!-- 10. S -> US: AutoCreateRenterAccount -->
+        
         <mxCell id="msg10" value="Tự động tạo tài khoản khách thuê (AutoCreateRenterAccount)" style="endArrow=classic;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" parent="1" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="555" y="610" as="sourcePoint" />
-            <mxPoint x="785" y="610" as="targetPoint" />
+            <mxPoint x="555" y="1015" as="sourcePoint" />
+            <mxPoint x="785" y="1015" as="targetPoint" />
           </mxGeometry>
         </mxCell>
 
-        <!-- 11. US -> DB: Insert User -->
+        
         <mxCell id="msg11" value="Thêm thông tin tài khoản Khách thuê (Insert NguoiDung)" style="endArrow=classic;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" parent="1" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="785" y="660" as="sourcePoint" />
-            <mxPoint x="1035" y="660" as="targetPoint" />
+            <mxPoint x="785" y="1110" as="sourcePoint" />
+            <mxPoint x="1035" y="1110" as="targetPoint" />
           </mxGeometry>
         </mxCell>
 
-        <!-- 12. US -> S: Account Created -->
+        
         <mxCell id="msg12" value="Đã tạo tài khoản &amp; liên kết thành công" style="endArrow=open;dashed=1;endSize=8;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" parent="1" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="785" y="710" as="sourcePoint" />
-            <mxPoint x="555" y="710" as="targetPoint" />
+            <mxPoint x="785" y="1205" as="sourcePoint" />
+            <mxPoint x="555" y="1205" as="targetPoint" />
           </mxGeometry>
         </mxCell>
 
-        <!-- 13. S -> DB: Commit Transaction -->
+        
         <mxCell id="msg13" value="Hoàn tất giao dịch (CommitAsync)" style="endArrow=classic;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" parent="1" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="555" y="760" as="sourcePoint" />
-            <mxPoint x="1035" y="760" as="targetPoint" />
+            <mxPoint x="555" y="1300" as="sourcePoint" />
+            <mxPoint x="1035" y="1300" as="targetPoint" />
           </mxGeometry>
         </mxCell>
 
-        <!-- 14. DB -> S: Success -->
+        
         <mxCell id="msg14" value="Đã lưu trữ dữ liệu thành công" style="endArrow=open;dashed=1;endSize=8;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" parent="1" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="1035" y="810" as="sourcePoint" />
-            <mxPoint x="555" y="810" as="targetPoint" />
+            <mxPoint x="1035" y="1395" as="sourcePoint" />
+            <mxPoint x="555" y="1395" as="targetPoint" />
           </mxGeometry>
         </mxCell>
 
-        <!-- 15. S -> C: Success -->
+        
         <mxCell id="msg15" value="Trả về thông tin Hợp đồng đã tạo" style="endArrow=open;dashed=1;endSize=8;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" parent="1" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="555" y="860" as="sourcePoint" />
-            <mxPoint x="305" y="860" as="targetPoint" />
+            <mxPoint x="555" y="1490" as="sourcePoint" />
+            <mxPoint x="305" y="1490" as="targetPoint" />
           </mxGeometry>
         </mxCell>
 
-        <!-- 16. C -> NV: Success -->
+        
         <mxCell id="msg16" value="HTTP 200 (Lập hợp đồng thành công)" style="endArrow=open;dashed=1;endSize=8;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" parent="1" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="305" y="910" as="sourcePoint" />
-            <mxPoint x="70" y="910" as="targetPoint" />
+            <mxPoint x="305" y="1585" as="sourcePoint" />
+            <mxPoint x="70" y="1585" as="targetPoint" />
           </mxGeometry>
         </mxCell>
 

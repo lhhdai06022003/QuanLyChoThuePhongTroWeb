@@ -10,7 +10,7 @@
         <mxCell id="part_nd" value="Người dùng" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
           <mxGeometry x="50" y="40" width="30" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="line_nd" value="" style="endArrow=none;dashed=1;html=1;" parent="1" source="part_nd" target="act_nd" edge="1">
+        <mxCell id="line_nd" value="" style="endArrow=none;dashed=1;html=1;" parent="1" source="part_nd" edge="1">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="65" y="100" as="sourcePoint" />
           </mxGeometry>

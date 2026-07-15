@@ -1,0 +1,205 @@
+<mxfile host="app.diagrams.net" agent="5.0" pages="2">
+  <diagram id="login-activity" name="Login Activity Diagram">
+    <mxGraphModel dx="2402" dy="1226" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="start" parent="1" style="ellipse;html=1;fillColor=#000000;strokeColor=none;" value="" vertex="1">
+          <mxGeometry height="30" width="30" x="400" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="input" parent="1" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="Người dùng nhập Username &amp; Mật khẩu" vertex="1">
+          <mxGeometry height="40" width="180" x="325" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="submit" parent="1" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="Nhấn nút Đăng nhập" vertex="1">
+          <mxGeometry height="40" width="180" x="325" y="170" as="geometry" />
+        </mxCell>
+        <mxCell id="dec_model" parent="1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffff8d;strokeColor=#b8b800;" value="Model hợp lệ?" vertex="1">
+          <mxGeometry height="60" width="120" x="355" y="240" as="geometry" />
+        </mxCell>
+        <mxCell id="err_model" parent="1" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#f8cecc;strokeColor=#b85450;" value="Báo lỗi thiếu thông tin" vertex="1">
+          <mxGeometry height="40" width="160" x="140" y="250" as="geometry" />
+        </mxCell>
+        <mxCell id="end_fail" parent="1" style="ellipse;html=1;fillColor=#ff0000;strokeColor=#ff0000;strokeWidth=4;" value="" vertex="1">
+          <mxGeometry height="30" width="30" x="50" y="255" as="geometry" />
+        </mxCell>
+        <mxCell id="query_user" parent="1" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="Truy vấn thông tin tài khoản hoạt động trong CSDL" vertex="1">
+          <mxGeometry height="40" width="180" x="325" y="330" as="geometry" />
+        </mxCell>
+        <mxCell id="dec_exist" parent="1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffff8d;strokeColor=#b8b800;" value="Tài khoản tồn tại?" vertex="1">
+          <mxGeometry height="60" width="120" x="355" y="400" as="geometry" />
+        </mxCell>
+        <mxCell id="err_auth" parent="1" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#f8cecc;strokeColor=#b85450;" value="Báo lỗi sai TK hoặc mật khẩu" vertex="1">
+          <mxGeometry height="40" width="160" x="140" y="410" as="geometry" />
+        </mxCell>
+        <mxCell id="verify_pbkdf2" parent="1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffff8d;strokeColor=#b8b800;" value="Khớp mã hóa PBKDF2?" vertex="1">
+          <mxGeometry height="60" width="120" x="355" y="490" as="geometry" />
+        </mxCell>
+        <mxCell id="verify_sha256" parent="1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffff8d;strokeColor=#b8b800;" value="Khớp SHA256 cũ?" vertex="1">
+          <mxGeometry height="60" width="120" x="540" y="490" as="geometry" />
+        </mxCell>
+        <mxCell id="set_rehash" parent="1" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="Đánh dấu cần nâng cấp mật khẩu (needsRehash)" vertex="1">
+          <mxGeometry height="40" width="120" x="540" y="580" as="geometry" />
+        </mxCell>
+        <mxCell id="check_rehash" parent="1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffff8d;strokeColor=#b8b800;" value="Cần nâng cấp Hash?" vertex="1">
+          <mxGeometry height="60" width="120" x="355" y="650" as="geometry" />
+        </mxCell>
+        <mxCell id="rehash" parent="1" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="Băm lại mật khẩu bằng PBKDF2" vertex="1">
+          <mxGeometry height="40" width="160" x="540" y="660" as="geometry" />
+        </mxCell>
+        <mxCell id="update_time" parent="1" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="Cập nhật LanDangNhapCuoi = UtcNow" vertex="1">
+          <mxGeometry height="40" width="180" x="325" y="740" as="geometry" />
+        </mxCell>
+        <mxCell id="save_db" parent="1" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="Lưu tài khoản vào PostgreSQL" vertex="1">
+          <mxGeometry height="40" width="180" x="325" y="810" as="geometry" />
+        </mxCell>
+        <mxCell id="create_claims" parent="1" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="Khởi tạo Claims định danh (Id, Name, Role)" vertex="1">
+          <mxGeometry height="40" width="180" x="325" y="880" as="geometry" />
+        </mxCell>
+        <mxCell id="dec_role" parent="1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffff8d;strokeColor=#b8b800;" value="Là Khách thuê?" vertex="1">
+          <mxGeometry height="60" width="120" x="355" y="950" as="geometry" />
+        </mxCell>
+        <mxCell id="add_claim" parent="1" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="Thêm Claim NguoiThueId" vertex="1">
+          <mxGeometry height="40" width="160" x="540" y="960" as="geometry" />
+        </mxCell>
+        <mxCell id="sign_in" parent="1" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="Gọi HttpContext.SignInAsync" vertex="1">
+          <mxGeometry height="40" width="180" x="325" y="1040" as="geometry" />
+        </mxCell>
+        <mxCell id="dec_redirect" parent="1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffff8d;strokeColor=#b8b800;" value="Vai trò chuyển hướng?" vertex="1">
+          <mxGeometry height="60" width="120" x="355" y="1110" as="geometry" />
+        </mxCell>
+        <mxCell id="redir_tenant" parent="1" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="Chuyển sang KhachThue/Dashboard" vertex="1">
+          <mxGeometry height="40" width="180" x="150" y="1120" as="geometry" />
+        </mxCell>
+        <mxCell id="redir_admin" parent="1" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="Chuyển sang Home/Index (Admin)" vertex="1">
+          <mxGeometry height="40" width="180" x="500" y="1120" as="geometry" />
+        </mxCell>
+        <mxCell id="end_success" parent="1" style="ellipse;html=1;fillColor=#000000;strokeColor=#000000;strokeWidth=4;" value="" vertex="1">
+          <mxGeometry height="30" width="30" x="400" y="1200" as="geometry" />
+        </mxCell>
+        <mxCell id="edge1" edge="1" parent="1" source="start" style="endArrow=classic;html=1;" target="input">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge2" edge="1" parent="1" source="input" style="endArrow=classic;html=1;" target="submit">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge3" edge="1" parent="1" source="submit" style="endArrow=classic;html=1;" target="dec_model">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge4" edge="1" parent="1" source="dec_model" style="endArrow=classic;html=1;exitX=0;exitY=0.5;" target="err_model">
+          <mxGeometry relative="1" value="Không" as="geometry">
+            <mxPoint x="-15" y="-15" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge5" edge="1" parent="1" source="err_model" style="endArrow=classic;html=1;" target="end_fail">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge6" edge="1" parent="1" source="dec_model" style="endArrow=classic;html=1;" target="query_user">
+          <mxGeometry relative="1" value="Có" as="geometry">
+            <mxPoint x="10" y="10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge7" edge="1" parent="1" source="query_user" style="endArrow=classic;html=1;" target="dec_exist">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge8" edge="1" parent="1" source="dec_exist" style="endArrow=classic;html=1;exitX=0;exitY=0.5;" target="err_auth">
+          <mxGeometry relative="1" value="Không" as="geometry">
+            <mxPoint x="-15" y="-15" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge9" edge="1" parent="1" source="err_auth" style="endArrow=classic;html=1;entryX=0.5;entryY=1;" target="end_fail">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge10" edge="1" parent="1" source="dec_exist" style="endArrow=classic;html=1;" target="verify_pbkdf2">
+          <mxGeometry relative="1" value="Có" as="geometry">
+            <mxPoint x="10" y="10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge11" edge="1" parent="1" source="verify_pbkdf2" style="endArrow=classic;html=1;exitX=1;exitY=0.5;" target="verify_sha256">
+          <mxGeometry relative="1" value="Không" as="geometry">
+            <mxPoint x="10" y="-15" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge12" edge="1" parent="1" source="verify_sha256" style="endArrow=classic;html=1;exitX=0.5;exitY=0;entryX=1;entryY=0.5;" target="err_auth">
+          <mxGeometry relative="1" value="Không" as="geometry">
+            <mxPoint x="10" y="10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge13" edge="1" parent="1" source="verify_sha256" style="endArrow=classic;html=1;" target="set_rehash">
+          <mxGeometry relative="1" value="Có" as="geometry">
+            <mxPoint x="10" y="10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge14" edge="1" parent="1" source="verify_pbkdf2" style="endArrow=classic;html=1;exitX=0.5;exitY=1;" target="check_rehash">
+          <mxGeometry relative="1" value="Có" as="geometry">
+            <mxPoint x="10" y="10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge15" edge="1" parent="1" source="set_rehash" style="endArrow=classic;html=1;exitX=0.5;exitY=1;entryX=1;entryY=0.5;" target="check_rehash">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge16" edge="1" parent="1" source="check_rehash" style="endArrow=classic;html=1;exitX=1;exitY=0.5;" target="rehash">
+          <mxGeometry relative="1" value="Có" as="geometry">
+            <mxPoint x="10" y="-15" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge17" edge="1" parent="1" source="rehash" style="endArrow=classic;html=1;exitX=0.5;exitY=1;entryX=1;entryY=0.5;" target="update_time">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge18" edge="1" parent="1" source="check_rehash" style="endArrow=classic;html=1;" target="update_time">
+          <mxGeometry relative="1" value="Không" as="geometry">
+            <mxPoint x="10" y="10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge19" edge="1" parent="1" source="update_time" style="endArrow=classic;html=1;" target="save_db">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge20" edge="1" parent="1" source="save_db" style="endArrow=classic;html=1;" target="create_claims">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge21" edge="1" parent="1" source="create_claims" style="endArrow=classic;html=1;" target="dec_role">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge22" edge="1" parent="1" source="dec_role" style="endArrow=classic;html=1;exitX=1;exitY=0.5;" target="add_claim">
+          <mxGeometry relative="1" value="Có" as="geometry">
+            <mxPoint x="10" y="-15" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge23" edge="1" parent="1" source="add_claim" style="endArrow=classic;html=1;exitX=0.5;exitY=1;entryX=1;entryY=0.5;" target="sign_in">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge24" edge="1" parent="1" source="dec_role" style="endArrow=classic;html=1;" target="sign_in">
+          <mxGeometry relative="1" value="Không" as="geometry">
+            <mxPoint x="10" y="10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge25" edge="1" parent="1" source="sign_in" style="endArrow=classic;html=1;" target="dec_redirect">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge26" edge="1" parent="1" source="dec_redirect" style="endArrow=classic;html=1;exitX=0;exitY=0.5;" target="redir_tenant">
+          <mxGeometry relative="1" value="Khách thuê" as="geometry">
+            <mxPoint x="-15" y="-15" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge27" edge="1" parent="1" source="dec_redirect" style="endArrow=classic;html=1;exitX=1;exitY=0.5;" target="redir_admin">
+          <mxGeometry relative="1" value="Admin / Staff" as="geometry">
+            <mxPoint x="10" y="-15" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge28" edge="1" parent="1" source="redir_tenant" style="endArrow=classic;html=1;exitX=0.5;exitY=1;" target="end_success">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge29" edge="1" parent="1" source="redir_admin" style="endArrow=classic;html=1;exitX=0.5;exitY=1;" target="end_success">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="xaPAw_W7SWZp5P1ysgok" name="Trang-2">
+    <mxGraphModel dx="1201" dy="613" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="3300" pageHeight="4681" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

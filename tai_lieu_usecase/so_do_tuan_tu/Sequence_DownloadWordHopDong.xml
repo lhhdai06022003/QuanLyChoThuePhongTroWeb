@@ -1,0 +1,116 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="app.diagrams.net" agent="5.0" pages="1">
+  <diagram id="seq-download-word-hd" name="Sequence Download Word Hop Dong">
+    <mxGraphModel dx="1400" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="1280" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="part_nd" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="Người dùng" vertex="1">
+          <mxGeometry height="60" width="30" x="50" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="line_nd" edge="1" parent="1" source="part_nd" style="endArrow=none;dashed=1;html=1;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="65" y="100" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="act_nd" parent="1" style="html=1;points=[];perimeter=orthogonalPerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="" vertex="1">
+          <mxGeometry height="1020" width="10" x="60" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="part_c" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="HopDongController" vertex="1">
+          <mxGeometry height="1190" width="140" x="220" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="act_c" parent="part_c" style="html=1;points=[];perimeter=orthogonalPerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="" vertex="1">
+          <mxGeometry height="1060" width="10" x="65" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="part_s" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="HopDongService" vertex="1">
+          <mxGeometry height="1190" width="140" x="460" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="act_s" parent="part_s" style="html=1;points=[];perimeter=orthogonalPerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="" vertex="1">
+          <mxGeometry height="620" width="10" x="65" y="170" as="geometry" />
+        </mxCell>
+        <mxCell id="part_exp" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="WordExportService" vertex="1">
+          <mxGeometry height="1190" width="140" x="700" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="act_exp" parent="part_exp" style="html=1;points=[];perimeter=orthogonalPerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="" vertex="1">
+          <mxGeometry height="240" width="10" x="65" y="745" as="geometry" />
+        </mxCell>
+        <mxCell id="part_db" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="DbContext" vertex="1">
+          <mxGeometry height="1190" width="140" x="940" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="act_db" parent="part_db" style="html=1;points=[];perimeter=orthogonalPerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="" vertex="1">
+          <mxGeometry height="380" width="10" x="65" y="270" as="geometry" />
+        </mxCell>
+        <mxCell id="msg1" edge="1" parent="1" style="endArrow=classic;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" value="1. Yêu cầu tải file Word hợp đồng (GET /HopDong/DownloadWord/{id})">
+          <mxGeometry height="50" width="50" relative="1" as="geometry">
+            <mxPoint x="70" y="160" as="sourcePoint" />
+            <mxPoint x="285" y="160" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg2" edge="1" parent="1" style="endArrow=classic;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" value="2. Gọi hàm lấy dữ liệu in ấn (GetPrintDataAsync)">
+          <mxGeometry height="50" width="50" relative="1" as="geometry">
+            <mxPoint x="295" y="255" as="sourcePoint" />
+            <mxPoint x="525" y="255" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg3" edge="1" parent="1" style="endArrow=classic;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" value="3. Truy vấn hợp đồng, chi nhánh, người thuê và các điều khoản mẫu">
+          <mxGeometry height="50" width="50" relative="1" as="geometry">
+            <mxPoint x="535" y="350" as="sourcePoint" />
+            <mxPoint x="1005" y="350" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg4" edge="1" parent="1" style="endArrow=open;dashed=1;endSize=8;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" value="4. Trả về thông tin chi tiết hợp đồng">
+          <mxGeometry height="50" width="50" relative="1" as="geometry">
+            <mxPoint x="1005" y="445" as="sourcePoint" />
+            <mxPoint x="535" y="445" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg5" edge="1" parent="1" style="endArrow=classic;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" value="5. Truy vấn danh sách dịch vụ đăng ký cho phòng (DangKyDichVus)">
+          <mxGeometry height="50" width="50" relative="1" as="geometry">
+            <mxPoint x="535" y="540" as="sourcePoint" />
+            <mxPoint x="1005" y="540" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg6" edge="1" parent="1" style="endArrow=open;dashed=1;endSize=8;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" value="6. Trả về danh sách dịch vụ và đơn giá">
+          <mxGeometry height="50" width="50" relative="1" as="geometry">
+            <mxPoint x="1005" y="635" as="sourcePoint" />
+            <mxPoint x="535" y="635" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg7" edge="1" parent="1" style="endArrow=open;dashed=1;endSize=8;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" value="7. Trả về đối tượng dữ liệu in ấn HopDongPrintRes">
+          <mxGeometry height="50" width="50" relative="1" as="geometry">
+            <mxPoint x="525" y="730" as="sourcePoint" />
+            <mxPoint x="295" y="730" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg8" edge="1" parent="1" style="endArrow=classic;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" value="8. Gọi phương thức xuất file Word (GenerateHopDongWord)">
+          <mxGeometry height="50" width="50" relative="1" as="geometry">
+            <mxPoint x="295" y="825" as="sourcePoint" />
+            <mxPoint x="765" y="825" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg9" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;html=1;align=left;spacingLeft=5;verticalAlign=bottom;rounded=0;labelBackgroundColor=#ffffff;" value="9. Đọc file template Word (.docx), điền thông tin và lặp điều khoản">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="775" y="920" as="sourcePoint" />
+            <mxPoint x="775" y="960" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="810" y="920" />
+              <mxPoint x="810" y="960" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg10" edge="1" parent="1" style="endArrow=open;dashed=1;endSize=8;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" value="10. Trả về mảng dữ liệu file Word dạng byte[]">
+          <mxGeometry height="50" width="50" relative="1" as="geometry">
+            <mxPoint x="765" y="1015" as="sourcePoint" />
+            <mxPoint x="295" y="1015" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg11" edge="1" parent="1" style="endArrow=open;dashed=1;endSize=8;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" value="11. Phản hồi luồng dữ liệu file Word tải về cho người dùng (.docx)">
+          <mxGeometry height="50" width="50" relative="1" as="geometry">
+            <mxPoint x="285" y="1110" as="sourcePoint" />
+            <mxPoint x="70" y="1110" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
