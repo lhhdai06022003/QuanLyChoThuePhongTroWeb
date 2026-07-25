@@ -35,10 +35,22 @@ namespace QuanLyChoThuePhongTroWeb.Filters
             }
             else
             {
-                context.Result = new ViewResult
+                var result = new ViewResult
                 {
                     ViewName = "~/Views/Shared/Error.cshtml"
                 };
+
+                var model = new QuanLyChoThuePhongTroWeb.Models.ModelsOther.ErrorViewModel
+                {
+                    RequestId = System.Diagnostics.Activity.Current?.Id ?? context.HttpContext.TraceIdentifier
+                };
+
+                result.ViewData = new Microsoft.AspNetCore.Mvc.ViewFeatures.ViewDataDictionary(new Microsoft.AspNetCore.Mvc.ModelBinding.EmptyModelMetadataProvider(), new Microsoft.AspNetCore.Mvc.ModelBinding.ModelStateDictionary())
+                {
+                    Model = model
+                };
+
+                context.Result = result;
             }
 
             context.ExceptionHandled = true;
