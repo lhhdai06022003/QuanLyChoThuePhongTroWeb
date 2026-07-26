@@ -17,6 +17,8 @@ using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.Dashboard;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.BackgroundJobs;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.DieuKhoanMaus;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.AiAssistants;
+using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.Cloudinary;
+using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.YeuCauSuCos;
 using QuanLyChoThuePhongTroWeb.Data;
 using System;
 
@@ -59,6 +61,8 @@ builder.Services.AddScoped<IHoaDonService, HoaDonService>();
 builder.Services.AddScoped<ILichSuThanhToanService, LichSuThanhToanService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IDieuKhoanMauService, DieuKhoanMauService>();
+builder.Services.AddScoped<ICloudinaryStorageService, CloudinaryStorageService>();
+builder.Services.AddScoped<IYeuCauSuCoService, YeuCauSuCoService>();
 builder.Services.AddHttpClient<IAiAssistantService, AiAssistantService>();
 builder.Services.AddHostedService<InvoiceReminderService>();
 builder.Services.AddHostedService<ContractAutoCloseService>();

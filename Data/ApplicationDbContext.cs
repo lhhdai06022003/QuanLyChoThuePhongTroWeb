@@ -45,6 +45,7 @@ namespace QuanLyChoThuePhongTroWeb.Data
         public DbSet<NguoiDung> NguoiDungs { get; set; }
         public DbSet<DieuKhoanMau> DieuKhoanMaus { get; set; }
         public DbSet<HopDongDieuKhoan> HopDongDieuKhoans { get; set; }
+        public DbSet<YeuCauSuCo> YeuCauSuCos { get; set; }
 
 
 

@@ -76,6 +76,14 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HoaDons
                 .ToListAsync();
             var dangKyDvsLookup = dangKyDvs.ToLookup(d => d.PhongTroId);
 
+            // Tải trước sự cố cần cộng vào hóa đơn
+            var suCosCanCong = await _context.YeuCauSuCos
+                .Where(x => selectedPhongIds.Contains(x.PhongTroId)
+                    && x.TrangThai == TrangThaiSuCo.DaHoanThanh
+                    && x.CongVaoHoaDon && !x.IsDeleted)
+                .ToListAsync();
+            var suCosLookup = suCosCanCong.ToLookup(x => x.PhongTroId);
+
             int soHoaDonMoi = 0;
 
             foreach (var hd in hopDongs)
@@ -173,6 +181,23 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HoaDons
 
                 double tongTien = chiTietList.Sum(x => x.TongTien);
 
+                // Thêm chi phí sửa chữa sự cố (đã pre-load)
+                foreach (var suco in suCosLookup[hd.PhongTroId])
+                {
+                    chiTietList.Add(new ChiTietHoaDon
+                    {
+                        TenDichVu = $"Phí sửa chữa sự cố: {suco.TieuDe}",
+                        DonGia = suco.ChiPhiSuaChua,
+                        SoLuong = 1,
+                        TongTien = suco.ChiPhiSuaChua
+                    });
+                    
+                    tongTien += suco.ChiPhiSuaChua;
+                    
+                    suco.CongVaoHoaDon = false;
+                    _context.YeuCauSuCos.Update(suco);
+                }
+
                 // 5. Tạo hóa đơn
                 var hoaDon = new HoaDon
                 {
@@ -239,6 +264,14 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HoaDons
                             (d.NgayKetThuc == null || d.NgayKetThuc >= startOfMonth))
                 .ToListAsync();
             var dangKyDvsLookup = dangKyDvs.ToLookup(d => d.PhongTroId);
+
+            // Tải trước sự cố cần cộng vào hóa đơn
+            var suCosCanCong = await _context.YeuCauSuCos
+                .Where(x => phongTroIds.Contains(x.PhongTroId)
+                    && x.TrangThai == TrangThaiSuCo.DaHoanThanh
+                    && x.CongVaoHoaDon && !x.IsDeleted)
+                .ToListAsync();
+            var suCosLookup = suCosCanCong.ToLookup(x => x.PhongTroId);
 
             var result = new List<PhatSinhPreviewRes>();
 
@@ -318,6 +351,12 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HoaDons
                             tongTien += dvTongTien;
                         }
                     }
+                }
+
+                // Thêm chi phí sửa chữa sự cố dự kiến (đã pre-load)
+                foreach (var suco in suCosLookup[hd.PhongTroId])
+                {
+                    tongTien += suco.ChiPhiSuaChua;
                 }
 
                 item.TongTienDuKien = tongTien;
