@@ -7,7 +7,10 @@
     <!-- Header bar: Toggle + Add button -->
     <div class="page-header d-print-none mb-3">
         <div class="row align-items-center">
-            <div class="col">
+            <div class="col d-flex align-items-center gap-3">
+                <h2 class="page-title text-primary font-weight-bold d-flex align-items-center m-0">
+                    <i class="fas fa-bed me-2"></i> Quản Lý Phòng Trọ
+                </h2>
                 <div class="view-toggle btn-group" role="group">
                     <button class="btn btn-outline-primary active" id="btnGridView"><i class="fas fa-th-large"></i> Sơ đồ</button>
                     <button class="btn btn-outline-primary" id="btnTableView"><i class="fas fa-table"></i> Bảng</button>
@@ -132,19 +135,21 @@
     <!-- ============= TABLE VIEW ============= -->
     <div id="tableViewSection" style="display:none;">
         <div class="card border-0 shadow-sm">
-            <div class="card-header d-flex align-items-center justify-content-between py-3">
-                <h3 class="card-title font-weight-bold"><i class="fas fa-bed me-2 text-primary"></i> Danh Sách Phòng Trọ</h3>
-                <div class="card-actions" style="min-width:200px;">
-                    <select id="filterChiNhanhTable" class="form-select form-select-sm">
-                        <option value="">-- Tất cả Chi nhánh --</option>
-                        @if (ViewBag.ChiNhanhs != null)
-                        {
-                            foreach (var cn in ViewBag.ChiNhanhs)
+            <div class="card-body border-bottom py-3 bg-light">
+                <div class="row align-items-center">
+                    <div class="col-auto ms-auto d-flex align-items-center text-muted font-weight-medium">
+                        <i class="fas fa-filter me-2 text-secondary"></i> <span class="d-none d-sm-inline me-2">Lọc chi nhánh:</span>
+                        <select id="filterChiNhanhTable" class="form-select form-select-sm shadow-none w-auto border-secondary">
+                            <option value="">-- Tất cả Chi nhánh --</option>
+                            @if (ViewBag.ChiNhanhs != null)
                             {
-                                <option value="@cn.Text">@cn.Text</option>
+                                foreach (var cn in ViewBag.ChiNhanhs)
+                                {
+                                    <option value="@cn.Text">@cn.Text</option>
+                                }
                             }
-                        }
-                    </select>
+                        </select>
+                    </div>
                 </div>
             </div>
             <div class="card-body">

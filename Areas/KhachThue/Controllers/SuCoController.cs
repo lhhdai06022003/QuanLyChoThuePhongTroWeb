@@ -21,6 +21,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers
         private readonly IYeuCauSuCoService _yeuCauSuCoService;
         private readonly IHopDongService _hopDongService;
         private readonly ICloudinaryStorageService _cloudinaryStorageService;
+        private readonly QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.ThongBaos.IThongBaoService _thongBaoService;
         private readonly ILogger<SuCoController> _logger;
 
         private const long MaxFileSize = 5 * 1024 * 1024; // 5MB
@@ -30,11 +31,13 @@ namespace QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers
             IYeuCauSuCoService yeuCauSuCoService,
             IHopDongService hopDongService,
             ICloudinaryStorageService cloudinaryStorageService,
+            QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.ThongBaos.IThongBaoService thongBaoService,
             ILogger<SuCoController> logger)
         {
             _yeuCauSuCoService = yeuCauSuCoService;
             _hopDongService = hopDongService;
             _cloudinaryStorageService = cloudinaryStorageService;
+            _thongBaoService = thongBaoService;
             _logger = logger;
         }
 
@@ -108,6 +111,14 @@ namespace QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers
                     bool success = await _yeuCauSuCoService.CreateAsync(model);
                     if (success)
                     {
+                        var hopDongs = await _hopDongService.GetHopDongsByNguoiThueIdAsync(nguoiThueId);
+                        var phong = hopDongs.FirstOrDefault(h => h.PhongTroId == model.PhongTroId)?.PhongTro;
+                        string tenPhong = phong != null ? phong.SoPhong : "chưa rõ";
+
+                        string msg = $"Phòng {tenPhong} vừa báo cáo sự cố: '{model.TieuDe}'";
+                        await _thongBaoService.GuiChoQuyenAsync(Role.Admin, "Sự cố mới", msg, "SuCo", "/QuanLyNhaTro/YeuCauSuCo");
+                        await _thongBaoService.GuiChoQuyenAsync(Role.NhanVien, "Sự cố mới", msg, "SuCo", "/QuanLyNhaTro/YeuCauSuCo");
+
                         return Json(new { success = true, message = "Gửi báo cáo sự cố thành công!" });
                     }
                 }

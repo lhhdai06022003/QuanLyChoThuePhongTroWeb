@@ -25,6 +25,15 @@
         .swal2-custom-popup .swal2-actions button {
             border-radius: 6px !important; font-weight: 500 !important; padding: 8px 20px !important;
         }
+        /* SweetAlert2 Dark Mode Sync */
+        [data-bs-theme="dark"] .swal2-popup {
+            background-color: var(--tblr-bg-surface) !important;
+            color: var(--tblr-body-color) !important;
+        }
+        [data-bs-theme="dark"] .swal2-title,
+        [data-bs-theme="dark"] .swal2-html-container {
+            color: var(--tblr-body-color) !important;
+        }
     </style>
     <script>
         const savedTheme = localStorage.getItem('tablerTheme') || 'light';
@@ -93,6 +102,8 @@
     </script>
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.12/signalr.min.js"></script>
+    <script src="~/js/thongbao.js" asp-append-version="true"></script>
     @Html.Partial("~/Views/Shared/_AiChatWidget.cshtml")
     @await RenderSectionAsync("Scripts", required: false)
 </body>

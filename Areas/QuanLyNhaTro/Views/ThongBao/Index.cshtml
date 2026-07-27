@@ -1,0 +1,285 @@
+@{
+    ViewData["Title"] = "Lịch sử thông báo";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="page-header d-print-none">
+    <div class="container-xl">
+        <div class="row g-2 align-items-center">
+            <div class="col">
+                <h2 class="page-title text-primary font-weight-bold d-flex align-items-center">
+                    <i class="fas fa-bell me-2"></i> Lịch sử thông báo
+                </h2>
+            </div>
+            <div class="col-auto ms-auto d-print-none">
+                <div class="btn-list">
+                    <button class="btn btn-outline-primary" id="btn-mark-all-read">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-checks" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                           <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                           <path d="M7 12l5 5l10 -10"></path>
+                           <path d="M2 12l5 5m5 -5l5 -5"></path>
+                        </svg>
+                        Đánh dấu tất cả đã đọc
+                    </button>
+                    <button class="btn btn-outline-danger" id="btn-delete-all">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-trash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                           <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                           <path d="M4 7l16 0"></path>
+                           <path d="M10 11l0 6"></path>
+                           <path d="M14 11l0 6"></path>
+                           <path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"></path>
+                           <path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3"></path>
+                        </svg>
+                        Xóa tất cả
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="page-body">
+    <div class="container-xl">
+        <div class="card shadow-sm border-0">
+            <!-- Filter Section -->
+            <div class="card-body border-bottom py-3 bg-light">
+                <div class="row align-items-center">
+                    <div class="col-auto ms-auto d-flex align-items-center text-muted font-weight-medium">
+                        <i class="fas fa-filter me-2 text-secondary"></i> <span class="d-none d-sm-inline me-2">Lọc trạng thái:</span>
+                        <select id="filter-chua-doc" class="form-select form-select-sm shadow-none w-auto border-secondary">
+                            <option value="">Tất cả</option>
+                            <option value="true">Chưa đọc</option>
+                            <option value="false">Đã đọc</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <!-- Data Section -->
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table id="thongBaoTable" class="table card-table table-vcenter table-striped table-hover text-nowrap datatable">
+                        <thead>
+                            <tr>
+                                <th class="w-1">Trạng thái</th>
+                                <th>Tiêu đề</th>
+                                <th>Nội dung</th>
+                                <th>Thời gian</th>
+                                <th class="w-1 text-center">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Dữ liệu được tải bằng AJAX -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    
+    <script>
+        $(document).ready(function () {
+            var table = $('#thongBaoTable').DataTable({
+                processing: true,
+                serverSide: true,
+                ajax: {
+                    url: '/api/ThongBao/DataTable',
+                    type: 'POST',
+                    data: function (d) {
+                        var chuaDocStr = $('#filter-chua-doc').val();
+                        if (chuaDocStr !== "") {
+                            d.chuaDoc = chuaDocStr === "true";
+                        }
+                    },
+                    error: function(xhr, error, thrown) {
+                        Swal.fire({
+                            toast: true,
+                            position: 'top-end',
+                            icon: 'error',
+                            title: 'Lỗi tải dữ liệu',
+                            showConfirmButton: false,
+                            timer: 3000,
+                            customClass: { popup: 'swal2-custom-popup' }
+                        });
+                    }
+                },
+                columns: [
+                    {
+                        data: 'isRead',
+                        render: function (data) {
+                            if (data) {
+                                return '<span class="status status-green"><span class="status-dot status-dot-animated"></span>Đã đọc</span>';
+                            } else {
+                                return '<span class="status status-red"><span class="status-dot status-dot-animated"></span>Chưa đọc</span>';
+                            }
+                        }
+                    },
+                    {
+                        data: 'tieuDe',
+                        render: function (data, type, row) {
+                            let escapedData = $('<div>').text(data).html();
+                            let fontWeight = row.isRead ? 'normal' : 'bold';
+                            let title = `<div style="font-weight: ${fontWeight};">${escapedData}</div>`;
+                            return title;
+                        }
+                    },
+                    {
+                        data: 'noiDung',
+                        render: function (data, type, row) {
+                            let escapedNoiDung = $('<div>').text(data).html();
+                            return `<div class="text-wrap" style="max-width: 400px;">${escapedNoiDung}</div>`;
+                        }
+                    },
+                    {
+                        data: 'createdAt'
+                    },
+                    {
+                        data: null,
+                        orderable: false,
+                        searchable: false,
+                        className: "text-center",
+                        render: function (data, type, row) {
+                            let btns = '<div class="btn-list flex-nowrap justify-content-center">';
+                            if (!row.isRead) {
+                                btns += `<button class="btn btn-icon btn-sm btn-ghost-success btn-mark-read" data-id="${row.id}" title="Đánh dấu đã đọc">
+                                            <i class="fas fa-check-circle"></i>
+                                        </button>`;
+                            }
+                            btns += `<button class="btn btn-icon btn-sm btn-ghost-danger btn-delete" data-id="${row.id}" title="Xóa">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>`;
+                            if (row.linkDieuHuong) {
+                                btns += `<a href="${row.linkDieuHuong}" class="btn btn-icon btn-sm btn-ghost-primary" title="Đi tới liên kết">
+                                            <i class="fas fa-external-link-alt"></i>
+                                        </a>`;
+                            }
+                            btns += '</div>';
+                            return btns;
+                        }
+                    }
+                ],
+                language: {
+                    url: "https://cdn.datatables.net/plug-ins/1.13.6/i18n/vi.json"
+                },
+                order: []
+            });
+
+            $('#filter-chua-doc').on('change', function () {
+                table.draw();
+            });
+
+            // Mark single as read
+            $('#thongBaoTable').on('click', '.btn-mark-read', function () {
+                let id = $(this).data('id');
+                $.ajax({
+                    url: `/api/ThongBao/DanhDauDaDoc/${id}`,
+                    type: 'POST',
+                    headers: { 'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val() },
+                    success: function (res) {
+                        if (res.success) {
+                            table.draw(false);
+                            if (typeof window.loadThongBao === 'function') {
+                                window.loadThongBao();
+                            }
+                        }
+                    }
+                });
+            });
+
+            // Delete single
+            $('#thongBaoTable').on('click', '.btn-delete', function () {
+                let id = $(this).data('id');
+                Swal.fire({
+                    title: 'Xóa thông báo?',
+                    text: 'Bạn có chắc chắn muốn xóa thông báo này?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Đồng ý',
+                    cancelButtonText: 'Hủy',
+                    customClass: { popup: 'swal2-custom-popup' }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: `/api/ThongBao/Xoa/${id}`,
+                            type: 'DELETE',
+                            headers: { 'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val() },
+                            success: function (res) {
+                                if (res.success) {
+                                    table.draw(false);
+                                    if (typeof window.loadThongBao === 'function') {
+                                        window.loadThongBao();
+                                    }
+                                }
+                            }
+                        });
+                    }
+                });
+            });
+
+            // Mark all read
+            $('#btn-mark-all-read').on('click', function () {
+                $.ajax({
+                    url: '/api/ThongBao/DanhDauTatCaDaDoc',
+                    type: 'POST',
+                    headers: { 'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val() },
+                    success: function (res) {
+                        if (res.success) {
+                            table.draw(false);
+                            if (typeof window.loadThongBao === 'function') {
+                                window.loadThongBao();
+                            }
+                            Swal.fire({
+                                toast: true, position: 'top-end', icon: 'success', title: 'Đã đánh dấu tất cả',
+                                showConfirmButton: false, timer: 3000, customClass: { popup: 'swal2-custom-popup' }
+                            });
+                        }
+                    }
+                });
+            });
+
+            // Delete all
+            $('#btn-delete-all').on('click', function () {
+                Swal.fire({
+                    title: 'Xóa tất cả?',
+                    text: 'Toàn bộ lịch sử thông báo của bạn sẽ bị xóa. Bạn chắc chứ?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Xóa tất cả',
+                    cancelButtonText: 'Hủy',
+                    customClass: { popup: 'swal2-custom-popup' }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: '/api/ThongBao/XoaTatCa',
+                            type: 'DELETE',
+                            headers: { 'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val() },
+                            success: function (res) {
+                                if (res.success) {
+                                    table.draw();
+                                    if (typeof window.loadThongBao === 'function') {
+                                        window.loadThongBao();
+                                    }
+                                    Swal.fire({
+                                        toast: true, position: 'top-end', icon: 'success', title: 'Đã xóa tất cả thông báo',
+                                        showConfirmButton: false, timer: 3000, customClass: { popup: 'swal2-custom-popup' }
+                                    });
+                                }
+                            }
+                        });
+                    }
+                });
+            });
+            
+            // Listen to SignalR to refresh table automatically
+            if (typeof connection !== 'undefined') {
+                connection.on("NhanThongBao", function (thongBao) {
+                    table.draw(false);
+                });
+            }
+        });
+    </script>
+}

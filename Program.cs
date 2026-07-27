@@ -39,6 +39,7 @@ builder.Services.AddControllersWithViews(options =>
     options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
 });
 builder.Services.AddControllers();
+builder.Services.AddSignalR();
 
 // Cấu hình Antiforgery để nhận Token qua Header của AJAX
 builder.Services.AddAntiforgery(options =>
@@ -63,6 +64,7 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IDieuKhoanMauService, DieuKhoanMauService>();
 builder.Services.AddScoped<ICloudinaryStorageService, CloudinaryStorageService>();
 builder.Services.AddScoped<IYeuCauSuCoService, YeuCauSuCoService>();
+builder.Services.AddScoped<QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.ThongBaos.IThongBaoService, QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.ThongBaos.ThongBaoService>();
 builder.Services.AddHttpClient<IAiAssistantService, AiAssistantService>();
 builder.Services.AddHostedService<InvoiceReminderService>();
 builder.Services.AddHostedService<ContractAutoCloseService>();
@@ -124,5 +126,7 @@ app.MapControllerRoute(
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
+
+app.MapHub<QuanLyChoThuePhongTroWeb.Hubs.ThongBaoHub>("/thongBaoHub");
 
 app.Run();

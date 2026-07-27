@@ -5,14 +5,39 @@
         </button>
         
         <div class="navbar-nav flex-row order-md-last ms-auto align-items-center">
-            <!-- Theme Toggles -->
-            <div class="d-none d-md-flex me-3">
-                <a href="#" class="nav-link px-0 me-2" title="Bật chế độ tối" data-bs-toggle="tooltip" data-bs-placement="bottom" id="btnToggleDarkTheme" style="display: none;">
+            <!-- Theme Toggles & Notification Bell -->
+            <div class="d-none d-md-flex align-items-center me-3">
+                <a href="#" class="nav-link px-2" title="Bật chế độ tối" data-bs-toggle="tooltip" data-bs-placement="bottom" id="btnToggleDarkTheme" style="display: none;">
                     <i class="fas fa-moon" style="font-size: 1.15rem;"></i>
                 </a>
-                <a href="#" class="nav-link px-0 me-2" title="Bật chế độ sáng" data-bs-toggle="tooltip" data-bs-placement="bottom" id="btnToggleLightTheme" style="display: none;">
+                <a href="#" class="nav-link px-2" title="Bật chế độ sáng" data-bs-toggle="tooltip" data-bs-placement="bottom" id="btnToggleLightTheme" style="display: none;">
                     <i class="fas fa-sun" style="font-size: 1.15rem; color: #f1c40f;"></i>
                 </a>
+                
+                @if (User.Identity != null && User.Identity.IsAuthenticated)
+                {
+                    <div class="nav-item dropdown ms-2">
+                        <a href="#" class="nav-link px-2" data-bs-toggle="dropdown" tabindex="-1" aria-label="Hiện thông báo" onclick="markAllAsReadUi()" style="position: relative;">
+                            <i class="fas fa-bell" style="font-size: 1.15rem;"></i>
+                            <span id="badge-thong-bao" class="badge bg-red badge-blink d-none" style="position: absolute; top: 0; right: 0;">0</span>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-arrow dropdown-menu-end dropdown-menu-card" style="width: 350px; max-height: 400px; overflow-y: auto;">
+                            <div class="card border-0">
+                                <div class="card-header border-bottom">
+                                    <h3 class="card-title font-weight-bold">Thông báo</h3>
+                                </div>
+                                <div class="list-group list-group-flush list-group-hoverable" id="list-thong-bao">
+                                    <div class="p-3 text-center text-muted small">Đang tải...</div>
+                                </div>
+                                <div class="card-footer border-top text-center p-2">
+                                    <a href="@(User.IsInRole("KhachThue") ? "/KhachThue/ThongBao" : "/QuanLyNhaTro/ThongBao")" class="text-muted text-decoration-none small">
+                                        Xem tất cả thông báo
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
             </div>
             
             <!-- User Menu -->
