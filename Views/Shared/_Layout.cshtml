@@ -16,6 +16,9 @@
 
     <!-- FontAwesome CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+    
+    <!-- Tabler Icons CDN -->
+    <link rel="stylesheet" href="~/Theme/tabler/dist/css/tabler-icons.min.css" />
 
     <!-- CSS -->
     <link rel="stylesheet" href="~/Theme/tabler/dist/css/tabler.min.css" />
@@ -59,17 +62,18 @@
         const savedTheme = localStorage.getItem('tablerTheme') || 'light';
         document.documentElement.setAttribute('data-bs-theme', savedTheme);
     </script>
+    @await RenderSectionAsync("Styles", required: false)
 </head>
 
 <body class="layout-fluid">
     @Html.AntiForgeryToken()
     <div class="page">
         <!-- Sidebar -->
-        @Html.Partial("_Sidebar", menus)
+        <partial name="_Sidebar" model="menus" />
 
         <div class="page-wrapper">
             <!-- Header (Navbar) -->
-            @Html.Partial("_Header")
+            <partial name="_Header" />
 
             <main class="page-body m-0 pt-3" role="main">
                 <div class="container-fluid">
@@ -78,7 +82,7 @@
             </main>
 
             <!-- Footer -->
-            @Html.Partial("_Footer")
+            <partial name="_Footer" />
         </div>
     </div>
 
@@ -160,7 +164,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.12/signalr.min.js"></script>
     <script src="~/js/thongbao.js" asp-append-version="true"></script>
 
-    @Html.Partial("_AiChatWidget")
+    <partial name="_AiChatWidget" />
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

@@ -3,18 +3,7 @@
 }
 
 <link rel="stylesheet" href="~/css/diennuoc.css" asp-append-version="true" />
-<style>
-    /* Đồng bộ màu nền bộ lọc trong chế độ tối */
-    html[data-bs-theme="dark"] .bg-light,
-    [data-bs-theme="dark"] .bg-light {
-        background-color: var(--tblr-bg-surface-secondary, #1b2434) !important;
-        color: var(--tblr-body-color, #f4f6fa) !important;
-    }
-    html[data-bs-theme="dark"] .border-bottom,
-    [data-bs-theme="dark"] .border-bottom {
-        border-color: rgba(255, 255, 255, 0.15) !important;
-    }
-</style>
+
 
 <div class="container-xl mt-3">
     <!-- Page Header -->
@@ -22,7 +11,7 @@
         <div class="row align-items-center">
             <div class="col">
                 <h2 class="page-title text-primary font-weight-bold d-flex align-items-center">
-                    <i class="fas fa-bolt me-1 text-warning"></i> <i class="fas fa-tint me-2 text-info"></i> Chốt Chỉ Số Điện/Nước Hàng Tháng
+                    <i class="ti ti-bolt me-1 text-warning"></i> <i class="ti ti-tint me-2 text-info"></i> Chốt Chỉ Số Điện/Nước Hàng Tháng
                 </h2>
             </div>
         </div>
@@ -32,11 +21,11 @@
     <div class="card border-0 shadow-sm mb-5">
         <div class="card-header d-flex justify-content-between align-items-center py-3 border-bottom">
             <h3 class="card-title font-weight-bold mb-0">
-                <i class="fas fa-list me-2 text-primary"></i> Danh sách ghi nhận chỉ số
+                <i class="ti ti-list me-2 text-primary"></i> Danh sách ghi nhận chỉ số
             </h3>
             <div class="ms-auto" id="saveActionArea" style="display: none;">
                 <button type="button" class="btn btn-success font-weight-bold shadow-sm" id="btnSaveData">
-                    <i class="fas fa-save me-1"></i> Lưu tất cả chỉ số
+                    <i class="ti ti-device-floppy me-1"></i> Lưu tất cả chỉ số
                 </button>
             </div>
         </div>
@@ -83,14 +72,14 @@
 
             <!-- Empty State Container -->
             <div id="emptyState" class="text-center py-5">
-                <i class="fas fa-building fa-3x text-muted mb-3" style="opacity: 0.5;"></i>
+                <i class="ti ti-building fa-3x text-muted mb-3" style="opacity: 0.5;"></i>
                 <p class="text-muted font-weight-medium">Vui lòng chọn <strong>Chi nhánh</strong> để bắt đầu ghi nhận chỉ số điện nước.</p>
             </div>
 
             <!-- Table Container (Initially Hidden) -->
             <div id="tableContainer" style="display: none;" class="p-3">
                 <div class="alert alert-info py-2 mb-3">
-                    <i class="fas fa-info-circle me-1"></i> 
+                    <i class="ti ti-info-circle me-1"></i> 
                     <strong>Hướng dẫn:</strong> Nhập chỉ số điện và nước mới. Chỉ số cũ ở trạng thái chỉ đọc. Bấm các phím <code>Enter</code> hoặc phím <code>Mũi tên lên/xuống</code> để tự động chuyển ô nhập liệu cực kỳ nhanh chóng.
                 </div>
                 <div class="table-responsive">
@@ -119,13 +108,13 @@
 <!-- Sticky Bottom Action Bar -->
 <div class="fixed-bottom bg-body border-top shadow-lg py-3 px-4 d-flex align-items-center justify-content-between d-print-none" id="stickyActionBar" style="z-index: 1050;">
     <div class="d-flex align-items-center">
-        <span class="badge bg-yellow-lt text-warning me-2"><i class="fas fa-exclamation-triangle"></i></span>
+        <span class="badge bg-yellow-lt text-warning me-2"><i class="ti ti-alert-triangle"></i></span>
         <span class="font-weight-medium">Bạn có chỉ số mới chưa được lưu lại vào hệ thống.</span>
     </div>
     <div class="d-flex gap-2">
         <button type="button" class="btn btn-secondary px-4" id="btnCancelChanges">Hủy bỏ</button>
         <button type="button" class="btn btn-success px-4 font-weight-bold" id="btnSaveDataSticky">
-            <i class="fas fa-save me-1"></i> Lưu thay đổi ngay
+            <i class="ti ti-device-floppy me-1"></i> Lưu thay đổi ngay
         </button>
     </div>
 </div>
@@ -223,7 +212,7 @@
 
                 $('#emptyState').hide();
                 $('#tableContainer').show();
-                $('#tbodyDienNuoc').html('<tr><td colspan="8" class="text-center py-4"><i class="fas fa-spinner fa-spin fa-2x text-primary mb-2"></i><div>Đang tải dữ liệu...</div></td></tr>');
+                $('#tbodyDienNuoc').html('<tr><td colspan="8" class="text-center py-4"><i class="ti ti-spinner fa-spin fa-2x text-primary mb-2"></i><div>Đang tải dữ liệu...</div></td></tr>');
                 hideStickyBar();
 
                 $.ajax({
@@ -264,13 +253,13 @@
                         let disabledAttr = '';
                         
                         if (item.isLocked) {
-                            statusBadge = '<span class="badge bg-danger-lt text-danger"><i class="fas fa-lock me-1"></i> Đã khóa</span>';
+                            statusBadge = '<span class="badge bg-danger-lt text-danger"><i class="ti ti-lock me-1"></i> Đã khóa</span>';
                             rowClass = 'row-locked';
                             disabledAttr = 'disabled';
                         } else if (item.isDaChot) {
-                            statusBadge = '<span class="badge bg-success-lt text-success"><i class="fas fa-check-circle me-1"></i> Đã chốt</span>';
+                            statusBadge = '<span class="badge bg-success-lt text-success"><i class="ti ti-circle-check me-1"></i> Đã chốt</span>';
                         } else {
-                            statusBadge = '<span class="badge bg-secondary-lt text-secondary"><i class="fas fa-clock me-1"></i> Chưa chốt</span>';
+                            statusBadge = '<span class="badge bg-secondary-lt text-secondary"><i class="ti ti-clock me-1"></i> Chưa chốt</span>';
                         }
                         
                         let defaultDienMoi = (item.chiSoDienMoi === 0 && !item.isDaChot) ? item.chiSoDienCu : item.chiSoDienMoi;
@@ -507,8 +496,8 @@
                     cancelButtonText: 'Hủy bỏ'
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Đang lưu...');
-                        $btnSticky.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Đang lưu...');
+                        $btn.prop('disabled', true).html('<i class="ti ti-spinner fa-spin me-1"></i> Đang lưu...');
+                        $btnSticky.prop('disabled', true).html('<i class="ti ti-spinner fa-spin me-1"></i> Đang lưu...');
 
                         $.ajax({
                             url: '/DienNuoc/SaveChotDienNuoc',
@@ -533,4 +522,19 @@
             }
         });
     </script>
+}
+
+@section Styles {
+    <style>
+    /* Đồng bộ màu nền bộ lọc trong chế độ tối */
+    html[data-bs-theme="dark"] .bg-light,
+    [data-bs-theme="dark"] .bg-light {
+        background-color: var(--tblr-bg-surface-secondary, #1b2434) !important;
+        color: var(--tblr-body-color, #f4f6fa) !important;
+    }
+    html[data-bs-theme="dark"] .border-bottom,
+    [data-bs-theme="dark"] .border-bottom {
+        border-color: rgba(255, 255, 255, 0.15) !important;
+    }
+</style>
 }

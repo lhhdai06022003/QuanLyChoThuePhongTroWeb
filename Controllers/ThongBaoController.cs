@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.ThongBaos;
 using System.Linq;
 using System.Security.Claims;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace QuanLyChoThuePhongTroWeb.Controllers
@@ -28,14 +30,14 @@ namespace QuanLyChoThuePhongTroWeb.Controllers
         }
 
         [HttpGet("LayMoiNhat")]
-        public async Task<IActionResult> LayMoiNhat()
+        public async Task<IActionResult> LayMoiNhat(CancellationToken cancellationToken)
         {
             try
             {
                 int nguoiDungId = GetNguoiDungId();
                 if (nguoiDungId == 0) return Unauthorized();
 
-                var thongBaos = await _thongBaoService.LayDanhSachTheoNguoiDungAsync(nguoiDungId);
+                var thongBaos = await _thongBaoService.LayDanhSachTheoNguoiDungAsync(nguoiDungId, cancellationToken);
                 var result = thongBaos.Select(t => new
                 {
                     id = t.Id,
@@ -56,14 +58,14 @@ namespace QuanLyChoThuePhongTroWeb.Controllers
         }
 
         [HttpGet("LaySoLuongChuaDoc")]
-        public async Task<IActionResult> LaySoLuongChuaDoc()
+        public async Task<IActionResult> LaySoLuongChuaDoc(CancellationToken cancellationToken)
         {
             try
             {
                 int nguoiDungId = GetNguoiDungId();
                 if (nguoiDungId == 0) return Unauthorized();
 
-                var count = await _thongBaoService.LaySoLuongChuaDocAsync(nguoiDungId);
+                var count = await _thongBaoService.LaySoLuongChuaDocAsync(nguoiDungId, cancellationToken);
                 return Ok(new { count });
             }
             catch (System.Exception ex)
@@ -75,15 +77,15 @@ namespace QuanLyChoThuePhongTroWeb.Controllers
 
         [HttpPost("DanhDauDaDoc/{id}")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DanhDauDaDoc(int id)
+        public async Task<IActionResult> DanhDauDaDoc(int id, CancellationToken cancellationToken)
         {
             try
             {
                 int nguoiDungId = GetNguoiDungId();
                 if (nguoiDungId == 0) return Unauthorized();
 
-                var result = await _thongBaoService.DanhDauDaDocAsync(id);
-                return Ok(new { success = result });
+                var result = await _thongBaoService.DanhDauDaDocAsync(id, cancellationToken);
+                return Ok(new { success = result.Success, message = result.Message });
             }
             catch (System.Exception ex)
             {
@@ -94,14 +96,14 @@ namespace QuanLyChoThuePhongTroWeb.Controllers
 
         [HttpPost("DataTable")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DataTable([FromForm] QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Requests.DataTableRequest request, [FromForm] bool? chuaDoc)
+        public async Task<IActionResult> DataTable([FromForm] QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Requests.DataTableRequest request, [FromForm] bool? chuaDoc, CancellationToken cancellationToken)
         {
             try
             {
                 int nguoiDungId = GetNguoiDungId();
                 if (nguoiDungId == 0) return Unauthorized();
 
-                var response = await _thongBaoService.LayDanhSachPhanTrangAsync(request, nguoiDungId, chuaDoc);
+                var response = await _thongBaoService.LayDanhSachPhanTrangAsync(request, nguoiDungId, chuaDoc, cancellationToken);
                 
                 // Format date for response
                 var formattedData = response.data.Select(t => new
@@ -132,15 +134,15 @@ namespace QuanLyChoThuePhongTroWeb.Controllers
 
         [HttpPost("DanhDauTatCaDaDoc")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DanhDauTatCaDaDoc()
+        public async Task<IActionResult> DanhDauTatCaDaDoc(CancellationToken cancellationToken)
         {
             try
             {
                 int nguoiDungId = GetNguoiDungId();
                 if (nguoiDungId == 0) return Unauthorized();
 
-                var result = await _thongBaoService.DanhDauTatCaDaDocAsync(nguoiDungId);
-                return Ok(new { success = true }); // Return true even if no unread to avoid error
+                var result = await _thongBaoService.DanhDauTatCaDaDocAsync(nguoiDungId, cancellationToken);
+                return Ok(new { success = result.Success, message = result.Message });
             }
             catch (System.Exception ex)
             {
@@ -151,15 +153,15 @@ namespace QuanLyChoThuePhongTroWeb.Controllers
 
         [HttpDelete("Xoa/{id}")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Xoa(int id)
+        public async Task<IActionResult> Xoa(int id, CancellationToken cancellationToken)
         {
             try
             {
                 int nguoiDungId = GetNguoiDungId();
                 if (nguoiDungId == 0) return Unauthorized();
 
-                var result = await _thongBaoService.XoaThongBaoAsync(id, nguoiDungId);
-                return Ok(new { success = result });
+                var result = await _thongBaoService.XoaThongBaoAsync(id, nguoiDungId, cancellationToken);
+                return Ok(new { success = result.Success, message = result.Message });
             }
             catch (System.Exception ex)
             {
@@ -170,15 +172,15 @@ namespace QuanLyChoThuePhongTroWeb.Controllers
 
         [HttpDelete("XoaTatCa")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> XoaTatCa()
+        public async Task<IActionResult> XoaTatCa(CancellationToken cancellationToken)
         {
             try
             {
                 int nguoiDungId = GetNguoiDungId();
                 if (nguoiDungId == 0) return Unauthorized();
 
-                var result = await _thongBaoService.XoaTatCaThongBaoAsync(nguoiDungId);
-                return Ok(new { success = true });
+                var result = await _thongBaoService.XoaTatCaThongBaoAsync(nguoiDungId, cancellationToken);
+                return Ok(new { success = result.Success, message = result.Message });
             }
             catch (System.Exception ex)
             {

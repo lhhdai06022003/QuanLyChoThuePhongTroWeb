@@ -2,18 +2,7 @@
     ViewData["Title"] = "Quản lý Hóa đơn";
 }
 <link rel="stylesheet" href="~/css/hoadon.css" asp-append-version="true" />
-<style>
-    /* Đồng bộ màu nền bộ lọc trong chế độ tối */
-    html[data-bs-theme="dark"] .bg-light,
-    [data-bs-theme="dark"] .bg-light {
-        background-color: var(--tblr-bg-surface-secondary, #1b2434) !important;
-        color: var(--tblr-body-color, #f4f6fa) !important;
-    }
-    html[data-bs-theme="dark"] .border-dashed,
-    [data-bs-theme="dark"] .border-dashed {
-        border-color: rgba(255, 255, 255, 0.15) !important;
-    }
-</style>
+
 
 <div class="container-xl mt-3">
     <!-- Page Header -->
@@ -21,15 +10,15 @@
         <div class="row align-items-center">
             <div class="col">
                 <h2 class="page-title text-primary font-weight-bold d-flex align-items-center">
-                    <i class="fas fa-file-invoice-dollar me-2"></i> Quản lý & Danh sách Hóa đơn
+                    <i class="ti ti-file-invoice me-2"></i> Quản lý Hóa Đơn
                 </h2>
             </div>
             <div class="col-auto ms-auto d-flex gap-2">
                 <button class="btn btn-primary font-weight-bold shadow-sm" id="btnOpenBulkEmailModal">
-                    <i class="fas fa-envelope me-1"></i> Gửi Email Hóa Đơn
+                    <i class="ti ti-envelope me-1"></i> Gửi Email Hóa Đơn
                 </button>
                 <button class="btn btn-success font-weight-bold shadow-sm" id="btnPhatSinh">
-                    <i class="fas fa-plus-circle me-1"></i> Phát sinh Hóa đơn
+                    <i class="ti ti-circle-plus me-1"></i> Phát sinh Hóa đơn
                 </button>
             </div>
         </div>
@@ -43,7 +32,7 @@
                 <div class="row g-3 align-items-end">
                     <div class="col-md-3">
                         <label for="filterChiNhanh" class="form-label font-weight-bold text-secondary mb-1">
-                            <i class="fas fa-building text-secondary me-1"></i> Chi Nhánh 
+                            <i class="ti ti-building text-secondary me-1"></i> Chi Nhánh 
                         </label>
                         <select id="filterChiNhanh" class="form-select form-select-sm">
                             <option value="0">-- Tất cả --</option>
@@ -58,7 +47,7 @@
                     </div>
                     <div class="col-md-3">
                         <label for="filterThang" class="form-label font-weight-bold text-secondary mb-1">
-                            <i class="fas fa-calendar-alt text-secondary me-1"></i> Tháng 
+                            <i class="ti ti-calendar text-secondary me-1"></i> Tháng 
                         </label>
                         <select id="filterThang" class="form-select form-select-sm">
                             <option value="0">-- Tất cả --</option>
@@ -77,13 +66,13 @@
                     </div>
                     <div class="col-md-3">
                         <label for="filterNam" class="form-label font-weight-bold text-secondary mb-1">
-                            <i class="fas fa-calendar-check text-secondary me-1"></i> Năm 
+                            <i class="ti ti-calendar-check text-secondary me-1"></i> Năm 
                         </label>
                         <input type="number" id="filterNam" class="form-control form-control-sm" value="@DateTime.Now.Year">
                     </div>
                     <div class="col-md-3">
                         <label for="filterTrangThai" class="form-label font-weight-bold text-secondary mb-1">
-                            <i class="fas fa-info-circle me-1"></i> Trạng thái
+                            <i class="ti ti-info-circle me-1"></i> Trạng thái
                         </label>
                         <select id="filterTrangThai" class="form-select form-select-sm">
                             <option value="-1">-- Tất cả --</option>
@@ -120,14 +109,14 @@
     <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
         <div class="modal-content shadow-lg border-0">
             <div class="modal-header bg-info-lt py-3">
-                <h5 class="modal-title font-weight-bold"><i class="fas fa-file-alt me-1"></i> Chi tiết Hóa đơn</h5>
+                <h5 class="modal-title font-weight-bold"><i class="ti ti-file-alt me-1"></i> Chi tiết Hóa đơn</h5>
                 <button type="button" class="btn-close " data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body py-4" id="chiTietBody">
                 <!-- JS sẽ render nội dung ở đây -->
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i> Đóng</button>
+                <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i> Đóng</button>
             </div>
         </div>
     </div>
@@ -138,7 +127,7 @@
     <div class="modal-dialog modal-dialog-centered" role="document">
         <div class="modal-content shadow-lg border-0">
             <div class="modal-header bg-success-lt py-3">
-                <h5 class="modal-title font-weight-bold"><i class="fas fa-hand-holding-usd me-1"></i> Xác nhận Thu tiền</h5>
+                <h5 class="modal-title font-weight-bold"><i class="ti ti-hand-holding-usd me-1"></i> Xác nhận Thu tiền</h5>
                 <button type="button" class="btn-close " data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body py-4">
@@ -158,9 +147,9 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i> Đóng</button>
+                <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i> Đóng</button>
                 <button type="button" class="btn btn-success shadow-sm" id="btnConfirmThuTien">
-                    <i class="fas fa-save me-1"></i> Lưu dữ liệu
+                    <i class="ti ti-device-floppy me-1"></i> Lưu dữ liệu
                 </button>
             </div>
         </div>
@@ -172,13 +161,13 @@
     <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
         <div class="modal-content shadow-lg border-0">
             <div class="modal-header bg-primary-lt py-3">
-                <h5 class="modal-title font-weight-bold"><i class="fas fa-eye me-1"></i> Xem trước Phát sinh Hóa đơn</h5>
+                <h5 class="modal-title font-weight-bold"><i class="ti ti-eye me-1"></i> Xem trước Phát sinh Hóa đơn</h5>
                 <button type="button" class="btn-close " data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body py-4">
                 <div class="alert alert-info py-2 mb-3 shadow-sm border-0">
                     <div class="d-flex align-items-center">
-                        <i class="fas fa-info-circle me-2"></i>
+                        <i class="ti ti-info-circle me-2"></i>
                         <div>
                             Vui lòng chọn Chi nhánh, Kỳ tháng/năm cần phát sinh và bấm <strong>"Tải dữ liệu"</strong> để xem trước danh sách phòng.
                         </div>
@@ -189,7 +178,7 @@
                     <div class="row g-3">
                         <div class="col-md-5">
                             <label for="previewChiNhanh" class="form-label font-weight-bold text-secondary mb-1">
-                            <i class="fas fa-building text-secondary me-1"></i> Chi Nhánh <span class="text-danger">*</span>
+                            <i class="ti ti-building text-secondary me-1"></i> Chi Nhánh <span class="text-danger">*</span>
                         </label>
                         <select id="previewChiNhanh" class="form-select form-select-sm">
                                 @if (ViewBag.ListChiNhanh != null)
@@ -203,7 +192,7 @@
                         </div>
                         <div class="col-md-3">
                             <label for="previewThang" class="form-label font-weight-bold text-secondary mb-1">
-                            <i class="fas fa-calendar-alt text-secondary me-1"></i> Tháng <span class="text-danger">*</span>
+                            <i class="ti ti-calendar text-secondary me-1"></i> Tháng <span class="text-danger">*</span>
                         </label>
                         <select id="previewThang" class="form-select form-select-sm">
                                 @for (int i = 1; i <= 12; i++)
@@ -221,13 +210,13 @@
                         </div>
                         <div class="col-md-2">
                             <label for="previewNam" class="form-label font-weight-bold text-secondary mb-1">
-                            <i class="fas fa-calendar-check text-secondary me-1"></i> Năm <span class="text-danger">*</span>
+                            <i class="ti ti-calendar-check text-secondary me-1"></i> Năm <span class="text-danger">*</span>
                         </label>
                         <input type="number" id="previewNam" class="form-control form-control-sm" value="@DateTime.Now.Year">
                         </div>
                         <div class="col-md-2 d-flex align-items-end">
                             <button type="button" class="btn btn-primary btn-sm w-100 font-weight-bold" id="btnLoadPreview" style="height: 36px;">
-                                <i class="fas fa-sync-alt me-1"></i> Tải dữ liệu
+                                <i class="ti ti-sync-alt me-1"></i> Tải dữ liệu
                             </button>
                         </div>
                     </div>
@@ -236,17 +225,17 @@
                 <ul class="nav nav-tabs mb-3" id="previewTabs" role="tablist">
                     <li class="nav-item">
                         <a class="nav-link active font-weight-bold" id="ready-tab" data-bs-toggle="tab" data-bs-target="#ready-pane" role="tab">
-                            <i class="fas fa-check-circle text-success me-1"></i> Sẵn sàng (<span id="ready-count">0</span>)
+                            <i class="ti ti-circle-check text-success me-1"></i> Sẵn sàng (<span id="ready-count">0</span>)
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link font-weight-bold" id="missing-tab" data-bs-toggle="tab" data-bs-target="#missing-pane" role="tab">
-                            <i class="fas fa-exclamation-triangle text-warning me-1"></i> Chưa chốt điện nước (<span id="missing-count">0</span>)
+                            <i class="ti ti-alert-triangle text-warning me-1"></i> Chưa chốt điện nước (<span id="missing-count">0</span>)
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link font-weight-bold" id="invalid-tab" data-bs-toggle="tab" data-bs-target="#invalid-pane" role="tab">
-                            <i class="fas fa-times-circle text-danger me-1"></i> Đã có HĐ / Không hợp lệ (<span id="invalid-count">0</span>)
+                            <i class="ti ti-times-circle text-danger me-1"></i> Đã có HĐ / Không hợp lệ (<span id="invalid-count">0</span>)
                         </a>
                     </li>
                 </ul>
@@ -304,9 +293,9 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i> Đóng</button>
+                <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i> Đóng</button>
                 <button type="button" class="btn btn-primary shadow-sm" id="btnConfirmPhatSinh">
-                    <i class="fas fa-plus me-1"></i> Thêm dữ liệu (<span id="selected-preview-count">0</span> phòng)
+                    <i class="ti ti-plus me-1"></i> Thêm dữ liệu (<span id="selected-preview-count">0</span> phòng)
                 </button>
             </div>
         </div>
@@ -318,13 +307,13 @@
     <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
         <div class="modal-content shadow-lg border-0">
             <div class="modal-header bg-primary-lt py-3">
-                <h5 class="modal-title font-weight-bold"><i class="fas fa-envelope me-1"></i> Gửi Email Hóa Đơn Hàng Loạt</h5>
+                <h5 class="modal-title font-weight-bold"><i class="ti ti-envelope me-1"></i> Gửi Email Hóa Đơn Hàng Loạt</h5>
                 <button type="button" class="btn-close " data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body py-4">
                 <div class="alert alert-info py-2 mb-3 shadow-sm border-0">
                     <div class="d-flex align-items-center">
-                        <i class="fas fa-info-circle me-2"></i>
+                        <i class="ti ti-info-circle me-2"></i>
                         <div>
                             Chọn Chi nhánh, Kỳ tháng/năm cần gửi và bấm <strong>"Tải dữ liệu"</strong> để hiển thị danh sách hóa đơn chưa thanh toán.
                         </div>
@@ -335,7 +324,7 @@
                     <div class="row g-3">
                         <div class="col-md-5">
                             <label for="emailBulkChiNhanh" class="form-label font-weight-bold text-secondary mb-1">
-                            <i class="fas fa-building text-secondary me-1"></i> Chi Nhánh 
+                            <i class="ti ti-building text-secondary me-1"></i> Chi Nhánh 
                         </label>
                         <select id="emailBulkChiNhanh" class="form-select form-select-sm">
                                 <option value="0">-- Tất cả chi nhánh --</option>
@@ -350,7 +339,7 @@
                         </div>
                         <div class="col-md-3">
                             <label for="emailBulkThang" class="form-label font-weight-bold text-secondary mb-1">
-                            <i class="fas fa-calendar-alt text-secondary me-1"></i> Tháng 
+                            <i class="ti ti-calendar text-secondary me-1"></i> Tháng 
                         </label>
                         <select id="emailBulkThang" class="form-select form-select-sm">
                                 <option value="0">-- Tất cả tháng --</option>
@@ -369,13 +358,13 @@
                         </div>
                         <div class="col-md-2">
                             <label for="emailBulkNam" class="form-label font-weight-bold text-secondary mb-1">
-                            <i class="fas fa-calendar-check text-secondary me-1"></i> Năm 
+                            <i class="ti ti-calendar-check text-secondary me-1"></i> Năm 
                         </label>
                         <input type="number" id="emailBulkNam" class="form-control form-control-sm" value="@DateTime.Now.Year">
                         </div>
                         <div class="col-md-2 d-flex align-items-end">
                             <button type="button" class="btn btn-primary btn-sm w-100 font-weight-bold" id="btnLoadEmailBulk" style="height: 36px;">
-                                <i class="fas fa-sync-alt me-1"></i> Tải dữ liệu
+                                <i class="ti ti-sync-alt me-1"></i> Tải dữ liệu
                             </button>
                         </div>
                     </div>
@@ -403,9 +392,9 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i> Đóng</button>
+                <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i> Đóng</button>
                 <button type="button" class="btn btn-success shadow-sm" id="btnConfirmSendEmailBulk" disabled>
-                    <i class="fas fa-paper-plane me-1"></i> Bắt đầu gửi (<span id="selected-email-bulk-count">0</span> hóa đơn)
+                    <i class="ti ti-paper-plane me-1"></i> Bắt đầu gửi (<span id="selected-email-bulk-count">0</span> hóa đơn)
                 </button>
             </div>
         </div>
@@ -418,7 +407,7 @@
     <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
         <div class="modal-content shadow-lg border-0">
             <div class="modal-header bg-warning-lt py-3">
-                <h5 class="modal-title font-weight-bold text-reset"><i class="fas fa-edit me-1"></i> Chỉnh sửa Chi tiết Hóa đơn</h5>
+                <h5 class="modal-title font-weight-bold text-reset"><i class="ti ti-edit me-1"></i> Chỉnh sửa Chi tiết Hóa đơn</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body py-4">
@@ -445,16 +434,16 @@
                     </table>
                 </div>
                 <button type="button" class="btn btn-outline-primary btn-sm mt-3" id="btnAddEditRow">
-                    <i class="fas fa-plus me-1"></i> Thêm dòng phí mới
+                    <i class="ti ti-plus me-1"></i> Thêm dòng phí mới
                 </button>
                 <div class="text-end mt-3">
                     <h3>Tổng cộng: <span class="text-danger font-weight-bold" id="editTongTienText">0 ₫</span></h3>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i> Đóng</button>
+                <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i> Đóng</button>
                 <button type="button" class="btn btn-success shadow-sm" id="btnSaveEdit">
-                    <i class="fas fa-save me-1"></i> Lưu dữ liệu
+                    <i class="ti ti-device-floppy me-1"></i> Lưu dữ liệu
                 </button>
             </div>
         </div>
@@ -519,8 +508,8 @@
                     {
                         "data": "trangThaiHoaDonValue", "className": "text-center align-middle", "orderable": false,
                         "render": function(d, t, r) {
-                            if (d === 1) return '<span class="badge bg-success-lt px-2 py-1"><i class="fas fa-check-circle me-1"></i> Đã thanh toán</span>';
-                            return '<span class="badge bg-warning-lt-lt px-2 py-1"><i class="fas fa-clock me-1"></i> Chưa thanh toán</span>';
+                            if (d === 1) return '<span class="badge bg-success-lt px-2 py-1"><i class="ti ti-circle-check me-1"></i> Đã thanh toán</span>';
+                            return '<span class="badge bg-warning-lt-lt px-2 py-1"><i class="ti ti-clock me-1"></i> Chưa thanh toán</span>';
                         }
                     },
                     {
@@ -530,34 +519,34 @@
                                 <div class="d-flex justify-content-center">
                                     <div class="dropdown">
                                         <button class="btn btn-icon btn-light btn-sm" data-bs-toggle="dropdown" aria-expanded="false" title="Thao tác">
-                                            <i class="fas fa-cog"></i>
+                                            <i class="ti ti-settings"></i>
                                         </button>
                                         <div class="dropdown-menu dropdown-menu-end">
                                             <button class="dropdown-item btn-detail text-info py-2" data-id="${data}">
-                                                <i class="fas fa-eye me-2"></i> Chi tiết Hóa đơn
+                                                <i class="ti ti-eye me-2"></i> Chi tiết Hóa đơn
                                             </button>
                                             ${row.trangThaiHoaDonValue === 0 ? `
                                                 <button class="dropdown-item btn-edit text-warning py-2" data-id="${data}">
-                                                    <i class="fas fa-edit me-2"></i> Chỉnh sửa
+                                                    <i class="ti ti-edit me-2"></i> Chỉnh sửa
                                                 </button>
                                                 <button class="dropdown-item btn-thutien text-success py-2" data-id="${data}" data-ma="${row.maHoaDon}" data-tien="${row.tongTien}">
-                                                    <i class="fas fa-hand-holding-usd me-2"></i> Thu tiền
+                                                    <i class="ti ti-hand-holding-usd me-2"></i> Thu tiền
                                                 </button>
                                                 <div class="dropdown-divider"></div>
                                                 <button class="dropdown-item btn-delete text-danger py-2" data-id="${data}">
-                                                    <i class="fas fa-trash-alt me-2"></i> Xóa hóa đơn
+                                                    <i class="ti ti-trash me-2"></i> Xóa hóa đơn
                                                 </button>
                                             ` : ''}
                                             <div class="dropdown-divider"></div>
                                             <button class="dropdown-item btn-send-email text-primary py-2" data-id="${data}" data-email="${row.email || ''}" data-ma="${row.maHoaDon}">
-                                                <i class="fas fa-envelope me-2"></i> Gửi Email hóa đơn
+                                                <i class="ti ti-envelope me-2"></i> Gửi Email hóa đơn
                                             </button>
                                             <div class="dropdown-divider"></div>
                                             <a class="dropdown-item text-secondary py-2" href="/HoaDon/ExportExcel/${data}">
-                                                <i class="fas fa-file-excel text-success me-2"></i> Xuất Excel
+                                                <i class="ti ti-file-excel text-success me-2"></i> Xuất Excel
                                             </a>
                                             <a class="dropdown-item text-secondary py-2" href="/HoaDon/ExportPdf/${data}">
-                                                <i class="fas fa-file-pdf text-danger me-2"></i> Xuất PDF
+                                                <i class="ti ti-file-pdf text-danger me-2"></i> Xuất PDF
                                             </a>
                                         </div>
                                     </div>
@@ -618,7 +607,7 @@
                 if (!na || na < 2000) { showWarning('Vui lòng nhập Năm hợp lệ!'); return; }
 
                 let $btn = $(this);
-                $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Đang tải...');
+                $btn.prop('disabled', true).html('<i class="ti ti-spinner fa-spin me-1"></i> Đang tải...');
 
                 $.ajax({
                     url: `/HoaDon/PreviewPhatSinh?chiNhanhId=${cn}&thang=${th}&nam=${na}`,
@@ -628,7 +617,7 @@
                         renderPreviewModal();
                     },
                     error: function(xhr) { showError(xhr.responseJSON?.message || 'Có lỗi khi chuẩn bị xem trước.'); },
-                    complete: function() { $btn.prop('disabled', false).html('<i class="fas fa-sync-alt me-1"></i> Tải dữ liệu'); }
+                    complete: function() { $btn.prop('disabled', false).html('<i class="ti ti-sync-alt me-1"></i> Tải dữ liệu'); }
                 });
             });
 
@@ -657,9 +646,9 @@
                             <tr>
                                 <td class="font-weight-bold align-middle">${escapeHtml(item.soPhong)}</td>
                                 <td class="align-middle">${escapeHtml(item.tenNguoiThue)}</td>
-                                <td class="align-middle"><span class="badge bg-warning-lt-lt px-2 py-1"><i class="fas fa-exclamation-triangle me-1"></i> Chưa chốt điện nước</span></td>
+                                <td class="align-middle"><span class="badge bg-warning-lt-lt px-2 py-1"><i class="ti ti-alert-triangle me-1"></i> Chưa chốt điện nước</span></td>
                                 <td class="text-center align-middle">
-                                    <a href="/QuanLyNhaTro/ChotDienNuoc" class="btn btn-xs btn-outline-warning" target="_blank"><i class="fas fa-edit me-1"></i> Chốt nhanh điện nước</a>
+                                    <a href="/QuanLyNhaTro/ChotDienNuoc" class="btn btn-xs btn-outline-warning" target="_blank"><i class="ti ti-edit me-1"></i> Chốt nhanh điện nước</a>
                                 </td>
                             </tr>
                         `);
@@ -739,7 +728,7 @@
                 }).then((result) => {
                     if (result.isConfirmed) {
                         let $btn = $(this);
-                        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Đang xử lý...');
+                        $btn.prop('disabled', true).html('<i class="ti ti-spinner fa-spin me-1"></i> Đang xử lý...');
 
                         $.ajax({
                             url: '/HoaDon/PhatSinh',
@@ -757,7 +746,7 @@
                                 table.ajax.reload();
                             },
                             error: function(xhr) { showError(xhr.responseJSON?.message || 'Có lỗi xảy ra.'); },
-                            complete: function() { $btn.prop('disabled', false).html('<i class="fas fa-plus me-1"></i> Thêm dữ liệu'); }
+                            complete: function() { $btn.prop('disabled', false).html('<i class="ti ti-plus me-1"></i> Thêm dữ liệu'); }
                         });
                     }
                 });
@@ -776,7 +765,7 @@
                             <div class="col-md-6 mb-2"><strong>Người thuê:</strong> ${escapeHtml(res.tenNguoiThue)}</div>
                             <div class="col-md-6 mb-2"><strong>Trạng thái:</strong> <span class="badge ${res.trangThaiHoaDon === 'Đã thanh toán' ? 'bg-success-lt' : 'bg-warning-lt-lt'} px-2 py-1">${escapeHtml(res.trangThaiHoaDon)}</span></div>
                         </div>
-                        <h4 class="font-weight-bold border-bottom pb-2 mt-4"><i class="fas fa-list me-1"></i> Chi tiết các khoản phí</h4>
+                        <h4 class="font-weight-bold border-bottom pb-2 mt-4"><i class="ti ti-list me-1"></i> Chi tiết các khoản phí</h4>
                         <div class="table-responsive mb-3">
                             <table class="table card-table table-vcenter table-striped table-hover w-100 table-sm">
                                 <thead>
@@ -815,7 +804,7 @@
 
                     // Lịch sử thanh toán
                     if (res.lichSuThanhToans && res.lichSuThanhToans.length > 0) {
-                        html += `<h4 class="font-weight-bold border-bottom pb-2 mt-4"><i class="fas fa-history me-1"></i> Lịch sử thanh toán</h4>
+                        html += `<h4 class="font-weight-bold border-bottom pb-2 mt-4"><i class="ti ti-history me-1"></i> Lịch sử thanh toán</h4>
                             <div class="table-responsive">
                             <table class="table card-table table-vcenter table-striped table-hover w-100 table-sm">
                                 <thead>
@@ -833,7 +822,7 @@
                         <div class="row mt-4 pt-3 border-top justify-content-center">
                             <div class="col-md-7 text-center">
                                 <div class="qr-payment-box p-4 shadow-sm">
-                                    <h4 class="qr-title text-primary font-weight-bold mb-3"><i class="fas fa-qrcode me-1"></i> Quét mã QR để chuyển khoản nhanh</h4>
+                                    <h4 class="qr-title text-primary font-weight-bold mb-3"><i class="ti ti-qrcode me-1"></i> Quét mã QR để chuyển khoản nhanh</h4>
                                     <div class="mb-3">
                                         <img src="/HoaDon/GetVietQR?hoaDonId=${res.hoaDonId}" alt="VietQR" />
                                     </div>
@@ -896,7 +885,7 @@
                             <input type="text" class="form-control form-control-sm text-right edit-thanhtien" value="${formatVND(gia * sl)}" disabled />
                         </td>
                         <td class="text-center align-middle">
-                            <button type="button" class="btn btn-link text-danger btn-delete-edit-row p-0"><i class="fas fa-trash-alt"></i></button>
+                            <button type="button" class="btn btn-link text-danger btn-delete-edit-row p-0"><i class="ti ti-trash"></i></button>
                             <input type="hidden" class="edit-ct-id" value="${ctId}" />
                             <input type="hidden" class="edit-dv-id" value="${dvId || ''}" />
                         </td>
@@ -979,7 +968,7 @@
                 }).then((result) => {
                     if (result.isConfirmed) {
                         let $btn = $(this);
-                        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Đang lưu...');
+                        $btn.prop('disabled', true).html('<i class="ti ti-spinner fa-spin me-1"></i> Đang lưu...');
 
                         $.ajax({
                             url: `/HoaDon/Update/${id}`,
@@ -992,7 +981,7 @@
                                 table.ajax.reload(null, false);
                             },
                             error: function(xhr) { showError(xhr.responseJSON?.message || 'Có lỗi xảy ra.'); },
-                            complete: function() { $btn.prop('disabled', false).html('<i class="fas fa-save me-1"></i> Lưu dữ liệu'); }
+                            complete: function() { $btn.prop('disabled', false).html('<i class="ti ti-device-floppy me-1"></i> Lưu dữ liệu'); }
                         });
                     }
                 });
@@ -1093,7 +1082,7 @@
                     if (result.isConfirmed) {
                         let $btn = $(this);
                         let originalHtml = $btn.html();
-                        $btn.prop('disabled', true).addClass('disabled').html('<i class="fas fa-spinner fa-spin me-2"></i> Đang gửi...');
+                        $btn.prop('disabled', true).addClass('disabled').html('<i class="ti ti-spinner fa-spin me-2"></i> Đang gửi...');
 
                         $.ajax({
                             url: `/HoaDon/SendEmail/${id}`,
@@ -1146,7 +1135,7 @@
                 }
 
                 let $btn = $(this);
-                $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Đang tải...');
+                $btn.prop('disabled', true).html('<i class="ti ti-spinner fa-spin me-1"></i> Đang tải...');
 
                 $.ajax({
                     url: `/HoaDon/GetUnpaidList?chiNhanhId=${cn}&thang=${th}&nam=${na}`,
@@ -1159,7 +1148,7 @@
                         showError(xhr.responseJSON?.message || 'Có lỗi khi tải danh sách hóa đơn chưa thanh toán.');
                     },
                     complete: function() {
-                        $btn.prop('disabled', false).html('<i class="fas fa-sync-alt me-1"></i> Tải dữ liệu');
+                        $btn.prop('disabled', false).html('<i class="ti ti-sync-alt me-1"></i> Tải dữ liệu');
                     }
                 });
             });
@@ -1174,7 +1163,7 @@
                 }
 
                 emailBulkDataList.forEach(item => {
-                    let emailText = item.email ? item.email : '<span class="text-danger font-weight-bold"><i class="fas fa-exclamation-triangle"></i> Chưa có Email</span>';
+                    let emailText = item.email ? item.email : '<span class="text-danger font-weight-bold"><i class="ti ti-alert-triangle"></i> Chưa có Email</span>';
                     let disabledCheckbox = !item.email ? 'disabled' : 'checked';
                     
                     tbody.append(`
@@ -1187,7 +1176,7 @@
                             <td class="align-middle">${escapeHtml(item.tenNguoiThue)}</td>
                             <td class="align-middle">${emailText}</td>
                             <td class="text-right align-middle text-danger font-weight-bold">${formatVND(item.tongTien)}</td>
-                            <td class="align-middle"><span class="badge bg-warning-lt-lt px-2 py-1"><i class="fas fa-clock me-1"></i> Chưa thanh toán</span></td>
+                            <td class="align-middle"><span class="badge bg-warning-lt-lt px-2 py-1"><i class="ti ti-clock me-1"></i> Chưa thanh toán</span></td>
                         </tr>
                     `);
                 });
@@ -1287,4 +1276,19 @@
             });
         });
     </script>
+}
+
+@section Styles {
+    <style>
+    /* Đồng bộ màu nền bộ lọc trong chế độ tối */
+    html[data-bs-theme="dark"] .bg-light,
+    [data-bs-theme="dark"] .bg-light {
+        background-color: var(--tblr-bg-surface-secondary, #1b2434) !important;
+        color: var(--tblr-body-color, #f4f6fa) !important;
+    }
+    html[data-bs-theme="dark"] .border-dashed,
+    [data-bs-theme="dark"] .border-dashed {
+        border-color: rgba(255, 255, 255, 0.15) !important;
+    }
+</style>
 }

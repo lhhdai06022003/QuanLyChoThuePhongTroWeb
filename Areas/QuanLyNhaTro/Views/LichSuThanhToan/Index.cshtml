@@ -6,40 +6,7 @@
     var isAdmin = User.IsInRole("Admin") ? "true" : "false";
 }
 
-<style>
-    /* Đồng bộ màu nền bộ lọc trong chế độ tối */
-    html[data-bs-theme="dark"] .bg-light,
-    [data-bs-theme="dark"] .bg-light {
-        background-color: var(--tblr-bg-surface-secondary, #1b2434) !important;
-        color: var(--tblr-body-color, #f4f6fa) !important;
-    }
-    html[data-bs-theme="dark"] .border-dashed,
-    [data-bs-theme="dark"] .border-dashed {
-        border-color: rgba(255, 255, 255, 0.15) !important;
-    }
-    
-    .avatar {
-        width: 2.5rem;
-        height: 2.5rem;
-        font-size: 1.25rem;
-    }
 
-    /* Hiệu ứng zoom và background khi hover nút thao tác */
-    .btn-list .btn-icon {
-        transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease, color 0.2s ease;
-    }
-    .btn-list .btn-icon:hover {
-        transform: scale(1.15);
-    }
-    .btn-ghost-info:hover {
-        background-color: rgba(32, 107, 196, 0.15) !important;
-        color: var(--tblr-info) !important;
-    }
-    .btn-ghost-danger:hover {
-        background-color: rgba(214, 63, 63, 0.15) !important;
-        color: var(--tblr-danger) !important;
-    }
-</style>
 
 <div class="container-xl mt-3">
     <!-- Page Header -->
@@ -47,7 +14,7 @@
         <div class="row align-items-center">
             <div class="col">
                 <h2 class="page-title text-primary font-weight-bold d-flex align-items-center">
-                    <i class="fas fa-history me-2"></i> Lịch sử thanh toán giao dịch
+                    <i class="ti ti-history me-2"></i> Quản lý Lịch Sử Thanh Toán
                 </h2>
             </div>
         </div>
@@ -61,7 +28,7 @@
                 <div class="card-body p-4">
                     <div class="subheader text-white text-opacity-75 font-weight-bold mb-2 fs-4">TỔNG DOANH THU</div>
                     <div class="h1 mb-0 text-white font-weight-bold" id="statTongDoanhThu" style="font-size: 2rem;">0 ₫</div>
-                    <i class="fas fa-wallet fa-4x text-white text-opacity-25" style="position: absolute; right: 15px; top: 15px;"></i>
+                    <i class="ti ti-wallet fa-4x text-white text-opacity-25" style="position: absolute; right: 15px; top: 15px;"></i>
                 </div>
             </div>
         </div>
@@ -72,7 +39,7 @@
                 <div class="card-body p-4">
                     <div class="subheader text-white text-opacity-75 font-weight-bold mb-2 fs-4">SỐ GIAO DỊCH</div>
                     <div class="h1 mb-0 text-white font-weight-bold" id="statTongSoGiaoDich" style="font-size: 2rem;">0</div>
-                    <i class="fas fa-receipt fa-4x text-white text-opacity-25" style="position: absolute; right: 15px; top: 15px;"></i>
+                    <i class="ti ti-receipt fa-4x text-white text-opacity-25" style="position: absolute; right: 15px; top: 15px;"></i>
                 </div>
             </div>
         </div>
@@ -83,7 +50,7 @@
                 <div class="card-body p-4">
                     <div class="subheader text-white text-opacity-75 font-weight-bold mb-2 fs-4">THU TIỀN MẶT</div>
                     <div class="h1 mb-0 text-white font-weight-bold" id="statDoanhThuTienMat" style="font-size: 2rem;">0 ₫</div>
-                    <i class="fas fa-money-bill-wave fa-4x text-white text-opacity-25" style="position: absolute; right: 15px; top: 15px;"></i>
+                    <i class="ti ti-money-bill-wave fa-4x text-white text-opacity-25" style="position: absolute; right: 15px; top: 15px;"></i>
                 </div>
             </div>
         </div>
@@ -94,7 +61,7 @@
                 <div class="card-body p-4">
                     <div class="subheader text-white text-opacity-75 font-weight-bold mb-2 fs-4">CHUYỂN KHOẢN</div>
                     <div class="h1 mb-0 text-white font-weight-bold" id="statDoanhThuChuyenKhoan" style="font-size: 2rem;">0 ₫</div>
-                    <i class="fas fa-university fa-4x text-white text-opacity-25" style="position: absolute; right: 15px; top: 15px;"></i>
+                    <i class="ti ti-university fa-4x text-white text-opacity-25" style="position: absolute; right: 15px; top: 15px;"></i>
                 </div>
             </div>
         </div>
@@ -108,7 +75,7 @@
                 <div class="row g-3 align-items-end">
                     <div class="col-md-3">
                         <label for="filterChiNhanh" class="form-label font-weight-bold text-secondary mb-1">
-                            <i class="fas fa-building me-1"></i> Chi Nhánh
+                            <i class="ti ti-building me-1"></i> Chi Nhánh
                         </label>
                         <select id="filterChiNhanh" class="form-select form-select-sm">
                             <option value="0">-- Tất cả chi nhánh --</option>
@@ -123,7 +90,7 @@
                     </div>
                     <div class="col-md-3">
                         <label for="filterPhuongThuc" class="form-label font-weight-bold text-secondary mb-1">
-                            <i class="fas fa-hand-holding-usd me-1"></i> Phương thức
+                            <i class="ti ti-hand-holding-usd me-1"></i> Phương thức
                         </label>
                         <select id="filterPhuongThuc" class="form-select form-select-sm">
                             <option value="-1">-- Tất cả phương thức --</option>
@@ -133,7 +100,7 @@
                     </div>
                     <div class="col-md-5">
                         <label for="filterDateRange" class="form-label font-weight-bold text-secondary mb-1">
-                            <i class="fas fa-calendar-alt me-1"></i> Khoảng thời gian
+                            <i class="ti ti-calendar me-1"></i> Khoảng thời gian
                         </label>
                         <div class="d-flex gap-2">
                             <div class="btn-group btn-group-sm" role="group">
@@ -178,14 +145,14 @@
     <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
         <div class="modal-content shadow-lg border-0">
             <div class="modal-header bg-info-lt py-3">
-                <h5 class="modal-title font-weight-bold"><i class="fas fa-file-alt me-1"></i> Chi tiết Hóa đơn</h5>
+                <h5 class="modal-title font-weight-bold"><i class="ti ti-file-alt me-1"></i> Chi tiết Hóa đơn</h5>
                 <button type="button" class="btn-close btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body py-4" id="chiTietBody">
                 <!-- JS render -->
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i> Đóng</button>
+                <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i> Đóng</button>
             </div>
         </div>
     </div>
@@ -228,7 +195,7 @@
                     }
                 },
                 onReady: function(selectedDates, dateStr, instance) {
-                    var clearBtn = $('<div class="flatpickr-clear-btn text-end p-2 border-top" style="cursor: pointer; color: var(--tblr-danger); font-weight: bold;"><i class="fas fa-times me-1"></i>Xóa chọn</div>');
+                    var clearBtn = $('<div class="flatpickr-clear-btn text-end p-2 border-top" style="cursor: pointer; color: var(--tblr-danger); font-weight: bold;"><i class="ti ti-x me-1"></i>Xóa chọn</div>');
                     clearBtn.on('click', function() {
                         instance.clear();
                         instance.close();
@@ -340,9 +307,9 @@
                         "orderable": false,
                         "render": function (d, t, r) {
                             if (d === 1) {
-                                return '<span class="badge bg-success-lt px-2 py-1"><i class="fas fa-university me-1"></i> Chuyển khoản</span>';
+                                return '<span class="badge bg-success-lt px-2 py-1"><i class="ti ti-university me-1"></i> Chuyển khoản</span>';
                             }
-                            return '<span class="badge bg-blue-lt px-2 py-1"><i class="fas fa-money-bill-wave me-1"></i> Tiền mặt</span>';
+                            return '<span class="badge bg-blue-lt px-2 py-1"><i class="ti ti-money-bill-wave me-1"></i> Tiền mặt</span>';
                         }
                     },
                     { "data": "ngayThanhToan", "className": "align-middle text-center" },
@@ -355,13 +322,13 @@
                             let actionHtml = `
                                 <div class="btn-list flex-nowrap justify-content-center">
                                     <button class="btn btn-icon btn-ghost-info btn-sm btn-detail" data-id="${row.hoaDonId}" title="Xem chi tiết hóa đơn">
-                                        <i class="fas fa-eye"></i>
+                                        <i class="ti ti-eye"></i>
                                     </button>
                             `;
                             if (isAdmin) {
                                 actionHtml += `
                                     <button class="btn btn-icon btn-ghost-danger btn-sm btn-void" data-id="${row.lichSuThanhToanId}" data-code="${escapeHtml(row.maGiaoDich)}" title="Hủy giao dịch thanh toán">
-                                        <i class="fas fa-trash-alt"></i>
+                                        <i class="ti ti-trash"></i>
                                     </button>
                                 `;
                             }
@@ -394,7 +361,7 @@
                             <div class="col-md-6 mb-2"><strong>Người thuê:</strong> ${escapeHtml(res.tenNguoiThue)}</div>
                             <div class="col-md-6 mb-2"><strong>Trạng thái:</strong> <span class="badge ${res.trangThaiHoaDon === 'Đã thanh toán' ? 'bg-success-lt' : 'bg-warning-lt'} px-2 py-1">${escapeHtml(res.trangThaiHoaDon)}</span></div>
                         </div>
-                        <h4 class="font-weight-bold border-bottom pb-2 mt-4"><i class="fas fa-list me-1"></i> Chi tiết các khoản phí</h4>
+                        <h4 class="font-weight-bold border-bottom pb-2 mt-4"><i class="ti ti-list me-1"></i> Chi tiết các khoản phí</h4>
                         <div class="table-responsive mb-3">
                             <table class="table card-table table-vcenter table-striped table-hover w-100 table-sm">
                                 <thead>
@@ -433,7 +400,7 @@
 
                     // Lịch sử thanh toán
                     if (res.lichSuThanhToans && res.lichSuThanhToans.length > 0) {
-                        html += `<h4 class="font-weight-bold border-bottom pb-2 mt-4"><i class="fas fa-history me-1"></i> Lịch sử thanh toán</h4>
+                        html += `<h4 class="font-weight-bold border-bottom pb-2 mt-4"><i class="ti ti-history me-1"></i> Lịch sử thanh toán</h4>
                             <div class="table-responsive">
                             <table class="table card-table table-vcenter table-striped table-hover w-100 table-sm">
                                 <thead>
@@ -451,7 +418,7 @@
                         <div class="row mt-4 pt-3 border-top justify-content-center">
                             <div class="col-md-7 text-center">
                                 <div class="qr-payment-box p-4 shadow-sm border rounded">
-                                    <h4 class="qr-title text-primary font-weight-bold mb-3"><i class="fas fa-qrcode me-1"></i> Quét mã QR để chuyển khoản nhanh</h4>
+                                    <h4 class="qr-title text-primary font-weight-bold mb-3"><i class="ti ti-qrcode me-1"></i> Quét mã QR để chuyển khoản nhanh</h4>
                                     <div class="mb-3">
                                         <img src="/HoaDon/GetVietQR?hoaDonId=${res.hoaDonId}" alt="VietQR" style="max-width: 100%; height: auto;" />
                                     </div>
@@ -520,4 +487,41 @@
             });
         });
     </script>
+}
+
+@section Styles {
+    <style>
+    /* Đồng bộ màu nền bộ lọc trong chế độ tối */
+    html[data-bs-theme="dark"] .bg-light,
+    [data-bs-theme="dark"] .bg-light {
+        background-color: var(--tblr-bg-surface-secondary, #1b2434) !important;
+        color: var(--tblr-body-color, #f4f6fa) !important;
+    }
+    html[data-bs-theme="dark"] .border-dashed,
+    [data-bs-theme="dark"] .border-dashed {
+        border-color: rgba(255, 255, 255, 0.15) !important;
+    }
+    
+    .avatar {
+        width: 2.5rem;
+        height: 2.5rem;
+        font-size: 1.25rem;
+    }
+
+    /* Hiệu ứng zoom và background khi hover nút thao tác */
+    .btn-list .btn-icon {
+        transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease, color 0.2s ease;
+    }
+    .btn-list .btn-icon:hover {
+        transform: scale(1.15);
+    }
+    .btn-ghost-info:hover {
+        background-color: rgba(32, 107, 196, 0.15) !important;
+        color: var(--tblr-info) !important;
+    }
+    .btn-ghost-danger:hover {
+        background-color: rgba(214, 63, 63, 0.15) !important;
+        color: var(--tblr-danger) !important;
+    }
+</style>
 }

@@ -9,14 +9,14 @@
         <div class="row align-items-center">
             <div class="col">
                 <h2 class="page-title text-primary font-weight-bold d-flex align-items-center">
-                    <i class="fas fa-gavel me-2"></i> Quản lý Điều khoản Hợp đồng mẫu
+                    <i class="ti ti-gavel me-2"></i> Quản lý Điều khoản Hợp đồng
                 </h2>
                 <div class="text-muted mt-1">Quản lý thư viện các điều khoản sử dụng khi ký kết hợp đồng thuê phòng</div>
             </div>
             <div class="col-auto ms-auto d-print-none">
                 <div class="btn-list">
                     <button class="btn btn-success d-none d-sm-inline-block shadow-sm font-weight-bold" id="btnOpenAddModal">
-                        <i class="fas fa-plus-circle me-1"></i> Thêm điều khoản mới
+                        <i class="ti ti-circle-plus me-1"></i> Thêm điều khoản mới
                     </button>
                 </div>
             </div>
@@ -26,7 +26,7 @@
     <!-- Content -->
     <div class="card shadow-sm border-0">
         <div class="card-header">
-            <h3 class="card-title font-weight-bold"><i class="fas fa-list me-2 text-primary"></i> Danh sách các điều khoản</h3>
+            <h3 class="card-title font-weight-bold"><i class="ti ti-list me-2 text-primary"></i> Danh sách các điều khoản</h3>
         </div>
         <div class="card-body">
             <div class="table-responsive">
@@ -54,10 +54,10 @@
                                     <td class="text-center align-middle">
                                         <div class="btn-list flex-nowrap justify-content-center">
                                             <button type="button" class="btn btn-icon btn-ghost-warning btn-sm btn-edit-dk" data-id="@item.DieuKhoanMauId" title="Chỉnh sửa">
-                                                <i class="fas fa-edit"></i>
+                                                <i class="ti ti-edit"></i>
                                             </button>
                                             <button type="button" class="btn btn-icon btn-ghost-danger btn-sm btn-delete-dk" data-id="@item.DieuKhoanMauId" title="Xóa">
-                                                <i class="fas fa-trash-alt"></i>
+                                                <i class="ti ti-trash"></i>
                                             </button>
                                         </div>
                                     </td>
@@ -70,7 +70,7 @@
                                 <td colspan="4" class="text-center text-muted py-5">
                                     <div class="empty">
                                         <div class="empty-icon text-muted mb-3">
-                                            <i class="fas fa-folder-open fa-3x"></i>
+                                            <i class="ti ti-folder-open fa-3x"></i>
                                         </div>
                                         <p class="empty-title h3">Chưa có dữ liệu</p>
                                         <p class="empty-subtitle text-muted">
@@ -78,7 +78,7 @@
                                         </p>
                                         <div class="empty-action mt-3">
                                             <button class="btn btn-success font-weight-bold shadow-sm" id="btnOpenAddModalEmpty">
-                                                <i class="fas fa-plus-circle me-1"></i> Thêm ngay
+                                                <i class="ti ti-circle-plus me-1"></i> Thêm ngay
                                             </button>
                                         </div>
                                     </div>
@@ -97,7 +97,7 @@
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content shadow-lg border-0 rounded-3">
             <div class="modal-header bg-primary text-white border-0 rounded-top-3">
-                <h5 class="modal-title font-weight-bold" id="dieuKhoanModalTitle"><i class="fas fa-plus-circle me-2"></i>Thêm Điều khoản mẫu mới</h5>
+                <h5 class="modal-title font-weight-bold" id="dieuKhoanModalTitle"><i class="ti ti-circle-plus me-2"></i>Thêm Điều khoản mẫu mới</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-4">
@@ -108,7 +108,7 @@
                         Tiêu đề điều khoản <span class="text-danger">*</span>
                     </label>
                     <input type="text" class="form-control form-control-lg" id="TieuDe" placeholder="VD: Quy định về giờ giấc, an ninh...">
-                    <small class="form-hint mt-2"><i class="fas fa-info-circle me-1"></i>Tiêu đề ngắn gọn, rõ ràng để dễ dàng nhận biết khi chọn.</small>
+                    <small class="form-hint mt-2"><i class="ti ti-info-circle me-1"></i>Tiêu đề ngắn gọn, rõ ràng để dễ dàng nhận biết khi chọn.</small>
                 </div>
 
                 <div class="mb-3 p-3 rounded-3 shadow-sm border">
@@ -116,12 +116,12 @@
                         Nội dung chi tiết <span class="text-danger">*</span>
                     </label>
                     <textarea class="form-control" id="NoiDung" rows="8" placeholder="Nhập chi tiết các quy định, nội dung pháp lý của điều khoản..."></textarea>
-                    <small class="form-hint mt-2 text-warning fw-bold"><i class="fas fa-exclamation-triangle me-1"></i>Nội dung này sẽ được in trực tiếp vào hợp đồng của người thuê.</small>
+                    <small class="form-hint mt-2 text-warning fw-bold"><i class="ti ti-alert-triangle me-1"></i>Nội dung này sẽ được in trực tiếp vào hợp đồng của người thuê.</small>
                 </div>
             </div>
             <div class="modal-footer border-top-0 rounded-bottom-3 p-3">
-                <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i> Đóng</button>
-                <button type="button" class="btn btn-primary px-4 font-weight-bold shadow-sm" id="btnSaveDieuKhoan"><i class="fas fa-plus me-1"></i> Thêm dữ liệu</button>
+                <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i> Đóng</button>
+                <button type="button" class="btn btn-primary px-4 font-weight-bold shadow-sm" id="btnSaveDieuKhoan"><i class="ti ti-plus me-1"></i> Thêm dữ liệu</button>
             </div>
         </div>
     </div>
@@ -149,9 +149,9 @@
                 $('#DieuKhoanMauId').val(0);
                 $('#TieuDe').val('');
                 $('#NoiDung').val('');
-                $('#dieuKhoanModalTitle').html('<i class="fas fa-plus-circle me-2"></i>Thêm Điều khoản mẫu mới');
+                $('#dieuKhoanModalTitle').html('<i class="ti ti-circle-plus me-2"></i>Thêm Điều khoản mẫu mới');
                 $('#dieuKhoanModalTitle').parent().removeClass('bg-warning').addClass('bg-primary');
-                $('#btnSaveDieuKhoan').removeClass('btn-success').addClass('btn-primary').addClass('font-weight-bold').addClass('shadow-sm').html('<i class="fas fa-plus me-1"></i> Thêm dữ liệu');
+                $('#btnSaveDieuKhoan').removeClass('btn-success').addClass('btn-primary').addClass('font-weight-bold').addClass('shadow-sm').html('<i class="ti ti-plus me-1"></i> Thêm dữ liệu');
                 $('#dieuKhoanModal').modal('show');
             });
 
@@ -182,7 +182,7 @@
                     if (result.isConfirmed) {
                         let $btn = $(this);
                         let originalHtml = $btn.html();
-                        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang xử lý...');
+                        $btn.prop('disabled', true).html('<i class="ti ti-spinner fa-spin"></i> Đang xử lý...');
 
                         $.ajax({
                             url: isUpdate ? `/DieuKhoanMau/Update/${id}` : '/DieuKhoanMau/Create',
@@ -211,9 +211,9 @@
                     $('#DieuKhoanMauId').val(res.dieuKhoanMauId);
                     $('#TieuDe').val(res.tieuDe);
                     $('#NoiDung').val(res.noiDung);
-                    $('#dieuKhoanModalTitle').html('<i class="fas fa-edit me-2"></i>Cập nhật Điều khoản mẫu');
+                    $('#dieuKhoanModalTitle').html('<i class="ti ti-edit me-2"></i>Cập nhật Điều khoản mẫu');
                     $('#dieuKhoanModalTitle').parent().removeClass('bg-primary').addClass('bg-warning');
-                    $('#btnSaveDieuKhoan').removeClass('btn-primary').addClass('btn-success').addClass('font-weight-bold').addClass('shadow-sm').html('<i class="fas fa-save me-1"></i> Lưu dữ liệu');
+                    $('#btnSaveDieuKhoan').removeClass('btn-primary').addClass('btn-success').addClass('font-weight-bold').addClass('shadow-sm').html('<i class="ti ti-device-floppy me-1"></i> Lưu dữ liệu');
                     $('#dieuKhoanModal').modal('show');
                 }).fail(function() {
                     showError('Không lấy được dữ liệu điều khoản');

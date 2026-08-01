@@ -5,52 +5,7 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<style>
-    /* Đồng bộ màu nền bộ lọc trong chế độ tối */
-    html[data-bs-theme="dark"] .bg-light,
-    [data-bs-theme="dark"] .bg-light {
-        background-color: var(--tblr-bg-surface-secondary, #1b2434) !important;
-        color: var(--tblr-body-color, #f4f6fa) !important;
-    }
-    html[data-bs-theme="dark"] .border-dashed,
-    [data-bs-theme="dark"] .border-dashed {
-        border-color: rgba(255, 255, 255, 0.15) !important;
-    }
-    
-    .avatar {
-        width: 2.5rem;
-        height: 2.5rem;
-        font-size: 1.25rem;
-    }
 
-    /* Styles cho timeline hoạt động */
-    .timeline {
-        position: relative;
-        padding-left: 1.5rem;
-        border-left: 2px solid var(--tblr-border-color, #e6e8eb);
-    }
-    .timeline-item {
-        position: relative;
-        margin-bottom: 1.5rem;
-    }
-    .timeline-item:last-child {
-        margin-bottom: 0;
-    }
-    .timeline-badge {
-        position: absolute;
-        left: -2.35rem;
-        top: 0.25rem;
-        width: 1.6rem;
-        height: 1.6rem;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.8rem;
-        color: #fff;
-        border: 3px solid var(--tblr-card-bg, #fff);
-    }
-</style>
 
 <div class="container-xl mt-3">
     <!-- Page Header -->
@@ -58,7 +13,7 @@
         <div class="row align-items-center">
             <div class="col">
                 <h2 class="page-title text-primary font-weight-bold d-flex align-items-center">
-                    <i class="fas fa-chart-line me-2"></i>Bảng Điều Khiển Hệ Thống
+                    <i class="ti ti-chart-line me-2"></i> Bảng Điều Khiển Hệ Thống
                 </h2>
             </div>
             <div class="col-auto ms-auto d-print-none">
@@ -85,7 +40,7 @@
                 <div class="card-body p-4">
                     <div class="subheader text-white text-opacity-75 font-weight-bold mb-2 fs-4">DOANH THU ĐÃ THU</div>
                     <div class="h1 mb-0 text-white font-weight-bold" id="statDoanhThu" style="font-size: 2rem;">@Model.DoanhThuThangNay.ToString("N0") ₫</div>
-                    <i class="fas fa-wallet fa-4x text-white text-opacity-25" style="position: absolute; right: 15px; top: 15px;"></i>
+                    <i class="ti ti-wallet fa-4x text-white text-opacity-25" style="position: absolute; right: 15px; top: 15px;"></i>
                 </div>
             </div>
         </div>
@@ -96,7 +51,7 @@
                 <div class="card-body p-4">
                     <div class="subheader text-white text-opacity-75 font-weight-bold mb-2 fs-4">DOANH THU CHỜ THU</div>
                     <div class="h1 mb-0 text-white font-weight-bold" id="statChoThu" style="font-size: 2rem;">@Model.TongTienChoThu.ToString("N0") ₫</div>
-                    <i class="fas fa-clock fa-4x text-white text-opacity-25" style="position: absolute; right: 15px; top: 15px;"></i>
+                    <i class="ti ti-clock fa-4x text-white text-opacity-25" style="position: absolute; right: 15px; top: 15px;"></i>
                 </div>
             </div>
         </div>
@@ -108,9 +63,9 @@
                     <div class="subheader text-white text-opacity-75 font-weight-bold mb-2 fs-4">PHÒNG ĐANG NỢ TIỀN</div>
                     <div class="h1 mb-0 text-white font-weight-bold d-flex align-items-end gap-2" style="font-size: 2rem;">
                         <span id="statChuaThanhToan">@Model.SoPhongChuaThanhToan</span>
-                        <span class="text-white text-opacity-75 mb-1" style="font-size: 0.8rem; font-weight: normal;"><i class="fas fa-info-circle me-1"></i>Từ trước tới nay</span>
+                        <span class="text-white text-opacity-75 mb-1" style="font-size: 0.8rem; font-weight: normal;"><i class="ti ti-info-circle me-1"></i>Từ trước tới nay</span>
                     </div>
-                    <i class="fas fa-home fa-4x text-white text-opacity-25" style="position: absolute; right: 15px; top: 15px;"></i>
+                    <i class="ti ti-home fa-4x text-white text-opacity-25" style="position: absolute; right: 15px; top: 15px;"></i>
                 </div>
             </div>
         </div>
@@ -121,7 +76,7 @@
                 <div class="card-body p-4">
                     <div class="subheader text-white text-opacity-75 font-weight-bold mb-2 fs-4">HỢP ĐỒNG ĐANG HOẠT ĐỘNG</div>
                     <div class="h1 mb-0 text-white font-weight-bold" id="statHopDong" style="font-size: 2rem;">@Model.TongSoHopDongHoatDong</div>
-                    <i class="fas fa-file-contract fa-4x text-white text-opacity-25" style="position: absolute; right: 15px; top: 15px;"></i>
+                    <i class="ti ti-file-contract fa-4x text-white text-opacity-25" style="position: absolute; right: 15px; top: 15px;"></i>
                 </div>
             </div>
         </div>
@@ -133,7 +88,7 @@
         <div class="col-lg-8">
             <div class="card shadow-sm border-0">
                 <div class="card-body">
-                    <h3 class="card-title font-weight-bold mb-3"><i class="fas fa-chart-bar me-2 text-primary"></i>Xu hướng Doanh thu (Năm <span id="chartYearText">@Model.SelectedYear</span>)</h3>
+                    <h3 class="card-title font-weight-bold mb-3"><i class="ti ti-chart-bar me-2 text-primary"></i>Xu hướng Doanh thu (Năm <span id="chartYearText">@Model.SelectedYear</span>)</h3>
                     <div style="height: 320px; position: relative;">
                         <canvas id="revenueBarChart"></canvas>
                     </div>
@@ -145,7 +100,7 @@
         <div class="col-lg-4">
             <div class="card shadow-sm border-0">
                 <div class="card-body">
-                    <h3 class="card-title font-weight-bold mb-3"><i class="fas fa-chart-pie me-2 text-primary"></i>Tỷ lệ tình trạng phòng</h3>
+                    <h3 class="card-title font-weight-bold mb-3"><i class="ti ti-chart-pie me-2 text-primary"></i>Tỷ lệ tình trạng phòng</h3>
                     <div class="d-flex justify-content-center align-items-center" style="height: 320px;">
                         <canvas id="roomStatusChart" style="max-height: 260px; max-width: 260px;"></canvas>
                     </div>
@@ -160,13 +115,13 @@
         <div class="col-lg-6">
             <div class="card shadow-sm border-0 h-100">
                 <div class="card-header border-0 bg-transparent py-3">
-                    <h3 class="card-title font-weight-bold mb-0"><i class="fas fa-tasks text-warning me-2"></i>Cảnh báo vận hành & Việc cần làm</h3>
+                    <h3 class="card-title font-weight-bold mb-0"><i class="ti ti-tasks text-warning me-2"></i>Cảnh báo vận hành & Việc cần làm</h3>
                 </div>
                 <div class="card-body pt-1" id="toDoContainer">
                     @if (Model.ToDos.Count == 0)
                     {
                         <div class="text-center text-muted py-4">
-                            <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
+                            <i class="ti ti-circle-check fa-2x text-success mb-2"></i>
                             <div>Không có cảnh báo vận hành nào cần xử lý.</div>
                         </div>
                     }
@@ -200,13 +155,13 @@
         <div class="col-lg-6">
             <div class="card shadow-sm border-0 h-100">
                 <div class="card-header border-0 bg-transparent py-3">
-                    <h3 class="card-title font-weight-bold mb-0"><i class="fas fa-history text-primary me-2"></i>Hoạt động vận hành gần đây</h3>
+                    <h3 class="card-title font-weight-bold mb-0"><i class="ti ti-history text-primary me-2"></i>Hoạt động vận hành gần đây</h3>
                 </div>
                 <div class="card-body pt-1" id="activitiesContainer">
                     @if (Model.RecentActivities.Count == 0)
                     {
                         <div class="text-center text-muted py-4">
-                            <i class="fas fa-info-circle fa-2x mb-2"></i>
+                            <i class="ti ti-info-circle fa-2x mb-2"></i>
                             <div>Chưa ghi nhận hoạt động vận hành nào gần đây.</div>
                         </div>
                     }
@@ -223,7 +178,7 @@
                                         <div class="font-weight-bold fs-4">@act.Title</div>
                                         <div class="text-muted small">@act.Description</div>
                                         <span class="badge bg-light-lt text-muted px-2 py-0.5 mt-1 small" style="font-size: 0.75rem;">
-                                            <i class="far fa-clock me-1"></i>@act.TimeText
+                                            <i class="ti ti-clock me-1"></i>@act.TimeText
                                         </span>
                                     </div>
                                 </div>
@@ -362,7 +317,7 @@
                         if (res.toDos.length === 0) {
                             todoHtml = `
                                 <div class="text-center text-muted py-4">
-                                    <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
+                                    <i class="ti ti-circle-check fa-2x text-success mb-2"></i>
                                     <div>Không có cảnh báo vận hành nào cần xử lý.</div>
                                 </div>`;
                         } else {
@@ -393,7 +348,7 @@
                         if (res.recentActivities.length === 0) {
                             actHtml = `
                                 <div class="text-center text-muted py-4">
-                                    <i class="fas fa-info-circle fa-2x mb-2"></i>
+                                    <i class="ti ti-info-circle fa-2x mb-2"></i>
                                     <div>Chưa ghi nhận hoạt động vận hành nào gần đây.</div>
                                 </div>`;
                         } else {
@@ -408,7 +363,7 @@
                                             <div class="font-weight-bold fs-4">${act.title}</div>
                                             <div class="text-muted small">${act.description}</div>
                                             <span class="badge bg-light-lt text-muted px-2 py-0.5 mt-1 small" style="font-size: 0.75rem;">
-                                                <i class="far fa-clock me-1"></i>${act.timeText}
+                                                <i class="ti ti-clock me-1"></i>${act.timeText}
                                             </span>
                                         </div>
                                     </div>`;
@@ -429,4 +384,52 @@
             });
         });
     </script>
+}
+@section Styles {
+    <style>
+    /* Đồng bộ màu nền bộ lọc trong chế độ tối */
+    html[data-bs-theme="dark"] .bg-light,
+    [data-bs-theme="dark"] .bg-light {
+        background-color: var(--tblr-bg-surface-secondary, #1b2434) !important;
+        color: var(--tblr-body-color, #f4f6fa) !important;
+    }
+    html[data-bs-theme="dark"] .border-dashed,
+    [data-bs-theme="dark"] .border-dashed {
+        border-color: rgba(255, 255, 255, 0.15) !important;
+    }
+    
+    .avatar {
+        width: 2.5rem;
+        height: 2.5rem;
+        font-size: 1.25rem;
+    }
+
+    /* Styles cho timeline hoạt động */
+    .timeline {
+        position: relative;
+        padding-left: 1.5rem;
+        border-left: 2px solid var(--tblr-border-color, #e6e8eb);
+    }
+    .timeline-item {
+        position: relative;
+        margin-bottom: 1.5rem;
+    }
+    .timeline-item:last-child {
+        margin-bottom: 0;
+    }
+    .timeline-badge {
+        position: absolute;
+        left: -2.35rem;
+        top: 0.25rem;
+        width: 1.6rem;
+        height: 1.6rem;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8rem;
+        color: #fff;
+        border: 3px solid var(--tblr-card-bg, #fff);
+    }
+</style>
 }

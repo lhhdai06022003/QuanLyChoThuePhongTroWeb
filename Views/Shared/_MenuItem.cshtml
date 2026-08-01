@@ -28,7 +28,7 @@
     <li class="nav-item dropdown @(isAnyChildActive ? "active" : "")">
         <a class="nav-link dropdown-toggle" href="#navbar-menu-@Model.Name.GetHashCode()" data-bs-toggle="dropdown" data-bs-auto-close="false" role="button" aria-expanded="@(isAnyChildActive ? "true" : "false")">
             <span class="nav-link-icon d-md-none d-lg-inline-block">
-                <i class="@(string.IsNullOrEmpty(Model.Icon) ? "far fa-circle" : Model.Icon)"></i>
+                <i class="@(string.IsNullOrEmpty(Model.Icon) ? "ti ti-point" : Model.Icon)"></i>
             </span>
             <span class="nav-link-title">
                 @Model.Name
@@ -43,7 +43,7 @@
                         <a class="dropdown-item py-2 @(isChildActive ? "active" : "")" href="@child.Url">
                             @if (!string.IsNullOrEmpty(child.Icon))
                             {
-                                <i class="@child.Icon me-2" style="font-size: 0.85rem;"></i>
+                                <i class="@child.Icon me-2"></i>
                             }
                             @child.Name
                         </a>
@@ -58,7 +58,7 @@ else
     <li class="nav-item @(isParentActive ? "active" : "")">
         <a class="nav-link" href="@(string.IsNullOrEmpty(Model.Url) ? "#" : Model.Url)">
             <span class="nav-link-icon d-md-none d-lg-inline-block">
-                <i class="@(string.IsNullOrEmpty(Model.Icon) ? "far fa-circle" : Model.Icon)"></i>
+                <i class="@(string.IsNullOrEmpty(Model.Icon) ? "ti ti-point" : Model.Icon)"></i>
             </span>
             <span class="nav-link-title">
                 @Model.Name

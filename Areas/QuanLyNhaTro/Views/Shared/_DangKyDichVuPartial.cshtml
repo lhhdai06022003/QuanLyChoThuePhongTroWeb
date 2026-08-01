@@ -277,7 +277,7 @@
         if (!data || data.length === 0) {
             $container.html(`
                 <div class="dkdv-empty">
-                    <i class="fas fa-info-circle"></i>
+                    <i class="ti ti-info-circle"></i>
                     <p>Chi nhánh này chưa có dịch vụ nào được cài đặt giá.<br>
                     Vui lòng vào <strong>Quản lý Dịch vụ → Bảng giá</strong> để thiết lập.</p>
                 </div>
@@ -302,7 +302,7 @@
         if (defaults.length > 0) {
             html += `
                 <div class="dkdv-section-header default-header">
-                    <i class="fas fa-lock"></i> Dịch vụ bắt buộc
+                    <i class="ti ti-lock"></i> Dịch vụ bắt buộc
                     <span class="dkdv-section-count">${defaults.length} dịch vụ</span>
                 </div>
             `;
@@ -325,16 +325,16 @@
                                    checked style="display:none;">
                             <div class="dkdv-action-col">
                                 <div class="dkdv-default-icon">
-                                    <i class="fas fa-check"></i>
+                                    <i class="ti ti-check"></i>
                                 </div>
                             </div>
                             <div class="dkdv-info">
                                 <div class="dkdv-name">
                                     ${item.tenDichVu}
-                                    <span class="dkdv-badge-included"><i class="fas fa-lock" style="font-size:0.6rem;"></i> Luôn bao gồm</span>
+                                    <span class="dkdv-badge-included"><i class="ti ti-lock" style="font-size:0.6rem;"></i> Luôn bao gồm</span>
                                 </div>
                                 <div class="dkdv-detail">
-                                    <i class="fas fa-tag"></i> ${item.donVi}
+                                    <i class="ti ti-tag"></i> ${item.donVi}
                                 </div>
                             </div>
                         </div>
@@ -357,7 +357,7 @@
         if (optionals.length > 0) {
             html += `
                 <div class="dkdv-section-header optional-header">
-                    <i class="fas fa-plus-circle"></i> Dịch vụ tùy chọn
+                    <i class="ti ti-circle-plus"></i> Dịch vụ tùy chọn
                     <span class="dkdv-section-count">${optionals.length} dịch vụ</span>
                 </div>
             `;
@@ -388,7 +388,7 @@
                             <div class="dkdv-info">
                                 <div class="dkdv-name">${item.tenDichVu}</div>
                                 <div class="dkdv-detail">
-                                    <i class="fas fa-tag"></i> ${item.donVi}
+                                    <i class="ti ti-tag"></i> ${item.donVi}
                                 </div>
                             </div>
                         </div>

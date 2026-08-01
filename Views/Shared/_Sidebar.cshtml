@@ -16,6 +16,26 @@
             </a>
         </h1>
 
+        <!-- Mobile top user control -->
+        <div class="navbar-nav flex-row d-lg-none">
+            @if (User.Identity != null && User.Identity.IsAuthenticated)
+            {
+                <div class="nav-item dropdown">
+                    <a href="#" class="nav-link d-flex lh-1 text-reset p-0" data-bs-toggle="dropdown" aria-label="Open user menu">
+                        <span class="avatar avatar-sm rounded-circle bg-blue-lt"><i class="ti ti-user-circle fa-lg text-blue"></i></span>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
+                        <form action="/QuanLyNhaTro/DangXuat" method="post" class="d-none" id="mobileLogoutForm">
+                            @Html.AntiForgeryToken()
+                        </form>
+                        <a href="javascript:void(0);" onclick="document.getElementById('mobileLogoutForm').submit();" class="dropdown-item text-danger py-2">
+                            <i class="ti ti-logout me-2"></i> Đăng xuất
+                        </a>
+                    </div>
+                </div>
+            }
+        </div>
+
         <!-- Sidebar Menu -->
         <div class="collapse navbar-collapse" id="sidebar-menu">
             <ul class="navbar-nav pt-lg-3">

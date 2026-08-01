@@ -1,11 +1,13 @@
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels;
 using QuanLyChoThuePhongTroWeb.Data;
 using QuanLyChoThuePhongTroWeb.Hubs;
 using QuanLyChoThuePhongTroWeb.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.ThongBaos
@@ -21,16 +23,17 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.ThongBaos
             _hubContext = hubContext;
         }
 
-        public async Task<List<ThongBao>> LayDanhSachTheoNguoiDungAsync(int nguoiDungId)
+        public async Task<List<ThongBao>> LayDanhSachTheoNguoiDungAsync(int nguoiDungId, CancellationToken cancellationToken = default)
         {
             return await _context.ThongBaos
+                .AsNoTracking()
                 .Where(x => x.NguoiDungId == nguoiDungId)
                 .OrderByDescending(x => x.CreatedAt)
                 .Take(20)
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
         }
 
-        public async Task<bool> GuiChoNguoiDungAsync(int nguoiDungId, string tieuDe, string noiDung, string? linhVuc = null, string? linkDieuHuong = null)
+        public async Task<ServiceResult> GuiChoNguoiDungAsync(int nguoiDungId, string tieuDe, string noiDung, string? linhVuc = null, string? linkDieuHuong = null, CancellationToken cancellationToken = default)
         {
             var thongBao = new ThongBao
             {
@@ -43,7 +46,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.ThongBaos
             };
 
             _context.ThongBaos.Add(thongBao);
-            var saved = await _context.SaveChangesAsync() > 0;
+            var saved = await _context.SaveChangesAsync(cancellationToken) > 0;
 
             if (saved)
             {
@@ -55,31 +58,39 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.ThongBaos
                     linhVuc = thongBao.LinhVuc,
                     linkDieuHuong = thongBao.LinkDieuHuong,
                     createdAt = thongBao.CreatedAt.AddHours(7).ToString("dd/MM/yyyy HH:mm")
-                });
+                }, cancellationToken);
+                return ServiceResult.Ok("Đã gửi thông báo thành công!");
             }
 
-            return saved;
+            return ServiceResult.Fail("Không thể lưu thông báo vào cơ sở dữ liệu.");
         }
 
-        public async Task<bool> GuiChoKhachThueAsync(int nguoiThueId, string tieuDe, string noiDung, string? linhVuc = null, string? linkDieuHuong = null)
+        public async Task<ServiceResult> GuiChoKhachThueAsync(int nguoiThueId, string tieuDe, string noiDung, string? linhVuc = null, string? linkDieuHuong = null, CancellationToken cancellationToken = default)
         {
-            var user = await _context.NguoiDungs.FirstOrDefaultAsync(u => u.NguoiThueId == nguoiThueId && !u.IsDeleted && u.IsActive);
-            if (user == null) return false;
+            var user = await _context.NguoiDungs
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.NguoiThueId == nguoiThueId && !u.IsDeleted && u.IsActive, cancellationToken);
+                
+            if (user == null) 
+                return ServiceResult.Fail("Không tìm thấy người dùng khách thuê hoặc tài khoản đã bị khóa.");
 
-            return await GuiChoNguoiDungAsync(user.NguoiDungId, tieuDe, noiDung, linhVuc, linkDieuHuong);
+            return await GuiChoNguoiDungAsync(user.NguoiDungId, tieuDe, noiDung, linhVuc, linkDieuHuong, cancellationToken);
         }
 
-        public async Task<bool> GuiChoQuyenAsync(Role role, string tieuDe, string noiDung, string? linhVuc = null, string? linkDieuHuong = null)
+        public async Task<ServiceResult> GuiChoQuyenAsync(Role role, string tieuDe, string noiDung, string? linhVuc = null, string? linkDieuHuong = null, CancellationToken cancellationToken = default)
         {
             var targetUsers = await _context.NguoiDungs
+                .AsNoTracking()
                 .Where(u => u.Role == role && !u.IsDeleted && u.IsActive)
-                .ToListAsync();
+                .Select(u => u.NguoiDungId)
+                .ToListAsync(cancellationToken);
 
-            if (!targetUsers.Any()) return false;
+            if (!targetUsers.Any()) 
+                return ServiceResult.Fail($"Không có người dùng nào thuộc quyền {role}.");
 
-            var thongBaos = targetUsers.Select(user => new ThongBao
+            var thongBaos = targetUsers.Select(userId => new ThongBao
             {
-                NguoiDungId = user.NguoiDungId,
+                NguoiDungId = userId,
                 TieuDe = tieuDe,
                 NoiDung = noiDung,
                 LinhVuc = linhVuc,
@@ -88,7 +99,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.ThongBaos
             }).ToList();
 
             _context.ThongBaos.AddRange(thongBaos);
-            var saved = await _context.SaveChangesAsync() > 0;
+            var saved = await _context.SaveChangesAsync(cancellationToken) > 0;
 
             if (saved)
             {
@@ -99,68 +110,86 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.ThongBaos
                     linhVuc = linhVuc,
                     linkDieuHuong = linkDieuHuong,
                     createdAt = DateTime.UtcNow.AddHours(7).ToString("dd/MM/yyyy HH:mm")
-                });
+                }, cancellationToken);
+                
+                return ServiceResult.Ok("Đã gửi thông báo cho nhóm quyền thành công!");
             }
 
-            return saved;
+            return ServiceResult.Fail("Lỗi khi lưu thông báo nhóm vào hệ thống.");
         }
 
-        public async Task<bool> DanhDauDaDocAsync(int thongBaoId)
+        public async Task<ServiceResult> DanhDauDaDocAsync(int thongBaoId, CancellationToken cancellationToken = default)
         {
-            var tb = await _context.ThongBaos.FindAsync(thongBaoId);
-            if (tb == null || tb.IsRead) return false;
+            var tb = await _context.ThongBaos.FirstOrDefaultAsync(x => x.Id == thongBaoId, cancellationToken);
+            if (tb == null) return ServiceResult.Fail("Không tìm thấy thông báo.");
+            if (tb.IsRead) return ServiceResult.Ok("Thông báo đã được đọc.");
 
             tb.IsRead = true;
-            return await _context.SaveChangesAsync() > 0;
+            await _context.SaveChangesAsync(cancellationToken);
+            
+            return ServiceResult.Ok("Đã đánh dấu đọc.");
         }
 
-        public async Task<int> LaySoLuongChuaDocAsync(int nguoiDungId)
+        public async Task<int> LaySoLuongChuaDocAsync(int nguoiDungId, CancellationToken cancellationToken = default)
         {
-            return await _context.ThongBaos.CountAsync(x => x.NguoiDungId == nguoiDungId && !x.IsRead);
+            return await _context.ThongBaos
+                .AsNoTracking()
+                .CountAsync(x => x.NguoiDungId == nguoiDungId && !x.IsRead, cancellationToken);
         }
 
-        public async Task<bool> DanhDauTatCaDaDocAsync(int nguoiDungId)
+        public async Task<ServiceResult> DanhDauTatCaDaDocAsync(int nguoiDungId, CancellationToken cancellationToken = default)
         {
             var unreadThongBaos = await _context.ThongBaos
                 .Where(x => x.NguoiDungId == nguoiDungId && !x.IsRead)
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
 
-            if (!unreadThongBaos.Any()) return false;
+            if (!unreadThongBaos.Any()) 
+                return ServiceResult.Ok("Không có thông báo chưa đọc.");
 
             foreach (var tb in unreadThongBaos)
             {
                 tb.IsRead = true;
             }
 
-            return await _context.SaveChangesAsync() > 0;
+            await _context.SaveChangesAsync(cancellationToken);
+            return ServiceResult.Ok("Đã đánh dấu đọc tất cả.");
         }
 
-        public async Task<bool> XoaThongBaoAsync(int thongBaoId, int nguoiDungId)
+        public async Task<ServiceResult> XoaThongBaoAsync(int thongBaoId, int nguoiDungId, CancellationToken cancellationToken = default)
         {
-            var tb = await _context.ThongBaos.FirstOrDefaultAsync(x => x.Id == thongBaoId && x.NguoiDungId == nguoiDungId);
-            if (tb == null) return false;
+            var tb = await _context.ThongBaos.FirstOrDefaultAsync(x => x.Id == thongBaoId && x.NguoiDungId == nguoiDungId, cancellationToken);
+            if (tb == null) return ServiceResult.Fail("Không tìm thấy thông báo hoặc bạn không có quyền xóa.");
 
             _context.ThongBaos.Remove(tb);
-            return await _context.SaveChangesAsync() > 0;
+            await _context.SaveChangesAsync(cancellationToken);
+            
+            return ServiceResult.Ok("Đã xóa thông báo.");
         }
 
-        public async Task<bool> XoaTatCaThongBaoAsync(int nguoiDungId)
+        public async Task<ServiceResult> XoaTatCaThongBaoAsync(int nguoiDungId, CancellationToken cancellationToken = default)
         {
             var thongBaos = await _context.ThongBaos
                 .Where(x => x.NguoiDungId == nguoiDungId)
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
 
-            if (!thongBaos.Any()) return false;
+            if (!thongBaos.Any()) 
+                return ServiceResult.Ok("Không có thông báo nào để xóa.");
 
             _context.ThongBaos.RemoveRange(thongBaos);
-            return await _context.SaveChangesAsync() > 0;
+            await _context.SaveChangesAsync(cancellationToken);
+            
+            return ServiceResult.Ok("Đã xóa tất cả thông báo.");
         }
 
-        public async Task<QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Requests.DataTableResponse<ThongBao>> LayDanhSachPhanTrangAsync(QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Requests.DataTableRequest request, int nguoiDungId, bool? chuaDoc)
+        public async Task<QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Requests.DataTableResponse<ThongBao>> LayDanhSachPhanTrangAsync(QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Requests.DataTableRequest request, int nguoiDungId, bool? chuaDoc, CancellationToken cancellationToken = default)
         {
-            int recordsTotal = await _context.ThongBaos.CountAsync(x => x.NguoiDungId == nguoiDungId);
+            int recordsTotal = await _context.ThongBaos
+                .AsNoTracking()
+                .CountAsync(x => x.NguoiDungId == nguoiDungId, cancellationToken);
             
-            var query = _context.ThongBaos.Where(x => x.NguoiDungId == nguoiDungId);
+            var query = _context.ThongBaos
+                .AsNoTracking()
+                .Where(x => x.NguoiDungId == nguoiDungId);
 
             if (chuaDoc.HasValue)
             {
@@ -173,13 +202,13 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.ThongBaos
                                       || x.NoiDung.ToLower().Contains(request.SearchValue.ToLower()));
             }
 
-            int recordsFiltered = await query.CountAsync();
+            int recordsFiltered = await query.CountAsync(cancellationToken);
 
             var data = await query
                 .OrderByDescending(x => x.CreatedAt)
                 .Skip(request.Start)
                 .Take(request.Length)
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
 
             return new QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Requests.DataTableResponse<ThongBao>
             {

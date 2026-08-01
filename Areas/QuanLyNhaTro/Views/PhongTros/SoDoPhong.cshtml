@@ -2,7 +2,315 @@
     ViewData["Title"] = "Sơ Đồ Phòng Trọ";
 }
 
-<style>
+<div class="page-header d-print-none">
+    <div class="container-xl">
+        <div class="row g-2 align-items-center">
+            <div class="col">
+                <h2 class="page-title text-primary font-weight-bold d-flex align-items-center m-0">
+                    <i class="ti ti-layout-dashboard me-2"></i> Sơ Đồ Phòng Trọ
+                </h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content mt-3">
+    <div class="container-fluid">
+        <!-- Thống kê tóm tắt -->
+        <div class="row row-cards mb-3" id="statsRow">
+            <div class="col-sm-6 col-lg-3">
+                <div class="card card-sm shadow-sm border-0" style="border-left: 4px solid var(--tblr-success) !important;">
+                    <div class="card-body py-3">
+                        <div class="row align-items-center">
+                            <div class="col-auto">
+                                <span class="bg-success-lt text-success avatar rounded"><i class="ti ti-door-enter"></i></span>
+                            </div>
+                            <div class="col text-end">
+                                <div class="text-secondary small fw-medium">Phòng trống</div>
+                                <div class="h3 mb-0 fw-bold" id="statTrong">0</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <div class="card card-sm shadow-sm border-0" style="border-left: 4px solid var(--tblr-primary) !important;">
+                    <div class="card-body py-3">
+                        <div class="row align-items-center">
+                            <div class="col-auto">
+                                <span class="bg-primary-lt text-primary avatar rounded"><i class="ti ti-user-check"></i></span>
+                            </div>
+                            <div class="col text-end">
+                                <div class="text-secondary small fw-medium">Đã thuê</div>
+                                <div class="h3 mb-0 fw-bold" id="statDaThue">0</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <div class="card card-sm shadow-sm border-0" style="border-left: 4px solid var(--tblr-danger) !important;">
+                    <div class="card-body py-3">
+                        <div class="row align-items-center">
+                            <div class="col-auto">
+                                <span class="bg-danger-lt text-danger avatar rounded"><i class="ti ti-alert-triangle"></i></span>
+                            </div>
+                            <div class="col text-end">
+                                <div class="text-secondary small fw-medium">Đang nợ tiền</div>
+                                <div class="h3 mb-0 fw-bold" id="statNoTien">0</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <div class="card card-sm shadow-sm border-0" style="border-left: 4px solid var(--tblr-warning) !important;">
+                    <div class="card-body py-3">
+                        <div class="row align-items-center">
+                            <div class="col-auto">
+                                <span class="bg-warning-lt text-warning avatar rounded"><i class="ti ti-hourglass"></i></span>
+                            </div>
+                            <div class="col text-end">
+                                <div class="text-secondary small fw-medium">Sắp hết hạn</div>
+                                <div class="h3 mb-0 fw-bold" id="statSapHetHan">0</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card bộ lọc -->
+        <div class="card card-default mb-3">
+            <div class="card-body py-3">
+                <div class="d-flex flex-wrap align-items-center">
+                    <div class="mr-3 mb-2" style="min-width:200px;">
+                        <select id="filterChiNhanh" class="form-control form-control-sm">
+                            <option value="0">-- Tất cả Chi nhánh --</option>
+                            @if (ViewBag.ChiNhanhs != null)
+                            {
+                                foreach (var cn in ViewBag.ChiNhanhs)
+                                {
+                                    <option value="@cn.Value">@cn.Text</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">
+                        <button class="btn btn-outline-primary filter-btn active" data-filter="all"><i class="ti ti-layout-grid me-2"></i> Tất cả</button>
+                        <button class="btn btn-outline-success filter-btn" data-filter="trong"><i class="ti ti-door-enter me-2"></i> Trống</button>
+                        <button class="btn btn-outline-primary filter-btn" data-filter="dathue"><i class="ti ti-user-check me-2"></i> Đã thuê</button>
+                        <button class="btn btn-outline-warning filter-btn" data-filter="baotri"><i class="ti ti-tools me-2"></i> Bảo trì</button>
+                        <button class="btn btn-outline-danger filter-btn" data-filter="notien"><i class="ti ti-alert-circle me-2"></i> Nợ tiền</button>
+                        <button class="btn btn-outline-warning filter-btn" data-filter="saphethan"><i class="ti ti-hourglass me-2"></i> Sắp hết hạn</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Grid sơ đồ phòng -->
+        <div id="roomGrid" class="room-grid">
+            <!-- JS sẽ render cards ở đây -->
+        </div>
+
+        <div id="emptyState" class="text-center py-5" style="display:none;">
+            <i class="ti ti-building fa-3x text-muted mb-3"></i>
+            <p class="text-muted">Không có phòng nào phù hợp với bộ lọc.</p>
+        </div>
+    </div>
+</section>
+
+<!-- Modal chi tiết phòng -->
+<div class="modal modal-blur fade" id="roomDetailModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-status" id="roomDetailStatus"></div>
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="ti ti-door-enter me-2 text-muted"></i> <span id="detailRoomName"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="roomDetailBody"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i> Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let allRooms = [];
+        let currentFilter = 'all';
+
+        function formatVND(n) {
+            return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n || 0);
+        }
+
+        function loadData() {
+            let chiNhanhId = $('#filterChiNhanh').val();
+            $.get(`/PhongTros/GetSoDoPhong?chiNhanhId=${chiNhanhId}`, function(data) {
+                allRooms = data;
+                updateStats();
+                renderGrid();
+            });
+        }
+
+        function updateStats() {
+            let trong = allRooms.filter(r => r.trangThai === 0).length;
+            let daThue = allRooms.filter(r => r.trangThai === 1).length;
+            let noTien = allRooms.filter(r => r.coNoTien).length;
+            let sapHetHan = allRooms.filter(r => r.sapHetHan).length;
+            $('#statTrong').text(trong);
+            $('#statDaThue').text(daThue);
+            $('#statNoTien').text(noTien);
+            $('#statSapHetHan').text(sapHetHan);
+        }
+
+        function renderGrid() {
+            let filtered = allRooms;
+
+            if (currentFilter === 'trong') filtered = allRooms.filter(r => r.trangThai === 0);
+            else if (currentFilter === 'dathue') filtered = allRooms.filter(r => r.trangThai === 1);
+            else if (currentFilter === 'baotri') filtered = allRooms.filter(r => r.trangThai === 2);
+            else if (currentFilter === 'notien') filtered = allRooms.filter(r => r.coNoTien);
+            else if (currentFilter === 'saphethan') filtered = allRooms.filter(r => r.sapHetHan);
+
+            if (filtered.length === 0) {
+                $('#roomGrid').html('');
+                $('#emptyState').show();
+                return;
+            }
+            $('#emptyState').hide();
+
+            let html = '';
+            filtered.forEach(r => {
+                let cssClass = r.trangThai === 0 ? 'room-trong' : r.trangThai === 1 ? 'room-dathue' : 'room-baotri';
+
+                let badges = '';
+                if (r.coNoTien) {
+                    badges += `<div class="room-badge badge-debt" title="Nợ ${formatVND(r.soTienNo)}"><i class="ti ti-exclamation"></i></div>`;
+                }
+                if (r.sapHetHan) {
+                    badges += `<div class="room-badge badge-expiring" title="Còn ${r.soNgayConLai} ngày"><i class="ti ti-hourglass"></i></div>`;
+                }
+
+                let tenant = r.tenNguoiThue ? `<div class="room-tenant"><i class="ti ti-user"></i> ${r.tenNguoiThue}</div>` : '';
+                let meta = '';
+                if (r.trangThai === 1 && r.soNgayConLai !== null) {
+                    meta = `<div class="room-meta"><i class="ti ti-calendar"></i> Còn ${r.soNgayConLai} ngày</div>`;
+                }
+                if (r.coNoTien) {
+                    meta += `<div class="room-meta text-danger"><i class="ti ti-alert-circle"></i> Nợ: ${formatVND(r.soTienNo)}</div>`;
+                }
+
+                html += `
+                    <div class="room-card ${cssClass}" data-id="${r.phongTroId}" onclick="showDetail(${r.phongTroId})">
+                        <div class="room-badges">${badges}</div>
+                        <div class="room-number">${r.soPhong}</div>
+                        <div class="room-price">${formatVND(r.giaThue)}/tháng</div>
+                        ${tenant}
+                        <div class="room-meta"><i class="ti ti-ruler"></i> ${r.dienTich} m² · Tầng ${r.tangLau}</div>
+                        ${meta}
+                    </div>
+                `;
+            });
+
+            $('#roomGrid').html(html);
+        }
+
+        function showDetail(id) {
+            let r = allRooms.find(x => x.phongTroId === id);
+            if (!r) return;
+
+            let statusClasses = { 0: 'bg-success', 1: 'bg-danger', 2: 'bg-warning' };
+            let headerClass = statusClasses[r.trangThai] || 'bg-primary';
+
+            $('#roomDetailStatus').removeClass('bg-success bg-danger bg-warning bg-primary').addClass(headerClass);
+            $('#detailRoomName').text(`Phòng ${r.soPhong} - ${r.trangThaiText}`);
+
+            let html = `
+                <div class="datagrid">
+                    <div class="datagrid-item">
+                        <div class="datagrid-title">Chi nhánh</div>
+                        <div class="datagrid-content">${r.tenChiNhanh}</div>
+                    </div>
+                    <div class="datagrid-item">
+                        <div class="datagrid-title">Giá thuê</div>
+                        <div class="datagrid-content text-danger fw-bold fs-3">${formatVND(r.giaThue)}/tháng</div>
+                    </div>
+                    <div class="datagrid-item">
+                        <div class="datagrid-title">Diện tích</div>
+                        <div class="datagrid-content">${r.dienTich} m²</div>
+                    </div>
+                    <div class="datagrid-item">
+                        <div class="datagrid-title">Tầng</div>
+                        <div class="datagrid-content">${r.tangLau}</div>
+                    </div>
+                    <div class="datagrid-item">
+                        <div class="datagrid-title">Số người tối đa</div>
+                        <div class="datagrid-content">${r.soNguoiToiDa}</div>
+                    </div>
+                </div>
+            `;
+
+            if (r.trangThai === 1 && r.tenNguoiThue) {
+                html += `
+                    <hr class="my-3">
+                    <h3 class="card-title mb-3"><i class="ti ti-user text-muted me-2"></i>Thông tin người thuê</h3>
+                    <div class="datagrid">
+                        <div class="datagrid-item">
+                            <div class="datagrid-title">Họ tên</div>
+                            <div class="datagrid-content fw-bold">${r.tenNguoiThue}</div>
+                        </div>
+                        <div class="datagrid-item">
+                            <div class="datagrid-title">SĐT</div>
+                            <div class="datagrid-content">${r.sdtNguoiThue || 'N/A'}</div>
+                        </div>
+                `;
+                if (r.ngayHetHan) {
+                    let ngay = new Date(r.ngayHetHan).toLocaleDateString('vi-VN');
+                    html += `
+                        <div class="datagrid-item">
+                            <div class="datagrid-title">Hết hạn HĐ</div>
+                            <div class="datagrid-content">${ngay}</div>
+                        </div>
+                    `;
+                }
+                html += `</div>`; // Close datagrid
+
+                if (r.sapHetHan) {
+                    html += `<div class="alert alert-warning mt-3 mb-0"><i class="ti ti-hourglass me-2"></i> <strong>Cảnh báo:</strong> Hợp đồng sắp hết hạn (còn ${r.soNgayConLai} ngày)!</div>`;
+                }
+                if (r.coNoTien) {
+                    html += `<div class="alert alert-danger mt-3 mb-0"><i class="ti ti-alert-triangle me-2"></i> <strong>Nợ tiền:</strong> Phòng này đang nợ <strong>${formatVND(r.soTienNo)}</strong>!</div>`;
+                }
+            } else if (r.trangThai === 0) {
+                html += `<div class="alert alert-success mt-3 mb-0"><i class="ti ti-circle-check me-2"></i> Phòng đang trống, sẵn sàng cho thuê.</div>`;
+            } else if (r.trangThai === 2) {
+                html += `<div class="alert alert-warning mt-3 mb-0"><i class="ti ti-tools me-2"></i> Phòng đang bảo trì.</div>`;
+            }
+
+            $('#roomDetailBody').html(html);
+            $('#roomDetailModal').modal('show');
+        }
+
+        $(document).ready(function() {
+            loadData();
+
+            $('#filterChiNhanh').change(function() { loadData(); });
+
+            $('.filter-btn').click(function() {
+                $('.filter-btn').removeClass('active');
+                $(this).addClass('active');
+                currentFilter = $(this).data('filter');
+                renderGrid();
+            });
+        });
+    </script>
+}
+
+@section Styles {
+    <style>
     .room-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -127,298 +435,4 @@
 
 
 </style>
-
-<section class="content mt-3">
-    <div class="container-fluid">
-        <!-- Thống kê tóm tắt -->
-        <div class="row row-cards mb-3" id="statsRow">
-            <div class="col-sm-6 col-lg-3">
-                <div class="card card-sm shadow-sm border-0" style="border-left: 4px solid var(--tblr-success) !important;">
-                    <div class="card-body py-3">
-                        <div class="row align-items-center">
-                            <div class="col-auto">
-                                <span class="bg-success-lt text-success avatar rounded"><i class="fas fa-door-open"></i></span>
-                            </div>
-                            <div class="col text-end">
-                                <div class="text-secondary small fw-medium">Phòng trống</div>
-                                <div class="h3 mb-0 fw-bold" id="statTrong">0</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-sm-6 col-lg-3">
-                <div class="card card-sm shadow-sm border-0" style="border-left: 4px solid var(--tblr-primary) !important;">
-                    <div class="card-body py-3">
-                        <div class="row align-items-center">
-                            <div class="col-auto">
-                                <span class="bg-primary-lt text-primary avatar rounded"><i class="fas fa-user-check"></i></span>
-                            </div>
-                            <div class="col text-end">
-                                <div class="text-secondary small fw-medium">Đã thuê</div>
-                                <div class="h3 mb-0 fw-bold" id="statDaThue">0</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-sm-6 col-lg-3">
-                <div class="card card-sm shadow-sm border-0" style="border-left: 4px solid var(--tblr-danger) !important;">
-                    <div class="card-body py-3">
-                        <div class="row align-items-center">
-                            <div class="col-auto">
-                                <span class="bg-danger-lt text-danger avatar rounded"><i class="fas fa-exclamation-triangle"></i></span>
-                            </div>
-                            <div class="col text-end">
-                                <div class="text-secondary small fw-medium">Đang nợ tiền</div>
-                                <div class="h3 mb-0 fw-bold" id="statNoTien">0</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-sm-6 col-lg-3">
-                <div class="card card-sm shadow-sm border-0" style="border-left: 4px solid var(--tblr-warning) !important;">
-                    <div class="card-body py-3">
-                        <div class="row align-items-center">
-                            <div class="col-auto">
-                                <span class="bg-warning-lt text-warning avatar rounded"><i class="fas fa-hourglass-half"></i></span>
-                            </div>
-                            <div class="col text-end">
-                                <div class="text-secondary small fw-medium">Sắp hết hạn</div>
-                                <div class="h3 mb-0 fw-bold" id="statSapHetHan">0</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Card bộ lọc -->
-        <div class="card card-default mb-3">
-            <div class="card-body py-3">
-                <div class="d-flex flex-wrap align-items-center">
-                    <div class="mr-3 mb-2" style="min-width:200px;">
-                        <select id="filterChiNhanh" class="form-control form-control-sm">
-                            <option value="0">-- Tất cả Chi nhánh --</option>
-                            @if (ViewBag.ChiNhanhs != null)
-                            {
-                                foreach (var cn in ViewBag.ChiNhanhs)
-                                {
-                                    <option value="@cn.Value">@cn.Text</option>
-                                }
-                            }
-                        </select>
-                    </div>
-                    <div class="d-flex flex-wrap gap-2">
-                        <button class="btn btn-outline-primary filter-btn active" data-filter="all"><i class="fas fa-th me-2"></i> Tất cả</button>
-                        <button class="btn btn-outline-success filter-btn" data-filter="trong"><i class="fas fa-door-open me-2"></i> Trống</button>
-                        <button class="btn btn-outline-primary filter-btn" data-filter="dathue"><i class="fas fa-user-check me-2"></i> Đã thuê</button>
-                        <button class="btn btn-outline-warning filter-btn" data-filter="baotri"><i class="fas fa-tools me-2"></i> Bảo trì</button>
-                        <button class="btn btn-outline-danger filter-btn" data-filter="notien"><i class="fas fa-exclamation-circle me-2"></i> Nợ tiền</button>
-                        <button class="btn btn-outline-warning filter-btn" data-filter="saphethan"><i class="fas fa-hourglass-half me-2"></i> Sắp hết hạn</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Grid sơ đồ phòng -->
-        <div id="roomGrid" class="room-grid">
-            <!-- JS sẽ render cards ở đây -->
-        </div>
-
-        <div id="emptyState" class="text-center py-5" style="display:none;">
-            <i class="fas fa-building fa-3x text-muted mb-3"></i>
-            <p class="text-muted">Không có phòng nào phù hợp với bộ lọc.</p>
-        </div>
-    </div>
-</section>
-
-<!-- Modal chi tiết phòng -->
-<div class="modal modal-blur fade" id="roomDetailModal" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" role="document">
-        <div class="modal-content">
-            <div class="modal-status" id="roomDetailStatus"></div>
-            <div class="modal-header">
-                <h5 class="modal-title"><i class="fas fa-door-open me-2 text-muted"></i> <span id="detailRoomName"></span></h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body" id="roomDetailBody"></div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Đóng</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-@section Scripts {
-    <script>
-        let allRooms = [];
-        let currentFilter = 'all';
-
-        function formatVND(n) {
-            return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n || 0);
-        }
-
-        function loadData() {
-            let chiNhanhId = $('#filterChiNhanh').val();
-            $.get(`/PhongTros/GetSoDoPhong?chiNhanhId=${chiNhanhId}`, function(data) {
-                allRooms = data;
-                updateStats();
-                renderGrid();
-            });
-        }
-
-        function updateStats() {
-            let trong = allRooms.filter(r => r.trangThai === 0).length;
-            let daThue = allRooms.filter(r => r.trangThai === 1).length;
-            let noTien = allRooms.filter(r => r.coNoTien).length;
-            let sapHetHan = allRooms.filter(r => r.sapHetHan).length;
-            $('#statTrong').text(trong);
-            $('#statDaThue').text(daThue);
-            $('#statNoTien').text(noTien);
-            $('#statSapHetHan').text(sapHetHan);
-        }
-
-        function renderGrid() {
-            let filtered = allRooms;
-
-            if (currentFilter === 'trong') filtered = allRooms.filter(r => r.trangThai === 0);
-            else if (currentFilter === 'dathue') filtered = allRooms.filter(r => r.trangThai === 1);
-            else if (currentFilter === 'baotri') filtered = allRooms.filter(r => r.trangThai === 2);
-            else if (currentFilter === 'notien') filtered = allRooms.filter(r => r.coNoTien);
-            else if (currentFilter === 'saphethan') filtered = allRooms.filter(r => r.sapHetHan);
-
-            if (filtered.length === 0) {
-                $('#roomGrid').html('');
-                $('#emptyState').show();
-                return;
-            }
-            $('#emptyState').hide();
-
-            let html = '';
-            filtered.forEach(r => {
-                let cssClass = r.trangThai === 0 ? 'room-trong' : r.trangThai === 1 ? 'room-dathue' : 'room-baotri';
-
-                let badges = '';
-                if (r.coNoTien) {
-                    badges += `<div class="room-badge badge-debt" title="Nợ ${formatVND(r.soTienNo)}"><i class="fas fa-exclamation"></i></div>`;
-                }
-                if (r.sapHetHan) {
-                    badges += `<div class="room-badge badge-expiring" title="Còn ${r.soNgayConLai} ngày"><i class="fas fa-hourglass-half"></i></div>`;
-                }
-
-                let tenant = r.tenNguoiThue ? `<div class="room-tenant"><i class="fas fa-user"></i> ${r.tenNguoiThue}</div>` : '';
-                let meta = '';
-                if (r.trangThai === 1 && r.soNgayConLai !== null) {
-                    meta = `<div class="room-meta"><i class="fas fa-calendar-alt"></i> Còn ${r.soNgayConLai} ngày</div>`;
-                }
-                if (r.coNoTien) {
-                    meta += `<div class="room-meta text-danger"><i class="fas fa-exclamation-circle"></i> Nợ: ${formatVND(r.soTienNo)}</div>`;
-                }
-
-                html += `
-                    <div class="room-card ${cssClass}" data-id="${r.phongTroId}" onclick="showDetail(${r.phongTroId})">
-                        <div class="room-badges">${badges}</div>
-                        <div class="room-number">${r.soPhong}</div>
-                        <div class="room-price">${formatVND(r.giaThue)}/tháng</div>
-                        ${tenant}
-                        <div class="room-meta"><i class="fas fa-ruler-combined"></i> ${r.dienTich} m² · Tầng ${r.tangLau}</div>
-                        ${meta}
-                    </div>
-                `;
-            });
-
-            $('#roomGrid').html(html);
-        }
-
-        function showDetail(id) {
-            let r = allRooms.find(x => x.phongTroId === id);
-            if (!r) return;
-
-            let statusClasses = { 0: 'bg-success', 1: 'bg-danger', 2: 'bg-warning' };
-            let headerClass = statusClasses[r.trangThai] || 'bg-primary';
-
-            $('#roomDetailStatus').removeClass('bg-success bg-danger bg-warning bg-primary').addClass(headerClass);
-            $('#detailRoomName').text(`Phòng ${r.soPhong} - ${r.trangThaiText}`);
-
-            let html = `
-                <div class="datagrid">
-                    <div class="datagrid-item">
-                        <div class="datagrid-title">Chi nhánh</div>
-                        <div class="datagrid-content">${r.tenChiNhanh}</div>
-                    </div>
-                    <div class="datagrid-item">
-                        <div class="datagrid-title">Giá thuê</div>
-                        <div class="datagrid-content text-danger fw-bold fs-3">${formatVND(r.giaThue)}/tháng</div>
-                    </div>
-                    <div class="datagrid-item">
-                        <div class="datagrid-title">Diện tích</div>
-                        <div class="datagrid-content">${r.dienTich} m²</div>
-                    </div>
-                    <div class="datagrid-item">
-                        <div class="datagrid-title">Tầng</div>
-                        <div class="datagrid-content">${r.tangLau}</div>
-                    </div>
-                    <div class="datagrid-item">
-                        <div class="datagrid-title">Số người tối đa</div>
-                        <div class="datagrid-content">${r.soNguoiToiDa}</div>
-                    </div>
-                </div>
-            `;
-
-            if (r.trangThai === 1 && r.tenNguoiThue) {
-                html += `
-                    <hr class="my-3">
-                    <h3 class="card-title mb-3"><i class="fas fa-user text-muted me-2"></i>Thông tin người thuê</h3>
-                    <div class="datagrid">
-                        <div class="datagrid-item">
-                            <div class="datagrid-title">Họ tên</div>
-                            <div class="datagrid-content fw-bold">${r.tenNguoiThue}</div>
-                        </div>
-                        <div class="datagrid-item">
-                            <div class="datagrid-title">SĐT</div>
-                            <div class="datagrid-content">${r.sdtNguoiThue || 'N/A'}</div>
-                        </div>
-                `;
-                if (r.ngayHetHan) {
-                    let ngay = new Date(r.ngayHetHan).toLocaleDateString('vi-VN');
-                    html += `
-                        <div class="datagrid-item">
-                            <div class="datagrid-title">Hết hạn HĐ</div>
-                            <div class="datagrid-content">${ngay}</div>
-                        </div>
-                    `;
-                }
-                html += `</div>`; // Close datagrid
-
-                if (r.sapHetHan) {
-                    html += `<div class="alert alert-warning mt-3 mb-0"><i class="fas fa-hourglass-half me-2"></i> <strong>Cảnh báo:</strong> Hợp đồng sắp hết hạn (còn ${r.soNgayConLai} ngày)!</div>`;
-                }
-                if (r.coNoTien) {
-                    html += `<div class="alert alert-danger mt-3 mb-0"><i class="fas fa-exclamation-triangle me-2"></i> <strong>Nợ tiền:</strong> Phòng này đang nợ <strong>${formatVND(r.soTienNo)}</strong>!</div>`;
-                }
-            } else if (r.trangThai === 0) {
-                html += `<div class="alert alert-success mt-3 mb-0"><i class="fas fa-check-circle me-2"></i> Phòng đang trống, sẵn sàng cho thuê.</div>`;
-            } else if (r.trangThai === 2) {
-                html += `<div class="alert alert-warning mt-3 mb-0"><i class="fas fa-tools me-2"></i> Phòng đang bảo trì.</div>`;
-            }
-
-            $('#roomDetailBody').html(html);
-            $('#roomDetailModal').modal('show');
-        }
-
-        $(document).ready(function() {
-            loadData();
-
-            $('#filterChiNhanh').change(function() { loadData(); });
-
-            $('.filter-btn').click(function() {
-                $('.filter-btn').removeClass('active');
-                $(this).addClass('active');
-                currentFilter = $(this).data('filter');
-                renderGrid();
-            });
-        });
-    </script>
 }

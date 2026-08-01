@@ -8,149 +8,14 @@
 <head>
     <meta charset="utf-8">
     <title>In Hợp Đồng - @Model.MaHopDong</title>
-    <style>
-        /* CSS reset & base */
-        body {
-            font-family: 'Times New Roman', Times, serif;
-            font-size: 14pt;
-            line-height: 1.5;
-            color: #000;
-            background: #fff;
-            margin: 0;
-            padding: 0;
-        }
-
-        /* Khổ giấy A4, margin chuẩn */
-        .a4-container {
-            width: 210mm;
-            min-height: 297mm;
-            margin: 0 auto;
-            padding: 20mm;
-            box-sizing: border-box;
-            background: #fff;
-        }
-
-        /* Định dạng các thẻ cơ bản */
-        h1, h2, h3, h4, p {
-            margin: 0;
-            padding: 0;
-        }
-        
-        .text-center { text-align: center; }
-        .text-right { text-align: right; }
-        .font-weight-bold { font-weight: bold; }
-        .mb-1 { margin-bottom: 5px; }
-        .mb-2 { margin-bottom: 10px; }
-        .mb-3 { margin-bottom: 15px; }
-        .mt-2 { margin-top: 10px; }
-        .mt-3 { margin-top: 15px; }
-        .mt-4 { margin-top: 20px; }
-        .mt-5 { margin-top: 40px; }
-
-        .title-quoc-hieu {
-            font-size: 14pt;
-            font-weight: bold;
-        }
-        .title-doc-lap {
-            font-size: 14pt;
-            font-weight: bold;
-            text-decoration: underline;
-        }
-        
-        .hop-dong-title {
-            font-size: 18pt;
-            font-weight: bold;
-            margin: 20px 0 10px 0;
-        }
-
-        .section-title {
-            font-size: 14pt;
-            font-weight: bold;
-            text-decoration: underline;
-            margin-top: 15px;
-            margin-bottom: 5px;
-        }
-
-        .indent-1 { padding-left: 20px; }
-        .indent-2 { padding-left: 40px; }
-
-        table.table-dichvu {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-            margin-bottom: 15px;
-        }
-        table.table-dichvu th, table.table-dichvu td {
-            border: 1px solid #000;
-            padding: 5px;
-            text-align: left;
-        }
-
-        /* Grid chữ ký */
-        .signature-grid {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 30px;
-        }
-        .signature-box {
-            text-align: center;
-            width: 45%;
-        }
-
-        /* Khi in thì ẩn nút in, căn lề giấy A4 thực tế */
-        @@media print {
-            body {
-                background: none;
-            }
-            .a4-container {
-                margin: 0;
-                padding: 0;
-                box-shadow: none;
-                width: 100%;
-            }
-            .d-print-none {
-                display: none !important;
-            }
-            @@page {
-                size: A4;
-                margin: 20mm;
-            }
-        }
-        
-        /* Hiển thị như một tờ giấy thật trên trình duyệt (trước khi in) */
-        @@media screen {
-            body { background: #e0e0e0; padding: 20px; }
-            .a4-container {
-                box-shadow: 0 0 10px rgba(0,0,0,0.5);
-                margin-bottom: 20px;
-            }
-        }
-        
-        .print-btn-container {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        .btn-print {
-            padding: 10px 20px;
-            font-size: 16px;
-            background-color: #007bff;
-            color: #fff;
-            border: none;
-            cursor: pointer;
-            border-radius: 5px;
-            font-weight: bold;
-        }
-        .btn-print:hover {
-            background-color: #0056b3;
-        }
-    </style>
+    <link rel="stylesheet" href="~/Theme/tabler/dist/css/tabler-icons.min.css">
 </head>
 <body>
 
     <div class="print-btn-container d-print-none">
-        <button class="btn-print" onclick="window.print()"><i class="fas fa-print"></i> 🖨️ In Hợp Đồng / Lưu PDF</button>
+        <button class="btn-print" onclick="window.print()"><i class="ti ti-print"></i> 🖨️ In Hợp Đồng / Lưu PDF</button>
         <a href="/HopDong/DownloadWord/@Model.HopDongId" class="btn-print" style="background-color: #28a745; text-decoration: none; display: inline-block; margin-left: 10px;">
-            <i class="fas fa-file-word"></i> 📝 Tải Word (.docx)
+            <i class="ti ti-file-word"></i> 📝 Tải Word (.docx)
         </a>
         <button class="btn-print" style="background-color: #6c757d; margin-left: 10px;" onclick="window.close()">Đóng</button>
     </div>
@@ -299,3 +164,140 @@
 
 </body>
 </html>
+
+    <style>
+        /* CSS reset & base */
+        body {
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 14pt;
+            line-height: 1.5;
+            color: #000;
+            background: #fff;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Khổ giấy A4, margin chuẩn */
+        .a4-container {
+            width: 210mm;
+            min-height: 297mm;
+            margin: 0 auto;
+            padding: 20mm;
+            box-sizing: border-box;
+            background: #fff;
+        }
+
+        /* Định dạng các thẻ cơ bản */
+        h1, h2, h3, h4, p {
+            margin: 0;
+            padding: 0;
+        }
+        
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .font-weight-bold { font-weight: bold; }
+        .mb-1 { margin-bottom: 5px; }
+        .mb-2 { margin-bottom: 10px; }
+        .mb-3 { margin-bottom: 15px; }
+        .mt-2 { margin-top: 10px; }
+        .mt-3 { margin-top: 15px; }
+        .mt-4 { margin-top: 20px; }
+        .mt-5 { margin-top: 40px; }
+
+        .title-quoc-hieu {
+            font-size: 14pt;
+            font-weight: bold;
+        }
+        .title-doc-lap {
+            font-size: 14pt;
+            font-weight: bold;
+            text-decoration: underline;
+        }
+        
+        .hop-dong-title {
+            font-size: 18pt;
+            font-weight: bold;
+            margin: 20px 0 10px 0;
+        }
+
+        .section-title {
+            font-size: 14pt;
+            font-weight: bold;
+            text-decoration: underline;
+            margin-top: 15px;
+            margin-bottom: 5px;
+        }
+
+        .indent-1 { padding-left: 20px; }
+        .indent-2 { padding-left: 40px; }
+
+        table.table-dichvu {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            margin-bottom: 15px;
+        }
+        table.table-dichvu th, table.table-dichvu td {
+            border: 1px solid #000;
+            padding: 5px;
+            text-align: left;
+        }
+
+        /* Grid chữ ký */
+        .signature-grid {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+        }
+        .signature-box {
+            text-align: center;
+            width: 45%;
+        }
+
+        /* Khi in thì ẩn nút in, căn lề giấy A4 thực tế */
+        @@media print {
+            body {
+                background: none;
+            }
+            .a4-container {
+                margin: 0;
+                padding: 0;
+                box-shadow: none;
+                width: 100%;
+            }
+            .d-print-none {
+                display: none !important;
+            }
+            @@page {
+                size: A4;
+                margin: 20mm;
+            }
+        }
+        
+        /* Hiển thị như một tờ giấy thật trên trình duyệt (trước khi in) */
+        @@media screen {
+            body { background: #e0e0e0; padding: 20px; }
+            .a4-container {
+                box-shadow: 0 0 10px rgba(0,0,0,0.5);
+                margin-bottom: 20px;
+            }
+        }
+        
+        .print-btn-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .btn-print {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .btn-print:hover {
+            background-color: #0056b3;
+        }
+    </style>

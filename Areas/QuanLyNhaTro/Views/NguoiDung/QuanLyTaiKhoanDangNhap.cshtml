@@ -3,50 +3,20 @@
     ViewData["Title"] = "Quản lý Tài Khoản Đăng Nhập";
 }
 
-<style>
-    /* CSS hỗ trợ Select2 tương thích với Dark Mode của Tabler */
-    .select2-container--default .select2-selection--single {
-        background-color: var(--tblr-bg-surface);
-        border-color: var(--tblr-border-color);
-        color: var(--tblr-color);
-        height: 38px;
-        padding-top: 4px;
-    }
-    .select2-container--default .select2-selection--single .select2-selection__rendered {
-        color: var(--tblr-color);
-    }
-    .select2-dropdown {
-        background-color: var(--tblr-bg-surface);
-        border-color: var(--tblr-border-color);
-        color: var(--tblr-color);
-    }
-    .select2-search--dropdown .select2-search__field {
-        background-color: var(--tblr-bg-surface);
-        border-color: var(--tblr-border-color);
-        color: var(--tblr-color);
-    }
-    .select2-container--default .select2-results__option--highlighted[aria-selected] {
-        background-color: var(--tblr-primary);
-        color: #ffffff;
-    }
-    .select2-container--default .select2-results__option[aria-selected=true] {
-        background-color: var(--tblr-bg-surface-secondary);
-        color: var(--tblr-color);
-    }
-</style>
+
 
 <div class="page-header d-print-none">
     <div class="container-xl">
         <div class="row g-2 align-items-center">
             <div class="col">
                 <h2 class="page-title text-primary font-weight-bold d-flex align-items-center">
-                    <i class="fas fa-users-cog me-2"></i> Danh sách Tài Khoản Đăng Nhập
+                    <i class="ti ti-user-cog me-2"></i> Quản lý Tài Khoản Đăng Nhập
                 </h2>
             </div>
             <div class="col-auto ms-auto d-print-none">
                 <div class="btn-list">
                     <button type="button" class="btn btn-success font-weight-bold shadow-sm d-none d-sm-inline-block" id="btnOpenAddModal">
-                        <i class="fas fa-plus-circle me-1"></i> Thêm Tài Khoản
+                        <i class="ti ti-circle-plus me-1"></i> Thêm Tài Khoản
                     </button>
                 </div>
             </div>
@@ -123,9 +93,9 @@
             </div>
 
             <div class="modal-footer">
-                <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i> Đóng</button>
+                <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i> Đóng</button>
                 <button type="button" class="btn btn-primary font-weight-bold shadow-sm" id="btnSaveData">
-                    <i class="fas fa-plus me-1"></i> Thêm dữ liệu
+                    <i class="ti ti-plus me-1"></i> Thêm dữ liệu
                 </button>
             </div>
         </div>
@@ -237,8 +207,8 @@
                         "className": "text-center align-middle",
                         "render": function(data) {
                             return data
-                                ? `<span class="badge bg-success-lt text-success"><i class="fas fa-check-circle me-1"></i> Hoạt động</span>`
-                                : `<span class="badge bg-secondary-lt text-secondary"><i class="fas fa-ban me-1"></i> Khóa</span>`;
+                                ? `<span class="badge bg-success-lt text-success"><i class="ti ti-circle-check me-1"></i> Hoạt động</span>`
+                                : `<span class="badge bg-secondary-lt text-secondary"><i class="ti ti-ban me-1"></i> Khóa</span>`;
                         }
                     },
                     {
@@ -258,7 +228,7 @@
                             if (row.role === 2) {
                                 resetBtn = `
                                     <button class="btn btn-icon btn-ghost-info btn-sm btn-reset" data-id="${data}" title="Đặt lại mật khẩu">
-                                        <i class="fas fa-key"></i>
+                                        <i class="ti ti-key"></i>
                                     </button>
                                 `;
                             }
@@ -266,10 +236,10 @@
                                 <div class="btn-list flex-nowrap justify-content-center">
                                     ${resetBtn}
                                     <button class="btn btn-icon btn-ghost-warning btn-sm btn-edit" data-id="${data}" title="Sửa">
-                                        <i class="fas fa-edit"></i>
+                                        <i class="ti ti-edit"></i>
                                     </button>
                                     <button class="btn btn-icon btn-ghost-danger btn-sm btn-delete" data-id="${data}" title="Xóa">
-                                        <i class="fas fa-trash-alt"></i>
+                                        <i class="ti ti-trash"></i>
                                     </button>
                                 </div>
                             `;
@@ -329,7 +299,7 @@
                 }).then((result) => {
                     if (result.isConfirmed) {
                         let $btn = $(this);
-                        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang xử lý...');
+                        $btn.prop('disabled', true).html('<i class="ti ti-spinner fa-spin"></i> Đang xử lý...');
 
                         $.ajax({
                             url: apiUrl,
@@ -350,9 +320,9 @@
                             },
                             complete: function () {
                                 if (isUpdate) {
-                                    $btn.prop('disabled', false).html('<i class="fas fa-save"></i> Lưu dữ liệu');
+                                    $btn.prop('disabled', false).html('<i class="ti ti-device-floppy me-1"></i> Lưu dữ liệu');
                                 } else {
-                                    $btn.prop('disabled', false).html('<i class="fas fa-plus"></i> Thêm dữ liệu');
+                                    $btn.prop('disabled', false).html('<i class="ti ti-plus me-1"></i> Thêm dữ liệu');
                                 }
                             }
                         });
@@ -382,7 +352,7 @@
 
                             $('.class-edit-note').removeClass('d-none');
                             $('#modalTitle').text('Cập nhật Tài Khoản');
-                            $('#btnSaveData').removeClass('btn-primary').addClass('btn-success').addClass('font-weight-bold').addClass('shadow-sm').html('<i class="fas fa-save me-1"></i> Lưu dữ liệu');
+                            $('#btnSaveData').removeClass('btn-primary').addClass('btn-success').addClass('font-weight-bold').addClass('shadow-sm').html('<i class="ti ti-device-floppy me-1"></i> Lưu dữ liệu');
                             $('#nguoiDungModal').modal('show');
                         }
                     },
@@ -407,7 +377,7 @@
                 }).then((result) => {
                     if (result.isConfirmed) {
                         let originalHtml = $btn.html();
-                        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
+                        $btn.prop('disabled', true).html('<i class="ti ti-spinner fa-spin"></i>');
 
                         $.ajax({
                             url: '/QuanLyNhaTro/NguoiDung/DeleteApi/' + id,
@@ -439,7 +409,7 @@
                 $('#TenDangNhap').prop('disabled', false);
                 $('.class-edit-note').addClass('d-none');
                 $('#modalTitle').text('Thêm Tài Khoản Mới');
-                $('#btnSaveData').removeClass('btn-success').addClass('btn-primary').addClass('font-weight-bold').addClass('shadow-sm').html('<i class="fas fa-plus me-1"></i> Thêm dữ liệu');
+                $('#btnSaveData').removeClass('btn-success').addClass('btn-primary').addClass('font-weight-bold').addClass('shadow-sm').html('<i class="ti ti-plus me-1"></i> Thêm dữ liệu');
                 $('#nguoiDungModal').modal('show');
             });
 
@@ -458,7 +428,7 @@
                 }).then((result) => {
                     if (result.isConfirmed) {
                         let originalHtml = $btn.html();
-                        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
+                        $btn.prop('disabled', true).html('<i class="ti ti-spinner fa-spin"></i>');
 
                         $.ajax({
                             url: '/QuanLyNhaTro/NguoiDung/ResetPasswordToPhoneApi/' + id,
@@ -482,4 +452,37 @@
             });
         });
     </script>
+}
+@section Styles {
+    <style>
+    /* CSS hỗ trợ Select2 tương thích với Dark Mode của Tabler */
+    .select2-container--default .select2-selection--single {
+        background-color: var(--tblr-bg-surface);
+        border-color: var(--tblr-border-color);
+        color: var(--tblr-color);
+        height: 38px;
+        padding-top: 4px;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        color: var(--tblr-color);
+    }
+    .select2-dropdown {
+        background-color: var(--tblr-bg-surface);
+        border-color: var(--tblr-border-color);
+        color: var(--tblr-color);
+    }
+    .select2-search--dropdown .select2-search__field {
+        background-color: var(--tblr-bg-surface);
+        border-color: var(--tblr-border-color);
+        color: var(--tblr-color);
+    }
+    .select2-container--default .select2-results__option--highlighted[aria-selected] {
+        background-color: var(--tblr-primary);
+        color: #ffffff;
+    }
+    .select2-container--default .select2-results__option[aria-selected=true] {
+        background-color: var(--tblr-bg-surface-secondary);
+        color: var(--tblr-color);
+    }
+</style>
 }

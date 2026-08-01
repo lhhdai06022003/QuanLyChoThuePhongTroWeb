@@ -8,17 +8,17 @@
             <!-- Theme Toggles & Notification Bell -->
             <div class="d-none d-md-flex align-items-center me-3">
                 <a href="#" class="nav-link px-2" title="Bật chế độ tối" data-bs-toggle="tooltip" data-bs-placement="bottom" id="btnToggleDarkTheme" style="display: none;">
-                    <i class="fas fa-moon" style="font-size: 1.15rem;"></i>
+                    <i class="ti ti-moon" style="font-size: 1.15rem;"></i>
                 </a>
                 <a href="#" class="nav-link px-2" title="Bật chế độ sáng" data-bs-toggle="tooltip" data-bs-placement="bottom" id="btnToggleLightTheme" style="display: none;">
-                    <i class="fas fa-sun" style="font-size: 1.15rem; color: #f1c40f;"></i>
+                    <i class="ti ti-sun" style="font-size: 1.15rem; color: #f1c40f;"></i>
                 </a>
                 
                 @if (User.Identity != null && User.Identity.IsAuthenticated)
                 {
                     <div class="nav-item dropdown ms-2">
                         <a href="#" class="nav-link px-2" data-bs-toggle="dropdown" tabindex="-1" aria-label="Hiện thông báo" onclick="markAllAsReadUi()" style="position: relative;">
-                            <i class="fas fa-bell" style="font-size: 1.15rem;"></i>
+                            <i class="ti ti-bell" style="font-size: 1.15rem;"></i>
                             <span id="badge-thong-bao" class="badge bg-red badge-blink d-none" style="position: absolute; top: 0; right: 0;">0</span>
                         </a>
                         <div class="dropdown-menu dropdown-menu-arrow dropdown-menu-end dropdown-menu-card" style="width: 350px; max-height: 400px; overflow-y: auto;">
@@ -45,7 +45,7 @@
             {
                 <div class="nav-item dropdown">
                     <a href="#" class="nav-link d-flex lh-1 text-reset p-0" data-bs-toggle="dropdown" aria-label="Open user menu" aria-expanded="false">
-                        <span class="avatar avatar-sm rounded-circle bg-blue-lt"><i class="fas fa-user-circle fa-lg text-blue"></i></span>
+                        <span class="avatar avatar-sm rounded-circle bg-blue-lt"><i class="ti ti-user-circle text-blue fs-2"></i></span>
                         <div class="d-none d-xl-block ps-2 text-start">
                             <div class="font-weight-bold">@User.Identity.Name</div>
                             <div class="mt-1 small text-secondary" style="font-size: 0.72rem;">
@@ -58,7 +58,7 @@
                             @Html.AntiForgeryToken()
                         </form>
                         <a href="javascript:void(0);" onclick="document.getElementById('logoutForm').submit();" class="dropdown-item text-danger py-2">
-                            <i class="fas fa-sign-out-alt me-2" style="font-size: 0.85rem;"></i> Đăng xuất
+                            <i class="ti ti-logout me-2"></i> Đăng xuất
                         </a>
                     </div>
                 </div>
@@ -67,7 +67,7 @@
             {
                 <div class="nav-item">
                     <a class="nav-link" href="/QuanLyNhaTro/DangNhap">
-                        <i class="fas fa-sign-in-alt me-1"></i> Đăng nhập
+                        <i class="ti ti-login me-1"></i> Đăng nhập
                     </a>
                 </div>
             }

@@ -8,7 +8,7 @@
         <div class="row g-2 align-items-center">
             <div class="col">
                 <h2 class="page-title text-primary font-weight-bold d-flex align-items-center">
-                    <i class="fas fa-bell me-2"></i> Lịch sử thông báo
+                    <i class="ti ti-bell me-2"></i> Lịch sử thông báo
                 </h2>
             </div>
             <div class="col-auto ms-auto d-print-none">
@@ -45,7 +45,7 @@
             <div class="card-body border-bottom py-3 bg-light">
                 <div class="row align-items-center">
                     <div class="col-auto ms-auto d-flex align-items-center text-muted font-weight-medium">
-                        <i class="fas fa-filter me-2 text-secondary"></i> <span class="d-none d-sm-inline me-2">Lọc trạng thái:</span>
+                        <i class="ti ti-filter me-2 text-secondary"></i> <span class="d-none d-sm-inline me-2">Lọc trạng thái:</span>
                         <select id="filter-chua-doc" class="form-select form-select-sm shadow-none w-auto border-secondary">
                             <option value="">Tất cả</option>
                             <option value="true">Chưa đọc</option>
@@ -146,15 +146,15 @@
                             let btns = '<div class="btn-list flex-nowrap justify-content-center">';
                             if (!row.isRead) {
                                 btns += `<button class="btn btn-icon btn-sm btn-ghost-success btn-mark-read" data-id="${row.id}" title="Đánh dấu đã đọc">
-                                            <i class="fas fa-check-circle"></i>
+                                            <i class="ti ti-circle-check"></i>
                                         </button>`;
                             }
                             btns += `<button class="btn btn-icon btn-sm btn-ghost-danger btn-delete" data-id="${row.id}" title="Xóa">
-                                        <i class="fas fa-trash-alt"></i>
+                                        <i class="ti ti-trash"></i>
                                     </button>`;
                             if (row.linkDieuHuong) {
                                 btns += `<a href="${row.linkDieuHuong}" class="btn btn-icon btn-sm btn-ghost-primary" title="Đi tới liên kết">
-                                            <i class="fas fa-external-link-alt"></i>
+                                            <i class="ti ti-external-link"></i>
                                         </a>`;
                             }
                             btns += '</div>';

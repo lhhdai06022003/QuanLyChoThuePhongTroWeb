@@ -6,7 +6,7 @@
     <div class="container-xl">
         <div class="row align-items-center">
             <div class="col">
-                <h2 class="page-title d-flex align-items-center"><i class="fas fa-file-signature me-2 text-primary"></i> Hợp đồng thuê phòng</h2>
+                <h2 class="page-title d-flex align-items-center"><i class="ti ti-file-signature me-2 text-primary"></i> Hợp đồng thuê phòng</h2>
             </div>
         </div>
     </div>
@@ -43,13 +43,13 @@
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header py-3">
-                <h5 class="modal-title"><i class="fas fa-file-contract"></i> Xem Chi Tiết Hợp Đồng - Phòng <span id="quickContractRoom"></span></h5>
+                <h5 class="modal-title"><i class="ti ti-file-contract"></i> Xem Chi Tiết Hợp Đồng - Phòng <span id="quickContractRoom"></span></h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <div class="row mb-3">
                     <div class="col-md-6 border-end">
-                        <h6 class="font-weight-bold text-primary border-bottom pb-1 mb-2"><i class="fas fa-info-circle"></i> Thông tin hợp đồng</h6>
+                        <h6 class="font-weight-bold text-primary border-bottom pb-1 mb-2"><i class="ti ti-info-circle"></i> Thông tin hợp đồng</h6>
                         <table class="table table-sm table-borderless">
                             <tr><td width="40%">Mã HĐ:</td><td><strong id="qcMaHD"></strong></td></tr>
                             <tr><td>Ngày bắt đầu:</td><td id="qcNgayBatDau"></td></tr>
@@ -59,7 +59,7 @@
                         </table>
                     </div>
                     <div class="col-md-6">
-                        <h6 class="font-weight-bold text-primary border-bottom pb-1 mb-2"><i class="fas fa-user-tie"></i> Đại diện ký hợp đồng</h6>
+                        <h6 class="font-weight-bold text-primary border-bottom pb-1 mb-2"><i class="ti ti-user-tie"></i> Đại diện ký hợp đồng</h6>
                         <table class="table table-sm table-borderless">
                             <tr><td width="40%">Họ tên:</td><td><strong id="qcTenDaiDien"></strong></td></tr>
                             <tr><td>Số điện thoại:</td><td id="qcSDTDaiDien"></td></tr>
@@ -70,10 +70,10 @@
 
                 <ul class="nav nav-tabs mb-3" id="quickContractTabs" role="tablist">
                     <li class="nav-item">
-                        <a class="nav-link active font-weight-bold" id="qc-members-tab" data-bs-toggle="tab" href="#qc-members-pane" role="tab"><i class="fas fa-users me-1"></i> Khách ở ghép (<span id="qcMemberCount">0</span>)</a>
+                        <a class="nav-link active font-weight-bold" id="qc-members-tab" data-bs-toggle="tab" href="#qc-members-pane" role="tab"><i class="ti ti-users me-1"></i> Khách ở ghép (<span id="qcMemberCount">0</span>)</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link font-weight-bold" id="qc-services-tab" data-bs-toggle="tab" href="#qc-services-pane" role="tab"><i class="fas fa-concierge-bell me-1"></i> Dịch vụ đăng ký (<span id="qcServiceCount">0</span>)</a>
+                        <a class="nav-link font-weight-bold" id="qc-services-tab" data-bs-toggle="tab" href="#qc-services-pane" role="tab"><i class="ti ti-concierge-bell me-1"></i> Dịch vụ đăng ký (<span id="qcServiceCount">0</span>)</a>
                     </li>
                 </ul>
 
@@ -111,7 +111,7 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i> Đóng</button>
+                <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i> Đóng</button>
             </div>
         </div>
     </div>
@@ -158,7 +158,7 @@
                     { 
                         "data": "hopDongId",
                         "render": function (data, type, row) {
-                            return '<button type="button" class="btn btn-primary btn-sm" onclick="showChiTiet(' + data + ', \'' + row.soPhong + '\')"><i class="fas fa-eye me-1"></i> Xem chi tiết</button>';
+                            return '<button type="button" class="btn btn-primary btn-sm" onclick="showChiTiet(' + data + ', \'' + row.soPhong + '\')"><i class="ti ti-eye me-1"></i> Xem chi tiết</button>';
                         }
                     }
                 ],
@@ -187,8 +187,8 @@
             $('#qcTenDaiDien').text('Đang tải...');
             $('#qcSDTDaiDien').text('Đang tải...');
             $('#qcCCCDDaiDien').text('Đang tải...');
-            $('#qcMembersBody').html('<tr><td colspan="5" class="text-center"><i class="fas fa-spinner fa-spin"></i> Đang tải thành viên...</td></tr>');
-            $('#qcServicesBody').html('<tr><td colspan="5" class="text-center"><i class="fas fa-spinner fa-spin"></i> Đang tải dịch vụ...</td></tr>');
+            $('#qcMembersBody').html('<tr><td colspan="5" class="text-center"><i class="ti ti-spinner fa-spin"></i> Đang tải thành viên...</td></tr>');
+            $('#qcServicesBody').html('<tr><td colspan="5" class="text-center"><i class="ti ti-spinner fa-spin"></i> Đang tải dịch vụ...</td></tr>');
             $('#qcMemberCount').text(0);
             $('#qcServiceCount').text(0);
 
