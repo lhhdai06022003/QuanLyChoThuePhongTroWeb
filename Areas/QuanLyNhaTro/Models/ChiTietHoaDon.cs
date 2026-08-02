@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace QuanLyChoThuePhongTroWeb.Models
@@ -15,7 +15,7 @@ namespace QuanLyChoThuePhongTroWeb.Models
 
         public string TenDichVu { get; set; }
         public double DonGia { get; set; }
-        public int SoLuong { get; set; }
+        public double SoLuong { get; set; }
         public double TongTien { get; set; }
         public bool IsDeleted { get; set; } = false;
         public int? DichVuId { get; set; }

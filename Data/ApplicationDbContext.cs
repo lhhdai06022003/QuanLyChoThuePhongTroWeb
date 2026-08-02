@@ -30,6 +30,19 @@ namespace QuanLyChoThuePhongTroWeb.Data
             modelBuilder.Entity<ChiNhanh>()
                 .HasIndex(c => c.MaChiNhanh)
                 .IsUnique();
+                
+            // Đảm bảo 1 hợp đồng chỉ có tối đa 1 hóa đơn active trong 1 tháng/năm (bỏ qua soft-deleted)
+            modelBuilder.Entity<HoaDon>()
+                .HasIndex(h => new { h.HopDongId, h.Thang, h.Nam })
+                .IsUnique()
+                .HasFilter("\"IsDeleted\" = false");
+                
+            // Cấu hình quan hệ 1-N giữa Điện Nước và Hóa Đơn (1 phiếu chốt có thể gắn cho nhiều hóa đơn trong cùng phòng nếu có nhiều hợp đồng)
+            modelBuilder.Entity<HoaDon>()
+                .HasOne(h => h.DichVuDienNuocCuaPhong)
+                .WithMany(d => d.HoaDons)
+                .HasForeignKey(h => h.DichVuDienNuocCuaPhongId)
+                .IsRequired(false);
         }
         public DbSet<ChiNhanh> ChiNhanhs { get; set; }
         public DbSet<PhongTro> PhongTros { get; set; }

@@ -17,8 +17,16 @@ namespace QuanLyChoThuePhongTroWeb.Models
         public DateTime NgayTao { get; set; } = DateTime.UtcNow;
         public DateTime? NgayCapNhat { get; set; }
         public bool IsDeleted { get; set; } = false;
+        public LoaiDichVu LoaiDichVu { get; set; } = LoaiDichVu.Khac;
 
         // Quan hệ hướng tới bảng trung gian
         public ICollection<DichVuChiNhanh> DichVuChiNhanhs { get; set; }
+    }
+
+    public enum LoaiDichVu
+    {
+        Khac = 0,
+        Dien = 1,
+        Nuoc = 2
     }
 }

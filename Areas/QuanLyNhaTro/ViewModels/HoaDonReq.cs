@@ -65,7 +65,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels
         public int ChiTietHoaDonId { get; set; }
         public string TenDichVu { get; set; }
         public double DonGia { get; set; }
-        public int SoLuong { get; set; }
+        public double SoLuong { get; set; }
         public double TongTien { get; set; }
         public string DonVi { get; set; }
     }
@@ -86,6 +86,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels
     public class PhatSinhPreviewRes
     {
         public int PhongTroId { get; set; }
+        public int HopDongId { get; set; }
         public string SoPhong { get; set; }
         public string TenNguoiThue { get; set; }
         public double TienPhongDuKien { get; set; }
@@ -96,6 +97,16 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels
         public bool HopDongHopLe { get; set; }
         public string GhiChuTrangThai { get; set; }
         public double TongTienDuKien { get; set; }
+        public int SuCoCount { get; set; }
+    }
+
+    public class PhatSinhHoaDonResult
+    {
+        public bool IsSuccess { get; set; }
+        public string Message { get; set; }
+        public int SoHoaDonMoi { get; set; }
+        public List<string> Successes { get; set; } = new();
+        public List<string> Skipped { get; set; } = new();
     }
 
     // Request chỉnh sửa hóa đơn
@@ -109,7 +120,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels
         public int? ChiTietHoaDonId { get; set; }
         public string TenDichVu { get; set; }
         public double DonGia { get; set; }
-        public int SoLuong { get; set; }
+        public double SoLuong { get; set; }
         public int? DichVuId { get; set; }
     }
 }

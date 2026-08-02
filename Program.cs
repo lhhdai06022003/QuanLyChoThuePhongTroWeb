@@ -59,6 +59,7 @@ builder.Services.AddScoped<IDienNuocService, DienNuocService>();
 builder.Services.AddScoped<INguoiDungService, NguoiDungService>();
 builder.Services.AddScoped<IPasswordHasher<NguoiDung>, PasswordHasher<NguoiDung>>();
 builder.Services.AddScoped<IHoaDonService, HoaDonService>();
+builder.Services.AddScoped<IHoaDonCalculatorService, HoaDonCalculatorService>();
 builder.Services.AddScoped<ILichSuThanhToanService, LichSuThanhToanService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IDieuKhoanMauService, DieuKhoanMauService>();

@@ -50,8 +50,8 @@ namespace QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers
                 h.Thang,
                 h.Nam,
                 h.TongTien,
-                TrangThaiHoaDon = (int)h.TrangThaiHoaDon,
-                NgayTao = h.NgayTao.ToString("dd/MM/yyyy")
+                TrangThaiHoaDon = h.TrangThaiHoaDonValue,
+                NgayTao = h.NgayTao
             });
 
             return Json(result);

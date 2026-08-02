@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -26,7 +26,7 @@ namespace QuanLyChoThuePhongTroWeb.Models
         public DateTime NgayTao { get; set; } = DateTime.UtcNow;
         public DateTime? NgayCapNhat { get; set; }
         public bool IsDeleted { get; set; } = false;
-        public HoaDon HoaDon { get; set; }
+        public ICollection<HoaDon> HoaDons { get; set; }
         
 
     }

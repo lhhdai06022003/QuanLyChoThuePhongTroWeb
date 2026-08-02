@@ -29,8 +29,11 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.AiAssistants
             _model = configuration["Gemini:Model"] ?? "gemini-1.5-flash";
         }
 
-        public async Task<List<PhongTroChuaChotRes>> GetPhongTroChuaChotDienNuocAsync(int thang, int nam)
+        public async Task<List<PhongTroChuaChotRes>> GetPhongTroChuaChotDienNuocAsync(int thang = 0, int nam = 0)
         {
+            if (thang <= 0) thang = DateTime.Now.Month;
+            if (nam <= 0) nam = DateTime.Now.Year;
+
             return await _db.PhongTros
                 .AsNoTracking()
                 .Include(p => p.ChiNhanh)
@@ -51,17 +54,26 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.AiAssistants
                 .ToListAsync();
         }
 
-        public async Task<List<HoaDonChuaThanhToanRes>> GetHoaDonChuaThanhToanAsync(int thang, int nam)
+        public async Task<List<HoaDonChuaThanhToanRes>> GetHoaDonChuaThanhToanAsync(int thang = 0, int nam = 0)
         {
-            return await _db.HoaDons
+            var query = _db.HoaDons
                 .AsNoTracking()
                 .Include(h => h.HopDong).ThenInclude(hd => hd.PhongTro).ThenInclude(p => p.ChiNhanh)
                 .Include(h => h.HopDong).ThenInclude(hd => hd.NguoiThue)
                 .Where(h => !h.IsDeleted && 
                             h.TrangThaiHoaDon == TrangThaiHoaDon.ChuaThanhToan && 
-                            h.Thang == thang && 
-                            h.Nam == nam && 
-                            h.HopDong.PhongTro.TrangThai == TrangThaiPhong.DaThue)
+                            h.HopDong.PhongTro.TrangThai == TrangThaiPhong.DaThue);
+
+            if (thang > 0)
+            {
+                query = query.Where(h => h.Thang == thang);
+            }
+            if (nam > 0)
+            {
+                query = query.Where(h => h.Nam == nam);
+            }
+
+            return await query
                 .Select(h => new HoaDonChuaThanhToanRes
                 {
                     HoaDonId = h.HoaDonId,
@@ -168,13 +180,17 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.AiAssistants
             return totalDebt;
         }
 
-        public async Task<List<DoanhThuChiNhanhRes>> GetDoanhThuChiNhanhAsync(int thang, int nam)
+        public async Task<List<DoanhThuChiNhanhRes>> GetDoanhThuChiNhanhAsync(int thang = 0, int nam = 0)
         {
-            var lss = await _db.LichSuThanhToans
+            var query = _db.LichSuThanhToans
                 .AsNoTracking()
                 .Include(l => l.HoaDon).ThenInclude(h => h.HopDong).ThenInclude(hd => hd.PhongTro).ThenInclude(p => p.ChiNhanh)
-                .Where(l => !l.IsDeleted && !l.HoaDon.IsDeleted && l.HoaDon.Thang == thang && l.HoaDon.Nam == nam)
-                .ToListAsync();
+                .Where(l => !l.IsDeleted && !l.HoaDon.IsDeleted);
+
+            if (thang > 0) query = query.Where(l => l.HoaDon.Thang == thang);
+            if (nam > 0) query = query.Where(l => l.HoaDon.Nam == nam);
+
+            var lss = await query.ToListAsync();
 
             return lss.GroupBy(l => l.HoaDon.HopDong.PhongTro.ChiNhanh.TenChiNhanh)
                 .Select(g => new DoanhThuChiNhanhRes
@@ -240,7 +256,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.AiAssistants
             object[] toolsConfig = userRole == "Admin" ? GetAdminToolsConfig() : GetTenantToolsConfig();
             
             int currentYear = DateTime.Now.Year;
-            string timeInstruction = $"Lưu ý: Năm hiện tại đang là {currentYear}. Nếu người dùng hỏi về một tháng mà không nói rõ năm (ví dụ 'tháng 10'), bạn phải tự động ngầm định và truyền vào công cụ năm là {currentYear}. Nếu người dùng nói rõ cả tháng và năm thì lấy đúng năm đó.";
+            string timeInstruction = $"Lưu ý: Năm hiện tại đang là {currentYear}. Nếu người dùng hỏi chung về hóa đơn chưa thanh toán (ví dụ: 'có hóa đơn nào chưa thanh toán không', 'lấy tất cả hóa đơn chưa thanh toán'), bạn KHÔNG ĐƯỢC hỏi lại người dùng tháng/năm mà phải gọi ngay công cụ GetHoaDonChuaThanhToanAsync với thang=0 và nam=0 để lấy TẤT CẢ các hóa đơn chưa thanh toán trong hệ thống. Nếu người dùng chỉ định tháng/năm thì mới truyền tháng/năm.";
             
             string systemInstructionText = userRole == "Admin" 
                 ? $"Bạn là Trợ lý AI của hệ thống Quản lý nhà trọ dành cho Quản trị viên. Hãy dùng các công cụ (tools) được cung cấp để trả lời câu hỏi về: phòng trống, hợp đồng, khách thuê, doanh thu, công nợ, điện nước, hóa đơn. {timeInstruction} Chỉ dùng thông tin từ công cụ. Trả lời lịch sự bằng Markdown."
@@ -412,8 +428,8 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.AiAssistants
                 {
                     function_declarations = new object[]
                     {
-                        new { name = "GetPhongTroChuaChotDienNuocAsync", description = "Lấy danh sách các phòng đang thuê nhưng chưa được chốt số điện nước trong tháng và năm chỉ định.", parameters = new { type = "OBJECT", properties = new { thang = new { type = "INTEGER", description = "Tháng cần kiểm tra (1-12)" }, nam = new { type = "INTEGER", description = "Năm cần kiểm tra (ví dụ 2026)" } }, required = new string[] { "thang", "nam" } } },
-                        new { name = "GetHoaDonChuaThanhToanAsync", description = "Lấy danh sách các hóa đơn chưa được thanh toán trong tháng và năm chỉ định.", parameters = new { type = "OBJECT", properties = new { thang = new { type = "INTEGER", description = "Tháng cần kiểm tra (1-12)" }, nam = new { type = "INTEGER", description = "Năm cần kiểm tra (ví dụ 2026)" } }, required = new string[] { "thang", "nam" } } },
+                        new { name = "GetPhongTroChuaChotDienNuocAsync", description = "Lấy danh sách các phòng đang thuê nhưng chưa được chốt số điện nước trong tháng và năm chỉ định (nếu không truyền sẽ mặc định tháng năm hiện tại).", parameters = new { type = "OBJECT", properties = new { thang = new { type = "INTEGER", description = "Tháng cần kiểm tra (1-12)" }, nam = new { type = "INTEGER", description = "Năm cần kiểm tra (ví dụ 2026)" } } } },
+                        new { name = "GetHoaDonChuaThanhToanAsync", description = "Lấy danh sách các hóa đơn chưa được thanh toán. Để thang=0 và nam=0 (hoặc không truyền) để lấy TẤT CẢ hóa đơn chưa thanh toán trong toàn bộ hệ thống.", parameters = new { type = "OBJECT", properties = new { thang = new { type = "INTEGER", description = "Tháng cần kiểm tra (1-12). Truyền 0 nếu muốn lấy tất cả các tháng." }, nam = new { type = "INTEGER", description = "Năm cần kiểm tra (ví dụ 2026). Truyền 0 nếu muốn lấy tất cả các năm." } } } },
                         new { name = "GetDoanhThuThucThuAsync", description = "Tính tổng doanh thu thực tế đã thu được từ lịch sử thanh toán trong khoảng thời gian từ ngày bắt đầu đến ngày kết thúc.", parameters = new { type = "OBJECT", properties = new { tuNgay = new { type = "STRING", description = "Ngày bắt đầu (định dạng YYYY-MM-DD)" }, denNgay = new { type = "STRING", description = "Ngày kết thúc (định dạng YYYY-MM-DD)" } }, required = new string[] { "tuNgay", "denNgay" } } },
                         new { name = "GetPhongTrongAsync", description = "Lấy danh sách các phòng đang trống. Có thể lọc theo mức giá tối đa.", parameters = new { type = "OBJECT", properties = new { mucGiaToiDa = new { type = "NUMBER", description = "Mức giá thuê tối đa (nếu có, ví dụ 3000000)" } } } },
                         new { name = "GetHopDongSapHetHanAsync", description = "Lấy danh sách các hợp đồng sắp hết hạn trong X ngày tới.", parameters = new { type = "OBJECT", properties = new { soNgay = new { type = "INTEGER", description = "Số ngày tới (ví dụ 30)" } }, required = new string[] { "soNgay" } } },

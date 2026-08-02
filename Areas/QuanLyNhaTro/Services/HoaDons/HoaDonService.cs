@@ -15,368 +15,451 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HoaDons
     {
         private readonly ApplicationDbContext _context;
         private readonly Microsoft.Extensions.Configuration.IConfiguration _configuration;
+        private readonly ILogger<HoaDonService> _logger;
+        private readonly IHoaDonCalculatorService _calculatorService;
 
-        public HoaDonService(ApplicationDbContext context, Microsoft.Extensions.Configuration.IConfiguration configuration)
+        public HoaDonService(ApplicationDbContext context, Microsoft.Extensions.Configuration.IConfiguration configuration, ILogger<HoaDonService> logger, IHoaDonCalculatorService calculatorService)
         {
             _context = context;
             _configuration = configuration;
+            _logger = logger;
+            _calculatorService = calculatorService;
         }
 
-        // =================== PHÁT SINH HÓA ĐƠN HÀ LOẠT ===================
-        public async Task<(bool IsSuccess, string Message, int SoHoaDonMoi)> PhatSinhHoaDonAsync(int chiNhanhId, int thang, int nam, List<int> selectedPhongTroIds)
+        // =================== PHÁT SINH HÓA ĐƠN HÀNG LOẠT ===================
+        public async Task<PhatSinhHoaDonResult> PhatSinhHoaDonAsync(int chiNhanhId, int thang, int nam, List<int> selectedPhongTroIds)
         {
-            if (selectedPhongTroIds == null || !selectedPhongTroIds.Any())
-                return (false, "Không có phòng nào được chọn để phát sinh hóa đơn.", 0);
-
-            var startOfMonth = new DateTime(nam, thang, 1, 0, 0, 0, DateTimeKind.Utc);
-            var endOfMonth = startOfMonth.AddMonths(1).AddDays(-1).AddHours(23).AddMinutes(59).AddSeconds(59);
-            var daysInMonth = DateTime.DaysInMonth(nam, thang);
-
-            // Lấy thông tin dịch vụ Điện và Nước từ database
-            var dienDichVu = await _context.DichVus.FirstOrDefaultAsync(d => (d.TenDichVu.Contains("Điện") || d.TenDichVu.Contains("điện")) && !d.IsDeleted);
-            var nuocDichVu = await _context.DichVus.FirstOrDefaultAsync(d => (d.TenDichVu.Contains("Nước") || d.TenDichVu.Contains("nước")) && !d.IsDeleted);
-
-            // 1. Lấy tất cả hợp đồng thuộc danh sách phòng được chọn và có hiệu lực trong tháng
-            var hopDongs = await _context.HopDongs
-                .Include(h => h.PhongTro)
-                .Include(h => h.NguoiThue)
-                .Where(h => h.PhongTro.ChiNhanhId == chiNhanhId &&
-                            selectedPhongTroIds.Contains(h.PhongTroId) &&
-                            !h.IsDeleted &&
-                            h.TrangThaiHopDong != TrangThaiHopDong.DaHuy &&
-                            h.ThoiDiemBatDau <= endOfMonth &&
-                            (h.ThoiDiemKetThuc == null || h.ThoiDiemKetThuc.Value >= startOfMonth))
-                .ToListAsync();
-
-            if (!hopDongs.Any())
-                return (false, "Không tìm thấy hợp đồng hợp lệ nào cho các phòng đã chọn.", 0);
-
-            // Tải trước (Pre-load) toàn bộ hóa đơn đã tồn tại trong tháng/năm này cho các hợp đồng
-            var hopDongIds = hopDongs.Select(h => h.HopDongId).ToList();
-            var existingInvoiceHopDongIds = await _context.HoaDons
-                .Where(x => hopDongIds.Contains(x.HopDongId) && x.Thang == thang && x.Nam == nam && !x.IsDeleted)
-                .Select(x => x.HopDongId)
-                .ToListAsync();
-            var existingInvoiceHopDongIdsSet = new HashSet<int>(existingInvoiceHopDongIds);
-
-            // Tải trước dữ liệu chốt điện nước của các phòng được chọn trong tháng/năm
-            var selectedPhongIds = hopDongs.Select(h => h.PhongTroId).Distinct().ToList();
-            var dienNuocRecords = await _context.DichVuDienNuocCuaPhongs
-                .Where(x => selectedPhongIds.Contains(x.PhongTroId) && x.Thang == thang && x.Nam == nam && !x.IsDeleted)
-                .ToListAsync();
-            var dienNuocDict = dienNuocRecords.ToDictionary(x => x.PhongTroId);
-
-            // Tải trước tất cả các dịch vụ đã đăng ký của các phòng được chọn có hiệu lực trong tháng
-            var dangKyDvs = await _context.DangKyDichVus
-                .Include(d => d.DichVuChiNhanh)
-                    .ThenInclude(dcn => dcn.DichVu)
-                .Where(d => selectedPhongIds.Contains(d.PhongTroId) &&
-                            d.NgayBatDau <= endOfMonth &&
-                            (d.NgayKetThuc == null || d.NgayKetThuc >= startOfMonth))
-                .ToListAsync();
-            var dangKyDvsLookup = dangKyDvs.ToLookup(d => d.PhongTroId);
-
-            // Tải trước sự cố cần cộng vào hóa đơn
-            var suCosCanCong = await _context.YeuCauSuCos
-                .Where(x => selectedPhongIds.Contains(x.PhongTroId)
-                    && x.TrangThai == TrangThaiSuCo.DaHoanThanh
-                    && x.CongVaoHoaDon && !x.IsDeleted)
-                .ToListAsync();
-            var suCosLookup = suCosCanCong.ToLookup(x => x.PhongTroId);
-
-            int soHoaDonMoi = 0;
-
-            foreach (var hd in hopDongs)
+            var result = new PhatSinhHoaDonResult { IsSuccess = true, Message = "" };
+            
+            try
             {
-                // 2. Kiểm tra đã tồn tại hóa đơn cho tháng/năm này chưa
-                if (existingInvoiceHopDongIdsSet.Contains(hd.HopDongId)) continue;
-
-                // 3. Tìm dữ liệu điện nước đã chốt
-                if (!dienNuocDict.TryGetValue(hd.PhongTroId, out var dienNuoc)) continue;
-
-                // 4. Tạo các dòng chi tiết hóa đơn
-                var chiTietList = new List<ChiTietHoaDon>();
-
-                // Dòng 1: Tiền thuê phòng (tính lẻ ngày nếu có)
-                DateTime activeStart = hd.ThoiDiemBatDau > startOfMonth ? hd.ThoiDiemBatDau.Date : startOfMonth;
-                DateTime activeEnd = (hd.ThoiDiemKetThuc != null && hd.ThoiDiemKetThuc.Value < endOfMonth) ? hd.ThoiDiemKetThuc.Value.Date : endOfMonth;
-                int activeDays = (activeEnd - activeStart).Days + 1;
-                double tienPhong = Math.Round((hd.TienThuePhong / daysInMonth) * activeDays);
-
-                string tenTienPhong = "Tiền thuê phòng";
-                if (activeDays < daysInMonth)
+                if (selectedPhongTroIds == null || !selectedPhongTroIds.Any())
                 {
-                    tenTienPhong = $"Tiền thuê phòng (thực tế ở {activeDays}/{daysInMonth} ngày)";
+                    result.IsSuccess = false;
+                    result.Message = "Không có phòng nào được chọn để phát sinh hóa đơn.";
+                    return result;
                 }
 
-                chiTietList.Add(new ChiTietHoaDon
+                // 1. Cấu hình thời gian chuẩn
+                var startOfMonthVn = new DateTime(nam, thang, 1, 0, 0, 0, DateTimeKind.Unspecified);
+                var endOfMonthVn = startOfMonthVn.AddMonths(1).AddDays(-1).AddHours(23).AddMinutes(59).AddSeconds(59);
+                var startOfMonthUtc = DateTime.SpecifyKind(startOfMonthVn.AddHours(-7), DateTimeKind.Utc);
+                var endOfMonthUtc = DateTime.SpecifyKind(endOfMonthVn.AddHours(-7), DateTimeKind.Utc);
+                var daysInMonth = DateTime.DaysInMonth(nam, thang);
+
+                // Lấy chi nhánh để lấy Mã Chi Nhánh cho Hóa Đơn
+                var chiNhanh = await _context.ChiNhanhs.FirstOrDefaultAsync(c => c.ChiNhanhId == chiNhanhId);
+                if (chiNhanh == null)
                 {
-                    TenDichVu = tenTienPhong,
-                    DonGia = hd.TienThuePhong, // Lưu đơn giá gốc
-                    SoLuong = 1,
-                    TongTien = tienPhong
-                });
+                    result.IsSuccess = false;
+                    result.Message = "Không tìm thấy chi nhánh.";
+                    return result;
+                }
 
-                // Dòng 2: Tiền điện
-                double soDien = dienNuoc.ChiSoDienMoi - dienNuoc.ChiSoDienCu;
-                double tienDien = soDien * dienNuoc.DonGiaDien;
-                chiTietList.Add(new ChiTietHoaDon
+                // 2. Lấy TẤT CẢ hợp đồng thuộc danh sách phòng được chọn và có hiệu lực trong tháng
+                var hopDongs = await _context.HopDongs
+                    .Include(h => h.PhongTro)
+                    .Include(h => h.NguoiThue)
+                    .Where(h => h.PhongTro.ChiNhanhId == chiNhanhId &&
+                                selectedPhongTroIds.Contains(h.PhongTroId) &&
+                                !h.IsDeleted &&
+                                h.TrangThaiHopDong != TrangThaiHopDong.DaHuy &&
+                                h.ThoiDiemBatDau <= endOfMonthUtc &&
+                                (h.ThoiDiemKetThuc == null || h.ThoiDiemKetThuc >= startOfMonthUtc.AddDays(1)))
+                    .ToListAsync();
+
+                if (!hopDongs.Any())
                 {
-                    TenDichVu = $"Tiền điện ({dienNuoc.ChiSoDienCu} → {dienNuoc.ChiSoDienMoi})",
-                    DonGia = dienNuoc.DonGiaDien,
-                    SoLuong = (int)soDien,
-                    TongTien = tienDien,
-                    DichVuId = dienDichVu?.DichVuId
-                });
+                    result.IsSuccess = false;
+                    result.Message = "Không tìm thấy hợp đồng hợp lệ nào cho các phòng đã chọn.";
+                    return result;
+                }
 
-                // Dòng 3: Tiền nước
-                double soNuoc = dienNuoc.ChiSoNuocMoi - dienNuoc.ChiSoNuocCu;
-                double tienNuoc = soNuoc * dienNuoc.DonGiaNuoc;
-                chiTietList.Add(new ChiTietHoaDon
+                var hopDongIds = hopDongs.Select(h => h.HopDongId).ToList();
+                var selectedPhongIds = hopDongs.Select(h => h.PhongTroId).Distinct().ToList();
+
+                // 3. Tải trước dữ liệu
+                // Hóa đơn đã tồn tại cho các HỢP ĐỒNG này trong tháng (bao gồm cả soft-deleted, khớp với filtered unique index)
+                var existingInvoiceHopDongIds = await _context.HoaDons
+                    .Where(x => hopDongIds.Contains(x.HopDongId) && x.Thang == thang && x.Nam == nam && !x.IsDeleted)
+                    .Select(x => x.HopDongId)
+                    .ToListAsync();
+                var existingInvoiceHopDongIdsSet = new HashSet<int>(existingInvoiceHopDongIds);
+
+                // Dữ liệu chốt điện nước của các phòng được chọn
+                var dienNuocRecords = await _context.DichVuDienNuocCuaPhongs
+                    .Where(x => selectedPhongIds.Contains(x.PhongTroId) && x.Thang == thang && x.Nam == nam && !x.IsDeleted)
+                    .ToListAsync();
+                var dienNuocDict = dienNuocRecords.ToDictionary(x => x.PhongTroId);
+
+                // Dịch vụ đã đăng ký
+                var dangKyDvs = await _context.DangKyDichVus
+                    .Include(d => d.DichVuChiNhanh)
+                        .ThenInclude(dcn => dcn.DichVu)
+                    .Where(d => selectedPhongIds.Contains(d.PhongTroId) &&
+                                d.NgayBatDau <= endOfMonthUtc &&
+                                (d.NgayKetThuc == null || d.NgayKetThuc >= startOfMonthUtc))
+                    .ToListAsync();
+                var dangKyDvsLookup = dangKyDvs.ToLookup(d => d.PhongTroId);
+
+                // Sự cố cần cộng vào hóa đơn
+                var suCosCanCong = await _context.YeuCauSuCos
+                    .Where(x => selectedPhongIds.Contains(x.PhongTroId)
+                        && x.TrangThai == TrangThaiSuCo.DaHoanThanh
+                        && x.CongVaoHoaDon && !x.IsDeleted)
+                    .ToListAsync();
+                var suCosLookup = suCosCanCong.ToLookup(x => x.PhongTroId);
+
+                var validInvoices = new List<HoaDon>();
+                var suCosToUpdate = new List<YeuCauSuCo>();
+
+                // 4. Lặp qua TỪNG HỢP ĐỒNG để phát sinh hóa đơn (1 phòng có thể có nhiều HD)
+                foreach (var hd in hopDongs)
                 {
-                    TenDichVu = $"Tiền nước ({dienNuoc.ChiSoNuocCu} → {dienNuoc.ChiSoNuocMoi})",
-                    DonGia = dienNuoc.DonGiaNuoc,
-                    SoLuong = (int)soNuoc,
-                    TongTien = tienNuoc,
-                    DichVuId = nuocDichVu?.DichVuId
-                });
-
-                // Dòng 4+: Các dịch vụ khác đã đăng ký cho phòng (có tính lẻ ngày nếu đăng ký giữa tháng)
-                var phongDangKyDvs = dangKyDvsLookup[hd.PhongTroId];
-
-                foreach (var dk in phongDangKyDvs)
-                {
-                    // Bỏ qua dịch vụ Điện/Nước vì đã tính ở trên
-                    var tenDv = dk.DichVuChiNhanh.DichVu.TenDichVu.ToLower();
-                    if (tenDv.Contains("điện") || tenDv.Contains("nước")) continue;
-
-                    // Tính lẻ ngày đăng ký dịch vụ:
-                    if (dk.NgayBatDau.Date <= activeEnd)
+                    string baseRoomName = hd.PhongTro.SoPhong;
+                    
+                    // Kiểm tra tồn tại hóa đơn (Unique Constraint: HopDongId, Thang, Nam)
+                    if (existingInvoiceHopDongIdsSet.Contains(hd.HopDongId))
                     {
-                        DateTime serviceStart = dk.NgayBatDau.Date > activeStart ? dk.NgayBatDau.Date : activeStart;
-                        DateTime serviceEnd = (dk.NgayKetThuc != null && dk.NgayKetThuc.Value < activeEnd) ? dk.NgayKetThuc.Value.Date : activeEnd;
-                        int serviceActiveDays = (serviceEnd - serviceStart).Days + 1;
-
-                        if (serviceActiveDays > 0)
-                        {
-                            double dvTongTien = Math.Round((dk.DichVuChiNhanh.GiaDichVu * dk.SoLuong / daysInMonth) * serviceActiveDays);
-                            string finalTenDichVu = dk.DichVuChiNhanh.DichVu.TenDichVu;
-
-                            if (serviceActiveDays < daysInMonth)
-                            {
-                                finalTenDichVu = $"{dk.DichVuChiNhanh.DichVu.TenDichVu} (thực tế dùng {serviceActiveDays}/{daysInMonth} ngày)";
-                            }
-
-                            chiTietList.Add(new ChiTietHoaDon
-                            {
-                                TenDichVu = finalTenDichVu,
-                                DonGia = dk.DichVuChiNhanh.GiaDichVu,
-                                SoLuong = dk.SoLuong,
-                                TongTien = dvTongTien,
-                                DichVuId = dk.DichVuChiNhanh.DichVuId
-                            });
-                        }
+                        result.Skipped.Add($"Phòng {baseRoomName} (HĐ: {hd.MaHopDong}): Đã tồn tại hóa đơn trong tháng.");
+                        continue;
                     }
-                }
 
-                double tongTien = chiTietList.Sum(x => x.TongTien);
+                    var chiTietList = new List<ChiTietHoaDon>();
+                    double tongTien = 0;
+                    
+                    // Tính số ngày ở thực tế của hợp đồng này
+                    var tienPhongData = _calculatorService.TinhTienPhong(hd.TienThuePhong, hd.ThoiDiemBatDau, hd.ThoiDiemKetThuc, thang, nam);
+                    if (tienPhongData.SoNgayO <= 0)
+                    {
+                        result.Skipped.Add($"Phòng {baseRoomName} (HĐ: {hd.MaHopDong}): Không có số ngày ở thực tế.");
+                        continue;
+                    }
 
-                // Thêm chi phí sửa chữa sự cố (đã pre-load)
-                foreach (var suco in suCosLookup[hd.PhongTroId])
-                {
                     chiTietList.Add(new ChiTietHoaDon
                     {
-                        TenDichVu = $"Phí sửa chữa sự cố: {suco.TieuDe}",
-                        DonGia = suco.ChiPhiSuaChua,
+                        TenDichVu = tienPhongData.DienGiai,
+                        DonGia = hd.TienThuePhong,
                         SoLuong = 1,
-                        TongTien = suco.ChiPhiSuaChua
+                        TongTien = tienPhongData.SoTien
                     });
-                    
-                    tongTien += suco.ChiPhiSuaChua;
-                    
-                    suco.CongVaoHoaDon = false;
-                    _context.YeuCauSuCos.Update(suco);
+                    tongTien += tienPhongData.SoTien;
+
+                    // Tính tiền điện nước theo tỷ lệ số ngày ở của hợp đồng này
+                    int? dienNuocId = null;
+                    if (dienNuocDict.TryGetValue(hd.PhongTroId, out var dienNuoc))
+                    {
+                        dienNuocId = dienNuoc.DichVuDienNuocCuaPhongId;
+                        try
+                        {
+                            // Điện
+                            var dienDichVu = dangKyDvsLookup[hd.PhongTroId].FirstOrDefault(d => d.DichVuChiNhanh?.DichVu?.LoaiDichVu == LoaiDichVu.Dien)?.DichVuChiNhanh?.DichVuId;
+                            var dienData = _calculatorService.TinhTienDienNuoc(dienNuoc.ChiSoDienMoi, dienNuoc.ChiSoDienCu, dienNuoc.DonGiaDien, "Tiền điện", tienPhongData.SoNgayO, daysInMonth);
+                            if (dienData.SoTien > 0)
+                            {
+                                chiTietList.Add(new ChiTietHoaDon
+                                {
+                                    TenDichVu = dienData.DienGiai,
+                                    DonGia = dienNuoc.DonGiaDien,
+                                    SoLuong = Math.Round(dienData.SoLuong, 2),
+                                    TongTien = dienData.SoTien,
+                                    DichVuId = dienDichVu
+                                });
+                                tongTien += dienData.SoTien;
+                            }
+
+                            // Nước
+                            var nuocDichVu = dangKyDvsLookup[hd.PhongTroId].FirstOrDefault(d => d.DichVuChiNhanh?.DichVu?.LoaiDichVu == LoaiDichVu.Nuoc)?.DichVuChiNhanh?.DichVuId;
+                            var nuocData = _calculatorService.TinhTienDienNuoc(dienNuoc.ChiSoNuocMoi, dienNuoc.ChiSoNuocCu, dienNuoc.DonGiaNuoc, "Tiền nước", tienPhongData.SoNgayO, daysInMonth);
+                            if (nuocData.SoTien > 0)
+                            {
+                                chiTietList.Add(new ChiTietHoaDon
+                                {
+                                    TenDichVu = nuocData.DienGiai,
+                                    DonGia = dienNuoc.DonGiaNuoc,
+                                    SoLuong = Math.Round(nuocData.SoLuong, 2),
+                                    TongTien = nuocData.SoTien,
+                                    DichVuId = nuocDichVu
+                                });
+                                tongTien += nuocData.SoTien;
+                            }
+                        }
+                        catch (InvalidOperationException ex)
+                        {
+                            result.Skipped.Add($"Phòng {baseRoomName} (HĐ: {hd.MaHopDong}): {ex.Message}");
+                            continue;
+                        }
+                    }
+                    else
+                    {
+                        result.Skipped.Add($"Phòng {baseRoomName} (HĐ: {hd.MaHopDong}): Chưa chốt chỉ số điện/nước tháng này.");
+                        continue;
+                    }
+
+                    // Tính tiền dịch vụ cố định (clamp theo phạm vi hợp đồng)
+                    var dsDichVu = dangKyDvsLookup[hd.PhongTroId];
+                    foreach (var dk in dsDichVu)
+                    {
+                        var dichVu = dk.DichVuChiNhanh?.DichVu;
+                        if (dichVu == null || dichVu.LoaiDichVu == LoaiDichVu.Dien || dichVu.LoaiDichVu == LoaiDichVu.Nuoc) 
+                            continue;
+
+                        var dvData = _calculatorService.TinhTienDichVuCoDinh(dk.DichVuChiNhanh.GiaDichVu, dk.SoLuong, dichVu.TenDichVu, dk.NgayBatDau, dk.NgayKetThuc, thang, nam, hd.ThoiDiemBatDau, hd.ThoiDiemKetThuc);
+                        if (dvData.SoTien > 0)
+                        {
+                            chiTietList.Add(new ChiTietHoaDon
+                            {
+                                TenDichVu = dvData.DienGiai,
+                                DonGia = dk.DichVuChiNhanh.GiaDichVu,
+                                SoLuong = dk.SoLuong,
+                                TongTien = dvData.SoTien,
+                                DichVuId = dichVu.DichVuId
+                            });
+                            tongTien += dvData.SoTien;
+                        }
+                    }
+
+                    // Cộng tiền sự cố (chỉ gán cho HĐ của người báo sự cố)
+                    var suCos = suCosLookup[hd.PhongTroId]
+                        .Where(sc => sc.CongVaoHoaDon && sc.ChiPhiSuaChua > 0 && sc.NguoiThueId == hd.NguoiThueId)
+                        .ToList();
+                    foreach (var sc in suCos)
+                    {
+                        chiTietList.Add(new ChiTietHoaDon
+                        {
+                            TenDichVu = $"Sửa chữa sự cố: {sc.TieuDe}",
+                            DonGia = sc.ChiPhiSuaChua,
+                            SoLuong = 1,
+                            TongTien = sc.ChiPhiSuaChua
+                        });
+                        tongTien += sc.ChiPhiSuaChua;
+                        
+                        sc.CongVaoHoaDon = false;
+                        suCosToUpdate.Add(sc);
+                    }
+
+                    // Khởi tạo Hóa đơn (Mã Hóa Đơn Duy Nhất)
+                    var hoaDon = new HoaDon
+                    {
+                        MaHoaDon = $"HD-{chiNhanh.MaChiNhanh}-P{baseRoomName}-{hd.HopDongId}-{thang:D2}{nam}",
+                        HopDongId = hd.HopDongId,
+                        Thang = thang,
+                        Nam = nam,
+                        TongTien = tongTien,
+                        TrangThaiHoaDon = TrangThaiHoaDon.ChuaThanhToan,
+                        DichVuDienNuocCuaPhongId = dienNuocId,
+                        ChiTietHoaDonDichVus = chiTietList
+                    };
+
+                    validInvoices.Add(hoaDon);
+                    result.Successes.Add($"Phòng {baseRoomName} (HĐ: {hd.MaHopDong}): Đã tạo hóa đơn.");
                 }
 
-                // 5. Tạo hóa đơn
-                var hoaDon = new HoaDon
+                if (validInvoices.Any())
                 {
-                    MaHoaDon = $"HD-{hd.PhongTro.SoPhong}-{thang:D2}{nam}",
-                    HopDongId = hd.HopDongId,
-                    Thang = thang,
-                    Nam = nam,
-                    TongTien = tongTien,
-                    TrangThaiHoaDon = TrangThaiHoaDon.ChuaThanhToan,
-                    DichVuDienNuocCuaPhongId = dienNuoc.DichVuDienNuocCuaPhongId,
-                    ChiTietHoaDonDichVus = chiTietList
-                };
+                    _context.HoaDons.AddRange(validInvoices);
+                    
+                    if (suCosToUpdate.Any())
+                    {
+                        // Distinct sự cố để tránh cập nhật lặp lại
+                        _context.YeuCauSuCos.UpdateRange(suCosToUpdate.Distinct());
+                    }
 
-                _context.HoaDons.Add(hoaDon);
-                soHoaDonMoi++;
+                    await _context.SaveChangesAsync();
+                }
+
+                result.SoHoaDonMoi = validInvoices.Count;
+                result.Message = $"Phát sinh thành công {validInvoices.Count} hóa đơn.";
+                if (result.Skipped.Any())
+                {
+                    result.Message += $" Bỏ qua {result.Skipped.Count} hợp đồng (xem chi tiết).";
+                }
+                
+                return result;
             }
-
-            await _context.SaveChangesAsync();
-            return (true, $"Đã phát sinh {soHoaDonMoi} hóa đơn thành công.", soHoaDonMoi);
+            catch (Microsoft.EntityFrameworkCore.DbUpdateException dbEx)
+            {
+                var innerMsg = dbEx.InnerException != null ? dbEx.InnerException.Message : dbEx.Message;
+                _logger.LogError(dbEx, "Lỗi Unique Constraint khi phát sinh hóa đơn chi nhánh {ChiNhanhId}, tháng {Thang}/{Nam}. Inner: {InnerMessage}", chiNhanhId, thang, nam, innerMsg);
+                result.IsSuccess = false;
+                result.Message = "Hợp đồng đã phát sinh hóa đơn trong tháng này (Lỗi dữ liệu trùng lặp). Vui lòng thử lại.";
+                return result;
+            }
+            catch (Exception ex)
+            {
+                var innerMsg = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
+                _logger.LogError(ex, "Lỗi khi phát sinh hóa đơn chi nhánh {ChiNhanhId}, tháng {Thang}/{Nam}. Inner: {InnerMessage}", chiNhanhId, thang, nam, innerMsg);
+                result.IsSuccess = false;
+                result.Message = $"Lỗi hệ thống: {innerMsg}";
+                return result;
+            }
         }
 
         // =================== XEM TRƯỚC PHÁT SINH HÓA ĐƠN ===================
         public async Task<List<PhatSinhPreviewRes>> PreviewPhatSinhHoaDonAsync(int chiNhanhId, int thang, int nam)
         {
-            var startOfMonth = new DateTime(nam, thang, 1, 0, 0, 0, DateTimeKind.Utc);
-            var endOfMonth = startOfMonth.AddMonths(1).AddDays(-1).AddHours(23).AddMinutes(59).AddSeconds(59);
-            var daysInMonth = DateTime.DaysInMonth(nam, thang);
+            var result = new List<PhatSinhPreviewRes>();
 
-            // Lấy tất cả phòng của chi nhánh
-            var phongTros = await _context.PhongTros
+            // Lấy tất cả phòng trong chi nhánh
+            var phongTros = await _context.PhongTros.AsNoTracking()
                 .Where(p => p.ChiNhanhId == chiNhanhId && !p.IsDeleted)
                 .ToListAsync();
 
-            // Lấy tất cả hợp đồng có hiệu lực trong tháng của chi nhánh
-            var hopDongs = await _context.HopDongs
+            if (!phongTros.Any())
+                return result;
+
+            var startOfMonthVn = new DateTime(nam, thang, 1, 0, 0, 0, DateTimeKind.Unspecified);
+            var endOfMonthVn = startOfMonthVn.AddMonths(1).AddDays(-1).AddHours(23).AddMinutes(59).AddSeconds(59);
+            var startOfMonthUtc = DateTime.SpecifyKind(startOfMonthVn.AddHours(-7), DateTimeKind.Utc);
+            var endOfMonthUtc = DateTime.SpecifyKind(endOfMonthVn.AddHours(-7), DateTimeKind.Utc);
+            var daysInMonth = DateTime.DaysInMonth(nam, thang);
+
+            var phongIds = phongTros.Select(p => p.PhongTroId).ToList();
+
+            // Lấy TẤT CẢ hợp đồng có hiệu lực trong tháng
+            var hopDongs = await _context.HopDongs.AsNoTracking()
                 .Include(h => h.NguoiThue)
-                .Where(h => h.PhongTro.ChiNhanhId == chiNhanhId &&
+                .Where(h => phongIds.Contains(h.PhongTroId) &&
                             !h.IsDeleted &&
                             h.TrangThaiHopDong != TrangThaiHopDong.DaHuy &&
-                            h.ThoiDiemBatDau <= endOfMonth &&
-                            (h.ThoiDiemKetThuc == null || h.ThoiDiemKetThuc.Value >= startOfMonth))
+                            h.ThoiDiemBatDau <= endOfMonthUtc &&
+                            (h.ThoiDiemKetThuc == null || h.ThoiDiemKetThuc >= startOfMonthUtc.AddDays(1)))
                 .ToListAsync();
 
-            // Tải trước (Pre-load) toàn bộ hóa đơn đã tồn tại trong tháng/năm này cho các hợp đồng
-            var hopDongIds = hopDongs.Select(h => h.HopDongId).ToList();
-            var existingInvoiceHopDongIds = await _context.HoaDons
-                .Where(x => hopDongIds.Contains(x.HopDongId) && x.Thang == thang && x.Nam == nam && !x.IsDeleted)
-                .Select(x => x.HopDongId)
-                .ToListAsync();
-            var existingInvoiceHopDongIdsSet = new HashSet<int>(existingInvoiceHopDongIds);
-
-            // Tải trước dữ liệu chốt điện nước của các phòng thuộc chi nhánh trong tháng/năm
-            var phongTroIds = phongTros.Select(p => p.PhongTroId).ToList();
-            var dienNuocRecords = await _context.DichVuDienNuocCuaPhongs
-                .Where(x => phongTroIds.Contains(x.PhongTroId) && x.Thang == thang && x.Nam == nam && !x.IsDeleted)
+            // Điện nước
+            var dienNuocRecords = await _context.DichVuDienNuocCuaPhongs.AsNoTracking()
+                .Where(x => phongIds.Contains(x.PhongTroId) && x.Thang == thang && x.Nam == nam && !x.IsDeleted)
                 .ToListAsync();
             var dienNuocDict = dienNuocRecords.ToDictionary(x => x.PhongTroId);
 
-            // Tải trước tất cả các dịch vụ đã đăng ký của các phòng có hiệu lực trong tháng
-            var dangKyDvs = await _context.DangKyDichVus
-                .Include(d => d.DichVuChiNhanh).ThenInclude(dcn => dcn.DichVu)
-                .Where(d => phongTroIds.Contains(d.PhongTroId) &&
-                            d.NgayBatDau <= endOfMonth &&
-                            (d.NgayKetThuc == null || d.NgayKetThuc >= startOfMonth))
+            // Dịch vụ
+            var dangKyDvs = await _context.DangKyDichVus.AsNoTracking()
+                .Include(d => d.DichVuChiNhanh)
+                    .ThenInclude(dcn => dcn.DichVu)
+                .Where(d => phongIds.Contains(d.PhongTroId) &&
+                            d.NgayBatDau <= endOfMonthUtc &&
+                            (d.NgayKetThuc == null || d.NgayKetThuc >= startOfMonthUtc))
                 .ToListAsync();
             var dangKyDvsLookup = dangKyDvs.ToLookup(d => d.PhongTroId);
 
-            // Tải trước sự cố cần cộng vào hóa đơn
-            var suCosCanCong = await _context.YeuCauSuCos
-                .Where(x => phongTroIds.Contains(x.PhongTroId)
+            // Sự cố cần cộng vào hóa đơn
+            var suCosCanCong = await _context.YeuCauSuCos.AsNoTracking()
+                .Where(x => phongIds.Contains(x.PhongTroId)
                     && x.TrangThai == TrangThaiSuCo.DaHoanThanh
                     && x.CongVaoHoaDon && !x.IsDeleted)
                 .ToListAsync();
             var suCosLookup = suCosCanCong.ToLookup(x => x.PhongTroId);
 
-            var result = new List<PhatSinhPreviewRes>();
+            // Tải trước hóa đơn ĐÃ tồn tại (Kiểm tra theo HopDongId)
+            var hopDongIds = hopDongs.Select(h => h.HopDongId).ToList();
+            var existingInvoiceHopDongIds = await _context.HoaDons.AsNoTracking()
+                .Where(x => hopDongIds.Contains(x.HopDongId) && x.Thang == thang && x.Nam == nam && !x.IsDeleted)
+                .Select(x => x.HopDongId)
+                .ToListAsync();
+            var existingInvoiceHopDongIdsSet = new HashSet<int>(existingInvoiceHopDongIds);
 
+            var phongIdsCoHopDong = hopDongs.Select(h => h.PhongTroId).Distinct().ToHashSet();
+            
+            // Xử lý những phòng trống (không có hợp đồng trong tháng)
             foreach (var p in phongTros)
             {
-                var hd = hopDongs.FirstOrDefault(h => h.PhongTroId == p.PhongTroId);
-                var item = new PhatSinhPreviewRes
+                if (!phongIdsCoHopDong.Contains(p.PhongTroId))
+                {
+                    result.Add(new PhatSinhPreviewRes
+                    {
+                        PhongTroId = p.PhongTroId,
+                        HopDongId = 0,
+                        SoPhong = p.SoPhong,
+                        TenNguoiThue = "Trống",
+                        HopDongHopLe = false,
+                        DaCoHoaDon = false,
+                        DaChotDienNuoc = false,
+                        GhiChuTrangThai = "Không có hợp đồng"
+                    });
+                }
+            }
+
+            // Xử lý từng hợp đồng (để có thể xuất nhiều dòng nếu 1 phòng có nhiều hợp đồng)
+            foreach (var hd in hopDongs)
+            {
+                var p = phongTros.First(x => x.PhongTroId == hd.PhongTroId);
+                
+                var previewItem = new PhatSinhPreviewRes
                 {
                     PhongTroId = p.PhongTroId,
-                    SoPhong = p.SoPhong
+                    HopDongId = hd.HopDongId,
+                    SoPhong = p.SoPhong,
+                    TenNguoiThue = hd.NguoiThue?.HoVaTen ?? "Khách thuê",
+                    HopDongHopLe = true,
+                    TongSoNgayTrongThang = daysInMonth,
+                    DaCoHoaDon = existingInvoiceHopDongIdsSet.Contains(hd.HopDongId)
                 };
 
-                if (hd == null)
+                var tienPhongData = _calculatorService.TinhTienPhong(hd.TienThuePhong, hd.ThoiDiemBatDau, hd.ThoiDiemKetThuc, thang, nam);
+                previewItem.SoNgayO = tienPhongData.SoNgayO;
+                previewItem.TienPhongDuKien = tienPhongData.SoTien;
+                previewItem.TongTienDuKien += tienPhongData.SoTien;
+
+                if (dienNuocDict.TryGetValue(hd.PhongTroId, out var dienNuoc))
                 {
-                    item.TenNguoiThue = "";
-                    item.HopDongHopLe = false;
-                    item.GhiChuTrangThai = "Phòng trống / Không có hợp đồng hoạt động";
-                    result.Add(item);
-                    continue;
-                }
-
-                item.TenNguoiThue = hd.NguoiThue?.HoVaTen ?? "";
-
-                // Kiểm tra hóa đơn đã tồn tại
-                bool exists = existingInvoiceHopDongIdsSet.Contains(hd.HopDongId);
-
-                if (exists)
-                {
-                    item.DaCoHoaDon = true;
-                    item.HopDongHopLe = false;
-                    item.GhiChuTrangThai = "Đã phát sinh hóa đơn tháng này";
-                    result.Add(item);
-                    continue;
-                }
-
-                // Kiểm tra chốt điện nước
-                dienNuocDict.TryGetValue(p.PhongTroId, out var dienNuoc);
-
-                item.DaChotDienNuoc = (dienNuoc != null);
-
-                // Tính số ngày ở thực tế và tiền phòng dự kiến
-                DateTime activeStart = hd.ThoiDiemBatDau > startOfMonth ? hd.ThoiDiemBatDau.Date : startOfMonth;
-                DateTime activeEnd = (hd.ThoiDiemKetThuc != null && hd.ThoiDiemKetThuc.Value < endOfMonth) ? hd.ThoiDiemKetThuc.Value.Date : endOfMonth;
-                int activeDays = (activeEnd - activeStart).Days + 1;
-                double tienPhong = Math.Round((hd.TienThuePhong / daysInMonth) * activeDays);
-
-                item.SoNgayO = activeDays;
-                item.TongSoNgayTrongThang = daysInMonth;
-                item.TienPhongDuKien = tienPhong;
-
-                // Tính tổng tiền dự kiến
-                double tongTien = tienPhong;
-                if (dienNuoc != null)
-                {
-                    double soDien = dienNuoc.ChiSoDienMoi - dienNuoc.ChiSoDienCu;
-                    double soNuoc = dienNuoc.ChiSoNuocMoi - dienNuoc.ChiSoNuocCu;
-                    tongTien += (soDien * dienNuoc.DonGiaDien) + (soNuoc * dienNuoc.DonGiaNuoc);
-                }
-
-                // Tính thêm các dịch vụ cố định (có tính lẻ ngày nếu đăng ký giữa tháng)
-                var phongDangKyDvs = dangKyDvsLookup[p.PhongTroId];
-
-                foreach (var dk in phongDangKyDvs)
-                {
-                    var tenDv = dk.DichVuChiNhanh.DichVu.TenDichVu.ToLower();
-                    if (tenDv.Contains("điện") || tenDv.Contains("nước")) continue;
-
-                    if (dk.NgayBatDau.Date <= activeEnd)
+                    previewItem.DaChotDienNuoc = true;
+                    try
                     {
-                        DateTime serviceStart = dk.NgayBatDau.Date > activeStart ? dk.NgayBatDau.Date : activeStart;
-                        DateTime serviceEnd = (dk.NgayKetThuc != null && dk.NgayKetThuc.Value < activeEnd) ? dk.NgayKetThuc.Value.Date : activeEnd;
-                        int serviceActiveDays = (serviceEnd - serviceStart).Days + 1;
-
-                        if (serviceActiveDays > 0)
-                        {
-                            double dvTongTien = Math.Round((dk.DichVuChiNhanh.GiaDichVu * dk.SoLuong / daysInMonth) * serviceActiveDays);
-                            tongTien += dvTongTien;
-                        }
+                        var dienData = _calculatorService.TinhTienDienNuoc(dienNuoc.ChiSoDienMoi, dienNuoc.ChiSoDienCu, dienNuoc.DonGiaDien, "Điện", previewItem.SoNgayO, daysInMonth);
+                        var nuocData = _calculatorService.TinhTienDienNuoc(dienNuoc.ChiSoNuocMoi, dienNuoc.ChiSoNuocCu, dienNuoc.DonGiaNuoc, "Nước", previewItem.SoNgayO, daysInMonth);
+                        previewItem.TongTienDuKien += dienData.SoTien + nuocData.SoTien;
                     }
-                }
-
-                // Thêm chi phí sửa chữa sự cố dự kiến (đã pre-load)
-                foreach (var suco in suCosLookup[hd.PhongTroId])
-                {
-                    tongTien += suco.ChiPhiSuaChua;
-                }
-
-                item.TongTienDuKien = tongTien;
-
-                if (!item.DaChotDienNuoc)
-                {
-                    item.HopDongHopLe = false;
-                    item.GhiChuTrangThai = "Chưa chốt chỉ số điện nước";
+                    catch (InvalidOperationException ex)
+                    {
+                        previewItem.GhiChuTrangThai = ex.Message;
+                        previewItem.HopDongHopLe = false;
+                    }
                 }
                 else
                 {
-                    item.HopDongHopLe = true;
-                    item.GhiChuTrangThai = activeDays < daysInMonth ? $"Sẵn sàng (Tính lẻ ngày ở: {activeDays}/{daysInMonth} ngày)" : "Sẵn sàng";
+                    previewItem.DaChotDienNuoc = false;
                 }
 
-                result.Add(item);
+                var dsDichVu = dangKyDvsLookup[hd.PhongTroId];
+                foreach (var dk in dsDichVu)
+                {
+                    var dichVu = dk.DichVuChiNhanh?.DichVu;
+                    if (dichVu == null || dichVu.LoaiDichVu == LoaiDichVu.Dien || dichVu.LoaiDichVu == LoaiDichVu.Nuoc) 
+                        continue;
+
+                    var dvData = _calculatorService.TinhTienDichVuCoDinh(dk.DichVuChiNhanh.GiaDichVu, dk.SoLuong, dichVu.TenDichVu, dk.NgayBatDau, dk.NgayKetThuc, thang, nam, hd.ThoiDiemBatDau, hd.ThoiDiemKetThuc);
+                    previewItem.TongTienDuKien += dvData.SoTien;
+                }
+
+                // Tính sự cố (match theo NguoiThueId)
+                var suCos = suCosLookup[hd.PhongTroId]
+                    .Where(sc => sc.NguoiThueId == hd.NguoiThueId)
+                    .ToList();
+                foreach (var sc in suCos)
+                {
+                    previewItem.TongTienDuKien += sc.ChiPhiSuaChua;
+                    previewItem.SuCoCount++;
+                }
+
+                if (previewItem.DaCoHoaDon)
+                {
+                    previewItem.GhiChuTrangThai = "Hợp đồng đã xuất HĐ";
+                }
+                else if (!previewItem.DaChotDienNuoc)
+                {
+                    previewItem.GhiChuTrangThai = "Chưa chốt chỉ số Đ/N";
+                }
+                else if (previewItem.HopDongHopLe && string.IsNullOrEmpty(previewItem.GhiChuTrangThai))
+                {
+                    previewItem.GhiChuTrangThai = "Sẵn sàng";
+                }
+
+                result.Add(previewItem);
             }
 
-            return result;
+            return result.OrderBy(x => x.SoPhong).ThenBy(x => x.TenNguoiThue).ToList();
         }
+
 
         // =================== CẬP NHẬT/CHỈNH SỬA HÓA ĐƠN ===================
         public async Task<(bool IsSuccess, string ErrorMessage)> UpdateHoaDonAsync(int hoaDonId, UpdateHoaDonReq req)
@@ -888,7 +971,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HoaDons
                 .ToListAsync();
         }
 
-        public async Task<IEnumerable<QuanLyChoThuePhongTroWeb.Models.HoaDon>> GetHoaDonsByNguoiThueIdAsync(int nguoiThueId)
+        public async Task<List<HoaDonRes>> GetHoaDonsByNguoiThueIdAsync(int nguoiThueId)
         {
             var hopDongIds = await _context.HopDongs
                 .Where(x => x.NguoiThueId == nguoiThueId && !x.IsDeleted)
@@ -897,13 +980,27 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HoaDons
 
             if (!hopDongIds.Any())
             {
-                return Enumerable.Empty<QuanLyChoThuePhongTroWeb.Models.HoaDon>();
+                return new List<HoaDonRes>();
             }
 
             var hoaDons = await _context.HoaDons
                 .Include(x => x.HopDong).ThenInclude(h => h.PhongTro)
                 .Where(x => hopDongIds.Contains(x.HopDongId) && !x.IsDeleted)
                 .OrderByDescending(x => x.NgayTao)
+                .Select(x => new HoaDonRes
+                {
+                    HoaDonId = x.HoaDonId,
+                    MaHoaDon = x.MaHoaDon,
+                    HopDongId = x.HopDongId,
+                    MaHopDong = x.HopDong.MaHopDong,
+                    TenPhong = x.HopDong.PhongTro.SoPhong,
+                    Thang = x.Thang,
+                    Nam = x.Nam,
+                    TongTien = x.TongTien,
+                    TrangThaiHoaDon = x.TrangThaiHoaDon == QuanLyChoThuePhongTroWeb.Models.TrangThaiHoaDon.DaThanhToan ? "Đã thanh toán" : "Chưa thanh toán",
+                    TrangThaiHoaDonValue = (int)x.TrangThaiHoaDon,
+                    NgayTao = x.NgayTao.ToString("dd/MM/yyyy HH:mm")
+                })
                 .ToListAsync();
 
             return hoaDons;

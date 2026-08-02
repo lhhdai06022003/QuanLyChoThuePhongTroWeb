@@ -7,7 +7,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HoaDons
 {
     public interface IHoaDonService
     {
-        Task<(bool IsSuccess, string Message, int SoHoaDonMoi)> PhatSinhHoaDonAsync(int chiNhanhId, int thang, int nam, List<int> selectedPhongTroIds);
+        Task<PhatSinhHoaDonResult> PhatSinhHoaDonAsync(int chiNhanhId, int thang, int nam, List<int> selectedPhongTroIds);
         Task<List<PhatSinhPreviewRes>> PreviewPhatSinhHoaDonAsync(int chiNhanhId, int thang, int nam);
         Task<(bool IsSuccess, string ErrorMessage)> UpdateHoaDonAsync(int hoaDonId, UpdateHoaDonReq req);
         Task<DataTableResponse<HoaDonRes>> GetDanhSachHoaDonAsync(DataTableRequest request, int chiNhanhId, int thang, int nam, int trangThai);
@@ -17,7 +17,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.HoaDons
         Task<byte[]> ExportExcelAsync(int hoaDonId);
         Task<byte[]> ExportPdfAsync(int hoaDonId);
         Task<List<HoaDonRes>> GetDanhSachHoaDonChuaThanhToanAsync(int chiNhanhId, int thang, int nam);
-        Task<IEnumerable<QuanLyChoThuePhongTroWeb.Models.HoaDon>> GetHoaDonsByNguoiThueIdAsync(int nguoiThueId);
+        Task<List<HoaDonRes>> GetHoaDonsByNguoiThueIdAsync(int nguoiThueId);
         Task<bool> CheckHoaDonOwnershipAsync(int hoaDonId, int nguoiThueId);
     }
 }

@@ -54,9 +54,14 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
 
             var result = await _hoaDonService.PhatSinhHoaDonAsync(req.ChiNhanhId, req.Thang, req.Nam, req.SelectedPhongTroIds);
             if (!result.IsSuccess)
-                return BadRequest(new { Message = result.Message });
+                return BadRequest(new { Message = result.Message, Skipped = result.Skipped, Successes = result.Successes });
 
-            return Ok(new { Message = result.Message, SoHoaDonMoi = result.SoHoaDonMoi });
+            return Ok(new { 
+                Message = result.Message, 
+                SoHoaDonMoi = result.SoHoaDonMoi,
+                Skipped = result.Skipped,
+                Successes = result.Successes
+            });
         }
 
         // Xem trước phát sinh hóa đơn
@@ -105,6 +110,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         [HttpGet("/HoaDon/GetById/{id}")]
         public async Task<IActionResult> GetById(int id)
         {
+            if (id <= 0) return BadRequest(new { Message = "ID hóa đơn không hợp lệ." });
             var data = await _hoaDonService.GetHoaDonByIdAsync(id);
             if (data == null) return NotFound(new { Message = "Không tìm thấy hóa đơn." });
             return Ok(data);
@@ -114,6 +120,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         [HttpPost("/HoaDon/ThuTien")]
         public async Task<IActionResult> ThuTien([FromBody] ThuTienReq req)
         {
+            if (req == null || req.HoaDonId <= 0) return BadRequest(new { Message = "Dữ liệu hóa đơn không hợp lệ." });
             int userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "0");
             var result = await _hoaDonService.ThuTienAsync(req.HoaDonId, req.PhuongThucThanhToan, req.GhiChu, userId);
             if (!result.IsSuccess) return BadRequest(new { Message = result.ErrorMessage });
@@ -124,6 +131,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         [HttpDelete("/HoaDon/Delete/{id}")]
         public async Task<IActionResult> Delete(int id)
         {
+            if (id <= 0) return BadRequest(new { Message = "ID hóa đơn không hợp lệ." });
             var result = await _hoaDonService.DeleteHoaDonAsync(id);
             if (!result.IsSuccess) return BadRequest(new { Message = result.ErrorMessage });
             return Ok(new { Message = "Đã xóa hóa đơn." });
@@ -134,6 +142,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         [ApiExplorerSettings(IgnoreApi = true)]
         public async Task<IActionResult> ExportExcel(int id)
         {
+            if (id <= 0) return BadRequest(new { Message = "ID hóa đơn không hợp lệ." });
             var bytes = await _hoaDonService.ExportExcelAsync(id);
             if (bytes == null) return NotFound();
             return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"HoaDon_{id}.xlsx");
@@ -144,6 +153,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         [ApiExplorerSettings(IgnoreApi = true)]
         public async Task<IActionResult> ExportPdf(int id)
         {
+            if (id <= 0) return BadRequest(new { Message = "ID hóa đơn không hợp lệ." });
             var bytes = await _hoaDonService.ExportPdfAsync(id);
             if (bytes == null) return NotFound();
             return File(bytes, "application/pdf", $"HoaDon_{id}.pdf");
@@ -192,6 +202,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         [HttpPost("/HoaDon/SendEmail/{id}")]
         public async Task<IActionResult> SendEmail(int id)
         {
+            if (id <= 0) return BadRequest(new { Message = "ID hóa đơn không hợp lệ." });
             try
             {
                 var hd = await _hoaDonService.GetHoaDonByIdAsync(id);

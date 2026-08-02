@@ -33,7 +33,7 @@ namespace QuanLyChoThuePhongTroWeb.Services
                         new MenuItem { Name = "Phòng trọ", Icon = "ti ti-bed", Url = "/PhongTros/QuanLyPhongTro" },
                         //new MenuItem { Name = "Sơ đồ phòng", Icon = "ti ti-layout-grid", Url = "/PhongTros/SoDoPhong" },
                         new MenuItem { Name = "Người thuê", Icon = "ti ti-users", Url = "/QuanLyNhaTro/QuanLyNguoiThue" },
-                        new MenuItem { Name = "Hợp đồng", Icon = "ti ti-file-contract", Url = "/QuanLyNhaTro/QuanLyHopDong" },
+                        new MenuItem { Name = "Hợp đồng", Icon = "ti ti-file-text", Url = "/QuanLyNhaTro/QuanLyHopDong" },
                         new MenuItem { Name = "Điều khoản hợp đồng", Icon = "ti ti-gavel", Url = "/QuanLyNhaTro/DieuKhoanMau" },
                         new MenuItem { Name = "Dịch vụ", Icon = "ti ti-apps", Url = "/QuanLyNhaTro/QuanLyDichVu" },
                         new MenuItem { Name = "Điện nước", Icon = "ti ti-bolt", Url = "/QuanLyNhaTro/ChotDienNuoc" },
