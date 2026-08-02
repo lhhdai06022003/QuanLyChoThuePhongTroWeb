@@ -50,7 +50,7 @@
                 <div class="card-body p-4">
                     <div class="subheader text-white text-opacity-75 font-weight-bold mb-2 fs-4">THU TIỀN MẶT</div>
                     <div class="h1 mb-0 text-white font-weight-bold" id="statDoanhThuTienMat" style="font-size: 2rem;">0 ₫</div>
-                    <i class="ti ti-money-bill-wave fa-4x text-white text-opacity-25" style="position: absolute; right: 15px; top: 15px;"></i>
+                    <i class="ti ti-cash fa-4x text-white text-opacity-25" style="position: absolute; right: 15px; top: 15px;"></i>
                 </div>
             </div>
         </div>
@@ -61,7 +61,7 @@
                 <div class="card-body p-4">
                     <div class="subheader text-white text-opacity-75 font-weight-bold mb-2 fs-4">CHUYỂN KHOẢN</div>
                     <div class="h1 mb-0 text-white font-weight-bold" id="statDoanhThuChuyenKhoan" style="font-size: 2rem;">0 ₫</div>
-                    <i class="ti ti-university fa-4x text-white text-opacity-25" style="position: absolute; right: 15px; top: 15px;"></i>
+                    <i class="ti ti-building-bank fa-4x text-white text-opacity-25" style="position: absolute; right: 15px; top: 15px;"></i>
                 </div>
             </div>
         </div>
@@ -90,7 +90,7 @@
                     </div>
                     <div class="col-md-3">
                         <label for="filterPhuongThuc" class="form-label font-weight-bold text-secondary mb-1">
-                            <i class="ti ti-hand-holding-usd me-1"></i> Phương thức
+                            <i class="ti ti-report-money me-1"></i> Phương thức
                         </label>
                         <select id="filterPhuongThuc" class="form-select form-select-sm">
                             <option value="-1">-- Tất cả phương thức --</option>
@@ -145,7 +145,7 @@
     <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
         <div class="modal-content shadow-lg border-0">
             <div class="modal-header bg-info-lt py-3">
-                <h5 class="modal-title font-weight-bold"><i class="ti ti-file-alt me-1"></i> Chi tiết Hóa đơn</h5>
+                <h5 class="modal-title font-weight-bold"><i class="ti ti-file-description me-1"></i> Chi tiết Hóa đơn</h5>
                 <button type="button" class="btn-close btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body py-4" id="chiTietBody">
@@ -307,9 +307,9 @@
                         "orderable": false,
                         "render": function (d, t, r) {
                             if (d === 1) {
-                                return '<span class="badge bg-success-lt px-2 py-1"><i class="ti ti-university me-1"></i> Chuyển khoản</span>';
+                                return '<span class="badge bg-success-lt px-2 py-1"><i class="ti ti-building-bank me-1"></i> Chuyển khoản</span>';
                             }
-                            return '<span class="badge bg-blue-lt px-2 py-1"><i class="ti ti-money-bill-wave me-1"></i> Tiền mặt</span>';
+                            return '<span class="badge bg-blue-lt px-2 py-1"><i class="ti ti-cash me-1"></i> Tiền mặt</span>';
                         }
                     },
                     { "data": "ngayThanhToan", "className": "align-middle text-center" },

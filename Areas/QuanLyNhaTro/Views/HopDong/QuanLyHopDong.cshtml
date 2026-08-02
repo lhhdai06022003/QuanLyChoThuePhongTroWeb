@@ -13,7 +13,7 @@
         <div class="row align-items-center">
             <div class="col">
                 <h2 class="page-title text-primary font-weight-bold d-flex align-items-center">
-                    <i class="ti ti-file-contract me-2"></i> Quản lý Hợp Đồng
+                    <i class="ti ti-file-text me-2"></i> Quản lý Hợp Đồng
                 </h2>
             </div>
             <div class="col-auto ms-auto">
@@ -221,7 +221,7 @@
                         </div>
                         <div id="hopDongDichVuContainer">
                             <div class="text-center text-muted py-4">
-                                <i class="ti ti-hand-point-up fa-2x mb-2"></i>
+                                <i class="ti ti-hand-click fa-2x mb-2"></i>
                                 <p>Vui lòng chọn <strong>Phòng Trọ</strong> ở tab "Thông tin hợp đồng" trước.</p>
                             </div>
                         </div>
@@ -484,14 +484,14 @@
                 if (!phongTroId) {
                     $('#hopDongDichVuContainer').html(`
                         <div class="text-center text-muted py-4">
-                            <i class="ti ti-hand-point-up fa-2x mb-2"></i>
+                            <i class="ti ti-hand-click fa-2x mb-2"></i>
                             <p>Vui lòng chọn <strong>Phòng Trọ</strong> ở tab "Thông tin hợp đồng" trước.</p>
                         </div>
                     `);
                     return;
                 }
                 // Hiện loading
-                $('#hopDongDichVuContainer').html('<div class="text-center py-3"><i class="ti ti-spinner fa-spin fa-2x"></i></div>');
+                $('#hopDongDichVuContainer').html('<div class="text-center py-3"><i class="ti ti-loader fa-spin fa-2x"></i></div>');
 
                 $.get(`/DangKyDichVu/GetByPhong?phongTroId=${phongTroId}`, function (data) {
                     let isNew = window.currentHopDongId === 0;
@@ -581,10 +581,10 @@
                                         </button>
                                         <div class="dropdown-menu dropdown-menu-end">
                                             <a href="/HopDong/Print/${data}" target="_blank" class="dropdown-item text-info py-2">
-                                                <i class="ti ti-print me-2"></i> In Hợp Đồng
+                                                <i class="ti ti-printer me-2"></i> In Hợp Đồng
                                             </a>
                                             <a href="/HopDong/DownloadWord/${data}" class="dropdown-item text-success py-2">
-                                                <i class="ti ti-file-word me-2"></i> Tải Word
+                                                <i class="ti ti-file-type-docx me-2"></i> Tải Word
                                             </a>
                                             <div class="dropdown-divider"></div>
                                             <button class="dropdown-item btn-edit text-warning py-2" data-id="${data}">
@@ -641,7 +641,7 @@
                 // Reset tab dịch vụ
                 $('#hopDongDichVuContainer').html(`
                     <div class="text-center text-muted py-4">
-                        <i class="ti ti-hand-point-up fa-2x mb-2"></i>
+                        <i class="ti ti-hand-click fa-2x mb-2"></i>
                         <p>Vui lòng chọn <strong>Phòng Trọ</strong> ở tab "Thông tin hợp đồng" trước.</p>
                     </div>
                 `);
@@ -739,7 +739,7 @@
 
             // Hàm load danh sách thành viên
             window.loadDanhSachThanhVien = function(hopDongId) {
-                $('#thanhVienTbody').html('<tr><td colspan="8" class="text-center"><i class="ti ti-spinner fa-spin"></i> Đang tải dữ liệu...</td></tr>');
+                $('#thanhVienTbody').html('<tr><td colspan="8" class="text-center"><i class="ti ti-loader fa-spin"></i> Đang tải dữ liệu...</td></tr>');
                 $.ajax({
                     url: `/ThanhVienHopDong/GetDanhSach/${hopDongId}`,
                     type: 'GET',
@@ -835,7 +835,7 @@
                 }).then((result) => {
                     if (result.isConfirmed) {
                         let $btn = $(this);
-                        $btn.prop('disabled', true).html('<i class="ti ti-spinner fa-spin"></i> Đang lưu...');
+                        $btn.prop('disabled', true).html('<i class="ti ti-loader fa-spin"></i> Đang lưu...');
 
                         $.ajax({
                             url: '/ThanhVienHopDong/AddThanhVien',
@@ -959,7 +959,7 @@
                 }).then((result) => {
                     if (result.isConfirmed) {
                         let $btn = $(this);
-                        $btn.prop('disabled', true).html('<i class="ti ti-spinner fa-spin"></i> Đang xử lý...');
+                        $btn.prop('disabled', true).html('<i class="ti ti-loader fa-spin"></i> Đang xử lý...');
 
                         // Bước 1: Lưu hợp đồng
                         $.ajax({
@@ -1021,7 +1021,7 @@
 
                 let $btn = $(this);
                 let originalHtml = $btn.html();
-                $btn.prop('disabled', true).html('<i class="ti ti-spinner fa-spin"></i>');
+                $btn.prop('disabled', true).html('<i class="ti ti-loader fa-spin"></i>');
 
                 $.ajax({
                     url: `/HopDong/GetById/${id}`,
@@ -1109,7 +1109,7 @@
                     if (result.isConfirmed) {
                         let $btn = $(this);
                         let originalHtml = $btn.html();
-                        $btn.prop('disabled', true).html('<i class="ti ti-spinner fa-spin"></i>');
+                        $btn.prop('disabled', true).html('<i class="ti ti-loader fa-spin"></i>');
 
                         $.ajax({
                             url: `/HopDong/Delete/${id}`,

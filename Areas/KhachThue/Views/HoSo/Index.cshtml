@@ -20,7 +20,7 @@
             <div class="col-md-7">
                 <div class="card">
                     <div class="card-header bg-primary-lt">
-                        <h3 class="card-title"><i class="ti ti-address-card me-2"></i> Hồ sơ của bạn</h3>
+                        <h3 class="card-title"><i class="ti ti-id me-2"></i> Hồ sơ của bạn</h3>
                     </div>
                     <div class="card-body">
                         <div class="row mb-4 align-items-center">
@@ -29,7 +29,7 @@
                             </div>
                             <div class="col">
                                 <h3 class="mb-0 font-weight-bold">@Model.HoVaTen</h3>
-                                <div class="text-muted mt-1"><i class="ti ti-envelope me-1"></i> @Model.Email</div>
+                                <div class="text-muted mt-1"><i class="ti ti-mail me-1"></i> @Model.Email</div>
                                 <div class="mt-2">
                                     <span class="badge bg-success-lt"><i class="ti ti-circle-check me-1"></i> Đang hoạt động</span>
                                 </div>
@@ -46,7 +46,7 @@
                                 <input type="text" class="form-control" value="@Model.SoDienThoai" readonly />
                             </div>
                             <div class="col-md-12 mb-3">
-                                <label class="form-label text-muted font-weight-bold"><i class="ti ti-map-marker-alt me-1"></i> Quê quán</label>
+                                <label class="form-label text-muted font-weight-bold"><i class="ti ti-map-pin me-1"></i> Quê quán</label>
                                 <input type="text" class="form-control" value="@Model.QueQuan" readonly />
                             </div>
                         </div>
@@ -107,7 +107,7 @@
                             </div>
                             <div class="form-footer mt-0">
                                 <button type="submit" class="btn btn-primary w-100" id="btnSubmitDoiMatKhau">
-                                    <i class="ti ti-save me-2"></i> Lưu thay đổi
+                                    <i class="ti ti-device-floppy me-2"></i> Lưu thay đổi
                                 </button>
                             </div>
                         </form>
@@ -165,7 +165,7 @@
 
                 let btn = $('#btnSubmitDoiMatKhau');
                 let originalText = btn.html();
-                btn.prop('disabled', true).html('<i class="ti ti-spinner fa-spin me-2"></i> Đang xử lý...');
+                btn.prop('disabled', true).html('<i class="ti ti-loader fa-spin me-2"></i> Đang xử lý...');
 
                 let dataObj = {
                     MatKhauCu: mkCu,

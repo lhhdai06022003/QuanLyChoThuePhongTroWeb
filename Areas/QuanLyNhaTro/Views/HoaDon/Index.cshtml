@@ -15,7 +15,7 @@
             </div>
             <div class="col-auto ms-auto d-flex gap-2">
                 <button class="btn btn-primary font-weight-bold shadow-sm" id="btnOpenBulkEmailModal">
-                    <i class="ti ti-envelope me-1"></i> Gửi Email Hóa Đơn
+                    <i class="ti ti-mail me-1"></i> Gửi Email Hóa Đơn
                 </button>
                 <button class="btn btn-success font-weight-bold shadow-sm" id="btnPhatSinh">
                     <i class="ti ti-circle-plus me-1"></i> Phát sinh Hóa đơn
@@ -109,7 +109,7 @@
     <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
         <div class="modal-content shadow-lg border-0">
             <div class="modal-header bg-info-lt py-3">
-                <h5 class="modal-title font-weight-bold"><i class="ti ti-file-alt me-1"></i> Chi tiết Hóa đơn</h5>
+                <h5 class="modal-title font-weight-bold"><i class="ti ti-file-description me-1"></i> Chi tiết Hóa đơn</h5>
                 <button type="button" class="btn-close " data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body py-4" id="chiTietBody">
@@ -127,7 +127,7 @@
     <div class="modal-dialog modal-dialog-centered" role="document">
         <div class="modal-content shadow-lg border-0">
             <div class="modal-header bg-success-lt py-3">
-                <h5 class="modal-title font-weight-bold"><i class="ti ti-hand-holding-usd me-1"></i> Xác nhận Thu tiền</h5>
+                <h5 class="modal-title font-weight-bold"><i class="ti ti-report-money me-1"></i> Xác nhận Thu tiền</h5>
                 <button type="button" class="btn-close " data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body py-4">
@@ -216,7 +216,7 @@
                         </div>
                         <div class="col-md-2 d-flex align-items-end">
                             <button type="button" class="btn btn-primary btn-sm w-100 font-weight-bold" id="btnLoadPreview" style="height: 36px;">
-                                <i class="ti ti-sync-alt me-1"></i> Tải dữ liệu
+                                <i class="ti ti-refresh me-1"></i> Tải dữ liệu
                             </button>
                         </div>
                     </div>
@@ -235,7 +235,7 @@
                     </li>
                     <li class="nav-item">
                         <a class="nav-link font-weight-bold" id="invalid-tab" data-bs-toggle="tab" data-bs-target="#invalid-pane" role="tab">
-                            <i class="ti ti-times-circle text-danger me-1"></i> Đã có HĐ / Không hợp lệ (<span id="invalid-count">0</span>)
+                            <i class="ti ti-circle-x text-danger me-1"></i> Đã có HĐ / Không hợp lệ (<span id="invalid-count">0</span>)
                         </a>
                     </li>
                 </ul>
@@ -307,7 +307,7 @@
     <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
         <div class="modal-content shadow-lg border-0">
             <div class="modal-header bg-primary-lt py-3">
-                <h5 class="modal-title font-weight-bold"><i class="ti ti-envelope me-1"></i> Gửi Email Hóa Đơn Hàng Loạt</h5>
+                <h5 class="modal-title font-weight-bold"><i class="ti ti-mail me-1"></i> Gửi Email Hóa Đơn Hàng Loạt</h5>
                 <button type="button" class="btn-close " data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body py-4">
@@ -364,7 +364,7 @@
                         </div>
                         <div class="col-md-2 d-flex align-items-end">
                             <button type="button" class="btn btn-primary btn-sm w-100 font-weight-bold" id="btnLoadEmailBulk" style="height: 36px;">
-                                <i class="ti ti-sync-alt me-1"></i> Tải dữ liệu
+                                <i class="ti ti-refresh me-1"></i> Tải dữ liệu
                             </button>
                         </div>
                     </div>
@@ -394,7 +394,7 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i> Đóng</button>
                 <button type="button" class="btn btn-success shadow-sm" id="btnConfirmSendEmailBulk" disabled>
-                    <i class="ti ti-paper-plane me-1"></i> Bắt đầu gửi (<span id="selected-email-bulk-count">0</span> hóa đơn)
+                    <i class="ti ti-send me-1"></i> Bắt đầu gửi (<span id="selected-email-bulk-count">0</span> hóa đơn)
                 </button>
             </div>
         </div>
@@ -530,7 +530,7 @@
                                                     <i class="ti ti-edit me-2"></i> Chỉnh sửa
                                                 </button>
                                                 <button class="dropdown-item btn-thutien text-success py-2" data-id="${data}" data-ma="${row.maHoaDon}" data-tien="${row.tongTien}">
-                                                    <i class="ti ti-hand-holding-usd me-2"></i> Thu tiền
+                                                    <i class="ti ti-report-money me-2"></i> Thu tiền
                                                 </button>
                                                 <div class="dropdown-divider"></div>
                                                 <button class="dropdown-item btn-delete text-danger py-2" data-id="${data}">
@@ -539,14 +539,14 @@
                                             ` : ''}
                                             <div class="dropdown-divider"></div>
                                             <button class="dropdown-item btn-send-email text-primary py-2" data-id="${data}" data-email="${row.email || ''}" data-ma="${row.maHoaDon}">
-                                                <i class="ti ti-envelope me-2"></i> Gửi Email hóa đơn
+                                                <i class="ti ti-mail me-2"></i> Gửi Email hóa đơn
                                             </button>
                                             <div class="dropdown-divider"></div>
                                             <a class="dropdown-item text-secondary py-2" href="/HoaDon/ExportExcel/${data}">
-                                                <i class="ti ti-file-excel text-success me-2"></i> Xuất Excel
+                                                <i class="ti ti-file-spreadsheet text-success me-2"></i> Xuất Excel
                                             </a>
                                             <a class="dropdown-item text-secondary py-2" href="/HoaDon/ExportPdf/${data}">
-                                                <i class="ti ti-file-pdf text-danger me-2"></i> Xuất PDF
+                                                <i class="ti ti-file-type-pdf text-danger me-2"></i> Xuất PDF
                                             </a>
                                         </div>
                                     </div>
@@ -607,7 +607,7 @@
                 if (!na || na < 2000) { showWarning('Vui lòng nhập Năm hợp lệ!'); return; }
 
                 let $btn = $(this);
-                $btn.prop('disabled', true).html('<i class="ti ti-spinner fa-spin me-1"></i> Đang tải...');
+                $btn.prop('disabled', true).html('<i class="ti ti-loader fa-spin me-1"></i> Đang tải...');
 
                 $.ajax({
                     url: `/HoaDon/PreviewPhatSinh?chiNhanhId=${cn}&thang=${th}&nam=${na}`,
@@ -617,7 +617,7 @@
                         renderPreviewModal();
                     },
                     error: function(xhr) { showError(xhr.responseJSON?.message || 'Có lỗi khi chuẩn bị xem trước.'); },
-                    complete: function() { $btn.prop('disabled', false).html('<i class="ti ti-sync-alt me-1"></i> Tải dữ liệu'); }
+                    complete: function() { $btn.prop('disabled', false).html('<i class="ti ti-refresh me-1"></i> Tải dữ liệu'); }
                 });
             });
 
@@ -728,7 +728,7 @@
                 }).then((result) => {
                     if (result.isConfirmed) {
                         let $btn = $(this);
-                        $btn.prop('disabled', true).html('<i class="ti ti-spinner fa-spin me-1"></i> Đang xử lý...');
+                        $btn.prop('disabled', true).html('<i class="ti ti-loader fa-spin me-1"></i> Đang xử lý...');
 
                         $.ajax({
                             url: '/HoaDon/PhatSinh',
@@ -968,7 +968,7 @@
                 }).then((result) => {
                     if (result.isConfirmed) {
                         let $btn = $(this);
-                        $btn.prop('disabled', true).html('<i class="ti ti-spinner fa-spin me-1"></i> Đang lưu...');
+                        $btn.prop('disabled', true).html('<i class="ti ti-loader fa-spin me-1"></i> Đang lưu...');
 
                         $.ajax({
                             url: `/HoaDon/Update/${id}`,
@@ -1082,7 +1082,7 @@
                     if (result.isConfirmed) {
                         let $btn = $(this);
                         let originalHtml = $btn.html();
-                        $btn.prop('disabled', true).addClass('disabled').html('<i class="ti ti-spinner fa-spin me-2"></i> Đang gửi...');
+                        $btn.prop('disabled', true).addClass('disabled').html('<i class="ti ti-loader fa-spin me-2"></i> Đang gửi...');
 
                         $.ajax({
                             url: `/HoaDon/SendEmail/${id}`,
@@ -1135,7 +1135,7 @@
                 }
 
                 let $btn = $(this);
-                $btn.prop('disabled', true).html('<i class="ti ti-spinner fa-spin me-1"></i> Đang tải...');
+                $btn.prop('disabled', true).html('<i class="ti ti-loader fa-spin me-1"></i> Đang tải...');
 
                 $.ajax({
                     url: `/HoaDon/GetUnpaidList?chiNhanhId=${cn}&thang=${th}&nam=${na}`,
@@ -1148,7 +1148,7 @@
                         showError(xhr.responseJSON?.message || 'Có lỗi khi tải danh sách hóa đơn chưa thanh toán.');
                     },
                     complete: function() {
-                        $btn.prop('disabled', false).html('<i class="ti ti-sync-alt me-1"></i> Tải dữ liệu');
+                        $btn.prop('disabled', false).html('<i class="ti ti-refresh me-1"></i> Tải dữ liệu');
                     }
                 });
             });

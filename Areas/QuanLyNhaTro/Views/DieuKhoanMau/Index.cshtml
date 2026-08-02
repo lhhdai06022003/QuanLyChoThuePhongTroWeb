@@ -182,7 +182,7 @@
                     if (result.isConfirmed) {
                         let $btn = $(this);
                         let originalHtml = $btn.html();
-                        $btn.prop('disabled', true).html('<i class="ti ti-spinner fa-spin"></i> Đang xử lý...');
+                        $btn.prop('disabled', true).html('<i class="ti ti-loader fa-spin"></i> Đang xử lý...');
 
                         $.ajax({
                             url: isUpdate ? `/DieuKhoanMau/Update/${id}` : '/DieuKhoanMau/Create',

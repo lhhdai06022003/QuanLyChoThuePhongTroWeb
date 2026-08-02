@@ -12,13 +12,13 @@
                     <i class="ti ti-bed me-2"></i> Quản Lý Phòng Trọ
                 </h2>
                 <div class="view-toggle btn-group" role="group">
-                    <button class="btn btn-outline-primary active" id="btnGridView"><i class="ti ti-th-large"></i> Sơ đồ</button>
+                    <button class="btn btn-outline-primary active" id="btnGridView"><i class="ti ti-apps"></i> Sơ đồ</button>
                     <button class="btn btn-outline-primary" id="btnTableView"><i class="ti ti-table"></i> Bảng</button>
                 </div>
             </div>
             <div class="col-auto ms-auto">
                 @* <button type="button" class="btn btn-success me-2 font-weight-bold" id="btnPhatSinhPhong">
-                    <i class="ti ti-magic"></i> Phát sinh 10 phòng ngẫu nhiên
+                    <i class="ti ti-wand"></i> Phát sinh 10 phòng ngẫu nhiên
                 </button> *@
                 <button type="button" class="btn btn-success font-weight-bold shadow-sm" id="btnOpenAddModal">
                     <i class="ti ti-circle-plus me-1"></i> Thêm Mới Phòng
@@ -261,7 +261,7 @@
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header bg-success text-white">
-                <h5 class="modal-title"><i class="ti ti-concierge-bell"></i> <span id="dichVuPhongTitle">Quản lý dịch vụ</span></h5>
+                <h5 class="modal-title"><i class="ti ti-bell"></i> <span id="dichVuPhongTitle">Quản lý dịch vụ</span></h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
@@ -270,7 +270,7 @@
                     Dịch vụ <strong>Mặc định</strong> (Điện, Nước) tự động đăng ký. Các dịch vụ khác có thể nhập số lượng.
                 </div>
                 <div id="dichVuPhongContainer">
-                    <div class="text-center py-4"><i class="ti ti-spinner fa-spin fa-2x"></i></div>
+                    <div class="text-center py-4"><i class="ti ti-loader fa-spin fa-2x"></i></div>
                 </div>
             </div>
             <div class="modal-footer">
@@ -288,7 +288,7 @@
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title"><i class="ti ti-file-contract"></i> Xem Nhanh Hợp Đồng - Phòng <span id="quickContractRoom"></span></h5>
+                <h5 class="modal-title"><i class="ti ti-file-text"></i> Xem Nhanh Hợp Đồng - Phòng <span id="quickContractRoom"></span></h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
@@ -304,7 +304,7 @@
                         </table>
                     </div>
                     <div class="col-md-6">
-                        <h6 class="font-weight-bold text-primary border-bottom pb-1 mb-2"><i class="ti ti-user-tie"></i> Đại diện ký hợp đồng</h6>
+                        <h6 class="font-weight-bold text-primary border-bottom pb-1 mb-2"><i class="ti ti-user"></i> Đại diện ký hợp đồng</h6>
                         <table class="table table-sm table-borderless">
                             <tr><td width="40%">Họ tên:</td><td><strong id="qcTenDaiDien"></strong></td></tr>
                             <tr><td>Số điện thoại:</td><td id="qcSDTDaiDien"></td></tr>
@@ -318,7 +318,7 @@
                         <a class="nav-link active font-weight-bold" id="qc-members-tab" data-bs-toggle="tab" href="#qc-members-pane" role="tab"><i class="ti ti-users me-1"></i> Khách ở ghép (<span id="qcMemberCount">0</span>)</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link font-weight-bold" id="qc-services-tab" data-bs-toggle="tab" href="#qc-services-pane" role="tab"><i class="ti ti-concierge-bell me-1"></i> Dịch vụ đăng ký (<span id="qcServiceCount">0</span>)</a>
+                        <a class="nav-link font-weight-bold" id="qc-services-tab" data-bs-toggle="tab" href="#qc-services-pane" role="tab"><i class="ti ti-bell me-1"></i> Dịch vụ đăng ký (<span id="qcServiceCount">0</span>)</a>
                     </li>
                 </ul>
 
@@ -368,7 +368,7 @@
     <div class="modal-dialog modal-xl" role="document">
         <div class="modal-content">
             <div class="modal-header bg-success text-white">
-                <h5 class="modal-title"><i class="ti ti-hand-holding-usd"></i> Thu Tiền Nhanh - Phòng <span id="quickPaymentRoom"></span></h5>
+                <h5 class="modal-title"><i class="ti ti-report-money"></i> Thu Tiền Nhanh - Phòng <span id="quickPaymentRoom"></span></h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
@@ -376,7 +376,7 @@
                 <div class="row">
                     <div class="col-lg-7 border-end">
                         <h6 class="font-weight-bold text-success border-bottom pb-2 mb-3">
-                            <i class="ti ti-file-invoice-dollar me-1"></i> Hóa đơn chưa thanh toán kỳ: <span id="qpInvoicePeriod" class="text-danger font-weight-bold"></span>
+                            <i class="ti ti-receipt-dollar me-1"></i> Hóa đơn chưa thanh toán kỳ: <span id="qpInvoicePeriod" class="text-danger font-weight-bold"></span>
                         </h6>
                         <div class="row mb-3 font-weight-bold text-secondary">
                             <div class="col-md-6">Mã Hóa Đơn: <span id="qpInvoiceCode"></span></div>
@@ -404,7 +404,7 @@
                         </table>
 
                         <div class="card p-3 bg-light border-0">
-                            <h6 class="font-weight-bold text-success mb-3"><i class="ti ti-check-double me-1"></i> Cấu hình thu tiền nhanh</h6>
+                            <h6 class="font-weight-bold text-success mb-3"><i class="ti ti-checks me-1"></i> Cấu hình thu tiền nhanh</h6>
                             <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label font-weight-bold">Phương thức thanh toán</label>
@@ -537,7 +537,7 @@
 
             sortedFloors.forEach(floor => {
                 html += `<div class="floor-group">
-                    <div class="floor-label"><i class="ti ti-layer-group"></i> Tầng ${floor}</div>
+                    <div class="floor-label"><i class="ti ti-stack"></i> Tầng ${floor}</div>
                     <div class="room-grid">`;
 
                 floors[floor].forEach(r => {
@@ -546,7 +546,7 @@
                     let iconTi = r.trangThai === 0 ? 'ti-door-enter' : r.trangThai === 1 ? 'ti-user-check' : 'ti-tools';
 
                     let badges = '';
-                    if (r.coNoTien) badges += `<div class="room-badge badge-debt" title="Nợ ${formatVND(r.soTienNo)}"><i class="ti ti-exclamation"></i></div>`;
+                    if (r.coNoTien) badges += `<div class="room-badge badge-debt" title="Nợ ${formatVND(r.soTienNo)}"><i class="ti ti-alert-circle"></i></div>`;
                     if (r.sapHetHan) badges += `<div class="room-badge badge-expiring" title="Còn ${r.soNgayConLai} ngày"><i class="ti ti-hourglass"></i></div>`;
 
                     let tenant = r.tenNguoiThue ? `<div class="room-tenant"><i class="ti ti-user"></i> ${r.tenNguoiThue}</div>` : '';
@@ -561,8 +561,8 @@
                     if (r.trangThai === 1) {
                         menuItems += `<div class="kebab-divider"></div>`;
                         menuItems += `<button class="kebab-item" onclick="openDichVuPhong(${r.phongTroId})"><i class="ti ti-apps text-success me-2"></i> Quản lý dịch vụ</button>`;
-                        if (r.coNoTien) menuItems += `<button class="kebab-item" onclick="openQuickPayment(${r.phongTroId})"><i class="ti ti-hand-holding-usd text-danger me-2"></i> Thu tiền</button>`;
-                        menuItems += `<button class="kebab-item" onclick="openQuickContract(${r.phongTroId})"><i class="ti ti-file-contract text-primary me-2"></i> Xem hợp đồng</button>`;
+                        if (r.coNoTien) menuItems += `<button class="kebab-item" onclick="openQuickPayment(${r.phongTroId})"><i class="ti ti-report-money text-danger me-2"></i> Thu tiền</button>`;
+                        menuItems += `<button class="kebab-item" onclick="openQuickContract(${r.phongTroId})"><i class="ti ti-file-text text-primary me-2"></i> Xem hợp đồng</button>`;
                     }
                     menuItems += `<div class="kebab-divider"></div>
                         <button class="kebab-item" onclick="deleteRoom(${r.phongTroId})"><i class="ti ti-trash text-danger me-2"></i> Xóa phòng</button>`;
@@ -752,7 +752,7 @@
             $('#qpInvoiceCode').text('Đang tải...');
             $('#qpTenantName').text('Đang tải...');
             $('#qpTotalAmount').text('0 ₫');
-            $('#qpDetailsBody').html('<tr><td colspan="6" class="text-center"><i class="ti ti-spinner fa-spin"></i> Đang tải hóa đơn...</td></tr>');
+            $('#qpDetailsBody').html('<tr><td colspan="6" class="text-center"><i class="ti ti-loader fa-spin"></i> Đang tải hóa đơn...</td></tr>');
             $('#qpNotes').val('');
             $('#qpQRImage').attr('src', '');
             $('#qpCKContent').text('');
@@ -810,7 +810,7 @@
 
             let $btn = $(this);
             let originalText = $btn.html();
-            $btn.prop('disabled', true).html('<i class="ti ti-spinner fa-spin mr-1"></i> Đang xử lý...');
+            $btn.prop('disabled', true).html('<i class="ti ti-loader fa-spin mr-1"></i> Đang xử lý...');
 
             $.ajax({
                 url: '/HoaDon/ThuTien',
@@ -867,7 +867,7 @@
             let room = allRooms.find(r => r.phongTroId === phongTroId);
             let roomName = room ? room.soPhong : phongTroId;
             $('#dichVuPhongTitle').text(`Quản lý dịch vụ - Phòng ${roomName}`);
-            $('#dichVuPhongContainer').html('<div class="text-center py-4"><i class="ti ti-spinner fa-spin fa-2x"></i></div>');
+            $('#dichVuPhongContainer').html('<div class="text-center py-4"><i class="ti ti-loader fa-spin fa-2x"></i></div>');
             $('#dichVuPhongModal').modal('show');
 
             $.get(`/DangKyDichVu/GetByPhong?phongTroId=${phongTroId}`, function (data) {
@@ -1002,7 +1002,7 @@
                     cancelButtonText: 'Hủy bỏ'
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        $btn.prop('disabled', true).html('<i class="ti ti-spinner fa-spin"></i> Đang phát sinh...');
+                        $btn.prop('disabled', true).html('<i class="ti ti-loader fa-spin"></i> Đang phát sinh...');
                         $.post('/PhongTros/PhatSinhNgauNhien', function (res) {
                             if (res.success) {
                                 Swal.fire('Thành công!', res.message, 'success');
@@ -1014,7 +1014,7 @@
                         }).fail(function() {
                             Swal.fire('Lỗi!', 'Lỗi hệ thống khi phát sinh phòng!', 'error');
                         }).always(function() {
-                            $btn.prop('disabled', false).html('<i class="ti ti-magic"></i> Phát sinh 10 phòng ngẫu nhiên');
+                            $btn.prop('disabled', false).html('<i class="ti ti-wand"></i> Phát sinh 10 phòng ngẫu nhiên');
                         });
                     }
                 });
@@ -1052,7 +1052,7 @@
                 }).then((result) => {
                     if (result.isConfirmed) {
                         let $btn = $(this);
-                        $btn.prop('disabled', true).html('<i class="ti ti-spinner fa-spin"></i> Đang lưu...');
+                        $btn.prop('disabled', true).html('<i class="ti ti-loader fa-spin"></i> Đang lưu...');
                         $.ajax({
                             url: actionUrl,
                             type: 'POST',
@@ -1097,7 +1097,7 @@
                 let id = $(this).data('id');
                 currentPhongTroId = id;
                 let $btn = $(this), orig = $btn.html();
-                $btn.prop('disabled', true).html('<i class="ti ti-spinner fa-spin"></i>');
+                $btn.prop('disabled', true).html('<i class="ti ti-loader fa-spin"></i>');
                 $.get('/PhongTros/GetPhongTro?id=' + id, function (res) {
                     if (res.success && res.data) {
                         let d = res.data;
@@ -1126,7 +1126,7 @@
                 }).then((result) => {
                     if (result.isConfirmed) {
                         let orig = $btn.html();
-                        $btn.prop('disabled', true).html('<i class="ti ti-spinner fa-spin"></i>');
+                        $btn.prop('disabled', true).html('<i class="ti ti-loader fa-spin"></i>');
                         $.post('/PhongTros/XoaPhongTro', { id: id }, function (res) {
                             if (res.success) {
                                 Swal.fire('Thành công!', res.message, 'success');

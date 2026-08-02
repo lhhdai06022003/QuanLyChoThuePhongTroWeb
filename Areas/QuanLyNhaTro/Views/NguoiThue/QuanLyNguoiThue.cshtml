@@ -243,7 +243,7 @@
                 }).then((result) => {
                     if (result.isConfirmed) {
                         let $btn = $(this);
-                        $btn.prop('disabled', true).html('<i class="ti ti-spinner fa-spin"></i> Đang xử lý...');
+                        $btn.prop('disabled', true).html('<i class="ti ti-loader fa-spin"></i> Đang xử lý...');
 
                         $.ajax({
                             url: apiUrl,
@@ -330,7 +330,7 @@
                 }).then((result) => {
                     if (result.isConfirmed) {
                         let originalHtml = $btn.html();
-                        $btn.prop('disabled', true).html('<i class="ti ti-spinner fa-spin"></i>');
+                        $btn.prop('disabled', true).html('<i class="ti ti-loader fa-spin"></i>');
 
                         $.ajax({
                             url: '/NguoiThue/Delete/' + id, 
@@ -373,7 +373,7 @@
                     cancelButtonText: 'Hủy bỏ'
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        $btn.prop('disabled', true).html('<i class="ti ti-spinner fa-spin"></i> Đang phát sinh...');
+                        $btn.prop('disabled', true).html('<i class="ti ti-loader fa-spin"></i> Đang phát sinh...');
 
                         $.ajax({
                             url: '/NguoiThue/PhatSinhNgauNhien',
@@ -386,7 +386,7 @@
                                 showError('Lỗi khi phát sinh khách thuê: ' + (xhr.responseJSON?.message || 'Lỗi hệ thống'));
                             },
                             complete: function () {
-                                $btn.prop('disabled', false).html('<i class="ti ti-magic"></i> Phát sinh 10 khách ngẫu nhiên');
+                                $btn.prop('disabled', false).html('<i class="ti ti-wand"></i> Phát sinh 10 khách ngẫu nhiên');
                             }
                         });
                     }

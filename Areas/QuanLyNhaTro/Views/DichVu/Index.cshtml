@@ -281,7 +281,7 @@
                 }).then((result) => {
                     if (result.isConfirmed) {
                         let $btn = $(this);
-                        $btn.prop('disabled', true).html('<i class="ti ti-spinner fa-spin"></i> Đang lưu...');
+                        $btn.prop('disabled', true).html('<i class="ti ti-loader fa-spin"></i> Đang lưu...');
 
                         $.ajax({
                             url: isUpdate ? `/DichVu/Update/${id}` : '/DichVu/Create',
@@ -369,7 +369,7 @@
                         "render": function(data) {
                             return data
                                 ? `<span class="badge-service-required"><i class="ti ti-lock"></i> Bắt buộc</span>`
-                                : `<span class="badge-service-optional"><i class="ti ti-hand-pointer"></i> Tùy chọn</span>`;
+                                : `<span class="badge-service-optional"><i class="ti ti-pointer"></i> Tùy chọn</span>`;
                         }
                     },
                     {
@@ -440,7 +440,7 @@
                 }).then((result) => {
                     if (result.isConfirmed) {
                         let $btn = $(this);
-                        $btn.prop('disabled', true).html('<i class="ti ti-spinner fa-spin"></i> Đang lưu...');
+                        $btn.prop('disabled', true).html('<i class="ti ti-loader fa-spin"></i> Đang lưu...');
 
                         $.ajax({
                             url: isUpdate ? `/DichVuChiNhanh/Update/${id}` : '/DichVuChiNhanh/Create',

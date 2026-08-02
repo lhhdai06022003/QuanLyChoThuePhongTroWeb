@@ -11,7 +11,7 @@
         <div class="row align-items-center">
             <div class="col">
                 <h2 class="page-title text-primary font-weight-bold d-flex align-items-center">
-                    <i class="ti ti-bolt me-1 text-warning"></i> <i class="ti ti-tint me-2 text-info"></i> Chốt Chỉ Số Điện/Nước Hàng Tháng
+                    <i class="ti ti-bolt me-1 text-warning"></i> <i class="ti ti-droplet me-2 text-info"></i> Chốt Chỉ Số Điện/Nước Hàng Tháng
                 </h2>
             </div>
         </div>
@@ -212,7 +212,7 @@
 
                 $('#emptyState').hide();
                 $('#tableContainer').show();
-                $('#tbodyDienNuoc').html('<tr><td colspan="8" class="text-center py-4"><i class="ti ti-spinner fa-spin fa-2x text-primary mb-2"></i><div>Đang tải dữ liệu...</div></td></tr>');
+                $('#tbodyDienNuoc').html('<tr><td colspan="8" class="text-center py-4"><i class="ti ti-loader fa-spin fa-2x text-primary mb-2"></i><div>Đang tải dữ liệu...</div></td></tr>');
                 hideStickyBar();
 
                 $.ajax({
@@ -496,8 +496,8 @@
                     cancelButtonText: 'Hủy bỏ'
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        $btn.prop('disabled', true).html('<i class="ti ti-spinner fa-spin me-1"></i> Đang lưu...');
-                        $btnSticky.prop('disabled', true).html('<i class="ti ti-spinner fa-spin me-1"></i> Đang lưu...');
+                        $btn.prop('disabled', true).html('<i class="ti ti-loader fa-spin me-1"></i> Đang lưu...');
+                        $btnSticky.prop('disabled', true).html('<i class="ti ti-loader fa-spin me-1"></i> Đang lưu...');
 
                         $.ajax({
                             url: '/DienNuoc/SaveChotDienNuoc',
