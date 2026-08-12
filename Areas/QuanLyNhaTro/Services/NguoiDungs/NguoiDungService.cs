@@ -134,6 +134,54 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.NguoiDungs
 
         public async Task<ServiceResult> AddAsync(NguoiDung nguoiDung)
         {
+            // 1. Kiểm tra tài khoản đang hoạt động (chưa bị xóa) xem có bị trùng TenDangNhap hoặc NguoiThueId không
+            var activeUsernameMatch = await _context.NguoiDungs.AnyAsync(x => !x.IsDeleted && x.TenDangNhap == nguoiDung.TenDangNhap);
+            if (activeUsernameMatch)
+            {
+                return ServiceResult.Fail("Tên đăng nhập đã tồn tại trên hệ thống. Vui lòng chọn tên đăng nhập khác.");
+            }
+
+            if (nguoiDung.Role == Role.KhachThue && nguoiDung.NguoiThueId.HasValue)
+            {
+                var activeTenantMatch = await _context.NguoiDungs.AnyAsync(x => !x.IsDeleted && x.NguoiThueId == nguoiDung.NguoiThueId);
+                if (activeTenantMatch)
+                {
+                    return ServiceResult.Fail("Khách thuê này đã có tài khoản đăng nhập đang hoạt động trên hệ thống.");
+                }
+            }
+
+            // 2. Kiểm tra tài khoản bị xóa mềm (IsDeleted == true) theo NguoiThueId hoặc TenDangNhap
+            NguoiDung? softDeletedUser = null;
+            if (nguoiDung.Role == Role.KhachThue && nguoiDung.NguoiThueId.HasValue)
+            {
+                softDeletedUser = await _context.NguoiDungs.FirstOrDefaultAsync(x => x.IsDeleted && x.NguoiThueId == nguoiDung.NguoiThueId);
+            }
+
+            if (softDeletedUser == null)
+            {
+                softDeletedUser = await _context.NguoiDungs.FirstOrDefaultAsync(x => x.IsDeleted && x.TenDangNhap == nguoiDung.TenDangNhap);
+            }
+
+            // 3. Nếu tìm thấy tài khoản bị xóa mềm -> Khôi phục và cập nhật thông tin mới
+            if (softDeletedUser != null)
+            {
+                softDeletedUser.TenDangNhap = nguoiDung.TenDangNhap;
+                softDeletedUser.Role = nguoiDung.Role;
+                softDeletedUser.IsActive = nguoiDung.IsActive;
+                softDeletedUser.NguoiThueId = nguoiDung.NguoiThueId;
+                softDeletedUser.IsDeleted = false;
+
+                if (!string.IsNullOrEmpty(nguoiDung.MatKhauHash))
+                {
+                    softDeletedUser.MatKhauHash = _passwordHasher.HashPassword(softDeletedUser, nguoiDung.MatKhauHash);
+                }
+
+                _context.NguoiDungs.Update(softDeletedUser);
+                await _context.SaveChangesAsync();
+                return ServiceResult.Ok("Tài khoản đã được khôi phục và tạo lại thành công!");
+            }
+
+            // 4. Nếu không có bản ghi cũ -> Thêm mới hoàn toàn
             if (!string.IsNullOrEmpty(nguoiDung.MatKhauHash))
             {
                 nguoiDung.MatKhauHash = _passwordHasher.HashPassword(nguoiDung, nguoiDung.MatKhauHash);
@@ -157,6 +205,15 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Services.NguoiDungs
             if (existingUser == null)
             {
                 return ServiceResult.Fail("Tài khoản không tồn tại trên hệ thống.");
+            }
+
+            if (role == Role.KhachThue && nguoiThueId.HasValue)
+            {
+                bool tenantUsedByOther = await _context.NguoiDungs.AnyAsync(x => x.NguoiDungId != id && !x.IsDeleted && x.NguoiThueId == nguoiThueId);
+                if (tenantUsedByOther)
+                {
+                    return ServiceResult.Fail("Khách thuê này đã được liên kết với một tài khoản khác đang hoạt động.");
+                }
             }
 
             existingUser.Role = role;

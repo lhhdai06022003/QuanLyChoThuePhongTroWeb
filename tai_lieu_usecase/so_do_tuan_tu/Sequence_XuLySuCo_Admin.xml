@@ -1,0 +1,201 @@
+<mxfile host="app.diagrams.net" modified="2026-08-04T23:30:00.000Z" agent="5.0" version="20.0.0" type="device">
+  <diagram id="seq-suco-admin" name="Sequence Xu Ly Su Co - Admin">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1500" pageHeight="1650" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- ==================== PARTICIPANTS ==================== -->
+        <!-- Actor: Admin -->
+        <mxCell id="part_ad" value="Admin / Nhân viên" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="50" y="40" width="30" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="act_ad" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="60" y="140" width="10" height="1420" as="geometry" />
+        </mxCell>
+
+        <!-- YeuCauSuCoController (QuanLyNhaTro Area) -->
+        <mxCell id="part_c" value="YeuCauSuCoController&#10;(QuanLyNhaTro)" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="220" y="40" width="150" height="1550" as="geometry" />
+        </mxCell>
+        <mxCell id="act_c" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="part_c">
+          <mxGeometry x="70" y="100" width="10" height="1460" as="geometry" />
+        </mxCell>
+
+        <!-- ChiNhanhService -->
+        <mxCell id="part_cn" value="ChiNhanhService" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="430" y="40" width="130" height="1550" as="geometry" />
+        </mxCell>
+        <mxCell id="act_cn" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="part_cn">
+          <mxGeometry x="60" y="190" width="10" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- YeuCauSuCoService -->
+        <mxCell id="part_s" value="YeuCauSuCoService" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="620" y="40" width="140" height="1550" as="geometry" />
+        </mxCell>
+        <mxCell id="act_s" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="part_s">
+          <mxGeometry x="65" y="140" width="10" height="980" as="geometry" />
+        </mxCell>
+
+        <!-- ThongBaoService -->
+        <mxCell id="part_tb" value="ThongBaoService" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="830" y="40" width="130" height="1550" as="geometry" />
+        </mxCell>
+        <mxCell id="act_tb" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="part_tb">
+          <mxGeometry x="60" y="930" width="10" height="180" as="geometry" />
+        </mxCell>
+
+        <!-- DbContext -->
+        <mxCell id="part_db" value="DbContext" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="40" width="120" height="1550" as="geometry" />
+        </mxCell>
+        <mxCell id="act_db" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="part_db">
+          <mxGeometry x="55" y="680" width="10" height="450" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== MESSAGES ==================== -->
+        <!-- 1. Admin -> Controller: GET Index (chiNhanhId, trangThai, soThang) -->
+        <mxCell id="msg1" value="1. Truy cập trang danh sách sự cố (GET /QuanLyNhaTro/YeuCauSuCo?chiNhanhId=&amp;trangThai=&amp;soThang=6)" style="endArrow=classic;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" vertex="1" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="70" y="160" as="sourcePoint" />
+            <mxPoint x="290" y="160" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 2. Controller -> YeuCauSuCoService: GetAllAsync -->
+        <mxCell id="msg2" value="2. Truy vấn danh sách sự cố theo bộ lọc (GetAllAsync)" style="endArrow=classic;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" vertex="1" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="300" y="200" as="sourcePoint" />
+            <mxPoint x="685" y="200" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 3. Controller -> ChiNhanhService: DanhSachChiNhanh -->
+        <mxCell id="msg3" value="3. Lấy danh sách chi nhánh để hiển thị Dropdown" style="endArrow=classic;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" vertex="1" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="300" y="250" as="sourcePoint" />
+            <mxPoint x="490" y="250" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 4. Controller -> Admin: Render Index View -->
+        <mxCell id="msg4" value="4. Hiển thị danh sách sự cố, bộ lọc &amp; nút thao tác cập nhật" style="endArrow=open;dashed=1;endSize=8;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" vertex="1" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="290" y="300" as="sourcePoint" />
+            <mxPoint x="70" y="300" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 5. Admin -> Controller: POST UpdateStatus -->
+        <mxCell id="msg5" value="5. Gửi yêu cầu cập nhật trạng thái (POST UpdateStatus: Id, TrangThai, ChiPhiSuaChua, CongVaoHoaDon, LyDoTuChoi, GhiChuAdmin)" style="endArrow=classic;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" vertex="1" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="70" y="370" as="sourcePoint" />
+            <mxPoint x="290" y="370" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 6. Validation: Check DaHuy & LyDoTuChoi -->
+        <mxCell id="msg6" value="6. Validation: Nếu TrangThai == DaHuy mà LyDoTuChoi rỗng -> Báo lỗi" style="edgeStyle=orthogonalEdgeStyle;html=1;align=left;spacingLeft=5;verticalAlign=bottom;rounded=0;labelBackgroundColor=#ffffff;" vertex="1" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="300" y="420" as="sourcePoint" />
+            <mxPoint x="300" y="470" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="345" y="420" />
+              <mxPoint x="345" y="470" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 7. Alt loop: Invalid LyDoTuChoi -->
+        <mxCell id="msg7" value="7. [Nếu thiếu lý do từ chối] Phản hồi JSON: success = false, message = &quot;Vui lòng nhập lý do từ chối.&quot;" style="endArrow=open;dashed=1;endSize=8;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" vertex="1" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="290" y="520" as="sourcePoint" />
+            <mxPoint x="70" y="520" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 8. Controller -> YeuCauSuCoService: GetByIdAsync -->
+        <mxCell id="msg8" value="8. Kiểm tra sự cố tồn tại (GetByIdAsync)" style="endArrow=classic;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" vertex="1" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="300" y="580" as="sourcePoint" />
+            <mxPoint x="685" y="580" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 9. Controller -> YeuCauSuCoService: UpdateStatusAsync -->
+        <mxCell id="msg9" value="9. Gọi hàm cập nhật trạng thái &amp; chi phí (UpdateStatusAsync)" style="endArrow=classic;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" vertex="1" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="300" y="640" as="sourcePoint" />
+            <mxPoint x="685" y="640" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 10. YeuCauSuCoService -> DbContext: Update entity & SaveChangesAsync -->
+        <mxCell id="msg10" value="10. Cập nhật TrangThai, ChiPhiSuaChua, CongVaoHoaDon, NgayXuLy, GhiChuAdmin &amp; SaveChangesAsync" style="endArrow=classic;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" vertex="1" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="695" y="700" as="sourcePoint" />
+            <mxPoint x="1075" y="700" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 11. DbContext -> YeuCauSuCoService: Success -->
+        <mxCell id="msg11" value="11. Trả về kết quả cập nhật CSDL thành công" style="endArrow=open;dashed=1;endSize=8;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" vertex="1" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1075" y="760" as="sourcePoint" />
+            <mxPoint x="695" y="760" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 12. YeuCauSuCoService -> Controller: Return true -->
+        <mxCell id="msg12" value="12. Trả về kết quả thành công cho Controller" style="endArrow=open;dashed=1;endSize=8;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" vertex="1" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="685" y="810" as="sourcePoint" />
+            <mxPoint x="300" y="810" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 13. Controller -> ThongBaoService: GuiChoKhachThueAsync -->
+        <mxCell id="msg13" value="13. Gửi thông báo chuyển trạng thái sự cố cho Khách thuê (GuiChoKhachThueAsync)" style="endArrow=classic;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" vertex="1" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="300" y="870" as="sourcePoint" />
+            <mxPoint x="890" y="870" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 14. ThongBaoService -> DbContext: Add ThongBao -->
+        <mxCell id="msg14" value="14. Ghi thông báo cá nhân vào CSDL" style="endArrow=classic;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" vertex="1" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="900" y="920" as="sourcePoint" />
+            <mxPoint x="1075" y="920" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 15. DbContext -> ThongBaoService: Success -->
+        <mxCell id="msg15" value="15. Xác nhận lưu thông báo" style="endArrow=open;dashed=1;endSize=8;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" vertex="1" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1075" y="970" as="sourcePoint" />
+            <mxPoint x="900" y="970" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 16. ThongBaoService -> Controller: Done -->
+        <mxCell id="msg16" value="16. Hoàn tất thông báo cho khách" style="endArrow=open;dashed=1;endSize=8;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" vertex="1" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="890" y="1020" as="sourcePoint" />
+            <mxPoint x="300" y="1020" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 17. Controller -> Admin: JSON Success -->
+        <mxCell id="msg17" value="17. Phản hồi JSON: success = true, message = &quot;Cập nhật trạng thái thành công.&quot;" style="endArrow=open;dashed=1;endSize=8;html=1;verticalAlign=bottom;labelBackgroundColor=#ffffff;" vertex="1" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="290" y="1080" as="sourcePoint" />
+            <mxPoint x="70" y="1080" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

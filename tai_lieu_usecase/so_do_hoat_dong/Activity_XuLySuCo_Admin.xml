@@ -1,0 +1,154 @@
+<mxfile host="app.diagrams.net" modified="2026-08-04T23:30:00.000Z" agent="5.0" version="20.0.0" type="device">
+  <diagram id="act-suco-admin" name="Activity Xu Ly Su Co - Admin">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="900" pageHeight="1300" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Start Node -->
+        <mxCell id="start" value="" style="ellipse;html=1;fillColor=#000000;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="435" y="40" width="30" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Step 1: Filter & Select -->
+        <mxCell id="input_filter" value="Admin lọc danh sách sự cố theo Chi nhánh, Trạng thái, Khoảng thời gian &amp; chọn sự cố cần xử lý" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="275" y="100" width="350" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Step 2: Form input -->
+        <mxCell id="input_modal" value="Nhập: Trạng thái mới, Chi phí sửa chữa, Tùy chọn Cộng vào hóa đơn, Ghi chú Admin, Lý do từ chối (nếu có)" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="260" y="180" width="380" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Decision 1: Is status DaHuy? -->
+        <mxCell id="dec_is_cancel" value="Trạng thái mới là &quot;Đã hủy / Từ chối&quot;?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffff8d;strokeColor=#b8b800;" vertex="1" parent="1">
+          <mxGeometry x="340" y="270" width="220" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Decision 2: Check Reject Reason -->
+        <mxCell id="dec_check_reason" value="Lý do từ chối (LyDoTuChoi) bị rỗng?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffff8d;strokeColor=#b8b800;" vertex="1" parent="1">
+          <mxGeometry x="100" y="370" width="220" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Error: Empty Reject Reason -->
+        <mxCell id="err_reason" value="Báo lỗi: Vui lòng nhập lý do từ chối khi hủy yêu cầu sự cố" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="50" y="480" width="190" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Process: Update Cancel Status -->
+        <mxCell id="proc_cancel" value="Cập nhật TrangThai = DaHuy, lưu LyDoTuChoi &amp; NgayXuLy = UtcNow" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="270" y="480" width="220" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Process: Update Normal Status -->
+        <mxCell id="proc_normal" value="Cập nhật TrangThai (DangXuLy / DaHoanThanh), ChiPhiSuaChua, CongVaoHoaDon, GhiChuAdmin, xóa LyDoTuChoi" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="520" y="370" width="250" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Merge Node / Process Save DB -->
+        <mxCell id="proc_save" value="Thực thi SaveChangesAsync() cập nhật dữ liệu YeuCauSuCo vào CSDL" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="340" y="580" width="260" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Process: Notify Tenant -->
+        <mxCell id="proc_notify" value="Tạo &amp; gửi ThongBao tự động cho Khách thuê (GuiChoKhachThueAsync)" style="html=1;whiteSpace=wrap;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="340" y="660" width="260" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Process: Return success -->
+        <mxCell id="proc_resp" value="Phản hồi JSON: Cập nhật trạng thái thành công." style="html=1;whiteSpace=wrap;rounded=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="340" y="740" width="260" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- End Nodes -->
+        <mxCell id="end_success" value="" style="ellipse;html=1;fillColor=#000000;strokeColor=#000000;strokeWidth=4;" vertex="1" parent="1">
+          <mxGeometry x="455" y="830" width="30" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="end_fail" value="" style="ellipse;html=1;fillColor=#ff0000;strokeColor=#ff0000;strokeWidth=4;" vertex="1" parent="1">
+          <mxGeometry x="130" y="830" width="30" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== EDGES ==================== -->
+        <mxCell id="e1" style="endArrow=classic;html=1;" edge="1" parent="1" source="start" target="input_filter">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e2" style="endArrow=classic;html=1;" edge="1" parent="1" source="input_filter" target="input_modal">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e3" style="endArrow=classic;html=1;" edge="1" parent="1" source="input_modal" target="dec_is_cancel">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_is_cancel_y" style="endArrow=classic;html=1;exitX=0;exitY=0.5;entryX=0.5;entryY=0;" edge="1" parent="1" source="dec_is_cancel" target="dec_check_reason">
+          <mxGeometry value="Có" relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="210" y="305" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e_is_cancel_n" style="endArrow=classic;html=1;exitX=1;exitY=0.5;entryX=0.5;entryY=0;" edge="1" parent="1" source="dec_is_cancel" target="proc_normal">
+          <mxGeometry value="Không" relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="645" y="305" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e_reason_y" style="endArrow=classic;html=1;exitX=0;exitY=0.5;entryX=0.5;entryY=0;" edge="1" parent="1" source="dec_check_reason" target="err_reason">
+          <mxGeometry value="Có (rỗng)" relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="145" y="405" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e_reason_n" style="endArrow=classic;html=1;exitX=1;exitY=0.5;entryX=0.5;entryY=0;" edge="1" parent="1" source="dec_check_reason" target="proc_cancel">
+          <mxGeometry value="Không" relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="380" y="405" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e_cancel_save" style="endArrow=classic;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="proc_cancel" target="proc_save">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="380" y="550" />
+              <mxPoint x="470" y="550" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e_normal_save" style="endArrow=classic;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="proc_normal" target="proc_save">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="645" y="550" />
+              <mxPoint x="470" y="550" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e_save_next" style="endArrow=classic;html=1;" edge="1" parent="1" source="proc_save" target="proc_notify">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_notify_next" style="endArrow=classic;html=1;" edge="1" parent="1" source="proc_notify" target="proc_resp">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_resp_end" style="endArrow=classic;html=1;" edge="1" parent="1" source="proc_resp" target="end_success">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_err_reason_end" style="endArrow=classic;html=1;" edge="1" parent="1" source="err_reason" target="end_fail">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -31,40 +31,49 @@ Dự án được xây dựng dưới dạng ứng dụng Web theo kiến trúc 
 
 ### 3. Thư viện tích hợp nâng cao
 
-*   **QuestPDF**: Thư viện sinh tệp PDF chất lượng cao dùng để in hợp đồng, xuất hóa đơn hàng tháng.
+*   **CloudinaryDotNet**: Quản lý và lưu trữ hình ảnh minh họa sự cố từ khách thuê an toàn trên nền tảng đám mây Cloudinary.
+*   **ASP.NET Core SignalR**: Truyền tải thông báo thời gian thực (Real-time notifications) đẩy tín hiệu chuông/pop-up thông báo tức thì đến người dùng khi có sự cố mới hoặc giao dịch phát sinh.
+*   **QuestPDF**: Thư viện sinh tệp PDF chất lượng cao dùng để xuất hóa đơn và báo cáo hàng tháng.
 *   **DocX**: Thư viện tạo, chỉnh sửa và xuất hợp đồng thuê phòng sang định dạng Word (.docx) chuyên nghiệp theo chuẩn A4.
 *   **ClosedXML**: Thư viện đọc/ghi Excel dùng xuất báo cáo kế toán dưới định dạng `.xlsx`.
 *   **QRCoder**: Sinh mã QR chuyển khoản VietQR Napas động dưới dạng luồng byte ảnh PNG hoàn toàn offline trên server (không phụ thuộc internet).
-*   **SMTP (TLS)**: Gửi email thông báo hóa đơn và nhắc nợ tự động qua tài khoản cấu hình trong `appsettings.json`.
+*   **Google Gemini AI (1.5/3.6 Flash)**: Tích hợp Trợ lý AI hỗ trợ Function Calling 9 C# APIs để truy vấn dữ liệu vận hành bằng ngôn ngữ tự nhiên.
+*   **SMTP (TLS / MailKit)**: Gửi email thông báo hóa đơn và nhắc nợ tự động qua tài khoản cấu hình trong `appsettings.json`.
 
 ---
 
 ## PHẦN II: CẤU TRÚC THƯ MỤC DỰ ÁN
 
-Dự án sử dụng cơ chế **Areas** của ASP.NET Core để cô lập logic nghiệp vụ Quản lý nhà trọ khỏi cấu trúc MVC mặc định.
+Dự án sử dụng cơ chế **Areas** của ASP.NET Core để cô lập logic nghiệp vụ Quản lý nhà trọ và Khách thuê khỏi cấu trúc MVC mặc định.
 
 ```text
 QuanLyChoThuePhongTroWeb/
 │
 ├── Areas/
-│   └── QuanLyNhaTro/             <-- Phân hệ nghiệp vụ Quản lý nhà trọ chính
-│       ├── Controllers/          <-- Nhận request và định nghĩa các API Endpoints
-│       ├── Models/               <-- Các lớp thực thể (Entity) liên kết trực tiếp với database
-│       ├── Services/             <-- Chứa lớp nghiệp vụ (Business Logic) và tính toán tiền phòng
-│       ├── ViewModels/           <-- Chứa DTOs (Requests & Responses) truyền tải dữ liệu
-│       └── Views/                <-- Giao diện Razor Views (.cshtml) của từng thực thể
-│           └── Shared/           <-- Thư mục chứa giao diện dùng chung
-│               ├── _DangKyDichVuPartial.cshtml     <-- Giao diện đăng ký dịch vụ động
-│               └── _DanhSachThanhVienPartial.cshtml <-- Giao diện danh sách thành viên ở ghép
+│   ├── QuanLyNhaTro/             <-- Phân hệ nghiệp vụ Quản lý nhà trọ chính (Admin Portal)
+│   │   ├── Controllers/          <-- Nhận request và định nghĩa các API Endpoints
+│   │   ├── Models/               <-- Các lớp thực thể (Entity) liên kết trực tiếp với database
+│   │   ├── Services/             <-- Chứa lớp nghiệp vụ (Business Logic), AI, Cloudinary, Sự cố, Hóa đơn...
+│   │   ├── ViewModels/           <-- Chứa DTOs (Requests & Responses) truyền tải dữ liệu
+│   │   └── Views/                <-- Giao diện Razor Views (.cshtml) của từng thực thể
+│   │       └── Shared/           <-- Thư mục chứa giao diện dùng chung (_AiChatWidget, _Layout...)
+│   │
+│   └── KhachThue/                <-- Phân hệ dành riêng cho Khách thuê (Tenant Portal)
+│       ├── Controllers/          <-- Controllers điều phối (Dashboard, HoSo, HopDong, HoaDon, SuCo...)
+│       ├── ViewModels/           <-- ViewModels phục vụ Portal khách thuê
+│       └── Views/                <-- Giao diện hiển thị thông tin và gửi báo cáo sự cố cho khách
 │
 ├── Controllers/                  <-- HomeController điều hướng ban đầu
 ├── Data/
-│   └── ApplicationDbContext.cs   <-- Khai báo DbSet và cấu hình mối quan hệ bảng (Fluent API)
-├── Migrations/                   <-- Lưu lịch sử thay đổi Database
-├── Services/                     <-- Dịch vụ dùng chung hệ thống (MenuService, InvoiceReminderService)
+│   └── ApplicationDbContext.cs   <-- Khai báo DbSet, cấu hình mối quan hệ bảng (Fluent API) và Unique Indexes
+├── Filters/                      <-- GlobalExceptionFilter xử lý ngoại lệ toàn hệ thống
+├── Hubs/
+│   └── ThongBaoHub.cs            <-- SignalR Hub xử lý thông báo real-time
+├── Migrations/                   <-- Lưu lịch sử thay đổi Database PostgreSQL
+├── Services/                     <-- Dịch vụ dùng chung hệ thống (MenuService...)
 ├── wwwroot/                      <-- Thư mục tài nguyên tĩnh (css, js, hình ảnh, Tabler Theme)
-├── appsettings.json              <-- Cấu hình kết nối DB, SMTP Email, tài khoản VietQR
-└── Program.cs                    <-- Nơi khởi chạy ứng dụng, cấu hình DI, Background Services và Routing
+├── appsettings.json              <-- Cấu hình kết nối DB, SMTP Email, tài khoản VietQR, Cloudinary, Gemini AI Key
+└── Program.cs                    <-- Nơi khởi chạy ứng dụng, cấu hình DI, Background Services, SignalR và Routing
 ```
 
 ---
@@ -211,6 +220,21 @@ Dưới đây là mô tả chi tiết 10 module chức năng chính của hệ t
         9. `GetChiSoDienNuocAsync`: Xem chỉ số điện nước và lượng tiêu thụ thực tế của phòng trong kỳ trước.
     *   *Trình diễn Markdown & Bảng biểu*: Phản hồi từ AI được định dạng tự động bằng mã JavaScript Custom Parser sang HTML, hỗ trợ in đậm, danh sách gạch đầu dòng và tự động vẽ bảng dữ liệu dạng lưới kẻ viền đẹp mắt, tương thích hoàn toàn với chế độ tối (Dark Mode).
 
+### 13. Quản lý Sự cố & Phản hồi (`YeuCauSuCoController`)
+
+*   **Giao diện xuất hiện**: Truy cập từ Menu: **Quản lý nhà trọ** -> **Quản lý sự cố**.
+*   **Cách thức hoạt động**:
+    *   Hiển thị danh sách các báo cáo sự cố hư hỏng (điện, nước, thiết bị) từ khách thuê.
+    *   *Xem hình ảnh sự cố Cloudinary*: Nhấp vào biểu tượng hình ảnh để xem phóng to ảnh sự cố thực tế được tải lên Cloudinary.
+    *   *Cập nhật trạng thái & Phản hồi*: Admin đổi trạng thái xử lý (*ChoTiepNhan -> DangXuLy -> HoanThanh*), nhập ghi chú giải pháp/kế hoạch sửa chữa để thông báo ngược lại cho khách thuê.
+
+### 14. Hệ thống Thông báo Real-time (`ThongBaoController` & `ThongBaoHub`)
+
+*   **Giao diện xuất hiện**: Chuông thông báo góc trên màn hình và các thông báo pop-up nổi (Toastr/SweetAlert2).
+*   **Cách thức hoạt động**:
+    *   Tích hợp **SignalR WebSockets** tại đường dẫn `/thongBaoHub`.
+    *   Khi khách thuê gửi báo cáo sự cố mới hoặc phát sinh giao dịch, server phát thông báo thời gian thực đến toàn bộ kết nối Admin đang mở. Chuông thông báo tự động nhấp nháy phát tiếng kèm đếm số thông báo chưa đọc.
+
 ---
 
 ### B. PHÂN HỆ KHÁCH THUÊ (TENANT PORTAL - AREA `KHACHTHUE`)
@@ -256,6 +280,14 @@ Phân hệ dành riêng cho khách thuê phòng đăng nhập để tự tra c�
 *   **Cách thức hoạt động**:
     *   Hiển thị bảng danh sách các giao dịch đóng tiền nhà thành công của khách thuê (qua quét VietQR hoặc tiền mặt).
     *   Mỗi dòng hiển thị: Mã giao dịch, số tiền đã đóng, phương thức thanh toán, ngày giờ giao dịch và ghi chú của thu ngân.
+
+### 6. Báo cáo & Theo dõi Sự cố (SuCo)
+
+*   **Giao diện xuất hiện**: Truy cập từ Menu bên trái: **Báo cáo sự cố**.
+*   **Cách thức hoạt động**:
+    *   Khách thuê tạo báo cáo sự cố (tiêu đề, mô tả hư hỏng, chọn mức độ ưu tiên).
+    *   *Upload ảnh Cloudinary*: Cho phép chọn/chụp ảnh thực tế từ thiết bị. File ảnh được upload bất đồng bộ trực tiếp lên Cloudinary thông qua `CloudinaryStorageService` và lưu URL an toàn vào bảng `YeuCauSuCos`.
+    *   *Theo dõi tiến độ real-time*: Khách xem được trạng thái tiếp nhận và ghi chú phản hồi từ chủ trọ ngay tại danh sách báo cáo.
 
 ---
 

@@ -490,3 +490,166 @@ graph TD
     CheckResult -- Không --> LogErr[Ghi log: SMTP lỗi] --> Loop
     CheckResult -- Có --> Update[Lưu ID vào sent_reminders & Ghi log] --> Loop
 ```
+
+---
+
+## 6. USE CASE 5: QUẢN LÝ SỰ CỐ & SỬA CHỮA (UC-16)
+
+### 6.1. Luồng Khách Thuê Báo Cáo Sự Cố
+
+#### 6.1.1. Sơ đồ tuần tự (Sequence Diagram)
+```mermaid
+sequenceDiagram
+    autonumber
+    actor KT as Khách thuê (Renter)
+    participant C as SuCoController (KhachThue)
+    participant HD as HopDongService
+    participant CL as CloudinaryStorageService
+    participant S as YeuCauSuCoService
+    participant TB as ThongBaoService
+    participant DB as DbContext (PostgreSQL)
+
+    KT->>C: Truy cập trang báo sự cố (GET /KhachThue/SuCo/Index)
+    activate C
+    C->>HD: Lấy danh sách phòng đang thuê (GetHopDongsByNguoiThueIdAsync)
+    activate HD
+    HD-->>C: Trả về danh sách phòng trọ
+    deactivate HD
+    C-->>KT: Hiển thị Form báo sự cố & Lịch sử sự cố đã gửi
+    deactivate C
+
+    KT->>C: Gửi báo cáo sự cố (POST Create: PhongTroId, TieuDe, MoTa, HinhAnhFiles)
+    activate C
+    C->>C: Kiểm tra dung lượng (<=5MB) & định dạng file ảnh (.jpg, .png...)
+    alt File ảnh không hợp lệ
+        C-->>KT: Phản hồi JSON lỗi: "Kích thước/định dạng file không cho phép"
+    else File ảnh hợp lệ
+        opt Có file ảnh đính kèm
+            C->>CL: Upload hình ảnh sự cố (UploadImageAsync)
+            activate CL
+            CL-->>C: Trả về danh sách URL hình ảnh Cloudinary
+            deactivate CL
+        end
+        C->>S: Tạo bản ghi sự cố mới (CreateAsync, TrangThai = ChoTiepNhan)
+        activate S
+        S->>DB: Add YeuCauSuCo & SaveChangesAsync
+        activate DB
+        DB-->>S: Trả về kết quả lưu CSDL thành công
+        deactivate DB
+        S-->>C: Trả về true (Tạo sự cố thành công)
+        deactivate S
+
+        C->>TB: Gửi thông báo sự cố mới cho Admin & NhanVien (GuiChoQuyenAsync)
+        activate TB
+        TB->>DB: Lưu thông báo hệ thống vào CSDL
+        activate DB
+        DB-->>TB: Lưu thông báo thành công
+        deactivate DB
+        TB-->>C: Hoàn tất phát thông báo
+        deactivate TB
+
+        C-->>KT: Phản hồi JSON: success = true, message = "Gửi báo cáo sự cố thành công!"
+    end
+    deactivate C
+```
+
+#### 6.1.2. Sơ đồ hoạt động (Activity Diagram - Bố cục Ngang)
+```mermaid
+graph LR
+    Start([Bắt đầu]) --> InputData[Khách thuê nhập Tiêu đề, Mô tả & chọn Phòng]
+    InputData --> CheckImg{Có file ảnh đính kèm?}
+    
+    CheckImg -- Có --> ValidateImg{File <= 5MB & định dạng hợp lệ?}
+    ValidateImg -- Không --> ErrImg[Báo lỗi file ảnh không hợp lệ] --> EndFail([Kết thúc thất bại])
+    ValidateImg -- Có --> UploadCloud[Upload ảnh lên Cloudinary lấy URLs] --> ValidateModel
+    
+    CheckImg -- Không --> ValidateModel{Dữ liệu rỗng?}
+    ValidateModel -- Có --> ErrModel[Báo lỗi nhập thiếu dữ liệu] --> EndFail
+    
+    ValidateModel -- Không --> SaveDb[Lưu YeuCauSuCo với TrangThai = ChoTiepNhan]
+    SaveDb --> NotifyAdmin[Gửi ThongBao tự động tới Admin/Staff]
+    NotifyAdmin --> ShowSuccess[Phản hồi gửi báo cáo thành công]
+    ShowSuccess --> EndSuccess([Kết thúc thành công])
+```
+
+---
+
+### 6.2. Luồng Admin Tiếp Nhận & Xử Lý Sự Cố
+
+#### 6.2.1. Sơ đồ tuần tự (Sequence Diagram)
+```mermaid
+sequenceDiagram
+    autonumber
+    actor AD as Admin / Nhân viên
+    participant C as YeuCauSuCoController (QuanLyNhaTro)
+    participant CN as ChiNhanhService
+    participant S as YeuCauSuCoService
+    participant TB as ThongBaoService
+    participant DB as DbContext (PostgreSQL)
+
+    AD->>C: Truy cập danh sách sự cố (GET /QuanLyNhaTro/YeuCauSuCo?chiNhanhId=&trangThai=&soThang=6)
+    activate C
+    C->>S: Truy vấn danh sách sự cố theo bộ lọc (GetAllAsync)
+    activate S
+    S->>DB: Query YeuCauSuCos (Include PhongTro, NguoiThue)
+    activate DB
+    DB-->>S: Trả về danh sách sự cố
+    deactivate DB
+    S-->>C: Trả về List<YeuCauSuCo>
+    deactivate S
+
+    C->>CN: Lấy danh sách Chi nhánh cho Dropdown
+    activate CN
+    CN-->>C: Trả về List<ChiNhanh>
+    deactivate CN
+
+    C-->>AD: Hiển thị bảng danh sách sự cố & Modal cập nhật
+    deactivate C
+
+    AD->>C: Gửi yêu cầu cập nhật (POST UpdateStatus: Id, TrangThai, ChiPhiSuaChua, CongVaoHoaDon, LyDoTuChoi, GhiChuAdmin)
+    activate C
+    alt TrangThai == DaHuy mà LyDoTuChoi bị rỗng
+        C-->>AD: Phản hồi JSON lỗi: "Vui lòng nhập lý do từ chối."
+    else Dữ liệu hợp lệ
+        C->>S: Cập nhật trạng thái sự cố (UpdateStatusAsync)
+        activate S
+        S->>DB: Cập nhật TrangThai, ChiPhi, CongVaoHoaDon, NgayXuLy, GhiChu & SaveChangesAsync
+        activate DB
+        DB-->>S: Trả về kết quả lưu CSDL
+        deactivate DB
+        S-->>C: Trả về true (Cập nhật thành công)
+        deactivate S
+
+        C->>TB: Gửi thông báo chuyển trạng thái cho Khách thuê (GuiChoKhachThueAsync)
+        activate TB
+        TB->>DB: Lưu thông báo vào CSDL
+        activate DB
+        DB-->>TB: Lưu thông báo thành công
+        deactivate DB
+        TB-->>C: Hoàn tất thông báo
+        deactivate TB
+
+        C-->>AD: Phản hồi JSON: success = true, message = "Cập nhật trạng thái thành công."
+    end
+    deactivate C
+```
+
+#### 6.2.2. Sơ đồ hoạt động (Activity Diagram - Bố cục Ngang)
+```mermaid
+graph LR
+    Start([Bắt đầu]) --> FilterList[Admin lọc & chọn sự cố cần xử lý]
+    FilterList --> OpenModal[Mở Modal cập nhật trạng thái & chi phí]
+    OpenModal --> InputStatus[Nhập Trạng thái, Chi phí, Ghi chú/Lý do]
+    InputStatus --> CheckCancel{Trạng thái mới = Đã hủy?}
+    
+    CheckCancel -- Có --> CheckReason{Lý do từ chối rỗng?}
+    CheckReason -- Có --> ErrReason[Báo lỗi: Thiếu lý do từ chối] --> EndFail([Kết thúc thất bại])
+    CheckReason -- Không --> SetCancel[Gán TrangThai = DaHuy & NgayXuLy] --> SaveDb
+    
+    CheckCancel -- Không --> SetNormal[Gán TrangThai mới, Chi phi, CongVaoHoaDon] --> SaveDb
+    
+    SaveDb[Lưu thay đổi YeuCauSuCo vào CSDL] --> SendNotify[Phát thông báo cho Khách thuê]
+    SendNotify --> ShowSuccess[Báo cập nhật thành công]
+    ShowSuccess --> EndSuccess([Kết thúc thành công])
+```
+

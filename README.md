@@ -12,7 +12,10 @@ Dự án được phát triển theo mô hình ứng dụng web hiện đại, t
 - **Framework chính**: .NET 8.0 (ASP.NET Core Web MVC / Web API).
 - **Cơ sở dữ liệu**: PostgreSQL (hệ quản trị cơ sở dữ liệu quan hệ nguồn mở mạnh mẽ).
 - **ORM**: Entity Framework Core 8 (EF Core) thông qua thư viện kết nối `Npgsql.EntityFrameworkCore.PostgreSQL`. Quản lý cấu trúc bảng bằng giải pháp **Code-First Migrations**.
-- **Thư viện xuất bản file**:
+- **Lưu trữ đám mây & Real-time**:
+  - **CloudinaryDotNet**: Dùng để quản lý và lưu trữ hình ảnh minh họa sự cố từ khách thuê an toàn trên nền tảng Cloud.
+  - **ASP.NET Core SignalR**: Hệ thống thông báo thời gian thực (Real-time notifications) đẩy tín hiệu chuông/pop-up thông báo tức thì đến người dùng khi có sự cố mới hoặc giao dịch phát sinh.
+- **Thư viện xuất bản file & Mã hóa**:
   - **ClosedXML**: Dùng để xử lý đọc/ghi và xuất dữ liệu báo cáo ra file Excel (.xlsx).
   - **QuestPDF**: Thư viện thế hệ mới để xuất hóa đơn/hợp đồng ra file PDF chất lượng cao.
   - **DocX**: Thư viện xử lý và xuất hợp đồng thuê phòng ra file Word (.docx) định dạng A4 chuyên nghiệp.
@@ -24,7 +27,7 @@ Dự án được phát triển theo mô hình ứng dụng web hiện đại, t
 
 ### B. Frontend & Libraries
 - **CSS Framework**: **Tabler Theme** (được phát triển trên nền tảng **Bootstrap 5**), mang phong cách UI chuyên nghiệp, hỗ trợ tối ưu giao diện sáng/tối (Dark/Light mode) và các hiệu ứng động.
-- **Javascript Core**: **jQuery** (hỗ trợ DOM Manipulation và gọi AJAX dễ dàng).
+- **Javascript Core & SignalR Client**: **jQuery** (hỗ trợ DOM Manipulation và AJAX) và **@microsoft/signalr** Client.
 - **Các thư viện UI bổ sung**:
   - **jQuery DataTables**: Dành cho các bảng danh sách lớn, hỗ trợ phân trang, sắp xếp và tìm kiếm máy chủ (Server-side Processing).
   - **Flatpickr**: Bộ chọn ngày/khoảng ngày (Date Range Picker) hiện đại, hỗ trợ tiếng Việt.
@@ -90,7 +93,9 @@ Hệ thống được chia làm hai phân hệ nghiệp vụ chính: **Phân h�
 8. **Hóa đơn (Invoices)**: Tự động phát sinh hóa đơn theo kỳ dựa vào tiền phòng thỏa thuận, tiền điện/nước tiêu thụ thực tế và các dịch vụ đăng ký. Hỗ trợ sinh VietQR chuyển khoản, in báo cáo PDF/Excel, gửi email thông báo đơn lẻ hoặc hàng loạt, và chạy ngầm nhắc nợ tự động (`InvoiceReminderService`).
 9. **Lịch sử Thanh toán (Payment History)**: Quản lý toàn bộ giao dịch đóng tiền mặt hoặc quét VietQR chuyển khoản, cho phép Admin thực hiện hủy/hoàn tác giao dịch thu tiền khi bị lỗi.
 10. **Điều khoản mẫu (Contract Clauses)**: Quản lý các điều khoản mẫu dùng trong hợp đồng thuê phòng. Được thiết kế dưới dạng Single-Page Application (SPA) qua AJAX và Bootstrap Modals giúp thực hiện toàn bộ thao tác Thêm, Sửa, Xóa trên một màn hình duy nhất mà không cần tải lại trang.
-11. **Trợ lý AI (AiAssistant)**: Tích hợp widget chat Gemini AI ở góc màn hình. AI sử dụng cơ chế **Function Calling** để chạy truy vấn trực tiếp SQL dưới nền, cho phép trả lời ngôn ngữ tự nhiên các số liệu vận hành và tài chính của nhà trọ (tìm phòng trống, thống kê doanh thu, hóa đơn nợ...).
+11. **Trợ lý AI (AiAssistant)**: Tích hợp widget chat Gemini AI ở góc màn hình. AI sử dụng cơ chế **Function Calling** (9 hàm C# APIs) để chạy truy vấn trực tiếp SQL dưới nền, cho phép trả lời ngôn ngữ tự nhiên các số liệu vận hành và tài chính của nhà trọ (tìm phòng trống, thống kê doanh thu, hóa đơn nợ, kiểm tra điện nước...).
+12. **Quản lý Sự cố (Incidents)**: Tiếp nhận các phản hồi hư hỏng, sự cố từ khách thuê gửi lên. Cho phép Admin xem hình ảnh thực tế (lưu trữ Cloudinary), cập nhật trạng thái (*Chờ tiếp nhận -> Đang xử lý -> Hoàn thành*) và gửi phản hồi thông báo kế hoạch sửa chữa cho khách.
+13. **Thông báo Real-time (SignalR)**: Tích hợp SignalR WebSockets kết nối với `ThongBaoHub`, tự động phát thông báo tiếng chuông và pop-up thời gian thực tới Admin khi có sự cố mới hoặc giao dịch thanh toán phát sinh.
 
 ### B. Phân Hệ Khách Thuê (Tenant Portal - Area `KhachThue`)
 
@@ -99,6 +104,7 @@ Hệ thống được chia làm hai phân hệ nghiệp vụ chính: **Phân h�
 3. **Chi tiết Hợp đồng (HopDong)**: Xem toàn bộ hợp đồng hiện tại và quá khứ, các thành viên ở ghép cùng phòng, danh sách dịch vụ đang đăng ký áp dụng cho phòng trọ.
 4. **Hóa đơn & QR Thanh toán (HoaDon)**: Tra cứu lịch sử hóa đơn tiền phòng/dịch vụ theo các tháng. Đối với hóa đơn chưa thanh toán, hệ thống hiển thị mã VietQR động được tạo offline chứa số tiền và nội dung chuyển khoản động chứa mã hóa đơn để chuyển khoản nhanh.
 5. **Lịch sử Giao dịch (LichSuThanhToan)**: Truy cập danh sách các giao dịch thanh toán thành công đã đóng trước đó.
+6. **Báo cáo & Theo dõi Sự cố (SuCo)**: Khách thuê dễ dàng tạo yêu cầu báo cáo sự cố (hư hỏng điện nước, cơ sở vật chất), chụp và upload hình ảnh thực tế trực tiếp lên Cloudinary, đồng thời theo dõi tiến độ xử lý của chủ trọ theo thời gian thực.
 
 ### C. Các Cơ Chế Vận Hành Đặc Thù & Bảo Mật
 

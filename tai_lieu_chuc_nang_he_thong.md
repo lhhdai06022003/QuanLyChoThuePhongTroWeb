@@ -311,6 +311,40 @@ Tài liệu này mô tả chi tiết tất cả các chức năng nghiệp vụ 
 
 ---
 
+### 13. QUẢN LÝ SỰ CỐ & PHẢN HỒI (INCIDENT MANAGEMENT)
+
+#### A. Các giao diện xuất hiện trên Website:
+*   **Trang Quản lý Sự cố**: Xuất hiện khi người dùng truy cập từ thanh Menu: **Quản lý nhà trọ** -> **Quản lý sự cố**.
+
+#### B. Danh sách chức năng:
+*   **Tiếp nhận báo cáo sự cố**: Xem toàn bộ các sự cố hư hỏng (điện, nước, cơ sở vật chất) do khách thuê gửi từ Tenant Portal.
+*   **Xem ảnh phóng to**: Xem hình ảnh chụp sự cố thực tế lưu trên Cloudinary trực tiếp qua lightbox Modal.
+*   **Cập nhật trạng thái & Phản hồi**: Chuyển trạng thái sự cố (*Chờ tiếp nhận -> Đang xử lý -> Hoàn thành*) kèm nhập thông điệp phản hồi kế hoạch sửa chữa đến khách thuê.
+
+#### C. Cách thức hoạt động chi tiết:
+1.  **Lấy danh sách sự cố**: API `/QuanLyNhaTro/YeuCauSuCo/GetList` truy vấn bảng `YeuCauSuCos`, `Include` bảng `PhongTro` và `NguoiThue` để hiển thị đầy đủ thông tin phòng trọ bị sự cố.
+2.  **Xem ảnh Cloudinary**: Khi click vào thumbnail ảnh, Javascript lấy thuộc tính `HinhAnhUrl` từ Cloudinary và hiển thị phóng to sắc nét trên Modal.
+3.  **Cập nhật tiến độ & Phát SignalR**: Khi Admin lưu cập nhật trạng thái sự cố, API gọi `YeuCauSuCoService.CapNhatTrangThaiAsync`, lưu thông tin phản hồi, đồng thời gửi thông báo qua SignalR Hub về cho tài khoản khách thuê tương ứng để cập nhật thời gian thực trên màn hình của khách.
+
+---
+
+### 14. HỆ THỐNG THÔNG BÁO REAL-TIME (REAL-TIME NOTIFICATIONS)
+
+#### A. Các giao diện xuất hiện trên Website:
+*   **Thanh Menu trên cùng (Header Notification Icon)**: Biểu tượng chuông thông báo hiển thị số đếm màu đỏ ở góc trên màn hình Admin và Khách thuê.
+*   **Pop-up Thông báo nổi (Toasts/SweetAlert2)**: Tự động trượt ra ở góc màn hình ngay khi có sự kiện phát sinh.
+
+#### B. Danh sách chức năng:
+*   **Thông báo sự cố mới**: Nhận cảnh báo tức thì khi có khách thuê gửi báo cáo sự cố mới.
+*   **Thông báo thanh toán mới**: Nhận cảnh báo tức thì khi khách thuê hoàn tất quét mã VietQR hoặc đóng tiền.
+*   **Đánh dấu đã đọc**: Chuyển trạng thái thông báo thành đã đọc và cập nhật lại số đếm.
+
+#### C. Cách thức hoạt động chi tiết:
+1.  **Kết nối WebSockets SignalR**: Client JavaScript khởi tạo kết nối trỏ tới `/thongBaoHub`. Server lưu giữ kết nối theo UserId và Role trong `ThongBaoHub`.
+2.  **Đẩy tin nhắn Real-time**: Khi có sự kiện (ví dụ: tạo sự cố mới), `IThongBaoService` tạo bản ghi trong bảng `ThongBaos` và gọi `IHubContext<ThongBaoHub>` phát tín hiệu `ReceiveNotification` trực tiếp đến tất cả các client Admin đang online. Màn hình phát âm thanh thông báo nhẹ và tự động cập nhật số đếm trên icon chuông mà không cần F5.
+
+---
+
 ## PHẦN B: PHÂN HỆ KHÁCH THUÊ (TENANT PORTAL - AREA KHACHTHUE)
 
 Phân hệ dành riêng cho Khách thuê phòng đăng nhập để quản lý và theo dõi thông tin thuê nhà của mình.
@@ -392,6 +426,22 @@ Phân hệ dành riêng cho Khách thuê phòng đăng nhập để quản lý v
 #### C. Cách thức hoạt động chi tiết:
 1.  **Lọc giao dịch thanh toán**: Hệ thống thực hiện câu lệnh join bảng giữa `LichSuThanhToans` và `HoaDons`, tìm các giao dịch thanh toán có hóa đơn thuộc về hợp đồng của khách thuê hiện tại.
 2.  **Hiển thị thông tin đối soát**: Danh sách hiển thị rõ ràng ngày giờ thanh toán, số tiền đóng, phương thức (Tiền mặt hoặc Chuyển khoản), mã giao dịch và ghi chú của nhân viên thu ngân để khách thuê có bằng chứng đối soát tài chính khi cần thiết.
+
+---
+
+### 6. BÁO CÁO & THEO DÕI SỰ CỐ (INCIDENT REPORTING)
+
+#### A. Các giao diện xuất hiện trên Website:
+*   **Trang Báo cáo sự cố**: Xuất hiện khi khách thuê truy cập từ menu bên trái: **Báo cáo sự cố**.
+
+#### B. Danh sách chức năng:
+*   **Gửi báo cáo sự cố hư hỏng**: Cho phép chọn phòng trọ, nhập tiêu đề, mô tả chi tiết hư hỏng và mức độ ưu tiên.
+*   **Upload ảnh chụp thực tế (Cloudinary)**: Tải ảnh chụp thiết bị hư hỏng trực tiếp lên hệ thống lưu trữ Cloud.
+*   **Theo dõi tiến độ xử lý**: Xem danh sách các báo cáo đã gửi kèm trạng thái xử lý và thông điệp phản hồi từ chủ nhà.
+
+#### C. Cách thức hoạt động chi tiết:
+1.  **Upload ảnh bất đồng bộ lên Cloudinary**: Khi chọn ảnh tại form báo cáo sự cố, JavaScript gọi `CloudinaryStorageService` gửi ảnh lên Cloudinary server. Đường dẫn URL của hình ảnh sau đó được gán tự động vào form gửi yêu cầu.
+2.  **Tạo yêu cầu & Phát thông báo SignalR**: Khi bấm gửi, API `/KhachThue/SuCo/Create` lưu bản ghi mới vào bảng `YeuCauSuCos` với trạng thái `ChoTiepNhan`. Đồng thời, hệ thống gọi `IThongBaoService` phát tín hiệu SignalR đẩy thông báo tức thì đến màn hình Admin.
 
 ---
 
