@@ -362,12 +362,33 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 
-# không up file settings c?a Visual Studio lên git vì nó có th? ch?a thông tin nh?y c?m nh? connection string, password, v.v.
-appsettings.json
-appsettings.Development.json
+# Local configuration and secrets
+appsettings*.json
+!appsettings.example.json
+.env
+.env.*
+!.env.example
+!.env.sample
+secrets.json
+*.pfx
+*.p12
+*.pem
+*.key
 
-# không up file agent antigravity Visual Studio lên git vì nó có th? ch?a thông tin.
-.agent
+# Local application state and user uploads
+/sent_reminders.json
+/sent_contract_alerts.json
+/wwwroot/uploads/
 
-appsettings.json
-appsettings.Development.json
+# Local database and backup files
+*.db
+*.sqlite
+*.sqlite3
+*.db-wal
+*.db-shm
+*.bak
+*.dump
+
+# Local agent workspace
+.agent/
+.agents/
