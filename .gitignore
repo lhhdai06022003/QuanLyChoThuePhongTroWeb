@@ -394,3 +394,4 @@ secrets.json
 # Local agent workspace
 .agent/
 .agents/
+AGENTS.md

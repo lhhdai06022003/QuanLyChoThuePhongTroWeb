@@ -1,170 +1,114 @@
-# TÀI LIỆU HƯỚNG DẪN DỰ ÁN (FOR INTERN / NEW DEVELOPER)
+# Quản lý cho thuê phòng trọ
 
-Tài liệu này cung cấp cái nhìn tổng quan về hệ thống **Quản lý cho thuê phòng trọ (Rental Management System)**. Được biên soạn nhằm giúp các thành viên mới/thực tập sinh nhanh chóng làm quen với công nghệ, cấu trúc thư mục, quy trình luồng dữ liệu và các quy chuẩn viết code của dự án.
+Ứng dụng ASP.NET Core MVC .NET 8 quản lý nhiều chi nhánh nhà trọ, có cổng quản lý và cổng khách thuê. Mã nguồn được tổ chức theo Clean Architecture bốn tầng, dùng PostgreSQL và Entity Framework Core 8.
 
----
+Roadmap mô tả công việc dự kiến, không phải danh sách tính năng đã hoàn thành.
 
-## 1. NỀN TẢNG & CÔNG NGHỆ SỬ DỤNG (TECHNOLOGY STACK)
+## Chức năng hiện có
 
-Dự án được phát triển theo mô hình ứng dụng web hiện đại, tập trung vào tính trực quan, hiệu năng cao và khả năng mở rộng.
+- Quản lý chi nhánh, phòng trọ, người thuê, tài khoản và các vai trò Admin, NhanVien, KhachThue.
+- Hợp đồng, thành viên ở ghép, dịch vụ đăng ký và bản sao điều khoản hợp đồng.
+- Giá dịch vụ theo chi nhánh, chỉ số điện nước, tính hóa đơn và lịch sử thanh toán.
+- Xuất hóa đơn PDF/Excel, hợp đồng Word và sinh VietQR.
+- Dashboard, email, báo sự cố kèm hình ảnh Cloudinary và thông báo SignalR.
+- Trợ lý Gemini với các công cụ truy vấn dữ liệu vận hành.
+- Tác vụ nền kết thúc hợp đồng, cảnh báo hết hạn và nhắc hóa đơn; bật/tắt theo cấu hình.
+- Khách thuê xem hồ sơ, hợp đồng, hóa đơn, lịch sử thanh toán và báo sự cố.
 
-### A. Backend & Database
-- **Framework chính**: .NET 8.0 (ASP.NET Core Web MVC / Web API).
-- **Cơ sở dữ liệu**: PostgreSQL (hệ quản trị cơ sở dữ liệu quan hệ nguồn mở mạnh mẽ).
-- **ORM**: Entity Framework Core 8 (EF Core) thông qua thư viện kết nối `Npgsql.EntityFrameworkCore.PostgreSQL`. Quản lý cấu trúc bảng bằng giải pháp **Code-First Migrations**.
-- **Lưu trữ đám mây & Real-time**:
-  - **CloudinaryDotNet**: Dùng để quản lý và lưu trữ hình ảnh minh họa sự cố từ khách thuê an toàn trên nền tảng Cloud.
-  - **ASP.NET Core SignalR**: Hệ thống thông báo thời gian thực (Real-time notifications) đẩy tín hiệu chuông/pop-up thông báo tức thì đến người dùng khi có sự cố mới hoặc giao dịch phát sinh.
-- **Thư viện xuất bản file & Mã hóa**:
-  - **ClosedXML**: Dùng để xử lý đọc/ghi và xuất dữ liệu báo cáo ra file Excel (.xlsx).
-  - **QuestPDF**: Thư viện thế hệ mới để xuất hóa đơn/hợp đồng ra file PDF chất lượng cao.
-  - **DocX**: Thư viện xử lý và xuất hợp đồng thuê phòng ra file Word (.docx) định dạng A4 chuyên nghiệp.
-  - **QRCoder**: Dùng để sinh mã QR chuyển khoản ngân hàng nhanh tiêu chuẩn VietQR động, hoàn toàn offline trên server.
-- **Tác vụ nền (Background Services)**:
-  - `InvoiceReminderService`: Chạy định kỳ mỗi giờ, quét và gửi email nhắc nợ tự động cho các hóa đơn quá hạn 5 ngày.
-  - `ContractAutoCloseService`: Chạy tự động hàng ngày lúc nửa đêm, tự động kết thúc các hợp đồng hết hạn và giải phóng trạng thái phòng, thành viên, dịch vụ.
-  - `ContractExpiryAlertService`: Chạy tự động hàng ngày lúc 8:00 sáng, gửi email cảnh báo sắp hết hạn hợp đồng trước 30 và 15 ngày cho khách thuê và quản lý.
+Cổng khách vãng lai và API phiên bản v1 mới có thư mục khung. Đăng phòng công khai, lịch xem, giữ chỗ, OCR chỉ số, duyệt hóa đơn nháp và quy trình gửi ảnh chuyển khoản là hướng phát triển. Enum hóa đơn hiện chỉ có ChuaThanhToan và DaThanhToan; chưa có quy trình duyệt nháp.
 
-### B. Frontend & Libraries
-- **CSS Framework**: **Tabler Theme** (được phát triển trên nền tảng **Bootstrap 5**), mang phong cách UI chuyên nghiệp, hỗ trợ tối ưu giao diện sáng/tối (Dark/Light mode) và các hiệu ứng động.
-- **Javascript Core & SignalR Client**: **jQuery** (hỗ trợ DOM Manipulation và AJAX) và **@microsoft/signalr** Client.
-- **Các thư viện UI bổ sung**:
-  - **jQuery DataTables**: Dành cho các bảng danh sách lớn, hỗ trợ phân trang, sắp xếp và tìm kiếm máy chủ (Server-side Processing).
-  - **Flatpickr**: Bộ chọn ngày/khoảng ngày (Date Range Picker) hiện đại, hỗ trợ tiếng Việt.
-  - **SweetAlert2**: Hộp thoại (popup/alert) thông báo xác nhận và trạng thái đẹp mắt.
-  - **Select2**: Thẻ chọn dropdown hỗ trợ tự động tìm kiếm (autocomplete).
-  - **FontAwesome 6**: Hệ thống icons vector dùng xuyên suốt hệ thống.
+## Cấu trúc và luồng xử lý
 
----
+| Project | Trách nhiệm |
+| --- | --- |
+| `src/QuanLyChoThuePhongTroWeb.Domain` | Entities, Enums và quy tắc miền; không tham chiếu project/package ngoài |
+| `src/QuanLyChoThuePhongTroWeb.Application` | Features gồm DTOs, Services, Persistence interfaces; Abstractions và Common |
+| `src/QuanLyChoThuePhongTroWeb.Infrastructure` | EF Core, migrations, store, bảo mật, email, ảnh, AI, xuất file và background jobs |
+| `src/QuanLyChoThuePhongTroWeb.Web` | Program.cs, Controllers, Areas, Razor Views, SignalR và wwwroot |
+| `tests/` | Bốn project: Domain.UnitTests, Application.UnitTests, Infrastructure.IntegrationTests, Web.IntegrationTests |
 
-## 2. CẤU TRÚC THƯ MỤC DỰ ÁN (DIRECTORY STRUCTURE)
+Request → Web controller → Application service → store/interface → Infrastructure → PostgreSQL. Web chỉ tham chiếu Application và Infrastructure; không trực tiếp tham chiếu Domain. Application chỉ tham chiếu project Domain, có thêm package abstractions cho DI/logging; không phụ thuộc EF Core, ASP.NET Core hoặc IConfiguration.
 
-Dự án phân chia các module chính vào thư mục `Areas` để cô lập logic nghiệp vụ cụ thể khỏi cấu trúc MVC mặc định.
+Đăng ký nghiệp vụ tại Application/DependencyInjection.cs, store và dịch vụ ngoài tại Infrastructure/DependencyInjection.cs; Web/Program.cs cấu hình HTTP, authentication, routing và SignalR.
 
-```text
-QuanLyChoThuePhongTroWeb/
-│
-├── Areas/
-│   ├── QuanLyNhaTro/             <-- Phân hệ nghiệp vụ Quản lý nhà trọ chính (Admin Portal)
-│   │   ├── Controllers/          <-- Nơi nhận request, điều phối hiển thị và API Endpoints
-│   │   ├── Models/               <-- Các Entity Map trực tiếp với bảng PostgreSQL qua EF Core
-│   │   ├── Services/             <-- Chứa lớp nghiệp vụ (Business Logic), truy vấn cơ sở dữ liệu
-│   │   ├── ViewModels/           <-- Chứa DTOs, Requests và Responses phục vụ truyền tải dữ liệu
-│   │   └── Views/                <-- Giao diện Razor Views (.cshtml) phân chia theo thực thể
-│   │
-│   └── KhachThue/                <-- Phân hệ dành riêng cho Khách thuê (Tenant Portal)
-│       ├── Controllers/          <-- Controllers điều phối (Dashboard, HoSo, HoaDon, HopDong, LichSu)
-│       ├── ViewModels/           <-- ViewModels hỗ trợ đổi mật khẩu, hiển thị dữ liệu
-│       └── Views/                <-- Các Views hiển thị thông tin cho khách thuê
-│
-├── Data/
-│   └── ApplicationDbContext.cs   <-- Khai báo DbSet, cấu hình quan hệ (Fluent API) và Seed dữ liệu
-│
-├── Services/                     <-- Các dịch vụ dùng chung hệ thống (MenuService, InvoiceReminderService)
-│
-├── wwwroot/                      <-- Thư mục chứa tài nguyên tĩnh
-│   ├── css/                      <-- File CSS tự viết phục vụ từng module (hopdong.css, hoadon.css...)
-│   └── Theme/                    <-- Thư mục chứa thư viện Tabler, JS, hình ảnh logo...
-│
-├── appsettings.json              <-- Cấu hình DB (PostgreSQL), SMTP Email, VietQR, DashboardSettings (ngày chốt điện nước), và Gemini AI API Key
-├── Program.cs                    <-- Nơi khởi chạy ứng dụng, cấu hình DI (Dependency Injection), Routing
-├── HuongDanToanDienDuAn.md       <-- Tài liệu hướng dẫn chi tiết toàn diện cho lập trình viên mới
-├── tai_lieu_chuc_nang_he_thong.md <-- Tài liệu mô tả chi tiết các chức năng nghiệp vụ hệ thống
-└── README.md                     <-- Chính là tài liệu hướng dẫn tổng quan này
+## Công nghệ
+
+Backend dùng EF Core/Npgsql 8, MailKit, CloudinaryDotNet, ClosedXML, QuestPDF, DocX, QRCoder và SignalR. Frontend dùng Razor, Tabler/Bootstrap, jQuery cùng các thư viện giao diện trong wwwroot.
+
+Mật khẩu mới dùng ASP.NET Core Identity PasswordHasher (PBKDF2). AspNetPasswordService vẫn kiểm tra SHA256 cũ; luồng đăng nhập nâng cấp hash khi cần. Không dùng SHA256 để tạo mật khẩu mới.
+
+## Khởi chạy cục bộ
+
+Cài .NET 8 SDK và PostgreSQL. Chạy lệnh từ thư mục gốc repository.
+
+1. Sao chép cấu hình mẫu nếu chưa có appsettings.json; không ghi đè cấu hình đang dùng:
+
+   ```powershell
+   Copy-Item src/QuanLyChoThuePhongTroWeb.Web/appsettings.example.json src/QuanLyChoThuePhongTroWeb.Web/appsettings.json
+   ```
+
+2. Điền ConnectionStrings:DefaultConnection trỏ vào database phát triển. Cấu hình SMTP, Cloudinary, Gemini và VietQR khi dùng chức năng tương ứng. Không commit mật khẩu hoặc API key.
+3. Restore, build và chạy:
+
+   ```powershell
+   dotnet restore QuanLyChoThuePhongTroWeb.sln
+   dotnet build QuanLyChoThuePhongTroWeb.sln
+   dotnet watch run --project src/QuanLyChoThuePhongTroWeb.Web/QuanLyChoThuePhongTroWeb.Web.csproj
+   ```
+
+Mở URL được in trong terminal và đường dẫn /QuanLyNhaTro/DangNhap. Khi khởi động, DatabaseInitializer tự chạy migrations và tạo tài khoản quản trị ban đầu. Trước khi đưa hệ thống lên môi trường dùng chung, hãy đổi thông tin đăng nhập mặc định trong quy trình khởi tạo và đặt mật khẩu riêng đủ mạnh. Lỗi kết nối hoặc migration làm khởi động thất bại.
+
+## An toàn cấu hình
+
+- Chỉ commit appsettings.example.json với giá trị mẫu. appsettings.json, .env, private key, certificate và file secrets đã được chặn trong .gitignore.
+- Ưu tiên biến môi trường hoặc secret store của nền tảng triển khai cho connection string, SMTP, Cloudinary, Gemini và VietQR.
+- Không dùng database phát triển hoặc production để chạy integration test.
+- Nếu một secret từng được commit, việc xóa khỏi commit mới không làm secret biến mất khỏi lịch sử Git; cần thu hồi/đổi secret và làm sạch lịch sử trước khi public repository.
+
+## Cấu hình cần biết
+
+| Nhóm | Mục đích |
+| --- | --- |
+| ConnectionStrings:DefaultConnection | PostgreSQL lúc chạy Web |
+| BackgroundJobs:Enabled | Bật/tắt toàn bộ hosted jobs; mặc định bật |
+| AutoReminderSettings | Bật nhắc hóa đơn và số ngày quá hạn |
+| ContractAlertSettings | Bật cảnh báo, email quản lý và các mốc ngày |
+| DashboardSettings:ChotDienNuocDay | Ngày chốt điện nước; file mẫu đang đặt 25 |
+| EmailSettings, Cloudinary, Gemini, VietQRSettings | Thông tin các tích hợp |
+
+Tắt BackgroundJobs:Enabled khi cần chạy môi trường phát triển không có tác vụ tự động. Tùy chọn này không tắt migrations/seed lúc khởi động.
+
+## EF Core migrations
+
+Migrations nằm trong Infrastructure/Persistence/Migrations. Design-time factory đọc biến môi trường, không tự đọc appsettings.json của Web:
+
+```powershell
+$env:QLCTPT_DESIGNTIME_CONNECTION_STRING = 'Host=localhost;Port=5432;Database=qlctpt_dev;Username=<user>;Password=<password>'
+dotnet ef migrations list --project src/QuanLyChoThuePhongTroWeb.Infrastructure --startup-project src/QuanLyChoThuePhongTroWeb.Infrastructure
+dotnet ef migrations has-pending-model-changes --project src/QuanLyChoThuePhongTroWeb.Infrastructure --startup-project src/QuanLyChoThuePhongTroWeb.Infrastructure
+dotnet ef database update --project src/QuanLyChoThuePhongTroWeb.Infrastructure --startup-project src/QuanLyChoThuePhongTroWeb.Infrastructure
 ```
 
----
+Cần công cụ dotnet-ef tương thích EF Core 8. Có thể dùng ConnectionStrings__DefaultConnection thay biến design-time. Refactor phải giữ nguyên schema; không sửa migration đã có hoặc tạo migration chỉ vì di chuyển mã.
 
-## 3. MÔ TẢ CÁC MODULE NGHIỆP VỤ CHÍNH
+## Kiểm thử
 
-Hệ thống được chia làm hai phân hệ nghiệp vụ chính: **Phân hệ Quản lý (Admin Portal)** và **Phân hệ Khách thuê (Tenant Portal)**.
+```powershell
+dotnet test tests/QuanLyChoThuePhongTroWeb.Domain.UnitTests
+dotnet test tests/QuanLyChoThuePhongTroWeb.Application.UnitTests
+```
 
-### A. Phân Hệ Quản Lý (Admin Portal - Area `QuanLyNhaTro`)
+Để chạy toàn solution, chuẩn bị PostgreSQL test riêng và khai báo:
 
-1. **Dashboard (Bảng điều khiển)**:
-   - Hiển thị các chỉ số vận hành quan trọng như doanh thu thực thu, doanh thu chờ thu, số phòng trống/đã thuê, tỷ lệ lấp đầy.
-   - Chứa biểu đồ cột chồng doanh thu 12 tháng, cơ cấu phương thức thanh toán, bảng việc cần làm/cảnh báo và timeline hoạt động.
-2. **Chi nhánh (Branches)**: Quản lý nhiều cơ sở nhà trọ khác nhau. Mỗi chi nhánh có bảng giá dịch vụ riêng biệt.
-3. **Phòng trọ (Rooms)**: Quản lý số phòng, đơn giá thuê gốc, diện tích và trạng thái phòng (Trống / Đã thuê / Đang bảo trì). Hỗ trợ sơ đồ phòng trực quan và thanh toán nhanh.
-4. **Khách thuê (Tenants)**: Lưu trữ thông tin cá nhân khách thuê đại diện và các thành viên ở ghép. Tích hợp autocomplete khi lập hợp đồng.
-5. **Hợp đồng (Contracts)**: Quản lý thời hạn thuê phòng, số tiền cọc, giá thuê thỏa thuận. Tích hợp quản lý thành viên ở ghép (`_DanhSachThanhVienPartial`), danh sách dịch vụ đăng ký đi kèm (`_DangKyDichVuPartial`), và chức năng xuất hợp đồng ra file Word (.docx) chuẩn A4 thông qua `WordExportService` bên cạnh PDF để tải về máy.
-6. **Dịch vụ (Services)**: Định nghĩa danh mục dịch vụ và cấu hình bảng giá riêng theo từng chi nhánh.
-7. **Chỉ số Điện nước (Utilities)**: Ghi chỉ số điện/nước hàng tháng của từng phòng trọ. Hỗ trợ kế thừa chỉ số và khóa dữ liệu sau khi phát sinh hóa đơn.
-8. **Hóa đơn (Invoices)**: Tự động phát sinh hóa đơn theo kỳ dựa vào tiền phòng thỏa thuận, tiền điện/nước tiêu thụ thực tế và các dịch vụ đăng ký. Hỗ trợ sinh VietQR chuyển khoản, in báo cáo PDF/Excel, gửi email thông báo đơn lẻ hoặc hàng loạt, và chạy ngầm nhắc nợ tự động (`InvoiceReminderService`).
-9. **Lịch sử Thanh toán (Payment History)**: Quản lý toàn bộ giao dịch đóng tiền mặt hoặc quét VietQR chuyển khoản, cho phép Admin thực hiện hủy/hoàn tác giao dịch thu tiền khi bị lỗi.
-10. **Điều khoản mẫu (Contract Clauses)**: Quản lý các điều khoản mẫu dùng trong hợp đồng thuê phòng. Được thiết kế dưới dạng Single-Page Application (SPA) qua AJAX và Bootstrap Modals giúp thực hiện toàn bộ thao tác Thêm, Sửa, Xóa trên một màn hình duy nhất mà không cần tải lại trang.
-11. **Trợ lý AI (AiAssistant)**: Tích hợp widget chat Gemini AI ở góc màn hình. AI sử dụng cơ chế **Function Calling** (9 hàm C# APIs) để chạy truy vấn trực tiếp SQL dưới nền, cho phép trả lời ngôn ngữ tự nhiên các số liệu vận hành và tài chính của nhà trọ (tìm phòng trống, thống kê doanh thu, hóa đơn nợ, kiểm tra điện nước...).
-12. **Quản lý Sự cố (Incidents)**: Tiếp nhận các phản hồi hư hỏng, sự cố từ khách thuê gửi lên. Cho phép Admin xem hình ảnh thực tế (lưu trữ Cloudinary), cập nhật trạng thái (*Chờ tiếp nhận -> Đang xử lý -> Hoàn thành*) và gửi phản hồi thông báo kế hoạch sửa chữa cho khách.
-13. **Thông báo Real-time (SignalR)**: Tích hợp SignalR WebSockets kết nối với `ThongBaoHub`, tự động phát thông báo tiếng chuông và pop-up thời gian thực tới Admin khi có sự cố mới hoặc giao dịch thanh toán phát sinh.
+```powershell
+$env:QLCTPT_TEST_CONNECTION_STRING = 'Host=localhost;Port=5432;Database=qlctpt_test;Username=<user>;Password=<password>'
+dotnet test QuanLyChoThuePhongTroWeb.sln
+```
 
-### B. Phân Hệ Khách Thuê (Tenant Portal - Area `KhachThue`)
+Infrastructure/Web integration fixtures yêu cầu tên database kết thúc bằng _test hoặc _integration_test và chạy migrations. Thiếu biến hoặc sai tên sẽ báo lỗi, không tự bỏ qua test. Không dùng database phát triển/production. Web test host thay dịch vụ ngoài bằng fake và tắt hosted jobs. CI tại .github/workflows hiện chỉ là khung, chưa có workflow thực thi.
 
-1. **Dashboard Khách thuê**: Xem tổng quan trạng thái phòng đang thuê hiện tại, số lượng hóa đơn trễ hạn và các ghi chú chào mừng.
-2. **Thông tin Hồ sơ (HoSo)**: Xem chi tiết thông tin cá nhân trên hợp đồng thuê đã đăng ký. Hỗ trợ thay đổi mật khẩu tài khoản trực tiếp qua giao diện AJAX băm bảo mật SHA256.
-3. **Chi tiết Hợp đồng (HopDong)**: Xem toàn bộ hợp đồng hiện tại và quá khứ, các thành viên ở ghép cùng phòng, danh sách dịch vụ đang đăng ký áp dụng cho phòng trọ.
-4. **Hóa đơn & QR Thanh toán (HoaDon)**: Tra cứu lịch sử hóa đơn tiền phòng/dịch vụ theo các tháng. Đối với hóa đơn chưa thanh toán, hệ thống hiển thị mã VietQR động được tạo offline chứa số tiền và nội dung chuyển khoản động chứa mã hóa đơn để chuyển khoản nhanh.
-5. **Lịch sử Giao dịch (LichSuThanhToan)**: Truy cập danh sách các giao dịch thanh toán thành công đã đóng trước đó.
-6. **Báo cáo & Theo dõi Sự cố (SuCo)**: Khách thuê dễ dàng tạo yêu cầu báo cáo sự cố (hư hỏng điện nước, cơ sở vật chất), chụp và upload hình ảnh thực tế trực tiếp lên Cloudinary, đồng thời theo dõi tiến độ xử lý của chủ trọ theo thời gian thực.
+## Tài liệu liên quan
 
-### C. Các Cơ Chế Vận Hành Đặc Thù & Bảo Mật
-
-1. **Phân quyền và điều hướng tự động**: Hệ thống định nghĩa 3 vai trò: `Admin`, `NhanVien`, và `KhachThue`. Khi người dùng đăng nhập tại trang trung tâm `/QuanLyNhaTro/DangNhap`, hệ thống sẽ dựa trên vai trò trong Cookie Claims để tự động chuyển hướng: Khách thuê sang Portal của khách thuê (`/KhachThue/Dashboard`), Quản trị viên và Nhân viên sang Portal quản lý (`/QuanLyNhaTro/Dashboard`).
-2. **Tự động cấp tài khoản Khách thuê**: Khi tạo Hợp đồng mới, nếu người thuê đại diện có nhập email và chưa có tài khoản, hệ thống tự động sinh một tài khoản đăng nhập với tên đăng nhập là Email, mật khẩu mặc định là Số điện thoại của người thuê (được băm SHA256 bảo mật).
-3. **Bảo vệ Điều khoản Hợp đồng dạng Snapshot**: Các điều khoản được chọn từ mẫu điều khoản sẽ được sao chép toàn bộ nội dung và lưu độc lập tại bảng `HopDongDieuKhoans` thay vì tham chiếu động. Điều này ngăn ngừa việc chỉnh sửa điều khoản mẫu trong tương lai làm thay đổi tính pháp lý của các hợp đồng đã ký trong quá khứ.
-4. **Cảnh báo chỉ số điện nước động**: Dashboard tự động đọc ngày chốt điện nước cấu hình tại `DashboardSettings:ChotDienNuocDay` trong `appsettings.json` (mặc định ngày 5) để hiển thị danh sách cảnh báo To-Dos chốt điện nước của tháng trước/tháng hiện tại một cách thông minh và tối ưu.
-
----
-
-## 4. CÁC QUY CHUẨN VIẾT CODE QUAN TRỌNG (CODING GUIDELINES)
-
-### A. Mô hình Controller - Service Layer
-Để code sạch và dễ viết kiểm thử, **không** viết logic nghiệp vụ (như tính toán tiền phòng, kiểm tra trạng thái...) hay truy vấn DbContext trực tiếp tại Controller.
-- **Controller**: Nhận tham số, kiểm tra `ModelState.IsValid`, gọi Service tương ứng và trả về `View()` hoặc `Json()`.
-- **Service**: Định nghĩa interface (ví dụ: `ILichSuThanhToanService`) và lớp triển khai (`LichSuThanhToanService`) thực thi logic nghiệp vụ và lưu trữ dữ liệu.
-- *Lưu ý*: Đăng ký dịch vụ mới vào DI Container trong `Program.cs` sử dụng `builder.Services.AddScoped<IService, Service>();`.
-
-### B. Quy trình làm việc với jQuery DataTables (Server-side)
-Khi làm việc với danh sách cần phân trang phía server:
-1. Định nghĩa yêu cầu phân trang bằng lớp `DataTableRequest` trong ViewModels.
-2. Trả dữ liệu về bằng lớp generic `DataTableResponse<T>`.
-3. Trong Controller, bắt dữ liệu từ form DataTables gửi lên và chuyển tiếp sang Service xử lý:
-   ```csharp
-   var request = new DataTableRequest {
-       Draw = int.Parse(Request.Form["draw"].FirstOrDefault()),
-       Start = int.Parse(Request.Form["start"].FirstOrDefault()),
-       Length = int.Parse(Request.Form["length"].FirstOrDefault()),
-       SearchValue = Request.Form["search[value]"].FirstOrDefault()
-   };
-   ```
-
-### C. Quy chuẩn xử lý thời gian (Time Zone)
-- Cơ sở dữ liệu PostgreSQL lưu trữ thời gian ở chuẩn **UTC** (DateTimeKind.Utc).
-- Khi hiển thị ra giao diện người dùng (hoặc xuất Excel/PDF), cần cộng thêm 7 tiếng (GMT+7 - Giờ Việt Nam) bằng hàm `.AddHours(7)` và định dạng chuỗi thích hợp (ví dụ: `dd/MM/yyyy HH:mm`).
-
-### D. Đồng bộ chế độ tối (Dark Mode) cho bộ lọc
-Hệ thống sử dụng các class của theme Tabler. Để tránh bị lỗi hiển thị nền trắng chữ trắng ở chế độ tối:
-- **Tuyệt đối không** sử dụng class `bg-white` trên các ô nhập liệu dạng văn bản hoặc bộ chọn ngày. Hãy để class mặc định `.form-control` tự động điều chỉnh.
-- Sử dụng các CSS Variables dùng chung như `var(--tblr-bg-surface)` hay `var(--tblr-body-color)` khi viết CSS tùy biến để tự động tương thích với Dark Mode.
-
-### E. Xóa mềm (Soft Delete)
-- Mọi thực thể chính đều có trường `IsDeleted`. Khi thực hiện hành động xóa, chỉ cập nhật `IsDeleted = true`.
-- Luôn lọc dữ liệu bằng `.Where(x => !x.IsDeleted)`. Không dùng lệnh xóa cứng khỏi database nhằm bảo toàn dữ liệu lịch sử.
-
----
-
-## 5. HƯỚNG DẪN KHỞI CHẠY & PHÁT TRIỂN (HOW TO RUN)
-
-1. **Cài đặt môi trường**: Yêu cầu máy cài sẵn **.NET 8 SDK** và một cơ sở dữ liệu **PostgreSQL** đang chạy.
-2. **Cập nhật chuỗi kết nối**: Mở file `appsettings.json`, điều chỉnh mục `ConnectionStrings:DefaultConnection` trùng với thông tin Host, Port, Username và Password PostgreSQL của bạn.
-3. **Cập nhật Database (Migrations)**:
-   Mở CMD/Terminal tại thư mục gốc dự án và chạy:
-   ```bash
-   dotnet ef database update
-   ```
-4. **Khởi chạy Server**:
-   ```bash
-   dotnet watch run
-   ```
-   Trình duyệt sẽ tự động mở trang web. Khi sửa code ở file C# hay HTML, server sẽ tự động reload giúp quá trình phát triển nhanh chóng hơn.
-
-
+- [Roadmap 60 ngày và đánh giá hiện trạng](docs/roadmap-60-ngay.md)
+- [Thiết kế tìm phòng và giữ chỗ](docs/superpowers/specs/2026-09-17-room-reservation-design.md)
+- [Kế hoạch tìm phòng và lịch xem](docs/superpowers/plans/2026-09-17-public-room-discovery-and-viewing.md)

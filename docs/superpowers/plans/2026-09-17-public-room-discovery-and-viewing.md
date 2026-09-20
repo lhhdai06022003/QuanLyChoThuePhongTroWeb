@@ -12,22 +12,45 @@
 
 ---
 
+
+## Trạng thái rà soát 20/09/2026
+
+Đây là kế hoạch phát triển chưa triển khai. PhongTro chưa có thuộc tính đăng tin, Domain chưa có YeuCauXemPhong/NhanVienChiNhanh; area KhachVangLai chỉ có khung. Các đường dẫn Create là dự kiến, không phải file đã tồn tại. Phạm vi hiện tại chỉ đồng bộ tài liệu, không thực thi checklist hoặc tạo migration.
+
+### Điều chỉnh kiến trúc áp dụng cho toàn bộ task
+
+- Domain chứa entity/quy tắc thuần; Application chứa DTO, use case và store interfaces. Web dùng DTO, không nhận/trả Domain entity.
+- PublicRoomVisibility và test quy tắc thuần nên nằm ở Domain/Rules/PublicRoomVisibility.cs và tests/QuanLyChoThuePhongTroWeb.Domain.UnitTests/PublicRoomVisibilityTests.cs; đường dẫn Domain có tiền tố src/QuanLyChoThuePhongTroWeb.Domain. Không thêm external package vào Domain.
+- Application/Features/PublicRooms/DTOs chứa PublicRoomSearch/PublicRoomCard; Services chứa IPublicRoomService/PublicRoomService; Persistence chứa IPublicRoomStore. Các đường dẫn Application có tiền tố src/QuanLyChoThuePhongTroWeb.Application.
+- ViewingRequests có DTOs, Services và Persistence/IViewingRequestStore.cs trong Application/Features. Store triển khai ở src/QuanLyChoThuePhongTroWeb.Infrastructure/Persistence/Features/ViewingRequestStore.cs; xác minh token và chuyển trạng thái nguyên tử tại store/transaction.
+- Interface token đặt tại src/QuanLyChoThuePhongTroWeb.Application/Abstractions/Security/IViewingTokenService.cs; sinh ngẫu nhiên/hash ở Infrastructure/Security/ViewingTokenService.cs. Cookie, claim, antiforgery và rate limit chỉ ở Web.
+- DTO đăng/sửa phòng hiện có tại Application/Features/PhongTros/DTOs và store PhongTroStore ở Infrastructure/Persistence/Features cũng cần cập nhật khi thêm thuộc tính đăng tin.
+- Bổ sung quyền chi nhánh qua store và use case Application; không dùng role hoặc dữ liệu từ client làm bằng chứng duy nhất.
+- DI nghiệp vụ tại src/QuanLyChoThuePhongTroWeb.Application/DependencyInjection.cs; store/token/email tại src/QuanLyChoThuePhongTroWeb.Infrastructure/DependencyInjection.cs. Program.cs chỉ cấu hình phần HTTP.
+- Model/enum hóa đơn hiện có không được coi là đã hỗ trợ nháp hay tiền giữ chỗ. Lát cắt này không sửa quy trình thu hóa đơn.
+
+### Điều kiện thực thi và kiểm thử
+
+Bốn project test đã tồn tại. Unit test Application dùng store giả; kiểm thử EF filtering, transaction, token dùng một lần dưới tải cạnh tranh và migration thuộc Infrastructure.IntegrationTests. Kiểm thử cookie, antiforgery, rate limit và truy cập chéo yêu cầu thuộc Web.IntegrationTests. Token hash SHA256 trong kế hoạch là hash token ngẫu nhiên, không phải cách hash mật khẩu.
+
+Full suite cần QLCTPT_TEST_CONNECTION_STRING với DB riêng có hậu tố _test hoặc _integration_test. EF CLI cần dotnet-ef 8 và QLCTPT_DESIGNTIME_CONNECTION_STRING (hoặc ConnectionStrings__DefaultConnection). Mọi lệnh migration phải chỉ rõ cả --project và --startup-project là src/QuanLyChoThuePhongTroWeb.Infrastructure. Refactor không đổi schema; các migration tính năng dưới đây phải được review và kiểm thử riêng trên DB test trước khi áp vào DB phát triển.
+
 ## File map
 
 | File | Trách nhiệm |
 | --- | --- |
-| Models/PhongTro.cs; Areas/QuanLyNhaTro/Views/PhongTros/QuanLyPhongTro.cshtml | Cờ đăng tin, ảnh đại diện và thao tác đăng tin |
-| Models/YeuCauXemPhong.cs | Dữ liệu, trạng thái và token truy cập lịch xem |
-| Models/NhanVienChiNhanh.cs | Phân công nhân viên theo chi nhánh |
-| Data/ApplicationDbContext.cs; Migrations/ | Ánh xạ, chỉ mục và thay đổi database |
-| Services/PublicRooms/PublicRoomService.cs | Lọc phòng công khai, đọc phí dịch vụ theo chi nhánh |
-| Services/ViewingRequests/ViewingRequestService.cs | Tạo, xác minh và xử lý lịch xem |
-| Areas/KhachVangLai/Controllers/TimPhongController.cs | Trang công khai, tạo yêu cầu và đổi liên kết email lấy cookie |
-| Areas/QuanLyNhaTro/Controllers/LichXemPhongController.cs | Danh sách và duyệt lịch xem trong chi nhánh |
-| Areas/QuanLyNhaTro/Services/Emails/EmailService.cs | Gửi liên kết xác minh |
-| Areas/KhachVangLai/Views/TimPhong/; Areas/KhachVangLai/Views/Shared/_PublicLayout.cshtml | Giao diện khách tìm phòng |
-| Areas/QuanLyNhaTro/Views/LichXemPhong/ | Giao diện nhân viên |
-| tests/QuanLyChoThuePhongTroWeb.UnitTests/ | Kiểm thử quy tắc và luồng nghiệp vụ |
+| src/QuanLyChoThuePhongTroWeb.Domain/Entities/PhongTro.cs; src/QuanLyChoThuePhongTroWeb.Web/Areas/QuanLyNhaTro/Views/PhongTros/QuanLyPhongTro.cshtml | Cờ đăng tin, ảnh đại diện và thao tác đăng tin |
+| src/QuanLyChoThuePhongTroWeb.Domain/Entities/YeuCauXemPhong.cs | Dữ liệu, trạng thái và token truy cập lịch xem |
+| src/QuanLyChoThuePhongTroWeb.Domain/Entities/NhanVienChiNhanh.cs | Phân công nhân viên theo chi nhánh |
+| src/QuanLyChoThuePhongTroWeb.Infrastructure/Persistence/ApplicationDbContext.cs; src/QuanLyChoThuePhongTroWeb.Infrastructure/Persistence/Migrations/ | Ánh xạ, chỉ mục và thay đổi database |
+| src/QuanLyChoThuePhongTroWeb.Application/Features/PublicRooms/Services/PublicRoomService.cs | Điều phối tìm phòng qua IPublicRoomStore; EF filtering và phí dịch vụ ở Infrastructure |
+| src/QuanLyChoThuePhongTroWeb.Application/Features/ViewingRequests/Services/ViewingRequestService.cs | Tạo, xác minh và xử lý lịch xem |
+| src/QuanLyChoThuePhongTroWeb.Web/Areas/KhachVangLai/Controllers/TimPhongController.cs | Trang công khai, tạo yêu cầu và đổi liên kết email lấy cookie |
+| src/QuanLyChoThuePhongTroWeb.Web/Areas/QuanLyNhaTro/Controllers/LichXemPhongController.cs | Danh sách và duyệt lịch xem trong chi nhánh |
+| src/QuanLyChoThuePhongTroWeb.Infrastructure/ExternalServices/Emails/MailKitEmailService.cs | Gửi liên kết xác minh |
+| src/QuanLyChoThuePhongTroWeb.Web/Areas/KhachVangLai/Views/TimPhong/; src/QuanLyChoThuePhongTroWeb.Web/Areas/KhachVangLai/Views/Shared/_PublicLayout.cshtml | Giao diện khách tìm phòng |
+| src/QuanLyChoThuePhongTroWeb.Web/Areas/QuanLyNhaTro/Views/LichXemPhong/ | Giao diện nhân viên |
+| tests/QuanLyChoThuePhongTroWeb.Application.UnitTests/ | Kiểm thử quy tắc và luồng nghiệp vụ |
 
 ## Phân công gợi ý cho hai người
 
@@ -41,17 +64,17 @@ Task 1-3 là phụ thuộc tuần tự; sau khi thống nhất PublicRoomCard v�
 
 ## Task 1: Viết kiểm thử đầu tiên cho quy tắc đăng phòng
 
-**Files:** Create tests/QuanLyChoThuePhongTroWeb.UnitTests/PublicRoomVisibilityTests.cs; Create Services/PublicRooms/PublicRoomVisibility.cs.
+**Files:** Create tests/QuanLyChoThuePhongTroWeb.Domain.UnitTests/PublicRoomVisibilityTests.cs; Create src/QuanLyChoThuePhongTroWeb.Domain/Rules/PublicRoomVisibility.cs.
 
-- [x] Hai test project đã được tạo trong tests/, tham chiếu web project và được thêm vào solution. Web project đã loại trừ tests/**/*.cs.
+- [x] Nền tảng hiện có: bốn project test theo tầng đã nằm trong solution. Đây chỉ là xác nhận cấu trúc; chưa đánh dấu kiểm thử tính năng tìm phòng là hoàn thành.
 - [ ] Viết kiểm thử cho bốn trường hợp: phòng được đăng và trống; không được đăng; đã thuê; đã xóa mềm.
-- [ ] Chạy dotnet test tests/QuanLyChoThuePhongTroWeb.UnitTests/QuanLyChoThuePhongTroWeb.UnitTests.csproj; mong đợi kiểm thử mới thất bại vì PublicRoomVisibility chưa tồn tại.
-- [ ] Tạo Services/PublicRooms/PublicRoomVisibility.cs để chỉ cho hiển thị phòng được đăng, còn trống và chưa bị xóa.
+- [ ] Chạy dotnet test tests/QuanLyChoThuePhongTroWeb.Domain.UnitTests/QuanLyChoThuePhongTroWeb.Domain.UnitTests.csproj; mong đợi kiểm thử mới thất bại vì PublicRoomVisibility chưa tồn tại.
+- [ ] Tạo src/QuanLyChoThuePhongTroWeb.Domain/Rules/PublicRoomVisibility.cs để chỉ cho hiển thị phòng được đăng, còn trống và chưa bị xóa.
 - [ ] Chạy lại dotnet test; mong đợi bốn trường hợp đạt. Commit riêng quy tắc đăng phòng và kiểm thử.
 
 ## Task 2: Thêm thông tin đăng phòng và migration
 
-**Files:** Modify Models/PhongTro.cs, Areas/QuanLyNhaTro/Controllers/PhongTrosController.cs, Areas/QuanLyNhaTro/Services/PhongTros/PhongTroService.cs, Areas/QuanLyNhaTro/Views/PhongTros/QuanLyPhongTro.cshtml; Create Migrations/ (EF Core generates AddPublicRoomListing migration and designer).
+**Files:** Modify src/QuanLyChoThuePhongTroWeb.Domain/Entities/PhongTro.cs, src/QuanLyChoThuePhongTroWeb.Web/Areas/QuanLyNhaTro/Controllers/PhongTrosController.cs, src/QuanLyChoThuePhongTroWeb.Application/Features/PhongTros/Services/PhongTroService.cs, src/QuanLyChoThuePhongTroWeb.Web/Areas/QuanLyNhaTro/Views/PhongTros/QuanLyPhongTro.cshtml; Create src/QuanLyChoThuePhongTroWeb.Infrastructure/Persistence/Migrations/ (EF Core generates AddPublicRoomListing migration and designer).
 
 - [ ] Thêm vào PhongTro:
 
@@ -60,13 +83,13 @@ public bool DuocDangTin { get; set; } = false;
 public string? AnhDaiDienUrl { get; set; }
 ~~~
 
-- [ ] Thêm công tắc đăng tin và ảnh đại diện vào form quản lý phòng hiện có; service thêm/sửa phòng lưu hai trường này. Chỉ phòng trạng thái Trống mới được bật đăng tin. Tạo migration bằng dotnet ef migrations add AddPublicRoomListing; xem lại để cột mới có mặc định false và các phòng cũ không tự xuất hiện công khai.
-- [ ] Chạy dotnet build QuanLyChoThuePhongTroWeb.sln; mong đợi 0 lỗi. Chạy dotnet ef database update trên database phát triển và kiểm tra dữ liệu phòng cũ còn nguyên.
+- [ ] Thêm công tắc đăng tin và ảnh đại diện vào form quản lý phòng hiện có; service thêm/sửa phòng lưu hai trường này. Chỉ phòng trạng thái Trống mới được bật đăng tin. Tạo migration bằng dotnet ef migrations add AddPublicRoomListing --project src/QuanLyChoThuePhongTroWeb.Infrastructure --startup-project src/QuanLyChoThuePhongTroWeb.Infrastructure; xem lại để cột mới có mặc định false và các phòng cũ không tự xuất hiện công khai.
+- [ ] Chạy dotnet build QuanLyChoThuePhongTroWeb.sln; mong đợi 0 lỗi. Chạy dotnet ef database update --project src/QuanLyChoThuePhongTroWeb.Infrastructure --startup-project src/QuanLyChoThuePhongTroWeb.Infrastructure trên database phát triển và kiểm tra dữ liệu phòng cũ còn nguyên.
 - [ ] Commit model và migration; không commit appsettings.json.
 
 ## Task 3: Dịch vụ tìm phòng công khai
 
-**Files:** Create Services/PublicRooms/PublicRoomSearch.cs, PublicRoomCard.cs, PublicRoomFilter.cs, IPublicRoomService.cs, PublicRoomService.cs; Modify Program.cs; Test tests/QuanLyChoThuePhongTroWeb.UnitTests/PublicRoomSearchTests.cs.
+**Files:** Create src/QuanLyChoThuePhongTroWeb.Application/Features/PublicRooms/Services/IPublicRoomService.cs, PublicRoomService.cs; Create src/QuanLyChoThuePhongTroWeb.Application/Features/PublicRooms/DTOs/PublicRoomSearch.cs, PublicRoomCard.cs; Create src/QuanLyChoThuePhongTroWeb.Application/Features/PublicRooms/Persistence/IPublicRoomStore.cs; Create src/QuanLyChoThuePhongTroWeb.Infrastructure/Persistence/Features/PublicRoomStore.cs; Modify src/QuanLyChoThuePhongTroWeb.Application/DependencyInjection.cs, src/QuanLyChoThuePhongTroWeb.Infrastructure/DependencyInjection.cs; Test tests/QuanLyChoThuePhongTroWeb.Application.UnitTests/PublicRoomSearchTests.cs.
 
 - [ ] Viết kiểm thử cho lọc giá, chi nhánh và sức chứa. Ví dụ dữ liệu 3 phòng, tìm giá tối đa 3.000.000 và tối thiểu 2 người chỉ trả phòng phù hợp.
 - [ ] Chạy dotnet test; mong đợi thất bại vì dịch vụ lọc chưa có.
@@ -83,12 +106,12 @@ public interface IPublicRoomService
 }
 ~~~
 
-- [ ] Tạo PublicRoomFilter.Apply(IQueryable<PhongTro>, PublicRoomSearch) với điều kiện đăng tin, trạng thái trống, không xóa, lọc giá/chi nhánh/sức chứa. Trong PublicRoomService, bắt đầu truy vấn AsNoTracking từ PhongTros, Include ChiNhanh, lọc DuocDangTin, TrangThai.Trong, !IsDeleted và !ChiNhanh.IsDeleted; chỉ sau đó áp bộ lọc và Select sang PublicRoomCard. PhiDichVu lấy từ bảng giá dịch vụ còn hiệu lực của ChiNhanh và chỉ gồm tên, đơn vị, giá công khai. GetByIdAsync áp cùng quy tắc; phòng không công khai trả null.
-- [ ] Đăng ký AddScoped<IPublicRoomService, PublicRoomService>() trong Program.cs. Chạy dotnet test và dotnet build; mong đợi 0 lỗi. Commit dịch vụ.
+- [ ] Trong PublicRoomStore ở Infrastructure, tạo truy vấn EF với điều kiện đăng tin, trạng thái trống, không xóa, lọc giá/chi nhánh/sức chứa. Trong PublicRoomStore, bắt đầu truy vấn AsNoTracking từ PhongTros, Include ChiNhanh, lọc DuocDangTin, TrangThai.Trong, !IsDeleted và !ChiNhanh.IsDeleted; chỉ sau đó áp bộ lọc và Select sang PublicRoomCard. PhiDichVu lấy từ bảng giá dịch vụ còn hiệu lực của ChiNhanh và chỉ gồm tên, đơn vị, giá công khai. GetByIdAsync áp cùng quy tắc; phòng không công khai trả null.
+- [ ] PublicRoomService gọi IPublicRoomStore; đăng ký service trong Application/DependencyInjection.cs và store trong Infrastructure/DependencyInjection.cs (hai project dưới src/). Không dùng EF hoặc IQueryable trong Application. Chạy dotnet test và dotnet build; mong đợi 0 lỗi. Commit dịch vụ.
 
 ## Task 4: Trang tìm phòng
 
-**Files:** Create Areas/KhachVangLai/Controllers/TimPhongController.cs; Create Areas/KhachVangLai/Views/Shared/_PublicLayout.cshtml; Create Areas/KhachVangLai/Views/TimPhong/Index.cshtml and Details.cshtml; Modify Views/Home/Index.cshtml; Test tests/QuanLyChoThuePhongTroWeb.IntegrationTests/PublicRoomControllerTests.cs.
+**Files:** Create src/QuanLyChoThuePhongTroWeb.Web/Areas/KhachVangLai/Controllers/TimPhongController.cs; Create src/QuanLyChoThuePhongTroWeb.Web/Areas/KhachVangLai/Views/Shared/_PublicLayout.cshtml; Create src/QuanLyChoThuePhongTroWeb.Web/Areas/KhachVangLai/Views/TimPhong/Index.cshtml and Details.cshtml; Modify src/QuanLyChoThuePhongTroWeb.Web/Views/Home/Index.cshtml; Test tests/QuanLyChoThuePhongTroWeb.Web.IntegrationTests/PublicRoomControllerTests.cs.
 
 - [ ] Viết kiểm thử controller: trang chi tiết của phòng chưa đăng tin trả NotFound; phòng công khai trả View.
 - [ ] Chạy kiểm thử, mong đợi thất bại.
@@ -98,7 +121,7 @@ public interface IPublicRoomService
 
 ## Task 5: Yêu cầu xem phòng và liên kết email một lần
 
-**Files:** Create Models/YeuCauXemPhong.cs; Modify Data/ApplicationDbContext.cs; Create Migrations/ (EF Core generates AddViewingRequests migration); Create Services/ViewingRequests/ViewingTokenService.cs; Test tests/QuanLyChoThuePhongTroWeb.UnitTests/ViewingTokenTests.cs.
+**Files:** Create src/QuanLyChoThuePhongTroWeb.Domain/Entities/YeuCauXemPhong.cs; Modify src/QuanLyChoThuePhongTroWeb.Infrastructure/Persistence/ApplicationDbContext.cs; Create src/QuanLyChoThuePhongTroWeb.Infrastructure/Persistence/Migrations/ (EF Core generates AddViewingRequests migration); Create src/QuanLyChoThuePhongTroWeb.Infrastructure/Security/ViewingTokenService.cs; Test tests/QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests/ViewingTokenTests.cs.
 
 - [ ] Model lưu PhongTroId, HoTen, Email, SoDienThoai, ThoiGianMongMuonUtc, TrangThai, TokenHash, TokenHetHanUtc, TokenDaDungUtc, NgayTaoUtc; trạng thái gồm ChoXacMinhEmail, ChoXacNhan, DaXacNhan, TuChoi, DaHuy. Chỉ mục cho PhongTroId/TrangThai và TokenHash.
 - [ ] Viết kiểm thử: token thô khác hash, token không hợp lệ bị từ chối, token quá hạn bị từ chối và token đã dùng không được dùng lại.
@@ -107,7 +130,7 @@ public interface IPublicRoomService
 
 ## Task 6: Gửi email và theo dõi yêu cầu
 
-**Files:** Create Services/ViewingRequests/IViewingRequestService.cs and ViewingRequestService.cs; Modify Areas/QuanLyNhaTro/Services/Emails/IEmailService.cs and EmailService.cs; Modify Areas/KhachVangLai/Controllers/TimPhongController.cs, Program.cs; Create Areas/KhachVangLai/Views/TimPhong/TrangThai.cshtml; Test tests/QuanLyChoThuePhongTroWeb.UnitTests/ViewingRequestTests.cs.
+**Files:** Create src/QuanLyChoThuePhongTroWeb.Application/Features/ViewingRequests/Services/IViewingRequestService.cs and ViewingRequestService.cs; Modify src/QuanLyChoThuePhongTroWeb.Application/Abstractions/Services/IEmailService.cs and EmailService.cs; Modify src/QuanLyChoThuePhongTroWeb.Web/Areas/KhachVangLai/Controllers/TimPhongController.cs, src/QuanLyChoThuePhongTroWeb.Web/Program.cs; Create src/QuanLyChoThuePhongTroWeb.Web/Areas/KhachVangLai/Views/TimPhong/TrangThai.cshtml; Test tests/QuanLyChoThuePhongTroWeb.Application.UnitTests/ViewingRequestTests.cs.
 
 - [ ] Viết kiểm thử: yêu cầu phòng không công khai bị từ chối; email sai định dạng bị từ chối; xác minh token chỉ thành công một lần; khách chỉ xem được yêu cầu của mình.
 - [ ] Chạy test, mong đợi thất bại.
@@ -117,7 +140,7 @@ public interface IPublicRoomService
 
 ## Task 7: Nhân viên chi nhánh xử lý lịch xem
 
-**Files:** Create Models/NhanVienChiNhanh.cs; Modify Data/ApplicationDbContext.cs, Program.cs; Create Migrations/ (EF Core generates AssignEmployeesToBranches migration); Create Services/ViewingRequests/IStaffViewingService.cs and StaffViewingService.cs; Create Areas/QuanLyNhaTro/Controllers/LichXemPhongController.cs; Create Areas/QuanLyNhaTro/Views/LichXemPhong/Index.cshtml; Modify Areas/QuanLyNhaTro/Controllers/NguoiDungController.cs and Areas/QuanLyNhaTro/Views/NguoiDung/QuanLyTaiKhoanDangNhap.cshtml; Test tests/QuanLyChoThuePhongTroWeb.UnitTests/StaffViewingTests.cs.
+**Files:** Create src/QuanLyChoThuePhongTroWeb.Domain/Entities/NhanVienChiNhanh.cs; Modify src/QuanLyChoThuePhongTroWeb.Infrastructure/Persistence/ApplicationDbContext.cs, src/QuanLyChoThuePhongTroWeb.Web/Program.cs; Create src/QuanLyChoThuePhongTroWeb.Infrastructure/Persistence/Migrations/ (EF Core generates AssignEmployeesToBranches migration); Create src/QuanLyChoThuePhongTroWeb.Application/Features/ViewingRequests/Services/IStaffViewingService.cs and StaffViewingService.cs; Create src/QuanLyChoThuePhongTroWeb.Web/Areas/QuanLyNhaTro/Controllers/LichXemPhongController.cs; Create src/QuanLyChoThuePhongTroWeb.Web/Areas/QuanLyNhaTro/Views/LichXemPhong/Index.cshtml; Modify src/QuanLyChoThuePhongTroWeb.Web/Areas/QuanLyNhaTro/Controllers/NguoiDungController.cs and src/QuanLyChoThuePhongTroWeb.Web/Areas/QuanLyNhaTro/Views/NguoiDung/QuanLyTaiKhoanDangNhap.cshtml; Test tests/QuanLyChoThuePhongTroWeb.Application.UnitTests/StaffViewingTests.cs.
 
 - [ ] Tạo ánh xạ NguoiDungId/ChiNhanhId duy nhất. Admin xem mọi chi nhánh; nhân viên chỉ xem và xử lý chi nhánh được phân công. Bổ sung thao tác gán chi nhánh vào màn hình tài khoản hiện có; chỉ Admin được thay đổi phân công, có antiforgery. Không suy đoán quyền chỉ từ role.
 - [ ] Viết kiểm thử: nhân viên A không xem hoặc xác nhận yêu cầu chi nhánh B; Admin được xem; lịch đã từ chối không được xác nhận lại.

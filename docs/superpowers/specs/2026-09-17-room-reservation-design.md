@@ -1,5 +1,21 @@
 # Thiết kế quy trình tìm phòng, giữ chỗ và chuyển thành hợp đồng
 
+## Hiện trạng đối chiếu ngày 20/09/2026
+
+Tài liệu này là thiết kế mục tiêu chưa triển khai, không phải mô tả tính năng đang vận hành. Repository đã chuyển sang Clean Architecture bốn tầng dưới src/ và có bốn project test. Area KhachVangLai và Api/V1 trong Web mới có khung. Chưa có entity lịch xem, giữ chỗ hoặc phân công NhanVienChiNhanh; PhongTro chưa có thuộc tính đăng tin/ảnh đại diện.
+
+Hệ thống đã có hợp đồng, hóa đơn, VietQR, lịch sử thanh toán, email, Cloudinary và SignalR để tái sử dụng. Chưa được coi các cơ chế đó là quy trình xác nhận ảnh chuyển khoản hoặc giữ chỗ. Hóa đơn hiện chỉ có ChuaThanhToan/DaThanhToan.
+
+## Ràng buộc triển khai theo kiến trúc hiện tại
+
+- Entity và chuyển trạng thái thuần đặt ở src/QuanLyChoThuePhongTroWeb.Domain.
+- Use case, DTO, store interface và quyền nghiệp vụ đặt ở src/QuanLyChoThuePhongTroWeb.Application/Features. Dùng IUnitOfWork và abstraction; không dùng DbContext, HTTP/cookie hoặc IConfiguration trong Application.
+- EF store, mapping, transaction, migrations và tích hợp ngoài đặt ở src/QuanLyChoThuePhongTroWeb.Infrastructure. Dùng lại abstraction email/ảnh hiện có khi phù hợp.
+- Controller, Razor, cookie khách vãng lai, antiforgery và endpoint nằm ở src/QuanLyChoThuePhongTroWeb.Web. Web chỉ dùng hợp đồng Application, không trực tiếp tham chiếu Domain.
+- Phân biệt bảo vệ schema khi refactor với bổ sung dữ liệu cho tính năng mới. Thiết kế này cần migration mới được review; không sửa migration lịch sử và không tạo migration trong tác vụ cập nhật tài liệu.
+
+Lát cắt đầu tiên là [tìm phòng và lịch xem](../plans/2026-09-17-public-room-discovery-and-viewing.md). Giữ chỗ/thanh toán và chuyển cọc/hoàn tiền cần kế hoạch riêng sau đó. Các mốc trong [roadmap](../../roadmap-60-ngay.md) là dự kiến, chưa xác nhận ngày bắt đầu.
+
 ## Mục tiêu và phạm vi
 
 Một đơn vị quản lý nhiều chi nhánh. Khách vãng lai xem phòng công khai, liên hệ, đặt lịch xem và gửi yêu cầu giữ chỗ. Nhân viên xác nhận phòng và điều kiện thuê trước khi hệ thống mời khách thanh toán. Tiền giữ chỗ được tính vào tiền cọc khi ký hợp đồng. Quy trình này dùng cho một phòng tại một thời điểm; việc ký hợp đồng vẫn do người có quyền xác nhận.
