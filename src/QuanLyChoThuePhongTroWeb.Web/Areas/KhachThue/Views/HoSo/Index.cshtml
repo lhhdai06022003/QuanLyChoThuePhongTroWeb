@@ -1,0 +1,219 @@
+@model QuanLyChoThuePhongTroWeb.Application.Features.NguoiThues.DTOs.NguoiThueRes
+@{
+    ViewBag.Title = "Hồ sơ của tôi";
+}
+
+<div class="page-header d-print-none">
+    <div class="container-xl">
+        <div class="row align-items-center">
+            <div class="col">
+                <h2 class="page-title d-flex align-items-center"><i class="ti ti-user-circle me-2 text-primary"></i> Thông tin cá nhân</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="page-body">
+    <div class="container-xl">
+        <div class="row row-cards">
+            <!-- Thông tin cá nhân -->
+            <div class="col-md-7">
+                <div class="card">
+                    <div class="card-header bg-primary-lt">
+                        <h3 class="card-title"><i class="ti ti-id me-2"></i> Hồ sơ của bạn</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-4 align-items-center">
+                            <div class="col-auto">
+                                <span class="avatar avatar-xl rounded-circle" style="background-image: url('https://ui-avatars.com/api/?name=@Uri.EscapeDataString(Model.HoVaTen)&background=random&color=ffffff')"></span>
+                            </div>
+                            <div class="col">
+                                <h3 class="mb-0 font-weight-bold">@Model.HoVaTen</h3>
+                                <div class="text-muted mt-1"><i class="ti ti-mail me-1"></i> @Model.Email</div>
+                                <div class="mt-2">
+                                    <span class="badge bg-success-lt"><i class="ti ti-circle-check me-1"></i> Đang hoạt động</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label text-muted font-weight-bold"><i class="ti ti-id me-1"></i> CCCD</label>
+                                <input type="text" class="form-control" value="@Model.CCCD" readonly />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label text-muted font-weight-bold"><i class="ti ti-phone me-1"></i> Số điện thoại</label>
+                                <input type="text" class="form-control" value="@Model.SoDienThoai" readonly />
+                            </div>
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label text-muted font-weight-bold"><i class="ti ti-map-pin me-1"></i> Quê quán</label>
+                                <input type="text" class="form-control" value="@Model.QueQuan" readonly />
+                            </div>
+                        </div>
+                        <div class="alert alert-info" role="alert">
+                            <div class="d-flex">
+                                <div><i class="ti ti-info-circle me-2 fa-lg"></i></div>
+                                <div>
+                                    Để thay đổi thông tin cá nhân trên hợp đồng, vui lòng liên hệ quản lý hoặc ban quản trị nhà trọ.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Đổi mật khẩu -->
+            <div class="col-md-5">
+                <div class="card">
+                    <div class="card-header bg-warning-lt">
+                        <h3 class="card-title"><i class="ti ti-key me-2"></i> Đổi mật khẩu</h3>
+                    </div>
+                    <div class="card-body">
+                        <form id="frmDoiMatKhau">
+                            <div class="mb-3">
+                                <label class="form-label required">Mật khẩu hiện tại</label>
+                                <div class="input-group input-group-flat">
+                                    <input type="password" class="form-control" id="MatKhauCu" required autocomplete="off" placeholder="Nhập mật khẩu hiện tại" />
+                                    <span class="input-group-text">
+                                        <a href="#" class="link-secondary toggle-password" title="Hiển thị mật khẩu" data-bs-toggle="tooltip">
+                                            <i class="ti ti-eye"></i>
+                                        </a>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label required">Mật khẩu mới</label>
+                                <div class="input-group input-group-flat">
+                                    <input type="password" class="form-control" id="MatKhauMoi" required autocomplete="new-password" placeholder="Nhập mật khẩu mới" />
+                                    <span class="input-group-text">
+                                        <a href="#" class="link-secondary toggle-password" title="Hiển thị mật khẩu" data-bs-toggle="tooltip">
+                                            <i class="ti ti-eye"></i>
+                                        </a>
+                                    </span>
+                                </div>
+                                <div class="form-hint">Mật khẩu phải có ít nhất 6 ký tự.</div>
+                            </div>
+                            <div class="mb-4">
+                                <label class="form-label required">Xác nhận mật khẩu mới</label>
+                                <div class="input-group input-group-flat">
+                                    <input type="password" class="form-control" id="XacNhanMatKhau" required autocomplete="new-password" placeholder="Xác nhận lại mật khẩu mới" />
+                                    <span class="input-group-text">
+                                        <a href="#" class="link-secondary toggle-password" title="Hiển thị mật khẩu" data-bs-toggle="tooltip">
+                                            <i class="ti ti-eye"></i>
+                                        </a>
+                                    </span>
+                                </div>
+                                <div class="invalid-feedback" id="pw-match-error" style="display:none;">Mật khẩu xác nhận không khớp!</div>
+                            </div>
+                            <div class="form-footer mt-0">
+                                <button type="submit" class="btn btn-primary w-100" id="btnSubmitDoiMatKhau">
+                                    <i class="ti ti-device-floppy me-2"></i> Lưu thay đổi
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Khởi tạo tooltip
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl)
+            });
+
+            // Toggle show/hide password
+            $('.toggle-password').click(function (e) {
+                e.preventDefault();
+                let input = $(this).closest('.input-group').find('input');
+                let icon = $(this).find('i');
+                if (input.attr('type') === 'password') {
+                    input.attr('type', 'text');
+                    icon.removeClass('fa-eye').addClass('fa-eye-slash');
+                } else {
+                    input.attr('type', 'password');
+                    icon.removeClass('fa-eye-slash').addClass('fa-eye');
+                }
+            });
+
+            // Handle submit form
+            $('#frmDoiMatKhau').submit(function (e) {
+                e.preventDefault();
+
+                let mkCu = $('#MatKhauCu').val();
+                let mkMoi = $('#MatKhauMoi').val();
+                let mkXacNhan = $('#XacNhanMatKhau').val();
+
+                if (mkMoi.length < 6) {
+                    Swal.fire('Lỗi', 'Mật khẩu mới phải có ít nhất 6 ký tự.', 'warning');
+                    return;
+                }
+
+                if (mkMoi !== mkXacNhan) {
+                    $('#XacNhanMatKhau').addClass('is-invalid');
+                    $('#pw-match-error').show();
+                    return;
+                } else {
+                    $('#XacNhanMatKhau').removeClass('is-invalid');
+                    $('#pw-match-error').hide();
+                }
+
+                let btn = $('#btnSubmitDoiMatKhau');
+                let originalText = btn.html();
+                btn.prop('disabled', true).html('<i class="ti ti-loader fa-spin me-2"></i> Đang xử lý...');
+
+                let dataObj = {
+                    MatKhauCu: mkCu,
+                    MatKhauMoi: mkMoi,
+                    XacNhanMatKhau: mkXacNhan
+                };
+
+                $.ajax({
+                    url: '/KhachThue/HoSo/DoiMatKhau',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(dataObj),
+                    success: function (res) {
+                        btn.prop('disabled', false).html(originalText);
+                        if (res.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Thành công',
+                                text: res.message,
+                                confirmButtonText: 'Đóng'
+                            }).then(() => {
+                                $('#frmDoiMatKhau')[0].reset();
+                                $('#XacNhanMatKhau').removeClass('is-invalid');
+                                $('#pw-match-error').hide();
+                            });
+                        } else {
+                            Swal.fire('Lỗi', res.message, 'error');
+                        }
+                    },
+                    error: function (xhr) {
+                        btn.prop('disabled', false).html(originalText);
+                        Swal.fire('Lỗi hệ thống', xhr.responseText || 'Không thể đổi mật khẩu lúc này.', 'error');
+                    }
+                });
+            });
+
+            // Live validation for password matching
+            $('#XacNhanMatKhau, #MatKhauMoi').on('keyup', function () {
+                let mkMoi = $('#MatKhauMoi').val();
+                let mkXacNhan = $('#XacNhanMatKhau').val();
+                if (mkXacNhan.length > 0 && mkMoi !== mkXacNhan) {
+                    $('#XacNhanMatKhau').addClass('is-invalid');
+                    $('#pw-match-error').show();
+                } else {
+                    $('#XacNhanMatKhau').removeClass('is-invalid');
+                    $('#pw-match-error').hide();
+                }
+            });
+        });
+    </script>
+}

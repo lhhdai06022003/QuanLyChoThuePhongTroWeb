@@ -1,0 +1,34 @@
+global using QuanLyChoThuePhongTroWeb.Application.Common.Enums;
+global using QuanLyChoThuePhongTroWeb.Infrastructure.Persistence;
+global using QuanLyChoThuePhongTroWeb.Application;
+global using QuanLyChoThuePhongTroWeb.Application.Common.Models;
+global using QuanLyChoThuePhongTroWeb.Application.Features.ChiNhanhs.Services;
+global using QuanLyChoThuePhongTroWeb.Application.Features.DichVus.Services;
+global using QuanLyChoThuePhongTroWeb.Application.Features.DichVus.DTOs;
+global using QuanLyChoThuePhongTroWeb.Application.Features.DieuKhoanMaus.Services;
+global using QuanLyChoThuePhongTroWeb.Application.Features.DieuKhoanMaus.DTOs;
+global using QuanLyChoThuePhongTroWeb.Application.Features.PhongTros.Services;
+global using QuanLyChoThuePhongTroWeb.Application.Features.PhongTros.DTOs;
+global using QuanLyChoThuePhongTroWeb.Application.Features.NguoiThues.Services;
+global using QuanLyChoThuePhongTroWeb.Application.Features.NguoiThues.DTOs;
+global using QuanLyChoThuePhongTroWeb.Application.Features.NguoiDungs.Services;
+global using QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.Services;
+global using QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.DTOs;
+global using QuanLyChoThuePhongTroWeb.Application.Features.ThanhVienHopDongs.Services;
+global using QuanLyChoThuePhongTroWeb.Application.Features.ThanhVienHopDongs.DTOs;
+global using QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services;
+global using QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.DTOs;
+global using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services;
+global using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs;
+global using QuanLyChoThuePhongTroWeb.Application.Features.LichSuThanhToans.Services;
+global using QuanLyChoThuePhongTroWeb.Application.Features.LichSuThanhToans.DTOs;
+global using QuanLyChoThuePhongTroWeb.Application.Abstractions.Services;
+global using QuanLyChoThuePhongTroWeb.Application.Features.YeuCauSuCos.Services;
+global using QuanLyChoThuePhongTroWeb.Application.Features.ThongBaos.Services;
+global using QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.Services;
+global using QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.DTOs;
+global using QuanLyChoThuePhongTroWeb.Application.Abstractions.Notifications;
+global using QuanLyChoThuePhongTroWeb.Application.Features.Emails.DTOs;
+global using QuanLyChoThuePhongTroWeb.Application.Features.AiAssistants.DTOs;
+
+

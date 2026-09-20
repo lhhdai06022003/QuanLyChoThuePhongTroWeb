@@ -1,0 +1,220 @@
+@model IEnumerable<QuanLyChoThuePhongTroWeb.Application.Features.YeuCauSuCos.DTOs.YeuCauSuCoRes>
+@using QuanLyChoThuePhongTroWeb.Models
+@using QuanLyChoThuePhongTroWeb.Application.Common.Enums
+
+@{
+    ViewData["Title"] = "Lịch sử báo cáo sự cố";
+}
+
+<div class="page-header d-print-none">
+    <div class="container-xl">
+        <div class="row g-2 align-items-center">
+            <div class="col">
+                <h2 class="page-title d-flex align-items-center">
+                    <i class="ti ti-tools me-2 text-primary"></i> Lịch sử Báo cáo Sự cố
+                </h2>
+            </div>
+            <div class="col-auto ms-auto d-print-none">
+                <div class="btn-list">
+                    <button type="button" class="btn btn-primary d-none d-sm-inline-block" data-bs-toggle="modal" data-bs-target="#createSuCoModal">
+                        <i class="ti ti-plus"></i> Báo cáo mới
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="page-body">
+    <div class="container-xl">
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table id="suCoKhachThueTable" class="table table-vcenter card-table table-striped table-hover w-100">
+                        <thead>
+                            <tr>
+                                <th>Ngày gửi</th>
+                                <th>Phòng</th>
+                                <th>Tiêu đề</th>
+                                <th>Trạng thái</th>
+                                <th>Cập nhật lúc</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model)
+                            {
+                                <tr>
+                                    <td>@item.NgayGui.AddHours(7).ToString("dd/MM/yyyy HH:mm")</td>
+                                    <td>@item.PhongTro.SoPhong</td>
+                                    <td>
+                                        <strong>@item.TieuDe</strong>
+                                        <div class="text-muted mt-1">@item.MoTa</div>
+                                        @if (!string.IsNullOrEmpty(item.HinhAnhUrl))
+                                        {
+                                            var urls = item.HinhAnhUrl.Split(',');
+                                            <div class="mt-2">
+                                                @foreach (var url in urls)
+                                                {
+                                                    <a href="@url" target="_blank" class="badge bg-blue-lt me-1 mb-1"><i class="ti ti-photo me-1"></i>Xem ảnh</a>
+                                                }
+                                            </div>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (item.TrangThai == AppTrangThaiSuCo.ChoTiepNhan)
+                                        {
+                                            <span class="badge bg-yellow-lt">Chờ tiếp nhận</span>
+                                        }
+                                        else if (item.TrangThai == AppTrangThaiSuCo.DangXuLy)
+                                        {
+                                            <span class="badge bg-blue-lt">Đang xử lý</span>
+                                        }
+                                        else if (item.TrangThai == AppTrangThaiSuCo.DaHoanThanh)
+                                        {
+                                            <span class="badge bg-green-lt">Đã hoàn thành</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-red-lt">Đã hủy/Từ chối</span>
+                                            @if (!string.IsNullOrEmpty(item.LyDoTuChoi))
+                                            {
+                                                <div class="text-danger mt-1 small">Lý do: @item.LyDoTuChoi</div>
+                                            }
+                                        }
+                                    </td>
+                                    <td>
+                                        @(item.NgayXuLy.HasValue? item.NgayXuLy.Value.AddHours(7).ToString("dd/MM/yyyy HH:mm") : "-")
+                                    </td>
+                                </tr>
+                            }
+
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+</div>
+
+<!-- Modal Create -->
+<div class="modal modal-blur fade" id="createSuCoModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Báo cáo Sự cố mới</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="frmCreateSuCo">
+                    @Html.AntiForgeryToken()
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label required">Chọn Phòng</label>
+                            <select name="PhongTroId" class="form-select" asp-items="ViewBag.PhongTroId"></select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label required">Tiêu đề</label>
+                            <input type="text" name="TieuDe" class="form-control" placeholder="Ví dụ: Hư vòi nước nhà vệ sinh" required />
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label required">Mô tả chi tiết</label>
+                        <textarea name="MoTa" class="form-control" rows="4" placeholder="Mô tả rõ tình trạng..." required></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Hình ảnh minh chứng (Tùy chọn - Có thể chọn nhiều ảnh)</label>
+                        <input type="file" id="fileImages" name="HinhAnhFiles" class="form-control" accept="image/*" multiple />
+                        <small class="form-hint">Hình ảnh giúp chúng tôi đánh giá mức độ sự cố nhanh hơn.</small>
+                    </div>
+                    
+                    <div id="imagePreviewContainer" class="d-flex flex-wrap gap-2 mt-2">
+                        <!-- Previews will be appended here -->
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i> Đóng</button>
+                <button type="button" class="btn btn-primary" onclick="submitSuCo()"><i class="ti ti-send me-1"></i> Gửi Báo Cáo</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Khởi tạo DataTable
+            $('#suCoKhachThueTable').DataTable({
+                "language": { "url": "https://cdn.datatables.net/plug-ins/1.13.6/i18n/vi.json" },
+                "order": [] // Không tự động sort, giữ nguyên thứ tự Backend trả về
+            });
+
+            // Hiển thị preview nhiều ảnh
+            $('#fileImages').on('change', function(e) {
+                var files = e.target.files;
+                var $container = $('#imagePreviewContainer');
+                $container.empty();
+
+                if (files && files.length > 0) {
+                    $.each(files, function(i, file) {
+                        if (!file.type.match('image.*')) {
+                            return true; // continue
+                        }
+                        var reader = new FileReader();
+                        reader.onload = function(e) {
+                            var imgHtml = '<div class="position-relative d-inline-block border rounded p-1">' +
+                                          '<img src="' + e.target.result + '" style="height: 80px; width: 80px; object-fit: cover;"/>' +
+                                          '</div>';
+                            $container.append(imgHtml);
+                        }
+                        reader.readAsDataURL(file);
+                    });
+                }
+            });
+        });
+
+        function submitSuCo() {
+            var form = $('#frmCreateSuCo')[0];
+            
+            // Validate form HTML5
+            if (!form.reportValidity()) {
+                return;
+            }
+
+            var formData = new FormData(form);
+            
+            // Hiện loading (giả sử dùng blockUI hoặc swal)
+            Swal.fire({
+                title: 'Đang gửi...',
+                text: 'Vui lòng chờ trong khi tải ảnh lên.',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading()
+                }
+            });
+
+            $.ajax({
+                url: '/KhachThue/SuCo/Create',
+                type: 'POST',
+                data: formData,
+                contentType: false,
+                processData: false,
+                success: function(res) {
+                    if (res.success) {
+                        Swal.fire('Thành công', res.message, 'success').then(() => {
+                            location.reload();
+                        });
+                    } else {
+                        Swal.fire('Lỗi', res.message, 'error');
+                    }
+                },
+                error: function() {
+                    Swal.fire('Lỗi', 'Đã xảy ra lỗi hệ thống, vui lòng thử lại sau.', 'error');
+                }
+            });
+        }
+    </script>
+}

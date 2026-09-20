@@ -376,8 +376,10 @@ secrets.json
 *.key
 
 # Local application state and user uploads
-/sent_reminders.json
-/sent_contract_alerts.json
+**/sent_reminders.json
+**/sent_invoice_reminders.json
+**/sent_contract_alerts.json
+**/sent_*.json
 /wwwroot/uploads/
 
 # Local database and backup files

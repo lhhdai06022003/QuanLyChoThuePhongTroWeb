@@ -2,30 +2,41 @@
 
 ## Project Structure & Module Organization
 
-This is one .NET 8 ASP.NET Core MVC application. `Areas/QuanLyNhaTro/` serves managers and staff; `Areas/KhachThue/` serves tenants. `Areas/KhachVangLai/` is reserved for the future public rental flow. Place versioned JSON endpoints and request/response DTOs in `Api/V1/Controllers/` and `Api/V1/Contracts/`. MVC and API controllers should call shared business services rather than each other. Existing controllers, models, services, filters, and helpers remain at the repository root. `Data/ApplicationDbContext.cs` defines EF Core persistence, `Migrations/` stores schema changes, and `wwwroot/` contains static assets. Keep feature designs and the [60-day roadmap](docs/roadmap-60-ngay.md) in `docs/`.
+Hệ thống được tổ chức chuẩn mực theo **Clean Architecture 4 tầng**:
+
+### 1. Production Projects (`src/`)
+- `src/QuanLyChoThuePhongTroWeb.Domain/`: Tầng cốt lõi chứa Entities, Enums, Value Objects. **Không phụ thuộc vào bất kỳ project hay external package nào.**
+- `src/QuanLyChoThuePhongTroWeb.Application/`: Tầng nghiệp vụ ứng dụng chứa Features (UseCases, Services, DTOs), Common Models, Abstractions (Persistence Stores, Security, Notifications). **Chỉ phụ thuộc Domain. Hoàn toàn độc lập với ASP.NET Core, EF Core, và IConfiguration.**
+- `src/QuanLyChoThuePhongTroWeb.Infrastructure/`: Tầng hạ tầng chứa `ApplicationDbContext`, EF Core Migrations, Store Implementations (`I*Store`), `UnitOfWork`, Security services (PBKDF2 Password Hashing), External Services (Email, Cloudinary, AI, Export), và `DatabaseInitializer`. **Phụ thuộc Application và Domain; không phụ thuộc Web.**
+- `src/QuanLyChoThuePhongTroWeb.Web/`: Tầng giao diện người dùng ASP.NET Core MVC & Web API (`Areas/QuanLyNhaTro/`, `Areas/KhachThue/`, `Controllers/`, `Views/`, `wwwroot/`). **Phụ thuộc Application và Infrastructure; KHÔNG direct-reference Domain.** Giao tiếp qua Application DTOs và Services.
+
+### 2. Test Projects (`tests/`)
+- `tests/QuanLyChoThuePhongTroWeb.Domain.UnitTests/`: Unit tests cho các business rules, constraints độc lập của Domain.
+- `tests/QuanLyChoThuePhongTroWeb.Application.UnitTests/`: Unit tests cho Application UseCases, Services, Validation logic sử dụng Store/UoW mocks.
+- `tests/QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests/`: Integration tests cho EF Core mapping, Store queries, transaction safety, và migrations.
+- `tests/QuanLyChoThuePhongTroWeb.Web.IntegrationTests/`: Integration tests cho HTTP endpoints, Architecture boundary enforcement, MVC routes, và SignalR.
 
 ## Build, Test, and Development Commands
 
-Install the .NET 8 SDK and PostgreSQL. Copy `appsettings.example.json` to ignored `appsettings.json` and configure `ConnectionStrings:DefaultConnection` plus the integrations you use.
+Cài đặt .NET 8 SDK và PostgreSQL. Copy `appsettings.example.json` thành `appsettings.json` tại `src/QuanLyChoThuePhongTroWeb.Web/` và cấu hình connection string.
 
-- `dotnet restore QuanLyChoThuePhongTroWeb.sln` restores NuGet packages.
-- `dotnet build QuanLyChoThuePhongTroWeb.sln` compiles the web and test projects.
-- `dotnet test QuanLyChoThuePhongTroWeb.sln` runs automated tests once test cases exist.
-- `dotnet ef database update` applies EF Core migrations; startup also attempts migration.
-- `dotnet watch run --project QuanLyChoThuePhongTroWeb.csproj` runs the site with reload.
+- `dotnet restore QuanLyChoThuePhongTroWeb.sln`: Khôi phục NuGet packages cho toàn solution.
+- `dotnet build QuanLyChoThuePhongTroWeb.sln`: Biên dịch toàn bộ 4 production projects và 4 test projects.
+- `dotnet test QuanLyChoThuePhongTroWeb.sln`: Chạy toàn bộ automated unit & integration test suites.
+- `dotnet watch run --project src/QuanLyChoThuePhongTroWeb.Web/QuanLyChoThuePhongTroWeb.Web.csproj`: Chạy website với cơ chế hot-reload.
+- Quản lý EF Core Migrations (yêu cầu cấu hình biến môi trường `QLCTPT_DESIGNTIME_CONNECTION_STRING` hoặc `ConnectionStrings__DefaultConnection`):
+  - Liệt kê migrations: `dotnet ef migrations list --project src/QuanLyChoThuePhongTroWeb.Infrastructure/QuanLyChoThuePhongTroWeb.Infrastructure.csproj --startup-project src/QuanLyChoThuePhongTroWeb.Infrastructure/QuanLyChoThuePhongTroWeb.Infrastructure.csproj`
+  - Kiểm tra pending changes: `dotnet ef migrations has-pending-model-changes --project src/QuanLyChoThuePhongTroWeb.Infrastructure/QuanLyChoThuePhongTroWeb.Infrastructure.csproj --startup-project src/QuanLyChoThuePhongTroWeb.Infrastructure/QuanLyChoThuePhongTroWeb.Infrastructure.csproj`
+  - Cập nhật database: `dotnet ef database update --project src/QuanLyChoThuePhongTroWeb.Infrastructure/QuanLyChoThuePhongTroWeb.Infrastructure.csproj --startup-project src/QuanLyChoThuePhongTroWeb.Infrastructure/QuanLyChoThuePhongTroWeb.Infrastructure.csproj`
 
-## Coding Style & Naming Conventions
+## Coding Style & Architecture Constraints
 
-Use four spaces in C#, PascalCase for types/members, and `I` prefixes for interfaces (for example, `IHoaDonService`). Keep controllers focused on HTTP handling; place calculations, state transitions, and database access in services. Match Razor view folders to controllers. Follow nearby formatting; the repository has no shared `.editorconfig`. Avoid editing bundled files under `wwwroot/Theme/`.
-
-## Testing Guidelines
-
-`tests/QuanLyChoThuePhongTroWeb.UnitTests/` is for isolated business rules. `tests/QuanLyChoThuePhongTroWeb.IntegrationTests/` is for HTTP and database flows; use a separate test database because application startup migrates and seeds data. Name test files `*Tests.cs`. Add meaningful tests alongside each new feature; there is no coverage percentage requirement yet.
-
-## Commit & Pull Request Guidelines
-
-Recent commits use short, descriptive Vietnamese subjects without a mandatory prefix. Keep commits focused. Pull requests should explain behavior, list checks run, identify migrations/configuration changes, link an issue when available, and include screenshots for UI changes.
-
-## Security & Configuration
-
-Keep database passwords, SMTP credentials, and API keys out of Git. Commit placeholders only in `appsettings.example.json`; local `appsettings.json` is ignored.
+1. **Ranh giới Clean Architecture**:
+   - `Web` KHÔNG ĐƯỢC reference trực tiếp `Domain` (`ProjectReference` hoặc `using Domain.*`).
+   - `Application` KHÔNG ĐƯỢC reference `Microsoft.EntityFrameworkCore`, `Microsoft.AspNetCore`, `IConfiguration`, hoặc các kiểu dữ liệu UI/HTTP.
+   - Controllers chỉ đóng vai trò HTTP handling, validation và điều phối; toàn bộ xử lý nghiệp vụ phải đặt trong Application Services/UseCases.
+2. **Naming Conventions**:
+   - 4 spaces trong file C#, PascalCase cho classes/interfaces/methods, camelCase cho local variables/parameters.
+   - Prefix `I` cho interfaces (ví dụ: `IChiNhanhService`, `IPhongTroStore`, `IUnitOfWork`).
+3. **Database & Schema Protection**:
+   - Schema PostgreSQL là nguồn chân lý bất biến trong các đợt refactoring (0% schema drift). Không sinh migration rác hoặc sửa migration đã có.
