@@ -3,225 +3,732 @@
     Layout = null;
 }
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Đăng nhập - Quản lý trọ</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>Đăng nhập hệ thống - Quản lý cho thuê phòng trọ</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="~/Theme/tabler/dist/css/tabler-icons.min.css">
-</head>
-<body>
-    <div class="circle circle-1"></div>
-    <div class="circle circle-2"></div>
-    <div class="circle circle-3"></div>
+    <style>
+        :root {
+            --slate-950: #070d19;
+            --slate-900: #0b1329;
+            --slate-850: #101c38;
+            --slate-800: #1e293b;
+            --slate-700: #334155;
+            --slate-600: #475569;
+            --slate-500: #64748b;
+            --slate-400: #94a3b8;
+            --slate-200: #e2e8f0;
+            --slate-100: #f1f5f9;
+            --slate-50: #f8fafc;
+            
+            --amber-500: #f59e0b;
+            --amber-600: #d97706;
+            --amber-700: #b45309;
+            --amber-light: rgba(217, 119, 6, 0.12);
 
-    <div class="login-container">
-        <div class="login-header">
-            <h2>Xin Chào!</h2>
-            <p>Đăng nhập để quản lý hệ thống phòng trọ</p>
-        </div>
+            --danger-500: #ef4444;
+            --danger-50: #fef2f2;
+            --danger-border: #fecaca;
 
-        @if (ViewBag.Error != null)
-        {
-            <div class="error-message">
-                <i class="ti ti-alert-circle"></i> @ViewBag.Error
-            </div>
+            --font-display: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+            --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+
+            --radius-md: 10px;
+            --radius-lg: 16px;
+            --transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
-        <form action="/QuanLyNhaTro/DangNhap" method="post">
-            @Html.AntiForgeryToken()
-            <input type="hidden" name="returnUrl" value="@ViewBag.ReturnUrl" />
-            <div class="form-group">
-                <i class="ti ti-user form-icon"></i>
-                <input type="text" class="form-control" name="TenDangNhap" placeholder="Tên đăng nhập (admin)" required value="@(Model?.TenDangNhap)">
-            </div>
-            <div class="form-group">
-                <i class="ti ti-lock form-icon"></i>
-                <input type="password" class="form-control" name="MatKhau" placeholder="Mật khẩu (admin)" required>
-            </div>
-            
-            <div class="options">
-                <label class="checkbox-container">
-                    <input type="checkbox" name="GhiNho" value="true" @(Model?.GhiNho == true ? "checked" : "")> Ghi nhớ đăng nhập
-                </label>
-            </div>
-
-            <button type="submit" class="btn-login">ĐĂNG NHẬP</button>
-        </form>
-    </div>
-</body>
-</html>
-    <style>
-        * {
+        *, *::before, *::after {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Inter', sans-serif;
         }
 
         body {
             min-height: 100vh;
+            font-family: var(--font-body);
+            background-color: var(--slate-900);
+            color: var(--slate-900);
+            display: flex;
+            align-items: stretch;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .auth-wrapper {
+            display: flex;
+            width: 100%;
+            min-height: 100vh;
+        }
+
+        /* --- Panel Bên Trái: Architectural Identity --- */
+        .brand-panel {
+            flex: 1.15;
+            position: relative;
+            background: radial-gradient(circle at 20% 20%, #152449 0%, var(--slate-950) 100%);
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 56px 64px;
+            overflow: hidden;
+            border-right: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        /* Lưới kiến trúc blueprint mờ */
+        .brand-panel::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background-image: 
+                linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+            background-size: 40px 40px;
+            mask-image: radial-gradient(circle at 50% 50%, black 40%, transparent 80%);
+            -webkit-mask-image: radial-gradient(circle at 50% 50%, black 40%, transparent 80%);
+            pointer-events: none;
+        }
+
+        /* Ánh đèn ấm Warm Amber chiếu góc */
+        .brand-panel::after {
+            content: "";
+            position: absolute;
+            width: 320px;
+            height: 320px;
+            background: radial-gradient(circle, rgba(217, 119, 6, 0.25) 0%, transparent 70%);
+            top: 25%;
+            left: 60%;
+            transform: translate(-50%, -50%);
+            filter: blur(60px);
+            pointer-events: none;
+        }
+
+        .brand-header {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .brand-logo-badge {
+            width: 46px;
+            height: 46px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--amber-500) 0%, var(--amber-700) 100%);
             display: flex;
             align-items: center;
             justify-content: center;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            position: relative;
-            overflow: hidden;
+            color: #ffffff;
+            font-size: 24px;
+            box-shadow: 0 8px 20px rgba(217, 119, 6, 0.35);
         }
 
-        /* Animated background circles */
-        .circle {
-            position: absolute;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.1);
-            animation: float 15s infinite;
-        }
-
-        .circle-1 { width: 300px; height: 300px; top: -100px; left: -100px; animation-delay: 0s; }
-        .circle-2 { width: 400px; height: 400px; bottom: -150px; right: -100px; animation-delay: -5s; }
-        .circle-3 { width: 200px; height: 200px; bottom: 20%; left: 10%; animation-delay: -10s; }
-
-        @@keyframes float {
-            0%, 100% { transform: translateY(0) rotate(0deg); }
-            50% { transform: translateY(-30px) rotate(180deg); }
-        }
-
-        /* Glassmorphism Container */
-        .login-container {
-            width: 100%;
-            max-width: 420px;
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 20px;
-            padding: 40px;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
-            z-index: 10;
-            opacity: 0;
-            transform: translateY(20px);
-            animation: fadeInUp 0.6s ease forwards;
-        }
-
-        @@keyframes fadeInUp {
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .login-header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        .login-header h2 {
-            color: #fff;
-            font-size: 28px;
+        .brand-name {
+            font-family: var(--font-display);
+            font-size: 20px;
             font-weight: 700;
-            letter-spacing: 1px;
-            margin-bottom: 10px;
+            letter-spacing: -0.02em;
+            color: #ffffff;
         }
 
-        .login-header p {
-            color: rgba(255, 255, 255, 0.8);
-            font-size: 14px;
+        .brand-name span {
+            color: var(--amber-500);
         }
 
-        .form-group {
-            margin-bottom: 20px;
+        .brand-content {
             position: relative;
+            z-index: 2;
+            max-width: 520px;
+            margin: 40px 0;
         }
 
-        .form-control {
-            width: 100%;
-            padding: 15px 20px 15px 45px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 10px;
-            color: #fff;
-            font-size: 15px;
-            transition: all 0.3s ease;
-            outline: none;
+        .brand-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            padding: 6px 14px;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--amber-500);
+            margin-bottom: 24px;
         }
 
-        .form-control::placeholder {
-            color: rgba(255, 255, 255, 0.6);
-        }
-
-        .form-control:focus {
-            background: rgba(255, 255, 255, 0.2);
-            border-color: rgba(255, 255, 255, 0.5);
-            box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
-        }
-
-        .form-icon {
-            position: absolute;
-            top: 50%;
-            left: 18px;
-            transform: translateY(-50%);
-            color: rgba(255, 255, 255, 0.7);
-        }
-
-        .btn-login {
-            width: 100%;
-            padding: 15px;
-            background: #fff;
-            color: #764ba2;
-            border: none;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin-top: 10px;
-        }
-
-        .btn-login:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-        }
-        
-        .btn-login:active {
-            transform: translateY(0);
-        }
-
-        .error-message {
-            background: rgba(255, 75, 75, 0.2);
-            border-left: 4px solid #ff4b4b;
-            color: #fff;
-            padding: 10px 15px;
-            border-radius: 5px;
+        .brand-headline {
+            font-family: var(--font-display);
+            font-size: clamp(32px, 3.2vw, 42px);
+            font-weight: 800;
+            line-height: 1.2;
+            letter-spacing: -0.03em;
+            color: #ffffff;
             margin-bottom: 20px;
+        }
+
+        .brand-headline em {
+            font-style: normal;
+            background: linear-gradient(120deg, #ffffff 40%, var(--amber-500) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .brand-description {
+            font-size: 15px;
+            line-height: 1.65;
+            color: var(--slate-400);
+            margin-bottom: 36px;
+        }
+
+        .brand-pillars {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .pillar-card {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: var(--radius-md);
+            padding: 16px 18px;
+            backdrop-filter: blur(8px);
+            transition: var(--transition);
+        }
+
+        .pillar-card:hover {
+            background: rgba(255, 255, 255, 0.07);
+            border-color: rgba(217, 119, 6, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .pillar-icon {
+            color: var(--amber-500);
+            font-size: 20px;
+            margin-bottom: 8px;
+        }
+
+        .pillar-title {
+            font-family: var(--font-display);
             font-size: 14px;
-            animation: shake 0.5s ease;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 4px;
         }
 
-        @@keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-5px); }
-            75% { transform: translateX(5px); }
+        .pillar-desc {
+            font-size: 12px;
+            color: var(--slate-400);
+            line-height: 1.4;
         }
 
-        .options {
+        .brand-footer {
+            position: relative;
+            z-index: 2;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            font-size: 13px;
+            color: var(--slate-500);
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            padding-top: 24px;
+        }
+
+        /* --- Panel Bên Phải: Form Đăng Nhập --- */
+        .form-panel {
+            flex: 0.95;
+            background-color: var(--slate-50);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 48px 36px;
+            position: relative;
+        }
+
+        .form-card {
+            width: 100%;
+            max-width: 440px;
+            background: #ffffff;
+            padding: 44px 40px;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--slate-200);
+            box-shadow: 0 10px 30px -10px rgba(15, 23, 42, 0.08);
+        }
+
+        .form-header {
+            margin-bottom: 28px;
+        }
+
+        .form-badge {
+            display: inline-block;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--amber-700);
+            background: var(--amber-light);
+            padding: 4px 10px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+        }
+
+        .form-title {
+            font-family: var(--font-display);
+            font-size: 26px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            color: var(--slate-900);
+            margin-bottom: 8px;
+        }
+
+        .form-subtitle {
+            font-size: 14px;
+            color: var(--slate-500);
+            line-height: 1.5;
+        }
+
+        /* Thông báo lỗi */
+        .alert-error {
+            background-color: var(--danger-50);
+            border: 1px solid var(--danger-border);
+            color: var(--danger-500);
+            padding: 12px 16px;
+            border-radius: var(--radius-md);
+            margin-bottom: 22px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .alert-error i {
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        /* Field groups */
+        .field-group {
             margin-bottom: 20px;
         }
 
-        .checkbox-container {
+        .field-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--slate-700);
+            margin-bottom: 8px;
+        }
+
+        .input-box {
+            position: relative;
             display: flex;
             align-items: center;
-            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 14px;
+            color: var(--slate-400);
+            font-size: 18px;
+            pointer-events: none;
+            transition: var(--transition);
+        }
+
+        .input-control {
+            width: 100%;
+            height: 48px;
+            padding: 0 42px 0 42px;
+            background: #ffffff;
+            border: 1.5px solid var(--slate-200);
+            border-radius: var(--radius-md);
+            font-family: var(--font-body);
+            font-size: 14px;
+            color: var(--slate-900);
+            transition: var(--transition);
+            outline: none;
+        }
+
+        .input-control::placeholder {
+            color: var(--slate-400);
+            font-weight: 400;
+        }
+
+        .input-control:hover {
+            border-color: var(--slate-400);
+        }
+
+        .input-control:focus {
+            border-color: var(--amber-600);
+            box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.15);
+        }
+
+        .input-control:focus + .input-icon,
+        .input-box:focus-within .input-icon {
+            color: var(--amber-600);
+        }
+
+        /* Nút ẩn hiện password */
+        .toggle-password-btn {
+            position: absolute;
+            right: 12px;
+            background: transparent;
+            border: none;
+            color: var(--slate-400);
+            cursor: pointer;
+            padding: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            transition: var(--transition);
+            border-radius: 6px;
+        }
+
+        .toggle-password-btn:hover {
+            color: var(--slate-700);
+            background: var(--slate-100);
+        }
+
+        /* Options Row */
+        .form-options {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
             font-size: 13px;
+        }
+
+        .checkbox-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--slate-600);
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .checkbox-label input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: var(--amber-600);
             cursor: pointer;
         }
 
-        .checkbox-container input {
-            margin-right: 8px;
+        .helper-link {
+            color: var(--amber-700);
+            text-decoration: none;
+            font-weight: 500;
+            transition: var(--transition);
+        }
+
+        .helper-link:hover {
+            color: var(--amber-600);
+            text-decoration: underline;
+        }
+
+        /* Nút Đăng nhập chính */
+        .btn-submit {
+            width: 100%;
+            height: 48px;
+            background: linear-gradient(135deg, var(--amber-500) 0%, var(--amber-700) 100%);
+            color: #ffffff;
+            border: none;
+            border-radius: var(--radius-md);
+            font-family: var(--font-display);
+            font-size: 15px;
+            font-weight: 600;
+            letter-spacing: -0.01em;
             cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 4px 14px rgba(217, 119, 6, 0.35);
+            transition: var(--transition);
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(217, 119, 6, 0.45);
+        }
+
+        .btn-submit:active {
+            transform: translateY(0);
+        }
+
+        .btn-submit i {
+            font-size: 18px;
+            transition: transform 0.2s ease;
+        }
+
+        .btn-submit:hover i {
+            transform: translateX(3px);
+        }
+
+        /* Phần gợi ý Demo Quick-fill */
+        .quick-demo-section {
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px dashed var(--slate-200);
+        }
+
+        .quick-demo-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--slate-500);
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .quick-demo-pills {
+            display: flex;
+            gap: 8px;
+        }
+
+        .demo-pill {
+            flex: 1;
+            padding: 8px 10px;
+            font-size: 12px;
+            font-weight: 500;
+            background: var(--slate-100);
+            border: 1px solid var(--slate-200);
+            border-radius: 8px;
+            color: var(--slate-700);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: var(--transition);
+        }
+
+        .demo-pill:hover {
+            background: var(--amber-light);
+            border-color: rgba(217, 119, 6, 0.3);
+            color: var(--amber-700);
+        }
+
+        /* --- Responsive Queries --- */
+        @@media (max-width: 1024px) {
+            .brand-panel {
+                padding: 40px 36px;
+            }
+            .brand-headline {
+                font-size: 30px;
+            }
+            .brand-pillars {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @@media (max-width: 860px) {
+            .auth-wrapper {
+                flex-direction: column;
+            }
+            .brand-panel {
+                flex: none;
+                padding: 32px 24px;
+                border-right: none;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            }
+            .brand-content {
+                margin: 20px 0;
+            }
+            .brand-pillars, .brand-footer, .brand-description {
+                display: none;
+            }
+            .brand-headline {
+                font-size: 24px;
+                margin-bottom: 0;
+            }
+            .form-panel {
+                flex: 1;
+                padding: 32px 20px;
+                background-color: #ffffff;
+            }
+            .form-card {
+                padding: 24px 20px;
+                border: none;
+                box-shadow: none;
+            }
         }
     </style>
+</head>
+<body>
+    <div class="auth-wrapper">
+        <!-- Panel bên trái: Định vị thương hiệu & Giá trị kiến trúc -->
+        <aside class="brand-panel">
+            <div class="brand-header">
+                <div class="brand-logo-badge">
+                    <i class="ti ti-home-2"></i>
+                </div>
+                <div class="brand-name">
+                    QLPhòngTrọ<span>.vn</span>
+                </div>
+            </div>
+
+            <div class="brand-content">
+                <div class="brand-tag">
+                    <i class="ti ti-shield-check"></i>
+                    Vận Hành Thông Minh & Minh Bạch
+                </div>
+                <h1 class="brand-headline">
+                    Không gian sống chuẩn mực, <em>vận hành thông minh</em>.
+                </h1>
+                <p class="brand-description">
+                    Nền tảng quản lý phòng trọ & căn hộ dịch vụ toàn diện — kết nối chủ nhà trọ và khách thuê trong một hệ sinh thái số tin cậy, tự động và tiện nghi.
+                </p>
+
+                <div class="brand-pillars">
+                    <div class="pillar-card">
+                        <div class="pillar-icon"><i class="ti ti-chart-bar"></i></div>
+                        <div class="pillar-title">Quản lý trực quan</div>
+                        <div class="pillar-desc">Kiểm soát tình trạng phòng, chỉ số điện nước và doanh thu chuẩn xác.</div>
+                    </div>
+                    <div class="pillar-card">
+                        <div class="pillar-icon"><i class="ti ti-key"></i></div>
+                        <div class="pillar-title">Trải nghiệm tiện nghi</div>
+                        <div class="pillar-desc">Tra cứu hóa đơn, hợp đồng và gửi phản hồi phòng trọ 24/7.</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="brand-footer">
+                <span>© 2026 Quản Lý Cho Thuê Phòng Trọ</span>
+                <span>An Toàn • Minh Bạch</span>
+            </div>
+        </aside>
+
+        <!-- Panel bên phải: Form tương tác đăng nhập -->
+        <main class="form-panel">
+            <div class="form-card">
+                <div class="form-header">
+                    <div class="form-badge">Cổng Truy Cập Hệ Thống</div>
+                    <h2 class="form-title">Đăng nhập tài khoản</h2>
+                    <p class="form-subtitle">Điền thông tin xác thực để vào hệ thống quản lý phòng trọ.</p>
+                </div>
+
+                @if (ViewBag.Error != null)
+                {
+                    <div class="alert-error" role="alert">
+                        <i class="ti ti-alert-circle"></i>
+                        <div>@ViewBag.Error</div>
+                    </div>
+                }
+
+                <form action="/QuanLyNhaTro/DangNhap" method="post" id="loginForm">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="returnUrl" value="@ViewBag.ReturnUrl" />
+
+                    <div class="field-group">
+                        <label class="field-label" for="txtTenDangNhap">Tên đăng nhập</label>
+                        <div class="input-box">
+                            <i class="ti ti-user input-icon"></i>
+                            <input type="text"
+                                   id="txtTenDangNhap"
+                                   class="input-control"
+                                   name="TenDangNhap"
+                                   placeholder="Tên tài khoản quản lý hoặc khách thuê"
+                                   required
+                                   autocomplete="username"
+                                   value="@(Model?.TenDangNhap)">
+                        </div>
+                    </div>
+
+                    <div class="field-group">
+                        <label class="field-label" for="txtMatKhau">Mật khẩu</label>
+                        <div class="input-box">
+                            <i class="ti ti-lock input-icon"></i>
+                            <input type="password"
+                                   id="txtMatKhau"
+                                   class="input-control"
+                                   name="MatKhau"
+                                   placeholder="Nhập mật khẩu của bạn"
+                                   required
+                                   autocomplete="current-password">
+                            <button type="button"
+                                    class="toggle-password-btn"
+                                    id="btnTogglePassword"
+                                    title="Hiển thị hoặc ẩn mật khẩu"
+                                    aria-label="Hiển thị hoặc ẩn mật khẩu">
+                                <i class="ti ti-eye" id="toggleIcon"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="form-options">
+                        <label class="checkbox-label">
+                            <input type="checkbox"
+                                   name="GhiNho"
+                                   value="true"
+                                   @(Model?.GhiNho == true ? "checked" : "")>
+                            <span>Ghi nhớ đăng nhập</span>
+                        </label>
+                        <a href="javascript:void(0)" onclick="alert('Vui lòng liên hệ Quản trị viên để đặt lại mật khẩu của bạn.')" class="helper-link">
+                            Quên mật khẩu?
+                        </a>
+                    </div>
+
+                    <button type="submit" class="btn-submit" id="btnSubmit">
+                        <span>Đăng nhập vào hệ thống</span>
+                        <i class="ti ti-arrow-right"></i>
+                    </button>
+                </form>
+
+                <!-- Thử nghiệm nhanh tài khoản demo -->
+                <div class="quick-demo-section">
+                    <div class="quick-demo-title">Điền nhanh tài khoản mẫu:</div>
+                    <div class="quick-demo-pills">
+                        <button type="button" class="demo-pill" id="btnFillAdmin">
+                            <i class="ti ti-shield"></i>
+                            <span>Admin / Quản lý</span>
+                        </button>
+                        <button type="button" class="demo-pill" id="btnFillTenant">
+                            <i class="ti ti-user-check"></i>
+                            <span>Khách thuê mẫu</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Toggle ẩn/hiện mật khẩu
+        const btnToggle = document.getElementById('btnTogglePassword');
+        const txtMatKhau = document.getElementById('txtMatKhau');
+        const toggleIcon = document.getElementById('toggleIcon');
+
+        if (btnToggle && txtMatKhau && toggleIcon) {
+            btnToggle.addEventListener('click', function () {
+                const isPassword = txtMatKhau.type === 'password';
+                txtMatKhau.type = isPassword ? 'text' : 'password';
+                toggleIcon.className = isPassword ? 'ti ti-eye-off' : 'ti ti-eye';
+            });
+        }
+
+        // Điền nhanh tài khoản demo phục vụ kiểm thử / nghiệm thu
+        const btnAdmin = document.getElementById('btnFillAdmin');
+        const btnTenant = document.getElementById('btnFillTenant');
+        const txtTenDangNhap = document.getElementById('txtTenDangNhap');
+
+        if (btnAdmin && txtTenDangNhap && txtMatKhau) {
+            btnAdmin.addEventListener('click', function () {
+                txtTenDangNhap.value = 'admin';
+                txtMatKhau.value = 'admin';
+                txtTenDangNhap.focus();
+            });
+        }
+
+        if (btnTenant && txtTenDangNhap && txtMatKhau) {
+            btnTenant.addEventListener('click', function () {
+                txtTenDangNhap.value = 'khachthue01';
+                txtMatKhau.value = '123456';
+                txtTenDangNhap.focus();
+            });
+        }
+    </script>
+</body>
+</html>
