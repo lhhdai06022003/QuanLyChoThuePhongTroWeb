@@ -109,6 +109,10 @@ Infrastructure/Web integration fixtures yêu cầu tên database kết thúc b�
 
 ## Tài liệu liên quan
 
+- [Kiến trúc hệ thống](docs/architecture/README.md)
+- [Danh mục chức năng](docs/features/README.md)
+- [Hướng dẫn triển khai](docs/deployment/README.md)
 - [Roadmap 60 ngày và đánh giá hiện trạng](docs/roadmap-60-ngay.md)
-- [Thiết kế tìm phòng và giữ chỗ](docs/superpowers/specs/2026-09-17-room-reservation-design.md)
-- [Kế hoạch tìm phòng và lịch xem](docs/superpowers/plans/2026-09-17-public-room-discovery-and-viewing.md)
+- [Thiết kế nền tảng cơ sở dữ liệu cho hai migration](docs/superpowers/specs/2026-09-21-database-foundation-two-migrations-design.md)
+- [Kế hoạch Migration 1: chỉ số, OCR, hóa đơn và thanh toán](docs/superpowers/plans/2026-09-21-migration-1-billing-foundation.md)
+- [Kế hoạch Migration 2: phòng công khai, lịch xem và giữ chỗ](docs/superpowers/plans/2026-09-21-migration-2-public-reservation-foundation.md)

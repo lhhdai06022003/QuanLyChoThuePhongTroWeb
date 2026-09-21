@@ -2,83 +2,128 @@
 
 ## Mục tiêu và nguyên tắc
 
-Phát triển hệ thống cho **một đơn vị quản lý nhiều chi nhánh**. Trong 60 ngày, ưu tiên giảm thao tác cho quản lý, nhân viên và khách thuê bằng quy trình tự động có bước duyệt. AI hỗ trợ đọc ảnh chỉ số và gợi ý thông tin; người có quyền quyết định chỉ số, hóa đơn và tiền thực nhận. Trang khách vãng lai giúp tìm phòng, liên hệ, giữ chỗ và tiến tới hợp đồng. Mobile và IoT là hướng mở rộng sau giai đoạn này.
+Phát triển hệ thống cho một đơn vị quản lý nhiều chi nhánh. Trước khi hai người triển khai song song, Người A hoàn tất hai migration nền để khóa entity, quan hệ và ràng buộc database. Sau thời điểm bàn giao schema, Người B chỉ sử dụng DTO/Application Service đã thống nhất và không sửa Domain model hoặc EF migration.
 
-Giữ một ứng dụng ASP.NET Core MVC tại `src/QuanLyChoThuePhongTroWeb.Web/QuanLyChoThuePhongTroWeb.Web.csproj`, với nghiệp vụ và hạ tầng tách thành các thư viện Clean Architecture. API JSON phiên bản `/api/v1` sẽ ở cùng ứng dụng; MVC và API cùng gọi service nghiệp vụ. Không tách hệ thống thành nhiều backend trong giai đoạn khóa luận.
+AI hỗ trợ đọc ảnh chỉ số, tìm phòng và đặt lịch xem trong khung giờ được cấu hình. Người có quyền vẫn quyết định chỉ số chính thức, hóa đơn, tiền thực nhận, giữ chỗ và hoàn tiền.
 
-## Cấu trúc repository
+Giữ một ứng dụng ASP.NET Core MVC tại `src/QuanLyChoThuePhongTroWeb.Web/QuanLyChoThuePhongTroWeb.Web.csproj`. MVC và API v1 cùng gọi Application Service; không tách backend trong giai đoạn khóa luận.
 
-Source hiện ở bốn project trong src/, với bốn project test tương ứng. API v1 và KhachVangLai bên trong Web mới có .gitkeep; chưa có endpoint/màn hình thực thi.
+## Hiện trạng đối chiếu ngày 21/09/2026
 
-~~~text
-src/
-├── QuanLyChoThuePhongTroWeb.Domain/          # Entities, Enums
-├── QuanLyChoThuePhongTroWeb.Application/     # Features, DTOs, Services, store interfaces
-├── QuanLyChoThuePhongTroWeb.Infrastructure/  # Persistence/Migrations, ExternalServices, BackgroundJobs
-└── QuanLyChoThuePhongTroWeb.Web/             # Areas, Api/V1, Controllers, Views, wwwroot
-tests/
-├── QuanLyChoThuePhongTroWeb.Domain.UnitTests/
-├── QuanLyChoThuePhongTroWeb.Application.UnitTests/
-├── QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests/
-└── QuanLyChoThuePhongTroWeb.Web.IntegrationTests/
-docs/{architecture,features,deployment,superpowers}/
-.github/workflows/                          # Hiện chỉ có .gitkeep
-QuanLyChoThuePhongTroWeb.sln
-~~~
+| Hạng mục | Hiện trạng |
+| --- | --- |
+| Kiến trúc | Đã có bốn production project và bốn test project |
+| Database | 17 bảng nghiệp vụ; chưa có schema OCR, lịch xem, giữ chỗ hoặc phân công chi nhánh |
+| Hóa đơn | Có tính hóa đơn và hai trạng thái thanh toán; chưa có nháp, duyệt/chốt và lịch sử trạng thái |
+| Thanh toán | Có VietQR và lịch sử tiền đã thu; chưa có yêu cầu thanh toán, ảnh minh chứng hoặc trả một phần được duyệt |
+| Trang công khai | Area `KhachVangLai` và API v1 mới có khung |
+| AI | Có dịch vụ AI; chưa có luồng OCR duyệt ảnh hoặc đặt lịch xem tự động |
+| CI | `.github/workflows/` mới có khung |
 
-## Đánh giá phù hợp ngày 20/09/2026
+Thiết kế schema đã được chốt tại [database foundation design](superpowers/specs/2026-09-21-database-foundation-two-migrations-design.md). Migration 1 thêm 7 bảng, Migration 2 thêm 15 bảng; tổng sau hai migration là 39 bảng nghiệp vụ.
 
-Roadmap vẫn phù hợp về hướng nghiệp vụ cho một đơn vị nhiều chi nhánh, nhưng không còn phù hợp nếu dùng cấu trúc MVC ở root hoặc coi test là chưa tồn tại. Mốc ngày là thứ tự trong kế hoạch 60 ngày; chưa có ngày bắt đầu mới và không suy ra tiến độ thực tế từ ngày trên tài liệu.
+## Quyền sở hữu để tránh xung đột Git
 
-| Hạng mục | Bằng chứng hiện tại | Điều chỉnh |
+| Phạm vi | Người sở hữu chính | Quy tắc |
 | --- | --- | --- |
-| Nền tảng | Bốn production project và bốn project test đã có | Rà hồi quy, không tạo lại test project |
-| CI | .github/workflows chỉ có .gitkeep | Còn phải triển khai workflow với PostgreSQL test |
-| Chỉ số/hóa đơn | Đã có dịch vụ điện nước, tính hóa đơn; enum chỉ có ChuaThanhToan/DaThanhToan | OCR, lịch sử duyệt và trạng thái nháp là phần mới |
-| Thanh toán | Đã có VietQR và lịch sử thu tiền | Chưa coi gửi ảnh/xác nhận/duyệt trả một phần là hoàn thành |
-| Khách vãng lai | Area và API v1 mới là khung; PhongTro chưa có DuocDangTin/AnhDaiDienUrl | Lát cắt tìm phòng/lịch xem chưa triển khai |
-| Giữ chỗ | Chưa có thực thể giữ chỗ, lịch xem hoặc NhanVienChiNhanh | Cần bổ sung quyền theo chi nhánh, dữ liệu và kiểm thử cạnh tranh |
-| Sự cố, AI, email | Đã có các dịch vụ tương ứng | Ưu tiên tích hợp và kiểm thử hồi quy |
+| Domain entities và enums | A | B không sửa trực tiếp |
+| EF configurations, DbContext, migrations | A | Chỉ A tạo migration |
+| Application DTO, interface và service | A | Chốt hợp đồng trước khi B nối giao diện |
+| API v1 và kiểm tra quyền máy chủ | A | B gửi yêu cầu thay đổi qua DTO contract |
+| Razor, Web ViewModel, CSS/JS và trải nghiệm di động | B | Không tham chiếu trực tiếp Domain |
+| Email/UI nội dung | B, qua abstraction do A cung cấp | Không đổi persistence model |
+| `Program.cs` và DependencyInjection | A | Tránh hai người cùng sửa composition root |
+| Kiểm thử liên luồng và demo | Cả hai | Review chéo trước khi hợp nhất |
 
-Khối lượng còn lại gồm nhiều luồng mới và thay đổi dữ liệu; 60 ngày là mục tiêu dự kiến, cần chốt năng lực hai người và lịch bắt đầu trước khi cam kết ngày bàn giao.
+Nếu giao diện phát hiện thiếu dữ liệu, B mô tả trường cần thêm và use case; A quyết định DTO-only hay schema change. Không tạo migration từ nhánh của B.
 
-## Phân công và cách phối hợp
+## Giai đoạn nền tảng trước khi làm song song
 
-| Người | Trách nhiệm chính | Bàn giao cho người còn lại |
-| --- | --- | --- |
-| A | Dữ liệu, migration, service, quyền, API, unit/integration test | Trạng thái nghiệp vụ, DTO và service đã kiểm thử |
-| B | Razor/MVC, giao diện quản lý và khách, email, trải nghiệm trên điện thoại | Màn hình chạy được và phản hồi về dữ liệu còn thiếu |
-| Cả hai | Thiết kế luồng, review chéo, kiểm thử và demo | Mỗi pull request có mô tả, cách kiểm tra, ảnh nếu đổi UI |
+Người A thực hiện tuần tự:
 
-Trước mỗi tính năng, chốt trạng thái, quyền thao tác, trường dữ liệu và tiêu chí nghiệm thu. Một người quản lý migration của tính năng đó để tránh xung đột.
+1. Migration 1: tiền dạng `decimal`, chỉ số/OCR, trạng thái hóa đơn và thanh toán hóa đơn.
+2. Kiểm thử, áp/rollback trên PostgreSQL test và xác nhận 24 bảng nghiệp vụ.
+3. Migration 2: ảnh phòng, tài khoản khách vãng lai, lịch xem, giữ chỗ, tiền cọc và hoàn tiền.
+4. Kiểm thử, áp/rollback trên nền Migration 1 và xác nhận 39 bảng nghiệp vụ.
+5. Công bố entity, enum, DTO và service contract cho cả hai người.
 
-## Lộ trình và mốc nghiệm thu
+Trong thời gian đó, Người B có thể rà luồng UI, tạo wireframe, layout và Web ViewModel độc lập; chưa nối dữ liệu hoặc sửa model.
+
+Kế hoạch thi công chi tiết:
+
+- [Migration 1](superpowers/plans/2026-09-21-migration-1-billing-foundation.md)
+- [Migration 2](superpowers/plans/2026-09-21-migration-2-public-reservation-foundation.md)
+
+## Lộ trình 60 ngày
 
 | Ngày | Kết quả cần có | Người A | Người B |
 | --- | --- | --- | --- |
-| **1–7** | Kiểm kê chức năng hiện có; backlog ưu tiên; xác minh bốn project test và bổ sung CI build/test; sơ đồ quyền theo chi nhánh và trạng thái hóa đơn/thanh toán/giữ chỗ | Rà database, service, migration, phân quyền; bổ sung test còn thiếu và cấu hình PostgreSQL test | Rà toàn bộ luồng UI, ghi lỗi và màn hình thiếu |
-| **8–20** | Khách hoặc nhân viên gửi ảnh chỉ số; AI gợi ý; người có quyền sửa/duyệt; hệ thống tạo hóa đơn nháp; người có quyền chốt trước khi gửi | Xử lý dữ liệu, phép tính, nhật ký, test; AI có đường nhập tay | Màn hình nộp ảnh, đối chiếu, duyệt, chốt hóa đơn |
-| **21–30** | Yêu cầu thanh toán/VietQR; khách gửi ảnh chuyển khoản; nhân viên xác nhận tiền; trả một phần khi quản lý cho phép | Trạng thái thanh toán, số dư, chống ghi nhận trùng | Trang khách thuê và hàng đợi xác nhận |
-| **31–42** | Phòng công khai có tìm/lọc, xem chi tiết, liên hệ/đặt lịch xem; nhân viên xử lý; khách theo dõi qua liên kết email | Service phòng và lịch xem, API/DTO, email link có hạn, test | Trang công khai và màn hình nhân viên |
-| **43–52** | Nhân viên duyệt yêu cầu giữ chỗ trước; hệ thống tạo yêu cầu thanh toán có hạn; xác nhận tiền; tính cọc còn lại; quản lý quyết định hoàn tiền và ghi lý do | Quy tắc trạng thái, tính cọc, quyền, test tích hợp | Giao diện khách vãng lai, nhân viên, quản lý |
-| **53–60** | Sửa lỗi, kiểm thử liên luồng, hoàn thiện báo sự cố cơ bản, tài liệu sử dụng, dữ liệu demo và diễn tập bảo vệ | Kiểm thử, tối ưu luồng lỗi, tài liệu API | UX trên điện thoại, hướng dẫn và kịch bản demo |
+| **1–10** | Hai migration nền được review và thử trên PostgreSQL test; CI build/test cơ bản | Tạo entity, enum, configuration, Migration 1 rồi Migration 2; test kiểu dữ liệu, index và cạnh tranh | Rà luồng, wireframe, Web ViewModel, nội dung màn hình; không sửa schema |
+| **11–22** | Ảnh chỉ số → AI gợi ý → người duyệt → hóa đơn nháp → chốt | Use case OCR, phép tính decimal, lịch sử, quyền và API/test | Màn hình tải ảnh, đối chiếu, sửa chỉ số, duyệt và chốt hóa đơn |
+| **23–31** | VietQR → khách gửi ảnh → nhân viên đối chiếu → trả đủ/một phần | Yêu cầu thanh toán, transaction xác nhận, chống trùng và test | Trang khách thuê, tải minh chứng và hàng đợi đối chiếu |
+| **32–43** | Phòng công khai, bộ lọc, gallery và lịch xem kết hợp AI/nhân viên | Query/API công khai, khung giờ, transaction giữ chỗ lịch và quyền chi nhánh | Trang tìm phòng, chi tiết, hội thoại AI và màn hình nhân viên |
+| **44–53** | Đăng ký khách vãng lai → giữ chỗ → xác nhận tiền → hợp đồng/cọc → hoàn tiền | State machine, thanh toán giữ chỗ, áp dụng cọc, refund ledger và test cạnh tranh | Giao diện khách vãng lai, nhân viên và quản lý |
+| **54–60** | Kiểm thử liên luồng, sửa lỗi, tài liệu sử dụng và dữ liệu demo | Migration rehearsal, kiểm thử bảo mật/quyền, API và tài liệu kỹ thuật | UX di động, hướng dẫn người dùng, ảnh/kịch bản demo |
 
-**Mốc trình diễn:** ngày 20 trình diễn ảnh chỉ số → duyệt → hóa đơn; ngày 30 trình diễn thanh toán và xác nhận; ngày 42 trình diễn tìm phòng → yêu cầu → email theo dõi; ngày 52 trình diễn giữ chỗ → cọc còn lại; ngày 60 chạy toàn bộ kịch bản demo.
+Các mốc là ngày tương đối tính từ khi bắt đầu kế hoạch, không phải trạng thái đã hoàn thành.
 
-## Quy tắc nghiệp vụ mục tiêu (chưa phải hành vi đã triển khai)
+## Quy tắc nghiệp vụ đã chốt
 
-- Chỉ số AI đọc từ ảnh luôn là gợi ý. Quản lý hoặc nhân viên có quyền xác nhận trước khi tính tiền; lưu ảnh, giá trị trước/sau, người và thời điểm duyệt.
-- Hóa đơn tự sinh ở trạng thái nháp. Người có quyền xem và chốt trước khi gửi; có thể tự duyệt trong phạm vi quyền, với nhật ký thao tác.
-- Ảnh chuyển khoản không chứng minh hệ thống đã nhận tiền. Nhân viên đối chiếu và xác nhận; quản lý quyết định có cho trả một phần.
-- Nhân viên xác nhận yêu cầu giữ chỗ trước khi hệ thống mời thanh toán. Tiền giữ chỗ đã xác nhận được trừ vào cọc hợp đồng đúng một lần.
-- Khi hủy sau khi đã nhận tiền, quản lý ghi số tiền hoàn và lý do; quyết định hoàn và việc đã hoàn thực tế là hai trạng thái riêng.
-- Khách vãng lai truy cập trạng thái yêu cầu qua liên kết email có hạn. Mọi quyền nhân viên phải kiểm tra theo chi nhánh ở máy chủ.
+### Chỉ số và hóa đơn
 
-## Kiểm thử, cấu trúc và kiểm soát phạm vi
+- Mỗi ảnh chỉ thuộc một loại đồng hồ điện hoặc nước; cho phép gửi lại nhiều ảnh.
+- Lưu từng kết quả AI; người có quyền chọn, sửa hoặc nhập tay rồi duyệt.
+- Tiền dùng `decimal/numeric(18,2)`; chỉ số và số lượng dùng `decimal/numeric(18,3)`.
+- Hóa đơn có trạng thái phát hành riêng với trạng thái thanh toán.
+- Thanh toán một phần được quản lý bật theo từng hóa đơn và có mức tối thiểu.
 
-Domain.UnitTests kiểm tra quy tắc miền; Application.UnitTests kiểm tra use case với store/UoW giả; Infrastructure.IntegrationTests kiểm tra PostgreSQL, mapping và migration; Web.IntegrationTests kiểm tra HTTP, cookie, routing, SignalR và ranh giới kiến trúc. Tất cả nằm dưới tests/ với tiền tố QuanLyChoThuePhongTroWeb. Chạy dotnet build QuanLyChoThuePhongTroWeb.sln và dotnet test QuanLyChoThuePhongTroWeb.sln trước khi hợp nhất thay đổi code. Full suite cần QLCTPT_TEST_CONNECTION_STRING trỏ vào DB riêng có hậu tố _test hoặc _integration_test; xem README ở root. Chỉ thêm E2E khi luồng chính ổn định.
+### Phòng công khai và lịch xem
 
-Endpoint và hợp đồng HTTP đặt tại src/QuanLyChoThuePhongTroWeb.Web/Api/V1; Razor khách công khai tại Web/Areas/KhachVangLai. DTO/use case và interface nằm trong Application; entity ở Domain; EF query, mapping, migration ở Infrastructure. Không để Application dùng DbContext, ASP.NET Core hoặc IConfiguration. Web không trực tiếp tham chiếu Domain.
+- Phòng có gallery ảnh riêng; Cloudinary lưu tệp, database lưu metadata.
+- Khách xem phòng công khai không cần đăng nhập.
+- Yêu cầu xem phòng bắt buộc họ tên và số điện thoại; email tùy chọn, không có token email.
+- AI chỉ tự chốt khung giờ được cấu hình và còn chỗ. Ngoài khung hoặc có xung đột thì chuyển nhân viên.
+- AI gọi Application Service và không ghi trực tiếp database.
 
-Refactor giữ nguyên schema. Tính năng mới như lịch xem/giữ chỗ cần thiết kế schema và migration riêng được review; không sinh hoặc áp migration chỉ để đồng bộ tài liệu. Kế hoạch lát cắt tìm phòng/lịch xem: [public-room-discovery-and-viewing](superpowers/plans/2026-09-17-public-room-discovery-and-viewing.md).
-Nếu chậm tiến độ, giữ nguyên các luồng chỉ số → hóa đơn → thanh toán và tìm phòng → yêu cầu → giữ chỗ. Giảm trước AI hội thoại, OCR nâng cao, E2E, mobile và IoT. IoT tương lai chỉ gửi dữ liệu thành bản ghi nháp, sau đó vẫn đi qua bước duyệt của người có quyền.
+### Tài khoản và giữ chỗ
+
+- Người đăng ký nhưng chưa thuê nằm trong bảng `KhachVangLai`, liên kết một-một với `NguoiDung`.
+- Chỉ tạo `NguoiThue` khi lập hợp đồng; khi đó liên kết tài khoản và chuyển role thành `KhachThue`.
+- Giữ chỗ bắt buộc đăng nhập; có thể tạo trực tiếp hoặc từ lịch xem.
+- Nhân viên xác định số tiền và hạn thanh toán khi duyệt.
+- Chỉ một yêu cầu giữ chỗ hoạt động cho một phòng tại một thời điểm.
+- Thanh toán hóa đơn và thanh toán giữ chỗ dùng các bảng riêng.
+
+### Cọc và hoàn tiền
+
+- Tiền giữ chỗ được áp dụng vào tiền cọc hợp đồng đúng một lần và không ghi thành thanh toán hóa đơn.
+- Quản lý quyết định số tiền hoàn và lý do.
+- Một quyết định có thể được hoàn qua nhiều giao dịch thực tế.
+- Phòng được giải phóng theo quyết định hủy dù việc hoàn tiền chưa hoàn tất.
+
+### Phân quyền chi nhánh
+
+- Một nhân viên có thể thuộc nhiều chi nhánh.
+- `NhanVienChiNhanh.IsActive` quyết định quyền hiện tại.
+- Ngày và người phân công/thu hồi chỉ phục vụ truy vết.
+- Mọi quyền phải được kiểm tra ở Application/API, không dựa vào giao diện.
+
+## Nhịp làm việc hai người
+
+1. A mở PR contract trước: DTO, interface, enum và tiêu chí nghiệm thu.
+2. B bắt đầu UI sau khi contract được chốt; dùng fake data hoặc mock service trong Web nếu backend chưa hoàn tất.
+3. A hợp nhất service/API và cung cấp ví dụ request/response.
+4. B nối UI, không đổi chữ ký service trực tiếp.
+5. Hai người review chéo và chạy kiểm thử liên quan.
+6. Mỗi ngày đồng bộ ngắn về contract, không cùng sửa một file.
+7. Mọi thay đổi schema quay lại backlog của A và được tạo thành migration riêng sau khi review.
+
+## Kiểm chứng
+
+- Domain.UnitTests: quy tắc trạng thái, số tiền, cọc và hoàn tiền.
+- Application.UnitTests: use case với store/UoW giả.
+- Infrastructure.IntegrationTests: PostgreSQL mapping, filtered unique index, transaction, migration và cạnh tranh.
+- Web.IntegrationTests: HTTP, cookie/authentication, antiforgery, rate limit, routing và SignalR.
+- Full suite cần `QLCTPT_TEST_CONNECTION_STRING` trỏ vào database riêng có hậu tố `_test` hoặc `_integration_test`.
+- Sau mỗi migration chạy build, test phù hợp và `dotnet ef migrations has-pending-model-changes`.
+- Không tuyên bố integration test đã pass khi thiếu PostgreSQL test.
