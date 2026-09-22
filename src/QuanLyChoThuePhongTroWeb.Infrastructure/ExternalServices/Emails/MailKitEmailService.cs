@@ -51,7 +51,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.Emails
 
                 var bodyBuilder = new BodyBuilder();
 
-                string FormatVND(double amount)
+                string FormatVND(decimal amount)
                 {
                     return string.Format("{0:#,##0}", amount);
                 }
@@ -243,7 +243,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.Emails
 
                 var bodyBuilder = new BodyBuilder();
 
-                string FormatVND(double amount)
+                string FormatVND(decimal amount)
                 {
                     return string.Format("{0:#,##0}", amount);
                 }

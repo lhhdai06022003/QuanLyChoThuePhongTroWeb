@@ -90,7 +90,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.AiAssistants
                 .ToListAsync();
         }
 
-        public async Task<double> GetDoanhThuThucThuAsync(DateTime tuNgay, DateTime denNgay)
+        public async Task<decimal> GetDoanhThuThucThuAsync(DateTime tuNgay, DateTime denNgay)
         {
             var tuNgayUtc = tuNgay.ToUniversalTime();
             var denNgayUtc = denNgay.ToUniversalTime();
@@ -103,7 +103,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.AiAssistants
                 .SumAsync(lst => lst.SoTienThanhToan);
         }
 
-        public async Task<List<PhongTrongRes>> GetPhongTrongAsync(double? mucGiaToiDa)
+        public async Task<List<PhongTrongRes>> GetPhongTrongAsync(decimal? mucGiaToiDa)
         {
             var query = _db.PhongTros
                 .AsNoTracking()
@@ -162,9 +162,9 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.AiAssistants
                 .ToListAsync();
         }
 
-        public async Task<double> GetCongNoPhongAsync(string soPhong)
+        public async Task<decimal> GetCongNoPhongAsync(string soPhong)
         {
-            soPhong = soPhong.ToLower();
+            soPhong = soPhong.Trim().ToLower();
             var hoaDons = await _db.HoaDons
                 .AsNoTracking()
                 .Include(h => h.HopDong).ThenInclude(hd => hd.PhongTro)
@@ -172,7 +172,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.AiAssistants
                 .Where(h => !h.IsDeleted && h.HopDong.PhongTro.SoPhong.ToLower() == soPhong && h.TrangThaiHoaDon == TrangThaiHoaDon.ChuaThanhToan)
                 .ToListAsync();
 
-            double totalDebt = 0;
+            decimal totalDebt = 0m;
             foreach (var hd in hoaDons)
             {
                 var paid = hd.LichSuThanhToans.Where(l => !l.IsDeleted).Sum(l => l.SoTienThanhToan);
@@ -398,7 +398,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.AiAssistants
                             DateTime.Parse(args?["denNgay"]?.ToString() ?? DateTime.MaxValue.ToString()).Date.AddDays(1).AddTicks(-1)),
                         currency = "VND"
                     },
-                    "GetPhongTrongAsync" => await GetPhongTrongAsync(args?["mucGiaToiDa"] != null && double.TryParse(args["mucGiaToiDa"]!.ToString(), out double price) ? price : null),
+                    "GetPhongTrongAsync" => await GetPhongTrongAsync(args?["mucGiaToiDa"] != null && decimal.TryParse(args["mucGiaToiDa"]!.ToString(), out decimal price) ? price : null),
                     "GetHopDongSapHetHanAsync" => await GetHopDongSapHetHanAsync(int.Parse(args?["soNgay"]?.ToString() ?? "30")),
                     "GetThongTinKhachThueAsync" => await GetThongTinKhachThueAsync(args?["tuKhoa"]?.ToString() ?? ""),
                     "GetCongNoPhongAsync" => new { totalDebt = await GetCongNoPhongAsync(args?["soPhong"]?.ToString() ?? ""), currency = "VND" },

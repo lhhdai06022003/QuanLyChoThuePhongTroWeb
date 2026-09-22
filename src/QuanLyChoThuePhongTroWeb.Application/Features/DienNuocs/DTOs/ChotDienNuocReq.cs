@@ -16,13 +16,13 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.DTOs
         public int DichVuDienNuocCuaPhongId { get; set; }
         public int PhongTroId { get; set; }
         
-        [Range(0, double.MaxValue, ErrorMessage = "Chỉ số điện mới không hợp lệ.")]
-        public double ChiSoDienMoi { get; set; }
+        [Range(0, (double)decimal.MaxValue, ErrorMessage = "Chỉ số điện mới không hợp lệ.")]
+        public decimal ChiSoDienMoi { get; set; }
 
-        [Range(0, double.MaxValue, ErrorMessage = "Chỉ số nước mới không hợp lệ.")]
-        public double ChiSoNuocMoi { get; set; }
+        [Range(0, (double)decimal.MaxValue, ErrorMessage = "Chỉ số nước mới không hợp lệ.")]
+        public decimal ChiSoNuocMoi { get; set; }
         
-        public double ChiSoDienCu { get; set; }
-        public double ChiSoNuocCu { get; set; }
+        public decimal ChiSoDienCu { get; set; }
+        public decimal ChiSoNuocCu { get; set; }
     }
 }

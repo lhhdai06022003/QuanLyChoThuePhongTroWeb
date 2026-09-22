@@ -13,14 +13,14 @@ Giữ một ứng dụng ASP.NET Core MVC tại `src/QuanLyChoThuePhongTroWeb.We
 | Hạng mục | Hiện trạng |
 | --- | --- |
 | Kiến trúc | Đã có bốn production project và bốn test project |
-| Database | 17 bảng nghiệp vụ; chưa có schema OCR, lịch xem, giữ chỗ hoặc phân công chi nhánh |
+| Database | EF model trên nhánh Migration 1 có 22 bảng nghiệp vụ; chưa có schema lịch xem, giữ chỗ hoặc phân công chi nhánh |
 | Hóa đơn | Có tính hóa đơn và hai trạng thái thanh toán; chưa có nháp, duyệt/chốt và lịch sử trạng thái |
 | Thanh toán | Có VietQR và lịch sử tiền đã thu; chưa có yêu cầu thanh toán, ảnh minh chứng hoặc trả một phần được duyệt |
 | Trang công khai | Area `KhachVangLai` và API v1 mới có khung |
 | AI | Có dịch vụ AI; chưa có luồng OCR duyệt ảnh hoặc đặt lịch xem tự động |
 | CI | `.github/workflows/` mới có khung |
 
-Thiết kế schema đã được chốt tại [database foundation design](superpowers/specs/2026-09-21-database-foundation-two-migrations-design.md). Migration 1 thêm 7 bảng, Migration 2 thêm 15 bảng; tổng sau hai migration là 39 bảng nghiệp vụ.
+Thiết kế schema đã được chốt tại [database foundation design](superpowers/specs/2026-09-21-database-foundation-two-migrations-design.md). Migration 1 thêm 5 bảng, Migration 2 thêm 15 bảng; tổng sau hai migration là 37 bảng nghiệp vụ.
 
 ## Quyền sở hữu để tránh xung đột Git
 
@@ -42,9 +42,9 @@ Nếu giao diện phát hiện thiếu dữ liệu, B mô tả trường cần t
 Người A thực hiện tuần tự:
 
 1. Migration 1: tiền dạng `decimal`, chỉ số/OCR, trạng thái hóa đơn và thanh toán hóa đơn.
-2. Kiểm thử, áp/rollback trên PostgreSQL test và xác nhận 24 bảng nghiệp vụ.
+2. Kiểm thử, áp/rollback trên PostgreSQL test và xác nhận 22 bảng nghiệp vụ.
 3. Migration 2: ảnh phòng, tài khoản khách vãng lai, lịch xem, giữ chỗ, tiền cọc và hoàn tiền.
-4. Kiểm thử, áp/rollback trên nền Migration 1 và xác nhận 39 bảng nghiệp vụ.
+4. Kiểm thử, áp/rollback trên nền Migration 1 và xác nhận 37 bảng nghiệp vụ.
 5. Công bố entity, enum, DTO và service contract cho cả hai người.
 
 Trong thời gian đó, Người B có thể rà luồng UI, tạo wireframe, layout và Web ViewModel độc lập; chưa nối dữ liệu hoặc sửa model.
@@ -71,8 +71,8 @@ Các mốc là ngày tương đối tính từ khi bắt đầu kế hoạch, kh
 
 ### Chỉ số và hóa đơn
 
-- Mỗi ảnh chỉ thuộc một loại đồng hồ điện hoặc nước; cho phép gửi lại nhiều ảnh.
-- Lưu từng kết quả AI; người có quyền chọn, sửa hoặc nhập tay rồi duyệt.
+- Mỗi ảnh chỉ thuộc một loại đồng hồ điện hoặc nước; ảnh mờ/lỗi được giữ lại và lần chụp lại tạo ảnh mới.
+- Mỗi ảnh lưu một kết quả AI và phần xác nhận của nhân viên ngay trên `AnhChiSoDongHo`; không có bảng kết quả OCR hoặc lịch sử điều chỉnh riêng.
 - Tiền dùng `decimal/numeric(18,2)`; chỉ số và số lượng dùng `decimal/numeric(18,3)`.
 - Hóa đơn có trạng thái phát hành riêng với trạng thái thanh toán.
 - Thanh toán một phần được quản lý bật theo từng hóa đơn và có mức tối thiểu.

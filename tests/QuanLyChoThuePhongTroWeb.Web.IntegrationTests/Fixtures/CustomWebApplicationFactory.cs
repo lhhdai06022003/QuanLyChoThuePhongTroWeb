@@ -17,6 +17,7 @@ using QuanLyChoThuePhongTroWeb.Application.Abstractions.Services;
 using QuanLyChoThuePhongTroWeb.Application.Common.Files;
 using QuanLyChoThuePhongTroWeb.Application.Features.Emails.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs;
+using QuanLyChoThuePhongTroWeb.Infrastructure.Persistence;
 
 namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests.Fixtures
 {
@@ -50,6 +51,12 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests.Fixtures
 
             builder.ConfigureServices(services =>
             {
+                services.RemoveAll<DbContextOptions<ApplicationDbContext>>();
+                services.RemoveAll<ApplicationDbContext>();
+                services.AddDbContext<ApplicationDbContext>(options =>
+                    options.UseNpgsql(TestConnectionString, npgsql =>
+                        npgsql.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName)));
+
                 // Thay thế EmailService thật bằng test fake
                 services.RemoveAll<IEmailService>();
                 services.AddScoped<IEmailService, FakeEmailService>();

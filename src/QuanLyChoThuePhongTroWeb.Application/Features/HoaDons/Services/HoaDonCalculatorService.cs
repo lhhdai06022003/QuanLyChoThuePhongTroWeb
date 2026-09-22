@@ -4,7 +4,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
 {
     public class HoaDonCalculatorService : IHoaDonCalculatorService
     {
-        public (double SoTien, string DienGiai, int SoNgayO) TinhTienPhong(double giaThue, DateTime batDau, DateTime? ketThuc, int thang, int nam)
+        public (decimal SoTien, string DienGiai, int SoNgayO) TinhTienPhong(decimal giaThue, DateTime batDau, DateTime? ketThuc, int thang, int nam)
         {
             var startOfMonthVn = new DateTime(nam, thang, 1, 0, 0, 0, DateTimeKind.Unspecified);
             var endOfMonthVn = startOfMonthVn.AddMonths(1).AddDays(-1).AddHours(23).AddMinutes(59).AddSeconds(59);
@@ -18,9 +18,9 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
             
             int activeDays = (activeEndVn - activeStartVn).Days + 1;
 
-            if (activeDays <= 0) return (0, "Không có ngày ở thực tế", 0);
+            if (activeDays <= 0) return (0m, "Không có ngày ở thực tế", 0);
 
-            double tienPhong = Math.Round((giaThue / daysInMonth) * activeDays);
+            decimal tienPhong = decimal.Round((giaThue / daysInMonth) * activeDays, 2, MidpointRounding.AwayFromZero);
 
             string dienGiai = "Tiền thuê phòng";
             if (activeDays < daysInMonth)
@@ -31,17 +31,17 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
             return (tienPhong, dienGiai, activeDays);
         }
 
-        public (double SoLuong, double SoTien, string DienGiai) TinhTienDienNuoc(double chiSoMoi, double chiSoCu, double donGia, string tenDichVu, int soNgayO, int tongNgayTrongThang)
+        public (decimal SoLuong, decimal SoTien, string DienGiai) TinhTienDienNuoc(decimal chiSoMoi, decimal chiSoCu, decimal donGia, string tenDichVu, int soNgayO, int tongNgayTrongThang)
         {
             if (chiSoMoi < chiSoCu)
             {
                 throw new InvalidOperationException($"Chỉ số {tenDichVu} mới ({chiSoMoi}) nhỏ hơn chỉ số cũ ({chiSoCu}).");
             }
 
-            double tongTieuThu = chiSoMoi - chiSoCu;
-            double tyLe = (double)soNgayO / tongNgayTrongThang;
-            double soLuongTyLe = tongTieuThu * tyLe;
-            double soTien = Math.Round(soLuongTyLe * donGia);
+            decimal tongTieuThu = chiSoMoi - chiSoCu;
+            decimal tyLe = (decimal)soNgayO / tongNgayTrongThang;
+            decimal soLuongTyLe = decimal.Round(tongTieuThu * tyLe, 3, MidpointRounding.AwayFromZero);
+            decimal soTien = decimal.Round(soLuongTyLe * donGia, 2, MidpointRounding.AwayFromZero);
             
             string dienGiai = tenDichVu;
             if (soNgayO < tongNgayTrongThang)
@@ -56,7 +56,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
             return (soLuongTyLe, soTien, dienGiai);
         }
 
-        public (double SoTien, string DienGiai) TinhTienDichVuCoDinh(double giaDv, int soLuong, string tenDichVu, DateTime batDau, DateTime? ketThuc, int thang, int nam, DateTime? contractStart = null, DateTime? contractEnd = null)
+        public (decimal SoTien, string DienGiai) TinhTienDichVuCoDinh(decimal giaDv, decimal soLuong, string tenDichVu, DateTime batDau, DateTime? ketThuc, int thang, int nam, DateTime? contractStart = null, DateTime? contractEnd = null)
         {
             var startOfMonthVn = new DateTime(nam, thang, 1, 0, 0, 0, DateTimeKind.Unspecified);
             var endOfMonthVn = startOfMonthVn.AddMonths(1).AddDays(-1).AddHours(23).AddMinutes(59).AddSeconds(59);
@@ -84,9 +84,9 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
             
             int activeDays = (activeEndVn - activeStartVn).Days + 1;
 
-            if (activeDays <= 0) return (0, $"Dịch vụ {tenDichVu} không phát sinh");
+            if (activeDays <= 0) return (0m, $"Dịch vụ {tenDichVu} không phát sinh");
 
-            double tienDichVu = Math.Round((giaDv * soLuong / daysInMonth) * activeDays);
+            decimal tienDichVu = decimal.Round((giaDv * soLuong / daysInMonth) * activeDays, 2, MidpointRounding.AwayFromZero);
             
             string dienGiai = tenDichVu;
             if (activeDays < daysInMonth)

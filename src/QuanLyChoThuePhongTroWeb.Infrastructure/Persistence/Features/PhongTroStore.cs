@@ -135,7 +135,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
             {
                 var hopDong = hopDongs.FirstOrDefault(h => h.PhongTroId == p.PhongTroId);
 
-                double soTienNo = 0;
+                decimal soTienNo = 0m;
                 bool coNoTien = false;
                 if (hopDong != null)
                 {

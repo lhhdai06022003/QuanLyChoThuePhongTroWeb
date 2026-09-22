@@ -12,7 +12,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.YeuCauSuCos.DTOs
         public string? MoTa { get; set; }
         public string? HinhAnhUrl { get; set; }
         public AppTrangThaiSuCo TrangThai { get; set; }
-        public double ChiPhiSuaChua { get; set; }
+        public decimal ChiPhiSuaChua { get; set; }
         public bool CongVaoHoaDon { get; set; }
         public string? LyDoTuChoi { get; set; }
         public string? GhiChuAdmin { get; set; }

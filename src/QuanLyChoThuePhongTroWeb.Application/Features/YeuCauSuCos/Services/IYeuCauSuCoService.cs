@@ -11,7 +11,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.YeuCauSuCos.Services
         Task<List<YeuCauSuCoRes>> GetByNguoiThueAsync(int nguoiThueId);
         Task<YeuCauSuCoRes?> GetByIdAsync(int id);
         Task<bool> CreateAsync(CreateYeuCauSuCoReq req);
-        Task<bool> UpdateStatusAsync(int id, AppTrangThaiSuCo trangThai, double chiPhi, bool congVaoHoaDon, string? lyDoTuChoi, string? ghiChuAdmin);
+        Task<bool> UpdateStatusAsync(int id, AppTrangThaiSuCo trangThai, decimal chiPhi, bool congVaoHoaDon, string? lyDoTuChoi, string? ghiChuAdmin);
         Task<bool> SoftDeleteAsync(int id);
     }
 }

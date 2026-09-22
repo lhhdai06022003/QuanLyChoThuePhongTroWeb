@@ -125,4 +125,4 @@ Các mục sau có tài liệu thiết kế hoặc thư mục khung nhưng chưa
 - Hóa đơn nháp và quy trình duyệt trước khi gửi.
 - Mobile app, IoT và CI workflow.
 
-Hai migration nền đã được thiết kế nhưng chưa tạo trong mã nguồn: Migration 1 thêm 7 bảng và Migration 2 thêm 15 bảng, đưa mô hình dự kiến từ 17 lên 39 bảng nghiệp vụ. Xem [roadmap 60 ngày](../roadmap-60-ngay.md), [spec hai migration](../superpowers/specs/2026-09-21-database-foundation-two-migrations-design.md) và hai kế hoạch triển khai trong [superpowers/plans](../superpowers/plans/).
+Migration 1 đã được tạo trên nhánh hiện tại với 5 bảng mới, đưa EF model từ 17 lên 22 bảng nghiệp vụ. Migration 2 vẫn là kế hoạch với 15 bảng mới; sau khi hoàn tất, mô hình dự kiến có 37 bảng nghiệp vụ. Xem [roadmap 60 ngày](../roadmap-60-ngay.md), [spec hai migration](../superpowers/specs/2026-09-21-database-foundation-two-migrations-design.md) và hai kế hoạch triển khai trong [superpowers/plans](../superpowers/plans/).

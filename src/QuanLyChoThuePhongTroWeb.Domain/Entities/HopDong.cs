@@ -20,8 +20,8 @@ namespace QuanLyChoThuePhongTroWeb.Domain.Entities
 
         public DateTime ThoiDiemBatDau { get; set; }
         public DateTime? ThoiDiemKetThuc { get; set; }
-        public double TienCocPhong { get; set; }
-        public double TienThuePhong { get; set; }
+        public decimal TienCocPhong { get; set; }
+        public decimal TienThuePhong { get; set; }
         public TrangThaiHopDong TrangThaiHopDong { get; set; }
         public DateTime NgayTao { get; set; } = DateTime.UtcNow;
         public DateTime? NgayCapNhat { get; set; }

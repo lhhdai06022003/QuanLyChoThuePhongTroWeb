@@ -9,7 +9,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.PhongTros.DTOs
         public int ChiNhanhId { get; set; }
         public string SoPhong { get; set; } = string.Empty;
         public int TangLau { get; set; }
-        public double GiaThue { get; set; }
+        public decimal GiaThue { get; set; }
         public double DienTich { get; set; }
         public int SoNguoiToiDa { get; set; }
         public AppTrangThaiPhong TrangThai { get; set; }
@@ -23,7 +23,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.PhongTros.DTOs
         public string? TenChiNhanh { get; set; }
         public string SoPhong { get; set; } = string.Empty;
         public int TangLau { get; set; }
-        public double GiaThue { get; set; }
+        public decimal GiaThue { get; set; }
         public double DienTich { get; set; }
         public int SoNguoiToiDa { get; set; }
         public AppTrangThaiPhong TrangThai { get; set; }
@@ -36,7 +36,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.PhongTros.DTOs
         public int PhongTroId { get; set; }
         public int ChiNhanhId { get; set; }
         public string SoPhong { get; set; } = string.Empty;
-        public double GiaThue { get; set; }
+        public decimal GiaThue { get; set; }
         public AppTrangThaiPhong TrangThai { get; set; }
     }
 }

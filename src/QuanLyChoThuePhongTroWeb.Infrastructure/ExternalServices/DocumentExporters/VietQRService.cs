@@ -33,7 +33,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.DocumentExpor
             { "MSB", "970426" }
         };
 
-        public string GenerateVietQRString(string bankIdOrBin, string accountNumber, double amount, string memo)
+        public string GenerateVietQRString(string bankIdOrBin, string accountNumber, decimal amount, string memo)
         {
             string bin = BankBinMap.TryGetValue(bankIdOrBin, out var foundBin) ? foundBin : bankIdOrBin;
 

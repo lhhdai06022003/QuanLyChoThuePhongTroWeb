@@ -19,8 +19,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.DTOs
         public int SoPhongDaThue { get; set; }
         public int SoPhongBaoTri { get; set; }
         public int TongSoHopDongHoatDong { get; set; }
-        public double DoanhThuThangNay { get; set; }
-        public double TongTienChoThu { get; set; }
+        public decimal DoanhThuThangNay { get; set; }
+        public decimal TongTienChoThu { get; set; }
         public int SoPhongChuaThanhToan { get; set; }
         public double TyLeLapDay { get; set; }
         public int SoHopDongSapHetHan { get; set; }
@@ -28,8 +28,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.DTOs
 
         // Chart data
         public List<string> ChartLabels { get; set; } = new();
-        public List<double> ChartData { get; set; } = new();
-        public List<double> ChartDataChoThu { get; set; } = new();
+        public List<decimal> ChartData { get; set; } = new();
+        public List<decimal> ChartDataChoThu { get; set; } = new();
 
         // Room status data
         public List<string> RoomStatusLabels { get; set; } = new();
@@ -68,7 +68,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.DTOs
     {
         public int Thang { get; set; }
         public QuanLyChoThuePhongTroWeb.Domain.Enums.TrangThaiHoaDon TrangThai { get; set; }
-        public double TongTien { get; set; }
+        public decimal TongTien { get; set; }
     }
 
     public class DashboardContractUtilityCheckDto
@@ -99,7 +99,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.DTOs
     {
         public System.DateTime NgayThanhToan { get; set; }
         public string SoPhong { get; set; } = string.Empty;
-        public double SoTienThanhToan { get; set; }
+        public decimal SoTienThanhToan { get; set; }
         public QuanLyChoThuePhongTroWeb.Domain.Enums.PhuongThucThanhToan PhuongThuc { get; set; }
     }
 
@@ -108,6 +108,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.DTOs
         public System.DateTime NgayTao { get; set; }
         public string SoPhong { get; set; } = string.Empty;
         public string HoVaTen { get; set; } = string.Empty;
-        public double TienThuePhong { get; set; }
+        public decimal TienThuePhong { get; set; }
     }
 }

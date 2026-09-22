@@ -91,7 +91,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.YeuCauSuCos.Services
             return await _unitOfWork.SaveChangesAsync() > 0;
         }
 
-        public async Task<bool> UpdateStatusAsync(int id, AppTrangThaiSuCo trangThai, double chiPhi, bool congVaoHoaDon, string? lyDoTuChoi, string? ghiChuAdmin)
+        public async Task<bool> UpdateStatusAsync(int id, AppTrangThaiSuCo trangThai, decimal chiPhi, bool congVaoHoaDon, string? lyDoTuChoi, string? ghiChuAdmin)
         {
             var suco = await _store.GetByIdAsync(id);
             if (suco == null || suco.IsDeleted) return false;

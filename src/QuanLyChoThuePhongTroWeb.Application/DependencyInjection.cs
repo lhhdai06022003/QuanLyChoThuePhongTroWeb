@@ -38,6 +38,7 @@ namespace QuanLyChoThuePhongTroWeb.Application
             // Phase 6.4 services
             services.AddScoped<IHoaDonCalculatorService, HoaDonCalculatorService>();
             services.AddScoped<IHoaDonService, HoaDonService>();
+            services.AddScoped<IInvoicePaymentConfirmationService, InvoicePaymentConfirmationService>();
             services.AddScoped<ILichSuThanhToanService, LichSuThanhToanService>();
 
             // Phase 6.5 services

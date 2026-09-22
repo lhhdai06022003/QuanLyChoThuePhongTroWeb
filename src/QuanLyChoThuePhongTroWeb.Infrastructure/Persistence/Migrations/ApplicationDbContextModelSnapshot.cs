@@ -22,43 +22,188 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.DichVuChiNhanh", b =>
+            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.AnhChiSoDongHo", b =>
                 {
-                    b.Property<int>("DichVuChiNhanhId")
+                    b.Property<int>("AnhChiSoDongHoId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("DichVuChiNhanhId"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("AnhChiSoDongHoId"));
 
-                    b.Property<int>("ChiNhanhId")
+                    b.Property<int>("DichVuDienNuocCuaPhongId")
                         .HasColumnType("integer");
 
-                    b.Property<int>("DichVuId")
-                        .HasColumnType("integer");
-
-                    b.Property<double>("GiaDichVu")
+                    b.Property<double?>("DoTinCay")
                         .HasColumnType("double precision");
+
+                    b.Property<bool>("DuocChonLamChiSoChinhThuc")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("GhiChuXacNhan")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<decimal?>("GiaTriAIGoiY")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("numeric(18,3)");
+
+                    b.Property<decimal?>("GiaTriXacNhan")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("numeric(18,3)");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
-                    b.Property<bool>("MacDinh")
-                        .HasColumnType("boolean");
+                    b.Property<int>("LoaiDongHo")
+                        .HasColumnType("integer");
 
-                    b.Property<DateTime?>("NgayCapNhat")
+                    b.Property<DateTime>("NgayGui")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<DateTime>("NgayTao")
+                    b.Property<DateTime?>("NgayXacNhan")
                         .HasColumnType("timestamp with time zone");
 
-                    b.HasKey("DichVuChiNhanhId");
+                    b.Property<DateTime?>("NgayXuLy")
+                        .HasColumnType("timestamp with time zone");
 
-                    b.HasIndex("DichVuId");
+                    b.Property<int?>("NguoiGuiId")
+                        .HasColumnType("integer");
 
-                    b.HasIndex("ChiNhanhId", "DichVuId")
+                    b.Property<int?>("NguoiXacNhanId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PublicId")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("ThongBaoLoi")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<int>("TrangThaiXuLy")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("character varying(2048)");
+
+                    b.HasKey("AnhChiSoDongHoId");
+
+                    b.HasIndex("NguoiGuiId");
+
+                    b.HasIndex("NguoiXacNhanId");
+
+                    b.HasIndex("DichVuDienNuocCuaPhongId", "LoaiDongHo")
+                        .IsUnique()
+                        .HasFilter("\"DuocChonLamChiSoChinhThuc\" = true AND \"IsDeleted\" = false");
+
+                    b.ToTable("anh_chi_so_dong_ho", t =>
+                        {
+                            t.HasCheckConstraint("CK_AnhChiSoDongHo_ChiSoChinhThuc", "NOT \"DuocChonLamChiSoChinhThuc\" OR (\"GiaTriXacNhan\" IS NOT NULL AND \"NguoiXacNhanId\" IS NOT NULL AND \"NgayXacNhan\" IS NOT NULL)");
+
+                            t.HasCheckConstraint("CK_AnhChiSoDongHo_DoTinCay", "\"DoTinCay\" IS NULL OR (\"DoTinCay\" >= 0 AND \"DoTinCay\" <= 1)");
+
+                            t.HasCheckConstraint("CK_AnhChiSoDongHo_GiaTri", "(\"GiaTriAIGoiY\" IS NULL OR \"GiaTriAIGoiY\" >= 0) AND (\"GiaTriXacNhan\" IS NULL OR \"GiaTriXacNhan\" >= 0)");
+                        });
+                });
+
+            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.AnhPhongTro", b =>
+                {
+                    b.Property<int>("AnhPhongTroId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("AnhPhongTroId"));
+
+                    b.Property<string>("ChuThich")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("LaAnhDaiDien")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTime>("NgayTaiLen")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("NguoiTaiLenId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PhongTroId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PublicId")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("ThuTuHienThi")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.HasKey("AnhPhongTroId");
+
+                    b.HasIndex("NguoiTaiLenId");
+
+                    b.HasIndex("PhongTroId")
+                        .IsUnique()
+                        .HasFilter("\"LaAnhDaiDien\" = true AND \"IsActive\" = true");
+
+                    b.ToTable("anh_phong_tro");
+                });
+
+            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.ApDungTienGiuChoVaoTienCoc", b =>
+                {
+                    b.Property<int>("ApDungTienGiuChoVaoTienCocId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ApDungTienGiuChoVaoTienCocId"));
+
+                    b.Property<string>("GhiChu")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("HopDongId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("NgayApDung")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("NguoiThucHienId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("SoTienApDung")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<int>("YeuCauGiuChoId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("ApDungTienGiuChoVaoTienCocId");
+
+                    b.HasIndex("HopDongId");
+
+                    b.HasIndex("NguoiThucHienId");
+
+                    b.HasIndex("YeuCauGiuChoId")
                         .IsUnique();
 
-                    b.ToTable("dich_vu_chi_nhanh", (string)null);
+                    b.ToTable("ap_dung_tien_giu_cho_vao_tien_coc", t =>
+                        {
+                            t.HasCheckConstraint("CK_ApDungTienGiuChoVaoTienCoc_SoTienApDung", "\"SoTienApDung\" > 0");
+                        });
                 });
 
             modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.ChiNhanh", b =>
@@ -104,7 +249,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Migrations
                     b.HasIndex("MaChiNhanh")
                         .IsUnique();
 
-                    b.ToTable("chi_nhanh", (string)null);
+                    b.ToTable("chi_nhanh");
                 });
 
             modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.ChiTietHoaDon", b =>
@@ -118,8 +263,9 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Migrations
                     b.Property<int?>("DichVuId")
                         .HasColumnType("integer");
 
-                    b.Property<double>("DonGia")
-                        .HasColumnType("double precision");
+                    b.Property<decimal>("DonGia")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
 
                     b.Property<int>("HoaDonId")
                         .HasColumnType("integer");
@@ -127,15 +273,17 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
-                    b.Property<double>("SoLuong")
-                        .HasColumnType("double precision");
+                    b.Property<decimal>("SoLuong")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("numeric(18,3)");
 
                     b.Property<string>("TenDichVu")
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<double>("TongTien")
-                        .HasColumnType("double precision");
+                    b.Property<decimal>("TongTien")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
 
                     b.HasKey("ChiTietHoaDonId");
 
@@ -143,7 +291,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("HoaDonId");
 
-                    b.ToTable("chi_tiet_hoa_don", (string)null);
+                    b.ToTable("chi_tiet_hoa_don");
                 });
 
             modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.ChiTietThanhVienHopDong", b =>
@@ -175,7 +323,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("NguoiThueId");
 
-                    b.ToTable("chi_tiet_thanh_vien_hop_dong", (string)null);
+                    b.ToTable("chi_tiet_thanh_vien_hop_dong");
                 });
 
             modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.DangKyDichVu", b =>
@@ -207,7 +355,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("PhongTroId");
 
-                    b.ToTable("dang_ky_dich_vu", (string)null);
+                    b.ToTable("dang_ky_dich_vu");
                 });
 
             modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.DichVu", b =>
@@ -244,7 +392,47 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Migrations
 
                     b.HasKey("DichVuId");
 
-                    b.ToTable("dich_vu", (string)null);
+                    b.ToTable("dich_vu");
+                });
+
+            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.DichVuChiNhanh", b =>
+                {
+                    b.Property<int>("DichVuChiNhanhId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("DichVuChiNhanhId"));
+
+                    b.Property<int>("ChiNhanhId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("DichVuId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("GiaDichVu")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("MacDinh")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("NgayCapNhat")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("NgayTao")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("DichVuChiNhanhId");
+
+                    b.HasIndex("DichVuId");
+
+                    b.HasIndex("ChiNhanhId", "DichVuId")
+                        .IsUnique();
+
+                    b.ToTable("dich_vu_chi_nhanh");
                 });
 
             modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.DichVuDienNuocCuaPhong", b =>
@@ -255,23 +443,32 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("DichVuDienNuocCuaPhongId"));
 
-                    b.Property<double>("ChiSoDienCu")
-                        .HasColumnType("double precision");
+                    b.Property<decimal>("ChiSoDienCu")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("numeric(18,3)");
 
-                    b.Property<double>("ChiSoDienMoi")
-                        .HasColumnType("double precision");
+                    b.Property<decimal>("ChiSoDienMoi")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("numeric(18,3)");
 
-                    b.Property<double>("ChiSoNuocCu")
-                        .HasColumnType("double precision");
+                    b.Property<decimal>("ChiSoNuocCu")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("numeric(18,3)");
 
-                    b.Property<double>("ChiSoNuocMoi")
-                        .HasColumnType("double precision");
+                    b.Property<decimal>("ChiSoNuocMoi")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("numeric(18,3)");
 
-                    b.Property<double>("DonGiaDien")
-                        .HasColumnType("double precision");
+                    b.Property<decimal>("DonGiaDien")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
 
-                    b.Property<double>("DonGiaNuoc")
-                        .HasColumnType("double precision");
+                    b.Property<decimal>("DonGiaNuoc")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("GhiChuDuyet")
+                        .HasColumnType("text");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
@@ -282,8 +479,17 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Migrations
                     b.Property<DateTime?>("NgayCapNhat")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("NgayDuyet")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateTime>("NgayTao")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("NguoiDuyetId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("NguoiTaoId")
+                        .HasColumnType("integer");
 
                     b.Property<int>("PhongTroId")
                         .HasColumnType("integer");
@@ -291,11 +497,16 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Migrations
                     b.Property<int>("Thang")
                         .HasColumnType("integer");
 
+                    b.Property<int>("TrangThaiGhiNhan")
+                        .HasColumnType("integer");
+
                     b.HasKey("DichVuDienNuocCuaPhongId");
 
-                    b.HasIndex("PhongTroId");
+                    b.HasIndex("PhongTroId", "Thang", "Nam")
+                        .IsUnique()
+                        .HasFilter("\"IsDeleted\" = false");
 
-                    b.ToTable("dich_vu_dien_nuoc_cua_phong", (string)null);
+                    b.ToTable("dich_vu_dien_nuoc_cua_phong");
                 });
 
             modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.DieuKhoanMau", b =>
@@ -326,7 +537,114 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Migrations
 
                     b.HasKey("DieuKhoanMauId");
 
-                    b.ToTable("dieu_khoan_mau", (string)null);
+                    b.ToTable("dieu_khoan_mau");
+                });
+
+            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.GiaoDichGiuCho", b =>
+                {
+                    b.Property<int>("GiaoDichGiuChoId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("GiaoDichGiuChoId"));
+
+                    b.Property<string>("GhiChu")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("MaGiaoDich")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int?>("MinhChungThanhToanGiuChoId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("NgayThucNhan")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("NgayXacNhan")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("NguoiXacNhanId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PhuongThuc")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("SoTienThucNhan")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<int>("YeuCauThanhToanGiuChoId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("GiaoDichGiuChoId");
+
+                    b.HasIndex("MaGiaoDich")
+                        .IsUnique();
+
+                    b.HasIndex("MinhChungThanhToanGiuChoId")
+                        .IsUnique()
+                        .HasFilter("\"MinhChungThanhToanGiuChoId\" IS NOT NULL");
+
+                    b.HasIndex("NguoiXacNhanId");
+
+                    b.HasIndex("YeuCauThanhToanGiuChoId");
+
+                    b.ToTable("giao_dich_giu_cho", t =>
+                        {
+                            t.HasCheckConstraint("CK_GiaoDichGiuCho_SoTienThucNhan", "\"SoTienThucNhan\" > 0");
+                        });
+                });
+
+            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.GiaoDichHoanTienGiuCho", b =>
+                {
+                    b.Property<int>("GiaoDichHoanTienGiuChoId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("GiaoDichHoanTienGiuChoId"));
+
+                    b.Property<string>("GhiChu")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("MaGiaoDichHoan")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("NgayHoan")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("NguoiXacNhanId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("QuyetDinhHoanTienGiuChoId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("SoTienHoan")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("UrlHinhAnhMinhChung")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.HasKey("GiaoDichHoanTienGiuChoId");
+
+                    b.HasIndex("MaGiaoDichHoan")
+                        .IsUnique();
+
+                    b.HasIndex("NguoiXacNhanId");
+
+                    b.HasIndex("QuyetDinhHoanTienGiuChoId");
+
+                    b.ToTable("giao_dich_hoan_tien_giu_cho", t =>
+                        {
+                            t.HasCheckConstraint("CK_GiaoDichHoanTienGiuCho_SoTienHoan", "\"SoTienHoan\" > 0");
+                        });
                 });
 
             modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.HoaDon", b =>
@@ -337,8 +655,14 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("HoaDonId"));
 
+                    b.Property<bool>("ChoPhepThanhToanMotPhan")
+                        .HasColumnType("boolean");
+
                     b.Property<int?>("DichVuDienNuocCuaPhongId")
                         .HasColumnType("integer");
+
+                    b.Property<DateTime?>("HanThanhToan")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("HopDongId")
                         .HasColumnType("integer");
@@ -356,16 +680,33 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Migrations
                     b.Property<DateTime?>("NgayCapNhat")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("NgayChot")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("NgayGui")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateTime>("NgayTao")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("NguoiChotId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal?>("SoTienThanhToanToiThieu")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
 
                     b.Property<int>("Thang")
                         .HasColumnType("integer");
 
-                    b.Property<double>("TongTien")
-                        .HasColumnType("double precision");
+                    b.Property<decimal>("TongTien")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
 
                     b.Property<int>("TrangThaiHoaDon")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TrangThaiPhatHanh")
                         .HasColumnType("integer");
 
                     b.HasKey("HoaDonId");
@@ -376,7 +717,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Migrations
                         .IsUnique()
                         .HasFilter("\"IsDeleted\" = false");
 
-                    b.ToTable("hoa_don", (string)null);
+                    b.ToTable("hoa_don");
                 });
 
             modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.HopDong", b =>
@@ -412,11 +753,13 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Migrations
                     b.Property<DateTime?>("ThoiDiemKetThuc")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<double>("TienCocPhong")
-                        .HasColumnType("double precision");
+                    b.Property<decimal>("TienCocPhong")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
 
-                    b.Property<double>("TienThuePhong")
-                        .HasColumnType("double precision");
+                    b.Property<decimal>("TienThuePhong")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
 
                     b.Property<int>("TrangThaiHopDong")
                         .HasColumnType("integer");
@@ -427,7 +770,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("PhongTroId");
 
-                    b.ToTable("hop_dong", (string)null);
+                    b.ToTable("hop_dong");
                 });
 
             modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.HopDongDieuKhoan", b =>
@@ -457,7 +800,108 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("HopDongId");
 
-                    b.ToTable("hop_dong_dieu_khoan", (string)null);
+                    b.ToTable("hop_dong_dieu_khoan");
+                });
+
+            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.KhachVangLai", b =>
+                {
+                    b.Property<int>("KhachVangLaiId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("KhachVangLaiId"));
+
+                    b.Property<bool>("DaXacMinhEmail")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("EmailNormalized")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("HoTen")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime?>("NgayCapNhat")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("NgayTao")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("NguoiDungId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SoDienThoai")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.HasKey("KhachVangLaiId");
+
+                    b.HasIndex("NguoiDungId")
+                        .IsUnique();
+
+                    b.ToTable("khach_vang_lai");
+                });
+
+            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.KhungGioXemPhong", b =>
+                {
+                    b.Property<int>("KhungGioXemPhongId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("KhungGioXemPhongId"));
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<DateTime?>("NgayCapNhat")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("NgayTao")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("NguoiPhuTrachId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("NguoiTaoId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PhongTroId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SoLuongToiDa")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("ThoiGianBatDau")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("ThoiGianKetThuc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("KhungGioXemPhongId");
+
+                    b.HasIndex("NguoiPhuTrachId");
+
+                    b.HasIndex("NguoiTaoId");
+
+                    b.HasIndex("PhongTroId");
+
+                    b.ToTable("khung_gio_xem_phong", t =>
+                        {
+                            t.HasCheckConstraint("CK_KhungGioXemPhong_SoLuongToiDa", "\"SoLuongToiDa\" > 0");
+
+                            t.HasCheckConstraint("CK_KhungGioXemPhong_ThoiGian", "\"ThoiGianBatDau\" < \"ThoiGianKetThuc\"");
+                        });
                 });
 
             modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.LichSuThanhToan", b =>
@@ -482,7 +926,13 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<int?>("MinhChungThanhToanHoaDonId")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime>("NgayThanhToan")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("NgayXacNhan")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<int?>("NguoiXacNhanId")
@@ -491,16 +941,332 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Migrations
                     b.Property<int>("PhuongThucThanhToan")
                         .HasColumnType("integer");
 
-                    b.Property<double>("SoTienThanhToan")
-                        .HasColumnType("double precision");
+                    b.Property<decimal>("SoTienThanhToan")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
 
                     b.HasKey("LichSuThanhToanId");
 
                     b.HasIndex("HoaDonId");
 
+                    b.HasIndex("MaGiaoDich")
+                        .IsUnique()
+                        .HasFilter("\"MaGiaoDich\" IS NOT NULL AND \"MaGiaoDich\" <> '' AND \"IsDeleted\" = false");
+
+                    b.HasIndex("MinhChungThanhToanHoaDonId")
+                        .IsUnique()
+                        .HasFilter("\"MinhChungThanhToanHoaDonId\" IS NOT NULL");
+
                     b.HasIndex("NguoiXacNhanId");
 
-                    b.ToTable("lich_su_thanh_toan", (string)null);
+                    b.ToTable("lich_su_thanh_toan");
+                });
+
+            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.LichSuTrangThaiHoaDon", b =>
+                {
+                    b.Property<int>("LichSuTrangThaiHoaDonId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("LichSuTrangThaiHoaDonId"));
+
+                    b.Property<int>("HoaDonId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("LyDo")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("NgayThucHien")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("NguoiThucHienId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("TrangThaiPhatHanhCu")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TrangThaiPhatHanhMoi")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("TrangThaiThanhToanCu")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TrangThaiThanhToanMoi")
+                        .HasColumnType("integer");
+
+                    b.HasKey("LichSuTrangThaiHoaDonId");
+
+                    b.HasIndex("HoaDonId");
+
+                    b.ToTable("lich_su_trang_thai_hoa_don");
+                });
+
+            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.LichSuTrangThaiYeuCauGiuCho", b =>
+                {
+                    b.Property<int>("LichSuTrangThaiYeuCauGiuChoId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("LichSuTrangThaiYeuCauGiuChoId"));
+
+                    b.Property<int>("LoaiTacNhan")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("LyDo")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("NgayThucHien")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("NguoiThucHienId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TrangThaiSau")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("TrangThaiTruoc")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("YeuCauGiuChoId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("LichSuTrangThaiYeuCauGiuChoId");
+
+                    b.HasIndex("NguoiThucHienId");
+
+                    b.HasIndex("YeuCauGiuChoId");
+
+                    b.ToTable("lich_su_trang_thai_yeu_cau_giu_cho");
+                });
+
+            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.LichSuTrangThaiYeuCauThanhToanGiuCho", b =>
+                {
+                    b.Property<int>("LichSuTrangThaiYeuCauThanhToanGiuChoId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("LichSuTrangThaiYeuCauThanhToanGiuChoId"));
+
+                    b.Property<int>("LoaiTacNhan")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("LyDo")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("NgayThucHien")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("NguoiThucHienId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TrangThaiSau")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("TrangThaiTruoc")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("YeuCauThanhToanGiuChoId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("LichSuTrangThaiYeuCauThanhToanGiuChoId");
+
+                    b.HasIndex("NguoiThucHienId");
+
+                    b.HasIndex("YeuCauThanhToanGiuChoId");
+
+                    b.ToTable("lich_su_trang_thai_yeu_cau_thanh_toan_giu_cho");
+                });
+
+            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.LichSuTrangThaiYeuCauThanhToanHoaDon", b =>
+                {
+                    b.Property<int>("LichSuTrangThaiYeuCauThanhToanHoaDonId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("LichSuTrangThaiYeuCauThanhToanHoaDonId"));
+
+                    b.Property<string>("LyDo")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("NgayThucHien")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("NguoiThucHienId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("TrangThaiCu")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TrangThaiMoi")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("YeuCauThanhToanHoaDonId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("LichSuTrangThaiYeuCauThanhToanHoaDonId");
+
+                    b.HasIndex("YeuCauThanhToanHoaDonId");
+
+                    b.ToTable("lich_su_trang_thai_yeu_cau_thanh_toan_hoa_don");
+                });
+
+            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.LichSuTrangThaiYeuCauXemPhong", b =>
+                {
+                    b.Property<int>("LichSuTrangThaiYeuCauXemPhongId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("LichSuTrangThaiYeuCauXemPhongId"));
+
+                    b.Property<int>("LoaiTacNhan")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("LyDo")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("NgayThucHien")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("NguoiThucHienId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TrangThaiSau")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("TrangThaiTruoc")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("YeuCauXemPhongId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("LichSuTrangThaiYeuCauXemPhongId");
+
+                    b.HasIndex("NguoiThucHienId");
+
+                    b.HasIndex("YeuCauXemPhongId");
+
+                    b.ToTable("lich_su_trang_thai_yeu_cau_xem_phong");
+                });
+
+            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.MinhChungThanhToanGiuCho", b =>
+                {
+                    b.Property<int>("MinhChungThanhToanGiuChoId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("MinhChungThanhToanGiuChoId"));
+
+                    b.Property<string>("GhiChuKhachHang")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("LyDoTuChoi")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("MaGiaoDichNganHang")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("NgayChuyenTien")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("NgayDoiChieu")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("NgayTao")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("NguoiDoiChieuId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PublicIdHinhAnh")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<decimal>("SoTienKhaiBao")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<int>("TrangThai")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("UrlHinhAnh")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("YeuCauThanhToanGiuChoId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("MinhChungThanhToanGiuChoId");
+
+                    b.HasIndex("NguoiDoiChieuId");
+
+                    b.HasIndex("YeuCauThanhToanGiuChoId");
+
+                    b.ToTable("minh_chung_thanh_toan_giu_cho", t =>
+                        {
+                            t.HasCheckConstraint("CK_MinhChungThanhToanGiuCho_SoTienKhaiBao", "\"SoTienKhaiBao\" > 0");
+                        });
+                });
+
+            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.MinhChungThanhToanHoaDon", b =>
+                {
+                    b.Property<int>("MinhChungThanhToanHoaDonId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("MinhChungThanhToanHoaDonId"));
+
+                    b.Property<string>("HinhAnhUrl")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("LyDoTuChoi")
+                        .HasColumnType("text");
+
+                    b.Property<string>("MaGiaoDichNganHang")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("NgayChuyenKhaiBao")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("NgayDoiChieu")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("NgayTao")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("NguoiDoiChieuId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PublicId")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<decimal>("SoTienKhaiBao")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<int>("TrangThaiDoiChieu")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("YeuCauThanhToanHoaDonId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("MinhChungThanhToanHoaDonId");
+
+                    b.HasIndex("YeuCauThanhToanHoaDonId");
+
+                    b.ToTable("minh_chung_thanh_toan_hoa_don");
                 });
 
             modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.NguoiDung", b =>
@@ -542,7 +1308,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Migrations
                     b.HasIndex("NguoiThueId")
                         .IsUnique();
 
-                    b.ToTable("nguoi_dung", (string)null);
+                    b.ToTable("nguoi_dung");
                 });
 
             modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.NguoiThue", b =>
@@ -595,7 +1361,56 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Migrations
 
                     b.HasKey("NguoiThueId");
 
-                    b.ToTable("nguoi_thue", (string)null);
+                    b.ToTable("nguoi_thue");
+                });
+
+            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.NhanVienChiNhanh", b =>
+                {
+                    b.Property<int>("NhanVienChiNhanhId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("NhanVienChiNhanhId"));
+
+                    b.Property<int>("ChiNhanhId")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("LyDo")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("NgayPhanCong")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("NgayThuHoi")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("NguoiDungId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("NguoiPhanCongId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("NguoiThuHoiId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("NhanVienChiNhanhId");
+
+                    b.HasIndex("ChiNhanhId");
+
+                    b.HasIndex("NguoiPhanCongId");
+
+                    b.HasIndex("NguoiThuHoiId");
+
+                    b.HasIndex("NguoiDungId", "ChiNhanhId")
+                        .IsUnique();
+
+                    b.ToTable("nhan_vien_chi_nhanh");
                 });
 
             modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.PhongTro", b =>
@@ -612,11 +1427,21 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Migrations
                     b.Property<double>("DienTich")
                         .HasColumnType("double precision");
 
-                    b.Property<double>("GiaThue")
-                        .HasColumnType("double precision");
+                    b.Property<bool>("DuocDangTin")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<decimal>("GiaThue")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
+
+                    b.Property<string>("MaCongKhai")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<string>("MoTa")
                         .IsRequired()
@@ -628,6 +1453,9 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Migrations
                     b.Property<DateTime>("NgayTao")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int?>("NguoiDangTinId")
+                        .HasColumnType("integer");
+
                     b.Property<int>("SoNguoiToiDa")
                         .HasColumnType("integer");
 
@@ -638,6 +1466,10 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Migrations
                     b.Property<int>("TangLau")
                         .HasColumnType("integer");
 
+                    b.Property<string>("TieuDeDangTin")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
                     b.Property<int>("TrangThai")
                         .HasColumnType("integer");
 
@@ -645,7 +1477,59 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("ChiNhanhId");
 
-                    b.ToTable("phong_tro", (string)null);
+                    b.HasIndex("MaCongKhai")
+                        .IsUnique()
+                        .HasFilter("\"MaCongKhai\" IS NOT NULL");
+
+                    b.HasIndex("NguoiDangTinId");
+
+                    b.ToTable("phong_tro");
+                });
+
+            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.QuyetDinhHoanTienGiuCho", b =>
+                {
+                    b.Property<int>("QuyetDinhHoanTienGiuChoId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("QuyetDinhHoanTienGiuChoId"));
+
+                    b.Property<string>("GhiChu")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("LyDo")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("NgayQuyetDinh")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("NguoiQuyetDinhId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("SoTienHoanDuyet")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<int>("TrangThai")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("YeuCauGiuChoId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("QuyetDinhHoanTienGiuChoId");
+
+                    b.HasIndex("NguoiQuyetDinhId");
+
+                    b.HasIndex("YeuCauGiuChoId")
+                        .IsUnique();
+
+                    b.ToTable("quyet_dinh_hoan_tien_giu_cho", t =>
+                        {
+                            t.HasCheckConstraint("CK_QuyetDinhHoanTienGiuCho_SoTienHoanDuyet", "\"SoTienHoanDuyet\" >= 0");
+                        });
                 });
 
             modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.ThongBao", b =>
@@ -685,7 +1569,73 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("NguoiDungId");
 
-                    b.ToTable("thong_bao", (string)null);
+                    b.ToTable("thong_bao");
+                });
+
+            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.YeuCauGiuCho", b =>
+                {
+                    b.Property<int>("YeuCauGiuChoId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("YeuCauGiuChoId"));
+
+                    b.Property<DateTime?>("HanKyHopDong")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("HanThanhToan")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("KhachVangLaiId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("LyDoTuChoiHoacHuy")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("NgayCapNhat")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("NgayDuyet")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("NgayTao")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("NguoiDuyetId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PhongTroId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal?>("SoTienGiuCho")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<int>("TrangThai")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("YeuCauXemPhongId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("YeuCauGiuChoId");
+
+                    b.HasIndex("KhachVangLaiId");
+
+                    b.HasIndex("NguoiDuyetId");
+
+                    b.HasIndex("PhongTroId")
+                        .IsUnique()
+                        .HasFilter("\"TrangThai\" IN (1, 2, 3)");
+
+                    b.HasIndex("YeuCauXemPhongId");
+
+                    b.ToTable("yeu_cau_giu_cho", t =>
+                        {
+                            t.HasCheckConstraint("CK_YeuCauGiuCho_SoTienGiuCho", "\"SoTienGiuCho\" IS NULL OR \"SoTienGiuCho\" > 0");
+
+                            t.HasCheckConstraint("CK_YeuCauGiuCho_SoTienTheoTrangThai", "(\"TrangThai\" NOT IN (1, 2, 3, 4)) OR (\"SoTienGiuCho\" IS NOT NULL AND \"SoTienGiuCho\" > 0)");
+                        });
                 });
 
             modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.YeuCauSuCo", b =>
@@ -696,8 +1646,9 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<double>("ChiPhiSuaChua")
-                        .HasColumnType("double precision");
+                    b.Property<decimal>("ChiPhiSuaChua")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
 
                     b.Property<bool>("CongVaoHoaDon")
                         .HasColumnType("boolean");
@@ -744,26 +1695,252 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("PhongTroId");
 
-                    b.ToTable("yeu_cau_su_co", (string)null);
+                    b.ToTable("yeu_cau_su_co");
                 });
 
-            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.DichVuChiNhanh", b =>
+            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.YeuCauThanhToanGiuCho", b =>
                 {
-                    b.HasOne("QuanLyChoThuePhongTroWeb.Domain.Entities.ChiNhanh", "ChiNhanh")
-                        .WithMany("DichVuChiNhanhs")
-                        .HasForeignKey("ChiNhanhId")
+                    b.Property<int>("YeuCauThanhToanGiuChoId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("YeuCauThanhToanGiuChoId"));
+
+                    b.Property<DateTime>("HanThanhToan")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("MaYeuCau")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime?>("NgayCapNhat")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("NgayTao")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("NguoiTaoId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("NoiDungChuyenKhoan")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<decimal>("SoTien")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<int>("TrangThai")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("YeuCauGiuChoId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("YeuCauThanhToanGiuChoId");
+
+                    b.HasIndex("MaYeuCau")
+                        .IsUnique();
+
+                    b.HasIndex("NguoiTaoId");
+
+                    b.HasIndex("YeuCauGiuChoId");
+
+                    b.ToTable("yeu_cau_thanh_toan_giu_cho", t =>
+                        {
+                            t.HasCheckConstraint("CK_YeuCauThanhToanGiuCho_SoTien", "\"SoTien\" > 0");
+                        });
+                });
+
+            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.YeuCauThanhToanHoaDon", b =>
+                {
+                    b.Property<int>("YeuCauThanhToanHoaDonId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("YeuCauThanhToanHoaDonId"));
+
+                    b.Property<DateTime?>("HanThanhToan")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("HoaDonId")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("MaYeuCau")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime?>("NgayCapNhat")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("NgayTao")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("NguoiTaoId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("NoiDungChuyenKhoan")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("SoTien")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<int>("TrangThai")
+                        .HasColumnType("integer");
+
+                    b.HasKey("YeuCauThanhToanHoaDonId");
+
+                    b.HasIndex("HoaDonId");
+
+                    b.HasIndex("MaYeuCau")
+                        .IsUnique();
+
+                    b.ToTable("yeu_cau_thanh_toan_hoa_don");
+                });
+
+            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.YeuCauXemPhong", b =>
+                {
+                    b.Property<int>("YeuCauXemPhongId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("YeuCauXemPhongId"));
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("GhiChu")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<int?>("HinhThucXacNhan")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("HoTen")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int?>("KhachVangLaiId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("KhungGioXemPhongId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("NgayCapNhat")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("NgayTao")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("NguonTao")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PhongTroId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SoDienThoai")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime>("ThoiGianMongMuon")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("ThoiGianXacNhan")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("TrangThai")
+                        .HasColumnType("integer");
+
+                    b.HasKey("YeuCauXemPhongId");
+
+                    b.HasIndex("KhachVangLaiId");
+
+                    b.HasIndex("KhungGioXemPhongId");
+
+                    b.HasIndex("PhongTroId");
+
+                    b.ToTable("yeu_cau_xem_phong");
+                });
+
+            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.AnhChiSoDongHo", b =>
+                {
+                    b.HasOne("QuanLyChoThuePhongTroWeb.Domain.Entities.DichVuDienNuocCuaPhong", "DichVuDienNuocCuaPhong")
+                        .WithMany("AnhChiSoDongHos")
+                        .HasForeignKey("DichVuDienNuocCuaPhongId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuanLyChoThuePhongTroWeb.Domain.Entities.NguoiDung", "NguoiGui")
+                        .WithMany()
+                        .HasForeignKey("NguoiGuiId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("QuanLyChoThuePhongTroWeb.Domain.Entities.NguoiDung", "NguoiXacNhan")
+                        .WithMany()
+                        .HasForeignKey("NguoiXacNhanId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("DichVuDienNuocCuaPhong");
+
+                    b.Navigation("NguoiGui");
+
+                    b.Navigation("NguoiXacNhan");
+                });
+
+            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.AnhPhongTro", b =>
+                {
+                    b.HasOne("QuanLyChoThuePhongTroWeb.Domain.Entities.NguoiDung", "NguoiTaiLen")
+                        .WithMany()
+                        .HasForeignKey("NguoiTaiLenId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuanLyChoThuePhongTroWeb.Domain.Entities.PhongTro", "PhongTro")
+                        .WithMany("AnhPhongTros")
+                        .HasForeignKey("PhongTroId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("QuanLyChoThuePhongTroWeb.Domain.Entities.DichVu", "DichVu")
-                        .WithMany("DichVuChiNhanhs")
-                        .HasForeignKey("DichVuId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                    b.Navigation("NguoiTaiLen");
+
+                    b.Navigation("PhongTro");
+                });
+
+            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.ApDungTienGiuChoVaoTienCoc", b =>
+                {
+                    b.HasOne("QuanLyChoThuePhongTroWeb.Domain.Entities.HopDong", "HopDong")
+                        .WithMany()
+                        .HasForeignKey("HopDongId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("ChiNhanh");
+                    b.HasOne("QuanLyChoThuePhongTroWeb.Domain.Entities.NguoiDung", "NguoiThucHien")
+                        .WithMany()
+                        .HasForeignKey("NguoiThucHienId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
-                    b.Navigation("DichVu");
+                    b.HasOne("QuanLyChoThuePhongTroWeb.Domain.Entities.YeuCauGiuCho", "YeuCauGiuCho")
+                        .WithOne("ApDungTienGiuChoVaoTienCoc")
+                        .HasForeignKey("QuanLyChoThuePhongTroWeb.Domain.Entities.ApDungTienGiuChoVaoTienCoc", "YeuCauGiuChoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("HopDong");
+
+                    b.Navigation("NguoiThucHien");
+
+                    b.Navigation("YeuCauGiuCho");
                 });
 
             modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.ChiTietHoaDon", b =>
@@ -821,6 +1998,25 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Migrations
                     b.Navigation("PhongTro");
                 });
 
+            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.DichVuChiNhanh", b =>
+                {
+                    b.HasOne("QuanLyChoThuePhongTroWeb.Domain.Entities.ChiNhanh", "ChiNhanh")
+                        .WithMany("DichVuChiNhanhs")
+                        .HasForeignKey("ChiNhanhId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("QuanLyChoThuePhongTroWeb.Domain.Entities.DichVu", "DichVu")
+                        .WithMany("DichVuChiNhanhs")
+                        .HasForeignKey("DichVuId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ChiNhanh");
+
+                    b.Navigation("DichVu");
+                });
+
             modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.DichVuDienNuocCuaPhong", b =>
                 {
                     b.HasOne("QuanLyChoThuePhongTroWeb.Domain.Entities.PhongTro", "PhongTro")
@@ -830,6 +2026,51 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("PhongTro");
+                });
+
+            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.GiaoDichGiuCho", b =>
+                {
+                    b.HasOne("QuanLyChoThuePhongTroWeb.Domain.Entities.MinhChungThanhToanGiuCho", "MinhChungThanhToanGiuCho")
+                        .WithMany()
+                        .HasForeignKey("MinhChungThanhToanGiuChoId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuanLyChoThuePhongTroWeb.Domain.Entities.NguoiDung", "NguoiXacNhan")
+                        .WithMany()
+                        .HasForeignKey("NguoiXacNhanId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuanLyChoThuePhongTroWeb.Domain.Entities.YeuCauThanhToanGiuCho", "YeuCauThanhToanGiuCho")
+                        .WithMany("GiaoDichGiuChos")
+                        .HasForeignKey("YeuCauThanhToanGiuChoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("MinhChungThanhToanGiuCho");
+
+                    b.Navigation("NguoiXacNhan");
+
+                    b.Navigation("YeuCauThanhToanGiuCho");
+                });
+
+            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.GiaoDichHoanTienGiuCho", b =>
+                {
+                    b.HasOne("QuanLyChoThuePhongTroWeb.Domain.Entities.NguoiDung", "NguoiXacNhan")
+                        .WithMany()
+                        .HasForeignKey("NguoiXacNhanId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuanLyChoThuePhongTroWeb.Domain.Entities.QuyetDinhHoanTienGiuCho", "QuyetDinhHoanTienGiuCho")
+                        .WithMany("GiaoDichHoanTiens")
+                        .HasForeignKey("QuyetDinhHoanTienGiuChoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("NguoiXacNhan");
+
+                    b.Navigation("QuyetDinhHoanTienGiuCho");
                 });
 
             modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.HoaDon", b =>
@@ -879,6 +2120,43 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Migrations
                     b.Navigation("HopDong");
                 });
 
+            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.KhachVangLai", b =>
+                {
+                    b.HasOne("QuanLyChoThuePhongTroWeb.Domain.Entities.NguoiDung", "NguoiDung")
+                        .WithOne("KhachVangLai")
+                        .HasForeignKey("QuanLyChoThuePhongTroWeb.Domain.Entities.KhachVangLai", "NguoiDungId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("NguoiDung");
+                });
+
+            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.KhungGioXemPhong", b =>
+                {
+                    b.HasOne("QuanLyChoThuePhongTroWeb.Domain.Entities.NguoiDung", "NguoiPhuTrach")
+                        .WithMany()
+                        .HasForeignKey("NguoiPhuTrachId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuanLyChoThuePhongTroWeb.Domain.Entities.NguoiDung", "NguoiTao")
+                        .WithMany()
+                        .HasForeignKey("NguoiTaoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuanLyChoThuePhongTroWeb.Domain.Entities.PhongTro", "PhongTro")
+                        .WithMany()
+                        .HasForeignKey("PhongTroId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("NguoiPhuTrach");
+
+                    b.Navigation("NguoiTao");
+
+                    b.Navigation("PhongTro");
+                });
+
             modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.LichSuThanhToan", b =>
                 {
                     b.HasOne("QuanLyChoThuePhongTroWeb.Domain.Entities.HoaDon", "HoaDon")
@@ -887,13 +2165,125 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("QuanLyChoThuePhongTroWeb.Domain.Entities.MinhChungThanhToanHoaDon", "MinhChungThanhToanHoaDon")
+                        .WithOne("LichSuThanhToan")
+                        .HasForeignKey("QuanLyChoThuePhongTroWeb.Domain.Entities.LichSuThanhToan", "MinhChungThanhToanHoaDonId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("QuanLyChoThuePhongTroWeb.Domain.Entities.NguoiDung", "NguoiXacNhan")
                         .WithMany()
                         .HasForeignKey("NguoiXacNhanId");
 
                     b.Navigation("HoaDon");
 
+                    b.Navigation("MinhChungThanhToanHoaDon");
+
                     b.Navigation("NguoiXacNhan");
+                });
+
+            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.LichSuTrangThaiHoaDon", b =>
+                {
+                    b.HasOne("QuanLyChoThuePhongTroWeb.Domain.Entities.HoaDon", "HoaDon")
+                        .WithMany("LichSuTrangThaiHoaDons")
+                        .HasForeignKey("HoaDonId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("HoaDon");
+                });
+
+            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.LichSuTrangThaiYeuCauGiuCho", b =>
+                {
+                    b.HasOne("QuanLyChoThuePhongTroWeb.Domain.Entities.NguoiDung", "NguoiThucHien")
+                        .WithMany()
+                        .HasForeignKey("NguoiThucHienId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuanLyChoThuePhongTroWeb.Domain.Entities.YeuCauGiuCho", "YeuCauGiuCho")
+                        .WithMany("LichSuTrangThais")
+                        .HasForeignKey("YeuCauGiuChoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("NguoiThucHien");
+
+                    b.Navigation("YeuCauGiuCho");
+                });
+
+            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.LichSuTrangThaiYeuCauThanhToanGiuCho", b =>
+                {
+                    b.HasOne("QuanLyChoThuePhongTroWeb.Domain.Entities.NguoiDung", "NguoiThucHien")
+                        .WithMany()
+                        .HasForeignKey("NguoiThucHienId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuanLyChoThuePhongTroWeb.Domain.Entities.YeuCauThanhToanGiuCho", "YeuCauThanhToanGiuCho")
+                        .WithMany("LichSuTrangThais")
+                        .HasForeignKey("YeuCauThanhToanGiuChoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("NguoiThucHien");
+
+                    b.Navigation("YeuCauThanhToanGiuCho");
+                });
+
+            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.LichSuTrangThaiYeuCauThanhToanHoaDon", b =>
+                {
+                    b.HasOne("QuanLyChoThuePhongTroWeb.Domain.Entities.YeuCauThanhToanHoaDon", "YeuCauThanhToanHoaDon")
+                        .WithMany("LichSuTrangThaiYeuCauThanhToanHoaDons")
+                        .HasForeignKey("YeuCauThanhToanHoaDonId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("YeuCauThanhToanHoaDon");
+                });
+
+            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.LichSuTrangThaiYeuCauXemPhong", b =>
+                {
+                    b.HasOne("QuanLyChoThuePhongTroWeb.Domain.Entities.NguoiDung", "NguoiThucHien")
+                        .WithMany()
+                        .HasForeignKey("NguoiThucHienId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuanLyChoThuePhongTroWeb.Domain.Entities.YeuCauXemPhong", "YeuCauXemPhong")
+                        .WithMany("LichSuTrangThais")
+                        .HasForeignKey("YeuCauXemPhongId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("NguoiThucHien");
+
+                    b.Navigation("YeuCauXemPhong");
+                });
+
+            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.MinhChungThanhToanGiuCho", b =>
+                {
+                    b.HasOne("QuanLyChoThuePhongTroWeb.Domain.Entities.NguoiDung", "NguoiDoiChieu")
+                        .WithMany()
+                        .HasForeignKey("NguoiDoiChieuId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuanLyChoThuePhongTroWeb.Domain.Entities.YeuCauThanhToanGiuCho", "YeuCauThanhToanGiuCho")
+                        .WithMany("MinhChungThanhToanGiuChos")
+                        .HasForeignKey("YeuCauThanhToanGiuChoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("NguoiDoiChieu");
+
+                    b.Navigation("YeuCauThanhToanGiuCho");
+                });
+
+            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.MinhChungThanhToanHoaDon", b =>
+                {
+                    b.HasOne("QuanLyChoThuePhongTroWeb.Domain.Entities.YeuCauThanhToanHoaDon", "YeuCauThanhToanHoaDon")
+                        .WithMany("MinhChungThanhToanHoaDons")
+                        .HasForeignKey("YeuCauThanhToanHoaDonId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("YeuCauThanhToanHoaDon");
                 });
 
             modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.NguoiDung", b =>
@@ -905,6 +2295,40 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Migrations
                     b.Navigation("NguoiThue");
                 });
 
+            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.NhanVienChiNhanh", b =>
+                {
+                    b.HasOne("QuanLyChoThuePhongTroWeb.Domain.Entities.ChiNhanh", "ChiNhanh")
+                        .WithMany()
+                        .HasForeignKey("ChiNhanhId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuanLyChoThuePhongTroWeb.Domain.Entities.NguoiDung", "NguoiDung")
+                        .WithMany("NhanVienChiNhanhs")
+                        .HasForeignKey("NguoiDungId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuanLyChoThuePhongTroWeb.Domain.Entities.NguoiDung", "NguoiPhanCong")
+                        .WithMany()
+                        .HasForeignKey("NguoiPhanCongId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuanLyChoThuePhongTroWeb.Domain.Entities.NguoiDung", "NguoiThuHoi")
+                        .WithMany()
+                        .HasForeignKey("NguoiThuHoiId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("ChiNhanh");
+
+                    b.Navigation("NguoiDung");
+
+                    b.Navigation("NguoiPhanCong");
+
+                    b.Navigation("NguoiThuHoi");
+                });
+
             modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.PhongTro", b =>
                 {
                     b.HasOne("QuanLyChoThuePhongTroWeb.Domain.Entities.ChiNhanh", "ChiNhanh")
@@ -913,7 +2337,33 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("QuanLyChoThuePhongTroWeb.Domain.Entities.NguoiDung", "NguoiDangTin")
+                        .WithMany()
+                        .HasForeignKey("NguoiDangTinId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("ChiNhanh");
+
+                    b.Navigation("NguoiDangTin");
+                });
+
+            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.QuyetDinhHoanTienGiuCho", b =>
+                {
+                    b.HasOne("QuanLyChoThuePhongTroWeb.Domain.Entities.NguoiDung", "NguoiQuyetDinh")
+                        .WithMany()
+                        .HasForeignKey("NguoiQuyetDinhId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuanLyChoThuePhongTroWeb.Domain.Entities.YeuCauGiuCho", "YeuCauGiuCho")
+                        .WithOne("QuyetDinhHoanTienGiuCho")
+                        .HasForeignKey("QuanLyChoThuePhongTroWeb.Domain.Entities.QuyetDinhHoanTienGiuCho", "YeuCauGiuChoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("NguoiQuyetDinh");
+
+                    b.Navigation("YeuCauGiuCho");
                 });
 
             modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.ThongBao", b =>
@@ -923,6 +2373,39 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Migrations
                         .HasForeignKey("NguoiDungId");
 
                     b.Navigation("NguoiDung");
+                });
+
+            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.YeuCauGiuCho", b =>
+                {
+                    b.HasOne("QuanLyChoThuePhongTroWeb.Domain.Entities.KhachVangLai", "KhachVangLai")
+                        .WithMany()
+                        .HasForeignKey("KhachVangLaiId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuanLyChoThuePhongTroWeb.Domain.Entities.NguoiDung", "NguoiDuyet")
+                        .WithMany()
+                        .HasForeignKey("NguoiDuyetId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuanLyChoThuePhongTroWeb.Domain.Entities.PhongTro", "PhongTro")
+                        .WithMany()
+                        .HasForeignKey("PhongTroId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuanLyChoThuePhongTroWeb.Domain.Entities.YeuCauXemPhong", "YeuCauXemPhong")
+                        .WithMany()
+                        .HasForeignKey("YeuCauXemPhongId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("KhachVangLai");
+
+                    b.Navigation("NguoiDuyet");
+
+                    b.Navigation("PhongTro");
+
+                    b.Navigation("YeuCauXemPhong");
                 });
 
             modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.YeuCauSuCo", b =>
@@ -944,9 +2427,59 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Migrations
                     b.Navigation("PhongTro");
                 });
 
-            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.DichVuChiNhanh", b =>
+            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.YeuCauThanhToanGiuCho", b =>
                 {
-                    b.Navigation("DangKyDichVus");
+                    b.HasOne("QuanLyChoThuePhongTroWeb.Domain.Entities.NguoiDung", "NguoiTao")
+                        .WithMany()
+                        .HasForeignKey("NguoiTaoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuanLyChoThuePhongTroWeb.Domain.Entities.YeuCauGiuCho", "YeuCauGiuCho")
+                        .WithMany("YeuCauThanhToanGiuChos")
+                        .HasForeignKey("YeuCauGiuChoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("NguoiTao");
+
+                    b.Navigation("YeuCauGiuCho");
+                });
+
+            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.YeuCauThanhToanHoaDon", b =>
+                {
+                    b.HasOne("QuanLyChoThuePhongTroWeb.Domain.Entities.HoaDon", "HoaDon")
+                        .WithMany("YeuCauThanhToanHoaDons")
+                        .HasForeignKey("HoaDonId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("HoaDon");
+                });
+
+            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.YeuCauXemPhong", b =>
+                {
+                    b.HasOne("QuanLyChoThuePhongTroWeb.Domain.Entities.KhachVangLai", "KhachVangLai")
+                        .WithMany()
+                        .HasForeignKey("KhachVangLaiId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("QuanLyChoThuePhongTroWeb.Domain.Entities.KhungGioXemPhong", "KhungGioXemPhong")
+                        .WithMany("YeuCauXemPhongs")
+                        .HasForeignKey("KhungGioXemPhongId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuanLyChoThuePhongTroWeb.Domain.Entities.PhongTro", "PhongTro")
+                        .WithMany()
+                        .HasForeignKey("PhongTroId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("KhachVangLai");
+
+                    b.Navigation("KhungGioXemPhong");
+
+                    b.Navigation("PhongTro");
                 });
 
             modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.ChiNhanh", b =>
@@ -961,8 +2494,15 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Migrations
                     b.Navigation("DichVuChiNhanhs");
                 });
 
+            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.DichVuChiNhanh", b =>
+                {
+                    b.Navigation("DangKyDichVus");
+                });
+
             modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.DichVuDienNuocCuaPhong", b =>
                 {
+                    b.Navigation("AnhChiSoDongHos");
+
                     b.Navigation("HoaDons");
                 });
 
@@ -971,6 +2511,10 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Migrations
                     b.Navigation("ChiTietHoaDonDichVus");
 
                     b.Navigation("LichSuThanhToans");
+
+                    b.Navigation("LichSuTrangThaiHoaDons");
+
+                    b.Navigation("YeuCauThanhToanHoaDons");
                 });
 
             modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.HopDong", b =>
@@ -980,6 +2524,23 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Migrations
                     b.Navigation("HoaDons");
 
                     b.Navigation("HopDongDieuKhoans");
+                });
+
+            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.KhungGioXemPhong", b =>
+                {
+                    b.Navigation("YeuCauXemPhongs");
+                });
+
+            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.MinhChungThanhToanHoaDon", b =>
+                {
+                    b.Navigation("LichSuThanhToan");
+                });
+
+            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.NguoiDung", b =>
+                {
+                    b.Navigation("KhachVangLai");
+
+                    b.Navigation("NhanVienChiNhanhs");
                 });
 
             modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.NguoiThue", b =>
@@ -993,9 +2554,48 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.PhongTro", b =>
                 {
+                    b.Navigation("AnhPhongTros");
+
                     b.Navigation("DangKyDichVus");
 
                     b.Navigation("HopDongs");
+                });
+
+            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.QuyetDinhHoanTienGiuCho", b =>
+                {
+                    b.Navigation("GiaoDichHoanTiens");
+                });
+
+            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.YeuCauGiuCho", b =>
+                {
+                    b.Navigation("ApDungTienGiuChoVaoTienCoc");
+
+                    b.Navigation("LichSuTrangThais");
+
+                    b.Navigation("QuyetDinhHoanTienGiuCho");
+
+                    b.Navigation("YeuCauThanhToanGiuChos");
+                });
+
+            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.YeuCauThanhToanGiuCho", b =>
+                {
+                    b.Navigation("GiaoDichGiuChos");
+
+                    b.Navigation("LichSuTrangThais");
+
+                    b.Navigation("MinhChungThanhToanGiuChos");
+                });
+
+            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.YeuCauThanhToanHoaDon", b =>
+                {
+                    b.Navigation("LichSuTrangThaiYeuCauThanhToanHoaDons");
+
+                    b.Navigation("MinhChungThanhToanHoaDons");
+                });
+
+            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.YeuCauXemPhong", b =>
+                {
+                    b.Navigation("LichSuTrangThais");
                 });
 #pragma warning restore 612, 618
         }

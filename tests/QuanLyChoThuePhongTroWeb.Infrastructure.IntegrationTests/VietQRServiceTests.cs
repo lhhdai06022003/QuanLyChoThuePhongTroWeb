@@ -18,7 +18,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests
             // Arrange
             string bankId = "MB";
             string accountNumber = "0123456789";
-            double amount = 1500000;
+            decimal amount = 1500000m;
             string memo = "THANH TOAN HD001";
 
             // Act

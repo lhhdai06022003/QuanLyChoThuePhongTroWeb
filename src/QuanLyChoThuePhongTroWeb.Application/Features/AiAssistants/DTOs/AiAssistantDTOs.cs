@@ -20,7 +20,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.AiAssistants.DTOs
         public string SoPhong { get; set; } = string.Empty;
         public int TangLau { get; set; }
         public string ChiNhanhTen { get; set; } = string.Empty;
-        public double GiaThue { get; set; }
+        public decimal GiaThue { get; set; }
     }
 
     public class HoaDonChuaThanhToanRes
@@ -29,7 +29,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.AiAssistants.DTOs
         public string MaHoaDon { get; set; } = string.Empty;
         public string SoPhong { get; set; } = string.Empty;
         public string KhachThueTen { get; set; } = string.Empty;
-        public double TongTien { get; set; }
+        public decimal TongTien { get; set; }
         public int Thang { get; set; }
         public int Nam { get; set; }
     }
@@ -39,7 +39,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.AiAssistants.DTOs
         public string SoPhong { get; set; } = string.Empty;
         public int TangLau { get; set; }
         public string ChiNhanhTen { get; set; } = string.Empty;
-        public double GiaThue { get; set; }
+        public decimal GiaThue { get; set; }
     }
 
     public class HopDongSapHetHanRes
@@ -61,7 +61,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.AiAssistants.DTOs
     public class DoanhThuChiNhanhRes
     {
         public string ChiNhanhTen { get; set; } = string.Empty;
-        public double TongDoanhThu { get; set; }
+        public decimal TongDoanhThu { get; set; }
     }
 
     public class ChiSoDienNuocRes
@@ -69,7 +69,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.AiAssistants.DTOs
         public string SoPhong { get; set; } = string.Empty;
         public int Thang { get; set; }
         public int Nam { get; set; }
-        public double TieuThuDien { get; set; }
-        public double TieuThuNuoc { get; set; }
+        public decimal TieuThuDien { get; set; }
+        public decimal TieuThuNuoc { get; set; }
     }
 }

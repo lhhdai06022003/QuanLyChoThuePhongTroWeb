@@ -244,7 +244,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.DocumentExpor
             return document.GeneratePdf();
         }
 
-        private static string FormatVND(double amount)
+        private static string FormatVND(decimal amount)
         {
             return string.Format("{0:#,##0} ₫", amount);
         }

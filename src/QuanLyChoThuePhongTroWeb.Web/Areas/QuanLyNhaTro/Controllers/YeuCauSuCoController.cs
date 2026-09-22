@@ -43,7 +43,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> UpdateStatus(int Id, QuanLyChoThuePhongTroWeb.Application.Common.Enums.AppTrangThaiSuCo TrangThai, double ChiPhiSuaChua, bool CongVaoHoaDon, string LyDoTuChoi, string GhiChuAdmin)
+        public async Task<IActionResult> UpdateStatus(int Id, QuanLyChoThuePhongTroWeb.Application.Common.Enums.AppTrangThaiSuCo TrangThai, decimal ChiPhiSuaChua, bool CongVaoHoaDon, string LyDoTuChoi, string GhiChuAdmin)
         {
             try
             {

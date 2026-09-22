@@ -37,8 +37,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DichVus.DTOs
         [Required(ErrorMessage = "Vui lòng chọn dịch vụ.")]
         public int DichVuId { get; set; }
 
-        [Range(0, double.MaxValue, ErrorMessage = "Giá dịch vụ phải lớn hơn hoặc bằng 0.")]
-        public double GiaDichVu { get; set; }
+        [Range(0, (double)decimal.MaxValue, ErrorMessage = "Giá dịch vụ phải lớn hơn hoặc bằng 0.")]
+        public decimal GiaDichVu { get; set; }
 
         public bool MacDinh { get; set; } = false;
     }
@@ -50,7 +50,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DichVus.DTOs
         public string TenChiNhanh { get; set; } = string.Empty;
         public int DichVuId { get; set; }
         public string TenDichVu { get; set; } = string.Empty;
-        public double GiaDichVu { get; set; }
+        public decimal GiaDichVu { get; set; }
         public bool MacDinh { get; set; }
     }
 
@@ -75,7 +75,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DichVus.DTOs
         public int DichVuChiNhanhId { get; set; }
         public string TenDichVu { get; set; } = string.Empty;
         public string DonVi { get; set; } = string.Empty;
-        public double GiaDichVu { get; set; }
+        public decimal GiaDichVu { get; set; }
         public bool MacDinh { get; set; }
         public bool IsSelected { get; set; }
         public int SoLuong { get; set; } = 1;

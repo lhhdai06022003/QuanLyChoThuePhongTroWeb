@@ -31,7 +31,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs
         public string TenChiNhanh { get; set; } = string.Empty;
         public int Thang { get; set; }
         public int Nam { get; set; }
-        public double TongTien { get; set; }
+        public decimal TongTien { get; set; }
         public string TrangThaiHoaDon { get; set; } = string.Empty;
         public int TrangThaiHoaDonValue { get; set; }
         public string NgayTao { get; set; } = string.Empty;
@@ -51,7 +51,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs
         public string SoDienThoaiChiNhanh { get; set; } = string.Empty;
         public int Thang { get; set; }
         public int Nam { get; set; }
-        public double TongTien { get; set; }
+        public decimal TongTien { get; set; }
         public string TrangThaiHoaDon { get; set; } = string.Empty;
         public string NgayTao { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
@@ -64,9 +64,9 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs
     {
         public int ChiTietHoaDonId { get; set; }
         public string TenDichVu { get; set; } = string.Empty;
-        public double DonGia { get; set; }
-        public double SoLuong { get; set; }
-        public double TongTien { get; set; }
+        public decimal DonGia { get; set; }
+        public decimal SoLuong { get; set; }
+        public decimal TongTien { get; set; }
         public string DonVi { get; set; } = string.Empty;
     }
 
@@ -75,7 +75,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs
     {
         public int LichSuThanhToanId { get; set; }
         public string MaGiaoDich { get; set; } = string.Empty;
-        public double SoTienThanhToan { get; set; }
+        public decimal SoTienThanhToan { get; set; }
         public string PhuongThucThanhToan { get; set; } = string.Empty;
         public string NgayThanhToan { get; set; } = string.Empty;
         public string NguoiXacNhan { get; set; } = string.Empty;
@@ -89,14 +89,14 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs
         public int HopDongId { get; set; }
         public string SoPhong { get; set; } = string.Empty;
         public string TenNguoiThue { get; set; } = string.Empty;
-        public double TienPhongDuKien { get; set; }
+        public decimal TienPhongDuKien { get; set; }
         public int SoNgayO { get; set; }
         public int TongSoNgayTrongThang { get; set; }
         public bool DaChotDienNuoc { get; set; }
         public bool DaCoHoaDon { get; set; }
         public bool HopDongHopLe { get; set; }
         public string GhiChuTrangThai { get; set; } = string.Empty;
-        public double TongTienDuKien { get; set; }
+        public decimal TongTienDuKien { get; set; }
         public int SuCoCount { get; set; }
     }
 
@@ -119,8 +119,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs
     {
         public int? ChiTietHoaDonId { get; set; }
         public string TenDichVu { get; set; } = string.Empty;
-        public double DonGia { get; set; }
-        public double SoLuong { get; set; }
+        public decimal DonGia { get; set; }
+        public decimal SoLuong { get; set; }
         public int? DichVuId { get; set; }
     }
 }

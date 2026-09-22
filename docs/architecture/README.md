@@ -141,6 +141,6 @@ Full suite cần QLCTPT_TEST_CONNECTION_STRING trỏ tới database riêng có h
 Web/Api/V1/, Web/Areas/KhachVangLai/ và .github/workflows/ hiện chưa có implementation chạy. Tìm phòng công khai, lịch xem, giữ chỗ, OCR chỉ số, hóa đơn nháp và xác nhận ảnh chuyển khoản vẫn thuộc roadmap.
 ## Quyền sở hữu schema trong roadmap
 
-Database hiện có 17 bảng nghiệp vụ. Thiết kế dự kiến thêm hai migration nền, tổng cộng 22 bảng mới; đây chưa phải schema đang chạy.
+EF model trên nhánh hiện tại có 22 bảng nghiệp vụ sau Migration 1. Migration 2 dự kiến thêm 15 bảng, đưa tổng số lên 37; chỉ xem schema là đang chạy sau khi migration tương ứng đã được áp vào database của môi trường.
 
 Người A sở hữu Domain entities, enums, EF configurations, DbContext và migrations. Người B phát triển Razor, Web ViewModel và tài nguyên giao diện dựa trên DTO/Application Service đã chốt. Mọi yêu cầu đổi schema quay lại Người A để tránh hai nhánh cùng sửa model snapshot. Xem [spec hai migration](../superpowers/specs/2026-09-21-database-foundation-two-migrations-design.md).

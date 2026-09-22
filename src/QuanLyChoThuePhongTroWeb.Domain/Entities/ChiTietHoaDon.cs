@@ -14,9 +14,9 @@ namespace QuanLyChoThuePhongTroWeb.Domain.Entities
         public HoaDon HoaDon { get; set; }
 
         public string TenDichVu { get; set; }
-        public double DonGia { get; set; }
-        public double SoLuong { get; set; }
-        public double TongTien { get; set; }
+        public decimal DonGia { get; set; }
+        public decimal SoLuong { get; set; }
+        public decimal TongTien { get; set; }
         public bool IsDeleted { get; set; } = false;
         public int? DichVuId { get; set; }
         [ForeignKey("DichVuId")]

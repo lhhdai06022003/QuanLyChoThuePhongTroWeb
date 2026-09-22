@@ -43,7 +43,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers
 
             // Lấy hóa đơn chưa thanh toán
             var hoaDons = await _hoaDonService.GetHoaDonsByNguoiThueIdAsync(nguoiThueId);
-            double tongTienChuaThanhToan = hoaDons
+            decimal tongTienChuaThanhToan = hoaDons
                 .Where(h => h.TrangThaiHoaDonValue == (int)AppTrangThaiHoaDon.ChuaThanhToan)
                 .Sum(h => h.TongTien);
             

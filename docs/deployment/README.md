@@ -57,7 +57,7 @@ dotnet ef database update --project src/QuanLyChoThuePhongTroWeb.Infrastructure 
 
 Trước khi migrate production, sao lưu database và thử migration trên bản sao hoặc staging. Không sửa migration đã chạy; tạo migration mới khi tính năng thực sự thay đổi schema.
 
-Hai migration nền trong [spec database](../superpowers/specs/2026-09-21-database-foundation-two-migrations-design.md) hiện mới là thiết kế, chưa tồn tại trong thư mục Migrations. Khi được triển khai, phải áp Migration 1 trước Migration 2, xác nhận lần lượt 24 và 39 bảng nghiệp vụ trên PostgreSQL test rồi mới đưa lên staging/production.
+Migration 1 trong [spec database](../superpowers/specs/2026-09-21-database-foundation-two-migrations-design.md) đã có trên nhánh hiện tại; Migration 2 vẫn là kế hoạch. Phải áp Migration 1 trước Migration 2, xác nhận lần lượt 22 và 37 bảng nghiệp vụ trên PostgreSQL test rồi mới đưa lên staging/production.
 
 ## Build và publish
 

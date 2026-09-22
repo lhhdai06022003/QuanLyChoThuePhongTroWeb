@@ -112,7 +112,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                     }
 
                     var chiTietList = new List<ChiTietHoaDon>();
-                    double tongTien = 0;
+                    decimal tongTien = 0m;
 
                     var tienPhongData = _calculatorService.TinhTienPhong(hd.TienThuePhong, hd.ThoiDiemBatDau, hd.ThoiDiemKetThuc, thang, nam);
                     if (tienPhongData.SoNgayO <= 0)
@@ -144,7 +144,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                                 {
                                     TenDichVu = dienData.DienGiai,
                                     DonGia = dienNuoc.DonGiaDien,
-                                    SoLuong = Math.Round(dienData.SoLuong, 2),
+                                    SoLuong = decimal.Round(dienData.SoLuong, 3, MidpointRounding.AwayFromZero),
                                     TongTien = dienData.SoTien,
                                     DichVuId = dienDichVu
                                 });
@@ -159,7 +159,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                                 {
                                     TenDichVu = nuocData.DienGiai,
                                     DonGia = dienNuoc.DonGiaNuoc,
-                                    SoLuong = Math.Round(nuocData.SoLuong, 2),
+                                    SoLuong = decimal.Round(nuocData.SoLuong, 3, MidpointRounding.AwayFromZero),
                                     TongTien = nuocData.SoTien,
                                     DichVuId = nuocDichVu
                                 });
@@ -422,7 +422,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                     TenDichVu = r.TenDichVu,
                     DonGia = r.DonGia,
                     SoLuong = r.SoLuong,
-                    TongTien = r.DonGia * r.SoLuong,
+                    TongTien = decimal.Round(r.DonGia * r.SoLuong, 2, MidpointRounding.AwayFromZero),
                     DichVuId = r.DichVuId > 0 ? r.DichVuId : null
                 });
             }
