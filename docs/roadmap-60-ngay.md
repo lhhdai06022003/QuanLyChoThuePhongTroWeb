@@ -2,40 +2,62 @@
 
 ## Mục tiêu và nguyên tắc
 
-Phát triển hệ thống cho một đơn vị quản lý nhiều chi nhánh. Trước khi hai người triển khai song song, Người A hoàn tất hai migration nền để khóa entity, quan hệ và ràng buộc database. Sau thời điểm bàn giao schema, Người B chỉ sử dụng DTO/Application Service đã thống nhất và không sửa Domain model hoặc EF migration.
+Phát triển hệ thống cho một đơn vị quản lý nhiều chi nhánh. Hai người sở hữu các nhóm tính năng khác nhau và mỗi người triển khai trọn luồng nghiệp vụ, dữ liệu, API/MVC, giao diện và kiểm thử của nhóm mình. Người A đã chuẩn bị hai migration nền để khóa entity, quan hệ và ràng buộc database. Sau khi bàn giao schema, chỉ A tạo migration mới; B đề xuất thay đổi schema để cả hai review trước khi A thực hiện.
 
 AI hỗ trợ đọc ảnh chỉ số, tìm phòng và đặt lịch xem trong khung giờ được cấu hình. Người có quyền vẫn quyết định chỉ số chính thức, hóa đơn, tiền thực nhận, giữ chỗ và hoàn tiền.
 
 Giữ một ứng dụng ASP.NET Core MVC tại `src/QuanLyChoThuePhongTroWeb.Web/QuanLyChoThuePhongTroWeb.Web.csproj`. MVC và API v1 cùng gọi Application Service; không tách backend trong giai đoạn khóa luận.
 
-## Hiện trạng đối chiếu ngày 21/09/2026
+## Hiện trạng đối chiếu ngày 23/09/2026
 
 | Hạng mục | Hiện trạng |
 | --- | --- |
 | Kiến trúc | Đã có bốn production project và bốn test project |
-| Database | EF model trên nhánh Migration 1 có 22 bảng nghiệp vụ; chưa có schema lịch xem, giữ chỗ hoặc phân công chi nhánh |
-| Hóa đơn | Có tính hóa đơn và hai trạng thái thanh toán; chưa có nháp, duyệt/chốt và lịch sử trạng thái |
-| Thanh toán | Có VietQR và lịch sử tiền đã thu; chưa có yêu cầu thanh toán, ảnh minh chứng hoặc trả một phần được duyệt |
+| Database | Đã có Migration 1 (thêm 5 bảng) và Migration 2 (thêm 15 bảng), EF model và kiểm thử kỳ vọng 37 bảng nghiệp vụ; lần đối chiếu này chưa xác minh database đang chạy |
+| Hóa đơn | Có tính hóa đơn, model trạng thái phát hành và lịch sử; chưa có luồng OCR duyệt ảnh → hóa đơn nháp → chốt hoàn chỉnh ở Application/Web |
+| Thanh toán | Có VietQR, lịch sử tiền đã thu và Application Service xử lý yêu cầu/minh chứng thanh toán hóa đơn; chưa nối hoàn chỉnh vào Web |
 | Trang công khai | Area `KhachVangLai` và API v1 mới có khung |
 | AI | Có dịch vụ AI; chưa có luồng OCR duyệt ảnh hoặc đặt lịch xem tự động |
 | CI | `.github/workflows/` mới có khung |
 
 Thiết kế schema đã được chốt tại [database foundation design](superpowers/specs/2026-09-21-database-foundation-two-migrations-design.md). Migration 1 thêm 5 bảng, Migration 2 thêm 15 bảng; tổng sau hai migration là 37 bảng nghiệp vụ.
 
-## Quyền sở hữu để tránh xung đột Git
+## Phân công theo module tính năng
 
-| Phạm vi | Người sở hữu chính | Quy tắc |
+| Module | Người sở hữu trọn luồng | Phạm vi công việc |
 | --- | --- | --- |
-| Domain entities và enums | A | B không sửa trực tiếp |
-| EF configurations, DbContext, migrations | A | Chỉ A tạo migration |
-| Application DTO, interface và service | A | Chốt hợp đồng trước khi B nối giao diện |
-| API v1 và kiểm tra quyền máy chủ | A | B gửi yêu cầu thay đổi qua DTO contract |
-| Razor, Web ViewModel, CSS/JS và trải nghiệm di động | B | Không tham chiếu trực tiếp Domain |
-| Email/UI nội dung | B, qua abstraction do A cung cấp | Không đổi persistence model |
-| `Program.cs` và DependencyInjection | A | Tránh hai người cùng sửa composition root |
-| Kiểm thử liên luồng và demo | Cả hai | Review chéo trước khi hợp nhất |
+| 1. Ảnh chỉ số, OCR và hóa đơn | **A** | Tải/lưu ảnh chỉ số, AI gợi ý, nhân viên duyệt; tính tiền `decimal`, hóa đơn nháp → chốt → gửi, lịch sử; Application Service, store, API/MVC, Razor và kiểm thử |
+| 2. Thanh toán hóa đơn | **A** | VietQR, yêu cầu thanh toán, khách gửi minh chứng, nhân viên đối chiếu, trả đủ/một phần, chống xác nhận trùng; hoàn thiện service hiện có, API/MVC, Razor và kiểm thử |
+| 3. Phòng công khai và lịch xem | **B** | Gallery, tìm/lọc và chi tiết phòng, hội thoại AI, khung giờ, yêu cầu xem phòng, nhân viên xử lý lịch; Application Service, store, API/MVC, Razor và kiểm thử |
+| 4. Khách vãng lai, giữ chỗ, cọc và hoàn tiền | **B** | Đăng ký tài khoản, duyệt giữ chỗ, xác nhận tiền giữ chỗ, chuyển sang hợp đồng, áp dụng cọc, quyết định và ghi nhận hoàn tiền; Application Service, store, API/MVC, Razor và kiểm thử |
 
-Nếu giao diện phát hiện thiếu dữ liệu, B mô tả trường cần thêm và use case; A quyết định DTO-only hay schema change. Không tạo migration từ nhánh của B.
+### Hồ sơ theo dõi tại `docs/features/`
+
+Mỗi module có một [README trong `docs/features/`](features/README.md) ghi người phụ trách, phạm vi và các việc cần hoàn thành. Bên trong từng module có `spec/`, `plan/`, `review/` chỉ chứa `.gitkeep`; **chưa có tài liệu spec, plan hoặc review**. Khi bắt đầu thực hiện mới viết các tài liệu này. Thư mục tài liệu không phải thư mục mã nguồn và không chứng minh tính năng đã hoàn thành.
+
+| Module | Người phụ trách | README theo dõi |
+| --- | --- | --- |
+| 1. Ảnh chỉ số, OCR và hóa đơn | **A** | [anh-chi-so-hoa-don](features/anh-chi-so-hoa-don/README.md) |
+| 2. Thanh toán hóa đơn | **A** | [thanh-toan-hoa-don](features/thanh-toan-hoa-don/README.md) |
+| 3. Phòng công khai và lịch xem | **B** | [phong-cong-khai-lich-xem](features/phong-cong-khai-lich-xem/README.md) |
+| 4. Khách vãng lai, giữ chỗ, cọc và hoàn tiền | **B** | [khach-vang-lai-giu-cho](features/khach-vang-lai-giu-cho/README.md) |
+
+Agent của B đọc README module 3–4 trước khi lập spec/plan và sửa code; A đọc README module 1–2. Phân công mã nguồn vẫn tuân theo bảng ranh giới bên dưới.
+
+Mỗi module có **một người chịu trách nhiệm chính từ nghiệp vụ đến giao diện**. Người còn lại review và kiểm thử liên luồng, không đồng phát triển service/controller/view của module đó. Model hoặc service đã có một phần không đồng nghĩa module đã hoàn thành.
+
+### Ranh giới file và phần dùng chung
+
+| Phạm vi | Người sửa chính | Quy tắc |
+| --- | --- | --- |
+| `Features/HoaDons`, `Features/DienNuocs` liên quan OCR và thanh toán hóa đơn; Web controller/view tương ứng | A | B không sửa các file tính năng này |
+| Application/Infrastructure/API/Web của module phòng công khai, lịch xem, khách vãng lai, giữ chỗ và hoàn tiền; Web area `KhachVangLai` | B | A không sửa các file tính năng này; Web chỉ dùng Application DTO/Service, không tham chiếu trực tiếp Domain |
+| Domain entities/enums, EF configurations, `ApplicationDbContext`, migrations và model snapshot | A | Schema nền đã khóa; B mô tả trường và use case cần thêm, A review và tạo migration riêng nếu thật sự cần |
+| `Program.cs`, `Application/DependencyInjection.cs`, `Infrastructure/DependencyInjection.cs`, route/auth dùng chung | A | B gửi danh sách đăng ký service/route cần tích hợp; A sửa các file dùng chung trong PR tích hợp |
+| `NguoiDung`, `PhongTro`, `HopDong` và contract giao giữa module | Thỏa thuận trước khi sửa | Thay đổi entity hoặc chữ ký dùng chung phải được cả hai review; ưu tiên thêm DTO/use case trong module sở hữu |
+| CI, kiểm thử liên luồng, dữ liệu demo và tài liệu bàn giao | Cả hai | A phụ trách cấu hình CI/schema; mỗi người viết test cho module mình và review chéo trước khi hợp nhất |
+
+Thanh toán hóa đơn và thanh toán giữ chỗ dùng bảng, store và service riêng; không gộp vào một service thanh toán chung.
 
 ## Giai đoạn nền tảng trước khi làm song song
 
@@ -45,9 +67,9 @@ Người A thực hiện tuần tự:
 2. Kiểm thử, áp/rollback trên PostgreSQL test và xác nhận 22 bảng nghiệp vụ.
 3. Migration 2: ảnh phòng, tài khoản khách vãng lai, lịch xem, giữ chỗ, tiền cọc và hoàn tiền.
 4. Kiểm thử, áp/rollback trên nền Migration 1 và xác nhận 37 bảng nghiệp vụ.
-5. Công bố entity, enum, DTO và service contract cho cả hai người.
+5. Công bố entity, enum và ràng buộc schema dùng chung; mỗi người chốt DTO và service contract của module mình trước khi nối giao diện.
 
-Trong thời gian đó, Người B có thể rà luồng UI, tạo wireframe, layout và Web ViewModel độc lập; chưa nối dữ liệu hoặc sửa model.
+Trong thời gian A hoàn tất schema, B có thể rà luồng phòng công khai, lịch xem và giữ chỗ; chuẩn bị wireframe, layout và Web ViewModel độc lập. Sau khi schema được bàn giao, B triển khai trọn các module 3–4 mà không sửa migration.
 
 Kế hoạch thi công chi tiết:
 
@@ -56,16 +78,16 @@ Kế hoạch thi công chi tiết:
 
 ## Lộ trình 60 ngày
 
-| Ngày | Kết quả cần có | Người A | Người B |
+| Ngày | Kết quả cần có | Người A: chỉ số, hóa đơn, thanh toán hóa đơn | Người B: phòng công khai, lịch xem, giữ chỗ |
 | --- | --- | --- | --- |
-| **1–10** | Hai migration nền được review và thử trên PostgreSQL test; CI build/test cơ bản | Tạo entity, enum, configuration, Migration 1 rồi Migration 2; test kiểu dữ liệu, index và cạnh tranh | Rà luồng, wireframe, Web ViewModel, nội dung màn hình; không sửa schema |
-| **11–22** | Ảnh chỉ số → AI gợi ý → người duyệt → hóa đơn nháp → chốt | Use case OCR, phép tính decimal, lịch sử, quyền và API/test | Màn hình tải ảnh, đối chiếu, sửa chỉ số, duyệt và chốt hóa đơn |
-| **23–31** | VietQR → khách gửi ảnh → nhân viên đối chiếu → trả đủ/một phần | Yêu cầu thanh toán, transaction xác nhận, chống trùng và test | Trang khách thuê, tải minh chứng và hàng đợi đối chiếu |
-| **32–43** | Phòng công khai, bộ lọc, gallery và lịch xem kết hợp AI/nhân viên | Query/API công khai, khung giờ, transaction giữ chỗ lịch và quyền chi nhánh | Trang tìm phòng, chi tiết, hội thoại AI và màn hình nhân viên |
-| **44–53** | Đăng ký khách vãng lai → giữ chỗ → xác nhận tiền → hợp đồng/cọc → hoàn tiền | State machine, thanh toán giữ chỗ, áp dụng cọc, refund ledger và test cạnh tranh | Giao diện khách vãng lai, nhân viên và quản lý |
-| **54–60** | Kiểm thử liên luồng, sửa lỗi, tài liệu sử dụng và dữ liệu demo | Migration rehearsal, kiểm thử bảo mật/quyền, API và tài liệu kỹ thuật | UX di động, hướng dẫn người dùng, ảnh/kịch bản demo |
+| **1–10** | Hai migration nền được review và thử trên PostgreSQL test; CI build/test cơ bản | Hoàn tất và bàn giao entity, enum, configuration, Migration 1 và 2; test kiểu dữ liệu, index và cạnh tranh; cấu hình CI | Rà luồng module 3–4, wireframe và Web ViewModel độc lập; chưa sửa schema |
+| **11–22** | Hai luồng module bắt đầu song song trên schema đã khóa | Ảnh chỉ số → AI gợi ý → nhân viên duyệt; tính tiền `decimal`, hóa đơn nháp → chốt, API/UI/test | Phòng công khai: gallery, bộ lọc, chi tiết phòng; query, API/UI/test |
+| **23–31** | Hoàn thiện luồng hóa đơn và lịch xem | Hoàn thiện hóa đơn, lịch sử, quyền; VietQR, yêu cầu thanh toán, minh chứng và hàng đợi đối chiếu, API/UI/test | Khung giờ, yêu cầu xem phòng, AI/nhân viên xác nhận, chống trùng lịch; API/UI/test |
+| **32–43** | Hai nhóm tính năng đạt luồng chính end-to-end | Thanh toán đủ/một phần, transaction xác nhận, chống trùng; kiểm thử module 1–2 và sửa lỗi | Đăng ký khách vãng lai, duyệt giữ chỗ, tiền/hạn thanh toán, khóa phòng; API/UI/test |
+| **44–53** | Hoàn thiện nghiệp vụ giữ chỗ và các trường hợp tài chính | Ổn định module 1–2, kiểm thử bảo mật/quyền, hỗ trợ review contract liên luồng; không sửa module của B | Minh chứng/xác nhận tiền giữ chỗ, chuyển hợp đồng và áp dụng cọc, quyết định và giao dịch hoàn tiền; test cạnh tranh |
+| **54–60** | Kiểm thử liên luồng, sửa lỗi, tài liệu sử dụng và dữ liệu demo | Migration rehearsal, kiểm thử API/bảo mật/quyền, tài liệu kỹ thuật và review module của B | UX di động, kiểm thử Web, hướng dẫn người dùng, ảnh/kịch bản demo và review module của A |
 
-Các mốc là ngày tương đối tính từ khi bắt đầu kế hoạch, không phải trạng thái đã hoàn thành.
+Các mốc là ngày tương đối tính từ khi bắt đầu kế hoạch, không phải trạng thái đã hoàn thành. Từ ngày 11, hai người làm song song trên các module khác nhau; việc tích hợp cuối kỳ không chuyển quyền sở hữu module.
 
 ## Quy tắc nghiệp vụ đã chốt
 
@@ -110,13 +132,13 @@ Các mốc là ngày tương đối tính từ khi bắt đầu kế hoạch, kh
 
 ## Nhịp làm việc hai người
 
-1. A mở PR contract trước: DTO, interface, enum và tiêu chí nghiệm thu.
-2. B bắt đầu UI sau khi contract được chốt; dùng fake data hoặc mock service trong Web nếu backend chưa hoàn tất.
-3. A hợp nhất service/API và cung cấp ví dụ request/response.
-4. B nối UI, không đổi chữ ký service trực tiếp.
-5. Hai người review chéo và chạy kiểm thử liên quan.
-6. Mỗi ngày đồng bộ ngắn về contract, không cùng sửa một file.
-7. Mọi thay đổi schema quay lại backlog của A và được tạo thành migration riêng sau khi review.
+1. A bàn giao schema nền; mỗi người mở PR contract (DTO, interface, request/response và tiêu chí nghiệm thu) cho module mình trước khi nối giao diện.
+2. A làm module 1–2, B làm module 3–4 trên nhánh riêng. Mỗi người tự triển khai Application, Infrastructure store, API/MVC, Razor và test trong phạm vi module.
+3. Không cùng sửa một service/controller/view. B gửi các đăng ký service/route cần thêm để A cập nhật `Program.cs` và các file `DependencyInjection.cs` dùng chung trong PR tích hợp.
+4. Khi một module cần dữ liệu từ module kia, người cần dùng yêu cầu DTO/use case công khai; không sửa trực tiếp service hoặc store của người còn lại.
+5. B không tạo migration. Yêu cầu thay đổi schema được hai người review, A tạo migration mới và kiểm thử trên PostgreSQL test trước khi hai nhánh phụ thuộc vào thay đổi đó.
+6. Mỗi PR được người còn lại review. Trước khi hợp nhất chạy build, test module liên quan, kiểm thử phân quyền và luồng giao giữa hóa đơn, hợp đồng, tài khoản và giữ chỗ.
+7. Mỗi ngày đồng bộ ngắn về contract và file dùng chung; nếu có xung đột, người sở hữu file tích hợp thay đổi sau khi hai người thống nhất.
 
 ## Kiểm chứng
 

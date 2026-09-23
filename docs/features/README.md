@@ -2,12 +2,26 @@
 
 Tài liệu này liệt kê chức năng đã có trong mã nguồn hiện tại. Nội dung roadmap được tách riêng ở cuối để tránh nhầm một thiết kế dự kiến với tính năng đang vận hành.
 
+## Theo dõi 4 module của kế hoạch 60 ngày
+
+Các README sau mô tả **công việc dự kiến và người sở hữu**, tách khỏi danh mục chức năng đang vận hành ở phần dưới. Mỗi thư mục có `README.md`, `spec/`, `plan/`, `review/`. Ba thư mục sau chỉ có `.gitkeep`; tài liệu được viết khi module bắt đầu thực thi.
+
+| Module | Người phụ trách | Hiện trạng |
+| --- | --- | --- |
+| [Ảnh chỉ số, OCR và hóa đơn](anh-chi-so-hoa-don/README.md) | A | Nền database và hóa đơn cũ đã có; luồng mới chưa hoàn chỉnh |
+| [Thanh toán hóa đơn](thanh-toan-hoa-don/README.md) | A | VietQR và một phần Application Service đã có; Web chưa nối đủ |
+| [Phòng công khai và lịch xem](phong-cong-khai-lich-xem/README.md) | B | Có model/schema; chưa có luồng công khai/đặt lịch hoàn chỉnh |
+| [Khách vãng lai, giữ chỗ, cọc và hoàn tiền](khach-vang-lai-giu-cho/README.md) | B | Có model/schema; chưa có luồng Application/Web hoàn chỉnh |
+
+Quyền sở hữu file và lịch 60 ngày nằm trong [roadmap](../roadmap-60-ngay.md). Không đánh dấu hoàn thành chỉ vì đã có entity, migration hoặc thư mục tài liệu.
+
+
 ## Vai trò người dùng
 
 | Vai trò | Phạm vi hiện tại |
 | --- | --- |
 | Admin | Truy cập cổng quản lý, tài khoản, cấu hình nghiệp vụ và các thao tác quản trị |
-| NhanVien | Truy cập cổng quản lý theo các controller dùng AdminBaseController; chưa có entity phân công nhân viên theo chi nhánh |
+| NhanVien | Truy cập cổng quản lý theo các controller dùng AdminBaseController; entity phân công chi nhánh đã có nhưng luồng phân quyền mới chưa hoàn chỉnh |
 | KhachThue | Xem dữ liệu gắn với claim NguoiThueId: dashboard, hồ sơ, hợp đồng, hóa đơn, thanh toán, sự cố và thông báo |
 
 ## Cổng quản lý
@@ -55,7 +69,7 @@ Tài liệu này liệt kê chức năng đã có trong mã nguồn hiện tại
 - Chỉnh sửa, xem chi tiết và xóa mềm hóa đơn theo quy tắc hiện tại.
 - Ghi nhận thu tiền mặt hoặc chuyển khoản và người xác nhận.
 - Xuất Excel/PDF, gửi email kèm PDF và sinh VietQR.
-- Trạng thái hiện có chỉ gồm ChuaThanhToan và DaThanhToan; chưa có trạng thái nháp/duyệt.
+- Giao diện vận hành hiện chủ yếu dùng trạng thái thanh toán ChuaThanhToan/DaThanhToan; model trạng thái phát hành đã có nhưng luồng nháp/chốt chưa hoàn chỉnh.
 
 ### Lịch sử thanh toán
 
@@ -125,4 +139,4 @@ Các mục sau có tài liệu thiết kế hoặc thư mục khung nhưng chưa
 - Hóa đơn nháp và quy trình duyệt trước khi gửi.
 - Mobile app, IoT và CI workflow.
 
-Migration 1 đã được tạo trên nhánh hiện tại với 5 bảng mới, đưa EF model từ 17 lên 22 bảng nghiệp vụ. Migration 2 vẫn là kế hoạch với 15 bảng mới; sau khi hoàn tất, mô hình dự kiến có 37 bảng nghiệp vụ. Xem [roadmap 60 ngày](../roadmap-60-ngay.md), [spec hai migration](../superpowers/specs/2026-09-21-database-foundation-two-migrations-design.md) và hai kế hoạch triển khai trong [superpowers/plans](../superpowers/plans/).
+Migration 1 và Migration 2 đã có trong mã nguồn, lần lượt thêm 5 và 15 bảng; EF model và kiểm thử kỳ vọng 37 bảng nghiệp vụ. Lần đối chiếu này chưa xác minh lại database đang chạy. Xem [roadmap 60 ngày](../roadmap-60-ngay.md), [spec hai migration](../superpowers/specs/2026-09-21-database-foundation-two-migrations-design.md) và hai kế hoạch triển khai trong [superpowers/plans](../superpowers/plans/).
