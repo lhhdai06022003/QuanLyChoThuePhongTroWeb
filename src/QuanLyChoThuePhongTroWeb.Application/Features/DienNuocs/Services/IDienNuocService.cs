@@ -6,7 +6,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
 {
     public interface IDienNuocService
     {
-        Task<List<DienNuocPhongRes>> GetDanhSachDienNuocAsync(int chiNhanhId, int thang, int nam);
-        Task<(bool IsSuccess, string? ErrorMessage)> SaveChotDienNuocAsync(ChotDienNuocReq input);
+        Task<List<DienNuocPhongRes>> GetDanhSachDienNuocAsync(int chiNhanhId, int thang, int nam, int actorId);
+        Task<(bool IsSuccess, string? ErrorMessage)> SaveChotDienNuocAsync(ChotDienNuocReq input, int actorId = 0);
     }
 }

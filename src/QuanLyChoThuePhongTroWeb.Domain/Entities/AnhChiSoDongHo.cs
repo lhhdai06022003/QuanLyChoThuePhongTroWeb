@@ -55,6 +55,18 @@ namespace QuanLyChoThuePhongTroWeb.Domain.Entities
             TrangThaiXuLy = TrangThaiXuLyAnhChiSo.DangXuLy;
         }
 
+        public void ThuLaiXuLy()
+        {
+            if (TrangThaiXuLy != TrangThaiXuLyAnhChiSo.KhongDocDuoc &&
+                TrangThaiXuLy != TrangThaiXuLyAnhChiSo.Loi)
+            {
+                throw new InvalidOperationException("Chỉ ảnh không đọc được hoặc xử lý lỗi mới có thể thử xử lý lại.");
+            }
+
+            TrangThaiXuLy = TrangThaiXuLyAnhChiSo.DangXuLy;
+            ThongBaoLoi = null;
+        }
+
         public void GhiNhanKetQuaAI(decimal? giaTriGoiY, double? doTinCay = null, string? thongBaoLoi = null)
         {
             if (TrangThaiXuLy != TrangThaiXuLyAnhChiSo.MoiTaiLen &&

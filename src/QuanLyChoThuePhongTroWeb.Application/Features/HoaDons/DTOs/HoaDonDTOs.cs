@@ -34,6 +34,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs
         public decimal TongTien { get; set; }
         public string TrangThaiHoaDon { get; set; } = string.Empty;
         public int TrangThaiHoaDonValue { get; set; }
+        public int TrangThaiPhatHanhValue { get; set; }
         public string NgayTao { get; set; } = string.Empty;
         public string SoDienThoai { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;

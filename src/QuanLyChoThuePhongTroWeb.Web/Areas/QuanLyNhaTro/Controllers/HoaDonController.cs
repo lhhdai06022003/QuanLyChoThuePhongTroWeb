@@ -2,7 +2,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels;
 using System.Security.Claims;
-
+using QuanLyChoThuePhongTroWeb.Application.Common.Security;
+using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs;
 using Microsoft.Extensions.Logging;
 
 namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
@@ -13,7 +14,6 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         private readonly IHoaDonService _hoaDonService;
         private readonly IPhongTroService _phongTroService;
         private readonly Microsoft.Extensions.Configuration.IConfiguration _configuration;
-        private readonly IEmailService _emailService;
         private readonly IVietQRService _vietQRService;
         private readonly ILogger<HoaDonController> _logger;
 
@@ -21,14 +21,12 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             IHoaDonService hoaDonService, 
             IPhongTroService phongTroService, 
             Microsoft.Extensions.Configuration.IConfiguration configuration, 
-            IEmailService emailService,
             IVietQRService vietQRService,
             ILogger<HoaDonController> logger)
         {
             _hoaDonService = hoaDonService;
             _phongTroService = phongTroService;
             _configuration = configuration;
-            _emailService = emailService;
             _vietQRService = vietQRService;
             _logger = logger;
         }
@@ -51,7 +49,13 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             if (req.ChiNhanhId <= 0 || req.Thang < 1 || req.Thang > 12 || req.Nam < 2000)
                 return BadRequest(new { Message = "Tham số không hợp lệ." });
 
-            var result = await _hoaDonService.PhatSinhHoaDonAsync(req.ChiNhanhId, req.Thang, req.Nam, req.SelectedPhongTroIds);
+            var actorIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!int.TryParse(actorIdStr, out var actorId) || actorId <= 0)
+            {
+                return Unauthorized(new { Message = "Người dùng chưa đăng nhập hoặc phiên làm việc đã hết hạn." });
+            }
+
+            var result = await _hoaDonService.PhatSinhHoaDonAsync(req.ChiNhanhId, req.Thang, req.Nam, req.SelectedPhongTroIds, actorId);
             if (!result.IsSuccess)
                 return BadRequest(new { Message = result.Message, Skipped = result.Skipped, Successes = result.Successes });
 
@@ -70,7 +74,10 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             if (chiNhanhId <= 0 || thang < 1 || thang > 12 || nam < 2000)
                 return BadRequest(new { Message = "Tham số không hợp lệ." });
 
-            var data = await _hoaDonService.PreviewPhatSinhHoaDonAsync(chiNhanhId, thang, nam);
+            if (!TryGetActorId(out var actorId))
+                return Unauthorized(new { Message = "Người dùng chưa đăng nhập hoặc phiên làm việc đã hết hạn." });
+
+            var data = await _hoaDonService.PreviewPhatSinhHoaDonAsync(chiNhanhId, thang, nam, actorId);
             return Ok(data);
         }
 
@@ -81,7 +88,13 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             if (id <= 0 || req == null)
                 return BadRequest(new { Message = "Dữ liệu không hợp lệ." });
 
-            var result = await _hoaDonService.UpdateHoaDonAsync(id, req);
+            var actorIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!int.TryParse(actorIdStr, out var actorId) || actorId <= 0)
+            {
+                return Unauthorized(new { Message = "Người dùng chưa đăng nhập hoặc phiên làm việc đã hết hạn." });
+            }
+
+            var result = await _hoaDonService.UpdateHoaDonAsync(id, req, actorId);
             if (!result.IsSuccess)
                 return BadRequest(new { Message = result.ErrorMessage });
 
@@ -101,7 +114,10 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
                 SearchValue = form["search[value]"].FirstOrDefault()
             };
 
-            var data = await _hoaDonService.GetDanhSachHoaDonAsync(request, chiNhanhId, thang, nam, trangThai);
+            if (!TryGetActorId(out var actorId))
+                return Unauthorized(new { Message = "Người dùng chưa đăng nhập hoặc phiên làm việc đã hết hạn." });
+
+            var data = await _hoaDonService.GetEmployeeInvoiceListAsync(request, chiNhanhId, thang, nam, trangThai, actorId);
             return Ok(data);
         }
 
@@ -110,8 +126,12 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         public async Task<IActionResult> GetById(int id)
         {
             if (id <= 0) return BadRequest(new { Message = "ID hóa đơn không hợp lệ." });
-            var data = await _hoaDonService.GetHoaDonByIdAsync(id);
-            if (data == null) return NotFound(new { Message = "Không tìm thấy hóa đơn." });
+
+            if (!TryGetActorId(out var actorId))
+                return Unauthorized(new { Message = "Người dùng chưa đăng nhập hoặc phiên làm việc đã hết hạn." });
+
+            var data = await _hoaDonService.GetEmployeeInvoiceDetailAsync(id, actorId);
+            if (data == null) return NotFound(new { Message = "Không tìm thấy hóa đơn hoặc bạn không có quyền truy cập." });
             return Ok(data);
         }
 
@@ -126,14 +146,25 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             return Ok(new { Message = "Thu tiền thành công!" });
         }
 
-        // Xóa hóa đơn
+        // Hủy hóa đơn
         [HttpDelete("/HoaDon/Delete/{id}")]
-        public async Task<IActionResult> Delete(int id)
+        public async Task<IActionResult> Delete(int id, [FromBody] CancelInvoiceReq req)
         {
             if (id <= 0) return BadRequest(new { Message = "ID hóa đơn không hợp lệ." });
-            var result = await _hoaDonService.DeleteHoaDonAsync(id);
+            if (req == null || string.IsNullOrWhiteSpace(req.LyDo))
+            {
+                return BadRequest(new { Message = "Vui lòng nhập lý do hủy hóa đơn." });
+            }
+
+            var actorIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!int.TryParse(actorIdStr, out var actorId) || actorId <= 0)
+            {
+                return Unauthorized(new { Message = "Người dùng chưa đăng nhập hoặc phiên làm việc đã hết hạn." });
+            }
+
+            var result = await _hoaDonService.DeleteHoaDonAsync(id, actorId, req.LyDo);
             if (!result.IsSuccess) return BadRequest(new { Message = result.ErrorMessage });
-            return Ok(new { Message = "Đã xóa hóa đơn." });
+            return Ok(new { Message = "Đã hủy hóa đơn thành công." });
         }
 
         // Xuất Excel
@@ -142,7 +173,11 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         public async Task<IActionResult> ExportExcel(int id)
         {
             if (id <= 0) return BadRequest(new { Message = "ID hóa đơn không hợp lệ." });
-            var bytes = await _hoaDonService.ExportExcelAsync(id);
+
+            if (!TryGetActorId(out var actorId))
+                return Unauthorized(new { Message = "Người dùng chưa đăng nhập hoặc phiên làm việc đã hết hạn." });
+
+            var bytes = await _hoaDonService.ExportEmployeeExcelAsync(id, actorId);
             if (bytes == null) return NotFound();
             return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"HoaDon_{id}.xlsx");
         }
@@ -153,7 +188,11 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         public async Task<IActionResult> ExportPdf(int id)
         {
             if (id <= 0) return BadRequest(new { Message = "ID hóa đơn không hợp lệ." });
-            var bytes = await _hoaDonService.ExportPdfAsync(id);
+
+            if (!TryGetActorId(out var actorId))
+                return Unauthorized(new { Message = "Người dùng chưa đăng nhập hoặc phiên làm việc đã hết hạn." });
+
+            var bytes = await _hoaDonService.ExportEmployeePdfAsync(id, actorId);
             if (bytes == null) return NotFound();
             return File(bytes, "application/pdf", $"HoaDon_{id}.pdf");
         }
@@ -162,8 +201,11 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         [HttpGet("/HoaDon/GetVietQR")]
         public async Task<IActionResult> GetVietQR([FromQuery] int hoaDonId)
         {
-            var hd = await _hoaDonService.GetHoaDonByIdAsync(hoaDonId);
-            if (hd == null) return NotFound(new { Message = "Không tìm thấy hóa đơn." });
+            if (!TryGetActorId(out var actorId))
+                return Unauthorized(new { Message = "Người dùng chưa đăng nhập hoặc phiên làm việc đã hết hạn." });
+
+            var hd = await _hoaDonService.GetEmployeeInvoiceDetailAsync(hoaDonId, actorId);
+            if (hd == null) return NotFound(new { Message = "Không tìm thấy hóa đơn hoặc bạn không có quyền truy cập." });
 
             // Chỉ hiển thị QR nếu chưa thanh toán
             if (hd.TrangThaiHoaDon != "Chưa thanh toán")
@@ -187,7 +229,10 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         {
             try
             {
-                var data = await _hoaDonService.GetDanhSachHoaDonChuaThanhToanAsync(chiNhanhId, thang, nam);
+                if (!TryGetActorId(out var actorId))
+                    return Unauthorized(new { Message = "Người dùng chưa đăng nhập hoặc phiên làm việc đã hết hạn." });
+
+                var data = await _hoaDonService.GetEmployeeUnpaidInvoicesAsync(chiNhanhId, thang, nam, actorId);
                 return Ok(data);
             }
             catch (Exception ex)
@@ -197,37 +242,35 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             }
         }
 
-        // Gửi email hóa đơn
+        // Gửi lại email hóa đơn
         [HttpPost("/HoaDon/SendEmail/{id}")]
         public async Task<IActionResult> SendEmail(int id)
         {
             if (id <= 0) return BadRequest(new { Message = "ID hóa đơn không hợp lệ." });
-            try
+
+            var actorIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!int.TryParse(actorIdStr, out var actorId) || actorId <= 0)
             {
-                var hd = await _hoaDonService.GetHoaDonByIdAsync(id);
-                if (hd == null) 
-                    return NotFound(new { Message = "Không tìm thấy hóa đơn." });
-
-                if (string.IsNullOrWhiteSpace(hd.Email))
-                    return BadRequest(new { Message = "Khách thuê chưa đăng ký địa chỉ email." });
-
-                // Xuất file PDF hóa đơn
-                var pdfBytes = await _hoaDonService.ExportPdfAsync(id);
-                if (pdfBytes == null || pdfBytes.Length == 0)
-                    return BadRequest(new { Message = "Không thể sinh tệp PDF hóa đơn." });
-
-                // Gọi EmailService để gửi thư
-                var result = await _emailService.SendInvoiceEmailAsync(hd.Email, hd, pdfBytes);
-                if (!result.IsSuccess)
-                    return BadRequest(new { Message = $"Gửi email thất bại: {result.ErrorMessage}" });
-
-                return Ok(new { Message = "Gửi email hóa đơn thành công!" });
+                return Unauthorized(new { Message = "Người dùng chưa đăng nhập hoặc phiên làm việc đã hết hạn." });
             }
-            catch (Exception ex)
+
+            var result = await _hoaDonService.SendInvoiceEmailAsync(id, actorId);
+            if (!result.IsSuccess)
             {
-                _logger.LogError(ex, "Lỗi hệ thống khi gửi email hóa đơn {HoaDonId}.", id);
-                return StatusCode(500, new { Message = "Đã xảy ra lỗi hệ thống khi gửi email hóa đơn." });
+                return BadRequest(new { Message = result.ErrorMessage });
             }
+
+            return Ok(new
+            {
+                Message = "Gửi lại email hóa đơn thành công!",
+                result.InvoiceCode,
+                result.RecipientEmail
+            });
+        }
+
+        private bool TryGetActorId(out int actorId)
+        {
+            return int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out actorId) && actorId > 0;
         }
     }
 }

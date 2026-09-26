@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
@@ -33,9 +34,15 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
                 return BadRequest(new { Message = "Tham số lọc không hợp lệ." });
             }
 
+            var actorIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!int.TryParse(actorIdStr, out var actorId) || actorId <= 0)
+            {
+                return Unauthorized(new { Message = "Người dùng chưa đăng nhập hoặc phiên làm việc đã hết hạn." });
+            }
+
             try
             {
-                var data = await _dienNuocService.GetDanhSachDienNuocAsync(chiNhanhId, thang, nam);
+                var data = await _dienNuocService.GetDanhSachDienNuocAsync(chiNhanhId, thang, nam, actorId);
                 return Ok(data);
             }
             catch (System.Exception ex)
@@ -48,9 +55,15 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         [HttpPost("/DienNuoc/SaveChotDienNuoc")]
         public async Task<IActionResult> SaveChotDienNuoc([FromBody] ChotDienNuocReq request)
         {
+            var actorIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!int.TryParse(actorIdStr, out var actorId) || actorId <= 0)
+            {
+                return Unauthorized(new { Message = "Người dùng chưa đăng nhập hoặc phiên làm việc đã hết hạn." });
+            }
+
             try
             {
-                var result = await _dienNuocService.SaveChotDienNuocAsync(request);
+                var result = await _dienNuocService.SaveChotDienNuocAsync(request, actorId);
                 if (!result.IsSuccess)
                 {
                     return BadRequest(new { Message = result.ErrorMessage });

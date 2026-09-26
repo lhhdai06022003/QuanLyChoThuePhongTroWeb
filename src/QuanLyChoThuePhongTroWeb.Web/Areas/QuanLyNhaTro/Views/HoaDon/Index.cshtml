@@ -534,13 +534,15 @@
                                                 </button>
                                                 <div class="dropdown-divider"></div>
                                                 <button class="dropdown-item btn-delete text-danger py-2" data-id="${data}">
-                                                    <i class="ti ti-trash me-2"></i> Xóa hóa đơn
+                                                    <i class="ti ti-trash me-2"></i> Hủy hóa đơn
                                                 </button>
                                             ` : ''}
-                                            <div class="dropdown-divider"></div>
-                                            <button class="dropdown-item btn-send-email text-primary py-2" data-id="${data}" data-email="${row.email || ''}" data-ma="${row.maHoaDon}">
-                                                <i class="ti ti-mail me-2"></i> Gửi Email hóa đơn
-                                            </button>
+                                            ${row.trangThaiPhatHanhValue === 3 ? `
+                                                <div class="dropdown-divider"></div>
+                                                <button class="dropdown-item btn-send-email text-primary py-2" data-id="${data}" data-email="${row.email || ''}" data-ma="${row.maHoaDon}">
+                                                    <i class="ti ti-mail me-2"></i> Gửi lại email hóa đơn
+                                                </button>
+                                            ` : ''}
                                             <div class="dropdown-divider"></div>
                                             <a class="dropdown-item text-secondary py-2" href="/HoaDon/ExportExcel/${data}">
                                                 <i class="ti ti-file-spreadsheet text-success me-2"></i> Xuất Excel
@@ -1033,21 +1035,33 @@
                 });
             });
 
-            // ========== Xóa hóa đơn ==========
+            // ========== Hủy hóa đơn ==========
             $('#hoaDonTable').on('click', '.btn-delete', function() {
                 let id = $(this).data('id');
                 Swal.fire({
-                    title: 'Xác nhận xóa?',
-                    text: 'Bạn có chắc chắn muốn xóa hóa đơn này?',
+                    title: 'Xác nhận hủy hóa đơn?',
+                    text: 'Vui lòng nhập lý do hủy hóa đơn (chỉ áp dụng cho hóa đơn đã chốt hoặc đã gửi và chưa phát sinh thanh toán):',
+                    input: 'textarea',
+                    inputPlaceholder: 'Nhập lý do hủy hóa đơn...',
+                    inputAttributes: {
+                        'aria-label': 'Lý do hủy hóa đơn'
+                    },
                     icon: 'warning',
                     showCancelButton: true,
-                    confirmButtonText: 'Đồng ý xóa',
-                    cancelButtonText: 'Hủy bỏ'
+                    confirmButtonText: 'Đồng ý hủy',
+                    cancelButtonText: 'Đóng',
+                    inputValidator: (value) => {
+                        if (!value || !value.trim()) {
+                            return 'Vui lòng nhập lý do hủy hóa đơn!';
+                        }
+                    }
                 }).then((result) => {
                     if (result.isConfirmed) {
                         $.ajax({
                             url: `/HoaDon/Delete/${id}`,
                             type: 'DELETE',
+                            contentType: 'application/json',
+                            data: JSON.stringify({ lyDo: result.value }),
                             success: function(res) {
                                 Swal.fire('Thành công!', res.message, 'success');
                                 table.ajax.reload(null, false);
@@ -1072,11 +1086,11 @@
                 }
 
                 Swal.fire({
-                    title: 'Gửi Email hóa đơn?',
-                    text: `Bạn có chắc chắn muốn gửi email thông báo hóa đơn ${maHd} đến địa chỉ ${email}?`,
+                    title: 'Gửi lại email hóa đơn?',
+                    text: `Thao tác này sẽ gửi lại email thông báo hóa đơn ${maHd} đến địa chỉ ${email}. Bạn có chắc chắn muốn gửi lại?`,
                     icon: 'question',
                     showCancelButton: true,
-                    confirmButtonText: 'Đồng ý gửi',
+                    confirmButtonText: 'Đồng ý gửi lại',
                     cancelButtonText: 'Hủy bỏ'
                 }).then((result) => {
                     if (result.isConfirmed) {

@@ -34,6 +34,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Persistence.IDienNuocStore, Persistence.Features.DienNuocStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.LichSuThanhToans.Persistence.ILichSuThanhToanStore, Persistence.Features.LichSuThanhToanStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.Persistence.IDashboardStore, Persistence.Features.DashboardStore>();
+            services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.NhanViens.Persistence.IEmployeeBranchStore, Persistence.Features.EmployeeBranchStore>();
 
             // Document exporters & QR services
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Abstractions.Services.IInvoiceDocumentExporter, ExternalServices.DocumentExporters.InvoiceDocumentExporter>();

@@ -88,6 +88,13 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 .ToDictionaryAsync(x => x.PhongTroId, x => x.SoPhong, cancellationToken);
         }
 
+        public async Task<IReadOnlyDictionary<int, int>> GetRoomBranchIdsAsync(IReadOnlyList<int> roomIds, CancellationToken cancellationToken = default)
+        {
+            return await _context.PhongTros
+                .Where(x => roomIds.Contains(x.PhongTroId) && !x.IsDeleted)
+                .ToDictionaryAsync(x => x.PhongTroId, x => x.ChiNhanhId, cancellationToken);
+        }
+
         public async Task AddRecordAsync(DichVuDienNuocCuaPhong record, CancellationToken cancellationToken = default)
         {
             await _context.DichVuDienNuocCuaPhongs.AddAsync(record, cancellationToken);

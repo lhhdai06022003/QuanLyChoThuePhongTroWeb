@@ -84,6 +84,16 @@ namespace QuanLyChoThuePhongTroWeb.Domain.Entities
 
         public void CapNhatChiSo(decimal chiSoDienMoi, decimal chiSoNuocMoi)
         {
+            if (chiSoDienMoi < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(chiSoDienMoi), "Chỉ số điện mới không được âm.");
+            }
+
+            if (chiSoNuocMoi < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(chiSoNuocMoi), "Chỉ số nước mới không được âm.");
+            }
+
             if (chiSoDienMoi < ChiSoDienCu)
             {
                 throw new InvalidOperationException("Chỉ số điện mới không được nhỏ hơn chỉ số điện cũ.");

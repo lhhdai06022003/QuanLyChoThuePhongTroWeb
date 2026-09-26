@@ -51,6 +51,9 @@ namespace QuanLyChoThuePhongTroWeb.Application
             services.AddScoped<Features.HopDongs.UseCases.IContractExpiryAlertUseCase, Features.HopDongs.UseCases.ContractExpiryAlertUseCase>();
             services.AddScoped<Features.HoaDons.UseCases.IInvoiceReminderUseCase, Features.HoaDons.UseCases.InvoiceReminderUseCase>();
 
+            // Security & Employee Access Services
+            services.AddScoped<Abstractions.Security.IEmployeeAccessService, Features.NhanViens.Services.EmployeeAccessService>();
+
             return services;
         }
     }
