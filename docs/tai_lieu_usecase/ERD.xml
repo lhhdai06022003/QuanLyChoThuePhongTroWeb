@@ -1,0 +1,344 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="app.diagrams.net" modified="2026-09-23T00:00:00.000Z" agent="Codex" version="20.0.0" type="device">
+  <diagram id="erd-logical" name="ERD thực thể và thuộc tính">
+    <mxGraphModel dx="1800" dy="1100" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1566" pageHeight="4399" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="fk_anh_chi_so_dong_ho_DichVuDienNuocCuaPhongId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="table_anh_chi_so_dong_ho" target="table_dich_vu_dien_nuoc_cua_phong">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_anh_chi_so_dong_ho_NguoiGuiId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;dashed=1;" edge="1" parent="1" source="table_anh_chi_so_dong_ho" target="table_nguoi_dung">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_anh_chi_so_dong_ho_NguoiXacNhanId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;dashed=1;" edge="1" parent="1" source="table_anh_chi_so_dong_ho" target="table_nguoi_dung">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_anh_phong_tro_NguoiTaiLenId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="table_anh_phong_tro" target="table_nguoi_dung">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_anh_phong_tro_PhongTroId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="table_anh_phong_tro" target="table_phong_tro">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_ap_dung_tien_giu_cho_vao_tien_coc_HopDongId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="table_ap_dung_tien_giu_cho_vao_tien_coc" target="table_hop_dong">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_ap_dung_tien_giu_cho_vao_tien_coc_NguoiThucHienId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="table_ap_dung_tien_giu_cho_vao_tien_coc" target="table_nguoi_dung">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_ap_dung_tien_giu_cho_vao_tien_coc_YeuCauGiuChoId" value="1:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERone;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="table_ap_dung_tien_giu_cho_vao_tien_coc" target="table_yeu_cau_giu_cho">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_chi_tiet_hoa_don_DichVuId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;dashed=1;" edge="1" parent="1" source="table_chi_tiet_hoa_don" target="table_dich_vu">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_chi_tiet_hoa_don_HoaDonId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="table_chi_tiet_hoa_don" target="table_hoa_don">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_chi_tiet_thanh_vien_hop_dong_HopDongId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="table_chi_tiet_thanh_vien_hop_dong" target="table_hop_dong">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_chi_tiet_thanh_vien_hop_dong_NguoiThueId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="table_chi_tiet_thanh_vien_hop_dong" target="table_nguoi_thue">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_dang_ky_dich_vu_DichVuChiNhanhId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="table_dang_ky_dich_vu" target="table_dich_vu_chi_nhanh">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_dang_ky_dich_vu_PhongTroId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="table_dang_ky_dich_vu" target="table_phong_tro">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_dich_vu_chi_nhanh_ChiNhanhId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="table_dich_vu_chi_nhanh" target="table_chi_nhanh">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_dich_vu_chi_nhanh_DichVuId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="table_dich_vu_chi_nhanh" target="table_dich_vu">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_dich_vu_dien_nuoc_cua_phong_PhongTroId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="table_dich_vu_dien_nuoc_cua_phong" target="table_phong_tro">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_giao_dich_giu_cho_MinhChungThanhToanGiuChoId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;dashed=1;" edge="1" parent="1" source="table_giao_dich_giu_cho" target="table_minh_chung_thanh_toan_giu_cho">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_giao_dich_giu_cho_NguoiXacNhanId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="table_giao_dich_giu_cho" target="table_nguoi_dung">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_giao_dich_giu_cho_YeuCauThanhToanGiuChoId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="table_giao_dich_giu_cho" target="table_yeu_cau_thanh_toan_giu_cho">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_giao_dich_hoan_tien_giu_cho_NguoiXacNhanId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="table_giao_dich_hoan_tien_giu_cho" target="table_nguoi_dung">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_giao_dich_hoan_tien_giu_cho_QuyetDinhHoanTienGiuChoId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="table_giao_dich_hoan_tien_giu_cho" target="table_quyet_dinh_hoan_tien_giu_cho">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_hoa_don_DichVuDienNuocCuaPhongId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;dashed=1;" edge="1" parent="1" source="table_hoa_don" target="table_dich_vu_dien_nuoc_cua_phong">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_hoa_don_HopDongId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="table_hoa_don" target="table_hop_dong">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_hop_dong_NguoiThueId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="table_hop_dong" target="table_nguoi_thue">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_hop_dong_PhongTroId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="table_hop_dong" target="table_phong_tro">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_hop_dong_dieu_khoan_HopDongId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="table_hop_dong_dieu_khoan" target="table_hop_dong">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_khach_vang_lai_NguoiDungId" value="1:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERone;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="table_khach_vang_lai" target="table_nguoi_dung">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_khung_gio_xem_phong_NguoiPhuTrachId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;dashed=1;" edge="1" parent="1" source="table_khung_gio_xem_phong" target="table_nguoi_dung">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_khung_gio_xem_phong_NguoiTaoId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="table_khung_gio_xem_phong" target="table_nguoi_dung">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_khung_gio_xem_phong_PhongTroId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="table_khung_gio_xem_phong" target="table_phong_tro">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_lich_su_thanh_toan_HoaDonId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="table_lich_su_thanh_toan" target="table_hoa_don">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_lich_su_thanh_toan_MinhChungThanhToanHoaDonId" value="1:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERone;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;dashed=1;" edge="1" parent="1" source="table_lich_su_thanh_toan" target="table_minh_chung_thanh_toan_hoa_don">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_lich_su_thanh_toan_NguoiXacNhanId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;dashed=1;" edge="1" parent="1" source="table_lich_su_thanh_toan" target="table_nguoi_dung">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_lich_su_trang_thai_hoa_don_HoaDonId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="table_lich_su_trang_thai_hoa_don" target="table_hoa_don">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_lich_su_trang_thai_yeu_cau_giu_cho_NguoiThucHienId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;dashed=1;" edge="1" parent="1" source="table_lich_su_trang_thai_yeu_cau_giu_cho" target="table_nguoi_dung">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_lich_su_trang_thai_yeu_cau_giu_cho_YeuCauGiuChoId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="table_lich_su_trang_thai_yeu_cau_giu_cho" target="table_yeu_cau_giu_cho">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_lich_su_trang_thai_yeu_cau_thanh_toan_giu_cho_NguoiThucHienId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;dashed=1;" edge="1" parent="1" source="table_lich_su_trang_thai_yeu_cau_thanh_toan_giu_cho" target="table_nguoi_dung">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_lich_su_trang_thai_yeu_cau_thanh_toan_giu_cho_YeuCauThanhToanGiuChoId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="table_lich_su_trang_thai_yeu_cau_thanh_toan_giu_cho" target="table_yeu_cau_thanh_toan_giu_cho">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_lich_su_trang_thai_yeu_cau_thanh_toan_hoa_don_YeuCauThanhToanHoaDonId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="table_lich_su_trang_thai_yeu_cau_thanh_toan_hoa_don" target="table_yeu_cau_thanh_toan_hoa_don">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_lich_su_trang_thai_yeu_cau_xem_phong_NguoiThucHienId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;dashed=1;" edge="1" parent="1" source="table_lich_su_trang_thai_yeu_cau_xem_phong" target="table_nguoi_dung">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_lich_su_trang_thai_yeu_cau_xem_phong_YeuCauXemPhongId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="table_lich_su_trang_thai_yeu_cau_xem_phong" target="table_yeu_cau_xem_phong">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_minh_chung_thanh_toan_giu_cho_NguoiDoiChieuId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;dashed=1;" edge="1" parent="1" source="table_minh_chung_thanh_toan_giu_cho" target="table_nguoi_dung">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_minh_chung_thanh_toan_giu_cho_YeuCauThanhToanGiuChoId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="table_minh_chung_thanh_toan_giu_cho" target="table_yeu_cau_thanh_toan_giu_cho">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_minh_chung_thanh_toan_hoa_don_YeuCauThanhToanHoaDonId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="table_minh_chung_thanh_toan_hoa_don" target="table_yeu_cau_thanh_toan_hoa_don">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_nguoi_dung_NguoiThueId" value="1:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERone;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;dashed=1;" edge="1" parent="1" source="table_nguoi_dung" target="table_nguoi_thue">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_nhan_vien_chi_nhanh_ChiNhanhId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="table_nhan_vien_chi_nhanh" target="table_chi_nhanh">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_nhan_vien_chi_nhanh_NguoiDungId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="table_nhan_vien_chi_nhanh" target="table_nguoi_dung">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_nhan_vien_chi_nhanh_NguoiPhanCongId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="table_nhan_vien_chi_nhanh" target="table_nguoi_dung">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_nhan_vien_chi_nhanh_NguoiThuHoiId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;dashed=1;" edge="1" parent="1" source="table_nhan_vien_chi_nhanh" target="table_nguoi_dung">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_phong_tro_ChiNhanhId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="table_phong_tro" target="table_chi_nhanh">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_phong_tro_NguoiDangTinId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;dashed=1;" edge="1" parent="1" source="table_phong_tro" target="table_nguoi_dung">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_quyet_dinh_hoan_tien_giu_cho_NguoiQuyetDinhId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="table_quyet_dinh_hoan_tien_giu_cho" target="table_nguoi_dung">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_quyet_dinh_hoan_tien_giu_cho_YeuCauGiuChoId" value="1:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERone;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="table_quyet_dinh_hoan_tien_giu_cho" target="table_yeu_cau_giu_cho">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_thong_bao_NguoiDungId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;dashed=1;" edge="1" parent="1" source="table_thong_bao" target="table_nguoi_dung">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_yeu_cau_giu_cho_KhachVangLaiId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="table_yeu_cau_giu_cho" target="table_khach_vang_lai">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_yeu_cau_giu_cho_NguoiDuyetId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;dashed=1;" edge="1" parent="1" source="table_yeu_cau_giu_cho" target="table_nguoi_dung">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_yeu_cau_giu_cho_PhongTroId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="table_yeu_cau_giu_cho" target="table_phong_tro">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_yeu_cau_giu_cho_YeuCauXemPhongId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;dashed=1;" edge="1" parent="1" source="table_yeu_cau_giu_cho" target="table_yeu_cau_xem_phong">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_yeu_cau_su_co_NguoiThueId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="table_yeu_cau_su_co" target="table_nguoi_thue">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_yeu_cau_su_co_PhongTroId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="table_yeu_cau_su_co" target="table_phong_tro">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_yeu_cau_thanh_toan_giu_cho_NguoiTaoId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="table_yeu_cau_thanh_toan_giu_cho" target="table_nguoi_dung">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_yeu_cau_thanh_toan_giu_cho_YeuCauGiuChoId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="table_yeu_cau_thanh_toan_giu_cho" target="table_yeu_cau_giu_cho">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_yeu_cau_thanh_toan_hoa_don_HoaDonId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="table_yeu_cau_thanh_toan_hoa_don" target="table_hoa_don">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_yeu_cau_xem_phong_KhachVangLaiId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;dashed=1;" edge="1" parent="1" source="table_yeu_cau_xem_phong" target="table_khach_vang_lai">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_yeu_cau_xem_phong_KhungGioXemPhongId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;dashed=1;" edge="1" parent="1" source="table_yeu_cau_xem_phong" target="table_khung_gio_xem_phong">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_yeu_cau_xem_phong_PhongTroId" value="N:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94a3b8;strokeWidth=1;startArrow=ERmany;endArrow=ERone;fontSize=8;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="table_yeu_cau_xem_phong" target="table_phong_tro">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="&lt;b&gt;ERD thực thể và thuộc tính&lt;/b&gt;&lt;br/&gt;37 bảng · 379 cột · 67 khóa ngoại · Nguồn: EF Core ApplicationDbContext" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0f172a;strokeColor=#0f172a;fontColor=#ffffff;fontSize=17;align=left;verticalAlign=middle;spacingLeft=18;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="1486" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="group_0" value="&lt;b&gt;Cơ sở, phòng và tài khoản&lt;/b&gt; · 7 bảng" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dbeafe;strokeColor=#94a3b8;fontSize=14;align=left;verticalAlign=middle;spacingLeft=14;" vertex="1" parent="1">
+          <mxGeometry x="40" y="120" width="1486" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="table_chi_nhanh" value="&lt;b&gt;ChiNhanh&lt;/b&gt;&lt;br/&gt;&lt;font color='#475569'&gt;chi_nhanh&lt;/font&gt;&lt;hr/&gt;[PK] ChiNhanhId&lt;br/&gt;DiaChi&lt;br/&gt;IsDeleted&lt;br/&gt;MaChiNhanh&lt;br/&gt;MoTa&lt;br/&gt;NgayCapNhat ?&lt;br/&gt;NgayTao&lt;br/&gt;SoDienThoai&lt;br/&gt;TenChiNhanh" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#64748b;fontColor=#0f172a;fontSize=10;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;spacingRight=6;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="175" width="340" height="221" as="geometry" />
+        </mxCell>
+        <mxCell id="table_phong_tro" value="&lt;b&gt;PhongTro&lt;/b&gt;&lt;br/&gt;&lt;font color='#475569'&gt;phong_tro&lt;/font&gt;&lt;hr/&gt;[PK] PhongTroId&lt;br/&gt;[FK] ChiNhanhId&lt;br/&gt;DienTich&lt;br/&gt;DuocDangTin&lt;br/&gt;GiaThue&lt;br/&gt;IsDeleted&lt;br/&gt;MaCongKhai ?&lt;br/&gt;MoTa&lt;br/&gt;NgayCapNhat ?&lt;br/&gt;NgayTao&lt;br/&gt;[FK] NguoiDangTinId ?&lt;br/&gt;SoNguoiToiDa&lt;br/&gt;SoPhong&lt;br/&gt;TangLau&lt;br/&gt;TieuDeDangTin ?&lt;br/&gt;TrangThai" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#64748b;fontColor=#0f172a;fontSize=10;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;spacingRight=6;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="422" y="175" width="340" height="347" as="geometry" />
+        </mxCell>
+        <mxCell id="table_anh_phong_tro" value="&lt;b&gt;AnhPhongTro&lt;/b&gt;&lt;br/&gt;&lt;font color='#475569'&gt;anh_phong_tro&lt;/font&gt;&lt;hr/&gt;[PK] AnhPhongTroId&lt;br/&gt;ChuThich ?&lt;br/&gt;IsActive&lt;br/&gt;LaAnhDaiDien&lt;br/&gt;NgayTaiLen&lt;br/&gt;[FK] NguoiTaiLenId&lt;br/&gt;[FK] PhongTroId&lt;br/&gt;PublicId&lt;br/&gt;ThuTuHienThi&lt;br/&gt;Url" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#64748b;fontColor=#0f172a;fontSize=10;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;spacingRight=6;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="804" y="175" width="340" height="239" as="geometry" />
+        </mxCell>
+        <mxCell id="table_nhan_vien_chi_nhanh" value="&lt;b&gt;NhanVienChiNhanh&lt;/b&gt;&lt;br/&gt;&lt;font color='#475569'&gt;nhan_vien_chi_nhanh&lt;/font&gt;&lt;hr/&gt;[PK] NhanVienChiNhanhId&lt;br/&gt;[FK] ChiNhanhId&lt;br/&gt;IsActive&lt;br/&gt;LyDo ?&lt;br/&gt;NgayPhanCong&lt;br/&gt;NgayThuHoi ?&lt;br/&gt;[FK] NguoiDungId&lt;br/&gt;[FK] NguoiPhanCongId&lt;br/&gt;[FK] NguoiThuHoiId ?" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#64748b;fontColor=#0f172a;fontSize=10;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;spacingRight=6;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="1186" y="175" width="340" height="221" as="geometry" />
+        </mxCell>
+        <mxCell id="table_nguoi_dung" value="&lt;b&gt;NguoiDung&lt;/b&gt;&lt;br/&gt;&lt;font color='#475569'&gt;nguoi_dung&lt;/font&gt;&lt;hr/&gt;[PK] NguoiDungId&lt;br/&gt;IsActive&lt;br/&gt;IsDeleted&lt;br/&gt;LanDangNhapCuoi ?&lt;br/&gt;MatKhauHash&lt;br/&gt;NgayTao&lt;br/&gt;[FK] NguoiThueId ?&lt;br/&gt;Role&lt;br/&gt;TenDangNhap" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#64748b;fontColor=#0f172a;fontSize=10;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;spacingRight=6;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="552" width="340" height="221" as="geometry" />
+        </mxCell>
+        <mxCell id="table_nguoi_thue" value="&lt;b&gt;NguoiThue&lt;/b&gt;&lt;br/&gt;&lt;font color='#475569'&gt;nguoi_thue&lt;/font&gt;&lt;hr/&gt;[PK] NguoiThueId&lt;br/&gt;CCCD&lt;br/&gt;Email&lt;br/&gt;GhiChu ?&lt;br/&gt;HoVaTen&lt;br/&gt;IsDeleted&lt;br/&gt;NgayCapCCCD ?&lt;br/&gt;NgayCapNhat ?&lt;br/&gt;NgaySinh ?&lt;br/&gt;NgayTao&lt;br/&gt;NoiCapCCCD ?&lt;br/&gt;QueQuan ?&lt;br/&gt;SoDienThoai" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#64748b;fontColor=#0f172a;fontSize=10;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;spacingRight=6;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="422" y="552" width="340" height="293" as="geometry" />
+        </mxCell>
+        <mxCell id="table_khach_vang_lai" value="&lt;b&gt;KhachVangLai&lt;/b&gt;&lt;br/&gt;&lt;font color='#475569'&gt;khach_vang_lai&lt;/font&gt;&lt;hr/&gt;[PK] KhachVangLaiId&lt;br/&gt;DaXacMinhEmail&lt;br/&gt;Email ?&lt;br/&gt;EmailNormalized ?&lt;br/&gt;HoTen&lt;br/&gt;NgayCapNhat ?&lt;br/&gt;NgayTao&lt;br/&gt;[FK] NguoiDungId&lt;br/&gt;SoDienThoai" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#64748b;fontColor=#0f172a;fontSize=10;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;spacingRight=6;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="804" y="552" width="340" height="221" as="geometry" />
+        </mxCell>
+        <mxCell id="group_1" value="&lt;b&gt;Hợp đồng và dịch vụ&lt;/b&gt; · 8 bảng" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dcfce7;strokeColor=#94a3b8;fontSize=14;align=left;verticalAlign=middle;spacingLeft=14;" vertex="1" parent="1">
+          <mxGeometry x="40" y="915" width="1486" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="table_hop_dong" value="&lt;b&gt;HopDong&lt;/b&gt;&lt;br/&gt;&lt;font color='#475569'&gt;hop_dong&lt;/font&gt;&lt;hr/&gt;[PK] HopDongId&lt;br/&gt;IsDeleted&lt;br/&gt;MaHopDong&lt;br/&gt;NgayCapNhat ?&lt;br/&gt;NgayTao&lt;br/&gt;[FK] NguoiThueId&lt;br/&gt;[FK] PhongTroId&lt;br/&gt;ThoiDiemBatDau&lt;br/&gt;ThoiDiemKetThuc ?&lt;br/&gt;TienCocPhong&lt;br/&gt;TienThuePhong&lt;br/&gt;TrangThaiHopDong" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#64748b;fontColor=#0f172a;fontSize=10;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;spacingRight=6;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="970" width="340" height="275" as="geometry" />
+        </mxCell>
+        <mxCell id="table_hop_dong_dieu_khoan" value="&lt;b&gt;HopDongDieuKhoan&lt;/b&gt;&lt;br/&gt;&lt;font color='#475569'&gt;hop_dong_dieu_khoan&lt;/font&gt;&lt;hr/&gt;[PK] Id&lt;br/&gt;[FK] HopDongId&lt;br/&gt;NoiDung&lt;br/&gt;ThuTu&lt;br/&gt;TieuDe" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#64748b;fontColor=#0f172a;fontSize=10;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;spacingRight=6;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="422" y="970" width="340" height="149" as="geometry" />
+        </mxCell>
+        <mxCell id="table_dieu_khoan_mau" value="&lt;b&gt;DieuKhoanMau&lt;/b&gt;&lt;br/&gt;&lt;font color='#475569'&gt;dieu_khoan_mau&lt;/font&gt;&lt;hr/&gt;[PK] DieuKhoanMauId&lt;br/&gt;IsDeleted&lt;br/&gt;NgayCapNhat ?&lt;br/&gt;NgayTao&lt;br/&gt;NoiDung&lt;br/&gt;TieuDe" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#64748b;fontColor=#0f172a;fontSize=10;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;spacingRight=6;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="804" y="970" width="340" height="167" as="geometry" />
+        </mxCell>
+        <mxCell id="table_chi_tiet_thanh_vien_hop_dong" value="&lt;b&gt;ChiTietThanhVienHopDong&lt;/b&gt;&lt;br/&gt;&lt;font color='#475569'&gt;chi_tiet_thanh_vien_hop_dong&lt;/font&gt;&lt;hr/&gt;[PK] ChiTietThanhVienHopDongId&lt;br/&gt;[FK] HopDongId&lt;br/&gt;IsDeleted&lt;br/&gt;NgayChuyenDi ?&lt;br/&gt;NgayVao&lt;br/&gt;[FK] NguoiThueId" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#64748b;fontColor=#0f172a;fontSize=10;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;spacingRight=6;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="1186" y="970" width="340" height="167" as="geometry" />
+        </mxCell>
+        <mxCell id="table_dich_vu" value="&lt;b&gt;DichVu&lt;/b&gt;&lt;br/&gt;&lt;font color='#475569'&gt;dich_vu&lt;/font&gt;&lt;hr/&gt;[PK] DichVuId&lt;br/&gt;DonVi&lt;br/&gt;GhiChu&lt;br/&gt;IsDeleted&lt;br/&gt;LoaiDichVu&lt;br/&gt;NgayCapNhat ?&lt;br/&gt;NgayTao&lt;br/&gt;TenDichVu" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#64748b;fontColor=#0f172a;fontSize=10;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;spacingRight=6;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1275" width="340" height="203" as="geometry" />
+        </mxCell>
+        <mxCell id="table_dich_vu_chi_nhanh" value="&lt;b&gt;DichVuChiNhanh&lt;/b&gt;&lt;br/&gt;&lt;font color='#475569'&gt;dich_vu_chi_nhanh&lt;/font&gt;&lt;hr/&gt;[PK] DichVuChiNhanhId&lt;br/&gt;[FK] ChiNhanhId&lt;br/&gt;[FK] DichVuId&lt;br/&gt;GiaDichVu&lt;br/&gt;IsDeleted&lt;br/&gt;MacDinh&lt;br/&gt;NgayCapNhat ?&lt;br/&gt;NgayTao" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#64748b;fontColor=#0f172a;fontSize=10;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;spacingRight=6;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="422" y="1275" width="340" height="203" as="geometry" />
+        </mxCell>
+        <mxCell id="table_dang_ky_dich_vu" value="&lt;b&gt;DangKyDichVu&lt;/b&gt;&lt;br/&gt;&lt;font color='#475569'&gt;dang_ky_dich_vu&lt;/font&gt;&lt;hr/&gt;[PK] DangKyDichVuId&lt;br/&gt;[FK] DichVuChiNhanhId&lt;br/&gt;NgayBatDau&lt;br/&gt;NgayKetThuc ?&lt;br/&gt;[FK] PhongTroId&lt;br/&gt;SoLuong" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#64748b;fontColor=#0f172a;fontSize=10;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;spacingRight=6;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="804" y="1275" width="340" height="167" as="geometry" />
+        </mxCell>
+        <mxCell id="table_dich_vu_dien_nuoc_cua_phong" value="&lt;b&gt;DichVuDienNuocCuaPhong&lt;/b&gt;&lt;br/&gt;&lt;font color='#475569'&gt;dich_vu_dien_nuoc_cua_phong&lt;/font&gt;&lt;hr/&gt;[PK] DichVuDienNuocCuaPhongId&lt;br/&gt;ChiSoDienCu&lt;br/&gt;ChiSoDienMoi&lt;br/&gt;ChiSoNuocCu&lt;br/&gt;ChiSoNuocMoi&lt;br/&gt;DonGiaDien&lt;br/&gt;DonGiaNuoc&lt;br/&gt;GhiChuDuyet ?&lt;br/&gt;IsDeleted&lt;br/&gt;Nam&lt;br/&gt;NgayCapNhat ?&lt;br/&gt;NgayDuyet ?&lt;br/&gt;NgayTao&lt;br/&gt;NguoiDuyetId ?&lt;br/&gt;NguoiTaoId ?&lt;br/&gt;[FK] PhongTroId&lt;br/&gt;Thang&lt;br/&gt;TrangThaiGhiNhan" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#64748b;fontColor=#0f172a;fontSize=10;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;spacingRight=6;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="1186" y="1275" width="340" height="383" as="geometry" />
+        </mxCell>
+        <mxCell id="group_2" value="&lt;b&gt;Chỉ số, hóa đơn và thanh toán&lt;/b&gt; · 8 bảng" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fef3c7;strokeColor=#94a3b8;fontSize=14;align=left;verticalAlign=middle;spacingLeft=14;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1728" width="1486" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="table_anh_chi_so_dong_ho" value="&lt;b&gt;AnhChiSoDongHo&lt;/b&gt;&lt;br/&gt;&lt;font color='#475569'&gt;anh_chi_so_dong_ho&lt;/font&gt;&lt;hr/&gt;[PK] AnhChiSoDongHoId&lt;br/&gt;[FK] DichVuDienNuocCuaPhongId&lt;br/&gt;DoTinCay ?&lt;br/&gt;DuocChonLamChiSoChinhThuc&lt;br/&gt;GhiChuXacNhan ?&lt;br/&gt;GiaTriAIGoiY ?&lt;br/&gt;GiaTriXacNhan ?&lt;br/&gt;IsDeleted&lt;br/&gt;LoaiDongHo&lt;br/&gt;NgayGui&lt;br/&gt;NgayXacNhan ?&lt;br/&gt;NgayXuLy ?&lt;br/&gt;[FK] NguoiGuiId ?&lt;br/&gt;[FK] NguoiXacNhanId ?&lt;br/&gt;PublicId ?&lt;br/&gt;ThongBaoLoi ?&lt;br/&gt;TrangThaiXuLy&lt;br/&gt;Url" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#64748b;fontColor=#0f172a;fontSize=10;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;spacingRight=6;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1783" width="340" height="383" as="geometry" />
+        </mxCell>
+        <mxCell id="table_hoa_don" value="&lt;b&gt;HoaDon&lt;/b&gt;&lt;br/&gt;&lt;font color='#475569'&gt;hoa_don&lt;/font&gt;&lt;hr/&gt;[PK] HoaDonId&lt;br/&gt;ChoPhepThanhToanMotPhan&lt;br/&gt;[FK] DichVuDienNuocCuaPhongId ?&lt;br/&gt;HanThanhToan ?&lt;br/&gt;[FK] HopDongId&lt;br/&gt;IsDeleted&lt;br/&gt;MaHoaDon&lt;br/&gt;Nam&lt;br/&gt;NgayCapNhat ?&lt;br/&gt;NgayChot ?&lt;br/&gt;NgayGui ?&lt;br/&gt;NgayTao&lt;br/&gt;NguoiChotId ?&lt;br/&gt;SoTienThanhToanToiThieu ?&lt;br/&gt;Thang&lt;br/&gt;TongTien&lt;br/&gt;TrangThaiHoaDon&lt;br/&gt;TrangThaiPhatHanh" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#64748b;fontColor=#0f172a;fontSize=10;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;spacingRight=6;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="422" y="1783" width="340" height="383" as="geometry" />
+        </mxCell>
+        <mxCell id="table_chi_tiet_hoa_don" value="&lt;b&gt;ChiTietHoaDon&lt;/b&gt;&lt;br/&gt;&lt;font color='#475569'&gt;chi_tiet_hoa_don&lt;/font&gt;&lt;hr/&gt;[PK] ChiTietHoaDonId&lt;br/&gt;[FK] DichVuId ?&lt;br/&gt;DonGia&lt;br/&gt;[FK] HoaDonId&lt;br/&gt;IsDeleted&lt;br/&gt;SoLuong&lt;br/&gt;TenDichVu&lt;br/&gt;TongTien" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#64748b;fontColor=#0f172a;fontSize=10;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;spacingRight=6;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="804" y="1783" width="340" height="203" as="geometry" />
+        </mxCell>
+        <mxCell id="table_lich_su_trang_thai_hoa_don" value="&lt;b&gt;LichSuTrangThaiHoaDon&lt;/b&gt;&lt;br/&gt;&lt;font color='#475569'&gt;lich_su_trang_thai_hoa_don&lt;/font&gt;&lt;hr/&gt;[PK] LichSuTrangThaiHoaDonId&lt;br/&gt;[FK] HoaDonId&lt;br/&gt;LyDo ?&lt;br/&gt;NgayThucHien&lt;br/&gt;NguoiThucHienId ?&lt;br/&gt;TrangThaiPhatHanhCu ?&lt;br/&gt;TrangThaiPhatHanhMoi&lt;br/&gt;TrangThaiThanhToanCu ?&lt;br/&gt;TrangThaiThanhToanMoi" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#64748b;fontColor=#0f172a;fontSize=10;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;spacingRight=6;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="1186" y="1783" width="340" height="221" as="geometry" />
+        </mxCell>
+        <mxCell id="table_yeu_cau_thanh_toan_hoa_don" value="&lt;b&gt;YeuCauThanhToanHoaDon&lt;/b&gt;&lt;br/&gt;&lt;font color='#475569'&gt;yeu_cau_thanh_toan_hoa_don&lt;/font&gt;&lt;hr/&gt;[PK] YeuCauThanhToanHoaDonId&lt;br/&gt;HanThanhToan ?&lt;br/&gt;[FK] HoaDonId&lt;br/&gt;IsDeleted&lt;br/&gt;MaYeuCau&lt;br/&gt;NgayCapNhat ?&lt;br/&gt;NgayTao&lt;br/&gt;NguoiTaoId ?&lt;br/&gt;NoiDungChuyenKhoan&lt;br/&gt;SoTien&lt;br/&gt;TrangThai" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#64748b;fontColor=#0f172a;fontSize=10;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;spacingRight=6;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="2196" width="340" height="257" as="geometry" />
+        </mxCell>
+        <mxCell id="table_minh_chung_thanh_toan_hoa_don" value="&lt;b&gt;MinhChungThanhToanHoaDon&lt;/b&gt;&lt;br/&gt;&lt;font color='#475569'&gt;minh_chung_thanh_toan_hoa_don&lt;/font&gt;&lt;hr/&gt;[PK] MinhChungThanhToanHoaDonId&lt;br/&gt;HinhAnhUrl&lt;br/&gt;IsDeleted&lt;br/&gt;LyDoTuChoi ?&lt;br/&gt;MaGiaoDichNganHang ?&lt;br/&gt;NgayChuyenKhaiBao&lt;br/&gt;NgayDoiChieu ?&lt;br/&gt;NgayTao&lt;br/&gt;NguoiDoiChieuId ?&lt;br/&gt;PublicId ?&lt;br/&gt;SoTienKhaiBao&lt;br/&gt;TrangThaiDoiChieu&lt;br/&gt;[FK] YeuCauThanhToanHoaDonId" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#64748b;fontColor=#0f172a;fontSize=10;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;spacingRight=6;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="422" y="2196" width="340" height="293" as="geometry" />
+        </mxCell>
+        <mxCell id="table_lich_su_trang_thai_yeu_cau_thanh_toan_hoa_don" value="&lt;b&gt;LichSuTrangThaiYeuCauThanhToanHoaDon&lt;/b&gt;&lt;br/&gt;&lt;font color='#475569'&gt;lich_su_trang_thai_yeu_cau_thanh_toan_hoa_don&lt;/font&gt;&lt;hr/&gt;[PK] LichSuTrangThaiYeuCauThanhToanHoaDonId&lt;br/&gt;LyDo ?&lt;br/&gt;NgayThucHien&lt;br/&gt;NguoiThucHienId ?&lt;br/&gt;TrangThaiCu ?&lt;br/&gt;TrangThaiMoi&lt;br/&gt;[FK] YeuCauThanhToanHoaDonId" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#64748b;fontColor=#0f172a;fontSize=10;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;spacingRight=6;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="804" y="2196" width="340" height="185" as="geometry" />
+        </mxCell>
+        <mxCell id="table_lich_su_thanh_toan" value="&lt;b&gt;LichSuThanhToan&lt;/b&gt;&lt;br/&gt;&lt;font color='#475569'&gt;lich_su_thanh_toan&lt;/font&gt;&lt;hr/&gt;[PK] LichSuThanhToanId&lt;br/&gt;GhiChu&lt;br/&gt;[FK] HoaDonId&lt;br/&gt;IsDeleted&lt;br/&gt;MaGiaoDich&lt;br/&gt;[FK] MinhChungThanhToanHoaDonId ?&lt;br/&gt;NgayThanhToan&lt;br/&gt;NgayXacNhan ?&lt;br/&gt;[FK] NguoiXacNhanId ?&lt;br/&gt;PhuongThucThanhToan&lt;br/&gt;SoTienThanhToan" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#64748b;fontColor=#0f172a;fontSize=10;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;spacingRight=6;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="1186" y="2196" width="340" height="257" as="geometry" />
+        </mxCell>
+        <mxCell id="group_3" value="&lt;b&gt;Lịch xem phòng&lt;/b&gt; · 3 bảng" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ede9fe;strokeColor=#94a3b8;fontSize=14;align=left;verticalAlign=middle;spacingLeft=14;" vertex="1" parent="1">
+          <mxGeometry x="40" y="2559" width="1486" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="table_khung_gio_xem_phong" value="&lt;b&gt;KhungGioXemPhong&lt;/b&gt;&lt;br/&gt;&lt;font color='#475569'&gt;khung_gio_xem_phong&lt;/font&gt;&lt;hr/&gt;[PK] KhungGioXemPhongId&lt;br/&gt;IsActive&lt;br/&gt;NgayCapNhat ?&lt;br/&gt;NgayTao&lt;br/&gt;[FK] NguoiPhuTrachId ?&lt;br/&gt;[FK] NguoiTaoId&lt;br/&gt;[FK] PhongTroId&lt;br/&gt;SoLuongToiDa&lt;br/&gt;ThoiGianBatDau&lt;br/&gt;ThoiGianKetThuc" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#64748b;fontColor=#0f172a;fontSize=10;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;spacingRight=6;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="2614" width="340" height="239" as="geometry" />
+        </mxCell>
+        <mxCell id="table_yeu_cau_xem_phong" value="&lt;b&gt;YeuCauXemPhong&lt;/b&gt;&lt;br/&gt;&lt;font color='#475569'&gt;yeu_cau_xem_phong&lt;/font&gt;&lt;hr/&gt;[PK] YeuCauXemPhongId&lt;br/&gt;Email ?&lt;br/&gt;GhiChu ?&lt;br/&gt;HinhThucXacNhan ?&lt;br/&gt;HoTen&lt;br/&gt;[FK] KhachVangLaiId ?&lt;br/&gt;[FK] KhungGioXemPhongId ?&lt;br/&gt;NgayCapNhat ?&lt;br/&gt;NgayTao&lt;br/&gt;NguonTao&lt;br/&gt;[FK] PhongTroId&lt;br/&gt;SoDienThoai&lt;br/&gt;ThoiGianMongMuon&lt;br/&gt;ThoiGianXacNhan ?&lt;br/&gt;TrangThai" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#64748b;fontColor=#0f172a;fontSize=10;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;spacingRight=6;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="422" y="2614" width="340" height="329" as="geometry" />
+        </mxCell>
+        <mxCell id="table_lich_su_trang_thai_yeu_cau_xem_phong" value="&lt;b&gt;LichSuTrangThaiYeuCauXemPhong&lt;/b&gt;&lt;br/&gt;&lt;font color='#475569'&gt;lich_su_trang_thai_yeu_cau_xem_phong&lt;/font&gt;&lt;hr/&gt;[PK] LichSuTrangThaiYeuCauXemPhongId&lt;br/&gt;LoaiTacNhan&lt;br/&gt;LyDo ?&lt;br/&gt;NgayThucHien&lt;br/&gt;[FK] NguoiThucHienId ?&lt;br/&gt;TrangThaiSau&lt;br/&gt;TrangThaiTruoc ?&lt;br/&gt;[FK] YeuCauXemPhongId" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#64748b;fontColor=#0f172a;fontSize=10;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;spacingRight=6;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="804" y="2614" width="340" height="203" as="geometry" />
+        </mxCell>
+        <mxCell id="group_4" value="&lt;b&gt;Giữ chỗ, cọc và hoàn tiền&lt;/b&gt; · 9 bảng" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fce7f3;strokeColor=#94a3b8;fontSize=14;align=left;verticalAlign=middle;spacingLeft=14;" vertex="1" parent="1">
+          <mxGeometry x="40" y="3013" width="1486" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="table_yeu_cau_giu_cho" value="&lt;b&gt;YeuCauGiuCho&lt;/b&gt;&lt;br/&gt;&lt;font color='#475569'&gt;yeu_cau_giu_cho&lt;/font&gt;&lt;hr/&gt;[PK] YeuCauGiuChoId&lt;br/&gt;HanKyHopDong ?&lt;br/&gt;HanThanhToan ?&lt;br/&gt;[FK] KhachVangLaiId&lt;br/&gt;LyDoTuChoiHoacHuy ?&lt;br/&gt;NgayCapNhat ?&lt;br/&gt;NgayDuyet ?&lt;br/&gt;NgayTao&lt;br/&gt;[FK] NguoiDuyetId ?&lt;br/&gt;[FK] PhongTroId&lt;br/&gt;SoTienGiuCho ?&lt;br/&gt;TrangThai&lt;br/&gt;[FK] YeuCauXemPhongId ?" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#64748b;fontColor=#0f172a;fontSize=10;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;spacingRight=6;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="3068" width="340" height="293" as="geometry" />
+        </mxCell>
+        <mxCell id="table_lich_su_trang_thai_yeu_cau_giu_cho" value="&lt;b&gt;LichSuTrangThaiYeuCauGiuCho&lt;/b&gt;&lt;br/&gt;&lt;font color='#475569'&gt;lich_su_trang_thai_yeu_cau_giu_cho&lt;/font&gt;&lt;hr/&gt;[PK] LichSuTrangThaiYeuCauGiuChoId&lt;br/&gt;LoaiTacNhan&lt;br/&gt;LyDo ?&lt;br/&gt;NgayThucHien&lt;br/&gt;[FK] NguoiThucHienId ?&lt;br/&gt;TrangThaiSau&lt;br/&gt;TrangThaiTruoc ?&lt;br/&gt;[FK] YeuCauGiuChoId" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#64748b;fontColor=#0f172a;fontSize=10;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;spacingRight=6;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="422" y="3068" width="340" height="203" as="geometry" />
+        </mxCell>
+        <mxCell id="table_yeu_cau_thanh_toan_giu_cho" value="&lt;b&gt;YeuCauThanhToanGiuCho&lt;/b&gt;&lt;br/&gt;&lt;font color='#475569'&gt;yeu_cau_thanh_toan_giu_cho&lt;/font&gt;&lt;hr/&gt;[PK] YeuCauThanhToanGiuChoId&lt;br/&gt;HanThanhToan&lt;br/&gt;MaYeuCau&lt;br/&gt;NgayCapNhat ?&lt;br/&gt;NgayTao&lt;br/&gt;[FK] NguoiTaoId&lt;br/&gt;NoiDungChuyenKhoan&lt;br/&gt;SoTien&lt;br/&gt;TrangThai&lt;br/&gt;[FK] YeuCauGiuChoId" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#64748b;fontColor=#0f172a;fontSize=10;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;spacingRight=6;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="804" y="3068" width="340" height="239" as="geometry" />
+        </mxCell>
+        <mxCell id="table_minh_chung_thanh_toan_giu_cho" value="&lt;b&gt;MinhChungThanhToanGiuCho&lt;/b&gt;&lt;br/&gt;&lt;font color='#475569'&gt;minh_chung_thanh_toan_giu_cho&lt;/font&gt;&lt;hr/&gt;[PK] MinhChungThanhToanGiuChoId&lt;br/&gt;GhiChuKhachHang ?&lt;br/&gt;LyDoTuChoi ?&lt;br/&gt;MaGiaoDichNganHang ?&lt;br/&gt;NgayChuyenTien&lt;br/&gt;NgayDoiChieu ?&lt;br/&gt;NgayTao&lt;br/&gt;[FK] NguoiDoiChieuId ?&lt;br/&gt;PublicIdHinhAnh ?&lt;br/&gt;SoTienKhaiBao&lt;br/&gt;TrangThai&lt;br/&gt;UrlHinhAnh&lt;br/&gt;[FK] YeuCauThanhToanGiuChoId" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#64748b;fontColor=#0f172a;fontSize=10;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;spacingRight=6;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="1186" y="3068" width="340" height="293" as="geometry" />
+        </mxCell>
+        <mxCell id="table_giao_dich_giu_cho" value="&lt;b&gt;GiaoDichGiuCho&lt;/b&gt;&lt;br/&gt;&lt;font color='#475569'&gt;giao_dich_giu_cho&lt;/font&gt;&lt;hr/&gt;[PK] GiaoDichGiuChoId&lt;br/&gt;GhiChu ?&lt;br/&gt;MaGiaoDich&lt;br/&gt;[FK] MinhChungThanhToanGiuChoId ?&lt;br/&gt;NgayThucNhan&lt;br/&gt;NgayXacNhan&lt;br/&gt;[FK] NguoiXacNhanId&lt;br/&gt;PhuongThuc&lt;br/&gt;SoTienThucNhan&lt;br/&gt;[FK] YeuCauThanhToanGiuChoId" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#64748b;fontColor=#0f172a;fontSize=10;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;spacingRight=6;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="3391" width="340" height="239" as="geometry" />
+        </mxCell>
+        <mxCell id="table_lich_su_trang_thai_yeu_cau_thanh_toan_giu_cho" value="&lt;b&gt;LichSuTrangThaiYeuCauThanhToanGiuCho&lt;/b&gt;&lt;br/&gt;&lt;font color='#475569'&gt;lich_su_trang_thai_yeu_cau_thanh_toan_giu_cho&lt;/font&gt;&lt;hr/&gt;[PK] LichSuTrangThaiYeuCauThanhToanGiuChoId&lt;br/&gt;LoaiTacNhan&lt;br/&gt;LyDo ?&lt;br/&gt;NgayThucHien&lt;br/&gt;[FK] NguoiThucHienId ?&lt;br/&gt;TrangThaiSau&lt;br/&gt;TrangThaiTruoc ?&lt;br/&gt;[FK] YeuCauThanhToanGiuChoId" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#64748b;fontColor=#0f172a;fontSize=10;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;spacingRight=6;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="422" y="3391" width="340" height="203" as="geometry" />
+        </mxCell>
+        <mxCell id="table_ap_dung_tien_giu_cho_vao_tien_coc" value="&lt;b&gt;ApDungTienGiuChoVaoTienCoc&lt;/b&gt;&lt;br/&gt;&lt;font color='#475569'&gt;ap_dung_tien_giu_cho_vao_tien_coc&lt;/font&gt;&lt;hr/&gt;[PK] ApDungTienGiuChoVaoTienCocId&lt;br/&gt;GhiChu ?&lt;br/&gt;[FK] HopDongId&lt;br/&gt;NgayApDung&lt;br/&gt;[FK] NguoiThucHienId&lt;br/&gt;SoTienApDung&lt;br/&gt;[FK] YeuCauGiuChoId" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#64748b;fontColor=#0f172a;fontSize=10;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;spacingRight=6;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="804" y="3391" width="340" height="185" as="geometry" />
+        </mxCell>
+        <mxCell id="table_quyet_dinh_hoan_tien_giu_cho" value="&lt;b&gt;QuyetDinhHoanTienGiuCho&lt;/b&gt;&lt;br/&gt;&lt;font color='#475569'&gt;quyet_dinh_hoan_tien_giu_cho&lt;/font&gt;&lt;hr/&gt;[PK] QuyetDinhHoanTienGiuChoId&lt;br/&gt;GhiChu ?&lt;br/&gt;LyDo&lt;br/&gt;NgayQuyetDinh&lt;br/&gt;[FK] NguoiQuyetDinhId&lt;br/&gt;SoTienHoanDuyet&lt;br/&gt;TrangThai&lt;br/&gt;[FK] YeuCauGiuChoId" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#64748b;fontColor=#0f172a;fontSize=10;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;spacingRight=6;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="1186" y="3391" width="340" height="203" as="geometry" />
+        </mxCell>
+        <mxCell id="table_giao_dich_hoan_tien_giu_cho" value="&lt;b&gt;GiaoDichHoanTienGiuCho&lt;/b&gt;&lt;br/&gt;&lt;font color='#475569'&gt;giao_dich_hoan_tien_giu_cho&lt;/font&gt;&lt;hr/&gt;[PK] GiaoDichHoanTienGiuChoId&lt;br/&gt;GhiChu ?&lt;br/&gt;MaGiaoDichHoan&lt;br/&gt;NgayHoan&lt;br/&gt;[FK] NguoiXacNhanId&lt;br/&gt;[FK] QuyetDinhHoanTienGiuChoId&lt;br/&gt;SoTienHoan&lt;br/&gt;UrlHinhAnhMinhChung ?" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#64748b;fontColor=#0f172a;fontSize=10;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;spacingRight=6;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="3660" width="340" height="203" as="geometry" />
+        </mxCell>
+        <mxCell id="group_5" value="&lt;b&gt;Sự cố và thông báo&lt;/b&gt; · 2 bảng" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e2e8f0;strokeColor=#94a3b8;fontSize=14;align=left;verticalAlign=middle;spacingLeft=14;" vertex="1" parent="1">
+          <mxGeometry x="40" y="3933" width="1486" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="table_yeu_cau_su_co" value="&lt;b&gt;YeuCauSuCo&lt;/b&gt;&lt;br/&gt;&lt;font color='#475569'&gt;yeu_cau_su_co&lt;/font&gt;&lt;hr/&gt;[PK] Id&lt;br/&gt;ChiPhiSuaChua&lt;br/&gt;CongVaoHoaDon&lt;br/&gt;GhiChuAdmin ?&lt;br/&gt;HinhAnhUrl ?&lt;br/&gt;IsDeleted&lt;br/&gt;LyDoTuChoi ?&lt;br/&gt;MoTa&lt;br/&gt;NgayGui&lt;br/&gt;NgayXuLy ?&lt;br/&gt;[FK] NguoiThueId&lt;br/&gt;[FK] PhongTroId&lt;br/&gt;TieuDe&lt;br/&gt;TrangThai" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#64748b;fontColor=#0f172a;fontSize=10;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;spacingRight=6;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="3988" width="340" height="311" as="geometry" />
+        </mxCell>
+        <mxCell id="table_thong_bao" value="&lt;b&gt;ThongBao&lt;/b&gt;&lt;br/&gt;&lt;font color='#475569'&gt;thong_bao&lt;/font&gt;&lt;hr/&gt;[PK] Id&lt;br/&gt;CreatedAt&lt;br/&gt;IsRead&lt;br/&gt;LinhVuc ?&lt;br/&gt;LinkDieuHuong ?&lt;br/&gt;[FK] NguoiDungId ?&lt;br/&gt;NoiDung&lt;br/&gt;TieuDe" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#64748b;fontColor=#0f172a;fontSize=10;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;spacingRight=6;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="422" y="3988" width="340" height="203" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
