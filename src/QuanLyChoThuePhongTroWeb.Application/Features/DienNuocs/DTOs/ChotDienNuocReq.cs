@@ -16,6 +16,9 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.DTOs
         public int DichVuDienNuocCuaPhongId { get; set; }
         public int PhongTroId { get; set; }
         
+        public MeterReadingSubmissionMode DienMode { get; set; } = MeterReadingSubmissionMode.Manual;
+        public MeterReadingSubmissionMode NuocMode { get; set; } = MeterReadingSubmissionMode.Manual;
+
         [Range(0, (double)decimal.MaxValue, ErrorMessage = "Chỉ số điện mới không hợp lệ.")]
         public decimal ChiSoDienMoi { get; set; }
 
@@ -24,5 +27,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.DTOs
         
         public decimal ChiSoDienCu { get; set; }
         public decimal ChiSoNuocCu { get; set; }
+
+        public string? LyDoNhapThuCongDien { get; set; }
+        public string? LyDoNhapThuCongNuoc { get; set; }
     }
 }

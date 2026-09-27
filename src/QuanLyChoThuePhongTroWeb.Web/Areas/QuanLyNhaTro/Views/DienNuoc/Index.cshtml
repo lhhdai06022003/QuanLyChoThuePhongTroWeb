@@ -265,6 +265,9 @@
                         let defaultDienMoi = (item.chiSoDienMoi === 0 && !item.isDaChot) ? item.chiSoDienCu : item.chiSoDienMoi;
                         let defaultNuocMoi = (item.chiSoNuocMoi === 0 && !item.isDaChot) ? item.chiSoNuocCu : item.chiSoNuocMoi;
 
+                        let isOfficialDien = item.coAnhDienChinhThuc && (item.giaTriDienXacNhanTuAnh != null ? defaultDienMoi === item.giaTriDienXacNhanTuAnh : defaultDienMoi === item.chiSoDienCu);
+                        let isOfficialNuoc = item.coAnhNuocChinhThuc && (item.giaTriNuocXacNhanTuAnh != null ? defaultNuocMoi === item.giaTriNuocXacNhanTuAnh : defaultNuocMoi === item.chiSoNuocCu);
+
                         html += `
                             <tr data-index="${index}" class="${rowClass}">
                                 <td class="text-center align-middle">${index + 1}</td>
@@ -276,6 +279,9 @@
                                 <td class="text-center align-middle bg-danger-light-td diennuoc-input-td">
                                     <input type="number" class="form-control text-center text-danger font-weight-bold in-dien-moi" value="${defaultDienMoi}" min="0" ${disabledAttr}>
                                     <div class="invalid-feedback text-center small" style="display: none;">Mới phải ≥ Cũ</div>
+                                    <div class="wrap-lydo-dien mt-1" style="${isOfficialDien ? 'display: none;' : ''}">
+                                        <input type="text" class="form-control form-control-sm in-lydo-dien" name="lyDoDien" placeholder="Lý do nhập tay điện" value="" ${disabledAttr}>
+                                    </div>
                                 </td>
                                 <td class="text-center align-middle bg-info-light-td diennuoc-input-td">
                                     <input type="number" class="form-control text-center in-nuoc-cu" value="${item.chiSoNuocCu}" readonly>
@@ -283,6 +289,9 @@
                                 <td class="text-center align-middle bg-primary-light-td diennuoc-input-td">
                                     <input type="number" class="form-control text-center text-primary font-weight-bold in-nuoc-moi" value="${defaultNuocMoi}" min="0" ${disabledAttr}>
                                     <div class="invalid-feedback text-center small" style="display: none;">Mới phải ≥ Cũ</div>
+                                    <div class="wrap-lydo-nuoc mt-1" style="${isOfficialNuoc ? 'display: none;' : ''}">
+                                        <input type="text" class="form-control form-control-sm in-lydo-nuoc" name="lyDoNuoc" placeholder="Lý do nhập tay nước" value="" ${disabledAttr}>
+                                    </div>
                                 </td>
                                 <td class="text-center align-middle">${statusBadge}</td>
                             </tr>
@@ -315,9 +324,11 @@
                 }
             }
 
-            // Real-time validation viền đỏ khi nhập sai chỉ số điện mới
+            // Real-time validation viền đỏ khi nhập sai chỉ số điện mới và toggle lý do nhập tay
             $('#tbodyDienNuoc').on('input change', '.in-dien-moi', function () {
                 let tr = $(this).closest('tr');
+                let index = tr.data('index');
+                let rowData = currentData ? currentData[index] : null;
                 let cu = parseFloat(tr.find('.in-dien-cu').val()) || 0;
                 let moi = parseFloat($(this).val()) || 0;
 
@@ -328,11 +339,23 @@
                     $(this).removeClass('is-invalid');
                     tr.find('.in-dien-moi').siblings('.invalid-feedback').hide();
                 }
+
+                if (rowData) {
+                    let isOfficial = rowData.coAnhDienChinhThuc && (rowData.giaTriDienXacNhanTuAnh != null ? moi === rowData.giaTriDienXacNhanTuAnh : moi === cu);
+                    if (isOfficial) {
+                        tr.find('.wrap-lydo-dien').hide();
+                        tr.find('.in-lydo-dien').removeClass('is-invalid');
+                    } else {
+                        tr.find('.wrap-lydo-dien').show();
+                    }
+                }
             });
 
-            // Real-time validation viền đỏ khi nhập sai chỉ số nước mới
+            // Real-time validation viền đỏ khi nhập sai chỉ số nước mới và toggle lý do nhập tay
             $('#tbodyDienNuoc').on('input change', '.in-nuoc-moi', function () {
                 let tr = $(this).closest('tr');
+                let index = tr.data('index');
+                let rowData = currentData ? currentData[index] : null;
                 let cu = parseFloat(tr.find('.in-nuoc-cu').val()) || 0;
                 let moi = parseFloat($(this).val()) || 0;
 
@@ -342,6 +365,22 @@
                 } else {
                     $(this).removeClass('is-invalid');
                     tr.find('.in-nuoc-moi').siblings('.invalid-feedback').hide();
+                }
+
+                if (rowData) {
+                    let isOfficial = rowData.coAnhNuocChinhThuc && (rowData.giaTriNuocXacNhanTuAnh != null ? moi === rowData.giaTriNuocXacNhanTuAnh : moi === cu);
+                    if (isOfficial) {
+                        tr.find('.wrap-lydo-nuoc').hide();
+                        tr.find('.in-lydo-nuoc').removeClass('is-invalid');
+                    } else {
+                        tr.find('.wrap-lydo-nuoc').show();
+                    }
+                }
+            });
+
+            $('#tbodyDienNuoc').on('input change', '.in-lydo-dien, .in-lydo-nuoc', function () {
+                if ($(this).val().trim()) {
+                    $(this).removeClass('is-invalid');
                 }
             });
 
@@ -453,13 +492,45 @@
                             return false; // break each
                         }
 
+                        let isOfficialDien = rowData.coAnhDienChinhThuc && (rowData.giaTriDienXacNhanTuAnh != null ? dienMoi === rowData.giaTriDienXacNhanTuAnh : dienMoi === dienCu);
+                        let isOfficialNuoc = rowData.coAnhNuocChinhThuc && (rowData.giaTriNuocXacNhanTuAnh != null ? nuocMoi === rowData.giaTriNuocXacNhanTuAnh : nuocMoi === nuocCu);
+
+                        let lyDoDien = $(this).find('.in-lydo-dien').val()?.trim() || null;
+                        let lyDoNuoc = $(this).find('.in-lydo-nuoc').val()?.trim() || null;
+
+                        if (!isOfficialDien && !lyDoDien) {
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Thiếu lý do nhập tay điện',
+                                text: `Phòng ${rowData.tenPhong}: Vui lòng nhập lý do điều chỉnh chỉ số điện thủ công.`
+                            });
+                            hasError = true;
+                            $(this).find('.in-lydo-dien').addClass('is-invalid').focus();
+                            return false;
+                        }
+
+                        if (!isOfficialNuoc && !lyDoNuoc) {
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Thiếu lý do nhập tay nước',
+                                text: `Phòng ${rowData.tenPhong}: Vui lòng nhập lý do điều chỉnh chỉ số nước thủ công.`
+                            });
+                            hasError = true;
+                            $(this).find('.in-lydo-nuoc').addClass('is-invalid').focus();
+                            return false;
+                        }
+
                         danhSachPhong.push({
                             dichVuDienNuocCuaPhongId: rowData.dichVuDienNuocCuaPhongId,
                             phongTroId: rowData.phongTroId,
+                            dienMode: isOfficialDien ? 1 : 2,
+                            nuocMode: isOfficialNuoc ? 1 : 2,
                             chiSoDienCu: dienCu,
                             chiSoDienMoi: dienMoi,
                             chiSoNuocCu: nuocCu,
-                            chiSoNuocMoi: nuocMoi
+                            chiSoNuocMoi: nuocMoi,
+                            lyDoNhapThuCongDien: isOfficialDien ? null : lyDoDien,
+                            lyDoNhapThuCongNuoc: isOfficialNuoc ? null : lyDoNuoc
                         });
                     }
                 });

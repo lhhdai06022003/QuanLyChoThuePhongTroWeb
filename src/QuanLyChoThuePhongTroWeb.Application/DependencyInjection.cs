@@ -34,6 +34,7 @@ namespace QuanLyChoThuePhongTroWeb.Application
             services.AddScoped<IHopDongService, HopDongService>();
             services.AddScoped<IThanhVienHopDongService, ThanhVienHopDongService>();
             services.AddScoped<IDienNuocService, DienNuocService>();
+            services.AddScoped<IMeterReadingWorkflowService, MeterReadingWorkflowService>();
 
             // Phase 6.4 services
             services.AddScoped<IHoaDonCalculatorService, HoaDonCalculatorService>();

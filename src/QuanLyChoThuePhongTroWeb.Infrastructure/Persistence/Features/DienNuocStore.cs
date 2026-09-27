@@ -36,6 +36,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
         public async Task<IReadOnlyDictionary<int, DichVuDienNuocCuaPhong>> GetCurrentMonthRecordsAsync(IReadOnlyList<int> roomIds, int thang, int nam, CancellationToken cancellationToken = default)
         {
             return await _context.DichVuDienNuocCuaPhongs
+                .Include(x => x.AnhChiSoDongHos)
                 .Where(x => roomIds.Contains(x.PhongTroId) && x.Thang == thang && x.Nam == nam && !x.IsDeleted)
                 .ToDictionaryAsync(x => x.PhongTroId, cancellationToken);
         }

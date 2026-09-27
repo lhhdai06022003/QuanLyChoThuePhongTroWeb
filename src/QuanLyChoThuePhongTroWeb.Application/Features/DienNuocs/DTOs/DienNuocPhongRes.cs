@@ -15,5 +15,11 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.DTOs
 
         public bool IsDaChot { get; set; } // true if this record already exists in DB for the given month/year
         public bool IsLocked { get; set; }
+
+        public bool CoAnhDienChinhThuc { get; set; }
+        public bool CoAnhNuocChinhThuc { get; set; }
+        public decimal? GiaTriDienXacNhanTuAnh { get; set; }
+        public decimal? GiaTriNuocXacNhanTuAnh { get; set; }
+        public QuanLyChoThuePhongTroWeb.Domain.Enums.TrangThaiGhiNhan? TrangThaiGhiNhan { get; set; }
     }
 }

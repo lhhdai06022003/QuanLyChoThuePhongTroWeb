@@ -68,7 +68,7 @@
 - [x] Build toàn solution đạt 0 warning/0 error; EF không có pending model changes; `git diff --check` PASS.
 - [x] Sáu finding review L1–L6 đã được khắc phục và kiểm chứng; dừng đúng trước Mục 4.
 
-## 4. Hợp đồng ảnh và OCR
+## 4. Hợp đồng ảnh và OCR *(hoàn thành sau review lần 3 và thử tay ngày 27/09/2026)*
 
 **Files**
 - Create: `src/QuanLyChoThuePhongTroWeb.Application/Features/DienNuocs/DTOs/MeterWorkflowDtos.cs`
@@ -82,12 +82,12 @@
 - Create: `src/QuanLyChoThuePhongTroWeb.Infrastructure/ExternalServices/AiAssistants/GeminiMeterOcrService.cs`
 - Create: `tests/QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests/ExternalServices/GeminiMeterOcrServiceTests.cs`
 
-- [ ] DTO upload nhận phòng/kỳ/loại và `UploadFile`; DTO phản hồi tách `GiaTriAIGoiY` và `GiaTriXacNhan`. Không tạo trường số khách đề xuất riêng hoặc đưa `IFormFile`/EF/HTTP vào Application.
-- [ ] Test HTTP handler giả cho Gemini: ảnh rõ/không đọc được, giá trị 0, âm, phản hồi trống, timeout, HTTP lỗi; không gọi mạng thật. Adapter trả kết quả có cấu trúc, không gọi DbContext, không tự sinh độ tin cậy.
-- [ ] Lưu ảnh và `AnhChiSoDongHo` trước, tự chạy OCR rồi Application ghi `GiaTriAIGoiY`/lỗi. OCR lỗi vẫn giữ ảnh. Retry của nhân viên cập nhật OCR trên ảnh chưa xác nhận; khách có thể tải ảnh mới để xử lý ảnh/OCR sai.
-- [ ] Storage trả URL/PublicId, đọc lại ảnh tin cậy cho OCR retry và xử lý tệp mồ côi khi DB lưu thất bại. Đăng ký adapter trong `AddInfrastructure`; chạy test adapter.
+- [x] DTO upload nhận phòng/kỳ/loại và `UploadFile`; DTO phản hồi tách `GiaTriAIGoiY` và `GiaTriXacNhan`. Không tạo trường số khách đề xuất riêng hoặc đưa `IFormFile`/EF/HTTP vào Application.
+- [x] Test HTTP handler giả cho Gemini: ảnh rõ/không đọc được, giá trị 0, âm, phản hồi trống, timeout, HTTP lỗi; không gọi mạng thật. Adapter trả kết quả có cấu trúc, không gọi DbContext, không tự sinh độ tin cậy.
+- [x] Lưu ảnh và `AnhChiSoDongHo` trước, tự chạy OCR rồi Application ghi `GiaTriAIGoiY`/lỗi. OCR lỗi vẫn giữ ảnh. Retry của nhân viên cập nhật OCR trên ảnh chưa xác nhận; khách có thể tải ảnh mới để xử lý ảnh/OCR sai.
+- [x] Storage trả URL/PublicId, đọc lại ảnh tin cậy cho OCR retry và xử lý tệp mồ côi khi DB lưu thất bại. Đăng ký adapter trong `AddInfrastructure`; chạy test adapter.
 
-## 5. Duyệt ảnh và số chính thức
+## 5. Duyệt ảnh và số chính thức *(hoàn thành sau review lần 3 và thử tay ngày 27/09/2026)*
 
 **Files**
 - Create: `src/QuanLyChoThuePhongTroWeb.Application/Features/DienNuocs/Services/MeterReadingWorkflowService.cs`
@@ -98,10 +98,11 @@
 - Create: `tests/QuanLyChoThuePhongTroWeb.Application.UnitTests/MeterReadingWorkflowTests.cs`
 - Create: `tests/QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests/Persistence/MeterImageStoreTests.cs`
 
-- [ ] Test khách đúng/sai hợp đồng, nhân viên đúng/sai chi nhánh hoặc mất phân công, ảnh lỗi còn xem được, ảnh khách tải không tự thành số chính thức, nhập tay thiếu lý do bị từ chối.
-- [ ] Trong transaction xác nhận ảnh: khóa bản ghi kỳ/ảnh cùng loại, bỏ cờ chính thức cũ, xác nhận ảnh mới, cập nhật số chính thức. Lưu người/ngày xác nhận trên ảnh bằng trường hiện có; unique index chặn hai ảnh chính thức khi request đồng thời.
-- [ ] Nhập tay không tạo ảnh; bỏ cờ ảnh chính thức cũ cùng transaction. Bắt buộc lý do trong `GhiChuXacNhan` nếu xác nhận trên ảnh không đọc được, hoặc `GhiChuDuyet` nếu không có ảnh; không xóa lý do khi duyệt kỳ. Chặn giá trị âm, nhỏ hơn kỳ trước và kỳ đã khóa. Chỉ duyệt cả kỳ khi hai loại có ảnh chính thức hoặc chỉ số thủ công được cung cấp trong thao tác duyệt; không dùng số 0 mặc định làm bằng chứng xác nhận.
-- [ ] Chuyển endpoint `SaveChotDienNuoc` cũ sang use case có kiểm tra role và chi nhánh để không đi tắt. Chạy Application và PostgreSQL tests của mục này.
+- [x] Test khách đúng/sai hợp đồng, nhân viên đúng/sai chi nhánh hoặc mất phân công, ảnh lỗi còn xem được, ảnh khách tải không tự thành số chính thức, nhập tay thiếu lý do bị từ chối.
+- [x] Trong transaction xác nhận ảnh: khóa bản ghi kỳ/ảnh cùng loại, bỏ cờ chính thức cũ, xác nhận ảnh mới, cập nhật số chính thức. Lưu người/ngày xác nhận trên ảnh bằng trường hiện có; unique index chặn hai ảnh chính thức khi request đồng thời.
+- [x] Nhập tay không tạo ảnh; bỏ cờ ảnh chính thức cũ cùng transaction. Bắt buộc lý do trong `GhiChuXacNhan` nếu xác nhận trên ảnh không đọc được, hoặc `GhiChuDuyet` nếu không có ảnh; không xóa lý do khi duyệt kỳ. Chặn giá trị âm, nhỏ hơn kỳ trước và kỳ đã khóa. Chỉ duyệt cả kỳ khi hai loại có ảnh chính thức hoặc chỉ số thủ công được cung cấp trong thao tác duyệt; không dùng số 0 mặc định làm bằng chứng xác nhận.
+- [x] Chuyển endpoint `SaveChotDienNuoc` cũ sang use case có kiểm tra role và chi nhánh để không đi tắt. Chạy Application và PostgreSQL tests của mục này.
+- [x] Use case sửa số của ảnh đã xác nhận kèm lý do (`CorrectConfirmedImageAsync`): nhân viên đúng chi nhánh hoặc Admin sửa ảnh chính thức, kiểm tra kỳ sau, hóa đơn khóa, số hợp lệ, cập nhật kỳ và tính lại hóa đơn nháp.
 
 ## 6. Nháp và phát hành
 
@@ -166,6 +167,7 @@
 - [ ] Màn hóa đơn hiển thị preview, tạo/gửi hàng loạt và kết quả email tức thời theo từng `HoaDonId`. Sau khi tải lại trang chỉ hiển thị trạng thái công bố trên cổng, không suy ra email đã gửi hay thất bại. Nút "Gửi lại email" trên `DaGui` có cảnh báo khả năng gửi trùng; bản hủy không có nút này. Nút theo role/chi nhánh và trạng thái; Application vẫn quyết định quyền.
 - [ ] API v1 gọi cùng service, 400 cho input sai, 403/404 cho không có quyền/tài nguyên, 409 cho xung đột; bảo vệ POST với auth/CSRF phù hợp cookie hiện có.
 - [ ] Test route, antiforgery, phân công đúng/sai chi nhánh, Admin-only chốt/trả lại, ảnh sai định dạng, khách xem nháp qua URL. Test lô có một SMTP lỗi và một thành công vẫn công bố cả hai; bấm "Gửi hóa đơn" lặp/hai request đồng thời chỉ có một thông báo/sự kiện công bố và không tự gửi email lần nữa; "Gửi lại email" là thao tác riêng, có quyền và chặn bản hủy.
+- [ ] Màn nhân viên có thao tác sửa số ảnh đã xác nhận kèm lý do (dùng `CorrectConfirmedImageAsync`).
 
 ## 10. Kiểm chứng và bàn giao
 

@@ -196,6 +196,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         private readonly FakeEmployeeBranchStore _employeeStore;
         private readonly EmployeeAccessService _accessService;
         private readonly FakeCalculatorService _calculatorService;
+        private readonly FakeMeterReadingWorkflowService _workflowService;
         private readonly DienNuocService _dienNuocService;
 
         public MeterReadingCorrectionTests()
@@ -206,14 +207,12 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             _employeeStore = new FakeEmployeeBranchStore();
             _accessService = new EmployeeAccessService(_employeeStore);
             _calculatorService = new FakeCalculatorService();
+            _workflowService = new FakeMeterReadingWorkflowService(_dienNuocStore, _unitOfWork, _hoaDonStore, _calculatorService);
 
             _dienNuocService = new DienNuocService(
                 _dienNuocStore,
-                _unitOfWork,
                 _accessService,
-                NullLogger<DienNuocService>.Instance,
-                _hoaDonStore,
-                _calculatorService);
+                _workflowService);
 
             // Thiết lập phòng 101 thuộc CN 1
             _dienNuocStore.RoomBranches[101] = 1;

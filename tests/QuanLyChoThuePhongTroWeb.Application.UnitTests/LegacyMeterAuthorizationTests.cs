@@ -165,13 +165,12 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             _dienNuocStore = new FakeDienNuocStore();
             _employeeStore = new FakeEmployeeBranchStore();
             _accessService = new EmployeeAccessService(_employeeStore);
+            var uow = new FakeUnitOfWork();
+            var workflowService = new FakeMeterReadingWorkflowService(_dienNuocStore, uow);
             _dienNuocService = new DienNuocService(
                 _dienNuocStore,
-                new FakeUnitOfWork(),
                 _accessService,
-                NullLogger<DienNuocService>.Instance,
-                new FakeHoaDonStoreForMeter(),
-                new FakeCalculatorServiceForMeter());
+                workflowService);
 
             // Phòng 101 và 102 thuộc chi nhánh 1
             _dienNuocStore.RoomBranches[101] = 1;

@@ -63,6 +63,27 @@ namespace QuanLyChoThuePhongTroWeb.Domain.Entities
             NgayCapNhat = DateTime.UtcNow;
         }
 
+        public void DuyetLai(int nguoiDuyetId, string? ghiChu = null)
+        {
+            if (TrangThaiGhiNhan != TrangThaiGhiNhan.DaDuyet)
+            {
+                throw new InvalidOperationException($"Chỉ có thể duyệt lại khi ở trạng thái {TrangThaiGhiNhan.DaDuyet}.");
+            }
+
+            if (nguoiDuyetId <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(nguoiDuyetId), "Người duyệt không hợp lệ.");
+            }
+
+            NguoiDuyetId = nguoiDuyetId;
+            NgayDuyet = DateTime.UtcNow;
+            if (!string.IsNullOrWhiteSpace(ghiChu))
+            {
+                GhiChuDuyet = ghiChu;
+            }
+            NgayCapNhat = DateTime.UtcNow;
+        }
+
         public void TuChoi(int nguoiDuyetId, string lyDo)
         {
             if (string.IsNullOrWhiteSpace(lyDo))

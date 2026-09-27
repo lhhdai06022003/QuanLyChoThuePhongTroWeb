@@ -218,13 +218,17 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
 
             try
             {
+                var workflowService = MeterImageStoreTests.CreateWorkflowService(
+                    context,
+                    storage: new MeterImageStoreTests.FakeStorageService(),
+                    ocr: new MeterImageStoreTests.FakeOcrService(),
+                    hoaDonStore: new HoaDonStore(context),
+                    calculator: new HoaDonCalculatorService());
+
                 var service = new DienNuocService(
                     new DienNuocStore(context),
-                    new EfUnitOfWork(context),
                     new EmployeeAccessService(new EmployeeBranchStore(context)),
-                    NullLogger<DienNuocService>.Instance,
-                    new HoaDonStore(context),
-                    new HoaDonCalculatorService());
+                    workflowService);
 
                 var result = await service.SaveChotDienNuocAsync(new ChotDienNuocReq
                 {
@@ -264,6 +268,200 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
                 context.NguoiDungs.RemoveRange(context.NguoiDungs.Where(x => x.NguoiDungId == staff.NguoiDungId));
                 await context.SaveChangesAsync();
             }
+        }
+
+        [Fact]
+        public async Task ApprovePeriodsAsync_WhenOneRoomFails_RollsBackEntireBatch()
+        {
+            await using var context = _fixture.CreateDbContext();
+
+            var suffix = Guid.NewGuid().ToString("N").Substring(0, 6);
+            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = $"C_{suffix}", DiaChi = "123", SoDienThoai = "0900", MoTa = "Mo ta" };
+            context.ChiNhanhs.Add(branch);
+            await context.SaveChangesAsync();
+
+            var room1 = new PhongTro { ChiNhanhId = branch.ChiNhanhId, SoPhong = $"P1_{suffix}", GiaThue = 1000m, DienTich = 15, MoTa = "P1" };
+            var room2 = new PhongTro { ChiNhanhId = branch.ChiNhanhId, SoPhong = $"P2_{suffix}", GiaThue = 1000m, DienTich = 15, MoTa = "P2" };
+            context.PhongTros.AddRange(room1, room2);
+            await context.SaveChangesAsync();
+
+            var admin = new NguoiDung { TenDangNhap = $"adm_{suffix}", MatKhauHash = "h", Role = Role.Admin, IsActive = true };
+            context.NguoiDungs.Add(admin);
+            await context.SaveChangesAsync();
+
+            var period1 = new DichVuDienNuocCuaPhong
+            {
+                PhongTroId = room1.PhongTroId,
+                Thang = 9,
+                Nam = 2026,
+                ChiSoDienCu = 100,
+                ChiSoDienMoi = 100,
+                ChiSoNuocCu = 50,
+                ChiSoNuocMoi = 50,
+                DonGiaDien = 3000,
+                DonGiaNuoc = 15000,
+                TrangThaiGhiNhan = TrangThaiGhiNhan.Nhap
+            };
+            var period2 = new DichVuDienNuocCuaPhong
+            {
+                PhongTroId = room2.PhongTroId,
+                Thang = 9,
+                Nam = 2026,
+                ChiSoDienCu = 100,
+                ChiSoDienMoi = 100,
+                ChiSoNuocCu = 50,
+                ChiSoNuocMoi = 50,
+                DonGiaDien = 3000,
+                DonGiaNuoc = 15000,
+                TrangThaiGhiNhan = TrangThaiGhiNhan.Nhap
+            };
+            context.DichVuDienNuocCuaPhongs.AddRange(period1, period2);
+            await context.SaveChangesAsync();
+
+            var workflowService = MeterImageStoreTests.CreateWorkflowService(
+                context,
+                storage: new MeterImageStoreTests.FakeStorageService(),
+                ocr: new MeterImageStoreTests.FakeOcrService());
+
+            // Room 1 hợp lệ; Room 2 mode Manual nhưng cố tình để trống lý do (hoặc null) -> Fail
+            var request = new ApproveMeterPeriodsRequest
+            {
+                Thang = 9,
+                Nam = 2026,
+                DanhSachPhong = new List<ApproveMeterPeriodItem>
+                {
+                    new()
+                    {
+                        PhongTroId = room1.PhongTroId,
+                        DienMode = MeterReadingSubmissionMode.Manual,
+                        NuocMode = MeterReadingSubmissionMode.Manual,
+                        ChiSoDienMoiThuCong = 130,
+                        ChiSoNuocMoiThuCong = 65,
+                        LyDoDienThuCong = "Nhap tay hop le phong 1",
+                        LyDoNuocThuCong = "Nhap tay hop le phong 1"
+                    },
+                    new()
+                    {
+                        PhongTroId = room2.PhongTroId,
+                        DienMode = MeterReadingSubmissionMode.Manual,
+                        NuocMode = MeterReadingSubmissionMode.Manual,
+                        ChiSoDienMoiThuCong = 140,
+                        ChiSoNuocMoiThuCong = 70,
+                        LyDoDienThuCong = "", // Thiếu lý do bắt buộc -> FAIL
+                        LyDoNuocThuCong = "Ly do nuoc"
+                    }
+                }
+            };
+
+            var result = await workflowService.ApprovePeriodsAsync(request, admin.NguoiDungId);
+
+            Assert.False(result.Success, "Batch phải thất bại khi một phòng vi phạm quy tắc");
+
+            // Kiểm tra DB: Room 1 KHÔNG ĐƯỢC LƯU thay đổi, phải rollback toàn bộ!
+            await using var verifyCtx = _fixture.CreateDbContext();
+            var checkPeriod1 = await verifyCtx.DichVuDienNuocCuaPhongs.FindAsync(period1.DichVuDienNuocCuaPhongId);
+            Assert.NotNull(checkPeriod1);
+            Assert.Equal(TrangThaiGhiNhan.Nhap, checkPeriod1.TrangThaiGhiNhan);
+            Assert.Equal(100, checkPeriod1.ChiSoDienMoi);
+            Assert.Equal(50, checkPeriod1.ChiSoNuocMoi);
+        }
+
+        [Fact]
+        public async Task ApprovePeriodsAsync_WhenPeriodDoesNotExist_CreatesNewPeriodAndApproves()
+        {
+            await using var context = _fixture.CreateDbContext();
+
+            var suffix = Guid.NewGuid().ToString("N").Substring(0, 6);
+            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = $"C_{suffix}", DiaChi = "123", SoDienThoai = "0900", MoTa = "Mo ta" };
+            context.ChiNhanhs.Add(branch);
+            await context.SaveChangesAsync();
+
+            var room = new PhongTro { ChiNhanhId = branch.ChiNhanhId, SoPhong = $"P_{suffix}", GiaThue = 1000m, DienTich = 15, MoTa = "P" };
+            context.PhongTros.Add(room);
+            await context.SaveChangesAsync();
+
+            var admin = new NguoiDung { TenDangNhap = $"adm_{suffix}", MatKhauHash = "h", Role = Role.Admin, IsActive = true };
+            context.NguoiDungs.Add(admin);
+            await context.SaveChangesAsync();
+
+            // Thêm dịch vụ điện & nước và gán giá cho chi nhánh
+            var dvDien = new DichVu { TenDichVu = "Dịch vụ Điện", DonVi = "kWh", LoaiDichVu = LoaiDichVu.Dien };
+            var dvNuoc = new DichVu { TenDichVu = "Dịch vụ Nước", DonVi = "m3", LoaiDichVu = LoaiDichVu.Nuoc };
+            context.DichVus.AddRange(dvDien, dvNuoc);
+            await context.SaveChangesAsync();
+
+            var dvcnDien = new DichVuChiNhanh { ChiNhanhId = branch.ChiNhanhId, DichVuId = dvDien.DichVuId, GiaDichVu = 3500 };
+            var dvcnNuoc = new DichVuChiNhanh { ChiNhanhId = branch.ChiNhanhId, DichVuId = dvNuoc.DichVuId, GiaDichVu = 18000 };
+            context.DichVuChiNhanhs.AddRange(dvcnDien, dvcnNuoc);
+            await context.SaveChangesAsync();
+
+            // Tạo kỳ cũ tháng 8/2026 với số mới là 100 và 50
+            var prevPeriod = new DichVuDienNuocCuaPhong
+            {
+                PhongTroId = room.PhongTroId,
+                Thang = 8,
+                Nam = 2026,
+                ChiSoDienCu = 0,
+                ChiSoDienMoi = 100,
+                DonGiaDien = 3500,
+                ChiSoNuocCu = 0,
+                ChiSoNuocMoi = 50,
+                DonGiaNuoc = 18000,
+                TrangThaiGhiNhan = TrangThaiGhiNhan.DaDuyet
+            };
+            context.DichVuDienNuocCuaPhongs.Add(prevPeriod);
+            await context.SaveChangesAsync();
+
+            // Lưu ý: tháng 9/2026 CHƯA HỀ TỒN TẠI trong DB!
+            var workflowService = MeterImageStoreTests.CreateWorkflowService(
+                context,
+                storage: new MeterImageStoreTests.FakeStorageService(),
+                ocr: new MeterImageStoreTests.FakeOcrService());
+
+            var request = new ApproveMeterPeriodsRequest
+            {
+                Thang = 9,
+                Nam = 2026,
+                DanhSachPhong = new List<ApproveMeterPeriodItem>
+                {
+                    new()
+                    {
+                        PhongTroId = room.PhongTroId,
+                        DienMode = MeterReadingSubmissionMode.Manual,
+                        NuocMode = MeterReadingSubmissionMode.Manual,
+                        ChiSoDienMoiThuCong = 150,
+                        ChiSoNuocMoiThuCong = 75,
+                        LyDoDienThuCong = "Nhap tay ky moi thang 9",
+                        LyDoNuocThuCong = "Nhap tay ky moi thang 9"
+                    }
+                }
+            };
+
+            var result = await workflowService.ApprovePeriodsAsync(request, admin.NguoiDungId);
+
+            Assert.True(result.Success, $"Duyệt tạo kỳ mới phải thành công: {result.Message}");
+            Assert.NotNull(result.Data);
+            Assert.Single(result.Data.Items);
+
+            var itemRes = result.Data.Items[0];
+            Assert.Equal(100, itemRes.ChiSoDienCu);
+            Assert.Equal(150, itemRes.ChiSoDienMoi);
+            Assert.Equal(50, itemRes.ChiSoNuocCu);
+            Assert.Equal(75, itemRes.ChiSoNuocMoi);
+            Assert.Equal(TrangThaiGhiNhan.DaDuyet, itemRes.TrangThaiGhiNhan);
+
+            // Kiểm tra DB
+            await using var verifyCtx = _fixture.CreateDbContext();
+            var createdPeriod = await verifyCtx.DichVuDienNuocCuaPhongs
+                .FirstOrDefaultAsync(p => p.PhongTroId == room.PhongTroId && p.Thang == 9 && p.Nam == 2026);
+            Assert.NotNull(createdPeriod);
+            Assert.Equal(TrangThaiGhiNhan.DaDuyet, createdPeriod.TrangThaiGhiNhan);
+            Assert.Equal(100, createdPeriod.ChiSoDienCu);
+            Assert.Equal(150, createdPeriod.ChiSoDienMoi);
+            Assert.Equal(50, createdPeriod.ChiSoNuocCu);
+            Assert.Equal(75, createdPeriod.ChiSoNuocMoi);
+            Assert.Equal(3500, createdPeriod.DonGiaDien);
+            Assert.Equal(18000, createdPeriod.DonGiaNuoc);
         }
     }
 }
