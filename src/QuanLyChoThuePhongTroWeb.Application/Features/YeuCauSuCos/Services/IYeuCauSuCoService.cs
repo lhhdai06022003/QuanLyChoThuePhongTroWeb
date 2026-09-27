@@ -1,6 +1,7 @@
-using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using QuanLyChoThuePhongTroWeb.Application.Common.Enums;
+using QuanLyChoThuePhongTroWeb.Application.Common.Models;
 using QuanLyChoThuePhongTroWeb.Application.Features.YeuCauSuCos.DTOs;
 
 namespace QuanLyChoThuePhongTroWeb.Application.Features.YeuCauSuCos.Services
@@ -11,7 +12,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.YeuCauSuCos.Services
         Task<List<YeuCauSuCoRes>> GetByNguoiThueAsync(int nguoiThueId);
         Task<YeuCauSuCoRes?> GetByIdAsync(int id);
         Task<bool> CreateAsync(CreateYeuCauSuCoReq req);
-        Task<bool> UpdateStatusAsync(int id, AppTrangThaiSuCo trangThai, decimal chiPhi, bool congVaoHoaDon, string? lyDoTuChoi, string? ghiChuAdmin);
+        Task<ServiceResult> UpdateStatusAsync(int id, AppTrangThaiSuCo trangThai, decimal chiPhi, bool congVaoHoaDon, string? lyDoTuChoi, string? ghiChuAdmin, int actorId, CancellationToken ct = default);
         Task<bool> SoftDeleteAsync(int id);
     }
 }

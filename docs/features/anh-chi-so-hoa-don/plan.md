@@ -104,7 +104,7 @@
 - [x] Chuyển endpoint `SaveChotDienNuoc` cũ sang use case có kiểm tra role và chi nhánh để không đi tắt. Chạy Application và PostgreSQL tests của mục này.
 - [x] Use case sửa số của ảnh đã xác nhận kèm lý do (`CorrectConfirmedImageAsync`): nhân viên đúng chi nhánh hoặc Admin sửa ảnh chính thức, kiểm tra kỳ sau, hóa đơn khóa, số hợp lệ, cập nhật kỳ và tính lại hóa đơn nháp.
 
-## 6. Nháp và phát hành
+## 6. Nháp và phát hành *(hoàn thành đợt 1, review độc lập và thử tay ngày 27/09/2026)*
 
 **Files**
 - Modify: `src/QuanLyChoThuePhongTroWeb.Application/Features/HoaDons/Services/HoaDonService.cs`
@@ -116,12 +116,16 @@
 - Create: `tests/QuanLyChoThuePhongTroWeb.Application.UnitTests/InvoiceDraftWorkflowTests.cs`
 - Create: `tests/QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests/Persistence/InvoiceDraftConcurrencyTests.cs`
 
-- [ ] Test preview thiếu điện/nước duyệt, trùng hợp đồng/kỳ, hai request đồng thời; Admin hoặc mọi nhân viên `IsActive` đúng chi nhánh được tạo hàng loạt.
-- [ ] Sửa `PhatSinhHoaDonAsync` tạo `Nhap` từ kỳ `DaDuyet`, dùng calculator và giữ dòng tiền hiện có. Sửa số trước chốt chỉ tính lại điện/nước của `Nhap`; `ChoDuyet` phải được Admin trả lại trước khi sửa.
-- [ ] Test nhân viên `IsActive` đúng chi nhánh được gửi duyệt, công bố và hủy đủ điều kiện; chỉ Admin chốt/trả lại. Nhân viên khác chi nhánh bị từ chối. Chặn sửa sau chốt qua `UpdateHoaDon` và mọi endpoint cũ.
-- [ ] Hủy chỉ khi chưa có khoản tiền hoặc yêu cầu/minh chứng đang đối soát; ghi `DaHuy + IsDeleted` và lịch sử. Chặn thao tác gửi lại email cho bản hủy; email đã gửi không thể thu hồi. Cấp mã `-R1/-R2` trong transaction, không thêm FK thay thế. Test PostgreSQL chống trùng và lịch sử bản hủy.
+- [x] Test preview thiếu điện/nước duyệt, trùng hợp đồng/kỳ, hai request đồng thời; Admin hoặc mọi nhân viên `IsActive` đúng chi nhánh được tạo hàng loạt.
+- [x] Sửa `PhatSinhHoaDonAsync` tạo `Nhap` từ kỳ `DaDuyet`, dùng calculator và giữ dòng tiền hiện có. Sửa số trước chốt chỉ tính lại điện/nước của `Nhap`; `ChoDuyet` phải được Admin trả lại trước khi sửa.
+- [x] Test nhân viên `IsActive` đúng chi nhánh được gửi duyệt, công bố và hủy đủ điều kiện; chỉ Admin chốt/trả lại. Nhân viên khác chi nhánh bị từ chối. Chặn sửa sau chốt qua `UpdateHoaDon` và mọi endpoint cũ.
+- [x] Hủy chỉ khi chưa có khoản tiền hoặc yêu cầu/minh chứng đang đối soát; ghi `DaHuy + IsDeleted` và lịch sử. Chặn thao tác gửi lại email cho bản hủy; email đã gửi không thể thu hồi. Cấp mã `-R1/-R2` trong transaction, không thêm FK thay thế. Test PostgreSQL chống trùng và lịch sử bản hủy.
+
+> **Ghi chú nghiệm thu đợt 1:** Phần "công bố" ở dòng 3 và "chặn gửi lại email cho bản hủy" ở dòng 4 thuộc Mục 7–8 (đợt 2); đợt 1 chỉ làm nháp → chờ duyệt → chốt/trả lại, hủy và sự cố cộng hóa đơn theo tháng `NgayXuLy`. Kiểm chứng độc lập: build 0/0; Domain 71, Application 283, Web 47, Infrastructure 205 (5/5 lần) PASS trên `quanlyphongtro_test`; EF không có thay đổi model. Người dùng thử tay đạt 5 bước trên DB dev.
 
 ## 7. Công bố trên cổng
+
+> **Ghi chú đợt 1:** Đã làm trước trong đợt 1: lọc cổng khách (danh sách, chi tiết, VietQR không lộ nháp hay đã hủy chưa gửi), chặn ThuTien khi chưa DaGui.
 
 **Files**
 - Modify: `src/QuanLyChoThuePhongTroWeb.Application/Features/HoaDons/Services/InvoiceIssuanceService.cs`
@@ -134,6 +138,8 @@
 - [ ] Khóa đường tạo yêu cầu thanh toán của module 2 chỉ với bản hiệu lực đã gửi. Chạy test Application/Web cho SMTP lỗi sau commit nhưng cổng vẫn hiển thị.
 
 ## 8. Gửi email hóa đơn trực tiếp, không lưu trạng thái
+
+> **Ghi chú đợt 1:** Đã làm trước trong đợt 1: sửa truy vấn nhắc nợ `GetOverdueInvoicesAsync` (chỉ lấy `DaGui`, `!IsDeleted`, chưa thanh toán, theo hạn `HanThanhToan` hoặc `NgayGui`).
 
 **Files**
 - Modify: `src/QuanLyChoThuePhongTroWeb.Application/Features/HoaDons/Services/IInvoiceIssuanceService.cs`

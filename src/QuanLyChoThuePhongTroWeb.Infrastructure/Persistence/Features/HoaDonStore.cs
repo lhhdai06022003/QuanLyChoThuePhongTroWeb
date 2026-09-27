@@ -268,7 +268,9 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
         {
             return await _context.HoaDons
                 .Include(x => x.HopDong).ThenInclude(h => h.PhongTro)
-                .Where(x => contractIds.Contains(x.HopDongId) && !x.IsDeleted)
+                .Where(x => contractIds.Contains(x.HopDongId) &&
+                            ((x.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaGui && !x.IsDeleted) ||
+                             (x.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaHuy && x.NgayGui != null)))
                 .OrderByDescending(x => x.NgayTao)
                 .Select(x => new HoaDonRes
                 {
@@ -280,7 +282,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                     Thang = x.Thang,
                     Nam = x.Nam,
                     TongTien = x.TongTien,
-                    TrangThaiHoaDon = x.TrangThaiHoaDon == TrangThaiHoaDon.DaThanhToan ? "Đã thanh toán" : "Chưa thanh toán",
+                    TrangThaiHoaDon = x.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaHuy ? "Đã hủy" : (x.TrangThaiHoaDon == TrangThaiHoaDon.DaThanhToan ? "Đã thanh toán" : "Chưa thanh toán"),
                     TrangThaiHoaDonValue = (int)x.TrangThaiHoaDon,
                     TrangThaiPhatHanhValue = (int)x.TrangThaiPhatHanh,
                     NgayTao = x.NgayTao.ToString("dd/MM/yyyy HH:mm")
@@ -292,7 +294,11 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
         {
             return await _context.HoaDons
                 .Include(h => h.HopDong)
-                .AnyAsync(h => h.HoaDonId == hoaDonId && h.HopDong.NguoiThueId == nguoiThueId && !h.IsDeleted, cancellationToken);
+                .AnyAsync(h => h.HoaDonId == hoaDonId &&
+                               h.HopDong.NguoiThueId == nguoiThueId &&
+                               ((h.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaGui && !h.IsDeleted) ||
+                                (h.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaHuy && h.NgayGui != null)),
+                          cancellationToken);
         }
 
         public async Task<IReadOnlyList<HoaDon>> GetOverdueInvoicesAsync(DateTime thresholdUtc, CancellationToken cancellationToken = default)
@@ -301,8 +307,9 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 .Include(h => h.HopDong)
                     .ThenInclude(hd => hd.NguoiThue)
                 .Where(h => !h.IsDeleted
-                    && h.TrangThaiHoaDon == TrangThaiHoaDon.ChuaThanhToan
-                    && h.NgayTao <= thresholdUtc)
+                    && h.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaGui
+                    && h.TrangThaiHoaDon != TrangThaiHoaDon.DaThanhToan
+                    && (h.HanThanhToan != null ? h.HanThanhToan <= thresholdUtc : h.NgayGui <= thresholdUtc))
                 .ToListAsync(cancellationToken);
         }
 

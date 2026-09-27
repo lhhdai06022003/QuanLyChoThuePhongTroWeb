@@ -244,6 +244,21 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         private readonly FakeEmployeeBranchStore _employeeStore;
         private readonly EmployeeAccessService _accessService;
         private readonly HoaDonService _hoaDonService;
+        private readonly InvoiceIssuanceService _invoiceIssuanceService;
+        private class FakeInvoiceIssuanceStore : IInvoiceIssuanceStore
+        {
+            public Task<IReadOnlyList<int>> LockContractsAsync(IReadOnlyList<int> hopDongIds, CancellationToken ct = default) => Task.FromResult<IReadOnlyList<int>>(hopDongIds);
+            public Task<HoaDon?> GetInvoiceForUpdateAsync(int hoaDonId, CancellationToken ct = default) => Task.FromResult<HoaDon?>(null);
+            public Task<int> CountCancelledInvoicesAsync(int hopDongId, int thang, int nam, CancellationToken ct = default) => Task.FromResult(0);
+            public Task<bool> HasOtherActiveInvoiceAsync(int hopDongId, int thang, int nam, int excludeHoaDonId, CancellationToken ct = default) => Task.FromResult(false);
+            public Task AddInvoiceAsync(HoaDon hoaDon, CancellationToken ct = default) => Task.CompletedTask;
+            public Task<IReadOnlyList<YeuCauSuCo>> GetBillableIncidentsInPeriodAsync(IReadOnlyList<int> roomIds, DateTime startUtc, DateTime endUtc, CancellationToken ct = default) => Task.FromResult<IReadOnlyList<YeuCauSuCo>>(new List<YeuCauSuCo>());
+            public Task<HoaDon?> GetActiveInvoiceForTenantRoomPeriodForUpdateAsync(int phongTroId, int nguoiThueId, int thang, int nam, CancellationToken ct = default) => Task.FromResult<HoaDon?>(null);
+            public Task<(int? MeterPeriodId, int ChiNhanhId)?> GetInvoiceLockTargetsAsync(int hoaDonId, CancellationToken ct = default) => Task.FromResult<(int? MeterPeriodId, int ChiNhanhId)?>(null);
+            public Task<TrangThaiGhiNhan?> LockMeterPeriodAsync(int meterPeriodId, CancellationToken ct = default) => Task.FromResult<TrangThaiGhiNhan?>(null);
+            public Task<IReadOnlyList<int>> GetContractIdsForTenantRoomPeriodsAsync(int phongTroId, int nguoiThueId, IReadOnlyList<(int Thang, int Nam)> periods, CancellationToken ct = default) => Task.FromResult<IReadOnlyList<int>>(new List<int>());
+        }
+
         private readonly FakeDocumentExporter _documentExporter;
         private readonly FakeEmailService _emailService;
         private readonly CapturingLogger _logger;
@@ -256,6 +271,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             _documentExporter = new FakeDocumentExporter();
             _emailService = new FakeEmailService();
             _logger = new CapturingLogger();
+            var issuanceStore = new FakeInvoiceIssuanceStore();
             _hoaDonService = new HoaDonService(
                 _hoaDonStore,
                 new FakeUnitOfWork(),
@@ -266,6 +282,13 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
                 new FakeVietQRService(),
                 _accessService,
                 _emailService);
+            _invoiceIssuanceService = new InvoiceIssuanceService(
+                issuanceStore,
+                _hoaDonStore,
+                new FakeUnitOfWork(),
+                _accessService,
+                new FakeCalculatorService(),
+                Microsoft.Extensions.Logging.Abstractions.NullLogger<InvoiceIssuanceService>.Instance);
 
             // Phòng 101 thuộc CN 1, phòng 201 thuộc CN 2
             _hoaDonStore.RoomBranches[101] = 1;
@@ -315,43 +338,49 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         public async Task PhatSinhHoaDon_Rejects_WhenStaffNotAssignedToBranch()
         {
             // Nhân viên 20 cố phát sinh hóa đơn cho phòng 101 (CN 1)
-            var result = await _hoaDonService.PhatSinhHoaDonAsync(
-                chiNhanhId: 1,
-                thang: 9,
-                nam: 2026,
-                selectedPhongTroIds: new List<int> { 101 },
-                actorId: 20);
+            var req = new CreateInvoiceDraftsRequest
+            {
+                ChiNhanhId = 1,
+                Thang = 9,
+                Nam = 2026,
+                PhongTroIds = new List<int> { 101 }
+            };
+            var result = await _invoiceIssuanceService.CreateDraftsAsync(req, actorId: 20);
 
-            Assert.False(result.IsSuccess);
-            Assert.Contains("không có quyền", result.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.False(result.Success);
+            Assert.Contains("quyền", result.Message, StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]
         public async Task PhatSinhHoaDon_Rejects_WhenRoomsBelongToDifferentBranchThanRequested()
         {
             // Gửi chi nhánh 2 nhưng danh sách phòng lại là phòng 101 (CN 1)
-            var result = await _hoaDonService.PhatSinhHoaDonAsync(
-                chiNhanhId: 2,
-                thang: 9,
-                nam: 2026,
-                selectedPhongTroIds: new List<int> { 101 },
-                actorId: 20);
+            var req = new CreateInvoiceDraftsRequest
+            {
+                ChiNhanhId = 2,
+                Thang = 9,
+                Nam = 2026,
+                PhongTroIds = new List<int> { 101 }
+            };
+            var result = await _invoiceIssuanceService.CreateDraftsAsync(req, actorId: 20);
 
-            Assert.False(result.IsSuccess);
-            Assert.Contains("không khớp", result.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.False(result.Success);
+            Assert.Contains("khớp", result.Message, StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]
         public async Task PhatSinhHoaDon_Rejects_WhenRoomDoesNotExist()
         {
-            var result = await _hoaDonService.PhatSinhHoaDonAsync(
-                chiNhanhId: 1,
-                thang: 9,
-                nam: 2026,
-                selectedPhongTroIds: new List<int> { 9999 },
-                actorId: 1);
+            var req = new CreateInvoiceDraftsRequest
+            {
+                ChiNhanhId = 1,
+                Thang = 9,
+                Nam = 2026,
+                PhongTroIds = new List<int> { 9999 }
+            };
+            var result = await _invoiceIssuanceService.CreateDraftsAsync(req, actorId: 1);
 
-            Assert.False(result.IsSuccess);
+            Assert.False(result.Success);
             Assert.Contains("không tồn tại", result.Message, StringComparison.OrdinalIgnoreCase);
         }
 

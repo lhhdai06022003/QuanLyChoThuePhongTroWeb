@@ -48,6 +48,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         {
             public FakeApplicationTransaction CurrentTransaction { get; } = new();
             public int SaveChangesCalls { get; private set; }
+            public bool ThrowOnSave { get; set; }
 
             public Task<IApplicationTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default)
             {
@@ -56,6 +57,10 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
 
             public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
             {
+                if (ThrowOnSave)
+                {
+                    throw new InvalidOperationException("SECRET_DB_ERROR_12345");
+                }
                 SaveChangesCalls++;
                 return Task.FromResult(1);
             }
@@ -66,6 +71,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             public Dictionary<int, HoaDon> Invoices { get; set; } = new();
             public Dictionary<int, int> InvoiceBranches { get; set; } = new();
             public Dictionary<int, InvoiceCancellationBlockers> Blockers { get; set; } = new();
+            public int UpdateHoaDonCalls { get; private set; }
 
             public Task<InvoiceCancellationBlockers> GetCancellationBlockersAsync(int hoaDonId, CancellationToken cancellationToken = default)
             {
@@ -90,6 +96,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
 
             public void UpdateHoaDon(HoaDon hoaDon)
             {
+                UpdateHoaDonCalls++;
                 Invoices[hoaDon.HoaDonId] = hoaDon;
             }
 
@@ -102,7 +109,11 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             public Task<IReadOnlyList<DangKyDichVu>> GetDangKyDichVusForBillingAsync(IReadOnlyList<int> roomIds, DateTime startUtc, DateTime endUtc, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<DangKyDichVu>>(new List<DangKyDichVu>());
             public Task<IReadOnlyList<YeuCauSuCo>> GetBillableSuCosAsync(IReadOnlyList<int> roomIds, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<YeuCauSuCo>>(new List<YeuCauSuCo>());
             public Task<IReadOnlyList<PhongTro>> GetPhongTrosByChiNhanhIdAsync(int chiNhanhId, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<PhongTro>>(new List<PhongTro>());
-            public Task<HoaDon?> GetHoaDonWithDetailsForUpdateAsync(int id, CancellationToken cancellationToken = default) => Task.FromResult<HoaDon?>(null);
+            public Task<HoaDon?> GetHoaDonWithDetailsForUpdateAsync(int id, CancellationToken cancellationToken = default)
+            {
+                Invoices.TryGetValue(id, out var hd);
+                return Task.FromResult(hd);
+            }
             public Task<DataTableResponse<HoaDonRes>> GetHoaDonsDataTableAsync(DataTableRequest request, int chiNhanhId, int thang, int nam, int trangThai, IReadOnlyList<int>? allowedBranchIds = null, CancellationToken cancellationToken = default) => Task.FromResult(new DataTableResponse<HoaDonRes>());
             public Task<HoaDonChiTietRes?> GetHoaDonDetailByIdAsync(int id, CancellationToken cancellationToken = default) => Task.FromResult<HoaDonChiTietRes?>(null);
             public Task<IReadOnlyList<HoaDonRes>> GetUnpaidInvoicesAsync(int chiNhanhId, int thang, int nam, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<HoaDonRes>>(new List<HoaDonRes>());
@@ -357,6 +368,129 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             var result = await _hoaDonService.DeleteHoaDonAsync(id: 1, actorId: 10, lyDo: "Hủy tiếp");
 
             Assert.False(result.IsSuccess);
+        }
+
+        [Fact]
+        public async Task DeleteHoaDon_UsesRowLock_AndDoesNotLeakExceptionMessage()
+        {
+            var invoice = new HoaDon
+            {
+                HoaDonId = 1,
+                TrangThaiPhatHanh = TrangThaiPhatHanhHoaDon.DaChot,
+                IsDeleted = false
+            };
+            _hoaDonStore.Invoices[1] = invoice;
+            _unitOfWork.ThrowOnSave = true;
+
+            var result = await _hoaDonService.DeleteHoaDonAsync(id: 1, actorId: 10, lyDo: "Lý do hủy hợp lệ");
+
+            Assert.False(result.IsSuccess);
+            Assert.DoesNotContain("SECRET_DB_ERROR_12345", result.ErrorMessage);
+            Assert.Equal("Lỗi hệ thống khi hủy hóa đơn.", result.ErrorMessage);
+            Assert.True(_unitOfWork.CurrentTransaction.RolledBack);
+        }
+
+        [Fact]
+        public async Task DeleteHoaDon_DoesNotCallUpdateHoaDon()
+        {
+            var invoice = new HoaDon
+            {
+                HoaDonId = 1,
+                TrangThaiPhatHanh = TrangThaiPhatHanhHoaDon.DaChot,
+                IsDeleted = false
+            };
+            _hoaDonStore.Invoices[1] = invoice;
+
+            var result = await _hoaDonService.DeleteHoaDonAsync(id: 1, actorId: 10, lyDo: "Lý do hủy hợp lệ");
+
+            Assert.True(result.IsSuccess);
+            Assert.Equal(0, _hoaDonStore.UpdateHoaDonCalls);
+        }
+
+        [Theory]
+        [InlineData(TrangThaiPhatHanhHoaDon.Nhap)]
+        [InlineData(TrangThaiPhatHanhHoaDon.ChoDuyet)]
+        [InlineData(TrangThaiPhatHanhHoaDon.DaChot)]
+        public async Task ThuTien_Fails_WhenNotDaGui(TrangThaiPhatHanhHoaDon status)
+        {
+            _hoaDonStore.Invoices[1] = new HoaDon
+            {
+                HoaDonId = 1,
+                TrangThaiPhatHanh = status,
+                TrangThaiHoaDon = TrangThaiHoaDon.ChuaThanhToan,
+                TongTien = 1000000m,
+                IsDeleted = false
+            };
+
+            var result = await _hoaDonService.ThuTienAsync(1, (int)PhuongThucThanhToan.TienMat, "Thu tien", nguoiXacNhanId: 10);
+
+            Assert.False(result.IsSuccess);
+            Assert.Contains("đã gửi", result.ErrorMessage, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public async Task ThuTien_Fails_WhenCancelledOrDeleted()
+        {
+            _hoaDonStore.Invoices[1] = new HoaDon
+            {
+                HoaDonId = 1,
+                TrangThaiPhatHanh = TrangThaiPhatHanhHoaDon.DaHuy,
+                TrangThaiHoaDon = TrangThaiHoaDon.ChuaThanhToan,
+                TongTien = 1000000m,
+                IsDeleted = true
+            };
+
+            var result = await _hoaDonService.ThuTienAsync(1, (int)PhuongThucThanhToan.TienMat, "Thu tien", nguoiXacNhanId: 10);
+
+            Assert.False(result.IsSuccess);
+            Assert.Contains("Không tìm thấy", result.ErrorMessage, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public async Task ThuTien_Fails_WhenStaffOfOtherBranch()
+        {
+            _hoaDonStore.Invoices[1] = new HoaDon
+            {
+                HoaDonId = 1,
+                TrangThaiPhatHanh = TrangThaiPhatHanhHoaDon.DaGui,
+                TrangThaiHoaDon = TrangThaiHoaDon.ChuaThanhToan,
+                TongTien = 1000000m,
+                IsDeleted = false
+            };
+
+            _employeeStore.Actors[20] = new EmployeeBranchActorDto
+            {
+                NguoiDungId = 20,
+                Role = Role.NhanVien,
+                IsActive = true,
+                ActiveBranchIds = new List<int> { 2 }
+            };
+
+            var result = await _hoaDonService.ThuTienAsync(1, (int)PhuongThucThanhToan.TienMat, "Thu tien", nguoiXacNhanId: 20);
+
+            Assert.False(result.IsSuccess);
+            Assert.Contains("không có quyền", result.ErrorMessage, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public async Task ThuTien_Succeeds_ForDaGui_AssignedStaff()
+        {
+            var invoice = new HoaDon
+            {
+                HoaDonId = 1,
+                TrangThaiPhatHanh = TrangThaiPhatHanhHoaDon.DaGui,
+                TrangThaiHoaDon = TrangThaiHoaDon.ChuaThanhToan,
+                TongTien = 1000000m,
+                IsDeleted = false
+            };
+            _hoaDonStore.Invoices[1] = invoice;
+
+            var result = await _hoaDonService.ThuTienAsync(1, (int)PhuongThucThanhToan.TienMat, "Thu tien mat", nguoiXacNhanId: 10);
+
+            Assert.True(result.IsSuccess);
+            Assert.Equal(TrangThaiHoaDon.DaThanhToan, invoice.TrangThaiHoaDon);
+            Assert.Equal(0, _hoaDonStore.UpdateHoaDonCalls);
+            Assert.True(_unitOfWork.CurrentTransaction.Committed);
         }
     }
 }

@@ -16,14 +16,17 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         private readonly Microsoft.Extensions.Configuration.IConfiguration _configuration;
         private readonly IVietQRService _vietQRService;
         private readonly ILogger<HoaDonController> _logger;
+        private readonly IInvoiceIssuanceService _invoiceIssuanceService;
 
         public HoaDonController(
             IHoaDonService hoaDonService, 
             IPhongTroService phongTroService, 
             Microsoft.Extensions.Configuration.IConfiguration configuration, 
             IVietQRService vietQRService,
-            ILogger<HoaDonController> logger)
+            ILogger<HoaDonController> logger,
+            IInvoiceIssuanceService invoiceIssuanceService)
         {
+            _invoiceIssuanceService = invoiceIssuanceService;
             _hoaDonService = hoaDonService;
             _phongTroService = phongTroService;
             _configuration = configuration;
@@ -55,15 +58,43 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
                 return Unauthorized(new { Message = "Người dùng chưa đăng nhập hoặc phiên làm việc đã hết hạn." });
             }
 
-            var result = await _hoaDonService.PhatSinhHoaDonAsync(req.ChiNhanhId, req.Thang, req.Nam, req.SelectedPhongTroIds, actorId);
-            if (!result.IsSuccess)
-                return BadRequest(new { Message = result.Message, Skipped = result.Skipped, Successes = result.Successes });
+            var request = new CreateInvoiceDraftsRequest
+            {
+                ChiNhanhId = req.ChiNhanhId,
+                Thang = req.Thang,
+                Nam = req.Nam,
+                PhongTroIds = req.SelectedPhongTroIds ?? new List<int>()
+            };
 
-            return Ok(new { 
-                Message = result.Message, 
-                SoHoaDonMoi = result.SoHoaDonMoi,
-                Skipped = result.Skipped,
-                Successes = result.Successes
+            var result = await _invoiceIssuanceService.CreateDraftsAsync(request, actorId);
+            if (!result.Success)
+            {
+                return BadRequest(new { Message = result.Message });
+            }
+
+            var batch = result.Data!;
+            var successes = batch.Items
+                .Where(x => x.Status == InvoiceDraftItemStatus.Created)
+                .Select(x => x.Message)
+                .ToList();
+            var skipped = batch.Items
+                .Where(x => x.Status != InvoiceDraftItemStatus.Created)
+                .Select(x => x.Message)
+                .ToList();
+
+            var message = $"Phát sinh thành công {batch.CreatedCount} hóa đơn nháp.";
+            if (skipped.Any())
+            {
+                message += $" Bỏ qua {skipped.Count} hợp đồng (xem chi tiết).";
+            }
+
+            return Ok(new
+            {
+                IsSuccess = true,
+                Message = message,
+                SoHoaDonMoi = batch.CreatedCount,
+                Skipped = skipped,
+                Successes = successes
             });
         }
 
@@ -140,8 +171,12 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         public async Task<IActionResult> ThuTien([FromBody] ThuTienReq req)
         {
             if (req == null || req.HoaDonId <= 0) return BadRequest(new { Message = "Dữ liệu hóa đơn không hợp lệ." });
-            int userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "0");
-            var result = await _hoaDonService.ThuTienAsync(req.HoaDonId, req.PhuongThucThanhToan, req.GhiChu, userId);
+            if (!TryGetActorId(out var actorId))
+            {
+                return Unauthorized(new { Message = "Người dùng chưa đăng nhập hoặc phiên làm việc đã hết hạn." });
+            }
+
+            var result = await _hoaDonService.ThuTienAsync(req.HoaDonId, req.PhuongThucThanhToan, req.GhiChu, actorId);
             if (!result.IsSuccess) return BadRequest(new { Message = result.ErrorMessage });
             return Ok(new { Message = "Thu tiền thành công!" });
         }
@@ -268,10 +303,90 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             });
         }
 
+        [HttpPost("/HoaDon/GuiDuyet/{id}")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> GuiDuyet(int id)
+        {
+            if (id <= 0) return BadRequest(new { success = false, message = "ID hóa đơn không hợp lệ." });
+
+            if (!TryGetActorId(out var actorId))
+                return Unauthorized(new { success = false, message = "Người dùng chưa đăng nhập hoặc phiên làm việc đã hết hạn." });
+
+            var result = await _invoiceIssuanceService.SubmitAsync(id, actorId);
+            if (!result.Success)
+            {
+                return BadRequest(new { success = false, message = result.Message });
+            }
+
+            return Ok(new
+            {
+                success = true,
+                message = result.Message,
+                trangThaiPhatHanh = (int)result.Data!.TrangThaiPhatHanh
+            });
+        }
+
+        [HttpPost("/HoaDon/Chot/{id}")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Chot(int id)
+        {
+            if (id <= 0) return BadRequest(new { success = false, message = "ID hóa đơn không hợp lệ." });
+
+            if (!TryGetActorId(out var actorId))
+                return Unauthorized(new { success = false, message = "Người dùng chưa đăng nhập hoặc phiên làm việc đã hết hạn." });
+
+            var result = await _invoiceIssuanceService.FinalizeAsync(id, actorId);
+            if (!result.Success)
+            {
+                return BadRequest(new { success = false, message = result.Message });
+            }
+
+            return Ok(new
+            {
+                success = true,
+                message = result.Message,
+                trangThaiPhatHanh = (int)result.Data!.TrangThaiPhatHanh
+            });
+        }
+
+        [HttpPost("/HoaDon/TraLai/{id}")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> TraLai(int id, [FromBody] RejectInvoiceReq? req)
+        {
+            if (id <= 0) return BadRequest(new { success = false, message = "ID hóa đơn không hợp lệ." });
+
+            if (!TryGetActorId(out var actorId))
+                return Unauthorized(new { success = false, message = "Người dùng chưa đăng nhập hoặc phiên làm việc đã hết hạn." });
+
+            var lyDo = req?.LyDo?.Trim() ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(lyDo))
+            {
+                return BadRequest(new { success = false, message = "Lý do trả lại là bắt buộc." });
+            }
+
+            var result = await _invoiceIssuanceService.RejectAsync(id, lyDo, actorId);
+            if (!result.Success)
+            {
+                return BadRequest(new { success = false, message = result.Message });
+            }
+
+            return Ok(new
+            {
+                success = true,
+                message = result.Message,
+                trangThaiPhatHanh = (int)result.Data!.TrangThaiPhatHanh
+            });
+        }
+
         private bool TryGetActorId(out int actorId)
         {
             return int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out actorId) && actorId > 0;
         }
+    }
+
+    public class RejectInvoiceReq
+    {
+        public string? LyDo { get; set; }
     }
 }
 

@@ -224,5 +224,51 @@ namespace QuanLyChoThuePhongTroWeb.Domain.UnitTests
             Assert.False(hoaDon.ChoPhepThanhToanMotPhan);
             Assert.Null(hoaDon.SoTienThanhToanToiThieu);
         }
+
+        [Fact]
+        public void HoaDon_KhoiTaoNhap_AddsSingleHistoryRow_FromNullToNhap()
+        {
+            var hoaDon = new HoaDon { TongTien = 1_000_000m };
+
+            hoaDon.KhoiTaoNhap(5);
+
+            Assert.Single(hoaDon.LichSuTrangThaiHoaDons);
+            var history = hoaDon.LichSuTrangThaiHoaDons.Single();
+            Assert.Null(history.TrangThaiPhatHanhCu);
+            Assert.Equal(TrangThaiPhatHanhHoaDon.Nhap, history.TrangThaiPhatHanhMoi);
+            Assert.Equal(TrangThaiHoaDon.ChuaThanhToan, history.TrangThaiThanhToanCu);
+            Assert.Equal(TrangThaiHoaDon.ChuaThanhToan, history.TrangThaiThanhToanMoi);
+            Assert.Equal(5, history.NguoiThucHienId);
+            Assert.Equal("Tạo hóa đơn nháp", history.LyDo);
+        }
+
+        [Fact]
+        public void HoaDon_KhoiTaoNhap_Throws_WhenCalledTwice_OrNotNhap_OrInvalidActor()
+        {
+            var hoaDon1 = new HoaDon { TongTien = 1_000_000m };
+            hoaDon1.KhoiTaoNhap(5);
+            Assert.Throws<InvalidOperationException>(() => hoaDon1.KhoiTaoNhap(5));
+
+            var hoaDon2 = new HoaDon { TongTien = 1_000_000m, TrangThaiPhatHanh = TrangThaiPhatHanhHoaDon.ChoDuyet };
+            Assert.Throws<InvalidOperationException>(() => hoaDon2.KhoiTaoNhap(5));
+
+            var hoaDon3 = new HoaDon { TongTien = 1_000_000m };
+            Assert.Throws<ArgumentOutOfRangeException>(() => hoaDon3.KhoiTaoNhap(0));
+            Assert.Throws<ArgumentOutOfRangeException>(() => hoaDon3.KhoiTaoNhap(-1));
+        }
+
+        [Fact]
+        public void HoaDon_HuyHoaDon_Throws_WhenPartiallyPaid()
+        {
+            var hoaDon = new HoaDon
+            {
+                TongTien = 2_000_000m,
+                TrangThaiPhatHanh = TrangThaiPhatHanhHoaDon.DaChot,
+                TrangThaiHoaDon = TrangThaiHoaDon.ThanhToanMotPhan
+            };
+
+            var ex = Assert.Throws<InvalidOperationException>(() => hoaDon.HuyHoaDon(1, "Hủy hóa đơn"));
+            Assert.Contains("thanh toán", ex.Message, StringComparison.OrdinalIgnoreCase);
+        }
     }
 }

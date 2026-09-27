@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.Extensions.Logging;
 using QuanLyChoThuePhongTroWeb.Models;
 using System;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
@@ -52,12 +53,18 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
                     return Json(new { success = false, message = "Vui lòng nhập lý do từ chối." });
                 }
 
+                var actorIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (!int.TryParse(actorIdStr, out var actorId) || actorId <= 0)
+                {
+                    return Json(new { success = false, message = "Người dùng chưa đăng nhập hoặc phiên làm việc đã hết hạn." });
+                }
+
                 var suco = await _yeuCauSuCoService.GetByIdAsync(Id);
                 if (suco == null) return Json(new { success = false, message = "Không tìm thấy sự cố." });
 
-                bool success = await _yeuCauSuCoService.UpdateStatusAsync(Id, TrangThai, ChiPhiSuaChua, CongVaoHoaDon, LyDoTuChoi, GhiChuAdmin);
+                var result = await _yeuCauSuCoService.UpdateStatusAsync(Id, TrangThai, ChiPhiSuaChua, CongVaoHoaDon, LyDoTuChoi, GhiChuAdmin, actorId);
                 
-                if (success)
+                if (result.Success)
                 {
                     string statusName = TrangThai switch
                     {
@@ -75,7 +82,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
                 }
                 else
                 {
-                    return Json(new { success = false, message = "Không tìm thấy yêu cầu hoặc có lỗi xảy ra." });
+                    return Json(new { success = false, message = result.Message });
                 }
             }
             catch (Exception ex)

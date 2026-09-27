@@ -192,8 +192,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
                 return Task.FromResult<byte[]?>(new byte[] { 1, 2, 3, 4 });
             }
 
-            public Task<PhatSinhHoaDonResult> PhatSinhHoaDonAsync(int chiNhanhId, int thang, int nam, List<int> selectedPhongTroIds, int actorId = 0) => throw new NotImplementedException();
-            public Task<List<PhatSinhPreviewRes>> PreviewPhatSinhHoaDonAsync(int chiNhanhId, int thang, int nam, int actorId) => throw new NotImplementedException();
+                        public Task<List<PhatSinhPreviewRes>> PreviewPhatSinhHoaDonAsync(int chiNhanhId, int thang, int nam, int actorId) => throw new NotImplementedException();
             public Task<(bool IsSuccess, string? ErrorMessage)> UpdateHoaDonAsync(int hoaDonId, UpdateHoaDonReq req, int actorId = 0) => throw new NotImplementedException();
             public Task<DataTableResponse<HoaDonRes>> GetDanhSachHoaDonAsync(DataTableRequest request, int chiNhanhId, int thang, int nam, int trangThai) => throw new NotImplementedException();
             public Task<DataTableResponse<HoaDonRes>> GetEmployeeInvoiceListAsync(DataTableRequest request, int chiNhanhId, int thang, int nam, int trangThai, int actorId) => throw new NotImplementedException();
@@ -209,6 +208,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             public Task<bool> CheckHoaDonOwnershipAsync(int hoaDonId, int nguoiThueId) => throw new NotImplementedException();
             public Task<(bool IsSuccess, string? ErrorMessage)> CheckInvoicePermissionAsync(int hoaDonId, int actorId, string actionCode) => throw new NotImplementedException();
             public Task<SendInvoiceEmailResult> SendInvoiceEmailAsync(int hoaDonId, int actorId, CancellationToken cancellationToken = default) => throw new NotImplementedException();
+            public Task<bool> CanTenantRequestPaymentAsync(int hoaDonId, int nguoiThueId, CancellationToken cancellationToken = default) => Task.FromResult(true);
         }
 
         [Fact]
@@ -672,8 +672,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
 
             public Task<byte[]?> ExportPdfAsync(int id) => Task.FromResult<byte[]?>(null);
 
-            public Task<PhatSinhHoaDonResult> PhatSinhHoaDonAsync(int chiNhanhId, int thang, int nam, List<int> selectedPhongTroIds, int actorId = 0) => throw new NotImplementedException();
-            public Task<List<PhatSinhPreviewRes>> PreviewPhatSinhHoaDonAsync(int chiNhanhId, int thang, int nam, int actorId) => throw new NotImplementedException();
+                        public Task<List<PhatSinhPreviewRes>> PreviewPhatSinhHoaDonAsync(int chiNhanhId, int thang, int nam, int actorId) => throw new NotImplementedException();
             public Task<(bool IsSuccess, string? ErrorMessage)> UpdateHoaDonAsync(int hoaDonId, UpdateHoaDonReq req, int actorId = 0) => throw new NotImplementedException();
             public Task<DataTableResponse<HoaDonRes>> GetDanhSachHoaDonAsync(DataTableRequest request, int chiNhanhId, int thang, int nam, int trangThai) => throw new NotImplementedException();
             public Task<DataTableResponse<HoaDonRes>> GetEmployeeInvoiceListAsync(DataTableRequest request, int chiNhanhId, int thang, int nam, int trangThai, int actorId) => throw new NotImplementedException();
@@ -689,6 +688,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             public Task<bool> CheckHoaDonOwnershipAsync(int hoaDonId, int nguoiThueId) => throw new NotImplementedException();
             public Task<(bool IsSuccess, string? ErrorMessage)> CheckInvoicePermissionAsync(int hoaDonId, int actorId, string actionCode) => throw new NotImplementedException();
             public Task<SendInvoiceEmailResult> SendInvoiceEmailAsync(int hoaDonId, int actorId, CancellationToken cancellationToken = default) => throw new NotImplementedException();
+            public Task<bool> CanTenantRequestPaymentAsync(int hoaDonId, int nguoiThueId, CancellationToken cancellationToken = default) => Task.FromResult(true);
         }
     }
 }

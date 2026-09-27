@@ -95,16 +95,11 @@ namespace QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers
             if (nguoiThueIdClaim == null) return Unauthorized();
             int nguoiThueId = int.Parse(nguoiThueIdClaim.Value);
 
-            var isOwn = await _hoaDonService.CheckHoaDonOwnershipAsync(hoaDonId, nguoiThueId);
-            if (!isOwn) return NotFound("Không tìm thấy hóa đơn hoặc không có quyền truy cập.");
+            var canPay = await _hoaDonService.CanTenantRequestPaymentAsync(hoaDonId, nguoiThueId);
+            if (!canPay) return BadRequest(new { Message = "Hóa đơn không ở trạng thái cho phép thanh toán hoặc không tồn tại." });
 
             var hd = await _hoaDonService.GetHoaDonByIdAsync(hoaDonId);
             if (hd == null) return NotFound(new { Message = "Không tìm thấy hóa đơn." });
-
-            if (hd.TrangThaiHoaDon != "Chưa thanh toán")
-            {
-                return BadRequest(new { Message = "Hóa đơn đã được thanh toán hoặc không hợp lệ." });
-            }
 
             var bankId = _configuration["VietQRSettings:BankId"] ?? "MB";
             var accountNumber = _configuration["VietQRSettings:AccountNumber"] ?? "";

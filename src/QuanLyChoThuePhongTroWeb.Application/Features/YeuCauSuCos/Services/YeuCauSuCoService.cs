@@ -1,9 +1,16 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Persistence;
+using QuanLyChoThuePhongTroWeb.Application.Abstractions.Security;
 using QuanLyChoThuePhongTroWeb.Application.Common.Enums;
+using QuanLyChoThuePhongTroWeb.Application.Common.Models;
+using QuanLyChoThuePhongTroWeb.Application.Common.Security;
+using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence;
+using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services;
 using QuanLyChoThuePhongTroWeb.Application.Features.YeuCauSuCos.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.YeuCauSuCos.Persistence;
 using QuanLyChoThuePhongTroWeb.Domain.Entities;
@@ -15,11 +22,22 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.YeuCauSuCos.Services
     {
         private readonly IYeuCauSuCoStore _store;
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IEmployeeAccessService _employeeAccessService;
+        private readonly IInvoiceIssuanceStore _invoiceIssuanceStore;
+        private readonly ILogger<YeuCauSuCoService> _logger;
 
-        public YeuCauSuCoService(IYeuCauSuCoStore store, IUnitOfWork unitOfWork)
+        public YeuCauSuCoService(
+            IYeuCauSuCoStore store,
+            IUnitOfWork unitOfWork,
+            IEmployeeAccessService employeeAccessService,
+            IInvoiceIssuanceStore invoiceIssuanceStore,
+            ILogger<YeuCauSuCoService> logger)
         {
             _store = store;
             _unitOfWork = unitOfWork;
+            _employeeAccessService = employeeAccessService;
+            _invoiceIssuanceStore = invoiceIssuanceStore;
+            _logger = logger;
         }
 
         private static YeuCauSuCoRes MapToRes(YeuCauSuCo entity)
@@ -91,23 +109,51 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.YeuCauSuCos.Services
             return await _unitOfWork.SaveChangesAsync() > 0;
         }
 
-        public async Task<bool> UpdateStatusAsync(int id, AppTrangThaiSuCo trangThai, decimal chiPhi, bool congVaoHoaDon, string? lyDoTuChoi, string? ghiChuAdmin)
+        public async Task<ServiceResult> UpdateStatusAsync(
+            int id,
+            AppTrangThaiSuCo trangThai,
+            decimal chiPhi,
+            bool congVaoHoaDon,
+            string? lyDoTuChoi,
+            string? ghiChuAdmin,
+            int actorId,
+            CancellationToken ct = default)
         {
-            var suco = await _store.GetByIdAsync(id);
-            if (suco == null || suco.IsDeleted) return false;
+            var suco = await _store.GetByIdAsync(id, ct);
+            if (suco == null || suco.IsDeleted)
+            {
+                return ServiceResult.Fail("Không tìm thấy sự cố.");
+            }
 
-            var domainTrangThai = (TrangThaiSuCo)(int)trangThai;
-            suco.TrangThai = domainTrangThai;
+            var branchId = suco.PhongTro?.ChiNhanhId ?? 0;
+            var canUpdate = await _employeeAccessService.CanPerformAsync(actorId, branchId, EmployeeActionCodes.InvoiceDraft, ct);
+            if (!canUpdate)
+            {
+                return ServiceResult.Fail("Bạn không có quyền cập nhật sự cố tại chi nhánh này.");
+            }
+
+            // Ghi nhận giá trị trước khi sửa
+            var oldTrangThai = suco.TrangThai;
+            var oldChiPhi = suco.ChiPhiSuaChua;
+            var oldCongVaoHoaDon = suco.CongVaoHoaDon;
+            var oldNgayXuLy = suco.NgayXuLy;
+            var oldLyDoTuChoi = suco.LyDoTuChoi;
+            var oldGhiChuAdmin = suco.GhiChuAdmin;
+
+            // Áp giá trị mới
+            var newDomainTrangThai = (TrangThaiSuCo)(int)trangThai;
+            suco.TrangThai = newDomainTrangThai;
             suco.ChiPhiSuaChua = chiPhi;
             suco.CongVaoHoaDon = congVaoHoaDon;
             suco.GhiChuAdmin = ghiChuAdmin;
-            
-            if (domainTrangThai == TrangThaiSuCo.DaHuy || domainTrangThai == TrangThaiSuCo.DaHoanThanh)
+
+            // Gán NgayXuLy = DateTime.UtcNow khi trangThaiCu != trangThaiMoi và trạng thái mới là DangXuLy, DaHoanThanh hoặc DaHuy (D1)
+            if (oldTrangThai != newDomainTrangThai && (newDomainTrangThai == TrangThaiSuCo.DangXuLy || newDomainTrangThai == TrangThaiSuCo.DaHoanThanh || newDomainTrangThai == TrangThaiSuCo.DaHuy))
             {
                 suco.NgayXuLy = DateTime.UtcNow;
             }
 
-            if (domainTrangThai == TrangThaiSuCo.DaHuy)
+            if (newDomainTrangThai == TrangThaiSuCo.DaHuy)
             {
                 suco.LyDoTuChoi = lyDoTuChoi;
             }
@@ -116,8 +162,100 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.YeuCauSuCos.Services
                 suco.LyDoTuChoi = null;
             }
 
-            _store.Update(suco);
-            return await _unitOfWork.SaveChangesAsync() > 0;
+            // Tính số tiền tính phí cũ và mới
+            var oldBilledAmount = (oldTrangThai == TrangThaiSuCo.DaHoanThanh && oldCongVaoHoaDon && oldChiPhi > 0 && !suco.IsDeleted) ? oldChiPhi : 0m;
+            var newBilledAmount = (newDomainTrangThai == TrangThaiSuCo.DaHoanThanh && congVaoHoaDon && chiPhi > 0 && !suco.IsDeleted) ? chiPhi : 0m;
+
+            var oldPeriod = GetVnPeriod(oldNgayXuLy);
+            var newPeriod = GetVnPeriod(suco.NgayXuLy);
+
+            if ((oldBilledAmount == 0m && newBilledAmount == 0m) || (oldBilledAmount == newBilledAmount && oldPeriod == newPeriod))
+            {
+                // Lưu bình thường không đụng hóa đơn
+                await _unitOfWork.SaveChangesAsync(ct);
+                return ServiceResult.Ok("Cập nhật trạng thái thành công.");
+            }
+
+            // Ngược lại: đồng bộ với hóa đơn trong transaction
+            var affectedPeriods = new List<(int Thang, int Nam)>();
+            if (oldPeriod.HasValue && oldBilledAmount > 0)
+            {
+                affectedPeriods.Add(oldPeriod.Value);
+            }
+            if (newPeriod.HasValue && newBilledAmount > 0)
+            {
+                affectedPeriods.Add(newPeriod.Value);
+            }
+
+            var distinctPeriods = affectedPeriods.Distinct().OrderBy(p => p.Nam).ThenBy(p => p.Thang).ToList();
+
+            void RevertInMemoryChanges()
+            {
+                suco.TrangThai = oldTrangThai;
+                suco.ChiPhiSuaChua = oldChiPhi;
+                suco.CongVaoHoaDon = oldCongVaoHoaDon;
+                suco.NgayXuLy = oldNgayXuLy;
+                suco.LyDoTuChoi = oldLyDoTuChoi;
+                suco.GhiChuAdmin = oldGhiChuAdmin;
+            }
+
+            await using var tx = await _unitOfWork.BeginTransactionAsync(ct);
+            try
+            {
+                var contractIds = await _invoiceIssuanceStore.GetContractIdsForTenantRoomPeriodsAsync(suco.PhongTroId, suco.NguoiThueId, distinctPeriods, ct);
+                var sortedContractIds = contractIds.OrderBy(x => x).ToList();
+                if (sortedContractIds.Any())
+                {
+                    await _invoiceIssuanceStore.LockContractsAsync(sortedContractIds, ct);
+                }
+
+                foreach (var (thang, nam) in distinctPeriods)
+                {
+                    var hoaDon = await _invoiceIssuanceStore.GetActiveInvoiceForTenantRoomPeriodForUpdateAsync(suco.PhongTroId, suco.NguoiThueId, thang, nam, ct);
+                    if (hoaDon == null)
+                    {
+                        continue;
+                    }
+
+                    if (hoaDon.TrangThaiPhatHanh != TrangThaiPhatHanhHoaDon.Nhap)
+                    {
+                        RevertInMemoryChanges();
+                        await tx.RollbackAsync(ct);
+                        return ServiceResult.Fail($"Hóa đơn tháng {thang}/{nam} đã gửi duyệt hoặc đã chốt. Admin cần trả lại hoặc hủy hóa đơn trước khi sửa chi phí sự cố.");
+                    }
+
+                    var startOfMonthVn = new DateTime(nam, thang, 1, 0, 0, 0, DateTimeKind.Unspecified);
+                    var endOfMonthVn = startOfMonthVn.AddMonths(1).AddDays(-1).AddHours(23).AddMinutes(59).AddSeconds(59);
+                    var startUtc = DateTime.SpecifyKind(startOfMonthVn.AddHours(-7), DateTimeKind.Utc);
+                    var endUtc = DateTime.SpecifyKind(endOfMonthVn.AddHours(-7), DateTimeKind.Utc);
+
+                    var billableIncidents = await _invoiceIssuanceStore.GetBillableIncidentsInPeriodAsync(new[] { suco.PhongTroId }, startUtc, endUtc, ct);
+                    var tenantIncidents = billableIncidents
+                        .Where(x => x.NguoiThueId == suco.NguoiThueId && x.Id != suco.Id)
+                        .ToList();
+
+                    if (newPeriod.HasValue && newPeriod.Value.Thang == thang && newPeriod.Value.Nam == nam && newBilledAmount > 0)
+                    {
+                        tenantIncidents.Add(suco);
+                    }
+
+                    var newLines = InvoiceIncidentLines.BuildIncidentLines(tenantIncidents);
+                    InvoiceIncidentLines.ReplaceIncidentLines(hoaDon, newLines);
+
+                    hoaDon.TongTien = Math.Round(hoaDon.ChiTietHoaDonDichVus.Where(x => !x.IsDeleted).Sum(x => x.TongTien), 2, MidpointRounding.AwayFromZero);
+                }
+
+                await _unitOfWork.SaveChangesAsync(ct);
+                await tx.CommitAsync(ct);
+                return ServiceResult.Ok("Cập nhật trạng thái thành công.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi cập nhật sự cố và đồng bộ hóa đơn Id={Id}", id);
+                RevertInMemoryChanges();
+                await tx.RollbackAsync(ct);
+                return ServiceResult.Fail("Không thể cập nhật sự cố. Vui lòng thử lại.");
+            }
         }
 
         public async Task<bool> SoftDeleteAsync(int id)
@@ -126,8 +264,14 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.YeuCauSuCos.Services
             if (suco == null) return false;
 
             suco.IsDeleted = true;
-            _store.Update(suco);
             return await _unitOfWork.SaveChangesAsync() > 0;
+        }
+
+        private static (int Thang, int Nam)? GetVnPeriod(DateTime? utc)
+        {
+            if (!utc.HasValue) return null;
+            var vn = utc.Value.AddHours(7);
+            return (vn.Month, vn.Year);
         }
     }
 }

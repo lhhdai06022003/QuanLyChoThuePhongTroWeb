@@ -1,6 +1,8 @@
 @{
     ViewData["Title"] = "Quản lý Hóa đơn";
+    var isAdmin = User.IsInRole("Admin");
 }
+@Html.AntiForgeryToken()
 <link rel="stylesheet" href="~/css/hoadon.css" asp-append-version="true" />
 
 
@@ -462,6 +464,7 @@
         }
 
         $(document).ready(function () {
+            var isAdmin = @(User.IsInRole("Admin") ? "true" : "false");
             var bankId = '@ViewBag.BankId';
             var accountNumber = '@ViewBag.AccountNumber';
             var accountName = '@ViewBag.AccountName';
@@ -508,8 +511,33 @@
                     {
                         "data": "trangThaiHoaDonValue", "className": "text-center align-middle", "orderable": false,
                         "render": function(d, t, r) {
-                            if (d === 1) return '<span class="badge bg-success-lt px-2 py-1"><i class="ti ti-circle-check me-1"></i> Đã thanh toán</span>';
-                            return '<span class="badge bg-warning-lt-lt px-2 py-1"><i class="ti ti-clock me-1"></i> Chưa thanh toán</span>';
+                            let phBadge = '';
+                            switch (r.trangThaiPhatHanhValue) {
+                                case 0:
+                                    phBadge = '<span class="badge bg-secondary-lt px-2 py-1"><i class="ti ti-file me-1"></i>Nháp</span>';
+                                    break;
+                                case 1:
+                                    phBadge = '<span class="badge bg-warning-lt px-2 py-1"><i class="ti ti-clock me-1"></i>Chờ duyệt</span>';
+                                    break;
+                                case 2:
+                                    phBadge = '<span class="badge bg-info-lt px-2 py-1"><i class="ti ti-check me-1"></i>Đã chốt</span>';
+                                    break;
+                                case 3:
+                                    phBadge = '<span class="badge bg-success-lt px-2 py-1"><i class="ti ti-send me-1"></i>Đã gửi</span>';
+                                    break;
+                                case 4:
+                                    phBadge = '<span class="badge bg-dark-lt px-2 py-1"><i class="ti ti-x me-1"></i>Đã hủy</span>';
+                                    break;
+                                default:
+                                    break;
+                            }
+                            let ttBadge = '';
+                            if (d === 1) {
+                                ttBadge = '<span class="badge bg-success-lt px-2 py-1"><i class="ti ti-circle-check me-1"></i> Đã thanh toán</span>';
+                            } else {
+                                ttBadge = '<span class="badge bg-warning-lt-lt px-2 py-1"><i class="ti ti-clock me-1"></i> Chưa thanh toán</span>';
+                            }
+                            return `<div class="d-flex flex-column gap-1 align-items-center">${phBadge}${ttBadge}</div>`;
                         }
                     },
                     {
@@ -525,13 +553,28 @@
                                             <button class="dropdown-item btn-detail text-info py-2" data-id="${data}">
                                                 <i class="ti ti-eye me-2"></i> Chi tiết Hóa đơn
                                             </button>
-                                            ${row.trangThaiHoaDonValue === 0 ? `
+                                            ${row.trangThaiPhatHanhValue === 0 ? `
+                                                <button class="dropdown-item btn-guiduyet text-primary py-2" data-id="${data}">
+                                                    <i class="ti ti-send me-2"></i> Gửi duyệt
+                                                </button>
                                                 <button class="dropdown-item btn-edit text-warning py-2" data-id="${data}">
                                                     <i class="ti ti-edit me-2"></i> Chỉnh sửa
                                                 </button>
+                                            ` : ''}
+                                            ${row.trangThaiPhatHanhValue === 1 && isAdmin ? `
+                                                <button class="dropdown-item btn-chot text-success py-2" data-id="${data}">
+                                                    <i class="ti ti-check me-2"></i> Chốt hóa đơn
+                                                </button>
+                                                <button class="dropdown-item btn-tralai text-danger py-2" data-id="${data}">
+                                                    <i class="ti ti-arrow-back me-2"></i> Trả lại
+                                                </button>
+                                            ` : ''}
+                                            ${row.trangThaiHoaDonValue === 0 && row.trangThaiPhatHanhValue === 3 ? `
                                                 <button class="dropdown-item btn-thutien text-success py-2" data-id="${data}" data-ma="${row.maHoaDon}" data-tien="${row.tongTien}">
                                                     <i class="ti ti-report-money me-2"></i> Thu tiền
                                                 </button>
+                                            ` : ''}
+                                            ${(row.trangThaiPhatHanhValue === 2 || row.trangThaiPhatHanhValue === 3) && row.trangThaiHoaDonValue === 0 ? `
                                                 <div class="dropdown-divider"></div>
                                                 <button class="dropdown-item btn-delete text-danger py-2" data-id="${data}">
                                                     <i class="ti ti-trash me-2"></i> Hủy hóa đơn
@@ -1285,6 +1328,108 @@
                         });
 
                         table.ajax.reload(null, false);
+                    }
+                });
+            });
+
+            // ========== Gửi duyệt hóa đơn ==========
+            $('#hoaDonTable').on('click', '.btn-guiduyet', function() {
+                let id = $(this).data('id');
+                Swal.fire({
+                    title: 'Xác nhận gửi duyệt?',
+                    text: 'Bạn có chắc chắn muốn gửi duyệt hóa đơn này?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Gửi duyệt',
+                    cancelButtonText: 'Hủy'
+                }).then((res) => {
+                    if (res.isConfirmed) {
+                        $.ajax({
+                            url: `/HoaDon/GuiDuyet/${id}`,
+                            type: 'POST',
+                            headers: {
+                                'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                            },
+                            success: function(r) {
+                                showSuccess(r.message || 'Gửi duyệt hóa đơn thành công!');
+                                table.ajax.reload(null, false);
+                            },
+                            error: function(xhr) {
+                                showError(xhr.responseJSON?.message || 'Có lỗi khi gửi duyệt hóa đơn.');
+                            }
+                        });
+                    }
+                });
+            });
+
+            // ========== Chốt hóa đơn ==========
+            $('#hoaDonTable').on('click', '.btn-chot', function() {
+                let id = $(this).data('id');
+                Swal.fire({
+                    title: 'Xác nhận chốt hóa đơn?',
+                    text: 'Bạn có chắc chắn muốn chốt hóa đơn này? Hóa đơn đã chốt sẽ không thể chỉnh sửa.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Chốt hóa đơn',
+                    cancelButtonText: 'Hủy'
+                }).then((res) => {
+                    if (res.isConfirmed) {
+                        $.ajax({
+                            url: `/HoaDon/Chot/${id}`,
+                            type: 'POST',
+                            headers: {
+                                'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                            },
+                            success: function(r) {
+                                showSuccess(r.message || 'Chốt hóa đơn thành công!');
+                                table.ajax.reload(null, false);
+                            },
+                            error: function(xhr) {
+                                showError(xhr.responseJSON?.message || 'Có lỗi khi chốt hóa đơn.');
+                            }
+                        });
+                    }
+                });
+            });
+
+            // ========== Trả lại hóa đơn ==========
+            $('#hoaDonTable').on('click', '.btn-tralai', function() {
+                let id = $(this).data('id');
+                Swal.fire({
+                    title: 'Trả lại hóa đơn',
+                    text: 'Vui lòng nhập lý do trả lại hóa đơn về trạng thái Nháp:',
+                    input: 'textarea',
+                    inputPlaceholder: 'Nhập lý do trả lại...',
+                    inputAttributes: {
+                        'aria-label': 'Lý do trả lại'
+                    },
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Trả lại',
+                    cancelButtonText: 'Hủy',
+                    inputValidator: (value) => {
+                        if (!value || !value.trim()) {
+                            return 'Lý do trả lại là bắt buộc!';
+                        }
+                    }
+                }).then((res) => {
+                    if (res.isConfirmed && res.value) {
+                        $.ajax({
+                            url: `/HoaDon/TraLai/${id}`,
+                            type: 'POST',
+                            contentType: 'application/json',
+                            headers: {
+                                'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                            },
+                            data: JSON.stringify({ lyDo: res.value.trim() }),
+                            success: function(r) {
+                                showSuccess(r.message || 'Trả lại hóa đơn thành công!');
+                                table.ajax.reload(null, false);
+                            },
+                            error: function(xhr) {
+                                showError(xhr.responseJSON?.message || 'Có lỗi khi trả lại hóa đơn.');
+                            }
+                        });
                     }
                 });
             });

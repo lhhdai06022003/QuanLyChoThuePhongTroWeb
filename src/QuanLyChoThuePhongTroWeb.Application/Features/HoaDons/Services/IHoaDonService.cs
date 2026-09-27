@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using QuanLyChoThuePhongTroWeb.Application.Common.Models;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs;
@@ -7,7 +8,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
 {
     public interface IHoaDonService
     {
-        Task<PhatSinhHoaDonResult> PhatSinhHoaDonAsync(int chiNhanhId, int thang, int nam, List<int> selectedPhongTroIds, int actorId = 0);
         Task<List<PhatSinhPreviewRes>> PreviewPhatSinhHoaDonAsync(int chiNhanhId, int thang, int nam, int actorId);
         Task<(bool IsSuccess, string? ErrorMessage)> UpdateHoaDonAsync(int hoaDonId, UpdateHoaDonReq req, int actorId = 0);
         Task<DataTableResponse<HoaDonRes>> GetDanhSachHoaDonAsync(DataTableRequest request, int chiNhanhId, int thang, int nam, int trangThai);
@@ -26,5 +26,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
         Task<bool> CheckHoaDonOwnershipAsync(int hoaDonId, int nguoiThueId);
         Task<(bool IsSuccess, string? ErrorMessage)> CheckInvoicePermissionAsync(int hoaDonId, int actorId, string actionCode);
         Task<SendInvoiceEmailResult> SendInvoiceEmailAsync(int hoaDonId, int actorId, CancellationToken cancellationToken = default);
+        Task<bool> CanTenantRequestPaymentAsync(int hoaDonId, int nguoiThueId, CancellationToken cancellationToken = default);
     }
 }
