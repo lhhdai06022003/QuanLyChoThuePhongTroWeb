@@ -35,5 +35,52 @@ namespace QuanLyChoThuePhongTroWeb.Domain.Entities
 
         [MaxLength(500)]
         public string? LyDo { get; set; }
+
+        public void ThuHoi(int actorId, DateTime nowUtc, string lyDo)
+        {
+            if (string.IsNullOrWhiteSpace(lyDo))
+            {
+                throw new ArgumentException("Lý do thu hồi không được để trống.", nameof(lyDo));
+            }
+
+            if (lyDo.Trim().Length > 500)
+            {
+                throw new ArgumentException("Lý do thu hồi tối đa 500 ký tự.", nameof(lyDo));
+            }
+
+            if (!DangHieuLuc())
+            {
+                throw new InvalidOperationException("Phân công không đang hiệu lực nên không thể thu hồi.");
+            }
+
+            IsActive = false;
+            NgayThuHoi = nowUtc;
+            NguoiThuHoiId = actorId;
+            LyDo = lyDo.Trim();
+        }
+
+        public void PhanCongLai(int actorId, DateTime nowUtc, string? lyDo)
+        {
+            var normalized = string.IsNullOrWhiteSpace(lyDo) ? null : lyDo.Trim();
+
+            if (normalized?.Length > 500)
+            {
+                throw new ArgumentException("Lý do tối đa 500 ký tự.", nameof(lyDo));
+            }
+
+            if (DangHieuLuc())
+            {
+                throw new InvalidOperationException("Phân công đang hiệu lực nên không thể phân công lại.");
+            }
+
+            IsActive = true;
+            NgayPhanCong = nowUtc;
+            NguoiPhanCongId = actorId;
+            NgayThuHoi = null;
+            NguoiThuHoiId = null;
+            LyDo = normalized;
+        }
+
+        private bool DangHieuLuc() => IsActive && NgayThuHoi == null;
     }
 }

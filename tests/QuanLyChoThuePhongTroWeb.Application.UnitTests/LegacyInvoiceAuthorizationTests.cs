@@ -252,11 +252,11 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             public Task<int> CountCancelledInvoicesAsync(int hopDongId, int thang, int nam, CancellationToken ct = default) => Task.FromResult(0);
             public Task<bool> HasOtherActiveInvoiceAsync(int hopDongId, int thang, int nam, int excludeHoaDonId, CancellationToken ct = default) => Task.FromResult(false);
             public Task AddInvoiceAsync(HoaDon hoaDon, CancellationToken ct = default) => Task.CompletedTask;
-            public Task<IReadOnlyList<YeuCauSuCo>> GetBillableIncidentsInPeriodAsync(IReadOnlyList<int> roomIds, DateTime startUtc, DateTime endUtc, CancellationToken ct = default) => Task.FromResult<IReadOnlyList<YeuCauSuCo>>(new List<YeuCauSuCo>());
+            public Task<IReadOnlyList<YeuCauSuCo>> GetBillableIncidentsInPeriodAsync(IReadOnlyList<int> roomIds, DateTime startUtc, DateTime nextMonthStartUtc, CancellationToken ct = default) => Task.FromResult<IReadOnlyList<YeuCauSuCo>>(new List<YeuCauSuCo>());
             public Task<HoaDon?> GetActiveInvoiceForTenantRoomPeriodForUpdateAsync(int phongTroId, int nguoiThueId, int thang, int nam, CancellationToken ct = default) => Task.FromResult<HoaDon?>(null);
             public Task<(int? MeterPeriodId, int ChiNhanhId)?> GetInvoiceLockTargetsAsync(int hoaDonId, CancellationToken ct = default) => Task.FromResult<(int? MeterPeriodId, int ChiNhanhId)?>(null);
             public Task<TrangThaiGhiNhan?> LockMeterPeriodAsync(int meterPeriodId, CancellationToken ct = default) => Task.FromResult<TrangThaiGhiNhan?>(null);
-            public Task<IReadOnlyList<int>> GetContractIdsForTenantRoomPeriodsAsync(int phongTroId, int nguoiThueId, IReadOnlyList<(int Thang, int Nam)> periods, CancellationToken ct = default) => Task.FromResult<IReadOnlyList<int>>(new List<int>());
+            public Task<IReadOnlyList<int>> GetContractIdsForTenantRoomAsync(int phongTroId, int nguoiThueId, CancellationToken ct = default) => Task.FromResult<IReadOnlyList<int>>(new List<int>());
         }
 
         private readonly FakeDocumentExporter _documentExporter;

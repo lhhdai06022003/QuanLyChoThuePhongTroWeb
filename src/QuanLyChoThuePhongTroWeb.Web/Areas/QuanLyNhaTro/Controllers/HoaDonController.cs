@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels;
 using System.Security.Claims;
+using QuanLyChoThuePhongTroWeb.Application.Abstractions.Security;
 using QuanLyChoThuePhongTroWeb.Application.Common.Security;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs;
 using Microsoft.Extensions.Logging;
@@ -17,14 +18,16 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         private readonly IVietQRService _vietQRService;
         private readonly ILogger<HoaDonController> _logger;
         private readonly IInvoiceIssuanceService _invoiceIssuanceService;
+        private readonly IEmployeeAccessService _employeeAccessService;
 
         public HoaDonController(
-            IHoaDonService hoaDonService, 
-            IPhongTroService phongTroService, 
-            Microsoft.Extensions.Configuration.IConfiguration configuration, 
+            IHoaDonService hoaDonService,
+            IPhongTroService phongTroService,
+            Microsoft.Extensions.Configuration.IConfiguration configuration,
             IVietQRService vietQRService,
             ILogger<HoaDonController> logger,
-            IInvoiceIssuanceService invoiceIssuanceService)
+            IInvoiceIssuanceService invoiceIssuanceService,
+            IEmployeeAccessService employeeAccessService)
         {
             _invoiceIssuanceService = invoiceIssuanceService;
             _hoaDonService = hoaDonService;
@@ -32,6 +35,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             _configuration = configuration;
             _vietQRService = vietQRService;
             _logger = logger;
+            _employeeAccessService = employeeAccessService;
         }
 
         [Route("QuanLyNhaTro/QuanLyHoaDon")]
@@ -42,6 +46,15 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             ViewBag.BankId = _configuration["VietQRSettings:BankId"] ?? "MB";
             ViewBag.AccountNumber = _configuration["VietQRSettings:AccountNumber"] ?? "";
             ViewBag.AccountName = _configuration["VietQRSettings:AccountName"] ?? "";
+
+            var chuaPhanCong = false;
+            if (User.IsInRole("NhanVien") && int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var actorId))
+            {
+                var scope = await _employeeAccessService.GetScopeAsync(actorId);
+                chuaPhanCong = scope != null && !scope.IsAdmin && scope.ActiveBranchIds.Count == 0;
+            }
+            ViewBag.ChuaPhanCongChiNhanh = chuaPhanCong;
+
             return View();
         }
 

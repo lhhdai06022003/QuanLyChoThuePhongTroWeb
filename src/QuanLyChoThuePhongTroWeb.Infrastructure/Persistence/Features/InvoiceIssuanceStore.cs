@@ -66,7 +66,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
             await _context.HoaDons.AddAsync(hoaDon, ct);
         }
 
-        public async Task<IReadOnlyList<YeuCauSuCo>> GetBillableIncidentsInPeriodAsync(IReadOnlyList<int> roomIds, DateTime startUtc, DateTime endUtc, CancellationToken ct = default)
+        public async Task<IReadOnlyList<YeuCauSuCo>> GetBillableIncidentsInPeriodAsync(IReadOnlyList<int> roomIds, DateTime startUtc, DateTime nextMonthStartUtc, CancellationToken ct = default)
         {
             if (roomIds == null || roomIds.Count == 0)
             {
@@ -82,7 +82,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                              && sc.TrangThai == TrangThaiSuCo.DaHoanThanh
                              && sc.NgayXuLy.HasValue
                              && sc.NgayXuLy.Value >= startUtc
-                             && sc.NgayXuLy.Value <= endUtc)
+                             && sc.NgayXuLy.Value < nextMonthStartUtc)
                 .ToListAsync(ct);
         }
 
@@ -126,7 +126,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
             return records.FirstOrDefault();
         }
 
-        public async Task<IReadOnlyList<int>> GetContractIdsForTenantRoomPeriodsAsync(int phongTroId, int nguoiThueId, IReadOnlyList<(int Thang, int Nam)> periods, CancellationToken ct = default)
+        public async Task<IReadOnlyList<int>> GetContractIdsForTenantRoomAsync(int phongTroId, int nguoiThueId, CancellationToken ct = default)
         {
             var contracts = await _context.HopDongs
                 .Where(h => h.PhongTroId == phongTroId && h.NguoiThueId == nguoiThueId && !h.IsDeleted)

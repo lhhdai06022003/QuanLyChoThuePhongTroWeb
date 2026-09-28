@@ -55,6 +55,8 @@ namespace QuanLyChoThuePhongTroWeb.Application
 
             // Security & Employee Access Services
             services.AddScoped<Abstractions.Security.IEmployeeAccessService, Features.NhanViens.Services.EmployeeAccessService>();
+            services.AddScoped<Features.NhanViens.Services.IEmployeeBranchAssignmentService, Features.NhanViens.Services.EmployeeBranchAssignmentService>();
+            services.AddScoped<Features.NguoiDungs.Services.IUserSessionService, Features.NguoiDungs.Services.UserSessionService>();
 
             return services;
         }

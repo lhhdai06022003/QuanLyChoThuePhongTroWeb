@@ -189,10 +189,10 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
                 return Task.CompletedTask;
             }
 
-            public Task<IReadOnlyList<YeuCauSuCo>> GetBillableIncidentsInPeriodAsync(IReadOnlyList<int> roomIds, DateTime startUtc, DateTime endUtc, CancellationToken ct = default)
+            public Task<IReadOnlyList<YeuCauSuCo>> GetBillableIncidentsInPeriodAsync(IReadOnlyList<int> roomIds, DateTime startUtc, DateTime nextMonthStartUtc, CancellationToken ct = default)
             {
                 var list = Incidents
-                    .Where(s => roomIds.Contains(s.PhongTroId) && !s.IsDeleted && s.CongVaoHoaDon && s.ChiPhiSuaChua > 0 && s.TrangThai == TrangThaiSuCo.DaHoanThanh && s.NgayXuLy.HasValue && s.NgayXuLy.Value >= startUtc && s.NgayXuLy.Value <= endUtc)
+                    .Where(s => roomIds.Contains(s.PhongTroId) && !s.IsDeleted && s.CongVaoHoaDon && s.ChiPhiSuaChua > 0 && s.TrangThai == TrangThaiSuCo.DaHoanThanh && s.NgayXuLy.HasValue && s.NgayXuLy.Value >= startUtc && s.NgayXuLy.Value < nextMonthStartUtc)
                     .ToList();
                 return Task.FromResult<IReadOnlyList<YeuCauSuCo>>(list);
             }
@@ -217,7 +217,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
                 return Task.FromResult<TrangThaiGhiNhan?>(PeriodStatus);
             }
 
-            public Task<IReadOnlyList<int>> GetContractIdsForTenantRoomPeriodsAsync(int phongTroId, int nguoiThueId, IReadOnlyList<(int Thang, int Nam)> periods, CancellationToken ct = default)
+            public Task<IReadOnlyList<int>> GetContractIdsForTenantRoomAsync(int phongTroId, int nguoiThueId, CancellationToken ct = default)
             {
                 return Task.FromResult<IReadOnlyList<int>>(new List<int> { 1 });
             }

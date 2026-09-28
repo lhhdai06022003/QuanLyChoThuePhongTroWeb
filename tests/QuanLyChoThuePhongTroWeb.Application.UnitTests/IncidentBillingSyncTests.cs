@@ -101,10 +101,10 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             public Task<bool> HasOtherActiveInvoiceAsync(int hopDongId, int thang, int nam, int excludeHoaDonId, CancellationToken ct = default) => Task.FromResult(false);
             public Task AddInvoiceAsync(HoaDon hoaDon, CancellationToken ct = default) => Task.CompletedTask;
 
-            public Task<IReadOnlyList<YeuCauSuCo>> GetBillableIncidentsInPeriodAsync(IReadOnlyList<int> roomIds, DateTime startUtc, DateTime endUtc, CancellationToken ct = default)
+            public Task<IReadOnlyList<YeuCauSuCo>> GetBillableIncidentsInPeriodAsync(IReadOnlyList<int> roomIds, DateTime startUtc, DateTime nextMonthStartUtc, CancellationToken ct = default)
             {
                 var filtered = BillableIncidents
-                    .Where(x => roomIds.Contains(x.PhongTroId) && x.NgayXuLy >= startUtc && x.NgayXuLy <= endUtc)
+                    .Where(x => roomIds.Contains(x.PhongTroId) && x.NgayXuLy >= startUtc && x.NgayXuLy < nextMonthStartUtc)
                     .ToList();
                 return Task.FromResult<IReadOnlyList<YeuCauSuCo>>(filtered);
             }
@@ -118,7 +118,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             public Task<(int? MeterPeriodId, int ChiNhanhId)?> GetInvoiceLockTargetsAsync(int hoaDonId, CancellationToken ct = default) => Task.FromResult<(int? MeterPeriodId, int ChiNhanhId)?>(null);
             public Task<TrangThaiGhiNhan?> LockMeterPeriodAsync(int meterPeriodId, CancellationToken ct = default) => Task.FromResult<TrangThaiGhiNhan?>(null);
 
-            public Task<IReadOnlyList<int>> GetContractIdsForTenantRoomPeriodsAsync(int phongTroId, int nguoiThueId, IReadOnlyList<(int Thang, int Nam)> periods, CancellationToken ct = default)
+            public Task<IReadOnlyList<int>> GetContractIdsForTenantRoomAsync(int phongTroId, int nguoiThueId, CancellationToken ct = default)
             {
                 return Task.FromResult<IReadOnlyList<int>>(ContractIds);
             }

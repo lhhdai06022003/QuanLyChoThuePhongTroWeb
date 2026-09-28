@@ -123,6 +123,20 @@
 
 > **Ghi chú nghiệm thu đợt 1:** Phần "công bố" ở dòng 3 và "chặn gửi lại email cho bản hủy" ở dòng 4 thuộc Mục 7–8 (đợt 2); đợt 1 chỉ làm nháp → chờ duyệt → chốt/trả lại, hủy và sự cố cộng hóa đơn theo tháng `NgayXuLy`. Kiểm chứng độc lập: build 0/0; Domain 71, Application 283, Web 47, Infrastructure 205 (5/5 lần) PASS trên `quanlyphongtro_test`; EF không có thay đổi model. Người dùng thử tay đạt 5 bước trên DB dev.
 
+## 6B. Phân công nhân viên theo chi nhánh và khóa màn quản trị (đầu đợt 2 — đợt 2A) *(hoàn thành, review độc lập và thử tay ngày 28/09/2026)*
+
+> Theo `spec.md` §12, chốt ngày 27/09/2026. Không đổi schema; dùng bảng `nhan_vien_chi_nhanh` hiện có.
+
+- [x] Domain: `NhanVienChiNhanh.ThuHoi` và `PhanCongLai` giữ invariant (thu hồi cần lý do, không thu hồi lặp; phân công lại xóa thông tin thu hồi). Test Domain đỏ trước rồi xanh.
+- [x] Application: `IEmployeeBranchAssignmentService` (danh sách, chi tiết, danh sách chi nhánh, phân công, thu hồi). Chỉ Admin đang hoạt động trong DB; đích phải là `NhanVien` chưa xóa; chi nhánh chưa xóa. Phân công lại dùng lại dòng cũ; lệnh lặp không đổi dữ liệu. Test với fake store.
+- [x] Infrastructure: khóa `nguoi_dung` của nhân viên đích bằng `FOR UPDATE` trong transaction rồi đọc/ghi dòng phân công; truy vấn chiếu cho danh sách/chi tiết. Test PostgreSQL hai lệnh phân công đồng thời chỉ tạo một dòng (dò `pg_locks`, không `Task.Delay`).
+- [x] Khóa `NguoiDungController` (trừ `DangNhap`/`DangXuat`) và `ChiNhanhsController` chỉ Admin; menu ẩn mục quản trị với nhân viên; `OnValidatePrincipal` kiểm tra lại tài khoản (tồn tại, chưa xóa, `IsActive`, role trùng claim) qua use case Application. Báo người B về thay đổi phiên đăng nhập dùng chung.
+- [x] Web: trang `/QuanLyNhaTro/PhanCongChiNhanh` (bảng nhân viên, lọc chi nhánh, modal phân công/thu hồi có lý do), nút "Chi nhánh" ở màn Quản lý tài khoản, banner "chưa được phân công" trên màn Điện nước/Hóa đơn/Sự cố. Test Web: nhân viên bị chặn (chuyển về DangNhap, xem spec §12.3) ở mọi route quản trị, antiforgery, `DangNhap` ẩn danh, phiên cũ mất hiệu lực sau khi khóa/đổi role.
+- [x] Kèm hai P3 của đợt 1: mốc tháng dùng khoảng nửa mở `[đầu tháng, đầu tháng sau)` ở cả ba chỗ tính tháng (có test mốc `23:59:59.5` giờ VN); `GetContractIdsForTenantRoomPeriodsAsync` dùng tham số `periods` hoặc đổi tên đúng hành vi.
+- [x] Thử tay trên DB dev theo `spec.md` §12.6 rồi mới tick mục này.
+
+> Nghiệm thu 28/09/2026: Domain 85, Application 312, Infrastructure 210 (3/3 lần), Web 90 (DB `quanlyphongtro_test`); EF không báo thay đổi model. Thử tay đủ 5 bước §12.6. Sau thử tay: bỏ ô lý do khi phân công và sửa lỗi modal Bootstrap chặn gõ lý do thu hồi (`data-bs-focus="false"`). Q1: tài khoản khách vãng lai bị kiểm tra phiên từ chối — đã ghi để báo người B. Việc thấp dời sang đầu đợt 2B: thêm ca "Admin gọi được" cho `CreateApi`/`EditApi`/`ThemChiNhanhMoi`/`CapNhatChiNhanh`/`ThuHoi`, ca nhân viên gọi `RevokeAsync`, khẳng định số log trong test phục hồi phiên.
+
 ## 7. Công bố trên cổng
 
 > **Ghi chú đợt 1:** Đã làm trước trong đợt 1: lọc cổng khách (danh sách, chi tiết, VietQR không lộ nháp hay đã hủy chưa gửi), chặn ThuTien khi chưa DaGui.
@@ -169,7 +183,7 @@
 - Create: `src/QuanLyChoThuePhongTroWeb.Web/Api/V1/InvoiceIssuanceController.cs`
 - Modify: `tests/QuanLyChoThuePhongTroWeb.Web.IntegrationTests/Areas/AreaRoutingTests.cs`
 
-- [ ] Web nhận `IFormFile`, chuyển `UploadFile`; JPEG/PNG tối đa 5 MB, kiểm tra nội dung. Màn khách cho tải ảnh mới khi ảnh/OCR lỗi; màn nhân viên tách số OCR và số chính thức, duyệt/nhập tay kèm lý do; màn Admin chốt/trả lại hóa đơn. Không tạo ô số khách đề xuất hoặc màn cấp quyền nhân viên trong đợt này.
+- [ ] Web nhận `IFormFile`, chuyển `UploadFile`; JPEG/PNG tối đa 5 MB, kiểm tra nội dung. Màn khách cho tải ảnh mới khi ảnh/OCR lỗi; màn nhân viên tách số OCR và số chính thức, duyệt/nhập tay kèm lý do; màn Admin chốt/trả lại hóa đơn. Không tạo ô số khách đề xuất hoặc màn cấp quyền chức năng riêng từng nhân viên (phương án 2) trong đợt này; màn phân công chi nhánh làm ở Mục 6B.
 - [ ] Màn hóa đơn hiển thị preview, tạo/gửi hàng loạt và kết quả email tức thời theo từng `HoaDonId`. Sau khi tải lại trang chỉ hiển thị trạng thái công bố trên cổng, không suy ra email đã gửi hay thất bại. Nút "Gửi lại email" trên `DaGui` có cảnh báo khả năng gửi trùng; bản hủy không có nút này. Nút theo role/chi nhánh và trạng thái; Application vẫn quyết định quyền.
 - [ ] API v1 gọi cùng service, 400 cho input sai, 403/404 cho không có quyền/tài nguyên, 409 cho xung đột; bảo vệ POST với auth/CSRF phù hợp cookie hiện có.
 - [ ] Test route, antiforgery, phân công đúng/sai chi nhánh, Admin-only chốt/trả lại, ảnh sai định dạng, khách xem nháp qua URL. Test lô có một SMTP lỗi và một thành công vẫn công bố cả hai; bấm "Gửi hóa đơn" lặp/hai request đồng thời chỉ có một thông báo/sự kiện công bố và không tự gửi email lần nữa; "Gửi lại email" là thao tác riêng, có quyền và chặn bản hủy.

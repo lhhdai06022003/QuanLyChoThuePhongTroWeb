@@ -72,6 +72,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
             var endOfMonthVn = startOfMonthVn.AddMonths(1).AddDays(-1).AddHours(23).AddMinutes(59).AddSeconds(59);
             var startOfMonthUtc = DateTime.SpecifyKind(startOfMonthVn.AddHours(-7), DateTimeKind.Utc);
             var endOfMonthUtc = DateTime.SpecifyKind(endOfMonthVn.AddHours(-7), DateTimeKind.Utc);
+            var nextMonthStartUtc = DateTime.SpecifyKind(startOfMonthVn.AddMonths(1).AddHours(-7), DateTimeKind.Utc);
             var daysInMonth = DateTime.DaysInMonth(nam, thang);
 
             var phongIds = phongTros.Select(p => p.PhongTroId).ToList();
@@ -84,7 +85,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
             var dangKyDvsLookup = dangKyDvs.ToLookup(d => d.PhongTroId);
 
             var suCosCanCong = _issuanceStore != null
-                ? await _issuanceStore.GetBillableIncidentsInPeriodAsync(phongIds, startOfMonthUtc, endOfMonthUtc)
+                ? await _issuanceStore.GetBillableIncidentsInPeriodAsync(phongIds, startOfMonthUtc, nextMonthStartUtc)
                 : await _store.GetBillableSuCosAsync(phongIds);
             var suCosLookup = suCosCanCong.ToLookup(x => x.PhongTroId);
 

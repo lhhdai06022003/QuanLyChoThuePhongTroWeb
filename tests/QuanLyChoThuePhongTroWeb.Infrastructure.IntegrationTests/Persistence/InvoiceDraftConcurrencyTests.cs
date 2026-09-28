@@ -303,13 +303,13 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
 
             await using var ctx = _fixture.CreateDbContext();
 
-            // Khung tháng 9/2026 theo giờ VN (UTC+7):
-            // startOfMonthUtc = 31/08/2026 17:00:00 UTC (01/09 00:00 VN)
-            // endOfMonthUtc = 30/09/2026 16:59:59.999 UTC (30/09 23:59:59 VN)
+            // Khung tháng 9/2026 theo giờ VN (UTC+7), nửa mở [startUtc, nextMonthStartUtc):
+            // startUtc = 31/08/2026 17:00:00 UTC (01/09 00:00 VN)
+            // nextMonthStartUtc = 30/09/2026 17:00:00 UTC (01/10 00:00 VN)
             var startOfMonthVn = new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Unspecified);
-            var endOfMonthVn = startOfMonthVn.AddMonths(1).AddDays(-1).AddHours(23).AddMinutes(59).AddSeconds(59);
             var startUtc = DateTime.SpecifyKind(startOfMonthVn.AddHours(-7), DateTimeKind.Utc);
-            var endUtc = DateTime.SpecifyKind(endOfMonthVn.AddHours(-7), DateTimeKind.Utc);
+            // Nửa mở [startUtc, nextMonthStartUtc): nextMonthStartUtc = 01/10 00:00 giờ VN = 30/09 17:00 UTC.
+            var nextMonthStartUtc = DateTime.SpecifyKind(startOfMonthVn.AddMonths(1).AddHours(-7), DateTimeKind.Utc);
 
             // 1. Thuộc tháng 9: 30/09 23:30 VN = 16:30 UTC
             var sc1 = new YeuCauSuCo
@@ -399,7 +399,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             await ctx.SaveChangesAsync();
 
             var store = new InvoiceIssuanceStore(ctx);
-            var results = await store.GetBillableIncidentsInPeriodAsync(new[] { room.PhongTroId }, startUtc, endUtc);
+            var results = await store.GetBillableIncidentsInPeriodAsync(new[] { room.PhongTroId }, startUtc, nextMonthStartUtc);
 
             Assert.Single(results);
             Assert.Equal("Sự cố tháng 9 hợp lệ", results[0].TieuDe);

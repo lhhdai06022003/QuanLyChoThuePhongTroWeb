@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.Extensions.Logging;
+using QuanLyChoThuePhongTroWeb.Application.Abstractions.Security;
 using QuanLyChoThuePhongTroWeb.Models;
 using System;
 using System.Security.Claims;
@@ -17,17 +18,20 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         private readonly IChiNhanhService _chiNhanhService;
         private readonly IThongBaoService _thongBaoService;
         private readonly ILogger<YeuCauSuCoController> _logger;
+        private readonly IEmployeeAccessService _employeeAccessService;
 
         public YeuCauSuCoController(
-            IYeuCauSuCoService yeuCauSuCoService, 
-            IChiNhanhService chiNhanhService, 
+            IYeuCauSuCoService yeuCauSuCoService,
+            IChiNhanhService chiNhanhService,
             IThongBaoService thongBaoService,
-            ILogger<YeuCauSuCoController> logger)
+            ILogger<YeuCauSuCoController> logger,
+            IEmployeeAccessService employeeAccessService)
         {
             _yeuCauSuCoService = yeuCauSuCoService;
             _chiNhanhService = chiNhanhService;
             _thongBaoService = thongBaoService;
             _logger = logger;
+            _employeeAccessService = employeeAccessService;
         }
 
         public async Task<IActionResult> Index(int? chiNhanhId, QuanLyChoThuePhongTroWeb.Application.Common.Enums.AppTrangThaiSuCo? trangThai, int? soThang = 6)
@@ -38,6 +42,14 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             ViewBag.ChiNhanhId = new SelectList(chiNhanhs, "ChiNhanhId", "TenChiNhanh", chiNhanhId);
             ViewBag.CurrentTrangThai = trangThai;
             ViewBag.CurrentSoThang = soThang ?? 6;
+
+            var chuaPhanCong = false;
+            if (User.IsInRole("NhanVien") && int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var actorId))
+            {
+                var scope = await _employeeAccessService.GetScopeAsync(actorId);
+                chuaPhanCong = scope != null && !scope.IsAdmin && scope.ActiveBranchIds.Count == 0;
+            }
+            ViewBag.ChuaPhanCongChiNhanh = chuaPhanCong;
 
             return View(data);
         }

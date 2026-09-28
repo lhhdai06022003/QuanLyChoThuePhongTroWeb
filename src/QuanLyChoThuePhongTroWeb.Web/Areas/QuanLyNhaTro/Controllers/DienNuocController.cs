@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using QuanLyChoThuePhongTroWeb.Application.Abstractions.Security;
 
 namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
 {
@@ -10,12 +11,14 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         private readonly IDienNuocService _dienNuocService;
         private readonly IPhongTroService _phongTroService;
         private readonly ILogger<DienNuocController> _logger;
+        private readonly IEmployeeAccessService _employeeAccessService;
 
-        public DienNuocController(IDienNuocService dienNuocService, IPhongTroService phongTroService, ILogger<DienNuocController> logger)
+        public DienNuocController(IDienNuocService dienNuocService, IPhongTroService phongTroService, ILogger<DienNuocController> logger, IEmployeeAccessService employeeAccessService)
         {
             _dienNuocService = dienNuocService;
             _phongTroService = phongTroService;
             _logger = logger;
+            _employeeAccessService = employeeAccessService;
         }
 
         [Route("QuanLyNhaTro/ChotDienNuoc")]
@@ -23,6 +26,15 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         public async Task<IActionResult> Index()
         {
             ViewBag.ListChiNhanh = await _phongTroService.GetDanhSachChiNhanhDropdownAsync();
+
+            var chuaPhanCong = false;
+            if (User.IsInRole("NhanVien") && int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var actorId))
+            {
+                var scope = await _employeeAccessService.GetScopeAsync(actorId);
+                chuaPhanCong = scope != null && !scope.IsAdmin && scope.ActiveBranchIds.Count == 0;
+            }
+            ViewBag.ChuaPhanCongChiNhanh = chuaPhanCong;
+
             return View();
         }
 

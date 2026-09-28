@@ -23,8 +23,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence
 
         Task AddInvoiceAsync(HoaDon hoaDon, CancellationToken ct = default);
 
-        // D1: sự cố tính phí có NgayXuLy trong [startUtc, endUtc], thuộc các phòng đã cho, DaHoanThanh, CongVaoHoaDon, ChiPhi > 0, !IsDeleted
-        Task<IReadOnlyList<YeuCauSuCo>> GetBillableIncidentsInPeriodAsync(IReadOnlyList<int> roomIds, DateTime startUtc, DateTime endUtc, CancellationToken ct = default);
+        // D1: sự cố tính phí có NgayXuLy trong [startUtc, nextMonthStartUtc), thuộc các phòng đã cho, DaHoanThanh, CongVaoHoaDon, ChiPhi > 0, !IsDeleted
+        Task<IReadOnlyList<YeuCauSuCo>> GetBillableIncidentsInPeriodAsync(IReadOnlyList<int> roomIds, DateTime startUtc, DateTime nextMonthStartUtc, CancellationToken ct = default);
 
         // D1: hóa đơn đang hoạt động (!IsDeleted) của hợp đồng có phòng/khách/tháng cho trước, FOR UPDATE, Include ChiTiet; null nếu chưa có
         Task<HoaDon?> GetActiveInvoiceForTenantRoomPeriodForUpdateAsync(int phongTroId, int nguoiThueId, int thang, int nam, CancellationToken ct = default);
@@ -35,7 +35,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence
         // SELECT ... FROM dich_vu_dien_nuoc_cua_phong WHERE id = @id FOR UPDATE (AsNoTracking, chỉ để giữ khóa và đọc trạng thái)
         Task<TrangThaiGhiNhan?> LockMeterPeriodAsync(int meterPeriodId, CancellationToken ct = default);
 
-        // D1 (Task 3b): Tìm hợp đồng đang/đã hiệu lực cho phòng và khách thuê trong các kỳ (tháng/năm)
-        Task<IReadOnlyList<int>> GetContractIdsForTenantRoomPeriodsAsync(int phongTroId, int nguoiThueId, IReadOnlyList<(int Thang, int Nam)> periods, CancellationToken ct = default);
+        // D1 (Task 3b): mọi hợp đồng chưa xóa của phòng + khách; khóa dư có chủ đích
+        Task<IReadOnlyList<int>> GetContractIdsForTenantRoomAsync(int phongTroId, int nguoiThueId, CancellationToken ct = default);
     }
 }

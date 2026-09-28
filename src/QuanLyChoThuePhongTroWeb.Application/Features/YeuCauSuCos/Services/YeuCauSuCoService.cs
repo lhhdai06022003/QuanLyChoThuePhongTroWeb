@@ -202,7 +202,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.YeuCauSuCos.Services
             await using var tx = await _unitOfWork.BeginTransactionAsync(ct);
             try
             {
-                var contractIds = await _invoiceIssuanceStore.GetContractIdsForTenantRoomPeriodsAsync(suco.PhongTroId, suco.NguoiThueId, distinctPeriods, ct);
+                var contractIds = await _invoiceIssuanceStore.GetContractIdsForTenantRoomAsync(suco.PhongTroId, suco.NguoiThueId, ct);
                 var sortedContractIds = contractIds.OrderBy(x => x).ToList();
                 if (sortedContractIds.Any())
                 {
@@ -225,11 +225,10 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.YeuCauSuCos.Services
                     }
 
                     var startOfMonthVn = new DateTime(nam, thang, 1, 0, 0, 0, DateTimeKind.Unspecified);
-                    var endOfMonthVn = startOfMonthVn.AddMonths(1).AddDays(-1).AddHours(23).AddMinutes(59).AddSeconds(59);
                     var startUtc = DateTime.SpecifyKind(startOfMonthVn.AddHours(-7), DateTimeKind.Utc);
-                    var endUtc = DateTime.SpecifyKind(endOfMonthVn.AddHours(-7), DateTimeKind.Utc);
+                    var nextMonthStartUtc = DateTime.SpecifyKind(startOfMonthVn.AddMonths(1).AddHours(-7), DateTimeKind.Utc);
 
-                    var billableIncidents = await _invoiceIssuanceStore.GetBillableIncidentsInPeriodAsync(new[] { suco.PhongTroId }, startUtc, endUtc, ct);
+                    var billableIncidents = await _invoiceIssuanceStore.GetBillableIncidentsInPeriodAsync(new[] { suco.PhongTroId }, startUtc, nextMonthStartUtc, ct);
                     var tenantIncidents = billableIncidents
                         .Where(x => x.NguoiThueId == suco.NguoiThueId && x.Id != suco.Id)
                         .ToList();

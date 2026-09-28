@@ -92,6 +92,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
             var endOfMonthVn = startOfMonthVn.AddMonths(1).AddDays(-1).AddHours(23).AddMinutes(59).AddSeconds(59);
             var startOfMonthUtc = DateTime.SpecifyKind(startOfMonthVn.AddHours(-7), DateTimeKind.Utc);
             var endOfMonthUtc = DateTime.SpecifyKind(endOfMonthVn.AddHours(-7), DateTimeKind.Utc);
+            var nextMonthStartUtc = DateTime.SpecifyKind(startOfMonthVn.AddMonths(1).AddHours(-7), DateTimeKind.Utc);
             var daysInMonth = DateTime.DaysInMonth(request.Nam, request.Thang);
 
             var hopDongs = await _hoaDonStore.GetValidContractsForBillingAsync(actualBranchId, distinctSelectedRoomIds, startOfMonthUtc, endOfMonthUtc, ct);
@@ -114,7 +115,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                 var serviceRegistrations = await _hoaDonStore.GetDangKyDichVusForBillingAsync(distinctSelectedRoomIds, startOfMonthUtc, endOfMonthUtc, ct);
                 var serviceLookup = serviceRegistrations.ToLookup(x => x.PhongTroId);
 
-                var billableIncidents = await _issuanceStore.GetBillableIncidentsInPeriodAsync(distinctSelectedRoomIds, startOfMonthUtc, endOfMonthUtc, ct);
+                var billableIncidents = await _issuanceStore.GetBillableIncidentsInPeriodAsync(distinctSelectedRoomIds, startOfMonthUtc, nextMonthStartUtc, ct);
                 var incidentLookup = billableIncidents.ToLookup(x => x.PhongTroId);
 
                 var items = new List<InvoiceDraftItemResult>();
