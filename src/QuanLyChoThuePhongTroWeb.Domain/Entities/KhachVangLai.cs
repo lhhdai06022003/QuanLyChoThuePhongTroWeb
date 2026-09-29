@@ -27,6 +27,9 @@ namespace QuanLyChoThuePhongTroWeb.Domain.Entities
         [MaxLength(20)]
         public string SoDienThoai { get; set; }
 
+        [MaxLength(20)]
+        public string? CCCD { get; set; }
+
         public bool DaXacMinhEmail { get; set; } = false;
 
         public DateTime NgayTao { get; set; } = DateTime.UtcNow;

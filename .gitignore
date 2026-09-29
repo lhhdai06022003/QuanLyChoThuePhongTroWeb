@@ -381,6 +381,8 @@ secrets.json
 **/sent_contract_alerts.json
 **/sent_*.json
 /wwwroot/uploads/
+**/wwwroot/uploads/
+**/private-proofs/
 
 # Local database and backup files
 *.db
@@ -395,3 +397,4 @@ secrets.json
 .agent/
 .agents/
 AGENTS.md
+!/AGENTS.md

@@ -10,6 +10,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Configurations
         {
             builder.Property(y => y.SoTienGiuCho)
                 .HasPrecision(18, 2);
+            builder.Property(y => y.GiaThueDaChot).HasPrecision(18, 2);
 
             builder.Property(y => y.LyDoTuChoiHoacHuy)
                 .HasMaxLength(500);

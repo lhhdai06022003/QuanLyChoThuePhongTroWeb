@@ -98,6 +98,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs
         public string GhiChuTrangThai { get; set; } = string.Empty;
         public decimal TongTienDuKien { get; set; }
         public int SuCoCount { get; set; }
+        public decimal TienCocCanTruDuKien { get; set; }
     }
 
     public class PhatSinhHoaDonResult

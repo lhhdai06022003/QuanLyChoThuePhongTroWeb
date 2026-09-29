@@ -5,6 +5,7 @@ namespace QuanLyChoThuePhongTroWeb.Domain.Enums
         ChoHoanTien = 0,
         DangHoanTien = 1,
         DaHoanTien = 2,
-        DaHuy = 3
+        DaHuy = 3,
+        KhongHoan = 4
     }
 }

@@ -25,6 +25,20 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.DichVus.Persistence.IDichVuStore, Persistence.Features.DichVuStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.NguoiThues.Persistence.INguoiThueStore, Persistence.Features.NguoiThueStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.PhongTros.Persistence.IPhongTroStore, Persistence.Features.PhongTroStore>();
+            services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.PhongCongKhais.Persistence.IPhongCongKhaiStore, Persistence.Features.PhongCongKhaiStore>();
+            services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.PhongCongKhais.Persistence.ITinPhongStore, Persistence.Features.TinPhongStore>();
+            services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.LichXemPhongs.Persistence.ILichXemPhongStore, Persistence.Features.LichXemPhongStore>();
+            services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.LichXemPhongs.Persistence.IKhungGioXemPhongStore, Persistence.Features.KhungGioXemPhongStore>();
+            services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.KhachVangLais.Persistence.IKhachVangLaiStore, Persistence.Features.KhachVangLaiStore>();
+            services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.GiuChos.Persistence.IGiuChoStore, Persistence.Features.GiuChoStore>();
+            services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.GiuChos.Services.IReservationProofStorage, ExternalServices.Storage.LocalReservationProofStorage>();
+            services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.PhongCongKhais.Services.IRoomPhotoStorage, ExternalServices.Storage.CloudinaryRoomPhotoStorage>();
+            services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.GiuChos.Persistence.IThanhToanGiuChoStore, Persistence.Features.ThanhToanGiuChoStore>();
+            services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.GiuChos.Persistence.IHoanTienGiuChoStore, Persistence.Features.HoanTienGiuChoStore>();
+            services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.GiuChos.Persistence.ITheoDoiGiuChoStore, Persistence.Features.TheoDoiGiuChoStore>();
+            services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.GiuChos.Persistence.IChuyenHopDongGiuChoStore, Persistence.Features.ChuyenHopDongGiuChoStore>();
+            services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.GiuChos.Persistence.ICanTruTienGiuChoStore, Persistence.Features.CanTruTienGiuChoStore>();
+            services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.GiuChos.Persistence.IHetHanGiuChoStore, Persistence.Features.HetHanGiuChoStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.ThanhVienHopDongs.Persistence.IThanhVienHopDongStore, Persistence.Features.ThanhVienHopDongStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.ThongBaos.Persistence.IThongBaoStore, Persistence.Features.ThongBaoStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.NguoiDungs.Persistence.INguoiDungStore, Persistence.Features.NguoiDungStore>();
@@ -66,6 +80,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure
                 services.AddHostedService<BackgroundJobs.ContractAutoCloseJob>();
                 services.AddHostedService<BackgroundJobs.ContractExpiryAlertJob>();
                 services.AddHostedService<BackgroundJobs.InvoiceReminderJob>();
+                services.AddHostedService<BackgroundJobs.HetHanGiuChoJob>();
             }
 
             return services;

@@ -16,6 +16,7 @@ using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.UseCases;
 using QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.UseCases;
 using QuanLyChoThuePhongTroWeb.Infrastructure.BackgroundJobs;
+using QuanLyChoThuePhongTroWeb.Application.Features.GiuChos.UseCases;
 using Xunit;
 
 namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.BackgroundJobs
@@ -42,6 +43,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.BackgroundJob
                 .ConfigureServices((context, services) =>
                 {
                     services.AddInfrastructure(context.Configuration);
+                    services.AddScoped<IHetHanGiuChoUseCase, EmptyReservationExpiryUseCase>();
                     services.RemoveAll<IContractAutoCloseUseCase>();
                     services.AddScoped<IContractAutoCloseUseCase>(_ => autoClose);
                     services.RemoveAll<IContractExpiryAlertUseCase>();
@@ -96,6 +98,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.BackgroundJob
                 {
                     // Register infrastructure layer
                     services.AddInfrastructure(context.Configuration);
+                    services.AddScoped<IHetHanGiuChoUseCase, EmptyReservationExpiryUseCase>();
 
                     // Replace use cases with observable test doubles to avoid hitting database while proving job execution
                     services.RemoveAll<IContractAutoCloseUseCase>();
@@ -169,6 +172,11 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.BackgroundJob
             AssertShutdownLogFor<ContractAutoCloseJob>(logSink);
             AssertShutdownLogFor<ContractExpiryAlertJob>(logSink);
             AssertShutdownLogFor<InvoiceReminderJob>(logSink);
+        }
+
+        private sealed class EmptyReservationExpiryUseCase : IHetHanGiuChoUseCase
+        {
+            public Task<int> ExecuteAsync(DateTime nowUtc) => Task.FromResult(0);
         }
 
         private static void AddTestLogging(IServiceCollection services, InMemoryLogSink logSink)

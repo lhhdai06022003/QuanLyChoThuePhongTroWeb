@@ -1,0 +1,18 @@
+@model PublicRoomDto
+@{ ViewData["Title"] = "Đặt phòng và đặt cọc"; }
+<div class="guest-container guest-form-page guest-reservation-page">
+    <a class="guest-back" asp-area="KhachVangLai" asp-controller="Phong" asp-action="ChiTiet" asp-route-maCongKhai="@Model.MaCongKhai">← Về thông tin phòng</a>
+    <p class="guest-kicker">Giữ chỗ</p>
+    <h1>Bắt đầu đặt cọc <em>@Model.TieuDe</em></h1>
+    <p>Gửi yêu cầu giữ chỗ trước. Khi nhân viên duyệt, bạn sẽ thấy số tiền cọc bằng 50% giá thuê tháng, hạn chuyển khoản và nơi gửi minh chứng. Gửi yêu cầu ở bước này chưa khóa phòng.</p>
+    @if (TempData["ReservationError"] is string error) { <p class="guest-validation" role="alert">@error</p> }
+    @if (ViewBag.ProfileError is string profileError) { <p class="guest-validation" role="alert">@profileError</p> }
+    <div class="guest-form-room"><span>PHÒNG BẠN CHỌN</span><strong>@Model.TieuDe</strong><small>@Model.TenChiNhanh · @Model.GiaThue.ToString("N0") ₫ / tháng</small></div>
+    @if (ViewBag.ProfileError is null) {
+    <form method="post" asp-area="KhachVangLai" asp-controller="GiuCho" asp-action="Tao" asp-route-maCongKhai="@Model.MaCongKhai" class="guest-reservation-actions">
+        @Html.AntiForgeryToken()
+        @if (ViewBag.YeuCauXemPhongId is int viewingId) { <input type="hidden" name="yeuCauXemPhongId" value="@viewingId" /> }
+        <button class="guest-button guest-button-primary" type="submit">Gửi yêu cầu để đặt cọc <span aria-hidden="true">↗</span></button>
+    </form>
+    }
+</div>

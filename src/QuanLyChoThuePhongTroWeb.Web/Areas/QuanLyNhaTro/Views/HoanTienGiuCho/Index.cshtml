@@ -1,0 +1,46 @@
+@model IReadOnlyList<QuanLyChoThuePhongTroWeb.Application.Features.GiuChos.DTOs.RefundCandidateDto>
+@{ ViewData["Title"] = "Hoàn tiền giữ chỗ"; }
+<div class="container-xl py-4">
+    <div class="page-header mb-4"><h1>Hoàn tiền giữ chỗ</h1><p class="text-secondary">Duyệt số tiền trên khoản thực nhận; ghi nhận từng lần chuyển hoàn bằng mã giao dịch ngân hàng.</p></div>
+    @if (TempData["RefundError"] is string error) { <div class="alert alert-danger">@error</div> }
+    @if (TempData["RefundSuccess"] is string success) { <div class="alert alert-success">@success</div> }
+    @foreach (var item in Model)
+    {
+        <section class="card mb-3"><div class="card-body row g-4">
+            <div class="col-lg-4">
+                <span class="badge bg-blue-lt">@GuestStatusText.Of(item.TrangThaiGiuCho)</span>
+                <h2 class="h3 mt-2">Phòng @item.TenPhong</h2>
+                <p>@item.TenChiNhanh · @item.KhachHang · #@item.ReservationId</p>
+                <p>Thực nhận: <strong>@item.SoTienThucNhan.ToString("N0") ₫</strong></p>
+                @if (item.DecisionId is not null)
+                {
+                    <p>Đã duyệt: @item.SoTienDaDuyet?.ToString("N0") ₫<br />Đã hoàn thực tế: @item.SoTienDaHoan.ToString("N0") ₫<br />Còn chờ hoàn: @((item.SoTienDaDuyet.GetValueOrDefault() - item.SoTienDaHoan).ToString("N0")) ₫</p>
+                    <p>Trạng thái: @GuestStatusText.Of(item.TrangThaiHoan) · @item.LyDo</p>
+                }
+            </div>
+            @if (item.DecisionId is null)
+            {
+                <form class="col-lg-4 d-grid gap-2 align-content-start" asp-action="Duyet" asp-route-id="@item.ReservationId" method="post">
+                    @Html.AntiForgeryToken()
+                    <h3 class="h4">Quyết định hoàn</h3>
+                    <label>Số tiền duyệt (0 đến số thực nhận)<input class="form-control" name="soTienHoanDuyet" type="number" min="0" max="@item.SoTienThucNhan" step="1" required /></label>
+                    <label>Lý do<input class="form-control" name="lyDo" maxlength="500" required /></label>
+                    <button class="btn btn-primary" type="submit">Lưu quyết định</button>
+                </form>
+            }
+            else if (item.SoTienDaDuyet > item.SoTienDaHoan)
+            {
+                <form class="col-lg-4 d-grid gap-2 align-content-start" asp-action="GhiNhan" asp-route-id="@item.DecisionId" method="post">
+                    @Html.AntiForgeryToken()
+                    <h3 class="h4">Ghi nhận đã chuyển</h3>
+                    <label>Mã giao dịch hoàn<input class="form-control" name="maGiaoDichHoan" maxlength="100" required /></label>
+                    <label>Số tiền đã hoàn<input class="form-control" name="soTienHoan" type="number" min="1" max="@(item.SoTienDaDuyet - item.SoTienDaHoan)" step="1" required /></label>
+                    <label>Thời điểm chuyển hoàn<input class="form-control" name="ngayHoan" type="datetime-local" required /></label>
+                    <label>Ghi chú<input class="form-control" name="ghiChu" maxlength="500" /></label>
+                    <button class="btn btn-success" type="submit">Ghi nhận giao dịch</button>
+                </form>
+            }
+        </div></section>
+    }
+    @if (Model.Count == 0) { <div class="card p-4 text-secondary">Chưa có yêu cầu có thể xử lý hoàn.</div> }
+</div>

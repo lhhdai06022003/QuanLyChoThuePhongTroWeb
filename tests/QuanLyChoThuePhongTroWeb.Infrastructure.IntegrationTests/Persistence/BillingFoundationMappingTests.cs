@@ -23,13 +23,13 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
         }
 
         [Fact]
-        public void Model_ShouldContainExactly37BusinessEntities()
+        public void Model_ShouldContainExactly38BusinessEntities()
         {
             var entityTypes = _context.Model.GetEntityTypes()
                 .Where(e => !e.IsOwned())
                 .ToList();
 
-            Assert.Equal(37, entityTypes.Count);
+            Assert.Equal(38, entityTypes.Count);
             Assert.DoesNotContain(entityTypes, e => e.GetTableName() == "ket_qua_nhan_dang_chi_so");
             Assert.DoesNotContain(entityTypes, e => e.GetTableName() == "lich_su_dieu_chinh_chi_so");
         }
@@ -99,7 +99,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
         }
 
         [Fact]
-        public async Task AppliedDatabase_ShouldContainExactly37BusinessTables()
+        public async Task AppliedDatabase_ShouldContainExactly38BusinessTables()
         {
             var connectionString = Environment.GetEnvironmentVariable("QLCTPT_TEST_CONNECTION_STRING");
             Assert.False(string.IsNullOrWhiteSpace(connectionString));
@@ -116,7 +116,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
                   AND table_name <> '__EFMigrationsHistory';
                 """;
             var tableCount = Convert.ToInt32(await countCommand.ExecuteScalarAsync());
-            Assert.Equal(37, tableCount);
+            Assert.Equal(38, tableCount);
 
             await using var removedTablesCommand = connection.CreateCommand();
             removedTablesCommand.CommandText = """

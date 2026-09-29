@@ -428,6 +428,18 @@
             text-decoration: underline;
         }
 
+        .register-hint {
+            margin-top: 18px;
+            color: var(--slate-600);
+            font-size: 14px;
+            text-align: center;
+        }
+
+        .register-hint .helper-link:focus-visible {
+            outline: 2px solid var(--amber-700);
+            outline-offset: 3px;
+        }
+
         /* Nút Đăng nhập chính */
         .btn-submit {
             width: 100%;
@@ -619,6 +631,10 @@
                 }
 
                 <form action="/QuanLyNhaTro/DangNhap" method="post" id="loginForm">
+                    @if (TempData["AccountSuccess"] is string accountSuccess)
+                    {
+                        <p role="status" class="helper-link" style="margin-bottom: 20px">@accountSuccess</p>
+                    }
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="returnUrl" value="@ViewBag.ReturnUrl" />
 
@@ -630,7 +646,7 @@
                                    id="txtTenDangNhap"
                                    class="input-control"
                                    name="TenDangNhap"
-                                   placeholder="Tên tài khoản quản lý hoặc khách thuê"
+                                   placeholder="Nhập tên đăng nhập của bạn"
                                    required
                                    autocomplete="username"
                                    value="@(Model?.TenDangNhap)">
@@ -676,6 +692,8 @@
                         <i class="ti ti-arrow-right"></i>
                     </button>
                 </form>
+
+                <p class="register-hint">Chưa có tài khoản? <a class="helper-link" asp-area="KhachVangLai" asp-controller="TaiKhoan" asp-action="DangKy" asp-route-returnUrl="@ViewBag.ReturnUrl">Đăng ký để hẹn xem và đặt phòng</a></p>
 
                 <!-- Thử nghiệm nhanh tài khoản demo -->
                 <div class="quick-demo-section">

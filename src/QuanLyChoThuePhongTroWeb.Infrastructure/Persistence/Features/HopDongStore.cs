@@ -387,6 +387,18 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
 
         public async Task AddAsync(HopDong hopDong, CancellationToken cancellationToken = default)
         {
+            if (_context.Database.CurrentTransaction is null)
+                throw new InvalidOperationException("Tạo hợp đồng phải nằm trong transaction.");
+            await _context.PhongTros.FromSqlInterpolated(
+                $"SELECT * FROM phong_tro WHERE \"PhongTroId\" = {hopDong.PhongTroId} FOR UPDATE")
+                .SingleAsync(cancellationToken);
+            if (await _context.YeuCauGiuChos.AnyAsync(hold => hold.PhongTroId == hopDong.PhongTroId &&
+                    (hold.TrangThai == TrangThaiYeuCauGiuCho.ChoThanhToan ||
+                     hold.TrangThai == TrangThaiYeuCauGiuCho.ChoXacNhanTien ||
+                     hold.TrangThai == TrangThaiYeuCauGiuCho.DangGiuCho), cancellationToken))
+                throw new InvalidOperationException("Phòng có giữ chỗ hoạt động. Hãy lập hợp đồng từ yêu cầu giữ chỗ đó.");
+            if (await IsRoomRentedAsync(hopDong.PhongTroId, cancellationToken))
+                throw new InvalidOperationException("Phòng vừa có hợp đồng khác.");
             await _context.HopDongs.AddAsync(hopDong, cancellationToken);
         }
 
@@ -405,8 +417,22 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
             await _context.NguoiDungs.AddAsync(nguoiDung, cancellationToken);
         }
 
-        public void Update(HopDong hopDong)
+        public async Task UpdateAsync(HopDong hopDong)
         {
+            if (hopDong.TrangThaiHopDong == TrangThaiHopDong.DangHoatDong)
+            {
+                if (_context.Database.CurrentTransaction is null)
+                    throw new InvalidOperationException("Kích hoạt hợp đồng phải nằm trong transaction.");
+                await _context.PhongTros.FromSqlInterpolated(
+                    $"SELECT * FROM phong_tro WHERE \"PhongTroId\" = {hopDong.PhongTroId} FOR UPDATE").SingleAsync();
+                if (await _context.YeuCauGiuChos.AnyAsync(hold => hold.PhongTroId == hopDong.PhongTroId &&
+                    (hold.TrangThai == TrangThaiYeuCauGiuCho.ChoThanhToan ||
+                     hold.TrangThai == TrangThaiYeuCauGiuCho.ChoXacNhanTien ||
+                     hold.TrangThai == TrangThaiYeuCauGiuCho.DangGiuCho)))
+                    throw new InvalidOperationException("Phòng đang giữ chỗ. Hãy xử lý yêu cầu giữ chỗ trước.");
+                if (await IsRoomRentedExcludingContractAsync(hopDong.PhongTroId, hopDong.HopDongId))
+                    throw new InvalidOperationException("Phòng vừa có hợp đồng khác.");
+            }
             _context.HopDongs.Update(hopDong);
         }
 

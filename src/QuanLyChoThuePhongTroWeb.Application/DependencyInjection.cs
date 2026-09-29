@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using QuanLyChoThuePhongTroWeb.Application.Features.ChiNhanhs.Services;
 using QuanLyChoThuePhongTroWeb.Application.Features.DichVus.Services;
+using QuanLyChoThuePhongTroWeb.Application.Features.PhongCongKhais.Services;
 using QuanLyChoThuePhongTroWeb.Application.Features.DieuKhoanMaus.Services;
 using QuanLyChoThuePhongTroWeb.Application.Features.NguoiDungs.Services;
 using QuanLyChoThuePhongTroWeb.Application.Features.NguoiThues.Services;
@@ -23,6 +24,18 @@ namespace QuanLyChoThuePhongTroWeb.Application
             // Phase 6.1 services
             services.AddScoped<IDieuKhoanMauService, DieuKhoanMauService>();
             services.AddScoped<IDichVuService, DichVuService>();
+            services.AddScoped<IPhongCongKhaiService, PhongCongKhaiService>();
+            services.AddScoped<Features.PhongCongKhais.Services.ITinPhongService, Features.PhongCongKhais.Services.TinPhongService>();
+            services.AddScoped<Features.PhongCongKhais.Services.IPhongAnhService, Features.PhongCongKhais.Services.PhongAnhService>();
+            services.AddScoped<Features.LichXemPhongs.Services.ILichXemPhongService, Features.LichXemPhongs.Services.LichXemPhongService>();
+            services.AddScoped<Features.LichXemPhongs.Services.IKhungGioXemPhongService, Features.LichXemPhongs.Services.KhungGioXemPhongService>();
+            services.AddScoped<Features.KhachVangLais.Services.IKhachVangLaiService, Features.KhachVangLais.Services.KhachVangLaiService>();
+            services.AddScoped<Features.GiuChos.Services.IGiuChoService, Features.GiuChos.Services.GiuChoService>();
+            services.AddScoped<Features.GiuChos.Services.IThanhToanGiuChoService, Features.GiuChos.Services.ThanhToanGiuChoService>();
+            services.AddScoped<Features.GiuChos.Services.IHoanTienGiuChoService, Features.GiuChos.Services.HoanTienGiuChoService>();
+            services.AddScoped<Features.GiuChos.Services.ITheoDoiGiuChoService, Features.GiuChos.Services.TheoDoiGiuChoService>();
+            services.AddScoped<Features.GiuChos.UseCases.IHetHanGiuChoUseCase, Features.GiuChos.UseCases.HetHanGiuChoUseCase>();
+            services.AddScoped<Features.GiuChos.UseCases.IChuyenHopDongTuGiuChoUseCase, Features.GiuChos.UseCases.ChuyenHopDongTuGiuChoUseCase>();
             services.AddScoped<IChiNhanhService, ChiNhanhService>();
 
             // Phase 6.2 services

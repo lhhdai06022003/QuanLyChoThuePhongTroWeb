@@ -1,0 +1,36 @@
+@model IReadOnlyList<QuanLyChoThuePhongTroWeb.Application.Features.PhongCongKhais.DTOs.ManagedRoomImageDto>
+@{
+    ViewData["Title"] = "Ảnh phòng";
+    var room = (QuanLyChoThuePhongTroWeb.Application.Features.PhongCongKhais.DTOs.ManagedRoomDto)ViewBag.Room;
+}
+<div class="container-xl py-4">
+    <a asp-area="QuanLyNhaTro" asp-controller="TinPhong" asp-action="Index">← Tin phòng công khai</a>
+    <h1 class="mt-3">Ảnh phòng @room.SoPhong</h1><p class="text-secondary">@room.TenChiNhanh · Ảnh bìa xuất hiện đầu tiên trong tin công khai.</p>
+    @if (TempData["PhotoError"] is string error) { <div class="alert alert-danger">@error</div> }
+    @if (TempData["PhotoSuccess"] is string success) { <div class="alert alert-success">@success</div> }
+    <form asp-area="QuanLyNhaTro" asp-controller="TinPhong" asp-action="TaiAnh" asp-route-id="@room.Id" method="post" enctype="multipart/form-data" class="card p-3 mb-4 d-flex flex-row gap-2 flex-wrap align-items-end">
+        @Html.AntiForgeryToken()
+        <label>Chọn tối đa 10 ảnh PNG, JPEG hoặc WebP (mỗi ảnh tối đa 5 MB)<input class="form-control" name="images" type="file" accept="image/png,image/jpeg,image/webp" multiple required /></label>
+        <label>Chú thích chung (tùy chọn)<input class="form-control" name="caption" maxlength="255" /></label>
+        <button class="btn btn-primary" type="submit">Tải các ảnh đã chọn</button>
+    </form>
+    @if (Model.Count == 0) { <div class="card p-4 text-secondary">Chưa có ảnh phòng.</div> }
+    else
+    {
+        <div class="row g-3">
+        @foreach (var image in Model)
+        {
+            <div class="col-md-4"><div class="card h-100">
+                <img src="@image.Url" alt="@(image.ChuThich ?? $"Ảnh phòng {room.SoPhong}")" class="card-img-top" style="height:220px;object-fit:cover" />
+                <div class="card-body"><p>@image.ChuThich</p>
+                    @if (image.LaAnhDaiDien) { <span class="badge bg-green-lt">Ảnh bìa</span> }
+                    <div class="d-flex gap-2 mt-3">
+                        @if (!image.LaAnhDaiDien) { <form asp-area="QuanLyNhaTro" asp-controller="TinPhong" asp-action="ChonAnhBia" asp-route-id="@room.Id" method="post">@Html.AntiForgeryToken()<input type="hidden" name="imageId" value="@image.Id" /><button class="btn btn-outline-primary btn-sm" type="submit">Chọn làm bìa</button></form> }
+                        <form asp-area="QuanLyNhaTro" asp-controller="TinPhong" asp-action="AnAnh" asp-route-id="@room.Id" method="post">@Html.AntiForgeryToken()<input type="hidden" name="imageId" value="@image.Id" /><button class="btn btn-outline-danger btn-sm" type="submit">Ẩn ảnh</button></form>
+                    </div>
+                </div>
+            </div></div>
+        }
+        </div>
+    }
+</div>

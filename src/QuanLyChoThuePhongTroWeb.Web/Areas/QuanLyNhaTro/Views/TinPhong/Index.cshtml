@@ -1,0 +1,38 @@
+@model IReadOnlyList<QuanLyChoThuePhongTroWeb.Application.Features.PhongCongKhais.DTOs.ManagedRoomDto>
+@{ ViewData["Title"] = "Tin phòng công khai"; }
+<div class="container-xl py-4">
+    <div class="page-header mb-4"><h1>Tin phòng công khai</h1><p class="text-secondary">Đăng tin cho phòng trống hoặc ẩn tin. Phòng đang thuê, bảo trì hay giữ chỗ sẽ không xuất hiện công khai.</p></div>
+    @if (TempData["ListingError"] is string error) { <div class="alert alert-danger">@error</div> }
+    @if (TempData["ListingSuccess"] is string success) { <div class="alert alert-success">@success</div> }
+    <div class="card"><div class="table-responsive"><table class="table table-vcenter card-table">
+        <thead><tr><th>Phòng</th><th>Giá</th><th>Trạng thái</th><th>Ảnh</th><th>Tin công khai</th></tr></thead>
+        <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td><strong>@item.SoPhong</strong><br /><small>@item.TenChiNhanh</small></td>
+                <td>@item.GiaThue.ToString("N0") ₫ / tháng</td>
+                <td>@item.TrangThai</td>
+                <td><a asp-area="QuanLyNhaTro" asp-controller="TinPhong" asp-action="Anh" asp-route-id="@item.Id">@item.SoAnh ảnh · quản lý ↗</a></td>
+                <td>
+                    <form method="post" asp-area="QuanLyNhaTro" asp-controller="TinPhong" asp-action="CapNhat" asp-route-id="@item.Id" class="d-flex gap-2 align-items-center flex-wrap">
+                        @Html.AntiForgeryToken()
+                        <input class="form-control" name="title" value="@item.TieuDe" maxlength="255" placeholder="Tiêu đề tin phòng" aria-label="Tiêu đề tin phòng @item.SoPhong" style="max-width:260px" />
+                        @if (item.DuocDangTin)
+                        {
+                            <button class="btn btn-outline-danger" name="published" value="false" type="submit">Ẩn tin</button>
+                            @if (item.MaCongKhai is not null) { <a href="/phong/@item.MaCongKhai" target="_blank" rel="noopener noreferrer">Xem tin ↗</a> }
+                        }
+                        else
+                        {
+                            <button class="btn btn-primary" name="published" value="true" type="submit" disabled="@(item.TrangThai != "Trong")">Đăng tin</button>
+                        }
+                    </form>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+    @if (Model.Count == 0) { <p class="p-4 text-secondary">Không có phòng thuộc chi nhánh bạn quản lý.</p> }
+    </div></div>
+</div>

@@ -63,5 +63,6 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence
         public DbSet<ApDungTienGiuChoVaoTienCoc> ApDungTienGiuChoVaoTienCocs { get; set; }
         public DbSet<QuyetDinhHoanTienGiuCho> QuyetDinhHoanTienGiuChos { get; set; }
         public DbSet<GiaoDichHoanTienGiuCho> GiaoDichHoanTienGiuChos { get; set; }
+        public DbSet<CanTruTienGiuChoHoaDon> CanTruTienGiuChoHoaDons { get; set; }
     }
 }

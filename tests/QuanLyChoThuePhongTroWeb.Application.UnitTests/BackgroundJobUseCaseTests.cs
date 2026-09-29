@@ -141,7 +141,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             public Task AddMembersAsync(IEnumerable<ChiTietThanhVienHopDong> members, CancellationToken cancellationToken = default) => throw new NotImplementedException();
             public Task AddTermsAsync(IEnumerable<HopDongDieuKhoan> terms, CancellationToken cancellationToken = default) => throw new NotImplementedException();
             public Task AddNguoiDungAsync(NguoiDung nguoiDung, CancellationToken cancellationToken = default) => throw new NotImplementedException();
-            public void Update(HopDong hopDong) => throw new NotImplementedException();
+            public Task UpdateAsync(HopDong hopDong) => throw new NotImplementedException();
             public void UpdatePhongTro(PhongTro phongTro) => throw new NotImplementedException();
             public void RemoveTerms(IEnumerable<HopDongDieuKhoan> terms) => throw new NotImplementedException();
         }

@@ -22,6 +22,9 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Configurations
                 .IsRequired()
                 .HasMaxLength(20);
 
+            builder.Property(k => k.CCCD)
+                .HasMaxLength(20);
+
             builder.Property(k => k.DaXacMinhEmail)
                 .HasDefaultValue(false);
 

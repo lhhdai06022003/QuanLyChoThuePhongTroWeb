@@ -10,10 +10,14 @@ Các README sau mô tả **công việc dự kiến và người sở hữu**, t
 | --- | --- | --- |
 | [Ảnh chỉ số, OCR và hóa đơn](anh-chi-so-hoa-don/README.md) | A | Nền database và hóa đơn cũ đã có; luồng mới chưa hoàn chỉnh |
 | [Thanh toán hóa đơn](thanh-toan-hoa-don/README.md) | A | VietQR và một phần Application Service đã có; Web chưa nối đủ |
-| [Phòng công khai và lịch xem](phong-cong-khai-lich-xem/README.md) | B | Có model/schema; chưa có luồng công khai/đặt lịch hoàn chỉnh |
-| [Khách vãng lai, giữ chỗ, cọc và hoàn tiền](khach-vang-lai-giu-cho/README.md) | B | Có model/schema; chưa có luồng Application/Web hoàn chỉnh |
+| [Phòng công khai và lịch xem](phong-cong-khai-lich-xem/README.md) | B | Đã có tin công khai, gallery, khung giờ và đặt/xử lý lịch |
+| [Khách vãng lai, giữ chỗ, cọc và hoàn tiền](khach-vang-lai-giu-cho/README.md) | B | Đã có tài khoản, giữ chỗ, minh chứng, đối chiếu, hợp đồng/cấn trừ và hoàn tiền |
 
 Quyền sở hữu file và lịch 60 ngày nằm trong [roadmap](../roadmap-60-ngay.md). Không đánh dấu hoàn thành chỉ vì đã có entity, migration hoặc thư mục tài liệu.
+
+## Đặc tả trải nghiệm khách vãng lai
+
+[SPEC — Cổng khách vãng lai](cong-khach-vang-lai/SPEC.md) và [PLAN triển khai](cong-khach-vang-lai/PLAN.md) kết nối hai module phòng công khai/lịch xem và khách vãng lai/giữ chỗ thành một luồng từ giao diện đến backend. Đã triển khai ngày 26/09/2026. Xem [hướng dẫn sử dụng và cấu hình](cong-khach-vang-lai/README.md); PLAN ghi kết quả kiểm thử và những chính sách chưa tự động hóa.
 
 
 ## Vai trò người dùng
@@ -22,6 +26,7 @@ Quyền sở hữu file và lịch 60 ngày nằm trong [roadmap](../roadmap-60-
 | --- | --- |
 | Admin | Truy cập cổng quản lý, tài khoản, cấu hình nghiệp vụ và các thao tác quản trị |
 | NhanVien | Truy cập cổng quản lý theo các controller dùng AdminBaseController; entity phân công chi nhánh đã có nhưng luồng phân quyền mới chưa hoàn chỉnh |
+| KhachVangLai | Cổng `/phong`, lịch xem, giữ chỗ, thanh toán/minh chứng và theo dõi hoàn của chính mình |
 | KhachThue | Xem dữ liệu gắn với claim NguoiThueId: dashboard, hồ sơ, hợp đồng, hóa đơn, thanh toán, sự cố và thông báo |
 
 ## Cổng quản lý
@@ -132,11 +137,8 @@ Các job nền chạy trong cùng process Web. BackgroundJobs:Enabled=false tắ
 Các mục sau có tài liệu thiết kế hoặc thư mục khung nhưng chưa có luồng hoàn chỉnh trong mã nguồn:
 
 - API JSON /api/v1.
-- Cổng khách vãng lai và đăng phòng công khai.
-- Đặt lịch xem, giữ chỗ và chuyển tiền giữ chỗ sang cọc.
-- Xác nhận ảnh chuyển khoản, trả một phần và hoàn tiền giữ chỗ.
 - OCR chỉ số điện/nước và bước người dùng duyệt kết quả.
 - Hóa đơn nháp và quy trình duyệt trước khi gửi.
 - Mobile app, IoT và CI workflow.
 
-Migration 1 và Migration 2 đã có trong mã nguồn, lần lượt thêm 5 và 15 bảng; EF model và kiểm thử kỳ vọng 37 bảng nghiệp vụ. Lần đối chiếu này chưa xác minh lại database đang chạy. Xem [roadmap 60 ngày](../roadmap-60-ngay.md), [spec hai migration](../superpowers/specs/2026-09-21-database-foundation-two-migrations-design.md) và hai kế hoạch triển khai trong [superpowers/plans](../superpowers/plans/).
+Migration 1 và Migration 2 đã có trong mã nguồn, lần lượt thêm 5 và 15 bảng; migration cấn trừ giữ chỗ bổ sung một bảng, hiện có 38 bảng nghiệp vụ được kiểm chứng trên PostgreSQL test. Xem [roadmap 60 ngày](../roadmap-60-ngay.md), [spec hai migration](../superpowers/specs/2026-09-21-database-foundation-two-migrations-design.md) và hai kế hoạch triển khai trong [superpowers/plans](../superpowers/plans/).

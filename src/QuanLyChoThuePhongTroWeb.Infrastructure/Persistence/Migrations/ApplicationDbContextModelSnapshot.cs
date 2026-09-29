@@ -206,6 +206,40 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.CanTruTienGiuChoHoaDon", b =>
+                {
+                    b.Property<int>("CanTruTienGiuChoHoaDonId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("CanTruTienGiuChoHoaDonId"));
+
+                    b.Property<int>("ApDungTienGiuChoVaoTienCocId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("HoaDonId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("NgayCanTru")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("SoTienCanTru")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.HasKey("CanTruTienGiuChoHoaDonId");
+
+                    b.HasIndex("ApDungTienGiuChoVaoTienCocId");
+
+                    b.HasIndex("HoaDonId")
+                        .IsUnique();
+
+                    b.ToTable("can_tru_tien_giu_cho_hoa_don", t =>
+                        {
+                            t.HasCheckConstraint("CK_CanTruGiuCho_SoTien", "\"SoTienCanTru\" > 0");
+                        });
+                });
+
             modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.ChiNhanh", b =>
                 {
                     b.Property<int>("ChiNhanhId")
@@ -810,6 +844,10 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Migrations
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("KhachVangLaiId"));
+
+                    b.Property<string>("CCCD")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
                     b.Property<bool>("DaXacMinhEmail")
                         .ValueGeneratedOnAdd()
@@ -1580,6 +1618,10 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("YeuCauGiuChoId"));
 
+                    b.Property<decimal?>("GiaThueDaChot")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
                     b.Property<DateTime?>("HanKyHopDong")
                         .HasColumnType("timestamp with time zone");
 
@@ -1941,6 +1983,25 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Migrations
                     b.Navigation("NguoiThucHien");
 
                     b.Navigation("YeuCauGiuCho");
+                });
+
+            modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.CanTruTienGiuChoHoaDon", b =>
+                {
+                    b.HasOne("QuanLyChoThuePhongTroWeb.Domain.Entities.ApDungTienGiuChoVaoTienCoc", "ApDungTienGiuChoVaoTienCoc")
+                        .WithMany()
+                        .HasForeignKey("ApDungTienGiuChoVaoTienCocId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuanLyChoThuePhongTroWeb.Domain.Entities.HoaDon", "HoaDon")
+                        .WithOne("CanTruGiuCho")
+                        .HasForeignKey("QuanLyChoThuePhongTroWeb.Domain.Entities.CanTruTienGiuChoHoaDon", "HoaDonId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ApDungTienGiuChoVaoTienCoc");
+
+                    b.Navigation("HoaDon");
                 });
 
             modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.ChiTietHoaDon", b =>
@@ -2508,6 +2569,8 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.HoaDon", b =>
                 {
+                    b.Navigation("CanTruGiuCho");
+
                     b.Navigation("ChiTietHoaDonDichVus");
 
                     b.Navigation("LichSuThanhToans");

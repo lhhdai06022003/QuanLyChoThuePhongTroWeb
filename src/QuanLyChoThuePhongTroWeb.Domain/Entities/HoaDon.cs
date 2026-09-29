@@ -41,6 +41,7 @@ namespace QuanLyChoThuePhongTroWeb.Domain.Entities
 
         public ICollection<ChiTietHoaDon> ChiTietHoaDonDichVus { get; set; } = new List<ChiTietHoaDon>();
         public ICollection<LichSuThanhToan> LichSuThanhToans { get; set; } = new List<LichSuThanhToan>();
+        public CanTruTienGiuChoHoaDon? CanTruGiuCho { get; set; }
         public ICollection<LichSuTrangThaiHoaDon> LichSuTrangThaiHoaDons { get; set; } = new List<LichSuTrangThaiHoaDon>();
         public ICollection<YeuCauThanhToanHoaDon> YeuCauThanhToanHoaDons { get; set; } = new List<YeuCauThanhToanHoaDon>();
 

@@ -1,0 +1,19 @@
+@model IReadOnlyList<QuanLyChoThuePhongTroWeb.Application.Features.GiuChos.DTOs.RefundCandidateDto>
+@{ ViewData["Title"] = "Theo dõi hoàn tiền"; }
+<div class="guest-container guest-form-page">
+    <h1>Theo dõi hoàn tiền</h1>
+    <p>Số tiền được duyệt và số tiền đã chuyển hoàn được cập nhật riêng.</p>
+    @foreach (var item in Model)
+    {
+        <section class="guest-reservation-card">
+            <div><h2>Phòng @item.TenPhong</h2><p>@item.TenChiNhanh</p><p>@item.LyDo</p></div>
+            <div>
+                <span class="guest-status">@(item.SoTienDaDuyet == 0 ? "Không hoàn tiền" : item.TrangThaiHoan == "DaHoanTien" ? "Đã hoàn đủ" : "Đang xử lý hoàn")</span>
+                <p>Được duyệt: <strong>@item.SoTienDaDuyet?.ToString("N0") ₫</strong></p>
+                <p>Đã hoàn thực tế: @item.SoTienDaHoan.ToString("N0") ₫</p>
+                <p>Còn chờ: @((item.SoTienDaDuyet.GetValueOrDefault() - item.SoTienDaHoan).ToString("N0")) ₫</p>
+            </div>
+        </section>
+    }
+    @if (Model.Count == 0) { <div class="guest-empty"><h2>Chưa có quyết định hoàn tiền</h2><a asp-area="KhachVangLai" asp-controller="GiuCho" asp-action="Index">Xem yêu cầu giữ chỗ</a></div> }
+</div>

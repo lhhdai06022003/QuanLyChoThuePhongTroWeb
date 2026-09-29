@@ -27,6 +27,8 @@ namespace QuanLyChoThuePhongTroWeb.Domain.Entities
 
         public decimal? SoTienGiuCho { get; set; }
 
+        public decimal? GiaThueDaChot { get; set; }
+
         public DateTime? HanThanhToan { get; set; }
 
         public DateTime? HanKyHopDong { get; set; }

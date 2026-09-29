@@ -1,0 +1,140 @@
+@model IReadOnlyList<QuanLyChoThuePhongTroWeb.Application.Features.GiuChos.DTOs.ReservationDto>
+@{ ViewData["Title"] = "Yêu cầu giữ chỗ"; }
+<div class="container-xl py-4">
+    <div class="page-header mb-4">
+        <h1>Yêu cầu giữ chỗ</h1>
+        <p class="text-secondary">Các yêu cầu thuộc chi nhánh bạn phụ trách.</p>
+    </div>
+    @if (TempData["ReservationError"] is string error) { <div class="alert alert-danger" role="alert">@error</div> }
+    @if (TempData["ReservationSuccess"] is string success) { <div class="alert alert-success" role="status">@success</div> }
+
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-vcenter card-table">
+                <thead>
+                    <tr><th>Yêu cầu</th><th>Khách</th><th>Trạng thái</th><th>Tiền giữ chỗ và thời hạn</th><th class="text-end">Thao tác</th></tr>
+                </thead>
+                <tbody>
+                @foreach (var item in Model)
+                {
+                    var amount = item.SoTienGiuCho ?? decimal.Round(item.GiaThue / 2m, 0, MidpointRounding.AwayFromZero);
+                    var statusClass = item.TrangThai switch
+                    {
+                        "MoiTao" => "bg-yellow-lt",
+                        "ChoThanhToan" or "ChoXacNhanTien" or "ChoXacNhan" or "DaBaoChuyen" => "bg-blue-lt",
+                        "DangGiuCho" or "DaChuyenHopDong" => "bg-green-lt",
+                        "TuChoi" or "HetHan" or "DaHuy" => "bg-red-lt",
+                        _ => "bg-secondary-lt"
+                    };
+                    <tr>
+                        <td>
+                            <strong>Phòng @item.TenPhong</strong>
+                            <div class="small text-secondary">Yêu cầu #@item.Id · @item.TenChiNhanh</div>
+                        </td>
+                        <td><span class="fw-medium">@item.KhachHang</span></td>
+                        <td><span class="badge @statusClass">@GuestStatusText.Of(item.TrangThai)</span></td>
+                        <td>
+                            <strong>@amount.ToString("N0") ₫</strong>
+                            <span class="small text-secondary">(50% tiền phòng)</span>
+                            @if (item.HanThanhToanUtc is DateTime paymentDue)
+                            {
+                                <div class="small text-secondary">Chuyển trước @paymentDue.AddHours(7).ToString("dd/MM/yyyy HH:mm")</div>
+                            }
+                            @if (item.HanKyHopDongUtc is DateTime signingDue)
+                            {
+                                <div class="small text-secondary">Ký trước @signingDue.AddHours(7).ToString("dd/MM/yyyy HH:mm")</div>
+                            }
+                        </td>
+                        <td class="text-end">
+                            <div class="d-flex flex-wrap gap-2 justify-content-end">
+                                @if (item.TrangThai == "MoiTao")
+                                {
+                                    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#approveReservationModal"
+                                            data-reservation-approve data-action-url="@Url.Action("Duyet", "GiuCho", new { area = "QuanLyNhaTro", id = item.Id })"
+                                            data-room="@item.TenPhong" data-customer="@item.KhachHang" data-amount="@amount.ToString("N0")">Duyệt giữ chỗ</button>
+                                }
+                                @if (item.TrangThai == "DangGiuCho")
+                                {
+                                    <a class="btn btn-success btn-sm" asp-controller="ChuyenHopDong" asp-action="Tao" asp-route-id="@item.Id">Lập hợp đồng</a>
+                                }
+                                @if (item.TrangThai is "MoiTao" or "ChoThanhToan")
+                                {
+                                    <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#closeReservationModal"
+                                            data-reservation-close data-action-url="@Url.Action("KetThucChuaThanhToan", "GiuCho", new { area = "QuanLyNhaTro", id = item.Id })"
+                                            data-room="@item.TenPhong" data-customer="@item.KhachHang">Kết thúc</button>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+        @if (Model.Count == 0)
+        {
+            <div class="card-body text-secondary">Chưa có yêu cầu giữ chỗ cần xử lý.</div>
+        }
+    </div>
+</div>
+
+<div class="modal modal-blur fade" id="approveReservationModal" tabindex="-1" aria-labelledby="approveReservationTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form id="approveReservationForm" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-header">
+                    <h2 class="modal-title" id="approveReservationTitle">Duyệt giữ chỗ</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-secondary mb-3" id="approveReservationSummary"></p>
+                    <div class="p-3 rounded bg-blue-lt mb-3">
+                        <div class="small">Tiền giữ chỗ cần chuyển</div>
+                        <strong class="fs-3" id="approveReservationAmount"></strong>
+                        <div class="small">Bằng 50% tiền thuê phòng niêm yết.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="reservationPaymentDue">Hạn chuyển tiền</label>
+                        <input class="form-control" id="reservationPaymentDue" name="hanThanhToan" type="datetime-local" required />
+                    </div>
+                    <div>
+                        <label class="form-label" for="reservationSigningDue">Hạn ký hợp đồng</label>
+                        <input class="form-control" id="reservationSigningDue" name="hanKyHopDong" type="datetime-local" required />
+                    </div>
+                    <p class="small text-secondary mt-3 mb-0">Thời gian theo giờ Việt Nam. Khách sẽ thấy các hạn này sau khi duyệt.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button>
+                    <button type="submit" class="btn btn-primary">Xác nhận duyệt</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal modal-blur fade" id="closeReservationModal" tabindex="-1" aria-labelledby="closeReservationTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form id="closeReservationForm" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-header">
+                    <h2 class="modal-title" id="closeReservationTitle">Kết thúc yêu cầu</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-secondary" id="closeReservationSummary"></p>
+                    <label class="form-label" for="closeReservationReason">Lý do từ chối hoặc hủy</label>
+                    <textarea class="form-control" id="closeReservationReason" name="lyDo" rows="3" maxlength="500" required></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Quay lại</button>
+                    <button type="submit" class="btn btn-danger">Kết thúc yêu cầu</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/staff-reservation-actions.js" asp-append-version="true" defer></script>
+}

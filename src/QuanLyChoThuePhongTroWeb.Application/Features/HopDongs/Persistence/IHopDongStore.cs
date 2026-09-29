@@ -39,7 +39,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.Persistence
         Task AddMembersAsync(IEnumerable<ChiTietThanhVienHopDong> members, CancellationToken cancellationToken = default);
         Task AddTermsAsync(IEnumerable<HopDongDieuKhoan> terms, CancellationToken cancellationToken = default);
         Task AddNguoiDungAsync(NguoiDung nguoiDung, CancellationToken cancellationToken = default);
-        void Update(HopDong hopDong);
+        Task UpdateAsync(HopDong hopDong);
         void UpdatePhongTro(PhongTro phongTro);
         void RemoveTerms(IEnumerable<HopDongDieuKhoan> terms);
     }

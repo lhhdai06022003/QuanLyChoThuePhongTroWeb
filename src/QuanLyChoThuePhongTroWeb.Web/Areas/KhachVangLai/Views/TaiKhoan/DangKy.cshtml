@@ -1,0 +1,26 @@
+@model QuanLyChoThuePhongTroWeb.Areas.KhachVangLai.ViewModels.DangKyViewModel
+@{ ViewData["Title"] = "Tạo tài khoản"; }
+<div class="guest-container guest-account-page">
+    <div class="guest-account-intro">
+        <p class="guest-kicker">Bắt đầu hành trình</p>
+        <h1>Chọn phòng.<br /><em>Giữ chỗ.</em></h1>
+        <p>Tạo tài khoản để gửi yêu cầu giữ chỗ và theo dõi các bước tiếp theo.</p>
+        <span class="guest-account-art" aria-hidden="true"></span>
+    </div>
+    <form class="guest-viewing-form guest-account-form" method="post" asp-area="KhachVangLai" asp-controller="TaiKhoan" asp-action="DangKy">
+        @Html.AntiForgeryToken()
+        <input name="ReturnUrl" type="hidden" value="@Model.ReturnUrl" />
+        <h2>Tạo tài khoản</h2>
+        <div asp-validation-summary="ModelOnly" class="guest-validation" role="alert"></div>
+        <label asp-for="HoTen">Họ và tên</label><input asp-for="HoTen" autocomplete="name" /><span asp-validation-for="HoTen" class="guest-validation"></span>
+        <label asp-for="SoDienThoai">Số điện thoại</label><input asp-for="SoDienThoai" type="tel" autocomplete="tel" /><span asp-validation-for="SoDienThoai" class="guest-validation"></span>
+        <label asp-for="Email">Email</label><input asp-for="Email" type="email" autocomplete="email" /><span asp-validation-for="Email" class="guest-validation"></span>
+        <label asp-for="CCCD">Số CCCD</label><input asp-for="CCCD" inputmode="numeric" maxlength="12" /><span asp-validation-for="CCCD" class="guest-validation"></span>
+        <div class="guest-form-divider"></div>
+        <label asp-for="TenDangNhap">Tên đăng nhập</label><input asp-for="TenDangNhap" autocomplete="username" /><span asp-validation-for="TenDangNhap" class="guest-validation"></span>
+        <label asp-for="MatKhau">Mật khẩu</label><input asp-for="MatKhau" type="password" autocomplete="new-password" /><span asp-validation-for="MatKhau" class="guest-validation"></span>
+        <label asp-for="NhapLaiMatKhau">Nhập lại mật khẩu</label><input asp-for="NhapLaiMatKhau" type="password" autocomplete="new-password" /><span asp-validation-for="NhapLaiMatKhau" class="guest-validation"></span>
+        <button class="guest-button guest-button-primary" type="submit">Tạo tài khoản <span aria-hidden="true">↗</span></button>
+        <p class="guest-form-footnote">Đã có tài khoản? <a asp-area="QuanLyNhaTro" asp-controller="NguoiDung" asp-action="DangNhap" asp-route-returnUrl="@Model.ReturnUrl">Đăng nhập</a></p>
+    </form>
+</div>

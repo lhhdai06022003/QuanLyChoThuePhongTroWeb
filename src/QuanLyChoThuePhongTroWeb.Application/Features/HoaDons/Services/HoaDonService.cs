@@ -9,6 +9,7 @@ using QuanLyChoThuePhongTroWeb.Application.Common.Configurations;
 using QuanLyChoThuePhongTroWeb.Application.Common.Models;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence;
+using QuanLyChoThuePhongTroWeb.Application.Features.GiuChos.Persistence;
 using QuanLyChoThuePhongTroWeb.Domain.Entities;
 using QuanLyChoThuePhongTroWeb.Domain.Enums;
 
@@ -23,6 +24,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
         private readonly IHoaDonCalculatorService _calculatorService;
         private readonly IInvoiceDocumentExporter _documentExporter;
         private readonly IVietQRService _vietQRService;
+        private readonly ICanTruTienGiuChoStore _reservationCredits;
 
         public HoaDonService(
             IHoaDonStore store,
@@ -31,7 +33,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
             ILogger<HoaDonService> logger,
             IHoaDonCalculatorService calculatorService,
             IInvoiceDocumentExporter documentExporter,
-            IVietQRService vietQRService)
+            IVietQRService vietQRService,
+            ICanTruTienGiuChoStore reservationCredits)
         {
             _store = store;
             _unitOfWork = unitOfWork;
@@ -40,6 +43,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
             _calculatorService = calculatorService;
             _documentExporter = documentExporter;
             _vietQRService = vietQRService;
+            _reservationCredits = reservationCredits;
         }
 
         // =================== PHÁT SINH HÓA ĐƠN HÀNG LOẠT ===================
@@ -236,6 +240,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
 
                 if (validInvoices.Any())
                 {
+                    await using var transaction = await _unitOfWork.BeginTransactionAsync();
+                    await _reservationCredits.PrepareInvoicesAsync(validInvoices);
                     await _store.AddInvoicesAsync(validInvoices);
 
                     if (suCosToUpdate.Any())
@@ -244,6 +250,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                     }
 
                     await _unitOfWork.SaveChangesAsync();
+                    await transaction.CommitAsync();
                 }
 
                 result.SoHoaDonMoi = validInvoices.Count;
@@ -391,6 +398,9 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                     previewItem.GhiChuTrangThai = "Sẵn sàng";
                 }
 
+                var credit = await _reservationCredits.GetAvailableAsync(hd.HopDongId, thang, nam);
+                previewItem.TienCocCanTruDuKien = Math.Min(credit, previewItem.TongTienDuKien);
+                previewItem.TongTienDuKien -= previewItem.TienCocCanTruDuKien;
                 result.Add(previewItem);
             }
 
@@ -403,6 +413,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
             var hd = await _store.GetHoaDonWithDetailsForUpdateAsync(hoaDonId);
 
             if (hd == null) return (false, "Không tìm thấy hóa đơn.");
+            if (await _reservationCredits.HasAllocationAsync(hoaDonId))
+                return (false, "Hóa đơn đã cấn trừ cọc giữ chỗ. Không sửa số tiền đã phân bổ; liên hệ quản lý để xử lý điều chỉnh.");
             if (hd.TrangThaiHoaDon == TrangThaiHoaDon.DaThanhToan)
                 return (false, "Không thể chỉnh sửa hóa đơn đã được thanh toán.");
 
@@ -483,6 +495,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
         {
             var hd = await _store.GetActiveHoaDonByIdAsync(id);
             if (hd == null) return (false, "Không tìm thấy hóa đơn.");
+            if (await _reservationCredits.HasAllocationAsync(id))
+                return (false, "Hóa đơn có phân bổ cọc giữ chỗ không thể xóa trực tiếp.");
             if (hd.TrangThaiHoaDon == TrangThaiHoaDon.DaThanhToan)
                 return (false, "Không thể xóa hóa đơn đã thanh toán.");
 

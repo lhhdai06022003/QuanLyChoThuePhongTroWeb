@@ -23,13 +23,13 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
         }
 
         [Fact]
-        public void Model_ShouldContainExactly37BusinessEntities()
+        public void Model_ShouldContainExactly38BusinessEntities()
         {
             var entityTypes = _context.Model.GetEntityTypes()
                 .Where(e => !e.IsOwned())
                 .ToList();
 
-            Assert.Equal(37, entityTypes.Count);
+            Assert.Equal(38, entityTypes.Count);
         }
 
         [Theory]
@@ -267,7 +267,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
         }
 
         [Fact]
-        public async Task AppliedDatabase_ShouldContainExactly37BusinessTables_And_ExpectedConstraints()
+        public async Task AppliedDatabase_ShouldContainExactly38BusinessTables_And_ExpectedConstraints()
         {
             var connectionString = _fixture.ConnectionString;
             Assert.False(string.IsNullOrWhiteSpace(connectionString));
@@ -285,7 +285,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
                   AND table_name <> '__EFMigrationsHistory';
                 """;
             var tableCount = Convert.ToInt32(await countCommand.ExecuteScalarAsync());
-            Assert.Equal(37, tableCount);
+            Assert.Equal(38, tableCount);
 
             // 2. All 15 new tables exist
             var expected15Tables = new[]
