@@ -2,31 +2,19 @@
 
 Tài liệu này liệt kê chức năng đã có trong mã nguồn hiện tại. Nội dung roadmap được tách riêng ở cuối để tránh nhầm một thiết kế dự kiến với tính năng đang vận hành.
 
-## Theo dõi 4 module của kế hoạch 60 ngày
+## Xem phòng công khai với schema cũ
 
-Các README sau mô tả **công việc dự kiến và người sở hữu**, tách khỏi danh mục chức năng đang vận hành ở phần dưới. Mỗi thư mục có `README.md`, `spec/`, `plan/`, `review/`. Ba thư mục sau chỉ có `.gitkeep`; tài liệu được viết khi module bắt đầu thực thi.
-
-| Module | Người phụ trách | Hiện trạng |
-| --- | --- | --- |
-| [Ảnh chỉ số, OCR và hóa đơn](anh-chi-so-hoa-don/README.md) | A | Nền database và hóa đơn cũ đã có; luồng mới chưa hoàn chỉnh |
-| [Thanh toán hóa đơn](thanh-toan-hoa-don/README.md) | A | VietQR và một phần Application Service đã có; Web chưa nối đủ |
-| [Phòng công khai và lịch xem](phong-cong-khai-lich-xem/README.md) | B | Đã có tin công khai, gallery, khung giờ và đặt/xử lý lịch |
-| [Khách vãng lai, giữ chỗ, cọc và hoàn tiền](khach-vang-lai-giu-cho/README.md) | B | Đã có tài khoản, giữ chỗ, minh chứng, đối chiếu, hợp đồng/cấn trừ và hoàn tiền |
-
-Quyền sở hữu file và lịch 60 ngày nằm trong [roadmap](../roadmap-60-ngay.md). Không đánh dấu hoàn thành chỉ vì đã có entity, migration hoặc thư mục tài liệu.
-
-## Đặc tả trải nghiệm khách vãng lai
-
-[SPEC — Cổng khách vãng lai](cong-khach-vang-lai/SPEC.md) và [PLAN triển khai](cong-khach-vang-lai/PLAN.md) kết nối hai module phòng công khai/lịch xem và khách vãng lai/giữ chỗ thành một luồng từ giao diện đến backend. Đã triển khai ngày 26/09/2026. Xem [hướng dẫn sử dụng và cấu hình](cong-khach-vang-lai/README.md); PLAN ghi kết quả kiểm thử và những chính sách chưa tự động hóa.
-
+- `/phong` và `/phong/{id}` chỉ đọc thông tin phòng trống từ các bảng `phong_tro` và `chi_nhanh` hiện có. Phòng/chi nhánh đã xóa mềm không hiển thị.
+- Cấu hình `PublicRooms:RoomIds` là danh sách ID được phép công khai. Mặc định rỗng để không vô tình công khai mọi phòng trống. Cấu hình riêng của máy nằm trong `appsettings.json` và không đưa lên Git.
+- Lịch xem, giữ chỗ, chuyển tiền, chuyển hợp đồng từ giữ chỗ và hoàn tiền đang tạm dừng vì schema cũ không có bảng lưu các nghiệp vụ này. Phiên bản mã đầy đủ trước khi tạm dừng được giữ ở nhánh `codex/full-guest-features-backup`.
+- Database dùng migration cuối `20260802160246_ChangeChiTietHoaDonSoLuongToDouble`; không thêm bảng hoặc cột cho cổng phòng công khai.
 
 ## Vai trò người dùng
 
 | Vai trò | Phạm vi hiện tại |
 | --- | --- |
 | Admin | Truy cập cổng quản lý, tài khoản, cấu hình nghiệp vụ và các thao tác quản trị |
-| NhanVien | Truy cập cổng quản lý theo các controller dùng AdminBaseController; entity phân công chi nhánh đã có nhưng luồng phân quyền mới chưa hoàn chỉnh |
-| KhachVangLai | Cổng `/phong`, lịch xem, giữ chỗ, thanh toán/minh chứng và theo dõi hoàn của chính mình |
+| NhanVien | Truy cập cổng quản lý theo các controller dùng AdminBaseController; chưa có entity phân công nhân viên theo chi nhánh |
 | KhachThue | Xem dữ liệu gắn với claim NguoiThueId: dashboard, hồ sơ, hợp đồng, hóa đơn, thanh toán, sự cố và thông báo |
 
 ## Cổng quản lý
@@ -74,7 +62,7 @@ Quyền sở hữu file và lịch 60 ngày nằm trong [roadmap](../roadmap-60-
 - Chỉnh sửa, xem chi tiết và xóa mềm hóa đơn theo quy tắc hiện tại.
 - Ghi nhận thu tiền mặt hoặc chuyển khoản và người xác nhận.
 - Xuất Excel/PDF, gửi email kèm PDF và sinh VietQR.
-- Giao diện vận hành hiện chủ yếu dùng trạng thái thanh toán ChuaThanhToan/DaThanhToan; model trạng thái phát hành đã có nhưng luồng nháp/chốt chưa hoàn chỉnh.
+- Trạng thái hiện có chỉ gồm ChuaThanhToan và DaThanhToan; chưa có trạng thái nháp/duyệt.
 
 ### Lịch sử thanh toán
 
@@ -137,8 +125,11 @@ Các job nền chạy trong cùng process Web. BackgroundJobs:Enabled=false tắ
 Các mục sau có tài liệu thiết kế hoặc thư mục khung nhưng chưa có luồng hoàn chỉnh trong mã nguồn:
 
 - API JSON /api/v1.
+- Cổng khách vãng lai và đăng phòng công khai.
+- Đặt lịch xem, giữ chỗ và chuyển tiền giữ chỗ sang cọc.
+- Xác nhận ảnh chuyển khoản, trả một phần và hoàn tiền giữ chỗ.
 - OCR chỉ số điện/nước và bước người dùng duyệt kết quả.
 - Hóa đơn nháp và quy trình duyệt trước khi gửi.
 - Mobile app, IoT và CI workflow.
 
-Migration 1 và Migration 2 đã có trong mã nguồn, lần lượt thêm 5 và 15 bảng; migration cấn trừ giữ chỗ bổ sung một bảng, hiện có 38 bảng nghiệp vụ được kiểm chứng trên PostgreSQL test. Xem [roadmap 60 ngày](../roadmap-60-ngay.md), [spec hai migration](../superpowers/specs/2026-09-21-database-foundation-two-migrations-design.md) và hai kế hoạch triển khai trong [superpowers/plans](../superpowers/plans/).
+Hai migration nền đã được thiết kế nhưng chưa tạo trong mã nguồn: Migration 1 thêm 7 bảng và Migration 2 thêm 15 bảng, đưa mô hình dự kiến từ 17 lên 39 bảng nghiệp vụ. Xem [roadmap 60 ngày](../roadmap-60-ngay.md), [spec hai migration](../superpowers/specs/2026-09-21-database-foundation-two-migrations-design.md) và hai kế hoạch triển khai trong [superpowers/plans](../superpowers/plans/).

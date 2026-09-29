@@ -17,9 +17,6 @@ using QuanLyChoThuePhongTroWeb.Application.Abstractions.Services;
 using QuanLyChoThuePhongTroWeb.Application.Common.Files;
 using QuanLyChoThuePhongTroWeb.Application.Features.Emails.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs;
-using QuanLyChoThuePhongTroWeb.Infrastructure.Persistence;
-using QuanLyChoThuePhongTroWeb.Application.Features.GiuChos.Services;
-using QuanLyChoThuePhongTroWeb.Application.Features.PhongCongKhais.Services;
 
 namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests.Fixtures
 {
@@ -35,7 +32,6 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests.Fixtures
 
             builder.ConfigureLogging(logging =>
             {
-                logging.ClearProviders();
                 logging.AddProvider(new TestLoggerProvider(LogSink));
                 logging.AddFilter<TestLoggerProvider>(null, LogLevel.Trace);
             });
@@ -54,12 +50,6 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests.Fixtures
 
             builder.ConfigureServices(services =>
             {
-                services.RemoveAll<DbContextOptions<ApplicationDbContext>>();
-                services.RemoveAll<ApplicationDbContext>();
-                services.AddDbContext<ApplicationDbContext>(options =>
-                    options.UseNpgsql(TestConnectionString, npgsql =>
-                        npgsql.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName)));
-
                 // Thay thế EmailService thật bằng test fake
                 services.RemoveAll<IEmailService>();
                 services.AddScoped<IEmailService, FakeEmailService>();
@@ -67,10 +57,6 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests.Fixtures
                 // Thay thế ImageStorageService thật bằng test fake
                 services.RemoveAll<IImageStorageService>();
                 services.AddScoped<IImageStorageService, FakeImageStorageService>();
-                services.RemoveAll<IReservationProofStorage>();
-                services.AddSingleton<IReservationProofStorage, MemoryProofStorage>();
-                services.RemoveAll<IRoomPhotoStorage>();
-                services.AddSingleton<IRoomPhotoStorage, FakeRoomPhotoStorage>();
 
                 // Thay thế State Stores thật bằng in-memory để không ghi file vật lý vào source
                 services.RemoveAll<IInvoiceReminderStateStore>();
@@ -113,7 +99,6 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests.Fixtures
             LogSink.AssertNoUnexpectedErrors(allowListPredicate);
 
             var bgJobLogs = LogSink.Entries.Where(e =>
-                e.Category.Contains("HetHanGiuChoJob", StringComparison.OrdinalIgnoreCase) ||
                 e.Category.Contains("ContractAutoCloseJob", StringComparison.OrdinalIgnoreCase) ||
                 e.Category.Contains("ContractExpiryAlertJob", StringComparison.OrdinalIgnoreCase) ||
                 e.Category.Contains("InvoiceReminderJob", StringComparison.OrdinalIgnoreCase) ||
@@ -158,32 +143,6 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests.Fixtures
             {
                 await base.DisposeAsync();
             }
-        }
-
-        public sealed class MemoryProofStorage : IReservationProofStorage
-        {
-            private readonly ConcurrentDictionary<string, StoredReservationProof> files = new();
-            public async Task<string> SaveAsync(UploadFile file)
-            {
-                using var buffer = new System.IO.MemoryStream();
-                await file.Content.CopyToAsync(buffer);
-                var key = Guid.NewGuid().ToString("N");
-                files[key] = new(buffer.ToArray(), file.ContentType);
-                return key;
-            }
-            public Task<StoredReservationProof?> ReadAsync(string key) =>
-                Task.FromResult(files.TryGetValue(key, out var file) ? file : null);
-            public Task DeleteAsync(string key) { files.TryRemove(key, out _); return Task.CompletedTask; }
-        }
-
-        public sealed class FakeRoomPhotoStorage : IRoomPhotoStorage
-        {
-            public Task<StoredRoomPhoto> SaveAsync(int roomId, UploadFile file)
-            {
-                var key = Guid.NewGuid().ToString("N");
-                return Task.FromResult(new StoredRoomPhoto($"https://example.test/{roomId}/{key}.png", key));
-            }
-            public Task DeleteAsync(string publicId) => Task.CompletedTask;
         }
 
         public class FakeEmailService : IEmailService

@@ -67,7 +67,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             public Task<IReadOnlyList<DangKyDichVu>> GetActiveServicesByRoomIdsAsync(IReadOnlyList<int> roomIds, CancellationToken cancellationToken = default) =>
                 Task.FromResult<IReadOnlyList<DangKyDichVu>>(ActiveServices);
 
-            public Task UpdateAsync(HopDong hopDong) { UpdatedContracts.Add(hopDong); return Task.CompletedTask; }
+            public void Update(HopDong hopDong) => UpdatedContracts.Add(hopDong);
             public void UpdatePhongTro(PhongTro phongTro) => UpdatedRooms.Add(phongTro);
 
             // Not used by ContractAutoCloseUseCase

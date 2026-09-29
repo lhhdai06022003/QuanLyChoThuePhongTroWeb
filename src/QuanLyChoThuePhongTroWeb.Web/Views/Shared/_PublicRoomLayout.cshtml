@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] · Phòng trọ</title>
+    <link rel="stylesheet" href="~/css/public-rooms.css" asp-append-version="true" />
+</head>
+<body>
+    <header class="site-header">
+        <a class="brand" href="/phong">Phòng trọ</a>
+        <nav aria-label="Điều hướng chính">
+            <a href="/phong">Xem phòng</a>
+            <a href="/QuanLyNhaTro/DangNhap">Đăng nhập</a>
+        </nav>
+    </header>
+    <main class="page-shell">
+        @RenderBody()
+    </main>
+</body>
+</html>

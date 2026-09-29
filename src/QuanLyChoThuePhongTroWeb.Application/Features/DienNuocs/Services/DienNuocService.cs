@@ -78,8 +78,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
                 }
                 else
                 {
-                    decimal dienCu = 0m;
-                    decimal nuocCu = 0m;
+                    double dienCu = 0;
+                    double nuocCu = 0;
                     if (prevRecords.TryGetValue(phongTroId, out var prevRecord))
                     {
                         dienCu = prevRecord.ChiSoDienMoi;
@@ -99,9 +99,9 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
                         TenPhong = hd.PhongTro.SoPhong,
                         TenNguoiDaiDien = hd.NguoiThue.HoVaTen,
                         ChiSoDienCu = dienCu,
-                        ChiSoDienMoi = 0m,
+                        ChiSoDienMoi = 0,
                         ChiSoNuocCu = nuocCu,
-                        ChiSoNuocMoi = 0m,
+                        ChiSoNuocMoi = 0,
                         IsDaChot = false,
                         IsLocked = isLocked
                     });
@@ -128,8 +128,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
                 return (false, "Chi nhánh không hợp lệ.");
             }
 
-            decimal donGiaDien = await _store.GetServicePriceAsync("điện", input.ChiNhanhId);
-            decimal donGiaNuoc = await _store.GetServicePriceAsync("nước", input.ChiNhanhId);
+            double donGiaDien = await _store.GetServicePriceAsync("điện", input.ChiNhanhId);
+            double donGiaNuoc = await _store.GetServicePriceAsync("nước", input.ChiNhanhId);
 
             var phongTroIds = input.DanhSachPhong.Select(x => x.PhongTroId).ToList();
 
@@ -168,8 +168,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
                         return (false, $"Phòng {soPhong}: Chỉ số nước mới không được nhỏ hơn chỉ số nước cũ.");
                     }
 
-                    decimal actualPrevDienMoi = 0m;
-                    decimal actualPrevNuocMoi = 0m;
+                    double actualPrevDienMoi = 0;
+                    double actualPrevNuocMoi = 0;
                     if (prevRecords.TryGetValue(req.PhongTroId, out var prevRecord))
                     {
                         actualPrevDienMoi = prevRecord.ChiSoDienMoi;

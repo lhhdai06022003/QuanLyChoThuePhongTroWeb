@@ -46,7 +46,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.UseCases
                 {
                     contract.TrangThaiHopDong = TrangThaiHopDong.DaKetThuc;
                     contract.NgayCapNhat = DateTime.UtcNow;
-                    await _store.UpdateAsync(contract);
+                    _store.Update(contract);
 
                     if (contract.PhongTro != null)
                     {

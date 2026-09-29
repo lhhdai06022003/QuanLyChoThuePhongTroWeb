@@ -8,9 +8,6 @@ namespace QuanLyChoThuePhongTroWeb.Domain.Enums
         ChuaThanhToan = 0,
 
         [Description("Đã thanh toán")]
-        DaThanhToan = 1,
-
-        [Description("Thanh toán một phần")]
-        ThanhToanMotPhan = 2
+        DaThanhToan = 1
     }
 }

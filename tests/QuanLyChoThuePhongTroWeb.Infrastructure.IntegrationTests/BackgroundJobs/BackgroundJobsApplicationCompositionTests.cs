@@ -20,8 +20,6 @@ using QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.Persistence;
 using QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.UseCases;
 using QuanLyChoThuePhongTroWeb.Domain.Entities;
 using QuanLyChoThuePhongTroWeb.Infrastructure.BackgroundJobs;
-using QuanLyChoThuePhongTroWeb.Application.Features.GiuChos.Persistence;
-using QuanLyChoThuePhongTroWeb.Application.Features.GiuChos.UseCases;
 using Xunit;
 
 namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.BackgroundJobs
@@ -34,7 +32,6 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.BackgroundJob
             var autoCloseQueried = NewSignal();
             var expiryAlertQueried = NewSignal();
             var invoiceReminderQueried = NewSignal();
-            var reservationExpiryQueried = NewSignal();
             var logSink = new InMemoryLogSink();
             var emailService = new RejectingEmailService();
 
@@ -71,12 +68,6 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.BackgroundJob
                 {
                     services.AddInfrastructure(context.Configuration);
                     services.AddApplication();
-                    services.RemoveAll<IHetHanGiuChoStore>();
-                    services.AddSingleton(CreateProxy<IHetHanGiuChoStore>((method, _) => method.Name switch
-                    {
-                        nameof(IHetHanGiuChoStore.GetCandidatesAsync) => SignalEmptyAsync<int>(reservationExpiryQueried),
-                        _ => throw new InvalidOperationException($"Unexpected reservation expiry call: {method.Name}")
-                    }));
 
                     services.RemoveAll<IHopDongStore>();
                     services.AddSingleton(hopDongStore);
@@ -106,7 +97,6 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.BackgroundJob
                 Assert.IsType<ContractAutoCloseUseCase>(scope.ServiceProvider.GetRequiredService<IContractAutoCloseUseCase>());
                 Assert.IsType<ContractExpiryAlertUseCase>(scope.ServiceProvider.GetRequiredService<IContractExpiryAlertUseCase>());
                 Assert.IsType<InvoiceReminderUseCase>(scope.ServiceProvider.GetRequiredService<IInvoiceReminderUseCase>());
-                Assert.IsType<HetHanGiuChoUseCase>(scope.ServiceProvider.GetRequiredService<IHetHanGiuChoUseCase>());
             }
 
             await host.StartAsync();
@@ -115,8 +105,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.BackgroundJob
             await Task.WhenAll(
                 autoCloseQueried.Task.WaitAsync(timeout.Token),
                 expiryAlertQueried.Task.WaitAsync(timeout.Token),
-                invoiceReminderQueried.Task.WaitAsync(timeout.Token),
-                reservationExpiryQueried.Task.WaitAsync(timeout.Token));
+                invoiceReminderQueried.Task.WaitAsync(timeout.Token));
 
             await host.StopAsync(timeout.Token);
 

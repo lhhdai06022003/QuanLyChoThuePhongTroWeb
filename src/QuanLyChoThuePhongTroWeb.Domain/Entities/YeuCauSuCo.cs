@@ -33,7 +33,7 @@ namespace QuanLyChoThuePhongTroWeb.Domain.Entities
 
         public DateTime? NgayXuLy { get; set; }
 
-        public decimal ChiPhiSuaChua { get; set; } = 0;
+        public double ChiPhiSuaChua { get; set; } = 0;
 
         public bool CongVaoHoaDon { get; set; } = false;
 

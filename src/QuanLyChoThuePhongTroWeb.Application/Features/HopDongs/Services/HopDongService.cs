@@ -317,7 +317,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.Services
                     await _store.AddTermsAsync(newTerms);
                 }
 
-                await _store.UpdateAsync(entity);
+                _store.Update(entity);
                 await _unitOfWork.SaveChangesAsync();
                 await transaction.CommitAsync();
 
@@ -343,7 +343,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.Services
 
             entity.IsDeleted = true;
             entity.NgayCapNhat = DateTime.UtcNow;
-            await _store.UpdateAsync(entity);
+            _store.Update(entity);
 
             var thanhViens = await _store.GetActiveMembersByHopDongIdAsync(id);
             foreach (var tv in thanhViens)

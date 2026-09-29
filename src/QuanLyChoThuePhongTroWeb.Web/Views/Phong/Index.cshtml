@@ -1,0 +1,40 @@
+@model IReadOnlyList<QuanLyChoThuePhongTroWeb.Application.Features.PublicRooms.PublicRoomDto>
+@{
+    Layout = "_PublicRoomLayout";
+    ViewData["Title"] = "Phòng đang trống";
+}
+
+<section class="hero">
+    <span class="eyebrow">Danh sách phòng</span>
+    <h1>Tìm phòng phù hợp với bạn</h1>
+    <p>Xem thông tin các phòng đang trống. Lịch xem và giữ chỗ hiện tạm dừng.</p>
+</section>
+
+@if (Model.Count == 0)
+{
+    <div class="empty-state">Hiện chưa có phòng nào được mở xem công khai.</div>
+}
+else
+{
+    <div class="room-grid">
+        @foreach (var room in Model)
+        {
+            <article class="room-card">
+                <div class="room-marker" aria-hidden="true">@room.SoPhong</div>
+                <div class="room-content">
+                    <div class="room-branch">@room.TenChiNhanh</div>
+                    <h2>Phòng @room.SoPhong</h2>
+                    <p class="room-address">@room.DiaChi</p>
+                    <div class="room-facts">
+                        <span>@room.DienTich.ToString("0.#") m²</span>
+                        <span>Tối đa @room.SoNguoiToiDa người</span>
+                    </div>
+                    <div class="room-bottom">
+                        <strong>@room.GiaThue.ToString("N0") đ <small>/ tháng</small></strong>
+                        <a class="button" href="/phong/@room.PhongTroId">Xem chi tiết</a>
+                    </div>
+                </div>
+            </article>
+        }
+    </div>
+}

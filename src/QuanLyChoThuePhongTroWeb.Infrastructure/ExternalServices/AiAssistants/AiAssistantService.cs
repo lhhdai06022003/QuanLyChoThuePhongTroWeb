@@ -29,7 +29,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.AiAssistants
             _db = db;
             _httpClient = httpClient;
             _apiKey = configuration["Gemini:ApiKey"] ?? string.Empty;
-            _model = configuration["Gemini:Model"] ?? "gemini-3.6-flash";
+            _model = configuration["Gemini:Model"] ?? "gemini-1.5-flash";
         }
 
         public async Task<List<PhongTroChuaChotRes>> GetPhongTroChuaChotDienNuocAsync(int thang = 0, int nam = 0)
@@ -90,7 +90,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.AiAssistants
                 .ToListAsync();
         }
 
-        public async Task<decimal> GetDoanhThuThucThuAsync(DateTime tuNgay, DateTime denNgay)
+        public async Task<double> GetDoanhThuThucThuAsync(DateTime tuNgay, DateTime denNgay)
         {
             var tuNgayUtc = tuNgay.ToUniversalTime();
             var denNgayUtc = denNgay.ToUniversalTime();
@@ -103,7 +103,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.AiAssistants
                 .SumAsync(lst => lst.SoTienThanhToan);
         }
 
-        public async Task<List<PhongTrongRes>> GetPhongTrongAsync(decimal? mucGiaToiDa)
+        public async Task<List<PhongTrongRes>> GetPhongTrongAsync(double? mucGiaToiDa)
         {
             var query = _db.PhongTros
                 .AsNoTracking()
@@ -162,9 +162,9 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.AiAssistants
                 .ToListAsync();
         }
 
-        public async Task<decimal> GetCongNoPhongAsync(string soPhong)
+        public async Task<double> GetCongNoPhongAsync(string soPhong)
         {
-            soPhong = soPhong.Trim().ToLower();
+            soPhong = soPhong.ToLower();
             var hoaDons = await _db.HoaDons
                 .AsNoTracking()
                 .Include(h => h.HopDong).ThenInclude(hd => hd.PhongTro)
@@ -172,7 +172,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.AiAssistants
                 .Where(h => !h.IsDeleted && h.HopDong.PhongTro.SoPhong.ToLower() == soPhong && h.TrangThaiHoaDon == TrangThaiHoaDon.ChuaThanhToan)
                 .ToListAsync();
 
-            decimal totalDebt = 0m;
+            double totalDebt = 0;
             foreach (var hd in hoaDons)
             {
                 var paid = hd.LichSuThanhToans.Where(l => !l.IsDeleted).Sum(l => l.SoTienThanhToan);
@@ -276,8 +276,10 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.AiAssistants
                 WriteIndented = false
             };
 
-            var url = $"https://generativelanguage.googleapis.com/v1beta/models/{_model}:generateContent";
-            var response = await SendGeminiRequestAsync(url, requestPayload, serializeOptions);
+            var url = $"https://generativelanguage.googleapis.com/v1beta/models/{_model}:generateContent?key={_apiKey}";
+            var httpContent = new StringContent(JsonSerializer.Serialize(requestPayload, serializeOptions), Encoding.UTF8, "application/json");
+
+            var response = await _httpClient.PostAsync(url, httpContent);
             if (!response.IsSuccessStatusCode)
             {
                 var errContent = await response.Content.ReadAsStringAsync();
@@ -286,27 +288,40 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.AiAssistants
 
             var responseJsonStr = await response.Content.ReadAsStringAsync();
             var rootNode = JsonNode.Parse(responseJsonStr);
-            var modelContent = rootNode?["candidates"]?[0]?["content"];
-            var part = modelContent?["parts"]?.AsArray()
-                .FirstOrDefault(candidatePart => candidatePart?["functionCall"] != null)
-                ?? modelContent?["parts"]?.AsArray()
-                    .FirstOrDefault(candidatePart => candidatePart?["text"] != null);
+            var part = rootNode?["candidates"]?[0]?["content"]?["parts"]?[0];
 
             if (part == null)
             {
                 return ServiceResult.Fail("Trợ lý AI tạm thời không phản hồi. Vui lòng thử lại sau.");
             }
 
-            if (part["functionCall"] is JsonNode functionCall)
+            if (part["functionCall"] != null)
             {
+                var functionCall = part["functionCall"];
                 var functionName = functionCall["name"]?.ToString() ?? string.Empty;
                 var args = functionCall["args"];
 
                 object functionResult = await HandleFunctionCallAsync(functionName, args, userRole, nguoiThueId);
 
+                var modelCallPart = new
+                {
+                    role = "model",
+                    parts = new[]
+                    {
+                        new
+                        {
+                            functionCall = new
+                            {
+                                name = functionName,
+                                args = args
+                            }
+                        }
+                    }
+                };
+
                 var functionResponsePart = new
                 {
-                    role = "user",
+                    role = "function",
                     parts = new[]
                     {
                         new
@@ -323,7 +338,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.AiAssistants
                     }
                 };
 
-                formattedContents.Add(modelContent!.DeepClone());
+                formattedContents.Add(modelCallPart);
                 formattedContents.Add(functionResponsePart);
 
                 var secondRequestPayload = new
@@ -336,7 +351,8 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.AiAssistants
                     tools = toolsConfig
                 };
 
-                var secondResponse = await SendGeminiRequestAsync(url, secondRequestPayload, serializeOptions);
+                var secondHttpContent = new StringContent(JsonSerializer.Serialize(secondRequestPayload, serializeOptions), Encoding.UTF8, "application/json");
+                var secondResponse = await _httpClient.PostAsync(url, secondHttpContent);
 
                 if (!secondResponse.IsSuccessStatusCode)
                 {
@@ -346,25 +362,12 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.AiAssistants
 
                 var secondResponseJsonStr = await secondResponse.Content.ReadAsStringAsync();
                 var secondRootNode = JsonNode.Parse(secondResponseJsonStr);
-                var finalAnswer = secondRootNode?["candidates"]?[0]?["content"]?["parts"]?.AsArray()
-                    .Select(answerPart => answerPart?["text"]?.ToString())
-                    .FirstOrDefault(answerText => !string.IsNullOrWhiteSpace(answerText));
+                var finalAnswer = secondRootNode?["candidates"]?[0]?["content"]?["parts"]?[0]?["text"]?.ToString();
 
                 return ServiceResult.Ok(finalAnswer ?? "Trợ lý AI không phản hồi sau khi lấy dữ liệu.");
             }
 
             return ServiceResult.Ok(part["text"]?.ToString() ?? "Trợ lý AI không phản hồi.");
-        }
-
-        private async Task<HttpResponseMessage> SendGeminiRequestAsync(
-            string url, object payload, JsonSerializerOptions serializeOptions)
-        {
-            using var request = new HttpRequestMessage(HttpMethod.Post, url)
-            {
-                Content = new StringContent(JsonSerializer.Serialize(payload, serializeOptions), Encoding.UTF8, "application/json")
-            };
-            request.Headers.Add("x-goog-api-key", _apiKey);
-            return await _httpClient.SendAsync(request);
         }
 
         private async Task<object> HandleFunctionCallAsync(string functionName, JsonNode? args, string userRole, int? nguoiThueId)
@@ -395,7 +398,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.AiAssistants
                             DateTime.Parse(args?["denNgay"]?.ToString() ?? DateTime.MaxValue.ToString()).Date.AddDays(1).AddTicks(-1)),
                         currency = "VND"
                     },
-                    "GetPhongTrongAsync" => await GetPhongTrongAsync(args?["mucGiaToiDa"] != null && decimal.TryParse(args["mucGiaToiDa"]!.ToString(), out decimal price) ? price : null),
+                    "GetPhongTrongAsync" => await GetPhongTrongAsync(args?["mucGiaToiDa"] != null && double.TryParse(args["mucGiaToiDa"]!.ToString(), out double price) ? price : null),
                     "GetHopDongSapHetHanAsync" => await GetHopDongSapHetHanAsync(int.Parse(args?["soNgay"]?.ToString() ?? "30")),
                     "GetThongTinKhachThueAsync" => await GetThongTinKhachThueAsync(args?["tuKhoa"]?.ToString() ?? ""),
                     "GetCongNoPhongAsync" => new { totalDebt = await GetCongNoPhongAsync(args?["soPhong"]?.ToString() ?? ""), currency = "VND" },

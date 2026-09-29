@@ -1,0 +1,25 @@
+@model QuanLyChoThuePhongTroWeb.Application.Features.PublicRooms.PublicRoomDto
+@{
+    Layout = "_PublicRoomLayout";
+    ViewData["Title"] = $"Phòng {Model.SoPhong}";
+}
+
+<a class="back-link" href="/phong">← Tất cả phòng</a>
+<section class="detail-card">
+    <div class="detail-heading">
+        <div>
+            <span class="eyebrow">@Model.TenChiNhanh</span>
+            <h1>Phòng @Model.SoPhong</h1>
+            <p>@Model.DiaChi</p>
+        </div>
+        <div class="detail-price">@Model.GiaThue.ToString("N0") đ <small>/ tháng</small></div>
+    </div>
+    <div class="detail-facts">
+        <div><span>Diện tích</span><strong>@Model.DienTich.ToString("0.#") m²</strong></div>
+        <div><span>Sức chứa</span><strong>@Model.SoNguoiToiDa người</strong></div>
+        <div><span>Tầng</span><strong>@Model.TangLau</strong></div>
+    </div>
+    <h2>Thông tin phòng</h2>
+    <p class="description">@(string.IsNullOrWhiteSpace(Model.MoTa) ? "Chưa có mô tả cho phòng này." : Model.MoTa)</p>
+    <div class="notice">Tính năng đặt lịch xem và giữ chỗ đang tạm dừng.</div>
+</section>

@@ -78,52 +78,45 @@ git add src tests
 git commit -m "refactor: use decimal for financial calculations"
 ```
 
-### Task 2: Add meter review and OCR evidence to each image
+### Task 2: Add meter review and OCR evidence entities
 
 **Files:**
 - Modify: `src/QuanLyChoThuePhongTroWeb.Domain/Entities/DichVuDienNuocCuaPhong.cs`
 - Create: `src/QuanLyChoThuePhongTroWeb.Domain/Entities/AnhChiSoDongHo.cs`
-- Modify: `src/QuanLyChoThuePhongTroWeb.Domain/Enums/TrangThaiXuLyAnhChiSo.cs`
+- Create: `src/QuanLyChoThuePhongTroWeb.Domain/Entities/KetQuaNhanDangChiSo.cs`
+- Create: `src/QuanLyChoThuePhongTroWeb.Domain/Entities/LichSuDieuChinhChiSo.cs`
+- Modify: `src/QuanLyChoThuePhongTroWeb.Domain/Enums/AppEnums.cs`
 - Test: `tests/QuanLyChoThuePhongTroWeb.Domain.UnitTests/MeterReadingWorkflowTests.cs`
 
 - [ ] **Step 1: Write failing transition tests**
 
-Cover `Nhap → ChoDuyet → DaDuyet`, rejection with a reason, a reading below the previous value, readable and unreadable images, manual confirmation, and refusing to confirm an image twice.
+Cover `Nhap → ChoDuyet → DaDuyet`, rejection with a reason, and refusing a new reading below the previous reading.
 
 - [ ] **Step 2: Define exact enums**
 
 ```csharp
 public enum LoaiDongHo { Dien = 0, Nuoc = 1 }
 public enum TrangThaiGhiNhan { Nhap = 0, ChoDuyet = 1, DaDuyet = 2, TuChoi = 3 }
-public enum TrangThaiXuLyAnhChiSo
-{
-    MoiTaiLen = 0, DangXuLy = 1, DocDuoc = 2, Loi = 3,
-    KhongDocDuoc = 4, CanChupLai = 5, DaXacNhan = 6, DaThayThe = 7
-}
+public enum TrangThaiXuLyAnhChiSo { MoiTaiLen = 0, DangXuLy = 1, DaXuLy = 2, Loi = 3 }
 ```
 
-- [ ] **Step 3: Add the image entity and navigations**
+- [ ] **Step 3: Add entities and navigations**
 
-One meter-reading record has many images. Each image stores one AI result and one optional human confirmation through `GiaTriAIGoiY`, `DoTinCay`, `ThongBaoLoi`, `NgayXuLy`, `GiaTriXacNhan`, `NguoiXacNhanId`, `NgayXacNhan`, `GhiChuXacNhan`, and `DuocChonLamChiSoChinhThuc`. Do not create `KetQuaNhanDangChiSo` or `LichSuDieuChinhChiSo`. Do not store provider, model, or raw AI response. Date property names omit `Utc` while values remain UTC.
+One meter-reading record has many images and adjustment rows; one image has many recognition results. Date property names omit `Utc` while values remain UTC.
 
-If an image is unreadable, keep it as evidence, mark it for retake, and create a new image row. A confirmed image is immutable; replace it by marking the old image as replaced and confirming another image.
-
-- [ ] **Step 4: Add database guards**
-
-Use `numeric(18,3)` for AI and confirmed values, constrain confidence to `0..1`, require confirmation metadata for an official image, and add a filtered unique index so each meter type has at most one official image in a monthly reading.
-
-- [ ] **Step 5: Run tests**
+- [ ] **Step 4: Run tests**
 
 Run: `dotnet test tests/QuanLyChoThuePhongTroWeb.Domain.UnitTests --filter MeterReadingWorkflowTests`
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit OCR domain types**
+- [ ] **Step 5: Commit OCR domain types**
 
 ```powershell
 git add src/QuanLyChoThuePhongTroWeb.Domain tests/QuanLyChoThuePhongTroWeb.Domain.UnitTests
 git commit -m "feat: add meter OCR review model"
 ```
+
 ### Task 3: Add invoice issuance and audit history
 
 **Files:**
@@ -221,7 +214,7 @@ git commit -m "feat: add invoice payment confirmation model"
 
 - [ ] **Step 1: Write failing PostgreSQL mapping tests**
 
-Assert 22 business tables, numeric precision, filtered room-month index, one active payment request per invoice, and unique confirmed transaction/evidence constraints.
+Assert 24 business tables, numeric precision, filtered room-month index, one active payment request per invoice, and unique confirmed transaction/evidence constraints.
 
 - [ ] **Step 2: Register configurations**
 
@@ -253,7 +246,7 @@ Expected: success.
 
 Run: `dotnet test tests/QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests --filter BillingFoundationMappingTests`
 
-Expected: PASS and 22 business tables.
+Expected: PASS and 24 business tables.
 
 - [ ] **Step 7: Commit Migration 1**
 
@@ -284,4 +277,4 @@ Expected: no pending model changes.
 
 - [ ] **Step 4: Record handoff**
 
-Document 22 business tables and prohibit parallel edits to Migration 1 entity/mapping files until Migration 2 is merged.
+Document 24 business tables and prohibit parallel edits to Migration 1 entity/mapping files until Migration 2 is merged.

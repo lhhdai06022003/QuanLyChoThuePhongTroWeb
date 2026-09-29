@@ -131,9 +131,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.NguoiDungs.Services
 
         public async Task<ServiceResult> AddAsync(CreateNguoiDungReq req)
         {
-            if (req.Role == AppRole.KhachVangLai)
-                return ServiceResult.Fail("Tài khoản khách vãng lai phải được tạo qua luồng đăng ký khách.");
-
             // 1. Kiểm tra tài khoản đang hoạt động (chưa bị xóa) xem có bị trùng TenDangNhap hoặc NguoiThueId không
             var activeUsernameMatch = await _store.ExistsActiveUsernameAsync(req.TenDangNhap);
             if (activeUsernameMatch)
@@ -212,9 +209,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.NguoiDungs.Services
             }
 
             var domainRole = (Role)(int)role;
-
-            if (domainRole == Role.KhachVangLai && existingUser.Role != Role.KhachVangLai)
-                return ServiceResult.Fail("Không thể đổi tài khoản sang khách vãng lai khi chưa có hồ sơ khách.");
 
             if (domainRole == Role.KhachThue && nguoiThueId.HasValue)
             {

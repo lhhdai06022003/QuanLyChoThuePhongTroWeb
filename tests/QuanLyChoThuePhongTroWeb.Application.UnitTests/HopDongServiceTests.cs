@@ -143,7 +143,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
                 return Task.CompletedTask;
             }
 
-            public Task UpdateAsync(HopDong hopDong) { UpdatedContracts.Add(hopDong); return Task.CompletedTask; }
+            public void Update(HopDong hopDong) => UpdatedContracts.Add(hopDong);
             public void UpdatePhongTro(PhongTro phongTro) => UpdatedRooms.Add(phongTro);
             public void RemoveTerms(IEnumerable<HopDongDieuKhoan> terms) { }
 

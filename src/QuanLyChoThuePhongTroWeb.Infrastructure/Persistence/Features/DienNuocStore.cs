@@ -59,7 +59,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
             return new HashSet<int>(list);
         }
 
-        public async Task<(decimal ChiSoDienMoi, decimal ChiSoNuocMoi)> GetNearestPreviousReadingAsync(int phongTroId, int thang, int nam, CancellationToken cancellationToken = default)
+        public async Task<(double ChiSoDienMoi, double ChiSoNuocMoi)> GetNearestPreviousReadingAsync(int phongTroId, int thang, int nam, CancellationToken cancellationToken = default)
         {
             var record = await _context.DichVuDienNuocCuaPhongs
                 .Where(x => x.PhongTroId == phongTroId && !x.IsDeleted &&
@@ -68,17 +68,17 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 .ThenByDescending(x => x.Thang)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            return record != null ? (record.ChiSoDienMoi, record.ChiSoNuocMoi) : (0m, 0m);
+            return record != null ? (record.ChiSoDienMoi, record.ChiSoNuocMoi) : (0.0, 0.0);
         }
 
-        public async Task<decimal> GetServicePriceAsync(string serviceKeyword, int chiNhanhId, CancellationToken cancellationToken = default)
+        public async Task<double> GetServicePriceAsync(string serviceKeyword, int chiNhanhId, CancellationToken cancellationToken = default)
         {
             var keyword = serviceKeyword.ToLower();
             var dichVu = await _context.DichVus.FirstOrDefaultAsync(x => x.TenDichVu.ToLower().Contains(keyword) && !x.IsDeleted, cancellationToken);
-            if (dichVu == null) return 0m;
+            if (dichVu == null) return 0;
 
             var bg = await _context.DichVuChiNhanhs.FirstOrDefaultAsync(x => x.DichVuId == dichVu.DichVuId && x.ChiNhanhId == chiNhanhId && !x.IsDeleted, cancellationToken);
-            return bg?.GiaDichVu ?? 0m;
+            return bg?.GiaDichVu ?? 0;
         }
 
         public async Task<IReadOnlyDictionary<int, string>> GetRoomNumbersAsync(IReadOnlyList<int> roomIds, CancellationToken cancellationToken = default)

@@ -4,8 +4,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Common.Enums
     {
         Admin = 0,
         NhanVien = 1,
-        KhachThue = 2,
-        KhachVangLai = 3
+        KhachThue = 2
     }
 
     public enum AppTrangThaiPhong
