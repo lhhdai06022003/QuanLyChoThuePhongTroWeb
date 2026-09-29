@@ -1,40 +1,104 @@
-@model IReadOnlyList<QuanLyChoThuePhongTroWeb.Application.Features.PublicRooms.PublicRoomDto>
+@model QuanLyChoThuePhongTroWeb.ViewModels.PublicRooms.PublicRoomListModel
 @{
     Layout = "_PublicRoomLayout";
-    ViewData["Title"] = "Phòng đang trống";
+    ViewData["Title"] = "Tìm phòng";
+    var pageCount = (int)Math.Ceiling((double)Model.TotalCount / Model.PageSize);
+    var culture = System.Globalization.CultureInfo.InvariantCulture;
 }
 
-<section class="hero">
-    <span class="eyebrow">Danh sách phòng</span>
-    <h1>Tìm phòng phù hợp với bạn</h1>
-    <p>Xem thông tin các phòng đang trống. Lịch xem và giữ chỗ hiện tạm dừng.</p>
+<section class="guest-intro">
+    <div class="guest-container guest-intro-grid">
+        <div>
+            <p class="guest-kicker">Một chỗ ở hợp nhịp sống</p>
+            <h1>Tìm căn phòng vừa với bạn.</h1>
+            <p class="guest-intro-copy">Xem ảnh, diện tích và giá thuê để chọn căn phòng phù hợp với mình.</p>
+        </div>
+        <div class="guest-intro-mark" aria-hidden="true"><span class="mark-door"></span><span class="mark-window"></span><span class="mark-number">P</span></div>
+    </div>
 </section>
 
-@if (Model.Count == 0)
-{
-    <div class="empty-state">Hiện chưa có phòng nào được mở xem công khai.</div>
-}
-else
-{
-    <div class="room-grid">
-        @foreach (var room in Model)
+<section class="guest-container guest-listing" aria-labelledby="room-results-heading">
+    <form method="get" action="/phong" class="guest-filter" aria-label="Lọc phòng">
+        <div class="guest-filter-title">Lọc nhanh</div>
+        <label>
+            <span>Giá từ</span>
+            <input type="number" name="giaTu" min="0" step="100000" value="@(Model.GiaTu?.ToString(culture))" inputmode="numeric" placeholder="Ví dụ 2000000" />
+        </label>
+        <label>
+            <span>Giá đến</span>
+            <input type="number" name="giaDen" min="0" step="100000" value="@(Model.GiaDen?.ToString(culture))" inputmode="numeric" placeholder="Không giới hạn" />
+        </label>
+        <label>
+            <span>Diện tích từ (m²)</span>
+            <input type="number" name="dienTichTu" min="0" step="1" value="@(Model.DienTichTu?.ToString(culture))" inputmode="decimal" placeholder="Không giới hạn" />
+        </label>
+        <button class="guest-button guest-button-primary" type="submit">Xem phòng phù hợp</button>
+    </form>
+
+    <div class="guest-results-head">
+        <div>
+            <h2 id="room-results-heading">Phòng đang có</h2>
+            <p>@Model.TotalCount phòng phù hợp với bộ lọc</p>
+        </div>
+        @if (Model.GiaTu.HasValue || Model.GiaDen.HasValue || Model.DienTichTu.HasValue)
         {
-            <article class="room-card">
-                <div class="room-marker" aria-hidden="true">@room.SoPhong</div>
-                <div class="room-content">
-                    <div class="room-branch">@room.TenChiNhanh</div>
-                    <h2>Phòng @room.SoPhong</h2>
-                    <p class="room-address">@room.DiaChi</p>
-                    <div class="room-facts">
-                        <span>@room.DienTich.ToString("0.#") m²</span>
-                        <span>Tối đa @room.SoNguoiToiDa người</span>
-                    </div>
-                    <div class="room-bottom">
-                        <strong>@room.GiaThue.ToString("N0") đ <small>/ tháng</small></strong>
-                        <a class="button" href="/phong/@room.PhongTroId">Xem chi tiết</a>
-                    </div>
-                </div>
-            </article>
+            <a class="guest-clear" href="/phong">Xóa bộ lọc</a>
         }
     </div>
-}
+
+    @if (Model.Items.Count == 0)
+    {
+        <div class="guest-empty">
+            <span class="guest-empty-mark" aria-hidden="true">⌂</span>
+            <h3>Chưa có phòng phù hợp</h3>
+            <p>Thử nới khoảng giá hoặc diện tích để xem thêm lựa chọn.</p>
+            <a class="guest-button guest-button-outline" href="/phong">Xem tất cả phòng</a>
+        </div>
+    }
+    else
+    {
+        <div class="guest-room-grid">
+            @foreach (var item in Model.Items)
+            {
+                var room = item.Room;
+                var image = item.Images.FirstOrDefault();
+                <article class="guest-room-card">
+                    <a class="guest-room-visual" href="/phong/@room.PhongTroId" aria-label="Xem chi tiết phòng @room.SoPhong">
+                        @if (image is not null)
+                        {
+                            <img src="@image" alt="Ảnh phòng @room.SoPhong" loading="lazy" />
+                        }
+                        else
+                        {
+                            <span class="guest-room-no-image"><span class="guest-room-no-image-icon" aria-hidden="true">⌂</span><span>Ảnh phòng đang được cập nhật</span></span>
+                        }
+                        <span class="guest-room-number">@room.SoPhong</span>
+                    </a>
+                    <div class="guest-room-body">
+                        <p class="guest-room-location">@room.TenChiNhanh · @room.DiaChi</p>
+                        <h3><a href="/phong/@room.PhongTroId">Phòng @room.SoPhong</a></h3>
+                        <div class="guest-room-facts"><span>@room.DienTich.ToString("0.#") m²</span><span>Tối đa @room.SoNguoiToiDa người</span></div>
+                        <div class="guest-room-bottom">
+                            <p><strong>@room.GiaThue.ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("vi-VN")) ₫</strong><span>/ tháng</span></p>
+                            <a href="/phong/@room.PhongTroId" aria-label="Xem chi tiết phòng @room.SoPhong">Xem phòng <span aria-hidden="true">↗</span></a>
+                        </div>
+                    </div>
+                </article>
+            }
+        </div>
+        @if (pageCount > 1)
+        {
+            <nav class="guest-pagination" aria-label="Trang phòng">
+                @if (Model.Page > 1)
+                {
+                    <a asp-controller="Phong" asp-action="Index" asp-route-page="@(Model.Page - 1)" asp-route-giaTu="@Model.GiaTu" asp-route-giaDen="@Model.GiaDen" asp-route-dienTichTu="@Model.DienTichTu">Trang trước</a>
+                }
+                <span>Trang @Model.Page / @pageCount</span>
+                @if (Model.Page < pageCount)
+                {
+                    <a asp-controller="Phong" asp-action="Index" asp-route-page="@(Model.Page + 1)" asp-route-giaTu="@Model.GiaTu" asp-route-giaDen="@Model.GiaDen" asp-route-dienTichTu="@Model.DienTichTu">Trang sau</a>
+                }
+            </nav>
+        }
+    }
+</section>

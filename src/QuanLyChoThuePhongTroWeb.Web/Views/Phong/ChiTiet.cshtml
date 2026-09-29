@@ -1,25 +1,79 @@
-@model QuanLyChoThuePhongTroWeb.Application.Features.PublicRooms.PublicRoomDto
+@model QuanLyChoThuePhongTroWeb.ViewModels.PublicRooms.PublicRoomCardModel
 @{
     Layout = "_PublicRoomLayout";
-    ViewData["Title"] = $"Phòng {Model.SoPhong}";
+    ViewData["Title"] = $"Phòng {Model.Room.SoPhong}";
+    var room = Model.Room;
+    var cover = Model.Images.FirstOrDefault();
 }
 
-<a class="back-link" href="/phong">← Tất cả phòng</a>
-<section class="detail-card">
-    <div class="detail-heading">
+<div class="guest-container guest-detail">
+    <nav class="guest-breadcrumb" aria-label="Đường dẫn trang">
+        <a href="/phong">Tìm phòng</a>
+        <span aria-hidden="true">/</span>
+        <span aria-current="page">Phòng @room.SoPhong</span>
+    </nav>
+
+    <div class="guest-detail-title">
         <div>
-            <span class="eyebrow">@Model.TenChiNhanh</span>
-            <h1>Phòng @Model.SoPhong</h1>
-            <p>@Model.DiaChi</p>
+            <p class="guest-kicker">@room.TenChiNhanh</p>
+            <h1>Phòng @room.SoPhong</h1>
+            <p>@room.DiaChi</p>
         </div>
-        <div class="detail-price">@Model.GiaThue.ToString("N0") đ <small>/ tháng</small></div>
+        <span class="guest-detail-room-number">Phòng @room.SoPhong</span>
     </div>
-    <div class="detail-facts">
-        <div><span>Diện tích</span><strong>@Model.DienTich.ToString("0.#") m²</strong></div>
-        <div><span>Sức chứa</span><strong>@Model.SoNguoiToiDa người</strong></div>
-        <div><span>Tầng</span><strong>@Model.TangLau</strong></div>
+
+    <div class="guest-gallery" data-room-gallery>
+        <div class="guest-gallery-main">
+            @if (cover is not null)
+            {
+                <img src="@cover" alt="Ảnh phòng @room.SoPhong" data-gallery-main />
+                @if (Model.Images.Count > 1)
+                {
+                    <button type="button" class="guest-gallery-arrow guest-gallery-arrow-prev" data-gallery-prev aria-label="Ảnh trước"><span aria-hidden="true">‹</span></button>
+                    <button type="button" class="guest-gallery-arrow guest-gallery-arrow-next" data-gallery-next aria-label="Ảnh tiếp theo"><span aria-hidden="true">›</span></button>
+                    <span class="guest-gallery-count" data-gallery-count aria-live="polite">1 / @Model.Images.Count</span>
+                }
+            }
+            else
+            {
+                <div class="guest-gallery-empty"><span aria-hidden="true">⌂</span><p>Ảnh phòng đang được cập nhật</p></div>
+            }
+        </div>
+        @if (Model.Images.Count > 1)
+        {
+            <div class="guest-gallery-thumbs" role="group" aria-label="Chọn ảnh phòng">
+                @for (var index = 0; index < Model.Images.Count; index++)
+                {
+                    var image = Model.Images[index];
+                    <button type="button" class="guest-gallery-thumb" data-gallery-thumb data-gallery-src="@image" data-gallery-alt="Ảnh @(index + 1) phòng @room.SoPhong" aria-label="Xem ảnh @(index + 1) trên @Model.Images.Count" aria-pressed="@(index == 0 ? "true" : "false")">
+                        <img src="@image" alt="" loading="lazy" />
+                    </button>
+                }
+            </div>
+        }
     </div>
-    <h2>Thông tin phòng</h2>
-    <p class="description">@(string.IsNullOrWhiteSpace(Model.MoTa) ? "Chưa có mô tả cho phòng này." : Model.MoTa)</p>
-    <div class="notice">Tính năng đặt lịch xem và giữ chỗ đang tạm dừng.</div>
-</section>
+
+    <div class="guest-detail-grid">
+        <div class="guest-detail-content">
+            <h2>Thông tin phòng</h2>
+            <div class="guest-detail-facts">
+                <div><span>Diện tích</span><strong>@room.DienTich.ToString("0.#") m²</strong></div>
+                <div><span>Số người tối đa</span><strong>@room.SoNguoiToiDa người</strong></div>
+                <div><span>Tầng</span><strong>@room.TangLau</strong></div>
+            </div>
+            <h2>Mô tả</h2>
+            <p class="guest-detail-description">@(string.IsNullOrWhiteSpace(room.MoTa) ? "Người quản lý đang cập nhật mô tả phòng." : room.MoTa)</p>
+        </div>
+        <aside class="guest-detail-aside" aria-label="Giá thuê và các bước tiếp theo">
+            <p class="guest-detail-price"><strong>@room.GiaThue.ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("vi-VN")) ₫</strong><span>/ tháng</span></p>
+            <p>Thông tin phòng đang được cập nhật. Bạn có thể đăng nhập để liên hệ người quản lý.</p>
+            <button class="guest-button guest-button-primary guest-button-disabled" type="button" disabled>Hẹn xem phòng · Sắp có</button>
+            <button class="guest-button guest-button-outline guest-button-disabled" type="button" disabled>Đặt phòng và đặt cọc · Sắp có</button>
+            <a class="guest-button guest-button-outline" asp-area="QuanLyNhaTro" asp-controller="NguoiDung" asp-action="DangNhap" asp-route-returnUrl="/phong/@room.PhongTroId">Đăng nhập để liên hệ</a>
+            <span class="guest-detail-note">Chức năng lịch xem, giữ chỗ, đặt cọc và hoàn tiền sẽ được bổ sung sau.</span>
+        </aside>
+    </div>
+</div>
+@section Scripts {
+    <script src="~/js/khach-vang-lai-gallery.js" asp-append-version="true" defer></script>
+}
