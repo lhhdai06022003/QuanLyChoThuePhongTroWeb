@@ -25,6 +25,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests.Fixtures
     {
         private static readonly string TestConnectionString = ResolveTestConnectionString();
         public TestLogSink LogSink { get; } = new();
+        public FakeEmailService FakeEmailServiceInstance { get; } = new();
 
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
@@ -57,9 +58,10 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests.Fixtures
                     options.UseNpgsql(TestConnectionString, npgsql =>
                         npgsql.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName)));
 
-                // Thay thế EmailService thật bằng test fake
+                // Thay thế EmailService thật bằng test fake (một instance singleton để test có thể quan sát/định cấu hình).
                 services.RemoveAll<IEmailService>();
-                services.AddScoped<IEmailService, FakeEmailService>();
+                services.AddSingleton(FakeEmailServiceInstance);
+                services.AddSingleton<IEmailService>(FakeEmailServiceInstance);
 
                 // Thay thế ImageStorageService thật bằng test fake
                 services.RemoveAll<IImageStorageService>();
@@ -154,8 +156,33 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests.Fixtures
 
         public class FakeEmailService : IEmailService
         {
+            public record InvoiceEmailCall(string ToEmail, string MaHoaDon, string HanThanhToan);
+
+            public ConcurrentQueue<InvoiceEmailCall> InvoiceEmailCalls { get; } = new();
+
+            /// <summary>
+            /// Cấu hình kết quả theo địa chỉ email cụ thể: true = thành công, false = trả lỗi an toàn.
+            /// Không có trong dictionary => mặc định thành công.
+            /// </summary>
+            public ConcurrentDictionary<string, (bool IsSuccess, string ErrorMessage)> ResultByAddress { get; } = new();
+
+            /// <summary>Địa chỉ trong tập này sẽ khiến SendInvoiceEmailAsync ném exception thay vì trả lỗi.</summary>
+            public ConcurrentDictionary<string, bool> ThrowForAddress { get; } = new();
+
             public Task<(bool IsSuccess, string ErrorMessage)> SendInvoiceEmailAsync(string toEmail, HoaDonChiTietRes hoaDon, byte[] pdfBytes)
             {
+                InvoiceEmailCalls.Enqueue(new InvoiceEmailCall(toEmail, hoaDon.MaHoaDon, hoaDon.HanThanhToan));
+
+                if (ThrowForAddress.ContainsKey(toEmail))
+                {
+                    throw new InvalidOperationException("Fake SMTP exception for test address: " + toEmail);
+                }
+
+                if (ResultByAddress.TryGetValue(toEmail, out var configured))
+                {
+                    return Task.FromResult(configured);
+                }
+
                 return Task.FromResult((true, string.Empty));
             }
 

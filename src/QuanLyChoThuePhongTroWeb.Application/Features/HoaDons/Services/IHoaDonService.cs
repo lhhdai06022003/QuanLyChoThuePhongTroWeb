@@ -25,7 +25,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
         Task<List<HoaDonRes>> GetHoaDonsByNguoiThueIdAsync(int nguoiThueId);
         Task<bool> CheckHoaDonOwnershipAsync(int hoaDonId, int nguoiThueId);
         Task<(bool IsSuccess, string? ErrorMessage)> CheckInvoicePermissionAsync(int hoaDonId, int actorId, string actionCode);
-        Task<SendInvoiceEmailResult> SendInvoiceEmailAsync(int hoaDonId, int actorId, CancellationToken cancellationToken = default);
         Task<bool> CanTenantRequestPaymentAsync(int hoaDonId, int nguoiThueId, CancellationToken cancellationToken = default);
     }
 }

@@ -279,6 +279,17 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
                 ToggleableUserSessionService.ShouldThrow = false;
                 var secondResponse = await client.GetAsync("/QuanLyNhaTro/Dashboard");
                 Assert.Equal(HttpStatusCode.OK, secondResponse.StatusCode);
+
+                // Task 0.5 (kế hoạch khắc phục review đợt 2B lần 2): xác nhận lượt 1 (lỗi DB khi
+                // kiểm tra phiên) chỉ sinh ĐÚNG 1 log Error mô phỏng trên factory độc lập này —
+                // giống hệt cách lọc ở SessionCheckThrows_Returns500ErrorPage_AndKeepsAuthCookie
+                // (dòng 165–170), dùng LogSink.Entries có sẵn của CustomWebApplicationFactory.
+                var matchingErrorLogs = standaloneFactory.LogSink.Entries
+                    .Where(e => e.Level >= LogLevel.Error &&
+                                (e.Message.Contains(SimulatedFailureMessage, StringComparison.Ordinal) ||
+                                 (e.Exception?.Message?.Contains(SimulatedFailureMessage, StringComparison.Ordinal) ?? false)))
+                    .ToList();
+                Assert.Single(matchingErrorLogs);
             }
             finally
             {

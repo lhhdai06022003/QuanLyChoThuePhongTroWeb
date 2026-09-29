@@ -207,7 +207,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             public Task<List<HoaDonRes>> GetHoaDonsByNguoiThueIdAsync(int nguoiThueId) => throw new NotImplementedException();
             public Task<bool> CheckHoaDonOwnershipAsync(int hoaDonId, int nguoiThueId) => throw new NotImplementedException();
             public Task<(bool IsSuccess, string? ErrorMessage)> CheckInvoicePermissionAsync(int hoaDonId, int actorId, string actionCode) => throw new NotImplementedException();
-            public Task<SendInvoiceEmailResult> SendInvoiceEmailAsync(int hoaDonId, int actorId, CancellationToken cancellationToken = default) => throw new NotImplementedException();
             public Task<bool> CanTenantRequestPaymentAsync(int hoaDonId, int nguoiThueId, CancellationToken cancellationToken = default) => Task.FromResult(true);
         }
 
@@ -687,7 +686,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             public Task<List<HoaDonRes>> GetHoaDonsByNguoiThueIdAsync(int nguoiThueId) => throw new NotImplementedException();
             public Task<bool> CheckHoaDonOwnershipAsync(int hoaDonId, int nguoiThueId) => throw new NotImplementedException();
             public Task<(bool IsSuccess, string? ErrorMessage)> CheckInvoicePermissionAsync(int hoaDonId, int actorId, string actionCode) => throw new NotImplementedException();
-            public Task<SendInvoiceEmailResult> SendInvoiceEmailAsync(int hoaDonId, int actorId, CancellationToken cancellationToken = default) => throw new NotImplementedException();
             public Task<bool> CanTenantRequestPaymentAsync(int hoaDonId, int nguoiThueId, CancellationToken cancellationToken = default) => Task.FromResult(true);
         }
     }

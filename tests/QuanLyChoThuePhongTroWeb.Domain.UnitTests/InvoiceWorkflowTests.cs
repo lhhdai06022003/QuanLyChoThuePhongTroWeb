@@ -35,7 +35,8 @@ namespace QuanLyChoThuePhongTroWeb.Domain.UnitTests
             Assert.NotNull(hoaDon.NgayChot);
 
             // 3. DaChot -> DaGui
-            hoaDon.GuiHoaDon(nguoiGuiId: 5, lyDo: "Công bố lên cổng khách thuê");
+            var guiNow = DateTime.UtcNow;
+            hoaDon.GuiHoaDon(5, guiNow, guiNow.AddDays(7), "Công bố lên cổng khách thuê");
             Assert.Equal(TrangThaiPhatHanhHoaDon.DaGui, hoaDon.TrangThaiPhatHanh);
             Assert.NotNull(hoaDon.NgayGui);
 
@@ -111,18 +112,18 @@ namespace QuanLyChoThuePhongTroWeb.Domain.UnitTests
             var hoaDon = new HoaDon { TongTien = 2_000_000m };
 
             // Từ Nháp không thể gửi
-            Assert.Throws<InvalidOperationException>(() => hoaDon.GuiHoaDon(1));
+            Assert.Throws<InvalidOperationException>(() => hoaDon.GuiHoaDon(1, DateTime.UtcNow, DateTime.UtcNow.AddDays(7)));
 
             hoaDon.GuiDuyet(10);
             // Từ Chờ duyệt không thể gửi
-            Assert.Throws<InvalidOperationException>(() => hoaDon.GuiHoaDon(1));
+            Assert.Throws<InvalidOperationException>(() => hoaDon.GuiHoaDon(1, DateTime.UtcNow, DateTime.UtcNow.AddDays(7)));
 
             hoaDon.ChotHoaDon(1);
-            hoaDon.GuiHoaDon(1);
+            hoaDon.GuiHoaDon(1, DateTime.UtcNow, DateTime.UtcNow.AddDays(7));
             Assert.Equal(TrangThaiPhatHanhHoaDon.DaGui, hoaDon.TrangThaiPhatHanh);
 
             // Gửi lặp khi đã gửi bị từ chối
-            Assert.Throws<InvalidOperationException>(() => hoaDon.GuiHoaDon(1));
+            Assert.Throws<InvalidOperationException>(() => hoaDon.GuiHoaDon(1, DateTime.UtcNow, DateTime.UtcNow.AddDays(7)));
         }
 
         [Fact]
@@ -141,7 +142,7 @@ namespace QuanLyChoThuePhongTroWeb.Domain.UnitTests
             Assert.Throws<InvalidOperationException>(() => hoaDon.GuiDuyet(10));
             Assert.Throws<InvalidOperationException>(() => hoaDon.TraLai(1, "Lý do"));
             Assert.Throws<InvalidOperationException>(() => hoaDon.ChotHoaDon(1));
-            Assert.Throws<InvalidOperationException>(() => hoaDon.GuiHoaDon(1));
+            Assert.Throws<InvalidOperationException>(() => hoaDon.GuiHoaDon(1, DateTime.UtcNow, DateTime.UtcNow.AddDays(7)));
             Assert.Throws<InvalidOperationException>(() => hoaDon.HuyHoaDon(1, "Hủy lần hai"));
         }
 
@@ -182,8 +183,9 @@ namespace QuanLyChoThuePhongTroWeb.Domain.UnitTests
         }
 
         [Fact]
-        public void HoaDon_CannotRequestPayment_IfNotDaChotOrDaGui()
+        public void HoaDon_CannotRequestPayment_IfNotDaGui()
         {
+            // Luật mới (đợt 2B): chỉ hóa đơn DaGui mới được tạo yêu cầu thanh toán, DaChot không còn được phép.
             var hoaDonNhap = new HoaDon
             {
                 TongTien = 1_000_000m,
@@ -191,11 +193,147 @@ namespace QuanLyChoThuePhongTroWeb.Domain.UnitTests
             };
 
             var ex = Assert.Throws<InvalidOperationException>(() => hoaDonNhap.KiemTraDuDieuKienYeuCauThanhToan());
-            Assert.Contains("đã chốt", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("đã gửi cho khách thuê", ex.Message, StringComparison.OrdinalIgnoreCase);
 
             hoaDonNhap.GuiDuyet(10);
             hoaDonNhap.ChotHoaDon(nguoiChotId: 1);
+
+            // DaChot vẫn bị từ chối theo luật mới
+            var exDaChot = Assert.Throws<InvalidOperationException>(() => hoaDonNhap.KiemTraDuDieuKienYeuCauThanhToan());
+            Assert.Contains("đã gửi cho khách thuê", exDaChot.Message, StringComparison.OrdinalIgnoreCase);
+
+            var guiNow = DateTime.UtcNow;
+            hoaDonNhap.GuiHoaDon(1, guiNow, guiNow.AddDays(7));
             Assert.True(hoaDonNhap.KiemTraDuDieuKienYeuCauThanhToan());
+        }
+
+        [Fact]
+        public void GuiHoaDon_FromDaChot_SetsDaGuiNgayGuiHanAndSingleHistory()
+        {
+            var hoaDon = new HoaDon { TongTien = 1_000_000m };
+            hoaDon.GuiDuyet(10);
+            hoaDon.ChotHoaDon(1);
+
+            var nowUtc = DateTime.UtcNow;
+            var han = nowUtc.AddDays(7);
+            hoaDon.GuiHoaDon(5, nowUtc, han, "Công bố lên cổng khách thuê");
+
+            Assert.Equal(TrangThaiPhatHanhHoaDon.DaGui, hoaDon.TrangThaiPhatHanh);
+            Assert.Equal(nowUtc, hoaDon.NgayGui);
+            Assert.Equal(nowUtc, hoaDon.NgayCapNhat);
+            Assert.Equal(han, hoaDon.HanThanhToan);
+
+            var guiHistory = hoaDon.LichSuTrangThaiHoaDons.Single(h => h.TrangThaiPhatHanhMoi == TrangThaiPhatHanhHoaDon.DaGui);
+            Assert.Equal(TrangThaiPhatHanhHoaDon.DaChot, guiHistory.TrangThaiPhatHanhCu);
+            Assert.Equal(5, guiHistory.NguoiThucHienId);
+            Assert.Equal(nowUtc, guiHistory.NgayThucHien);
+            Assert.Equal(1, hoaDon.LichSuTrangThaiHoaDons.Count(h => h.TrangThaiPhatHanhMoi == TrangThaiPhatHanhHoaDon.DaGui));
+        }
+
+        [Fact]
+        public void GuiHoaDon_KeepsExistingHanThanhToan()
+        {
+            var hoaDon = new HoaDon { TongTien = 1_000_000m };
+            hoaDon.GuiDuyet(10);
+            hoaDon.ChotHoaDon(1);
+
+            var existingHan = DateTime.UtcNow.AddDays(20);
+            hoaDon.HanThanhToan = existingHan;
+
+            var nowUtc = DateTime.UtcNow;
+            hoaDon.GuiHoaDon(5, nowUtc, nowUtc.AddDays(7));
+
+            Assert.Equal(existingHan, hoaDon.HanThanhToan);
+        }
+
+        [Theory]
+        [InlineData(TrangThaiPhatHanhHoaDon.Nhap)]
+        [InlineData(TrangThaiPhatHanhHoaDon.ChoDuyet)]
+        [InlineData(TrangThaiPhatHanhHoaDon.DaGui)]
+        [InlineData(TrangThaiPhatHanhHoaDon.DaHuy)]
+        public void GuiHoaDon_NotFromDaChot_ThrowsInvalidOperationException(TrangThaiPhatHanhHoaDon status)
+        {
+            var hoaDon = new HoaDon { TongTien = 1_000_000m, TrangThaiPhatHanh = status };
+            var nowUtc = DateTime.UtcNow;
+
+            Assert.Throws<InvalidOperationException>(() => hoaDon.GuiHoaDon(1, nowUtc, nowUtc.AddDays(7)));
+        }
+
+        [Fact]
+        public void GuiHoaDon_InvalidArguments_ThrowsArgumentOutOfRangeException()
+        {
+            var now = DateTime.UtcNow;
+
+            HoaDon MakeDaChot()
+            {
+                var hd = new HoaDon { TongTien = 1_000_000m };
+                hd.GuiDuyet(10);
+                hd.ChotHoaDon(1);
+                return hd;
+            }
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => MakeDaChot().GuiHoaDon(0, now, now.AddDays(7)));
+            Assert.Throws<ArgumentOutOfRangeException>(() => MakeDaChot().GuiHoaDon(-1, now, now.AddDays(7)));
+            Assert.Throws<ArgumentOutOfRangeException>(() => MakeDaChot().GuiHoaDon(1, DateTime.SpecifyKind(now, DateTimeKind.Local), now.AddDays(7)));
+            Assert.Throws<ArgumentOutOfRangeException>(() => MakeDaChot().GuiHoaDon(1, DateTime.SpecifyKind(now, DateTimeKind.Unspecified), now.AddDays(7)));
+            Assert.Throws<ArgumentOutOfRangeException>(() => MakeDaChot().GuiHoaDon(1, now, now));
+            Assert.Throws<ArgumentOutOfRangeException>(() => MakeDaChot().GuiHoaDon(1, now, now.AddSeconds(-1)));
+        }
+
+        [Theory]
+        [InlineData(TrangThaiPhatHanhHoaDon.Nhap)]
+        [InlineData(TrangThaiPhatHanhHoaDon.ChoDuyet)]
+        [InlineData(TrangThaiPhatHanhHoaDon.DaChot)]
+        [InlineData(TrangThaiPhatHanhHoaDon.DaHuy)]
+        public void KiemTraDuDieuKienYeuCauThanhToan_Rejects_WhenNotDaGui(TrangThaiPhatHanhHoaDon status)
+        {
+            var hoaDon = new HoaDon { TongTien = 1_000_000m, TrangThaiPhatHanh = status };
+
+            var ex = Assert.Throws<InvalidOperationException>(() => hoaDon.KiemTraDuDieuKienYeuCauThanhToan());
+            Assert.Contains("Chỉ hóa đơn đã gửi cho khách thuê mới được tạo yêu cầu thanh toán.", ex.Message);
+        }
+
+        [Fact]
+        public void KiemTraDuDieuKienYeuCauThanhToan_Rejects_WhenDaGuiButIsDeleted()
+        {
+            var hoaDon = new HoaDon
+            {
+                TongTien = 1_000_000m,
+                TrangThaiPhatHanh = TrangThaiPhatHanhHoaDon.DaGui,
+                IsDeleted = true
+            };
+
+            var ex = Assert.Throws<InvalidOperationException>(() => hoaDon.KiemTraDuDieuKienYeuCauThanhToan());
+            Assert.Contains("Chỉ hóa đơn đã gửi cho khách thuê mới được tạo yêu cầu thanh toán.", ex.Message);
+        }
+
+        [Fact]
+        public void KiemTraDuDieuKienYeuCauThanhToan_Rejects_WhenDaGuiAndDaThanhToan()
+        {
+            var hoaDon = new HoaDon
+            {
+                TongTien = 1_000_000m,
+                TrangThaiPhatHanh = TrangThaiPhatHanhHoaDon.DaGui,
+                TrangThaiHoaDon = TrangThaiHoaDon.DaThanhToan
+            };
+
+            var ex = Assert.Throws<InvalidOperationException>(() => hoaDon.KiemTraDuDieuKienYeuCauThanhToan());
+            Assert.Contains("đã được thanh toán hoàn tất", ex.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Theory]
+        [InlineData(TrangThaiHoaDon.ChuaThanhToan)]
+        [InlineData(TrangThaiHoaDon.ThanhToanMotPhan)]
+        public void KiemTraDuDieuKienYeuCauThanhToan_DaGuiUnpaidOrPartial_ReturnsTrue(TrangThaiHoaDon trangThaiThanhToan)
+        {
+            var hoaDon = new HoaDon
+            {
+                TongTien = 1_000_000m,
+                TrangThaiPhatHanh = TrangThaiPhatHanhHoaDon.DaGui,
+                TrangThaiHoaDon = trangThaiThanhToan
+            };
+
+            Assert.True(hoaDon.KiemTraDuDieuKienYeuCauThanhToan());
         }
 
         [Fact]

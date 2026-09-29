@@ -314,5 +314,64 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             var canAfter = await accessService.CanPerformAsync(StaffId, BranchId, QuanLyChoThuePhongTroWeb.Application.Common.Security.EmployeeActionCodes.MeterReview);
             Assert.False(canAfter);
         }
+
+        [Fact]
+        public async Task RevokeAsync_ActorIsAssignedStaff_IsRejected()
+        {
+            var staffAssignment = new NhanVienChiNhanh { NhanVienChiNhanhId = 21, NguoiDungId = StaffId, ChiNhanhId = BranchId, IsActive = true, NguoiPhanCongId = AdminId, NgayPhanCong = DateTime.UtcNow.AddDays(-1) };
+            var otherAssignment = new NhanVienChiNhanh { NhanVienChiNhanhId = 22, NguoiDungId = OtherStaffId, ChiNhanhId = BranchId, IsActive = true, NguoiPhanCongId = AdminId, NgayPhanCong = DateTime.UtcNow.AddDays(-1) };
+            _assignmentStore.Assignments.Add(staffAssignment);
+            _assignmentStore.Assignments.Add(otherAssignment);
+
+            var result = await _service.RevokeAsync(new RevokeEmployeeBranchRequest { NguoiDungId = OtherStaffId, ChiNhanhId = BranchId, LyDo = "Nghỉ việc" }, actorId: StaffId);
+
+            Assert.False(result.Success);
+            Assert.Equal("Chỉ Quản trị viên đang hoạt động mới được quản lý phân công chi nhánh.", result.Message);
+            Assert.Null(_uow.LastTransaction);
+            Assert.Equal(0, _assignmentStore.LockEmployeeCallCount);
+            Assert.True(otherAssignment.IsActive);
+        }
+
+        [Fact]
+        public async Task RevokeAsync_ActorIsTenant_IsRejected()
+        {
+            var otherAssignment = new NhanVienChiNhanh { NhanVienChiNhanhId = 23, NguoiDungId = OtherStaffId, ChiNhanhId = BranchId, IsActive = true, NguoiPhanCongId = AdminId, NgayPhanCong = DateTime.UtcNow.AddDays(-1) };
+            _assignmentStore.Assignments.Add(otherAssignment);
+
+            var result = await _service.RevokeAsync(new RevokeEmployeeBranchRequest { NguoiDungId = OtherStaffId, ChiNhanhId = BranchId, LyDo = "Nghỉ việc" }, actorId: TenantId);
+
+            Assert.False(result.Success);
+            Assert.Equal("Chỉ Quản trị viên đang hoạt động mới được quản lý phân công chi nhánh.", result.Message);
+            Assert.Null(_uow.LastTransaction);
+            Assert.Equal(0, _assignmentStore.LockEmployeeCallCount);
+            Assert.True(otherAssignment.IsActive);
+        }
+
+        [Theory]
+        [InlineData(AdminId)]
+        [InlineData(TenantId)]
+        public async Task RevokeAsync_TargetIsNotStaff_IsRejected(int targetId)
+        {
+            var result = await _service.RevokeAsync(new RevokeEmployeeBranchRequest { NguoiDungId = targetId, ChiNhanhId = BranchId, LyDo = "Kiểm thử" }, actorId: AdminId);
+
+            Assert.False(result.Success);
+            Assert.Equal("Tài khoản không tồn tại, đã bị xóa hoặc không phải nhân viên.", result.Message);
+            Assert.True(_uow.LastTransaction!.RolledBack);
+            Assert.Equal(0, _uow.SaveChangesCallCount);
+        }
+
+        [Fact]
+        public async Task RevokeAsync_TargetIsDeleted_IsRejected()
+        {
+            var deletedStaffAssignment = new NhanVienChiNhanh { NhanVienChiNhanhId = 24, NguoiDungId = 999, ChiNhanhId = BranchId, IsActive = true, NguoiPhanCongId = AdminId, NgayPhanCong = DateTime.UtcNow.AddDays(-1) };
+            _assignmentStore.Assignments.Add(deletedStaffAssignment);
+
+            var result = await _service.RevokeAsync(new RevokeEmployeeBranchRequest { NguoiDungId = 999, ChiNhanhId = BranchId, LyDo = "Kiểm thử" }, actorId: AdminId);
+
+            Assert.False(result.Success);
+            Assert.Equal("Tài khoản không tồn tại, đã bị xóa hoặc không phải nhân viên.", result.Message);
+            Assert.True(deletedStaffAssignment.IsActive);
+            Assert.Equal(0, _uow.SaveChangesCallCount);
+        }
     }
 }

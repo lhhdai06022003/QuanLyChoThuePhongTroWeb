@@ -137,9 +137,11 @@
 
 > Nghiệm thu 28/09/2026: Domain 85, Application 312, Infrastructure 210 (3/3 lần), Web 90 (DB `quanlyphongtro_test`); EF không báo thay đổi model. Thử tay đủ 5 bước §12.6. Sau thử tay: bỏ ô lý do khi phân công và sửa lỗi modal Bootstrap chặn gõ lý do thu hồi (`data-bs-focus="false"`). Q1: tài khoản khách vãng lai bị kiểm tra phiên từ chối — đã ghi để báo người B. Việc thấp dời sang đầu đợt 2B: thêm ca "Admin gọi được" cho `CreateApi`/`EditApi`/`ThemChiNhanhMoi`/`CapNhatChiNhanh`/`ThuHoi`, ca nhân viên gọi `RevokeAsync`, khẳng định số log trong test phục hồi phiên.
 
-## 7. Công bố trên cổng
+## 7. Công bố trên cổng *(hoàn thành đợt 2B, review độc lập và thử tay ngày 29/09/2026)*
 
 > **Ghi chú đợt 1:** Đã làm trước trong đợt 1: lọc cổng khách (danh sách, chi tiết, VietQR không lộ nháp hay đã hủy chưa gửi), chặn ThuTien khi chưa DaGui.
+>
+> **Đợt 2B (Mục 7–8):** kế hoạch chi tiết tại `docs/KeHoachHienTai/2026-09-28-ke-hoach-dot-2b-cong-bo-hoa-don.md`. Quyết định 28/09/2026: hạn thanh toán là cuối ngày giờ VN, gỡ modal "Gửi email hàng loạt" cũ, link thông báo `/KhachThue/HoaDon?hoaDonId=`, hạn có trong email (spec §5.7–5.9, §6). Chỉ tick Mục 7–8 sau khi người dùng thử tay đạt.
 
 **Files**
 - Modify: `src/QuanLyChoThuePhongTroWeb.Application/Features/HoaDons/Services/InvoiceIssuanceService.cs`
@@ -147,11 +149,11 @@
 - Modify: `src/QuanLyChoThuePhongTroWeb.Web/Areas/KhachThue/Controllers/HoaDonController.cs`
 - Create: `tests/QuanLyChoThuePhongTroWeb.Web.IntegrationTests/Areas/InvoiceVisibilityTests.cs`
 
-- [ ] Test khách chỉ thấy `DaGui` và bản `DaHuy` từng công bố ở danh sách, GetById, PDF; không thấy `Nhap`, `ChoDuyet`, `DaChot`. Bản hủy không có VietQR/thao tác thanh toán.
-- [ ] Transaction công bố cho từng hóa đơn: khóa hàng hóa đơn hoặc cập nhật có điều kiện `DaChot → DaGui`, rồi tạo một hàng `ThongBao` cho khách trên cổng, không có cột email. Một lệnh gửi hàng loạt nhận danh sách `HoaDonId`; lỗi từng hóa đơn được trả riêng, không hoàn tác hóa đơn khác. Sau commit, Application gửi email trực tiếp nếu có địa chỉ và trả kết quả ngay. Với `DaGui`, trả "đã công bố", không đổi `NgayGui`, không tạo thông báo/lịch sử mới hoặc tự gửi email lần nữa.
-- [ ] Khóa đường tạo yêu cầu thanh toán của module 2 chỉ với bản hiệu lực đã gửi. Chạy test Application/Web cho SMTP lỗi sau commit nhưng cổng vẫn hiển thị.
+- [x] Test khách chỉ thấy `DaGui` và bản `DaHuy` từng công bố ở danh sách, GetById, PDF; không thấy `Nhap`, `ChoDuyet`, `DaChot`. Bản hủy không có VietQR/thao tác thanh toán.
+- [x] Transaction công bố cho từng hóa đơn: khóa hàng hóa đơn hoặc cập nhật có điều kiện `DaChot → DaGui`, rồi tạo một hàng `ThongBao` cho khách trên cổng, không có cột email. Một lệnh gửi hàng loạt nhận danh sách `HoaDonId`; lỗi từng hóa đơn được trả riêng, không hoàn tác hóa đơn khác. Sau commit, Application gửi email trực tiếp nếu có địa chỉ và trả kết quả ngay. Với `DaGui`, trả "đã công bố", không đổi `NgayGui`, không tạo thông báo/lịch sử mới hoặc tự gửi email lần nữa.
+- [x] Khóa đường tạo yêu cầu thanh toán của module 2 chỉ với bản hiệu lực đã gửi. Chạy test Application/Web cho SMTP lỗi sau commit nhưng cổng vẫn hiển thị.
 
-## 8. Gửi email hóa đơn trực tiếp, không lưu trạng thái
+## 8. Gửi email hóa đơn trực tiếp, không lưu trạng thái *(hoàn thành đợt 2B, review độc lập và thử tay ngày 29/09/2026)*
 
 > **Ghi chú đợt 1:** Đã làm trước trong đợt 1: sửa truy vấn nhắc nợ `GetOverdueInvoicesAsync` (chỉ lấy `DaGui`, `!IsDeleted`, chưa thanh toán, theo hạn `HanThanhToan` hoặc `NgayGui`).
 
@@ -163,11 +165,13 @@
 - Create: `tests/QuanLyChoThuePhongTroWeb.Application.UnitTests/InvoiceEmailDispatchTests.cs`
 - Create: `tests/QuanLyChoThuePhongTroWeb.Web.IntegrationTests/Areas/InvoiceBulkSendTests.cs`
 
-- [ ] Viết test lô có email thành công, email lỗi và hóa đơn không có địa chỉ: kết quả trả riêng từng `HoaDonId`; tất cả hóa đơn hợp lệ vẫn `DaGui` và có thông báo cổng. Không ghi kết quả SMTP, số lần thử hoặc lỗi vào DB.
-- [ ] Application tạo PDF từ bản hóa đơn đã chốt và gọi `IEmailService` sau commit công bố, rồi trả kết quả email tức thời. Lỗi tạo PDF, SMTP trả thất bại hoặc ném exception được bắt theo từng hóa đơn; không biến toàn lô thành lỗi HTTP chung vì cổng đã công bố. Controller `SendEmail` cũ chuyển qua Application Service và kiểm tra role/chi nhánh, trạng thái hóa đơn.
-- [ ] Hai request "Gửi hóa đơn" đồng thời chỉ một request chuyển `DaChot → DaGui`; request lặp trên `DaGui` không tự gửi thêm email. Tạo thao tác riêng "Gửi lại email" cho Admin/nhân viên đúng chi nhánh trên bản `DaGui` còn hiệu lực; mỗi lần bấm đều thử gửi trực tiếp, trả kết quả ngay và báo có thể gửi trùng. Không có nút gửi lại cho `DaHuy`.
-- [ ] Sửa `GetOverdueInvoicesAsync` để job nhắc nợ hiện có chỉ lấy `TrangThaiPhatHanh = DaGui`, `!IsDeleted`, chưa thanh toán; quá hạn theo `HanThanhToan`, hoặc `NgayGui` khi thiếu hạn. Hai JSON state store/job nhắc email giữ nguyên ở giai đoạn này; không đưa migration/chuyển dữ liệu JSON vào phạm vi.
-- [ ] Test SMTP giả cho thành công, thất bại, exception, thiếu PDF/địa chỉ, lệnh lặp, gửi lại thủ công và timeout sau công bố; xác nhận không có cột/trạng thái email mới. Không gửi email thật trong automated tests.
+- [x] Viết test lô có email thành công, email lỗi và hóa đơn không có địa chỉ: kết quả trả riêng từng `HoaDonId`; tất cả hóa đơn hợp lệ vẫn `DaGui` và có thông báo cổng. Không ghi kết quả SMTP, số lần thử hoặc lỗi vào DB.
+- [x] Application tạo PDF từ bản hóa đơn đã chốt và gọi `IEmailService` sau commit công bố, rồi trả kết quả email tức thời. Lỗi tạo PDF, SMTP trả thất bại hoặc ném exception được bắt theo từng hóa đơn; không biến toàn lô thành lỗi HTTP chung vì cổng đã công bố. Controller `SendEmail` cũ chuyển qua Application Service và kiểm tra role/chi nhánh, trạng thái hóa đơn.
+- [x] Hai request "Gửi hóa đơn" đồng thời chỉ một request chuyển `DaChot → DaGui`; request lặp trên `DaGui` không tự gửi thêm email. Tạo thao tác riêng "Gửi lại email" cho Admin/nhân viên đúng chi nhánh trên bản `DaGui` còn hiệu lực; mỗi lần bấm đều thử gửi trực tiếp, trả kết quả ngay và báo có thể gửi trùng. Không có nút gửi lại cho `DaHuy`.
+- [x] Sửa `GetOverdueInvoicesAsync` để job nhắc nợ hiện có chỉ lấy `TrangThaiPhatHanh = DaGui`, `!IsDeleted`, chưa thanh toán; quá hạn theo `HanThanhToan`, hoặc `NgayGui` khi thiếu hạn. Hai JSON state store/job nhắc email giữ nguyên ở giai đoạn này; không đưa migration/chuyển dữ liệu JSON vào phạm vi.
+- [x] Test SMTP giả cho thành công, thất bại, exception, thiếu PDF/địa chỉ, lệnh lặp, gửi lại thủ công và timeout sau công bố; xác nhận không có cột/trạng thái email mới. Không gửi email thật trong automated tests.
+
+> **Nghiệm thu đợt 2B (29/09/2026, Mục 7–8):** File thực tế khác danh sách **Files** ở trên: use case mới `InvoicePublicationService` + `IInvoicePublicationStore`/`InvoicePublicationStore` (không mở rộng `InvoiceIssuanceService`); test ở `InvoicePublicationTests` (Application, Web), `InvoicePublicationStoreTests`, `InvoicePublicationConcurrencyTests`, `InvoiceDueDateCalculatorTests`. Hai vòng `/ship`, reviewer lần 2 CHỐT; sửa thêm T1/T2. Build 0 lỗi; Domain 100, Application 376, Infrastructure 225 (3/3 lần), `InvoicePublicationConcurrencyTests` 7/7 (5/5 lần), Web 114 trên `quanlyphongtro_test`; EF không có thay đổi model. Người dùng thử tay đạt. Còn mở (thấp): T3, T4, T5, L5. Báo cáo: `docs/KeHoachHienTai/2026-09-29-bao-cao-dot-2b-cong-bo-hoa-don.md`.
 
 ## 9. MVC/API và giao diện
 

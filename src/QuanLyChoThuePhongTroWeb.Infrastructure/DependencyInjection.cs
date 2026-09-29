@@ -32,6 +32,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence.IHoaDonStore, Persistence.Features.HoaDonStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence.IInvoicePaymentStore, Persistence.Features.InvoicePaymentStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence.IInvoiceIssuanceStore, Persistence.Features.InvoiceIssuanceStore>();
+            services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence.IInvoicePublicationStore, Persistence.Features.InvoicePublicationStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Persistence.IDienNuocStore, Persistence.Features.DienNuocStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Persistence.IMeterImageStore, Persistence.Features.MeterImageStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.LichSuThanhToans.Persistence.ILichSuThanhToanStore, Persistence.Features.LichSuThanhToanStore>();
@@ -52,6 +53,10 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure
             var meterOptions = configuration.GetSection("MeterImageOptions").Get<QuanLyChoThuePhongTroWeb.Application.Common.Configurations.MeterImageOptions>() ?? new QuanLyChoThuePhongTroWeb.Application.Common.Configurations.MeterImageOptions();
             meterOptions.Validate();
             services.AddSingleton(meterOptions);
+
+            var invoiceIssuanceOptions = configuration.GetSection(QuanLyChoThuePhongTroWeb.Application.Common.Configurations.InvoiceIssuanceOptions.SectionName).Get<QuanLyChoThuePhongTroWeb.Application.Common.Configurations.InvoiceIssuanceOptions>() ?? new QuanLyChoThuePhongTroWeb.Application.Common.Configurations.InvoiceIssuanceOptions();
+            invoiceIssuanceOptions.Validate();
+            services.AddSingleton(invoiceIssuanceOptions);
 
             services.AddHttpClient<QuanLyChoThuePhongTroWeb.Application.Abstractions.Services.IMeterImageStorageService, ExternalServices.Storage.CloudinaryMeterImageStorageService>(client =>
             {

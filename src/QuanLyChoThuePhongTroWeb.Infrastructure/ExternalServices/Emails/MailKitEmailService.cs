@@ -59,6 +59,10 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.Emails
                 string memo = $"THANH TOAN {hoaDon.MaHoaDon}";
                 string qrUrl = $"https://img.vietqr.io/image/{bankId}-{accountNumber}-compact2.png?amount={hoaDon.TongTien}&addInfo={Uri.EscapeDataString(memo)}&accountName={Uri.EscapeDataString(accountName)}";
 
+                string hanThanhToanHtml = string.IsNullOrEmpty(hoaDon.HanThanhToan)
+                    ? ""
+                    : $"<p style='font-weight: bold; color: #d9001b;'>Hạn thanh toán: hết ngày {hoaDon.HanThanhToan}</p>";
+
                 var lineItemsHtml = new StringBuilder();
                 int stt = 1;
                 foreach (var ct in hoaDon.ChiTietHoaDons)
@@ -163,7 +167,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.Emails
                 </tr>
             </tbody>
         </table>
-        
+        {hanThanhToanHtml}
         <div class='qr-section'>
             <h3>Quét mã QR để chuyển khoản nhanh</h3>
             <img src='{qrUrl}' alt='VietQR' />
@@ -215,7 +219,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.Emails
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Lỗi hệ thống khi gửi email hóa đơn {MaHoaDon} đến {Email}", hoaDon.MaHoaDon, toEmail);
+                _logger.LogWarning(ex, "Lỗi hệ thống khi gửi email hóa đơn {MaHoaDon}", hoaDon.MaHoaDon);
                 return (false, "Lỗi hệ thống khi gửi email.");
             }
         }

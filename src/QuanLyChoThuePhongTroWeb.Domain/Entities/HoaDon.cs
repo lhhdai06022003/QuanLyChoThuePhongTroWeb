@@ -173,8 +173,23 @@ namespace QuanLyChoThuePhongTroWeb.Domain.Entities
             });
         }
 
-        public void GuiHoaDon(int? nguoiGuiId = null, string? lyDo = null)
+        public void GuiHoaDon(int nguoiGuiId, DateTime nowUtc, DateTime hanThanhToanMacDinhUtc, string? lyDo = null)
         {
+            if (nguoiGuiId <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(nguoiGuiId), "Người gửi hóa đơn không hợp lệ.");
+            }
+
+            if (nowUtc.Kind != DateTimeKind.Utc)
+            {
+                throw new ArgumentOutOfRangeException(nameof(nowUtc), "Thời điểm gửi hóa đơn phải là UTC.");
+            }
+
+            if (hanThanhToanMacDinhUtc <= nowUtc)
+            {
+                throw new ArgumentOutOfRangeException(nameof(hanThanhToanMacDinhUtc), "Hạn thanh toán mặc định phải sau thời điểm gửi.");
+            }
+
             if (TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaHuy)
             {
                 throw new InvalidOperationException("Không thể gửi hóa đơn đã hủy.");
@@ -187,8 +202,9 @@ namespace QuanLyChoThuePhongTroWeb.Domain.Entities
 
             var trangThaiCu = TrangThaiPhatHanh;
             TrangThaiPhatHanh = TrangThaiPhatHanhHoaDon.DaGui;
-            NgayGui = DateTime.UtcNow;
-            NgayCapNhat = DateTime.UtcNow;
+            NgayGui = nowUtc;
+            NgayCapNhat = nowUtc;
+            HanThanhToan ??= hanThanhToanMacDinhUtc;
 
             LichSuTrangThaiHoaDons.Add(new LichSuTrangThaiHoaDon
             {
@@ -198,7 +214,7 @@ namespace QuanLyChoThuePhongTroWeb.Domain.Entities
                 TrangThaiThanhToanCu = TrangThaiHoaDon,
                 TrangThaiThanhToanMoi = TrangThaiHoaDon,
                 NguoiThucHienId = nguoiGuiId,
-                NgayThucHien = DateTime.UtcNow,
+                NgayThucHien = nowUtc,
                 LyDo = lyDo
             });
         }
@@ -271,9 +287,9 @@ namespace QuanLyChoThuePhongTroWeb.Domain.Entities
 
         public bool KiemTraDuDieuKienYeuCauThanhToan()
         {
-            if (TrangThaiPhatHanh != TrangThaiPhatHanhHoaDon.DaChot && TrangThaiPhatHanh != TrangThaiPhatHanhHoaDon.DaGui)
+            if (TrangThaiPhatHanh != TrangThaiPhatHanhHoaDon.DaGui || IsDeleted)
             {
-                throw new InvalidOperationException("Chỉ hóa đơn đã chốt hoặc đã gửi mới được tạo yêu cầu thanh toán.");
+                throw new InvalidOperationException("Chỉ hóa đơn đã gửi cho khách thuê mới được tạo yêu cầu thanh toán.");
             }
 
             if (TrangThaiHoaDon == TrangThaiHoaDon.DaThanhToan)

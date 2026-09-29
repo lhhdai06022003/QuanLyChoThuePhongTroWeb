@@ -40,6 +40,7 @@ namespace QuanLyChoThuePhongTroWeb.Application
             services.AddScoped<IHoaDonCalculatorService, HoaDonCalculatorService>();
             services.AddScoped<IHoaDonService, HoaDonService>();
             services.AddScoped<IInvoiceIssuanceService, InvoiceIssuanceService>();
+            services.AddScoped<IInvoicePublicationService, InvoicePublicationService>();
             services.AddScoped<IInvoicePaymentConfirmationService, InvoicePaymentConfirmationService>();
             services.AddScoped<ILichSuThanhToanService, LichSuThanhToanService>();
 

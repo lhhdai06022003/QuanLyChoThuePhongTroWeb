@@ -8,9 +8,11 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using QuanLyChoThuePhongTroWeb.Application.Common.Enums;
 using QuanLyChoThuePhongTroWeb.Application.Features.NguoiDungs.Services;
+using QuanLyChoThuePhongTroWeb.Infrastructure.Persistence;
 using QuanLyChoThuePhongTroWeb.Web.IntegrationTests.Fixtures;
 using Xunit;
 
@@ -203,6 +205,182 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             }
         }
 
+        // ---------- Task 0.4 (kế hoạch khắc phục review đợt 2B lần 2): Admin gọi được, dữ liệu hợp lệ ----------
+
+        [Fact]
+        public async Task Admin_PostCreateApi_ValidStaff_NotBlocked()
+        {
+            var (adminUsername, client, antiforgeryToken) = await CreateLoggedInAdminClientWithFreshAntiforgeryAsync();
+            var newStaffUsername = $"t04c_{Guid.NewGuid():N}".Substring(0, 20);
+            try
+            {
+                var request = new HttpRequestMessage(HttpMethod.Post, "/QuanLyNhaTro/NguoiDung/CreateApi")
+                {
+                    Content = new StringContent(
+                        $"{{\"tenDangNhap\": \"{newStaffUsername}\", \"matKhau\": \"TestPassword123!\", \"role\": 1}}",
+                        Encoding.UTF8,
+                        "application/json")
+                };
+                request.Headers.Add("RequestVerificationToken", antiforgeryToken);
+
+                var response = await client.SendAsync(request);
+
+                Assert.NotEqual(HttpStatusCode.Forbidden, response.StatusCode);
+                Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            }
+            finally
+            {
+                await CleanupUserAsync(newStaffUsername);
+                await CleanupUserAsync(adminUsername);
+            }
+        }
+
+        [Fact]
+        public async Task Admin_PostEditApi_ExistingStaff_NotBlocked()
+        {
+            var (adminUsername, client, antiforgeryToken) = await CreateLoggedInAdminClientWithFreshAntiforgeryAsync();
+            var staffUsername = $"t04e_{Guid.NewGuid():N}".Substring(0, 20);
+            try
+            {
+                using var scope = _factory.Services.CreateScope();
+                var nguoiDungService = scope.ServiceProvider.GetRequiredService<INguoiDungService>();
+                var createResult = await nguoiDungService.AddAsync(new QuanLyChoThuePhongTroWeb.Application.Features.NguoiDungs.DTOs.CreateNguoiDungReq
+                {
+                    TenDangNhap = staffUsername,
+                    MatKhau = "TestPassword123!",
+                    Role = AppRole.NhanVien
+                });
+                Assert.True(createResult.Success);
+                var staffId = (await nguoiDungService.GetAllAsync()).First(u => u.TenDangNhap == staffUsername).NguoiDungId;
+
+                var request = new HttpRequestMessage(HttpMethod.Post, $"/QuanLyNhaTro/NguoiDung/EditApi/{staffId}")
+                {
+                    Content = new StringContent(
+                        $"{{\"nguoiDungId\": {staffId}, \"role\": 1, \"isActive\": true}}",
+                        Encoding.UTF8,
+                        "application/json")
+                };
+                request.Headers.Add("RequestVerificationToken", antiforgeryToken);
+
+                var response = await client.SendAsync(request);
+
+                Assert.NotEqual(HttpStatusCode.Forbidden, response.StatusCode);
+                Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            }
+            finally
+            {
+                await CleanupUserAsync(staffUsername);
+                await CleanupUserAsync(adminUsername);
+            }
+        }
+
+        [Fact]
+        public async Task Admin_PostThemChiNhanhMoi_ValidBranch_NotBlocked()
+        {
+            var (adminUsername, client, antiforgeryToken) = await CreateLoggedInAdminClientWithFreshAntiforgeryAsync();
+            var maChiNhanh = ("T" + Guid.NewGuid().ToString("N")[..6]).ToUpperInvariant();
+            try
+            {
+                var formContent = new FormUrlEncodedContent(new[]
+                {
+                    new KeyValuePair<string, string>("ChiNhanhId", "0"),
+                    new KeyValuePair<string, string>("MaChiNhanh", maChiNhanh),
+                    new KeyValuePair<string, string>("TenChiNhanh", "Chi nhánh kiểm thử Task 0.4"),
+                    new KeyValuePair<string, string>("DiaChi", "123 Duong Test"),
+                    new KeyValuePair<string, string>("SoDienThoai", "0912345678"),
+                    new KeyValuePair<string, string>("MoTa", "Tạo bởi test Task 0.4")
+                });
+                var request = new HttpRequestMessage(HttpMethod.Post, "/ChiNhanhs/ThemChiNhanhMoi") { Content = formContent };
+                request.Headers.Add("RequestVerificationToken", antiforgeryToken);
+
+                var response = await client.SendAsync(request);
+
+                Assert.NotEqual(HttpStatusCode.Forbidden, response.StatusCode);
+                Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            }
+            finally
+            {
+                await CleanupChiNhanhAsync(maChiNhanh);
+                await CleanupUserAsync(adminUsername);
+            }
+        }
+
+        [Fact]
+        public async Task Admin_PostCapNhatChiNhanh_ExistingBranch_NotBlocked()
+        {
+            var (adminUsername, client, antiforgeryToken) = await CreateLoggedInAdminClientWithFreshAntiforgeryAsync();
+            var maChiNhanh = ("T" + Guid.NewGuid().ToString("N")[..6]).ToUpperInvariant();
+            try
+            {
+                int chiNhanhId;
+                using (var scope = _factory.Services.CreateScope())
+                {
+                    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                    var entity = new QuanLyChoThuePhongTroWeb.Domain.Entities.ChiNhanh
+                    {
+                        MaChiNhanh = maChiNhanh,
+                        TenChiNhanh = "Chi nhánh seed Task 0.4",
+                        DiaChi = "123 Duong Test",
+                        SoDienThoai = "0912345678",
+                        MoTa = "Seed cho test cập nhật",
+                        NgayTao = DateTime.UtcNow,
+                        IsDeleted = false
+                    };
+                    db.ChiNhanhs.Add(entity);
+                    await db.SaveChangesAsync();
+                    chiNhanhId = entity.ChiNhanhId;
+                }
+
+                var formContent = new FormUrlEncodedContent(new[]
+                {
+                    new KeyValuePair<string, string>("ChiNhanhId", chiNhanhId.ToString()),
+                    new KeyValuePair<string, string>("MaChiNhanh", maChiNhanh),
+                    new KeyValuePair<string, string>("TenChiNhanh", "Chi nhánh seed Task 0.4 (đã sửa)"),
+                    new KeyValuePair<string, string>("DiaChi", "456 Duong Test"),
+                    new KeyValuePair<string, string>("SoDienThoai", "0912345678"),
+                    new KeyValuePair<string, string>("MoTa", "Cập nhật bởi test Task 0.4")
+                });
+                var request = new HttpRequestMessage(HttpMethod.Post, "/ChiNhanhs/CapNhatChiNhanh") { Content = formContent };
+                request.Headers.Add("RequestVerificationToken", antiforgeryToken);
+
+                var response = await client.SendAsync(request);
+
+                Assert.NotEqual(HttpStatusCode.Forbidden, response.StatusCode);
+                Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            }
+            finally
+            {
+                await CleanupChiNhanhAsync(maChiNhanh);
+                await CleanupUserAsync(adminUsername);
+            }
+        }
+
+        [Fact]
+        public async Task Admin_PostThuHoi_NotBlocked()
+        {
+            var (adminUsername, client, antiforgeryToken) = await CreateLoggedInAdminClientWithFreshAntiforgeryAsync();
+            try
+            {
+                var request = new HttpRequestMessage(HttpMethod.Post, "/QuanLyNhaTro/PhanCongChiNhanh/ThuHoi")
+                {
+                    Content = new StringContent(
+                        "{\"nguoiDungId\":999999,\"chiNhanhId\":999999,\"lyDo\":\"Kiem thu quyen Admin\"}",
+                        Encoding.UTF8,
+                        "application/json")
+                };
+                request.Headers.Add("RequestVerificationToken", antiforgeryToken);
+
+                var response = await client.SendAsync(request);
+
+                Assert.NotEqual(HttpStatusCode.Forbidden, response.StatusCode);
+                Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            }
+            finally
+            {
+                await CleanupUserAsync(adminUsername);
+            }
+        }
+
         [Fact]
         public async Task DangNhap_Get_And_Post_AccessibleAnonymously()
         {
@@ -358,6 +536,25 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
                 if (user != null)
                 {
                     await nguoiDungService.DeleteAsync(user.NguoiDungId);
+                }
+            }
+            catch
+            {
+                // Best-effort cleanup
+            }
+        }
+
+        private async Task CleanupChiNhanhAsync(string maChiNhanhUpper)
+        {
+            try
+            {
+                using var scope = _factory.Services.CreateScope();
+                var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                var entity = await db.ChiNhanhs.FirstOrDefaultAsync(c => c.MaChiNhanh == maChiNhanhUpper);
+                if (entity != null)
+                {
+                    db.ChiNhanhs.Remove(entity);
+                    await db.SaveChangesAsync();
                 }
             }
             catch

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels;
+using System.Globalization;
 using System.Security.Claims;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Security;
 using QuanLyChoThuePhongTroWeb.Application.Common.Security;
@@ -19,6 +20,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         private readonly ILogger<HoaDonController> _logger;
         private readonly IInvoiceIssuanceService _invoiceIssuanceService;
         private readonly IEmployeeAccessService _employeeAccessService;
+        private readonly IInvoicePublicationService _invoicePublicationService;
 
         public HoaDonController(
             IHoaDonService hoaDonService,
@@ -27,7 +29,8 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             IVietQRService vietQRService,
             ILogger<HoaDonController> logger,
             IInvoiceIssuanceService invoiceIssuanceService,
-            IEmployeeAccessService employeeAccessService)
+            IEmployeeAccessService employeeAccessService,
+            IInvoicePublicationService invoicePublicationService)
         {
             _invoiceIssuanceService = invoiceIssuanceService;
             _hoaDonService = hoaDonService;
@@ -36,6 +39,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             _vietQRService = vietQRService;
             _logger = logger;
             _employeeAccessService = employeeAccessService;
+            _invoicePublicationService = invoicePublicationService;
         }
 
         [Route("QuanLyNhaTro/QuanLyHoaDon")]
@@ -290,29 +294,126 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             }
         }
 
-        // Gửi lại email hóa đơn
-        [HttpPost("/HoaDon/SendEmail/{id}")]
-        public async Task<IActionResult> SendEmail(int id)
+        // Công bố hóa đơn lên cổng khách thuê và gửi email
+        [HttpPost("/HoaDon/CongBo")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CongBo([FromBody] PublishInvoicesReq? req)
         {
-            if (id <= 0) return BadRequest(new { Message = "ID hóa đơn không hợp lệ." });
+            var hoaDonIds = req?.HoaDonIds;
+            if (hoaDonIds == null || hoaDonIds.Count == 0)
+            {
+                return BadRequest(new { Message = "Vui lòng chọn ít nhất một hóa đơn để công bố." });
+            }
 
-            var actorIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (!int.TryParse(actorIdStr, out var actorId) || actorId <= 0)
+            if (hoaDonIds.Any(id => id <= 0))
+            {
+                return BadRequest(new { Message = "Mã hóa đơn không hợp lệ." });
+            }
+
+            if (hoaDonIds.Distinct().Count() > 50)
+            {
+                return BadRequest(new { Message = "Mỗi lần chỉ được công bố tối đa 50 hóa đơn." });
+            }
+
+            if (!TryGetActorId(out var actorId))
             {
                 return Unauthorized(new { Message = "Người dùng chưa đăng nhập hoặc phiên làm việc đã hết hạn." });
             }
 
-            var result = await _hoaDonService.SendInvoiceEmailAsync(id, actorId);
-            if (!result.IsSuccess)
+            var result = await _invoicePublicationService.PublishAsync(new PublishInvoicesRequest { HoaDonIds = hoaDonIds }, actorId);
+            if (!result.Success)
             {
-                return BadRequest(new { Message = result.ErrorMessage });
+                return BadRequest(new { Message = result.Message });
             }
+
+            var batch = result.Data!;
 
             return Ok(new
             {
-                Message = "Gửi lại email hóa đơn thành công!",
-                result.InvoiceCode,
-                result.RecipientEmail
+                Items = batch.Items.Select(MapPublishItem),
+                SoDaCongBo = batch.PublishedCount
+            });
+        }
+
+        private static object MapPublishItem(InvoicePublishItemResult item)
+        {
+            return new
+            {
+                item.HoaDonId,
+                item.MaHoaDon,
+                CongBo = MapPublishOutcomeMessage(item),
+                CongBoThanhCong = item.Publish == InvoicePublishOutcome.Published || item.Publish == InvoicePublishOutcome.AlreadyPublished,
+                ThongBaoCong = MapPortalNotification(item.PortalNotification),
+                Email = MapEmailOutcome(item.Email),
+                EmailChiTiet = item.EmailMessage,
+                HanThanhToan = item.HanThanhToanUtc?.AddHours(7).ToString("dd/MM/yyyy", CultureInfo.InvariantCulture)
+            };
+        }
+
+        private static string MapPublishOutcomeMessage(InvoicePublishItemResult item)
+        {
+            return item.Publish switch
+            {
+                InvoicePublishOutcome.Published => "Đã công bố",
+                InvoicePublishOutcome.AlreadyPublished => "Đã công bố trước đó",
+                _ => item.PublishMessage
+            };
+        }
+
+        private static string MapPortalNotification(InvoicePortalNotificationOutcome outcome)
+        {
+            return outcome switch
+            {
+                InvoicePortalNotificationOutcome.Created => "Đã tạo thông báo",
+                InvoicePortalNotificationOutcome.NoPortalAccount => "Khách chưa có tài khoản cổng",
+                _ => ""
+            };
+        }
+
+        private static string MapEmailOutcome(InvoiceEmailOutcome outcome)
+        {
+            return outcome switch
+            {
+                InvoiceEmailOutcome.Sent => "Đã gửi",
+                InvoiceEmailOutcome.Failed => "Lỗi gửi",
+                InvoiceEmailOutcome.NoEmail => "Không có email",
+                _ => "Không gửi"
+            };
+        }
+
+        // Gửi lại email hóa đơn
+        [HttpPost("/HoaDon/SendEmail/{id}")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SendEmail(int id)
+        {
+            if (id <= 0) return BadRequest(new { Message = "ID hóa đơn không hợp lệ." });
+
+            if (!TryGetActorId(out var actorId))
+            {
+                return Unauthorized(new { Message = "Người dùng chưa đăng nhập hoặc phiên làm việc đã hết hạn." });
+            }
+
+            var result = await _invoicePublicationService.ResendEmailAsync(id, actorId);
+            if (!result.Success)
+            {
+                return BadRequest(new { Message = result.Message });
+            }
+
+            var data = result.Data!;
+            var message = data.Email switch
+            {
+                InvoiceEmailOutcome.Sent => "Đã gửi lại email hóa đơn.",
+                InvoiceEmailOutcome.Failed => "Gửi email thất bại. Vui lòng thử lại sau.",
+                InvoiceEmailOutcome.NoEmail => "Khách thuê chưa có địa chỉ email.",
+                _ => data.EmailMessage
+            };
+
+            return Ok(new
+            {
+                Message = message,
+                Email = MapEmailOutcome(data.Email),
+                data.RecipientEmail,
+                InvoiceCode = data.MaHoaDon
             });
         }
 
@@ -400,6 +501,11 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
     public class RejectInvoiceReq
     {
         public string? LyDo { get; set; }
+    }
+
+    public class PublishInvoicesReq
+    {
+        public List<int>? HoaDonIds { get; set; }
     }
 }
 

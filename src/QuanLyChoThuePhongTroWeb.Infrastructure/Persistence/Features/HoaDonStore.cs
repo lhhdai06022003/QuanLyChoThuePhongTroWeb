@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -185,6 +186,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 TongTien = hd.TongTien,
                 TrangThaiHoaDon = hd.TrangThaiHoaDon == TrangThaiHoaDon.DaThanhToan ? "Đã thanh toán" : "Chưa thanh toán",
                 NgayTao = hd.NgayTao.ToString("dd/MM/yyyy HH:mm"),
+                HanThanhToan = hd.HanThanhToan.HasValue ? hd.HanThanhToan.Value.AddHours(7).ToString("dd/MM/yyyy", CultureInfo.InvariantCulture) : string.Empty,
                 Email = hd.HopDong.NguoiThue.Email ?? "",
                 ChiTietHoaDons = hd.ChiTietHoaDonDichVus.Where(x => !x.IsDeleted).Select(ct => new ChiTietHoaDonRes
                 {

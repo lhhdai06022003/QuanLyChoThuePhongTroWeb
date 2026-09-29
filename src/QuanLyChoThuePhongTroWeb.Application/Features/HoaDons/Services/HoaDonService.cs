@@ -26,7 +26,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
         private readonly IInvoiceDocumentExporter _documentExporter;
         private readonly IVietQRService _vietQRService;
         private readonly IEmployeeAccessService _employeeAccessService;
-        private readonly IEmailService _emailService;
         private readonly IInvoiceIssuanceStore? _issuanceStore;
 
         public HoaDonService(
@@ -49,7 +48,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
             _documentExporter = documentExporter;
             _vietQRService = vietQRService;
             _employeeAccessService = employeeAccessService;
-            _emailService = emailService;
             _issuanceStore = issuanceStore;
         }
 
@@ -532,22 +530,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
 
         private byte[] ExportPdf(HoaDonChiTietRes hd)
         {
-            byte[]? qrBytes = null;
-            string bankId = "";
-            string accountNumber = "";
-            string accountName = "";
-            if (hd.TrangThaiHoaDon == "Chưa thanh toán")
-            {
-                bankId = _vietQrSettings.BankId ?? "MB";
-                accountNumber = _vietQrSettings.AccountNumber ?? "";
-                accountName = _vietQrSettings.AccountName ?? "";
-
-                string memo = $"THANH TOAN {hd.MaHoaDon}";
-                string qrString = _vietQRService.GenerateVietQRString(bankId, accountNumber, hd.TongTien, memo);
-                qrBytes = _vietQRService.GenerateQRCodePNGBytes(qrString);
-            }
-
-            return _documentExporter.ExportPdf(hd, qrBytes, bankId, accountNumber, accountName);
+            return InvoicePdfComposer.Compose(hd, _vietQRService, _vietQrSettings, _documentExporter);
         }
 
         public async Task<List<HoaDonRes>> GetDanhSachHoaDonChuaThanhToanAsync(int chiNhanhId, int thang, int nam)
@@ -565,103 +548,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
             }
 
             return await GetDanhSachHoaDonChuaThanhToanAsync(chiNhanhId, thang, nam);
-        }
-
-        // =================== GỬI LẠI EMAIL HÓA ĐƠN ===================
-        public async Task<SendInvoiceEmailResult> SendInvoiceEmailAsync(int hoaDonId, int actorId, CancellationToken cancellationToken = default)
-        {
-            if (actorId <= 0)
-            {
-                return new SendInvoiceEmailResult { IsSuccess = false, ErrorMessage = "Người thực hiện không hợp lệ." };
-            }
-
-            var branchId = await _store.GetHoaDonBranchIdAsync(hoaDonId, cancellationToken);
-            if (!branchId.HasValue)
-            {
-                return new SendInvoiceEmailResult { IsSuccess = false, ErrorMessage = "Không tìm thấy hóa đơn." };
-            }
-
-            var canSend = await _employeeAccessService.CanPerformAsync(actorId, branchId.Value, EmployeeActionCodes.InvoiceResendEmail);
-            if (!canSend)
-            {
-                return new SendInvoiceEmailResult { IsSuccess = false, ErrorMessage = "Bạn không có quyền gửi lại email hóa đơn tại chi nhánh này." };
-            }
-
-            var hdEntity = await _store.GetActiveHoaDonByIdAsync(hoaDonId, cancellationToken);
-            if (hdEntity == null)
-            {
-                return new SendInvoiceEmailResult { IsSuccess = false, ErrorMessage = "Không tìm thấy hóa đơn." };
-            }
-
-            if (hdEntity.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaHuy)
-            {
-                return new SendInvoiceEmailResult { IsSuccess = false, ErrorMessage = "Hóa đơn đã bị hủy." };
-            }
-
-            if (hdEntity.TrangThaiPhatHanh != TrangThaiPhatHanhHoaDon.DaGui)
-            {
-                return new SendInvoiceEmailResult { IsSuccess = false, ErrorMessage = "Chỉ hóa đơn đã gửi mới được phép gửi lại email." };
-            }
-
-            var hdDetail = await _store.GetHoaDonDetailByIdAsync(hoaDonId, cancellationToken);
-            if (hdDetail == null)
-            {
-                return new SendInvoiceEmailResult { IsSuccess = false, ErrorMessage = "Không tìm thấy chi tiết hóa đơn." };
-            }
-
-            if (string.IsNullOrWhiteSpace(hdDetail.Email))
-            {
-                return new SendInvoiceEmailResult { IsSuccess = false, ErrorMessage = "Khách thuê chưa đăng ký địa chỉ email." };
-            }
-
-            try
-            {
-                var pdfBytes = await ExportEmployeePdfAsync(hoaDonId, actorId);
-                if (pdfBytes == null || pdfBytes.Length == 0)
-                {
-                    return new SendInvoiceEmailResult { IsSuccess = false, ErrorMessage = "Không thể sinh tệp PDF hóa đơn." };
-                }
-
-                var emailResult = await _emailService.SendInvoiceEmailAsync(hdDetail.Email, hdDetail, pdfBytes);
-                if (!emailResult.IsSuccess)
-                {
-                    _logger.LogWarning(
-                        "Gửi lại email hóa đơn {HoaDonId} thất bại bởi actor {ActorId}: {Error}",
-                        hoaDonId,
-                        actorId,
-                        emailResult.ErrorMessage);
-                    return new SendInvoiceEmailResult
-                    {
-                        IsSuccess = false,
-                        ErrorMessage = "Gửi email thất bại. Vui lòng thử lại sau."
-                    };
-                }
-
-                _logger.LogInformation(
-                    "Gửi lại email hóa đơn {HoaDonId} thành công bởi actor {ActorId}.",
-                    hoaDonId,
-                    actorId);
-                return new SendInvoiceEmailResult
-                {
-                    IsSuccess = true,
-                    IsResend = true,
-                    InvoiceCode = hdDetail.MaHoaDon,
-                    RecipientEmail = hdDetail.Email
-                };
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(
-                    ex,
-                    "Lỗi khi gửi lại email hóa đơn {HoaDonId} bởi actor {ActorId}.",
-                    hoaDonId,
-                    actorId);
-                return new SendInvoiceEmailResult
-                {
-                    IsSuccess = false,
-                    ErrorMessage = "Không thể gửi email hóa đơn. Vui lòng thử lại sau."
-                };
-            }
         }
 
         public async Task<List<HoaDonRes>> GetHoaDonsByNguoiThueIdAsync(int nguoiThueId)
