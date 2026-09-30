@@ -381,6 +381,13 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             public Task<MeterOcrResult> ProcessImageAsync(byte[] imageBytes, string contentType, LoaiDongHo loaiDongHo, CancellationToken cancellationToken = default) => throw new NotImplementedException();
         }
 
+        private class FixedTimeProvider : TimeProvider
+        {
+            private readonly DateTimeOffset _utcNow;
+            public FixedTimeProvider(DateTimeOffset utcNow) => _utcNow = utcNow;
+            public override DateTimeOffset GetUtcNow() => _utcNow;
+        }
+
         internal static MeterReadingWorkflowService CreateWorkflowService(
             ApplicationDbContext context,
             IMeterImageStorageService? storage = null,
@@ -388,7 +395,8 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             IEmployeeAccessService? access = null,
             IHoaDonStore? hoaDonStore = null,
             IHoaDonCalculatorService? calculator = null,
-            MeterImageOptions? options = null)
+            MeterImageOptions? options = null,
+            TimeProvider? timeProvider = null)
         {
             return new MeterReadingWorkflowService(
                 new MeterImageStore(context),
@@ -399,7 +407,8 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
                 hoaDonStore ?? new HoaDonStore(context),
                 calculator ?? new HoaDonCalculatorService(),
                 NullLogger<MeterReadingWorkflowService>.Instance,
-                options ?? new MeterImageOptions());
+                options ?? new MeterImageOptions(),
+                timeProvider ?? new FixedTimeProvider(new DateTimeOffset(2026, 10, 15, 3, 0, 0, TimeSpan.Zero)));
         }
 
         [Fact]
@@ -607,7 +616,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
         }
 
         [Fact]
-        public async Task HasLockedInvoiceAsync_WhenInvoiceIsDeletedAndDaHuy_ReturnsTrue()
+        public async Task HasLockedInvoiceAsync_WhenOnlyCancelledInvoice_ReturnsFalse()
         {
             await using var context = _fixture.CreateDbContext();
             await using var tx = await context.Database.BeginTransactionAsync();
@@ -672,7 +681,22 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             var store = new MeterImageStore(context);
             var isLocked = await store.HasNonDraftInvoiceAsync(period.DichVuDienNuocCuaPhongId);
 
-            Assert.True(isLocked, "Hóa đơn đã hủy dù bị soft-delete vẫn là bằng chứng phát hành, phải khóa kỳ chỉ số.");
+            Assert.False(isLocked, "Hóa đơn đã hủy không khóa kỳ chỉ số để nhân viên sửa số và tạo bản thay thế.");
+
+            context.HoaDons.Add(new HoaDon
+            {
+                MaHoaDon = $"INV_{suffix}-R1",
+                HopDongId = contract.HopDongId,
+                DichVuDienNuocCuaPhongId = period.DichVuDienNuocCuaPhongId,
+                Thang = 9,
+                Nam = 2026,
+                TongTien = 50000,
+                TrangThaiPhatHanh = TrangThaiPhatHanhHoaDon.DaGui
+            });
+            await context.SaveChangesAsync();
+
+            Assert.True(await store.HasNonDraftInvoiceAsync(period.DichVuDienNuocCuaPhongId),
+                "Bản thay thế đã gửi phải khóa kỳ chỉ số trở lại.");
         }
 
         [Fact]

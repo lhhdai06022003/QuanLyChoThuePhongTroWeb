@@ -29,6 +29,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
         private readonly IHoaDonCalculatorService _calculatorService;
         private readonly ILogger<MeterReadingWorkflowService> _logger;
         private readonly QuanLyChoThuePhongTroWeb.Application.Common.Configurations.MeterImageOptions _options;
+        private readonly TimeProvider _time;
 
         public MeterReadingWorkflowService(
             IMeterImageStore store,
@@ -39,7 +40,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
             IHoaDonStore hoaDonStore,
             IHoaDonCalculatorService calculatorService,
             ILogger<MeterReadingWorkflowService> logger,
-            QuanLyChoThuePhongTroWeb.Application.Common.Configurations.MeterImageOptions options)
+            QuanLyChoThuePhongTroWeb.Application.Common.Configurations.MeterImageOptions options,
+            TimeProvider? timeProvider = null)
         {
             _store = store ?? throw new ArgumentNullException(nameof(store));
             _storageService = storageService ?? throw new ArgumentNullException(nameof(storageService));
@@ -50,6 +52,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
             _calculatorService = calculatorService ?? throw new ArgumentNullException(nameof(calculatorService));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _options = options ?? throw new ArgumentNullException(nameof(options));
+            _time = timeProvider ?? TimeProvider.System;
         }
 
         public async Task<ServiceResult<MeterImageWorkflowResult>> UploadImageAsync(UploadMeterImageRequest request, int actorUserId, CancellationToken cancellationToken = default)
@@ -115,16 +118,36 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
                 }
             }
 
-            // Kiểm tra sơ bộ ngoài transaction (báo lỗi sớm)
-            if (await _store.HasSubsequentPeriodAsync(request.PhongTroId, request.Thang, request.Nam, cancellationToken))
-            {
-                return ServiceResult<MeterImageWorkflowResult>.Fail("Kỳ này đã có kỳ sau, không thể tải thêm ảnh.");
-            }
+            bool laKhachThue = !isStaffAuthorized;
 
+            // Thu thập MeterUploadFacts và kiểm tra sơ bộ ngoài transaction
+            var now = _time.GetUtcNow().UtcDateTime;
+            var kyHienTai = new MeterPeriod(request.Thang, request.Nam);
+            var kyTruoc = MeterPeriodPolicy.Previous(kyHienTai);
+
+            var coKySau = await _store.HasSubsequentPeriodAsync(request.PhongTroId, request.Thang, request.Nam, cancellationToken);
             var prelimPeriod = await _store.GetPeriodRecordAsync(request.PhongTroId, request.Thang, request.Nam, cancellationToken);
-            if (prelimPeriod != null && await _store.HasLockedInvoiceAsync(prelimPeriod.DichVuDienNuocCuaPhongId, cancellationToken))
+            var coHoaDonDaQuaNhap = prelimPeriod != null && await _store.HasLockedInvoiceAsync(prelimPeriod.DichVuDienNuocCuaPhongId, cancellationToken);
+            var kyDaDuyet = prelimPeriod?.TrangThaiGhiNhan == TrangThaiGhiNhan.DaDuyet;
+
+            var coHopDongThangTruoc = await _store.HasContractInMonthAsync(request.PhongTroId, kyTruoc.Thang, kyTruoc.Nam, cancellationToken);
+            var kyTruocPeriod = await _store.GetPeriodRecordAsync(request.PhongTroId, kyTruoc.Thang, kyTruoc.Nam, cancellationToken);
+            var kyTruocDaDuyet = kyTruocPeriod != null && !kyTruocPeriod.IsDeleted && kyTruocPeriod.TrangThaiGhiNhan == TrangThaiGhiNhan.DaDuyet;
+
+            var facts = new MeterUploadFacts(
+                Ky: kyHienTai,
+                UtcNow: now,
+                LaKhachThue: laKhachThue,
+                CoKySau: coKySau,
+                CoHoaDonDaQuaNhap: coHoaDonDaQuaNhap,
+                KyDaDuyet: kyDaDuyet,
+                CoHopDongThangTruoc: coHopDongThangTruoc,
+                KyTruocDaDuyet: kyTruocDaDuyet);
+
+            var decision = MeterUploadRules.Evaluate(facts);
+            if (!decision.DuocPhep)
             {
-                return ServiceResult<MeterImageWorkflowResult>.Fail("Kỳ này đã có hóa đơn đã phát hành, không thể chỉnh sửa.");
+                return ServiceResult<MeterImageWorkflowResult>.Fail(decision.LyDo!);
             }
 
             // Upload ảnh lên dịch vụ lưu trữ ngoài transaction
@@ -175,6 +198,13 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
                     await tx.RollbackAsync(cancellationToken);
                     await CleanupUploadedStorageAsync(uploadResult.PublicId);
                     return ServiceResult<MeterImageWorkflowResult>.Fail("Kỳ này đã có hóa đơn đã phát hành, không thể chỉnh sửa.");
+                }
+
+                if (laKhachThue && lockedPeriod != null && lockedPeriod.TrangThaiGhiNhan == TrangThaiGhiNhan.DaDuyet)
+                {
+                    await tx.RollbackAsync(cancellationToken);
+                    await CleanupUploadedStorageAsync(uploadResult.PublicId);
+                    return ServiceResult<MeterImageWorkflowResult>.Fail("Kỳ này đã được chốt, không thể gửi thêm ảnh.");
                 }
 
                 if (lockedPeriod == null)
@@ -581,6 +611,11 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
             else
             {
                 period.CapNhatChiSo(period.ChiSoDienMoi, request.GiaTriXacNhan);
+            }
+
+            if (period.TrangThaiGhiNhan == TrangThaiGhiNhan.DaDuyet)
+            {
+                period.DuyetLai(actorUserId, period.GhiChuDuyet);
             }
 
             // 8. Tính lại hóa đơn nháp liên kết nếu có

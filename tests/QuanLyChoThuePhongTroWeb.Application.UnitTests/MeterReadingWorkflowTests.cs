@@ -14,6 +14,7 @@ using QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Persistence;
 using QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services;
 using QuanLyChoThuePhongTroWeb.Domain.Entities;
 using QuanLyChoThuePhongTroWeb.Domain.Enums;
+using QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes;
 using Xunit;
 
 namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
@@ -76,8 +77,11 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             public bool ThrowOnDelete { get; set; }
             public Action? OnUpload { get; set; }
 
+            public int UploadCallCount { get; set; }
+
             public Task<MeterImageUploadResult> UploadAsync(UploadFile file, string folder, CancellationToken cancellationToken = default)
             {
+                UploadCallCount++;
                 if (ThrowOnUpload) throw new InvalidOperationException("Upload storage failed");
                 OnUpload?.Invoke();
                 return Task.FromResult(new MeterImageUploadResult("https://storage.test/img1.jpg", "meters/img1"));
@@ -125,165 +129,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             }
         }
 
-        private class FakeMeterImageStore : IMeterImageStore
-        {
-            public Dictionary<int, int> RoomBranches { get; } = new();
-            public HashSet<(int RoomId, int TenantUserId, int Thang, int Nam)> ActiveTenantContracts { get; } = new();
-            public Dictionary<int, DichVuDienNuocCuaPhong> Periods { get; } = new();
-            public Dictionary<int, AnhChiSoDongHo> Images { get; } = new();
-            public HashSet<(int RoomId, int Thang, int Nam)> SubsequentPeriods { get; } = new();
-            public HashSet<int> NonDraftInvoicePeriodIds { get; } = new();
-            private int _periodIdSeq = 1;
-            private int _imageIdSeq = 1;
-
-            public Task<int?> GetBranchIdByRoomAsync(int phongTroId, CancellationToken cancellationToken = default)
-            {
-                return Task.FromResult(RoomBranches.TryGetValue(phongTroId, out var bId) ? (int?)bId : null);
-            }
-
-            public Task<bool> HasActiveContractForTenantInPeriodAsync(int phongTroId, int tenantUserId, int thang, int nam, CancellationToken cancellationToken = default)
-            {
-                return Task.FromResult(ActiveTenantContracts.Contains((phongTroId, tenantUserId, thang, nam)));
-            }
-
-            public Task<DichVuDienNuocCuaPhong?> GetPeriodRecordAsync(int phongTroId, int thang, int nam, CancellationToken cancellationToken = default)
-            {
-                var period = Periods.Values.FirstOrDefault(p => p.PhongTroId == phongTroId && p.Thang == thang && p.Nam == nam && !p.IsDeleted);
-                return Task.FromResult(period);
-            }
-
-            public Task<DichVuDienNuocCuaPhong?> GetPeriodRecordWithLockAsync(int phongTroId, int thang, int nam, CancellationToken cancellationToken = default)
-            {
-                return GetPeriodRecordAsync(phongTroId, thang, nam, cancellationToken);
-            }
-
-            public Task<DichVuDienNuocCuaPhong?> GetPeriodRecordByIdAsync(int periodRecordId, CancellationToken cancellationToken = default)
-            {
-                Periods.TryGetValue(periodRecordId, out var period);
-                return Task.FromResult(period != null && !period.IsDeleted ? period : null);
-            }
-
-            public Task<DichVuDienNuocCuaPhong?> GetPeriodRecordByIdWithLockAsync(int periodRecordId, CancellationToken cancellationToken = default)
-            {
-                return GetPeriodRecordByIdAsync(periodRecordId, cancellationToken);
-            }
-
-            public int GetImageByIdCallCount { get; set; }
-            public bool ReturnNullOnSecondGetImageById { get; set; }
-
-            public Task<AnhChiSoDongHo?> GetImageByIdAsync(int imageId, CancellationToken cancellationToken = default)
-            {
-                GetImageByIdCallCount++;
-                if (ReturnNullOnSecondGetImageById && GetImageByIdCallCount >= 2) return Task.FromResult<AnhChiSoDongHo?>(null);
-                Images.TryGetValue(imageId, out var img);
-                return Task.FromResult(img != null && !img.IsDeleted ? img : null);
-            }
-
-            public Task<AnhChiSoDongHo?> GetImageByIdWithLockAsync(int imageId, CancellationToken cancellationToken = default)
-            {
-                return GetImageByIdAsync(imageId, cancellationToken);
-            }
-
-            public Task<IReadOnlyList<AnhChiSoDongHo>> GetImagesByPeriodAndTypeAsync(int periodRecordId, LoaiDongHo loaiDongHo, CancellationToken cancellationToken = default)
-            {
-                var list = Images.Values
-                    .Where(i => i.DichVuDienNuocCuaPhongId == periodRecordId && i.LoaiDongHo == loaiDongHo && !i.IsDeleted)
-                    .ToList();
-                return Task.FromResult<IReadOnlyList<AnhChiSoDongHo>>(list);
-            }
-
-            public Task<AnhChiSoDongHo?> GetOfficialImageAsync(int periodRecordId, LoaiDongHo loaiDongHo, CancellationToken cancellationToken = default)
-            {
-                var img = Images.Values
-                    .FirstOrDefault(i => i.DichVuDienNuocCuaPhongId == periodRecordId && i.LoaiDongHo == loaiDongHo && i.DuocChonLamChiSoChinhThuc && !i.IsDeleted);
-                return Task.FromResult(img);
-            }
-
-            public Task<bool> HasSubsequentPeriodAsync(int phongTroId, int thang, int nam, CancellationToken cancellationToken = default)
-            {
-                return Task.FromResult(SubsequentPeriods.Contains((phongTroId, thang, nam)));
-            }
-
-            public Task<bool> HasNonDraftInvoiceAsync(int periodRecordId, CancellationToken cancellationToken = default)
-            {
-                return Task.FromResult(NonDraftInvoicePeriodIds.Contains(periodRecordId));
-            }
-
-            public Task<bool> HasLockedInvoiceAsync(int periodRecordId, CancellationToken cancellationToken = default)
-                => HasNonDraftInvoiceAsync(periodRecordId, cancellationToken);
-
-            public Task<MeterImageAccessContext?> GetImageAccessContextAsync(int imageId, CancellationToken cancellationToken = default)
-            {
-                if (!Images.TryGetValue(imageId, out var img)) return Task.FromResult<MeterImageAccessContext?>(null);
-                Periods.TryGetValue(img.DichVuDienNuocCuaPhongId, out var period);
-                var branchId = period != null && RoomBranches.TryGetValue(period.PhongTroId, out var bId) ? bId : 1;
-                return Task.FromResult<MeterImageAccessContext?>(new MeterImageAccessContext
-                {
-                    AnhChiSoDongHoId = img.AnhChiSoDongHoId,
-                    DichVuDienNuocCuaPhongId = img.DichVuDienNuocCuaPhongId,
-                    PhongTroId = period?.PhongTroId ?? 0,
-                    ChiNhanhId = branchId,
-                    TrangThaiXuLy = img.TrangThaiXuLy,
-                    LoaiDongHo = img.LoaiDongHo,
-                    DuocChonLamChiSoChinhThuc = img.DuocChonLamChiSoChinhThuc,
-                    IsDeleted = img.IsDeleted
-                });
-            }
-
-            public Task LockRoomsAsync(IEnumerable<int> roomIds, CancellationToken cancellationToken = default) => Task.CompletedTask;
-
-            public Task<DichVuDienNuocCuaPhong?> GetPeriodForUpdateAsync(int phongTroId, int thang, int nam, CancellationToken cancellationToken = default)
-                => GetPeriodRecordAsync(phongTroId, thang, nam, cancellationToken);
-
-            public Task<DichVuDienNuocCuaPhong?> GetPeriodByIdForUpdateAsync(int periodRecordId, CancellationToken cancellationToken = default)
-                => GetPeriodRecordByIdAsync(periodRecordId, cancellationToken);
-
-            public Task<AnhChiSoDongHo?> GetImageForUpdateAsync(int imageId, CancellationToken cancellationToken = default)
-                => GetImageByIdAsync(imageId, cancellationToken);
-
-            public Task<IReadOnlyList<AnhChiSoDongHo>> GetImagesForUpdateAsync(int periodRecordId, LoaiDongHo loaiDongHo, CancellationToken cancellationToken = default)
-                => GetImagesByPeriodAndTypeAsync(periodRecordId, loaiDongHo, cancellationToken);
-
-            public Task<(decimal ChiSoDienMoi, decimal ChiSoNuocMoi)> GetNearestPreviousReadingAsync(int phongTroId, int thang, int nam, CancellationToken cancellationToken = default)
-            {
-                return Task.FromResult((100m, 50m));
-            }
-
-            public Task<decimal> GetServicePriceAsync(string serviceKeyword, int chiNhanhId, CancellationToken cancellationToken = default)
-            {
-                return Task.FromResult(serviceKeyword.Contains("điện") ? 3500m : 20000m);
-            }
-
-            public Task AddPeriodRecordAsync(DichVuDienNuocCuaPhong record, CancellationToken cancellationToken = default)
-            {
-                if (record.DichVuDienNuocCuaPhongId <= 0) record.DichVuDienNuocCuaPhongId = _periodIdSeq++;
-                Periods[record.DichVuDienNuocCuaPhongId] = record;
-                return Task.CompletedTask;
-            }
-
-            public int UpdatePeriodRecordCallCount { get; private set; }
-            public int UpdateImageCallCount { get; private set; }
-
-            public void UpdatePeriodRecord(DichVuDienNuocCuaPhong record)
-            {
-                UpdatePeriodRecordCallCount++;
-                Periods[record.DichVuDienNuocCuaPhongId] = record;
-            }
-
-            public Task AddImageAsync(AnhChiSoDongHo image, CancellationToken cancellationToken = default)
-            {
-                if (image.AnhChiSoDongHoId <= 0) image.AnhChiSoDongHoId = _imageIdSeq++;
-                Images[image.AnhChiSoDongHoId] = image;
-                return Task.CompletedTask;
-            }
-
-            public void UpdateImage(AnhChiSoDongHo image)
-            {
-                UpdateImageCallCount++;
-                Images[image.AnhChiSoDongHoId] = image;
-            }
-        }
-
         #endregion
 
         private readonly FakeMeterImageStore _store;
@@ -293,6 +138,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         private readonly FakeUnitOfWork _uow;
         private readonly Fakes.FakeHoaDonStore _hoaDonStore;
         private readonly QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services.HoaDonCalculatorService _calculator;
+        private readonly Fakes.FixedTimeProvider _timeProvider;
         private readonly MeterReadingWorkflowService _service;
 
         public MeterReadingWorkflowTests()
@@ -304,6 +150,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             _uow = new FakeUnitOfWork();
             _hoaDonStore = new Fakes.FakeHoaDonStore();
             _calculator = new QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services.HoaDonCalculatorService();
+            _timeProvider = new Fakes.FixedTimeProvider(new DateTimeOffset(2026, 10, 15, 3, 0, 0, TimeSpan.Zero));
 
             _service = new MeterReadingWorkflowService(
                 _store,
@@ -314,7 +161,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
                 _hoaDonStore,
                 _calculator,
                 Microsoft.Extensions.Logging.Abstractions.NullLogger<MeterReadingWorkflowService>.Instance,
-                new QuanLyChoThuePhongTroWeb.Application.Common.Configurations.MeterImageOptions());
+                new QuanLyChoThuePhongTroWeb.Application.Common.Configurations.MeterImageOptions(),
+                _timeProvider);
         }
 
         private static UploadMeterImageRequest CreateValidRequest(int phongTroId = 1)
@@ -2149,5 +1997,296 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.Equal(60m, electricDetail.SoLuong);
             Assert.Equal(180000m, electricDetail.TongTien);
         }
+
+        #region Task 2.6 Tests
+
+        [Fact]
+        public async Task Upload_FuturePeriod_Rejected_NoStorageCall()
+        {
+            _timeProvider.SetUtcNow(new DateTimeOffset(2026, 9, 15, 3, 0, 0, TimeSpan.Zero));
+            _store.RoomBranches[1] = 10;
+            _access.Permissions.Add((2, 10, EmployeeActionCodes.MeterUpload));
+
+            var req = CreateValidRequest(); // Thang = 10, Nam = 2026
+            var result = await _service.UploadImageAsync(req, 2);
+
+            Assert.False(result.Success);
+            Assert.Equal("Không thể gửi ảnh cho kỳ chưa tới.", result.Message);
+            Assert.Equal(0, _storage.UploadCallCount);
+            Assert.Empty(_store.Images);
+            Assert.Empty(_store.Periods);
+        }
+
+        [Fact]
+        public async Task Upload_PreviousPeriodNotApproved_Rejected()
+        {
+            _store.RoomBranches[1] = 10;
+            _access.Permissions.Add((2, 10, EmployeeActionCodes.MeterUpload));
+            _store.ContractMonths.Add((1, 9, 2026));
+            _store.Periods[99] = new DichVuDienNuocCuaPhong
+            {
+                DichVuDienNuocCuaPhongId = 99,
+                PhongTroId = 1,
+                Thang = 9,
+                Nam = 2026,
+                TrangThaiGhiNhan = TrangThaiGhiNhan.Nhap
+            };
+
+            var req = CreateValidRequest(); // Thang = 10, Nam = 2026
+            var result = await _service.UploadImageAsync(req, 2);
+
+            Assert.False(result.Success);
+            Assert.Equal("Kỳ 09/2026 của phòng chưa được chốt, chưa thể gửi ảnh kỳ 10/2026.", result.Message);
+            Assert.Null(_store.Periods.Values.FirstOrDefault(p => p.Thang == 10 && p.Nam == 2026));
+        }
+
+        [Fact]
+        public async Task Upload_PreviousPeriodMissing_WithContract_Rejected()
+        {
+            _store.RoomBranches[1] = 10;
+            _access.Permissions.Add((2, 10, EmployeeActionCodes.MeterUpload));
+            _store.ContractMonths.Add((1, 9, 2026)); // có hợp đồng tháng 9 nhưng không có bản ghi kỳ 9
+
+            var req = CreateValidRequest(); // Thang = 10, Nam = 2026
+            var result = await _service.UploadImageAsync(req, 2);
+
+            Assert.False(result.Success);
+            Assert.Equal("Kỳ 09/2026 của phòng chưa được chốt, chưa thể gửi ảnh kỳ 10/2026.", result.Message);
+        }
+
+        [Fact]
+        public async Task Upload_NoContractPreviousMonth_Allowed()
+        {
+            _store.RoomBranches[1] = 10;
+            _access.Permissions.Add((2, 10, EmployeeActionCodes.MeterUpload));
+            // Không có hợp đồng tháng 9
+
+            var req = CreateValidRequest(); // Thang = 10, Nam = 2026
+            var result = await _service.UploadImageAsync(req, 2);
+
+            Assert.True(result.Success);
+            Assert.NotNull(_store.Periods.Values.FirstOrDefault(p => p.Thang == 10 && p.Nam == 2026));
+        }
+
+        [Fact]
+        public async Task Upload_PreviousPeriodApproved_Allowed()
+        {
+            _store.RoomBranches[1] = 10;
+            _access.Permissions.Add((2, 10, EmployeeActionCodes.MeterUpload));
+            _store.ContractMonths.Add((1, 9, 2026));
+            _store.Periods[99] = new DichVuDienNuocCuaPhong
+            {
+                DichVuDienNuocCuaPhongId = 99,
+                PhongTroId = 1,
+                Thang = 9,
+                Nam = 2026,
+                TrangThaiGhiNhan = TrangThaiGhiNhan.DaDuyet
+            };
+
+            var req = CreateValidRequest();
+            var result = await _service.UploadImageAsync(req, 2);
+
+            Assert.True(result.Success);
+        }
+
+        [Fact]
+        public async Task Upload_Tenant_TwoMonthsAgo_Rejected()
+        {
+            _store.RoomBranches[1] = 10;
+            _store.ActiveTenantContracts.Add((1, 99, 8, 2026));
+
+            var req = CreateValidRequest();
+            req.Thang = 8;
+            req.Nam = 2026;
+
+            var result = await _service.UploadImageAsync(req, 99);
+
+            Assert.False(result.Success);
+            Assert.Equal("Khách thuê chỉ được gửi ảnh cho tháng hiện tại hoặc tháng trước.", result.Message);
+        }
+
+        [Fact]
+        public async Task Upload_Staff_TwoMonthsAgo_AllowedIfOtherRulesPass()
+        {
+            _store.RoomBranches[1] = 10;
+            _access.Permissions.Add((2, 10, EmployeeActionCodes.MeterUpload));
+
+            var req = CreateValidRequest();
+            req.Thang = 8;
+            req.Nam = 2026;
+
+            var result = await _service.UploadImageAsync(req, 2);
+
+            Assert.True(result.Success);
+        }
+
+        [Fact]
+        public async Task Upload_Tenant_PeriodApproved_Rejected()
+        {
+            _store.RoomBranches[1] = 10;
+            _store.ActiveTenantContracts.Add((1, 99, 10, 2026));
+            _store.Periods[1] = new DichVuDienNuocCuaPhong
+            {
+                DichVuDienNuocCuaPhongId = 1,
+                PhongTroId = 1,
+                Thang = 10,
+                Nam = 2026,
+                TrangThaiGhiNhan = TrangThaiGhiNhan.DaDuyet
+            };
+
+            var req = CreateValidRequest();
+            var result = await _service.UploadImageAsync(req, 99);
+
+            Assert.False(result.Success);
+            Assert.Equal("Kỳ này đã được chốt, không thể gửi thêm ảnh.", result.Message);
+        }
+
+        [Fact]
+        public async Task Upload_Staff_PeriodApproved_Allowed()
+        {
+            _store.RoomBranches[1] = 10;
+            _access.Permissions.Add((2, 10, EmployeeActionCodes.MeterUpload));
+            _store.Periods[1] = new DichVuDienNuocCuaPhong
+            {
+                DichVuDienNuocCuaPhongId = 1,
+                PhongTroId = 1,
+                Thang = 10,
+                Nam = 2026,
+                TrangThaiGhiNhan = TrangThaiGhiNhan.DaDuyet
+            };
+
+            var req = CreateValidRequest();
+            var result = await _service.UploadImageAsync(req, 2);
+
+            Assert.True(result.Success);
+        }
+
+        [Fact]
+        public async Task Upload_Tenant_PeriodApprovedDuringTransaction_RejectedAndStorageCleaned()
+        {
+            _store.RoomBranches[1] = 10;
+            _store.ActiveTenantContracts.Add((1, 99, 10, 2026));
+            _store.Periods[1] = new DichVuDienNuocCuaPhong
+            {
+                DichVuDienNuocCuaPhongId = 1,
+                PhongTroId = 1,
+                Thang = 10,
+                Nam = 2026,
+                TrangThaiGhiNhan = TrangThaiGhiNhan.Nhap
+            };
+
+            // Fake trả Nhap ở lần đọc sơ bộ, nhưng DaDuyet ở GetPeriodForUpdateAsync
+            _store.PeriodForUpdateOverride = new DichVuDienNuocCuaPhong
+            {
+                DichVuDienNuocCuaPhongId = 1,
+                PhongTroId = 1,
+                Thang = 10,
+                Nam = 2026,
+                TrangThaiGhiNhan = TrangThaiGhiNhan.DaDuyet
+            };
+
+            var req = CreateValidRequest();
+            var result = await _service.UploadImageAsync(req, 99);
+
+            Assert.False(result.Success);
+            Assert.Equal("Kỳ này đã được chốt, không thể gửi thêm ảnh.", result.Message);
+            Assert.Single(_storage.DeletedPublicIds);
+            Assert.Equal("meters/img1", _storage.DeletedPublicIds[0]);
+        }
+
+        [Fact]
+        public async Task Confirm_OnApprovedPeriod_CallsDuyetLai()
+        {
+            _store.RoomBranches[1] = 10;
+            var period = new DichVuDienNuocCuaPhong
+            {
+                DichVuDienNuocCuaPhongId = 1,
+                PhongTroId = 1,
+                Thang = 10,
+                Nam = 2026,
+                TrangThaiGhiNhan = TrangThaiGhiNhan.DaDuyet,
+                NguoiDuyetId = 5,
+                GhiChuDuyet = "Duyet cu",
+                NgayDuyet = DateTime.UtcNow.AddDays(-2),
+                ChiSoDienCu = 100m,
+                ChiSoDienMoi = 140m,
+                ChiSoNuocCu = 50m,
+                ChiSoNuocMoi = 60m
+            };
+            _store.Periods[1] = period;
+
+            var img = new AnhChiSoDongHo
+            {
+                AnhChiSoDongHoId = 100,
+                DichVuDienNuocCuaPhongId = 1,
+                LoaiDongHo = LoaiDongHo.Dien,
+                Url = "http://test",
+                TrangThaiXuLy = TrangThaiXuLyAnhChiSo.DocDuoc,
+                GiaTriAIGoiY = 150m
+            };
+            _store.Images[100] = img;
+            _access.Permissions.Add((2, 10, EmployeeActionCodes.MeterReview));
+
+            var req = new ConfirmMeterImageRequest
+            {
+                AnhChiSoDongHoId = 100,
+                GiaTriXacNhan = 150m,
+                GhiChu = "Duyet lai thang 10"
+            };
+            var result = await _service.ConfirmImageAsync(req, 2);
+
+            Assert.True(result.Success);
+            Assert.Equal(2, period.NguoiDuyetId);
+            Assert.Equal("Duyet cu", period.GhiChuDuyet);
+            Assert.True(period.NgayDuyet > DateTime.UtcNow.AddMinutes(-1));
+        }
+
+        [Fact]
+        public async Task Confirm_OnDraftPeriod_DoesNotChangeApprovalFields()
+        {
+            _store.RoomBranches[1] = 10;
+            var period = new DichVuDienNuocCuaPhong
+            {
+                DichVuDienNuocCuaPhongId = 1,
+                PhongTroId = 1,
+                Thang = 10,
+                Nam = 2026,
+                TrangThaiGhiNhan = TrangThaiGhiNhan.Nhap,
+                NguoiDuyetId = null,
+                GhiChuDuyet = null,
+                NgayDuyet = null,
+                ChiSoDienCu = 100m,
+                ChiSoDienMoi = 140m,
+                ChiSoNuocCu = 50m,
+                ChiSoNuocMoi = 60m
+            };
+            _store.Periods[1] = period;
+
+            var img = new AnhChiSoDongHo
+            {
+                AnhChiSoDongHoId = 100,
+                DichVuDienNuocCuaPhongId = 1,
+                LoaiDongHo = LoaiDongHo.Dien,
+                Url = "http://test",
+                TrangThaiXuLy = TrangThaiXuLyAnhChiSo.DocDuoc,
+                GiaTriAIGoiY = 150m
+            };
+            _store.Images[100] = img;
+            _access.Permissions.Add((2, 10, EmployeeActionCodes.MeterReview));
+
+            var req = new ConfirmMeterImageRequest
+            {
+                AnhChiSoDongHoId = 100,
+                GiaTriXacNhan = 150m,
+                GhiChu = "Xac nhan ky nhap"
+            };
+            var result = await _service.ConfirmImageAsync(req, 2);
+
+            Assert.True(result.Success);
+            Assert.Null(period.NguoiDuyetId);
+            Assert.Null(period.NgayDuyet);
+        }
+
+        #endregion
     }
 }

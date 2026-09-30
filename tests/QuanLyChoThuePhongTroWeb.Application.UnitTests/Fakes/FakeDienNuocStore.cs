@@ -14,11 +14,14 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
         public List<int> LockedRooms { get; } = new();
         public List<DichVuDienNuocCuaPhong> SavedRecords { get; } = new();
 
+        public List<HopDong> ActiveContracts { get; set; } = new();
+        public Dictionary<int, DichVuDienNuocCuaPhong> CurrentMonthRecords { get; set; } = new();
+
         public Task<IReadOnlyList<HopDong>> GetActiveContractsInBranchAsync(int chiNhanhId, DateTime startOfMonth, DateTime endOfMonth, CancellationToken cancellationToken = default)
-            => Task.FromResult<IReadOnlyList<HopDong>>(new List<HopDong>());
+            => Task.FromResult<IReadOnlyList<HopDong>>(ActiveContracts);
 
         public Task<IReadOnlyDictionary<int, DichVuDienNuocCuaPhong>> GetCurrentMonthRecordsAsync(IReadOnlyList<int> roomIds, int thang, int nam, CancellationToken cancellationToken = default)
-            => Task.FromResult<IReadOnlyDictionary<int, DichVuDienNuocCuaPhong>>(new Dictionary<int, DichVuDienNuocCuaPhong>());
+            => Task.FromResult<IReadOnlyDictionary<int, DichVuDienNuocCuaPhong>>(CurrentMonthRecords);
 
         public Task<IReadOnlyDictionary<int, DichVuDienNuocCuaPhong>> GetPreviousMonthRecordsAsync(IReadOnlyList<int> roomIds, int prevThang, int prevNam, CancellationToken cancellationToken = default)
             => Task.FromResult<IReadOnlyDictionary<int, DichVuDienNuocCuaPhong>>(new Dictionary<int, DichVuDienNuocCuaPhong>());

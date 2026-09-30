@@ -35,6 +35,7 @@ namespace QuanLyChoThuePhongTroWeb.Application
             services.AddScoped<IThanhVienHopDongService, ThanhVienHopDongService>();
             services.AddScoped<IDienNuocService, DienNuocService>();
             services.AddScoped<IMeterReadingWorkflowService, MeterReadingWorkflowService>();
+            services.AddScoped<IMeterImagePortalService, MeterImagePortalService>();
 
             // Phase 6.4 services
             services.AddScoped<IHoaDonCalculatorService, HoaDonCalculatorService>();
@@ -58,6 +59,8 @@ namespace QuanLyChoThuePhongTroWeb.Application
             services.AddScoped<Abstractions.Security.IEmployeeAccessService, Features.NhanViens.Services.EmployeeAccessService>();
             services.AddScoped<Features.NhanViens.Services.IEmployeeBranchAssignmentService, Features.NhanViens.Services.EmployeeBranchAssignmentService>();
             services.AddScoped<Features.NguoiDungs.Services.IUserSessionService, Features.NguoiDungs.Services.UserSessionService>();
+
+            Microsoft.Extensions.DependencyInjection.Extensions.ServiceCollectionDescriptorExtensions.TryAddSingleton(services, System.TimeProvider.System);
 
             return services;
         }

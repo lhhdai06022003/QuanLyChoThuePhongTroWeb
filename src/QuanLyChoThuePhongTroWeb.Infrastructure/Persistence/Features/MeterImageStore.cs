@@ -49,19 +49,32 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
             }
 
             var nguoiThueId = user.NguoiThueId.Value;
-
-            var startOfMonth = new DateTime(nam, thang, 1, 0, 0, 0, DateTimeKind.Utc);
-            var endOfMonth = startOfMonth.AddMonths(1).AddTicks(-1);
+            var (startUtc, endExclusiveUtc) = QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services.MeterPeriodPolicy.MonthRangeUtc(
+                new QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services.MeterPeriod(thang, nam));
 
             return await _context.HopDongs
                 .Where(h => h.PhongTroId == phongTroId &&
                             !h.IsDeleted &&
                             h.TrangThaiHopDong != TrangThaiHopDong.DaHuy &&
-                            h.ThoiDiemBatDau <= endOfMonth &&
-                            (h.ThoiDiemKetThuc == null || h.ThoiDiemKetThuc.Value >= startOfMonth))
+                            h.ThoiDiemBatDau < endExclusiveUtc &&
+                            (h.ThoiDiemKetThuc == null || h.ThoiDiemKetThuc.Value >= startUtc))
                 .AnyAsync(h => h.NguoiThueId == nguoiThueId ||
                                h.ChiTietThanhVienHopDongs.Any(tv => !tv.IsDeleted && tv.NguoiThueId == nguoiThueId),
                           cancellationToken);
+        }
+
+        public async Task<bool> HasContractInMonthAsync(int phongTroId, int thang, int nam, CancellationToken cancellationToken = default)
+        {
+            var (startUtc, endExclusiveUtc) = QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services.MeterPeriodPolicy.MonthRangeUtc(
+                new QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services.MeterPeriod(thang, nam));
+
+            return await _context.HopDongs
+                .Where(h => h.PhongTroId == phongTroId &&
+                            !h.IsDeleted &&
+                            h.TrangThaiHopDong != TrangThaiHopDong.DaHuy &&
+                            h.ThoiDiemBatDau < endExclusiveUtc &&
+                            (h.ThoiDiemKetThuc == null || h.ThoiDiemKetThuc.Value >= startUtc))
+                .AnyAsync(cancellationToken);
         }
 
         public async Task<MeterImageAccessContext?> GetImageAccessContextAsync(int imageId, CancellationToken cancellationToken = default)
@@ -208,10 +221,12 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
 
         public async Task<bool> HasLockedInvoiceAsync(int periodRecordId, CancellationToken cancellationToken = default)
         {
+            // Bản đã hủy không còn khóa kỳ: nhân viên phải sửa được chỉ số rồi tạo bản thay thế (-R1, -R2).
             return await _context.HoaDons
                 .IgnoreQueryFilters()
                 .AnyAsync(h => h.DichVuDienNuocCuaPhongId == periodRecordId &&
-                               h.TrangThaiPhatHanh != TrangThaiPhatHanhHoaDon.Nhap, cancellationToken);
+                               h.TrangThaiPhatHanh != TrangThaiPhatHanhHoaDon.Nhap &&
+                               h.TrangThaiPhatHanh != TrangThaiPhatHanhHoaDon.DaHuy, cancellationToken);
         }
 
         public Task<bool> HasNonDraftInvoiceAsync(int periodRecordId, CancellationToken cancellationToken = default)

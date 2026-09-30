@@ -74,6 +74,18 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
 
                 if (currentRecords.TryGetValue(phongTroId, out var currentRecord))
                 {
+                    var nonDeletedImages = currentRecord.AnhChiSoDongHos?.Where(a => !a.IsDeleted).ToList() ?? new List<AnhChiSoDongHo>();
+                    var dienImages = nonDeletedImages.Where(a => a.LoaiDongHo == LoaiDongHo.Dien).ToList();
+                    var nuocImages = nonDeletedImages.Where(a => a.LoaiDongHo == LoaiDongHo.Nuoc).ToList();
+
+                    var officialDien = dienImages.FirstOrDefault(a => a.DuocChonLamChiSoChinhThuc);
+                    var newestDien = dienImages.OrderByDescending(a => a.NgayGui).ThenByDescending(a => a.AnhChiSoDongHoId).FirstOrDefault();
+                    var representativeDien = officialDien ?? newestDien;
+
+                    var officialNuoc = nuocImages.FirstOrDefault(a => a.DuocChonLamChiSoChinhThuc);
+                    var newestNuoc = nuocImages.OrderByDescending(a => a.NgayGui).ThenByDescending(a => a.AnhChiSoDongHoId).FirstOrDefault();
+                    var representativeNuoc = officialNuoc ?? newestNuoc;
+
                     result.Add(new DienNuocPhongRes
                     {
                         DichVuDienNuocCuaPhongId = currentRecord.DichVuDienNuocCuaPhongId,
@@ -85,12 +97,16 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
                         ChiSoNuocCu = currentRecord.ChiSoNuocCu,
                         ChiSoNuocMoi = currentRecord.ChiSoNuocMoi,
                         IsDaChot = currentRecord.TrangThaiGhiNhan == TrangThaiGhiNhan.DaDuyet,
-                        CoAnhDienChinhThuc = currentRecord.AnhChiSoDongHos?.Any(a => a.LoaiDongHo == LoaiDongHo.Dien && a.DuocChonLamChiSoChinhThuc && !a.IsDeleted) ?? false,
-                        CoAnhNuocChinhThuc = currentRecord.AnhChiSoDongHos?.Any(a => a.LoaiDongHo == LoaiDongHo.Nuoc && a.DuocChonLamChiSoChinhThuc && !a.IsDeleted) ?? false,
-                        GiaTriDienXacNhanTuAnh = currentRecord.AnhChiSoDongHos?.FirstOrDefault(a => a.LoaiDongHo == LoaiDongHo.Dien && a.DuocChonLamChiSoChinhThuc && !a.IsDeleted)?.GiaTriXacNhan,
-                        GiaTriNuocXacNhanTuAnh = currentRecord.AnhChiSoDongHos?.FirstOrDefault(a => a.LoaiDongHo == LoaiDongHo.Nuoc && a.DuocChonLamChiSoChinhThuc && !a.IsDeleted)?.GiaTriXacNhan,
+                        CoAnhDienChinhThuc = officialDien != null,
+                        CoAnhNuocChinhThuc = officialNuoc != null,
+                        GiaTriDienXacNhanTuAnh = officialDien?.GiaTriXacNhan,
+                        GiaTriNuocXacNhanTuAnh = officialNuoc?.GiaTriXacNhan,
                         TrangThaiGhiNhan = currentRecord.TrangThaiGhiNhan,
-                        IsLocked = isLocked
+                        IsLocked = isLocked,
+                        SoAnhDien = dienImages.Count,
+                        SoAnhNuoc = nuocImages.Count,
+                        TrangThaiAnhDien = representativeDien != null ? (QuanLyChoThuePhongTroWeb.Application.Common.Enums.AppTrangThaiAnhChiSo)representativeDien.TrangThaiXuLy : null,
+                        TrangThaiAnhNuoc = representativeNuoc != null ? (QuanLyChoThuePhongTroWeb.Application.Common.Enums.AppTrangThaiAnhChiSo)representativeNuoc.TrangThaiXuLy : null
                     });
                 }
                 else
@@ -120,7 +136,11 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
                         ChiSoNuocCu = nuocCu,
                         ChiSoNuocMoi = 0m,
                         IsDaChot = false,
-                        IsLocked = isLocked
+                        IsLocked = isLocked,
+                        SoAnhDien = 0,
+                        SoAnhNuoc = 0,
+                        TrangThaiAnhDien = null,
+                        TrangThaiAnhNuoc = null
                     });
                 }
             }

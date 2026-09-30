@@ -11,6 +11,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Persistence
     {
         Task<int?> GetBranchIdByRoomAsync(int phongTroId, CancellationToken cancellationToken = default);
         Task<bool> HasActiveContractForTenantInPeriodAsync(int phongTroId, int tenantUserId, int thang, int nam, CancellationToken cancellationToken = default);
+        Task<bool> HasContractInMonthAsync(int phongTroId, int thang, int nam, CancellationToken cancellationToken = default);
         Task<MeterImageAccessContext?> GetImageAccessContextAsync(int imageId, CancellationToken cancellationToken = default);
         Task LockRoomsAsync(IEnumerable<int> roomIds, CancellationToken cancellationToken = default);
         Task<DichVuDienNuocCuaPhong?> GetPeriodRecordAsync(int phongTroId, int thang, int nam, CancellationToken cancellationToken = default);

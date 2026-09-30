@@ -88,14 +88,15 @@
                     <table class="table card-table table-vcenter text-nowrap datatable w-100" id="dienNuocTable">
                         <thead>
                             <tr>
-                                <th class="text-center" width="5%">STT</th>
+                                <th class="text-center" width="4%">STT</th>
                                 <th>Phòng</th>
                                 <th>Người Đại Diện</th>
-                                <th class="text-center bg-warning-light-td" width="12%">Chỉ số Điện Cũ</th>
-                                <th class="text-center bg-danger-light-td" width="15%">Chỉ số Điện Mới</th>
-                                <th class="text-center bg-info-light-td" width="12%">Chỉ số Nước Cũ</th>
-                                <th class="text-center bg-primary-light-td" width="15%">Chỉ số Nước Mới</th>
-                                <th class="text-center" width="12%">Trạng Thái</th>
+                                <th class="text-center bg-warning-light-td" width="11%">Chỉ số Điện Cũ</th>
+                                <th class="text-center bg-danger-light-td" width="13%">Chỉ số Điện Mới</th>
+                                <th class="text-center bg-info-light-td" width="11%">Chỉ số Nước Cũ</th>
+                                <th class="text-center bg-primary-light-td" width="13%">Chỉ số Nước Mới</th>
+                                <th class="text-center" width="13%">Ảnh</th>
+                                <th class="text-center" width="10%">Trạng Thái</th>
                             </tr>
                         </thead>
                         <tbody id="tbodyDienNuoc">
@@ -120,6 +121,8 @@
         </button>
     </div>
 </div>
+
+<partial name="_AnhChiSoModal" />
 
 @section Scripts {
     <script>
@@ -214,7 +217,7 @@
 
                 $('#emptyState').hide();
                 $('#tableContainer').show();
-                $('#tbodyDienNuoc').html('<tr><td colspan="8" class="text-center py-4"><i class="ti ti-loader fa-spin fa-2x text-primary mb-2"></i><div>Đang tải dữ liệu...</div></td></tr>');
+                $('#tbodyDienNuoc').html('<tr><td colspan="9" class="text-center py-4"><i class="ti ti-loader fa-spin fa-2x text-primary mb-2"></i><div>Đang tải dữ liệu...</div></td></tr>');
                 hideStickyBar();
 
                 $.ajax({
@@ -239,6 +242,105 @@
                 });
             }
 
+            const STATUS_LABELS = {
+                0: 'Mới tải lên',
+                1: 'Đang nhận diện',
+                2: 'Đọc được',
+                3: 'Lỗi',
+                4: 'Không đọc được',
+                5: 'Cần chụp lại',
+                6: 'Đã xác nhận',
+                7: 'Đã thay thế'
+            };
+
+            function getTrangThaiAnhLabel(status) {
+                if (status === null || status === undefined) return 'Chưa có';
+                return STATUS_LABELS[status] || 'Có ảnh';
+            }
+
+            function escapeHtml(str) {
+                if (!str) return '';
+                return String(str)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#39;');
+            }
+
+            function renderRow(item, index) {
+                let statusBadge = '';
+                let rowClass = '';
+                let disabledAttr = '';
+
+                if (item.isLocked) {
+                    statusBadge = '<span class="badge bg-danger-lt text-danger"><i class="ti ti-lock me-1"></i> Đã khóa</span>';
+                    rowClass = 'row-locked';
+                    disabledAttr = 'disabled';
+                } else if (item.isDaChot) {
+                    statusBadge = '<span class="badge bg-success-lt text-success"><i class="ti ti-circle-check me-1"></i> Đã chốt</span>';
+                } else {
+                    statusBadge = '<span class="badge bg-secondary-lt text-secondary"><i class="ti ti-clock me-1"></i> Chưa chốt</span>';
+                }
+
+                let defaultDienMoi = (item.chiSoDienMoi === 0 && !item.isDaChot) ? item.chiSoDienCu : item.chiSoDienMoi;
+                let defaultNuocMoi = (item.chiSoNuocMoi === 0 && !item.isDaChot) ? item.chiSoNuocCu : item.chiSoNuocMoi;
+
+                let isOfficialDien = item.coAnhDienChinhThuc && (item.giaTriDienXacNhanTuAnh != null ? defaultDienMoi === item.giaTriDienXacNhanTuAnh : defaultDienMoi === item.chiSoDienCu);
+                let isOfficialNuoc = item.coAnhNuocChinhThuc && (item.giaTriNuocXacNhanTuAnh != null ? defaultNuocMoi === item.giaTriNuocXacNhanTuAnh : defaultNuocMoi === item.chiSoNuocCu);
+
+                let anhDienSummary = item.soAnhDien > 0 ? `⚡ ${item.soAnhDien} · ${getTrangThaiAnhLabel(item.trangThaiAnhDien)}` : '⚡ Chưa có ảnh';
+                let anhNuocSummary = item.soAnhNuoc > 0 ? `💧 ${item.soAnhNuoc} · ${getTrangThaiAnhLabel(item.trangThaiAnhNuoc)}` : '💧 Chưa có ảnh';
+
+                let btnContent = '';
+                if ((!item.soAnhDien || item.soAnhDien === 0) && (!item.soAnhNuoc || item.soAnhNuoc === 0)) {
+                    btnContent = '<span class="text-muted"><i class="ti ti-camera me-1"></i>Chưa có ảnh</span>';
+                } else {
+                    btnContent = `
+                        <div class="text-start small lh-sm">
+                            <div>${escapeHtml(anhDienSummary)}</div>
+                            <div class="mt-1">${escapeHtml(anhNuocSummary)}</div>
+                        </div>
+                    `;
+                }
+
+                let anhBtn = `
+                    <button type="button" class="btn btn-sm btn-outline-secondary btn-anh-chi-so" data-phong-tro-id="${item.phongTroId}" data-index="${index}" title="Xem và thao tác ảnh chỉ số">
+                        ${btnContent}
+                    </button>
+                `;
+
+                return `
+                    <tr data-index="${index}" class="${rowClass}">
+                        <td class="text-center align-middle">${index + 1}</td>
+                        <td class="align-middle font-weight-bold">${escapeHtml(item.tenPhong)}</td>
+                        <td class="align-middle">${escapeHtml(item.tenNguoiDaiDien)}</td>
+                        <td class="text-center align-middle bg-warning-light-td diennuoc-input-td">
+                            <input type="number" class="form-control text-center in-dien-cu" value="${item.chiSoDienCu}" readonly>
+                        </td>
+                        <td class="text-center align-middle bg-danger-light-td diennuoc-input-td">
+                            <input type="number" class="form-control text-center text-danger font-weight-bold in-dien-moi" value="${defaultDienMoi}" min="0" ${disabledAttr}>
+                            <div class="invalid-feedback text-center small" style="display: none;">Mới phải ≥ Cũ</div>
+                            <div class="wrap-lydo-dien mt-1" style="${isOfficialDien ? 'display: none;' : ''}">
+                                <input type="text" class="form-control form-control-sm in-lydo-dien" name="lyDoDien" placeholder="Lý do nhập tay điện" value="" ${disabledAttr}>
+                            </div>
+                        </td>
+                        <td class="text-center align-middle bg-info-light-td diennuoc-input-td">
+                            <input type="number" class="form-control text-center in-nuoc-cu" value="${item.chiSoNuocCu}" readonly>
+                        </td>
+                        <td class="text-center align-middle bg-primary-light-td diennuoc-input-td">
+                            <input type="number" class="form-control text-center text-primary font-weight-bold in-nuoc-moi" value="${defaultNuocMoi}" min="0" ${disabledAttr}>
+                            <div class="invalid-feedback text-center small" style="display: none;">Mới phải ≥ Cũ</div>
+                            <div class="wrap-lydo-nuoc mt-1" style="${isOfficialNuoc ? 'display: none;' : ''}">
+                                <input type="text" class="form-control form-control-sm in-lydo-nuoc" name="lyDoNuoc" placeholder="Lý do nhập tay nước" value="" ${disabledAttr}>
+                            </div>
+                        </td>
+                        <td class="text-center align-middle">${anhBtn}</td>
+                        <td class="text-center align-middle">${statusBadge}</td>
+                    </tr>
+                `;
+            }
+
             function renderTable(data) {
                 // Hủy DataTable nếu đang có để vẽ lại
                 if ($.fn.DataTable.isDataTable('#dienNuocTable')) {
@@ -247,57 +349,10 @@
 
                 let html = '';
                 if (data.length === 0) {
-                    html = '<tr><td colspan="8" class="text-center text-muted py-4">Không có phòng nào đang thuê tại chi nhánh này.</td></tr>';
+                    html = '<tr><td colspan="9" class="text-center text-muted py-4">Không có phòng nào đang thuê tại chi nhánh này.</td></tr>';
                 } else {
                     data.forEach((item, index) => {
-                        let statusBadge = '';
-                        let rowClass = '';
-                        let disabledAttr = '';
-                        
-                        if (item.isLocked) {
-                            statusBadge = '<span class="badge bg-danger-lt text-danger"><i class="ti ti-lock me-1"></i> Đã khóa</span>';
-                            rowClass = 'row-locked';
-                            disabledAttr = 'disabled';
-                        } else if (item.isDaChot) {
-                            statusBadge = '<span class="badge bg-success-lt text-success"><i class="ti ti-circle-check me-1"></i> Đã chốt</span>';
-                        } else {
-                            statusBadge = '<span class="badge bg-secondary-lt text-secondary"><i class="ti ti-clock me-1"></i> Chưa chốt</span>';
-                        }
-                        
-                        let defaultDienMoi = (item.chiSoDienMoi === 0 && !item.isDaChot) ? item.chiSoDienCu : item.chiSoDienMoi;
-                        let defaultNuocMoi = (item.chiSoNuocMoi === 0 && !item.isDaChot) ? item.chiSoNuocCu : item.chiSoNuocMoi;
-
-                        let isOfficialDien = item.coAnhDienChinhThuc && (item.giaTriDienXacNhanTuAnh != null ? defaultDienMoi === item.giaTriDienXacNhanTuAnh : defaultDienMoi === item.chiSoDienCu);
-                        let isOfficialNuoc = item.coAnhNuocChinhThuc && (item.giaTriNuocXacNhanTuAnh != null ? defaultNuocMoi === item.giaTriNuocXacNhanTuAnh : defaultNuocMoi === item.chiSoNuocCu);
-
-                        html += `
-                            <tr data-index="${index}" class="${rowClass}">
-                                <td class="text-center align-middle">${index + 1}</td>
-                                <td class="align-middle font-weight-bold">${item.tenPhong}</td>
-                                <td class="align-middle">${item.tenNguoiDaiDien}</td>
-                                <td class="text-center align-middle bg-warning-light-td diennuoc-input-td">
-                                    <input type="number" class="form-control text-center in-dien-cu" value="${item.chiSoDienCu}" readonly>
-                                </td>
-                                <td class="text-center align-middle bg-danger-light-td diennuoc-input-td">
-                                    <input type="number" class="form-control text-center text-danger font-weight-bold in-dien-moi" value="${defaultDienMoi}" min="0" ${disabledAttr}>
-                                    <div class="invalid-feedback text-center small" style="display: none;">Mới phải ≥ Cũ</div>
-                                    <div class="wrap-lydo-dien mt-1" style="${isOfficialDien ? 'display: none;' : ''}">
-                                        <input type="text" class="form-control form-control-sm in-lydo-dien" name="lyDoDien" placeholder="Lý do nhập tay điện" value="" ${disabledAttr}>
-                                    </div>
-                                </td>
-                                <td class="text-center align-middle bg-info-light-td diennuoc-input-td">
-                                    <input type="number" class="form-control text-center in-nuoc-cu" value="${item.chiSoNuocCu}" readonly>
-                                </td>
-                                <td class="text-center align-middle bg-primary-light-td diennuoc-input-td">
-                                    <input type="number" class="form-control text-center text-primary font-weight-bold in-nuoc-moi" value="${defaultNuocMoi}" min="0" ${disabledAttr}>
-                                    <div class="invalid-feedback text-center small" style="display: none;">Mới phải ≥ Cũ</div>
-                                    <div class="wrap-lydo-nuoc mt-1" style="${isOfficialNuoc ? 'display: none;' : ''}">
-                                        <input type="text" class="form-control form-control-sm in-lydo-nuoc" name="lyDoNuoc" placeholder="Lý do nhập tay nước" value="" ${disabledAttr}>
-                                    </div>
-                                </td>
-                                <td class="text-center align-middle">${statusBadge}</td>
-                            </tr>
-                        `;
+                        html += renderRow(item, index);
                     });
                 }
                 
@@ -313,7 +368,7 @@
                         "info": false,
                         "autoWidth": false,
                         "columnDefs": [
-                            { "orderable": false, "targets": [0, 3, 4, 5, 6, 7] } // Không sort trên STT, các cột chỉ số và trạng thái
+                            { "orderable": false, "targets": [0, 3, 4, 5, 6, 7, 8] } // Không sort trên STT, các cột chỉ số, ảnh và trạng thái
                         ]
                     });
                     
@@ -424,6 +479,53 @@
             $('#tbodyDienNuoc').on('input change', '.in-dien-moi, .in-nuoc-moi', function () {
                 checkForChanges();
             });
+
+            // Click open modal ảnh chỉ số
+            $('#tbodyDienNuoc').on('click', '.btn-anh-chi-so', function () {
+                let phongTroId = $(this).data('phong-tro-id');
+                let index = $(this).data('index');
+                let item = currentData ? currentData[index] : null;
+                let thang = parseInt($('#filterThang').val());
+                let nam = parseInt($('#filterNam').val());
+                let tenPhong = item ? item.tenPhong : '';
+                if (window.openAnhChiSoModal) {
+                    window.openAnhChiSoModal(phongTroId, thang, nam, tenPhong);
+                }
+            });
+
+            // Hàm làm mới duy nhất 1 dòng sau khi thao tác ảnh chỉ số thành công
+            window.refreshDienNuocRow = function (phongTroId) {
+                let chiNhanhId = $('#filterChiNhanh').val();
+                let thang = $('#filterThang').val();
+                let nam = $('#filterNam').val();
+                if (!chiNhanhId) return;
+
+                $.ajax({
+                    url: '/DienNuoc/GetDanhSachPhongs',
+                    type: 'GET',
+                    data: { chiNhanhId: chiNhanhId, thang: thang, nam: nam },
+                    success: function (res) {
+                        if (!res || !Array.isArray(res)) return;
+                        let updatedItem = res.find(x => x.phongTroId === phongTroId);
+                        if (!updatedItem) return;
+
+                        let idx = currentData.findIndex(x => x.phongTroId === phongTroId);
+                        if (idx === -1) return;
+
+                        currentData[idx] = updatedItem;
+
+                        let $tr = $(`#tbodyDienNuoc tr[data-index="${idx}"]`);
+                        if ($tr.length > 0) {
+                            let $newTr = $(renderRow(updatedItem, idx));
+                            $tr.attr('class', $newTr.attr('class') || '');
+                            $tr.html($newTr.html());
+                            if (table) {
+                                table.row($tr[0]).invalidate('dom');
+                            }
+                        }
+                    }
+                });
+            };
 
             // Reset changes
             $('#btnCancelChanges').on('click', function () {

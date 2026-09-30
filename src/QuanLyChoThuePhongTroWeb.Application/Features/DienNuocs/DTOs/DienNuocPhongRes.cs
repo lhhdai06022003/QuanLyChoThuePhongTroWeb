@@ -21,5 +21,10 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.DTOs
         public decimal? GiaTriDienXacNhanTuAnh { get; set; }
         public decimal? GiaTriNuocXacNhanTuAnh { get; set; }
         public QuanLyChoThuePhongTroWeb.Domain.Enums.TrangThaiGhiNhan? TrangThaiGhiNhan { get; set; }
+
+        public int SoAnhDien { get; set; }
+        public int SoAnhNuoc { get; set; }
+        public QuanLyChoThuePhongTroWeb.Application.Common.Enums.AppTrangThaiAnhChiSo? TrangThaiAnhDien { get; set; }
+        public QuanLyChoThuePhongTroWeb.Application.Common.Enums.AppTrangThaiAnhChiSo? TrangThaiAnhNuoc { get; set; }
     }
 }

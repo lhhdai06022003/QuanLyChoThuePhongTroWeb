@@ -40,4 +40,22 @@ namespace QuanLyChoThuePhongTroWeb.Application.Common.Enums
         TienMat = 0,
         ChuyenKhoan = 1
     }
+
+    public enum AppLoaiDongHo
+    {
+        Dien = 0,
+        Nuoc = 1
+    }
+
+    public enum AppTrangThaiAnhChiSo
+    {
+        MoiTaiLen = 0,
+        DangXuLy = 1,
+        DocDuoc = 2,
+        Loi = 3,
+        KhongDocDuoc = 4,
+        CanChupLai = 5,
+        DaXacNhan = 6,
+        DaThayThe = 7
+    }
 }

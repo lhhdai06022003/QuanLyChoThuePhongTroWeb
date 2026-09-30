@@ -38,17 +38,34 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         public List<ApproveMeterPeriodsRequest> ApprovedBatchRequests { get; } = new();
         public Func<ApproveMeterPeriodsRequest, int, ServiceResult<MeterPeriodsApprovalResult>>? OnApproveBatch { get; set; }
 
+        public Func<UploadMeterImageRequest, int, ServiceResult<MeterImageWorkflowResult>>? OnUploadImage { get; set; }
+        public Func<int, int, ServiceResult<MeterImageWorkflowResult>>? OnRetryOcr { get; set; }
+        public Func<ConfirmMeterImageRequest, int, ServiceResult<MeterImageWorkflowResult>>? OnConfirmImage { get; set; }
+        public Func<CorrectConfirmedMeterImageRequest, int, ServiceResult<MeterImageWorkflowResult>>? OnCorrectConfirmedImage { get; set; }
+
         public Task<ServiceResult<MeterImageWorkflowResult>> UploadImageAsync(UploadMeterImageRequest request, int actorUserId, CancellationToken cancellationToken = default)
-            => throw new NotImplementedException();
+        {
+            if (OnUploadImage != null) return Task.FromResult(OnUploadImage(request, actorUserId));
+            return Task.FromResult(ServiceResult<MeterImageWorkflowResult>.Ok(new MeterImageWorkflowResult()));
+        }
 
         public Task<ServiceResult<MeterImageWorkflowResult>> RetryOcrAsync(int anhChiSoDongHoId, int actorUserId, CancellationToken cancellationToken = default)
-            => throw new NotImplementedException();
+        {
+            if (OnRetryOcr != null) return Task.FromResult(OnRetryOcr(anhChiSoDongHoId, actorUserId));
+            return Task.FromResult(ServiceResult<MeterImageWorkflowResult>.Ok(new MeterImageWorkflowResult()));
+        }
 
         public Task<ServiceResult<MeterImageWorkflowResult>> ConfirmImageAsync(ConfirmMeterImageRequest request, int actorUserId, CancellationToken cancellationToken = default)
-            => throw new NotImplementedException();
+        {
+            if (OnConfirmImage != null) return Task.FromResult(OnConfirmImage(request, actorUserId));
+            return Task.FromResult(ServiceResult<MeterImageWorkflowResult>.Ok(new MeterImageWorkflowResult()));
+        }
 
         public Task<ServiceResult<MeterImageWorkflowResult>> CorrectConfirmedImageAsync(CorrectConfirmedMeterImageRequest request, int actorUserId, CancellationToken cancellationToken = default)
-            => throw new NotImplementedException();
+        {
+            if (OnCorrectConfirmedImage != null) return Task.FromResult(OnCorrectConfirmedImage(request, actorUserId));
+            return Task.FromResult(ServiceResult<MeterImageWorkflowResult>.Ok(new MeterImageWorkflowResult()));
+        }
 
 
         public async Task<ServiceResult<MeterPeriodsApprovalResult>> ApprovePeriodsAsync(ApproveMeterPeriodsRequest request, int actorUserId, CancellationToken cancellationToken = default)
