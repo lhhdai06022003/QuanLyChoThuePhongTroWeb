@@ -180,7 +180,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
             var coHoaDonDaQuaNhap = period != null && await _meterImageStore.HasLockedInvoiceAsync(period.DichVuDienNuocCuaPhongId, ct);
             bool kyBiKhoa = coKySau || coHoaDonDaQuaNhap;
             string? lyDoKhoa = coKySau
-                ? "Kỳ này đã có kỳ sau, không thể tải thêm ảnh."
+                ? MeterUploadRules.ReasonRule3SubsequentPeriod
                 : (coHoaDonDaQuaNhap ? "Kỳ này đã có hóa đơn đã phát hành, không thể chỉnh sửa." : null);
 
             var coHopDongThangTruoc = await _meterImageStore.HasContractInMonthAsync(phongTroId, kyTruoc.Thang, kyTruoc.Nam, ct);

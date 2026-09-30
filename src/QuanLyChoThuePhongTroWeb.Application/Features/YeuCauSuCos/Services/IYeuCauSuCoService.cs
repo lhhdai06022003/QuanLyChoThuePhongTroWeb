@@ -13,6 +13,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.YeuCauSuCos.Services
         Task<YeuCauSuCoRes?> GetByIdAsync(int id);
         Task<bool> CreateAsync(CreateYeuCauSuCoReq req);
         Task<ServiceResult> UpdateStatusAsync(int id, AppTrangThaiSuCo trangThai, decimal chiPhi, bool congVaoHoaDon, string? lyDoTuChoi, string? ghiChuAdmin, int actorId, CancellationToken ct = default);
-        Task<bool> SoftDeleteAsync(int id);
+        Task<ServiceResult> SoftDeleteAsync(int id, int actorId, CancellationToken ct = default);
     }
 }

@@ -2099,6 +2099,93 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.Equal(180m, period.ChiSoDienMoi);
         }
 
+        private static ApproveMeterPeriodItem ManualApproveItem(int phongTroId, decimal dien, decimal nuoc) => new()
+        {
+            PhongTroId = phongTroId,
+            DienMode = MeterReadingSubmissionMode.Manual,
+            ChiSoDienMoiThuCong = dien,
+            LyDoDienThuCong = "Đồng hồ điện bị mờ số",
+            NuocMode = MeterReadingSubmissionMode.Manual,
+            ChiSoNuocMoiThuCong = nuoc,
+            LyDoNuocThuCong = "Khách không có nhà, ghi nhận trực tiếp"
+        };
+
+        [Fact]
+        public async Task ApprovePeriodsAsync_WhenNextPeriodIsUntouchedDraft_ShiftsItsOldAndNewReading()
+        {
+            var period = new DichVuDienNuocCuaPhong
+            {
+                DichVuDienNuocCuaPhongId = 1, PhongTroId = 1, Thang = 10, Nam = 2026,
+                ChiSoDienCu = 100m, ChiSoNuocCu = 50m, TrangThaiGhiNhan = TrangThaiGhiNhan.Nhap
+            };
+            var next = LaterPeriod(2, 11, 100m, 100m, 50m, 50m);
+            _store.Periods[1] = period;
+            _store.Periods[2] = next;
+            _store.RoomBranches[1] = 10;
+            _access.Permissions.Add((2, 10, EmployeeActionCodes.MeterReview));
+
+            var req = new ApproveMeterPeriodsRequest
+            {
+                Thang = 10,
+                Nam = 2026,
+                DanhSachPhong = new List<ApproveMeterPeriodItem> { ManualApproveItem(1, 160m, 65m) }
+            };
+
+            var result = await _service.ApprovePeriodsAsync(req, 2);
+
+            Assert.True(result.Success);
+            Assert.Equal((160m, 160m), (next.ChiSoDienCu, next.ChiSoDienMoi));
+            Assert.Equal((65m, 65m), (next.ChiSoNuocCu, next.ChiSoNuocMoi));
+            Assert.True(_uow.CurrentTransaction.Committed);
+        }
+
+        [Fact]
+        public async Task ApprovePeriodsAsync_WhenNextPeriodHasSmallerOwnReading_RejectsWholeBatchAndRollsBack()
+        {
+            var period1 = new DichVuDienNuocCuaPhong
+            {
+                DichVuDienNuocCuaPhongId = 1, PhongTroId = 1, Thang = 10, Nam = 2026,
+                ChiSoDienCu = 100m, ChiSoNuocCu = 50m, TrangThaiGhiNhan = TrangThaiGhiNhan.Nhap
+            };
+            var period3 = new DichVuDienNuocCuaPhong
+            {
+                DichVuDienNuocCuaPhongId = 3, PhongTroId = 2, Thang = 10, Nam = 2026,
+                ChiSoDienCu = 100m, ChiSoNuocCu = 50m, TrangThaiGhiNhan = TrangThaiGhiNhan.Nhap
+            };
+            var period4 = new DichVuDienNuocCuaPhong
+            {
+                DichVuDienNuocCuaPhongId = 4, PhongTroId = 2, Thang = 11, Nam = 2026,
+                ChiSoDienCu = 100m, ChiSoDienMoi = 120m, ChiSoNuocCu = 50m, ChiSoNuocMoi = 50m
+            };
+            _store.Periods[1] = period1;
+            _store.Periods[3] = period3;
+            _store.Periods[4] = period4;
+            _store.RoomBranches[1] = 10;
+            _store.RoomBranches[2] = 10;
+            _access.Permissions.Add((2, 10, EmployeeActionCodes.MeterReview));
+
+            var req = new ApproveMeterPeriodsRequest
+            {
+                Thang = 10,
+                Nam = 2026,
+                DanhSachPhong = new List<ApproveMeterPeriodItem>
+                {
+                    ManualApproveItem(1, 160m, 65m),
+                    ManualApproveItem(2, 150m, 55m)
+                }
+            };
+
+            var result = await _service.ApprovePeriodsAsync(req, 2);
+
+            Assert.False(result.Success);
+            Assert.Contains("Phòng 2", result.Message);
+            Assert.Contains("11/2026", result.Message);
+            Assert.True(_uow.CurrentTransaction.RolledBack);
+            Assert.False(_uow.CurrentTransaction.Committed);
+            Assert.Equal((100m, 120m), (period4.ChiSoDienCu, period4.ChiSoDienMoi));
+            Assert.Equal(0, _uow.SaveChangesCallCount);
+        }
+
         #endregion
 
         #region Task 2.6 Tests

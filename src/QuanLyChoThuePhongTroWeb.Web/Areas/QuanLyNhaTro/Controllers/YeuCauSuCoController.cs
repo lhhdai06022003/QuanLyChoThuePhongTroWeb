@@ -110,11 +110,14 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         {
             try
             {
-                bool success = await _yeuCauSuCoService.SoftDeleteAsync(id);
-                if (success)
-                    return Json(new { success = true });
-                else
-                    return Json(new { success = false, message = "Lỗi khi xóa sự cố." });
+                var actorIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (!int.TryParse(actorIdStr, out var actorId) || actorId <= 0)
+                {
+                    return Json(new { success = false, message = "Người dùng chưa đăng nhập hoặc phiên làm việc đã hết hạn." });
+                }
+
+                var result = await _yeuCauSuCoService.SoftDeleteAsync(id, actorId);
+                return Json(new { success = result.Success, message = result.Message });
             }
             catch (Exception ex)
             {

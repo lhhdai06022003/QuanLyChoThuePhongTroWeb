@@ -177,6 +177,31 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.YeuCauSuCos.Services
             }
 
             // Ngược lại: đồng bộ với hóa đơn trong transaction
+            void RevertInMemoryChanges()
+            {
+                suco.TrangThai = oldTrangThai;
+                suco.ChiPhiSuaChua = oldChiPhi;
+                suco.CongVaoHoaDon = oldCongVaoHoaDon;
+                suco.NgayXuLy = oldNgayXuLy;
+                suco.LyDoTuChoi = oldLyDoTuChoi;
+                suco.GhiChuAdmin = oldGhiChuAdmin;
+            }
+
+            return await SaveWithInvoiceSyncAsync(suco, oldBilledAmount, oldPeriod, newBilledAmount, newPeriod,
+                RevertInMemoryChanges, "Cập nhật trạng thái thành công.", "Không thể cập nhật sự cố. Vui lòng thử lại.", ct);
+        }
+
+        private async Task<ServiceResult> SaveWithInvoiceSyncAsync(
+            YeuCauSuCo suco,
+            decimal oldBilledAmount,
+            (int Thang, int Nam)? oldPeriod,
+            decimal newBilledAmount,
+            (int Thang, int Nam)? newPeriod,
+            Action revertInMemoryChanges,
+            string successMessage,
+            string systemErrorMessage,
+            CancellationToken ct)
+        {
             var affectedPeriods = new List<(int Thang, int Nam)>();
             if (oldPeriod.HasValue && oldBilledAmount > 0)
             {
@@ -188,16 +213,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.YeuCauSuCos.Services
             }
 
             var distinctPeriods = affectedPeriods.Distinct().OrderBy(p => p.Nam).ThenBy(p => p.Thang).ToList();
-
-            void RevertInMemoryChanges()
-            {
-                suco.TrangThai = oldTrangThai;
-                suco.ChiPhiSuaChua = oldChiPhi;
-                suco.CongVaoHoaDon = oldCongVaoHoaDon;
-                suco.NgayXuLy = oldNgayXuLy;
-                suco.LyDoTuChoi = oldLyDoTuChoi;
-                suco.GhiChuAdmin = oldGhiChuAdmin;
-            }
 
             await using var tx = await _unitOfWork.BeginTransactionAsync(ct);
             try
@@ -219,7 +234,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.YeuCauSuCos.Services
 
                     if (hoaDon.TrangThaiPhatHanh != TrangThaiPhatHanhHoaDon.Nhap)
                     {
-                        RevertInMemoryChanges();
+                        revertInMemoryChanges();
                         await tx.RollbackAsync(ct);
                         return ServiceResult.Fail($"Hóa đơn tháng {thang}/{nam} đã gửi duyệt hoặc đã chốt. Admin cần trả lại hoặc hủy hóa đơn trước khi sửa chi phí sự cố.");
                     }
@@ -246,24 +261,55 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.YeuCauSuCos.Services
 
                 await _unitOfWork.SaveChangesAsync(ct);
                 await tx.CommitAsync(ct);
-                return ServiceResult.Ok("Cập nhật trạng thái thành công.");
+                return ServiceResult.Ok(successMessage);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Lỗi cập nhật sự cố và đồng bộ hóa đơn Id={Id}", id);
-                RevertInMemoryChanges();
+                _logger.LogError(ex, "Lỗi lưu sự cố và đồng bộ hóa đơn Id={Id}", suco.Id);
+                revertInMemoryChanges();
                 await tx.RollbackAsync(ct);
-                return ServiceResult.Fail("Không thể cập nhật sự cố. Vui lòng thử lại.");
+                return ServiceResult.Fail(systemErrorMessage);
             }
         }
 
-        public async Task<bool> SoftDeleteAsync(int id)
+        public async Task<ServiceResult> SoftDeleteAsync(int id, int actorId, CancellationToken ct = default)
         {
-            var suco = await _store.GetByIdAsync(id);
-            if (suco == null) return false;
+            var suco = await _store.GetByIdAsync(id, ct);
+            if (suco == null || suco.IsDeleted)
+            {
+                return ServiceResult.Fail("Không tìm thấy sự cố.");
+            }
+
+            var branchId = suco.PhongTro?.ChiNhanhId ?? 0;
+            var canDelete = await _employeeAccessService.CanPerformAsync(actorId, branchId, EmployeeActionCodes.InvoiceDraft, ct);
+            if (!canDelete)
+            {
+                return ServiceResult.Fail("Bạn không có quyền xóa sự cố tại chi nhánh này.");
+            }
+
+            var oldBilledAmount = (suco.TrangThai == TrangThaiSuCo.DaHoanThanh && suco.CongVaoHoaDon && suco.ChiPhiSuaChua > 0) ? suco.ChiPhiSuaChua : 0m;
+            var oldPeriod = GetVnPeriod(suco.NgayXuLy);
 
             suco.IsDeleted = true;
-            return await _unitOfWork.SaveChangesAsync() > 0;
+
+            if (oldBilledAmount == 0m)
+            {
+                try
+                {
+                    await _unitOfWork.SaveChangesAsync(ct);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Lỗi xóa sự cố Id={Id}", suco.Id);
+                    suco.IsDeleted = false;
+                    return ServiceResult.Fail("Không thể xóa sự cố. Vui lòng thử lại.");
+                }
+
+                return ServiceResult.Ok("Xóa sự cố thành công.");
+            }
+
+            return await SaveWithInvoiceSyncAsync(suco, oldBilledAmount, oldPeriod, 0m, null,
+                () => suco.IsDeleted = false, "Xóa sự cố thành công.", "Không thể xóa sự cố. Vui lòng thử lại.", ct);
         }
 
         private static (int Thang, int Nam)? GetVnPeriod(DateTime? utc)

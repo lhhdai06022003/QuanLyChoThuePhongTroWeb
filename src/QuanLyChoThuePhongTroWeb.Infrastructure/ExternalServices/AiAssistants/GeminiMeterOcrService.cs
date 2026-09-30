@@ -8,6 +8,7 @@ using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Services;
 using QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.DTOs;
 using QuanLyChoThuePhongTroWeb.Domain.Enums;
@@ -24,12 +25,14 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.AiAssistants
         private readonly HttpClient _httpClient;
         private readonly string _apiKey;
         private readonly string _model;
+        private readonly ILogger<GeminiMeterOcrService> _logger;
 
-        public GeminiMeterOcrService(HttpClient httpClient, IConfiguration configuration)
+        public GeminiMeterOcrService(HttpClient httpClient, IConfiguration configuration, ILogger<GeminiMeterOcrService> logger)
         {
             _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
             _apiKey = configuration["Gemini:ApiKey"] ?? string.Empty;
             _model = configuration["Gemini:Model"] ?? "gemini-1.5-flash";
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         public async Task<MeterOcrResult> ProcessImageAsync(byte[] imageBytes, string contentType, LoaiDongHo loaiDongHo, CancellationToken cancellationToken = default)
@@ -103,6 +106,7 @@ Nếu ảnh mờ, chói, góc chụp không thấy mặt số hoặc không th�
 
                 if (!response.IsSuccessStatusCode)
                 {
+                    _logger.LogWarning("Gemini OCR trả mã HTTP {StatusCode} khi nhận diện {LoaiDongHo}.", (int)response.StatusCode, loaiDongHo);
                     return MeterOcrResult.Failed($"Lỗi kết nối Gemini API (HTTP {(int)response.StatusCode}).");
                 }
 
@@ -121,8 +125,9 @@ Nếu ảnh mờ, chói, góc chụp không thấy mặt số hoặc không th�
             {
                 throw;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogWarning(ex, "Lỗi gọi Gemini OCR khi nhận diện {LoaiDongHo}.", loaiDongHo);
                 return MeterOcrResult.Failed("Lỗi kết nối dịch vụ AI hoặc nhận diện chỉ số.");
             }
         }

@@ -7,6 +7,8 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.DTOs;
 using QuanLyChoThuePhongTroWeb.Domain.Enums;
 using QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.AiAssistants;
@@ -33,7 +35,21 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.ExternalServi
             }
         }
 
-        private static GeminiMeterOcrService CreateService(FakeHttpMessageHandler handler)
+        private class CapturingLogger<T> : ILogger<T>
+        {
+            public List<(LogLevel Level, string Message, Exception? Exception)> Entries { get; } = new();
+
+            public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+            public bool IsEnabled(LogLevel logLevel) => true;
+
+            public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+            {
+                Entries.Add((logLevel, formatter(state, exception), exception));
+            }
+        }
+
+        private static GeminiMeterOcrService CreateService(FakeHttpMessageHandler handler, ILogger<GeminiMeterOcrService>? logger = null)
         {
             var httpClient = new HttpClient(handler);
             var inMemorySettings = new System.Collections.Generic.Dictionary<string, string?>
@@ -45,7 +61,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.ExternalServi
                 .AddInMemoryCollection(inMemorySettings)
                 .Build();
 
-            return new GeminiMeterOcrService(httpClient, configuration);
+            return new GeminiMeterOcrService(httpClient, configuration, logger ?? NullLogger<GeminiMeterOcrService>.Instance);
         }
 
         private static string CreateGeminiResponseJson(string rawText)
@@ -212,6 +228,48 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.ExternalServi
         }
 
         [Fact]
+        public async Task ProcessImageAsync_WhenHttpNonSuccess_LogsWarningWithStatusCode_WithoutSecrets()
+        {
+            var handler = new FakeHttpMessageHandler
+            {
+                Handler = (_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.InternalServerError)
+                {
+                    Content = new StringContent("Server error")
+                })
+            };
+            var logger = new CapturingLogger<GeminiMeterOcrService>();
+            var service = CreateService(handler, logger);
+
+            await service.ProcessImageAsync(new byte[] { 1, 2, 3 }, "image/jpeg", LoaiDongHo.Dien);
+
+            var entry = Assert.Single(logger.Entries);
+            Assert.Equal(LogLevel.Warning, entry.Level);
+            Assert.Contains("500", entry.Message);
+            Assert.DoesNotContain("fake_test_key", entry.Message);
+            Assert.DoesNotContain("AQID", entry.Message);
+            Assert.DoesNotContain(logger.Entries, e => e.Level >= LogLevel.Error);
+        }
+
+        [Fact]
+        public async Task ProcessImageAsync_WhenHttpThrows_LogsWarningWithException()
+        {
+            var handler = new FakeHttpMessageHandler
+            {
+                Handler = (_, _) => throw new HttpRequestException("boom")
+            };
+            var logger = new CapturingLogger<GeminiMeterOcrService>();
+            var service = CreateService(handler, logger);
+
+            await service.ProcessImageAsync(new byte[] { 1, 2, 3 }, "image/jpeg", LoaiDongHo.Dien);
+
+            var entry = Assert.Single(logger.Entries);
+            Assert.Equal(LogLevel.Warning, entry.Level);
+            Assert.NotNull(entry.Exception);
+            Assert.DoesNotContain("fake_test_key", entry.Message);
+            Assert.DoesNotContain(logger.Entries, e => e.Level >= LogLevel.Error);
+        }
+
+        [Fact]
         public async Task ProcessImageAsync_WhenTimeout_ReturnsFailedResult()
         {
             var handler = new FakeHttpMessageHandler
@@ -290,7 +348,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.ExternalServi
                 {"Gemini:Model", "gemini-1.5-flash"}
             };
             var configuration = new ConfigurationBuilder().AddInMemoryCollection(inMemorySettings).Build();
-            var service = new GeminiMeterOcrService(httpClient, configuration);
+            var service = new GeminiMeterOcrService(httpClient, configuration, NullLogger<GeminiMeterOcrService>.Instance);
 
             var result = await service.ProcessImageAsync(new byte[] { 1, 2, 3 }, "image/jpeg", LoaiDongHo.Dien);
 

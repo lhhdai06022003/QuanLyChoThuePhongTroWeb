@@ -81,7 +81,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             var decision = MeterUploadRules.Evaluate(facts);
 
             Assert.False(decision.DuocPhep);
-            Assert.Equal("Kỳ này đã có kỳ sau, không thể tải thêm ảnh.", decision.LyDo);
+            Assert.Equal("Kỳ sau đã được chốt hoặc đã có hóa đơn phát hành, không thể tải thêm ảnh cho kỳ này.", decision.LyDo);
         }
 
         [Fact]
@@ -234,7 +234,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             var decision = MeterUploadRules.Evaluate(facts);
 
             Assert.False(decision.DuocPhep);
-            Assert.Equal("Kỳ này đã có kỳ sau, không thể tải thêm ảnh.", decision.LyDo);
+            Assert.Equal("Kỳ sau đã được chốt hoặc đã có hóa đơn phát hành, không thể tải thêm ảnh cho kỳ này.", decision.LyDo);
         }
 
         [Fact]

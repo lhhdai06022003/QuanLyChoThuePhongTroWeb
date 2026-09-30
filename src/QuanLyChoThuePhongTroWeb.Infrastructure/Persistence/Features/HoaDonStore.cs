@@ -87,8 +87,9 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
         public async Task<HoaDon?> GetHoaDonWithDetailsForUpdateAsync(int id, CancellationToken cancellationToken = default)
         {
             return await _context.HoaDons
+                .FromSqlInterpolated($"SELECT * FROM hoa_don WHERE \"HoaDonId\" = {id} AND \"IsDeleted\" = false FOR UPDATE")
                 .Include(h => h.ChiTietHoaDonDichVus)
-                .FirstOrDefaultAsync(h => h.HoaDonId == id && !h.IsDeleted, cancellationToken);
+                .FirstOrDefaultAsync(cancellationToken);
         }
 
         public async Task<DataTableResponse<HoaDonRes>> GetHoaDonsDataTableAsync(DataTableRequest request, int chiNhanhId, int thang, int nam, int trangThai, IReadOnlyList<int>? allowedBranchIds = null, CancellationToken cancellationToken = default)

@@ -190,7 +190,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
                 {
                     await tx.RollbackAsync(cancellationToken);
                     await CleanupUploadedStorageAsync(uploadResult.PublicId);
-                    return ServiceResult<MeterImageWorkflowResult>.Fail("Kỳ này đã có kỳ sau, không thể tải thêm ảnh.");
+                    return ServiceResult<MeterImageWorkflowResult>.Fail(MeterUploadRules.ReasonRule3SubsequentPeriod);
                 }
 
                 if (lockedPeriod != null && await _store.HasLockedInvoiceAsync(lockedPeriod.DichVuDienNuocCuaPhongId, cancellationToken))
@@ -309,7 +309,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
 
                 if (await _store.HasSubsequentPeriodAsync(period.PhongTroId, period.Thang, period.Nam, cancellationToken))
                 {
-                    return ServiceResult<MeterImageWorkflowResult>.Fail("Kỳ chỉ số đã bị khóa bởi kỳ sau.");
+                    return ServiceResult<MeterImageWorkflowResult>.Fail("Kỳ sau đã được chốt hoặc đã có hóa đơn phát hành, không thể thử OCR lại cho kỳ này.");
                 }
 
                 if (await _store.HasLockedInvoiceAsync(period.DichVuDienNuocCuaPhongId, cancellationToken))
@@ -524,7 +524,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
             // 4. Revalidate bên trong transaction
             if (await _store.HasSubsequentPeriodAsync(period.PhongTroId, period.Thang, period.Nam, cancellationToken))
             {
-                return ServiceResult<MeterImageWorkflowResult>.Fail("Kỳ này đã có kỳ sau, không thể chỉnh sửa.");
+                return ServiceResult<MeterImageWorkflowResult>.Fail("Kỳ sau đã được chốt hoặc đã có hóa đơn phát hành, không thể chỉnh sửa kỳ này.");
             }
 
             if (await _store.HasLockedInvoiceAsync(period.DichVuDienNuocCuaPhongId, cancellationToken))
@@ -732,7 +732,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
 
                 if (await _store.HasSubsequentPeriodAsync(period.PhongTroId, period.Thang, period.Nam, cancellationToken))
                 {
-                    return ServiceResult<MeterImageWorkflowResult>.Fail("Kỳ này đã có kỳ sau, không thể chỉnh sửa.");
+                    return ServiceResult<MeterImageWorkflowResult>.Fail("Kỳ sau đã được chốt hoặc đã có hóa đơn phát hành, không thể chỉnh sửa kỳ này.");
                 }
 
                 if (await _store.HasLockedInvoiceAsync(period.DichVuDienNuocCuaPhongId, cancellationToken))
@@ -942,7 +942,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
                     if (await _store.HasSubsequentPeriodAsync(item.PhongTroId, request.Thang, request.Nam, cancellationToken))
                     {
                         await tx.RollbackAsync(cancellationToken);
-                        return ServiceResult<MeterPeriodsApprovalResult>.Fail($"Phòng {item.PhongTroId} kỳ này đã có kỳ sau, không thể duyệt.");
+                        return ServiceResult<MeterPeriodsApprovalResult>.Fail($"Phòng {item.PhongTroId}: kỳ sau đã được chốt hoặc đã có hóa đơn phát hành, không thể duyệt kỳ này.");
                     }
 
                     if (await _store.HasLockedInvoiceAsync(period.DichVuDienNuocCuaPhongId, cancellationToken))

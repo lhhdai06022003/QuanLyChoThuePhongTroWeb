@@ -18,7 +18,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
     {
         public const string ReasonRule1Future = "Không thể gửi ảnh cho kỳ chưa tới.";
         public const string ReasonRule2TenantWindow = "Khách thuê chỉ được gửi ảnh cho tháng hiện tại hoặc tháng trước.";
-        public const string ReasonRule3SubsequentPeriod = "Kỳ này đã có kỳ sau, không thể tải thêm ảnh.";
+        public const string ReasonRule3SubsequentPeriod = "Kỳ sau đã được chốt hoặc đã có hóa đơn phát hành, không thể tải thêm ảnh cho kỳ này.";
         public const string ReasonRule4LockedInvoice = "Kỳ này đã có hóa đơn đã phát hành, không thể chỉnh sửa.";
         public const string ReasonRule5PeriodApproved = "Kỳ này đã được chốt, không thể gửi thêm ảnh.";
         public static string FormatPreviousPeriodNotApprovedReason(int prevThang, int prevNam, int currThang, int currNam)

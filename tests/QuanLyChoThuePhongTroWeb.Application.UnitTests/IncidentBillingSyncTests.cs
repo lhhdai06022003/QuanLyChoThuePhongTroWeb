@@ -35,6 +35,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         {
             public FakeApplicationTransaction LastTx { get; private set; } = new();
             public bool SaveChangesCalled { get; private set; }
+            public bool ThrowOnSave { get; set; }
             public Task<IApplicationTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default)
             {
                 LastTx = new FakeApplicationTransaction();
@@ -44,6 +45,10 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
             {
                 SaveChangesCalled = true;
+                if (ThrowOnSave)
+                {
+                    throw new InvalidOperationException("SECRET_DB_ERROR_SUCO");
+                }
                 return Task.FromResult(1);
             }
         }
@@ -476,6 +481,139 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.Equal(300000m, electricLine.TongTien);
 
             Assert.Equal(2550000m, hoaDon.TongTien);
+        }
+
+        private static HoaDon CreateSeptemberInvoice(TrangThaiPhatHanhHoaDon status, bool withIncidentLine)
+        {
+            var lines = new List<ChiTietHoaDon>
+            {
+                new ChiTietHoaDon { ChiTietHoaDonId = 1, TenDichVu = "Tiền phòng", TongTien = 2000000m, DonGia = 2000000m, SoLuong = 1, DichVuId = 1 }
+            };
+            if (withIncidentLine)
+            {
+                lines.Add(new ChiTietHoaDon { ChiTietHoaDonId = 2, TenDichVu = InvoiceLineNames.SuCoPrefix + "Sửa bóng đèn", TongTien = 100000m, DonGia = 100000m, SoLuong = 1, DichVuId = null });
+            }
+            return new HoaDon
+            {
+                HoaDonId = 1,
+                HopDongId = 50,
+                Thang = 9,
+                Nam = 2026,
+                TrangThaiPhatHanh = status,
+                TongTien = lines.Sum(x => x.TongTien),
+                ChiTietHoaDonDichVus = lines
+            };
+        }
+
+        private static void MakeBilled(YeuCauSuCo incident)
+        {
+            incident.TrangThai = TrangThaiSuCo.DaHoanThanh;
+            incident.ChiPhiSuaChua = 100000m;
+            incident.CongVaoHoaDon = true;
+            incident.NgayXuLy = new DateTime(2026, 9, 10, 10, 0, 0, DateTimeKind.Utc);
+        }
+
+        [Fact]
+        public async Task SoftDelete_DeniedForStaffOfOtherBranch_IncidentUnchanged()
+        {
+            var (service, suCoStore, _, access, uow) = CreateService();
+            var incident = SetupIncident(suCoStore, access, actorId: 2, branchId: 1);
+            access.Permissions.Add((20, 2, EmployeeActionCodes.InvoiceDraft));
+
+            var result = await service.SoftDeleteAsync(incident.Id, 20);
+
+            Assert.False(result.Success);
+            Assert.Contains("không có quyền", result.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.False(incident.IsDeleted);
+            Assert.False(uow.SaveChangesCalled);
+        }
+
+        [Fact]
+        public async Task SoftDelete_BilledIncident_WhenMonthInvoiceIsNhap_RemovesIncidentLineAndRecalculatesTotal()
+        {
+            var (service, suCoStore, issuanceStore, access, uow) = CreateService();
+            var incident = SetupIncident(suCoStore, access);
+            MakeBilled(incident);
+            issuanceStore.ContractIds.Add(50);
+            issuanceStore.BillableIncidents.Add(incident);
+            var hoaDon = CreateSeptemberInvoice(TrangThaiPhatHanhHoaDon.Nhap, withIncidentLine: true);
+            issuanceStore.Invoices[(incident.PhongTroId, incident.NguoiThueId, 9, 2026)] = hoaDon;
+
+            var result = await service.SoftDeleteAsync(incident.Id, 1);
+
+            Assert.True(result.Success);
+            Assert.True(incident.IsDeleted);
+            Assert.DoesNotContain(hoaDon.ChiTietHoaDonDichVus.Where(x => !x.IsDeleted), x => x.TenDichVu.StartsWith(InvoiceLineNames.SuCoPrefix));
+            Assert.Equal(2000000m, hoaDon.TongTien);
+            Assert.Contains(50, issuanceStore.LockedContractIds);
+            Assert.True(uow.LastTx.Committed);
+        }
+
+        [Theory]
+        [InlineData(TrangThaiPhatHanhHoaDon.ChoDuyet)]
+        [InlineData(TrangThaiPhatHanhHoaDon.DaChot)]
+        [InlineData(TrangThaiPhatHanhHoaDon.DaGui)]
+        public async Task SoftDelete_BilledIncident_WhenMonthInvoiceIsNotNhap_ReturnsFail_NotDeleted(TrangThaiPhatHanhHoaDon invoiceStatus)
+        {
+            var (service, suCoStore, issuanceStore, access, uow) = CreateService();
+            var incident = SetupIncident(suCoStore, access);
+            MakeBilled(incident);
+            issuanceStore.ContractIds.Add(50);
+            issuanceStore.Invoices[(incident.PhongTroId, incident.NguoiThueId, 9, 2026)] = CreateSeptemberInvoice(invoiceStatus, withIncidentLine: true);
+
+            var result = await service.SoftDeleteAsync(incident.Id, 1);
+
+            Assert.False(result.Success);
+            Assert.Equal("Hóa đơn tháng 9/2026 đã gửi duyệt hoặc đã chốt. Admin cần trả lại hoặc hủy hóa đơn trước khi sửa chi phí sự cố.", result.Message);
+            Assert.False(incident.IsDeleted);
+            Assert.True(uow.LastTx.RolledBack);
+        }
+
+        [Fact]
+        public async Task SoftDelete_NonBilledIncident_Succeeds()
+        {
+            var (service, suCoStore, issuanceStore, access, uow) = CreateService();
+            var incident = SetupIncident(suCoStore, access);
+
+            var result = await service.SoftDeleteAsync(incident.Id, 1);
+
+            Assert.True(result.Success);
+            Assert.True(incident.IsDeleted);
+            Assert.True(uow.SaveChangesCalled);
+            Assert.Empty(issuanceStore.LockedContractIds);
+        }
+
+        [Fact]
+        public async Task SoftDelete_BilledIncident_NoInvoiceYet_Succeeds()
+        {
+            var (service, suCoStore, _, access, _) = CreateService();
+            var incident = SetupIncident(suCoStore, access);
+            MakeBilled(incident);
+
+            var result = await service.SoftDeleteAsync(incident.Id, 1);
+
+            Assert.True(result.Success);
+            Assert.True(incident.IsDeleted);
+        }
+
+        [Fact]
+        public async Task SoftDelete_BilledIncident_DbError_ReturnsFixedMessage_AndRestoresState()
+        {
+            var (service, suCoStore, issuanceStore, access, uow) = CreateService();
+            var incident = SetupIncident(suCoStore, access);
+            MakeBilled(incident);
+            issuanceStore.ContractIds.Add(50);
+            issuanceStore.BillableIncidents.Add(incident);
+            issuanceStore.Invoices[(incident.PhongTroId, incident.NguoiThueId, 9, 2026)] = CreateSeptemberInvoice(TrangThaiPhatHanhHoaDon.Nhap, withIncidentLine: true);
+            uow.ThrowOnSave = true;
+
+            var result = await service.SoftDeleteAsync(incident.Id, 1);
+
+            Assert.False(result.Success);
+            Assert.Equal("Không thể xóa sự cố. Vui lòng thử lại.", result.Message);
+            Assert.DoesNotContain("SECRET_DB_ERROR_SUCO", result.Message);
+            Assert.False(incident.IsDeleted);
+            Assert.True(uow.LastTx.RolledBack);
         }
     }
 }

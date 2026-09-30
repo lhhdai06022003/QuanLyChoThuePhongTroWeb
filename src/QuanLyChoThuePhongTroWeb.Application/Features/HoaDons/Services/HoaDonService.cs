@@ -222,15 +222,25 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                 return (false, "Bạn không có quyền chỉnh sửa hóa đơn tại chi nhánh này.");
             }
 
+            await using var tx = await _unitOfWork.BeginTransactionAsync();
+
             var hd = await _store.GetHoaDonWithDetailsForUpdateAsync(hoaDonId);
 
-            if (hd == null) return (false, "Không tìm thấy hóa đơn.");
+            if (hd == null)
+            {
+                await tx.RollbackAsync();
+                return (false, "Không tìm thấy hóa đơn.");
+            }
             if (hd.TrangThaiPhatHanh != TrangThaiPhatHanhHoaDon.Nhap)
             {
+                await tx.RollbackAsync();
                 return (false, "Chỉ hóa đơn nháp mới được chỉnh sửa. Hóa đơn chờ duyệt phải được Admin trả lại trước khi sửa.");
             }
             if (hd.TrangThaiHoaDon == TrangThaiHoaDon.DaThanhToan)
+            {
+                await tx.RollbackAsync();
                 return (false, "Không thể chỉnh sửa hóa đơn đã được thanh toán.");
+            }
 
             _store.RemoveChiTietHoaDons(hd.ChiTietHoaDonDichVus);
 
@@ -238,9 +248,15 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
             foreach (var r in req.ChiTiets)
             {
                 if (string.IsNullOrWhiteSpace(r.TenDichVu))
+                {
+                    await tx.RollbackAsync();
                     return (false, "Tên dịch vụ không được để trống.");
+                }
                 if (r.DonGia < 0 || r.SoLuong < 0)
+                {
+                    await tx.RollbackAsync();
                     return (false, "Đơn giá và số lượng phải lớn hơn hoặc bằng 0.");
+                }
 
                 newChiTiets.Add(new ChiTietHoaDon
                 {
@@ -259,6 +275,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
 
             _store.UpdateHoaDon(hd);
             await _unitOfWork.SaveChangesAsync();
+            await tx.CommitAsync();
 
             return (true, string.Empty);
         }
@@ -377,6 +394,12 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                 {
                     await tx.RollbackAsync();
                     return (false, "Hóa đơn này đã được thanh toán trước đó.");
+                }
+
+                if (hd.TrangThaiHoaDon != TrangThaiHoaDon.ChuaThanhToan)
+                {
+                    await tx.RollbackAsync();
+                    return (false, "Hóa đơn đã được thanh toán một phần. Vui lòng xác nhận phần còn lại qua luồng xác nhận thanh toán.");
                 }
 
                 var lichSu = new LichSuThanhToan
