@@ -624,6 +624,47 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.Equal(280000m, dienLine.TongTien);
         }
 
+        [Theory]
+        [InlineData("Điện", "kWh", 3500)]
+        [InlineData("Nước", "m3", 15000)]
+        [InlineData("Tiền điện", "", 3500)]
+        [InlineData("Điện sinh hoạt", "kWh", 3500)]
+        public async Task CreateDrafts_DoesNotBillMeterServiceTwice_WhenRegisteredAsFixedService(string tenDichVu, string donVi, int gia)
+        {
+            var (service, issuanceStore, hoaDonStore, access, _, _) = CreateService();
+            SetupValidBranchAndRoom(hoaDonStore, access);
+
+            // Dịch vụ điện/nước tạo tay trên giao diện luôn có LoaiDichVu = Khac
+            hoaDonStore.ServiceRegistrations.Add(NewRegistration(101, 900, tenDichVu, donVi, gia, LoaiDichVu.Khac));
+            hoaDonStore.ServiceRegistrations.Add(NewRegistration(101, 901, "Đổ rác", "tháng", 50000, LoaiDichVu.Khac));
+
+            var req = new CreateInvoiceDraftsRequest { ChiNhanhId = 1, Thang = 9, Nam = 2026, PhongTroIds = new[] { 101 } };
+            var result = await service.CreateDraftsAsync(req, actorId: 1);
+
+            Assert.True(result.Success);
+            var lines = issuanceStore.AddedInvoices.Single().ChiTietHoaDonDichVus;
+
+            // Phòng + điện theo chỉ số + nước theo chỉ số + đổ rác, không có dòng dịch vụ điện/nước cố định
+            Assert.Equal(4, lines.Count);
+            Assert.Single(lines, x => x.TenDichVu.StartsWith("Điện"));
+            Assert.Single(lines, x => x.TenDichVu.StartsWith("Nước"));
+            Assert.DoesNotContain(lines, x => x.DichVuId == 900);
+            Assert.Contains(lines, x => x.DichVuId == 901);
+            Assert.Equal(3000000m + 175000m + 150000m + 50000m, issuanceStore.AddedInvoices.Single().TongTien);
+        }
+
+        private static DangKyDichVu NewRegistration(int roomId, int dichVuId, string ten, string donVi, decimal gia, LoaiDichVu loai)
+        {
+            var dichVu = new DichVu { DichVuId = dichVuId, TenDichVu = ten, DonVi = donVi, LoaiDichVu = loai };
+            return new DangKyDichVu
+            {
+                PhongTroId = roomId,
+                SoLuong = 1,
+                NgayBatDau = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+                DichVuChiNhanh = new DichVuChiNhanh { DichVuId = dichVuId, DichVu = dichVu, GiaDichVu = gia }
+            };
+        }
+
         [Fact]
         public async Task CreateDrafts_DbFailure_ReturnsSafeMessage_NoRawException()
         {

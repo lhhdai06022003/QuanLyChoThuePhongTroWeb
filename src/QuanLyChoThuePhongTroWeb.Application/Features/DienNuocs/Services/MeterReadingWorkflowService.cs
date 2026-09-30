@@ -1157,7 +1157,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
                 var dienData = _calculatorService.TinhTienDienNuoc(period.ChiSoDienMoi, period.ChiSoDienCu, period.DonGiaDien, "Tiền điện", soNgayO, daysInMonth);
                 var nuocData = _calculatorService.TinhTienDienNuoc(period.ChiSoNuocMoi, period.ChiSoNuocCu, period.DonGiaNuoc, "Tiền nước", soNgayO, daysInMonth);
 
-                var dienCt = inv.ChiTietHoaDonDichVus.FirstOrDefault(x => !x.IsDeleted && (x.DichVu?.LoaiDichVu == LoaiDichVu.Dien || (x.DichVu == null && x.TenDichVu.StartsWith("Tiền điện", StringComparison.OrdinalIgnoreCase))));
+                var dienCt = inv.ChiTietHoaDonDichVus.FirstOrDefault(x => !x.IsDeleted && (x.DichVu?.LoaiDichVu == LoaiDichVu.Dien || (x.DichVu == null && (x.TenDichVu.StartsWith("Tiền điện", StringComparison.OrdinalIgnoreCase) || x.TenDichVu.StartsWith("Điện (", StringComparison.OrdinalIgnoreCase)))));
                 if (dienCt == null && dienData.SoTien > 0)
                 {
                     dienCt = new ChiTietHoaDon
@@ -1179,7 +1179,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
                     dienCt.TenDichVu = dienData.DienGiai;
                 }
 
-                var nuocCt = inv.ChiTietHoaDonDichVus.FirstOrDefault(x => !x.IsDeleted && (x.DichVu?.LoaiDichVu == LoaiDichVu.Nuoc || (x.DichVu == null && x.TenDichVu.StartsWith("Tiền nước", StringComparison.OrdinalIgnoreCase))));
+                var nuocCt = inv.ChiTietHoaDonDichVus.FirstOrDefault(x => !x.IsDeleted && (x.DichVu?.LoaiDichVu == LoaiDichVu.Nuoc || (x.DichVu == null && (x.TenDichVu.StartsWith("Tiền nước", StringComparison.OrdinalIgnoreCase) || x.TenDichVu.StartsWith("Nước (", StringComparison.OrdinalIgnoreCase)))));
                 if (nuocCt == null && nuocData.SoTien > 0)
                 {
                     nuocCt = new ChiTietHoaDon

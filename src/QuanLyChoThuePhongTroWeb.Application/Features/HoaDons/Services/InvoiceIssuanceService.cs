@@ -267,7 +267,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                     {
                         var dvChiNhanh = dk.DichVuChiNhanh;
                         var dv = dvChiNhanh?.DichVu;
-                        if (dvChiNhanh == null || dv == null || dv.LoaiDichVu == LoaiDichVu.Dien || dv.LoaiDichVu == LoaiDichVu.Nuoc)
+                        if (dvChiNhanh == null || dv == null || MeterServiceClassifier.IsMeterBased(dv.LoaiDichVu, dv.TenDichVu, dv.DonVi))
                             continue;
 
                         var dvData = _calculatorService.TinhTienDichVuCoDinh(dvChiNhanh.GiaDichVu, dk.SoLuong, dv.TenDichVu, dk.NgayBatDau, dk.NgayKetThuc, request.Thang, request.Nam, hd.ThoiDiemBatDau, hd.ThoiDiemKetThuc);
