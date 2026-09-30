@@ -622,6 +622,13 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
             var linkedInvoices = await _hoaDonStore.GetInvoicesByMeterReadingIdsAsync(new[] { period.DichVuDienNuocCuaPhongId }, cancellationToken);
             RecalculateDraftInvoices(period, linkedInvoices);
 
+            // 9. Cập nhật chỉ số cũ của các kỳ sau còn là bản nháp
+            var cascadeError = await CascadeSubsequentPeriodsAsync(period, cancellationToken);
+            if (cascadeError != null)
+            {
+                return ServiceResult<MeterImageWorkflowResult>.Fail(cascadeError);
+            }
+
             try
             {
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -764,6 +771,14 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
                 // 6. Tính lại hóa đơn nháp liên kết
                 var linkedInvoices = await _hoaDonStore.GetInvoicesByMeterReadingIdsAsync(new[] { period.DichVuDienNuocCuaPhongId }, cancellationToken);
                 RecalculateDraftInvoices(period, linkedInvoices);
+
+                // 6b. Cập nhật chỉ số cũ của các kỳ sau còn là bản nháp
+                var cascadeError = await CascadeSubsequentPeriodsAsync(period, cancellationToken);
+                if (cascadeError != null)
+                {
+                    await tx.RollbackAsync(cancellationToken);
+                    return ServiceResult<MeterImageWorkflowResult>.Fail(cascadeError);
+                }
 
                 // 7. SaveChanges và Commit
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -1078,6 +1093,13 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
                         period.Duyet(actorUserId, fullNote);
                     }
 
+                    var cascadeError = await CascadeSubsequentPeriodsAsync(period, cancellationToken);
+                    if (cascadeError != null)
+                    {
+                        await tx.RollbackAsync(cancellationToken);
+                        return ServiceResult<MeterPeriodsApprovalResult>.Fail($"Phòng {item.PhongTroId}: {cascadeError}");
+                    }
+
                     approvedPeriods.Add(period);
 
                     results.Add(new MeterPeriodApprovalResult
@@ -1131,6 +1153,73 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
                 _logger.LogError(ex, "Lỗi khi thực hiện duyệt batch chỉ số điện nước kỳ {Thang}/{Nam}", request.Thang, request.Nam);
                 return ServiceResult<MeterPeriodsApprovalResult>.Fail("Đã có lỗi xảy ra trong quá trình duyệt chỉ số. Toàn bộ thao tác đã được hủy bỏ.");
             }
+        }
+
+        /// <summary>
+        /// Sau khi chỉ số mới của <paramref name="period"/> thay đổi, cập nhật chỉ số cũ của các kỳ sau còn là bản nháp
+        /// (kỳ sau đã duyệt hoặc có hóa đơn phát hành đã khóa kỳ này từ trước nên không tới đây).
+        /// Kỳ sau chưa có số riêng (mới == cũ) thì mới cũng dịch theo. Kỳ sau đã có số mới nhỏ hơn số cũ mới thì trả về thông báo lỗi.
+        /// </summary>
+        private async Task<string?> CascadeSubsequentPeriodsAsync(DichVuDienNuocCuaPhong period, CancellationToken cancellationToken)
+        {
+            var later = await _store.GetSubsequentPeriodsForUpdateAsync(period.PhongTroId, period.Thang, period.Nam, cancellationToken);
+            if (later.Count == 0) return null;
+
+            decimal dien = period.ChiSoDienMoi;
+            decimal nuoc = period.ChiSoNuocMoi;
+            var changed = new List<DichVuDienNuocCuaPhong>();
+
+            foreach (var next in later.OrderBy(p => p.Nam).ThenBy(p => p.Thang))
+            {
+                var touched = false;
+
+                if (next.ChiSoDienCu != dien)
+                {
+                    var placeholder = next.ChiSoDienMoi == next.ChiSoDienCu;
+                    if (!placeholder && next.ChiSoDienMoi < dien)
+                    {
+                        return $"Kỳ {next.Thang:00}/{next.Nam} đang có chỉ số điện mới ({next.ChiSoDienMoi}) nhỏ hơn chỉ số điện này ({dien}). Hãy sửa kỳ {next.Thang:00}/{next.Nam} trước.";
+                    }
+
+                    next.ChiSoDienCu = dien;
+                    if (placeholder) next.ChiSoDienMoi = dien;
+                    touched = true;
+                }
+
+                if (next.ChiSoNuocCu != nuoc)
+                {
+                    var placeholder = next.ChiSoNuocMoi == next.ChiSoNuocCu;
+                    if (!placeholder && next.ChiSoNuocMoi < nuoc)
+                    {
+                        return $"Kỳ {next.Thang:00}/{next.Nam} đang có chỉ số nước mới ({next.ChiSoNuocMoi}) nhỏ hơn chỉ số nước này ({nuoc}). Hãy sửa kỳ {next.Thang:00}/{next.Nam} trước.";
+                    }
+
+                    next.ChiSoNuocCu = nuoc;
+                    if (placeholder) next.ChiSoNuocMoi = nuoc;
+                    touched = true;
+                }
+
+                if (touched)
+                {
+                    next.NgayCapNhat = DateTime.UtcNow;
+                    changed.Add(next);
+                }
+
+                dien = next.ChiSoDienMoi;
+                nuoc = next.ChiSoNuocMoi;
+            }
+
+            if (changed.Count > 0)
+            {
+                var ids = changed.Select(p => p.DichVuDienNuocCuaPhongId).ToArray();
+                var invoices = await _hoaDonStore.GetInvoicesByMeterReadingIdsAsync(ids, cancellationToken);
+                foreach (var next in changed)
+                {
+                    RecalculateDraftInvoices(next, invoices.Where(i => i.DichVuDienNuocCuaPhongId == next.DichVuDienNuocCuaPhongId).ToList());
+                }
+            }
+
+            return null;
         }
 
         private void RecalculateDraftInvoices(DichVuDienNuocCuaPhong period, IReadOnlyList<HoaDon> invoices)

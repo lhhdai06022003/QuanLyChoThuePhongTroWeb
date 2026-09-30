@@ -214,9 +214,23 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
 
         public async Task<bool> HasSubsequentPeriodAsync(int phongTroId, int thang, int nam, CancellationToken cancellationToken = default)
         {
+            // Kỳ sau chỉ khóa kỳ này khi đã chốt (DaDuyet) hoặc đã có hóa đơn phát hành.
+            // Kỳ sau còn là bản nháp thì được phép sửa kỳ này, chỉ số cũ kỳ sau sẽ được cập nhật theo.
             return await _context.DichVuDienNuocCuaPhongs
                 .AnyAsync(d => d.PhongTroId == phongTroId && !d.IsDeleted &&
-                               (d.Nam > nam || (d.Nam == nam && d.Thang > thang)), cancellationToken);
+                               (d.Nam > nam || (d.Nam == nam && d.Thang > thang)) &&
+                               (d.TrangThaiGhiNhan == TrangThaiGhiNhan.DaDuyet ||
+                                _context.HoaDons.IgnoreQueryFilters().Any(h => h.DichVuDienNuocCuaPhongId == d.DichVuDienNuocCuaPhongId &&
+                                                                               h.TrangThaiPhatHanh != TrangThaiPhatHanhHoaDon.Nhap &&
+                                                                               h.TrangThaiPhatHanh != TrangThaiPhatHanhHoaDon.DaHuy)),
+                               cancellationToken);
+        }
+
+        public async Task<IReadOnlyList<DichVuDienNuocCuaPhong>> GetSubsequentPeriodsForUpdateAsync(int phongTroId, int thang, int nam, CancellationToken cancellationToken = default)
+        {
+            return await _context.DichVuDienNuocCuaPhongs
+                .FromSqlInterpolated($"SELECT * FROM dich_vu_dien_nuoc_cua_phong WHERE \"PhongTroId\" = {phongTroId} AND \"IsDeleted\" = false AND (\"Nam\" > {nam} OR (\"Nam\" = {nam} AND \"Thang\" > {thang})) ORDER BY \"Nam\", \"Thang\" FOR UPDATE")
+                .ToListAsync(cancellationToken);
         }
 
         public async Task<bool> HasLockedInvoiceAsync(int periodRecordId, CancellationToken cancellationToken = default)

@@ -26,7 +26,11 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Persistence
         Task<IReadOnlyList<AnhChiSoDongHo>> GetImagesByPeriodAndTypeAsync(int periodRecordId, LoaiDongHo loaiDongHo, CancellationToken cancellationToken = default);
         Task<IReadOnlyList<AnhChiSoDongHo>> GetImagesForUpdateAsync(int periodRecordId, LoaiDongHo loaiDongHo, CancellationToken cancellationToken = default);
         Task<AnhChiSoDongHo?> GetOfficialImageAsync(int periodRecordId, LoaiDongHo loaiDongHo, CancellationToken cancellationToken = default);
+        // True khi có kỳ sau đã khóa kỳ này: kỳ sau đã DaDuyet hoặc đã có hóa đơn khác Nhap/DaHuy.
+        // Kỳ sau chỉ là bản nháp (chưa duyệt, chưa có hóa đơn phát hành) không khóa kỳ này.
         Task<bool> HasSubsequentPeriodAsync(int phongTroId, int thang, int nam, CancellationToken cancellationToken = default);
+        // Các kỳ sau (chưa xóa) theo thứ tự tăng dần, đã khóa hàng để cập nhật chỉ số cũ dây chuyền.
+        Task<IReadOnlyList<DichVuDienNuocCuaPhong>> GetSubsequentPeriodsForUpdateAsync(int phongTroId, int thang, int nam, CancellationToken cancellationToken = default);
         Task<bool> HasNonDraftInvoiceAsync(int periodRecordId, CancellationToken cancellationToken = default);
         Task<bool> HasLockedInvoiceAsync(int periodRecordId, CancellationToken cancellationToken = default);
         Task<(decimal ChiSoDienMoi, decimal ChiSoNuocMoi)> GetNearestPreviousReadingAsync(int phongTroId, int thang, int nam, CancellationToken cancellationToken = default);

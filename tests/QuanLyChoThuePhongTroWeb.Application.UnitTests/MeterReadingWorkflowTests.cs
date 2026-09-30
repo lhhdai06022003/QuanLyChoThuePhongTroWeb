@@ -1998,6 +1998,109 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.Equal(180000m, electricDetail.TongTien);
         }
 
+        #region Cập nhật dây chuyền kỳ sau (kỳ sau còn là bản nháp)
+
+        private DichVuDienNuocCuaPhong SetupCorrectionWithLaterPeriods(
+            out AnhChiSoDongHo image,
+            params DichVuDienNuocCuaPhong[] later)
+        {
+            var period = new DichVuDienNuocCuaPhong
+            {
+                DichVuDienNuocCuaPhongId = 1, PhongTroId = 1, Thang = 10, Nam = 2026,
+                ChiSoDienCu = 100m, ChiSoDienMoi = 150m, ChiSoNuocCu = 50m, ChiSoNuocMoi = 70m
+            };
+            _store.Periods[1] = period;
+            _store.RoomBranches[1] = 10;
+            foreach (var l in later) _store.Periods[l.DichVuDienNuocCuaPhongId] = l;
+
+            image = new AnhChiSoDongHo
+            {
+                AnhChiSoDongHoId = 100, DichVuDienNuocCuaPhongId = 1, LoaiDongHo = LoaiDongHo.Dien, Url = "http://test",
+                TrangThaiXuLy = TrangThaiXuLyAnhChiSo.DaXacNhan, DuocChonLamChiSoChinhThuc = true, GiaTriXacNhan = 150m, NguoiXacNhanId = 1
+            };
+            _store.Images[100] = image;
+            _access.Permissions.Add((2, 10, EmployeeActionCodes.MeterReview));
+            return period;
+        }
+
+        private static DichVuDienNuocCuaPhong LaterPeriod(int id, int thang, decimal dienCu, decimal dienMoi, decimal nuocCu, decimal nuocMoi) => new()
+        {
+            DichVuDienNuocCuaPhongId = id, PhongTroId = 1, Thang = thang, Nam = 2026,
+            ChiSoDienCu = dienCu, ChiSoDienMoi = dienMoi, ChiSoNuocCu = nuocCu, ChiSoNuocMoi = nuocMoi
+        };
+
+        [Fact]
+        public async Task CorrectConfirmedImageAsync_WhenNextPeriodIsUntouchedDraft_ShiftsItsOldAndNewReading()
+        {
+            var next = LaterPeriod(2, 11, 150m, 150m, 70m, 70m);
+            var period = SetupCorrectionWithLaterPeriods(out _, next);
+
+            var result = await _service.CorrectConfirmedImageAsync(new CorrectConfirmedMeterImageRequest(100, 180m, "Sửa số"), 2);
+
+            Assert.True(result.Success);
+            Assert.Equal(180m, period.ChiSoDienMoi);
+            Assert.Equal(180m, next.ChiSoDienCu);
+            Assert.Equal(180m, next.ChiSoDienMoi);
+            Assert.Equal(70m, next.ChiSoNuocCu);
+            Assert.Equal(70m, next.ChiSoNuocMoi);
+        }
+
+        [Fact]
+        public async Task CorrectConfirmedImageAsync_WhenNextPeriodHasOwnReading_OnlyShiftsOldReading()
+        {
+            var next = LaterPeriod(2, 11, 150m, 200m, 70m, 90m);
+            SetupCorrectionWithLaterPeriods(out _, next);
+
+            var result = await _service.CorrectConfirmedImageAsync(new CorrectConfirmedMeterImageRequest(100, 180m, "Sửa số"), 2);
+
+            Assert.True(result.Success);
+            Assert.Equal(180m, next.ChiSoDienCu);
+            Assert.Equal(200m, next.ChiSoDienMoi);
+            Assert.Equal(90m, next.ChiSoNuocMoi);
+        }
+
+        [Fact]
+        public async Task CorrectConfirmedImageAsync_WhenNextPeriodReadingWouldBecomeNegative_FailsAndKeepsNextPeriod()
+        {
+            var next = LaterPeriod(2, 11, 150m, 170m, 70m, 90m);
+            SetupCorrectionWithLaterPeriods(out _, next);
+
+            var result = await _service.CorrectConfirmedImageAsync(new CorrectConfirmedMeterImageRequest(100, 180m, "Sửa số"), 2);
+
+            Assert.False(result.Success);
+            Assert.Contains("11/2026", result.Message);
+            Assert.Equal(150m, next.ChiSoDienCu);
+            Assert.Equal(170m, next.ChiSoDienMoi);
+            Assert.Equal(0, _uow.SaveChangesCallCount);
+        }
+
+        [Fact]
+        public async Task CorrectConfirmedImageAsync_CascadesAcrossSeveralDraftPeriods()
+        {
+            var next1 = LaterPeriod(2, 11, 150m, 150m, 70m, 70m);
+            var next2 = LaterPeriod(3, 12, 150m, 150m, 70m, 70m);
+            SetupCorrectionWithLaterPeriods(out _, next1, next2);
+
+            var result = await _service.CorrectConfirmedImageAsync(new CorrectConfirmedMeterImageRequest(100, 180m, "Sửa số"), 2);
+
+            Assert.True(result.Success);
+            Assert.Equal((180m, 180m), (next1.ChiSoDienCu, next1.ChiSoDienMoi));
+            Assert.Equal((180m, 180m), (next2.ChiSoDienCu, next2.ChiSoDienMoi));
+        }
+
+        [Fact]
+        public async Task CorrectConfirmedImageAsync_WhenNoLaterPeriod_StillSucceeds()
+        {
+            var period = SetupCorrectionWithLaterPeriods(out _);
+
+            var result = await _service.CorrectConfirmedImageAsync(new CorrectConfirmedMeterImageRequest(100, 180m, "Sửa số"), 2);
+
+            Assert.True(result.Success);
+            Assert.Equal(180m, period.ChiSoDienMoi);
+        }
+
+        #endregion
+
         #region Task 2.6 Tests
 
         [Fact]

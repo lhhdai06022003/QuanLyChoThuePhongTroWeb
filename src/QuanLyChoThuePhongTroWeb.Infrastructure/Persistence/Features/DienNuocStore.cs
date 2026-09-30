@@ -52,7 +52,11 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
         {
             var list = await _context.DichVuDienNuocCuaPhongs
                 .Where(x => roomIds.Contains(x.PhongTroId) && !x.IsDeleted &&
-                            (x.Nam > nam || (x.Nam == nam && x.Thang > thang)))
+                            (x.Nam > nam || (x.Nam == nam && x.Thang > thang)) &&
+                            (x.TrangThaiGhiNhan == TrangThaiGhiNhan.DaDuyet ||
+                             _context.HoaDons.IgnoreQueryFilters().Any(h => h.DichVuDienNuocCuaPhongId == x.DichVuDienNuocCuaPhongId &&
+                                                                            h.TrangThaiPhatHanh != TrangThaiPhatHanhHoaDon.Nhap &&
+                                                                            h.TrangThaiPhatHanh != TrangThaiPhatHanhHoaDon.DaHuy)))
                 .Select(x => x.PhongTroId)
                 .Distinct()
                 .ToListAsync(cancellationToken);

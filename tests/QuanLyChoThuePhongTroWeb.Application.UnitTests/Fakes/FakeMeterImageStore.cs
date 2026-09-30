@@ -95,6 +95,15 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
             return Task.FromResult(SubsequentPeriods.Contains((phongTroId, thang, nam)));
         }
 
+        public Task<IReadOnlyList<DichVuDienNuocCuaPhong>> GetSubsequentPeriodsForUpdateAsync(int phongTroId, int thang, int nam, CancellationToken cancellationToken = default)
+        {
+            var list = Periods.Values
+                .Where(p => p.PhongTroId == phongTroId && !p.IsDeleted && (p.Nam > nam || (p.Nam == nam && p.Thang > thang)))
+                .OrderBy(p => p.Nam).ThenBy(p => p.Thang)
+                .ToList();
+            return Task.FromResult<IReadOnlyList<DichVuDienNuocCuaPhong>>(list);
+        }
+
         public Task<bool> HasNonDraftInvoiceAsync(int periodRecordId, CancellationToken cancellationToken = default)
         {
             return Task.FromResult(NonDraftInvoicePeriodIds.Contains(periodRecordId));

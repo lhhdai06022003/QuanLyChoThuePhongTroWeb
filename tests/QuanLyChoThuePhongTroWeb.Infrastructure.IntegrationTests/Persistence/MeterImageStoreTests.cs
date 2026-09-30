@@ -298,6 +298,24 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             context.PhongTros.Add(room);
             await context.SaveChangesAsync();
 
+            var tenant = new NguoiThue { HoVaTen = $"T_{suffix}", Email = $"t_{suffix}@test.com", SoDienThoai = "0901", CCCD = $"001_{suffix}" };
+            context.NguoiThues.Add(tenant);
+            await context.SaveChangesAsync();
+
+            var contract = new HopDong
+            {
+                PhongTroId = room.PhongTroId,
+                NguoiThueId = tenant.NguoiThueId,
+                MaHopDong = $"HD_{suffix}",
+                ThoiDiemBatDau = new DateTime(2026, 8, 1, 0, 0, 0, DateTimeKind.Utc),
+                ThoiDiemKetThuc = new DateTime(2026, 12, 31, 0, 0, 0, DateTimeKind.Utc),
+                TienCocPhong = 1000m,
+                TienThuePhong = 1000m,
+                TrangThaiHopDong = TrangThaiHopDong.DangHoatDong
+            };
+            context.HopDongs.Add(contract);
+            await context.SaveChangesAsync();
+
             var period9 = new DichVuDienNuocCuaPhong { PhongTroId = room.PhongTroId, Thang = 9, Nam = 2026 };
             var period10 = new DichVuDienNuocCuaPhong { PhongTroId = room.PhongTroId, Thang = 10, Nam = 2026 };
             context.DichVuDienNuocCuaPhongs.AddRange(period9, period10);
@@ -305,11 +323,90 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
 
             var store = new MeterImageStore(context);
 
-            var isLocked9 = await store.HasSubsequentPeriodAsync(room.PhongTroId, 9, 2026);
-            Assert.True(isLocked9);
+            // Kỳ sau chỉ là bản nháp: không khóa kỳ trước
+            Assert.False(await store.HasSubsequentPeriodAsync(room.PhongTroId, 9, 2026));
+            Assert.False(await store.HasSubsequentPeriodAsync(room.PhongTroId, 10, 2026));
 
-            var isLocked10 = await store.HasSubsequentPeriodAsync(room.PhongTroId, 10, 2026);
-            Assert.False(isLocked10);
+            // Kỳ sau chỉ có hóa đơn nháp hoặc đã hủy: vẫn không khóa
+            var activeInvoice = new HoaDon { MaHoaDon = $"N_{suffix}", HopDongId = contract.HopDongId, DichVuDienNuocCuaPhongId = period10.DichVuDienNuocCuaPhongId, Thang = 10, Nam = 2026, TongTien = 1, TrangThaiPhatHanh = TrangThaiPhatHanhHoaDon.Nhap };
+            context.HoaDons.AddRange(
+                activeInvoice,
+                new HoaDon { MaHoaDon = $"H_{suffix}", HopDongId = contract.HopDongId, DichVuDienNuocCuaPhongId = period10.DichVuDienNuocCuaPhongId, Thang = 10, Nam = 2026, TongTien = 1, TrangThaiPhatHanh = TrangThaiPhatHanhHoaDon.DaHuy, IsDeleted = true });
+            await context.SaveChangesAsync();
+            Assert.False(await store.HasSubsequentPeriodAsync(room.PhongTroId, 9, 2026));
+
+            // Kỳ sau đã DaDuyet: khóa mọi kỳ trước nó
+            period10.TrangThaiGhiNhan = TrangThaiGhiNhan.DaDuyet;
+            await context.SaveChangesAsync();
+            Assert.True(await store.HasSubsequentPeriodAsync(room.PhongTroId, 9, 2026));
+            Assert.False(await store.HasSubsequentPeriodAsync(room.PhongTroId, 10, 2026));
+
+            // Kỳ sau còn nháp nhưng có hóa đơn đã chốt: khóa
+            period10.TrangThaiGhiNhan = TrangThaiGhiNhan.Nhap;
+            activeInvoice.TrangThaiPhatHanh = TrangThaiPhatHanhHoaDon.DaChot;
+            await context.SaveChangesAsync();
+            Assert.True(await store.HasSubsequentPeriodAsync(room.PhongTroId, 9, 2026));
+        }
+
+        [Fact]
+        public async Task DienNuocStore_GetLockedRoomIdsAsync_OnlyLocksWhenLaterPeriodIsApproved()
+        {
+            await using var context = _fixture.CreateDbContext();
+            await using var tx = await context.Database.BeginTransactionAsync();
+
+            var suffix = Guid.NewGuid().ToString("N").Substring(0, 6);
+            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = $"C_{suffix}", DiaChi = "123", SoDienThoai = "0900", MoTa = "Mo ta" };
+            context.ChiNhanhs.Add(branch);
+            await context.SaveChangesAsync();
+
+            var room = new PhongTro { ChiNhanhId = branch.ChiNhanhId, SoPhong = $"P_{suffix}", GiaThue = 1000m, DienTich = 15, MoTa = "Mo ta phong" };
+            context.PhongTros.Add(room);
+            await context.SaveChangesAsync();
+
+            var period9 = new DichVuDienNuocCuaPhong { PhongTroId = room.PhongTroId, Thang = 9, Nam = 2026, TrangThaiGhiNhan = TrangThaiGhiNhan.DaDuyet };
+            var period10 = new DichVuDienNuocCuaPhong { PhongTroId = room.PhongTroId, Thang = 10, Nam = 2026, TrangThaiGhiNhan = TrangThaiGhiNhan.Nhap };
+            context.DichVuDienNuocCuaPhongs.AddRange(period9, period10);
+            await context.SaveChangesAsync();
+
+            var store = new DienNuocStore(context);
+            var rooms = new[] { room.PhongTroId };
+
+            Assert.DoesNotContain(room.PhongTroId, await store.GetLockedRoomIdsAsync(rooms, 9, 2026));
+
+            period10.TrangThaiGhiNhan = TrangThaiGhiNhan.DaDuyet;
+            await context.SaveChangesAsync();
+            Assert.Contains(room.PhongTroId, await store.GetLockedRoomIdsAsync(rooms, 9, 2026));
+        }
+
+        [Fact]
+        public async Task GetSubsequentPeriodsForUpdateAsync_ReturnsLaterPeriodsInOrder_ExcludingDeletedAndOtherRooms()
+        {
+            await using var context = _fixture.CreateDbContext();
+            await using var tx = await context.Database.BeginTransactionAsync();
+
+            var suffix = Guid.NewGuid().ToString("N").Substring(0, 6);
+            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = $"C_{suffix}", DiaChi = "123", SoDienThoai = "0900", MoTa = "Mo ta" };
+            context.ChiNhanhs.Add(branch);
+            await context.SaveChangesAsync();
+
+            var room = new PhongTro { ChiNhanhId = branch.ChiNhanhId, SoPhong = $"P_{suffix}", GiaThue = 1000m, DienTich = 15, MoTa = "Mo ta phong" };
+            var otherRoom = new PhongTro { ChiNhanhId = branch.ChiNhanhId, SoPhong = $"Q_{suffix}", GiaThue = 1000m, DienTich = 15, MoTa = "Mo ta phong" };
+            context.PhongTros.AddRange(room, otherRoom);
+            await context.SaveChangesAsync();
+
+            context.DichVuDienNuocCuaPhongs.AddRange(
+                new DichVuDienNuocCuaPhong { PhongTroId = room.PhongTroId, Thang = 11, Nam = 2026 },
+                new DichVuDienNuocCuaPhong { PhongTroId = room.PhongTroId, Thang = 8, Nam = 2026 },
+                new DichVuDienNuocCuaPhong { PhongTroId = room.PhongTroId, Thang = 10, Nam = 2026 },
+                new DichVuDienNuocCuaPhong { PhongTroId = room.PhongTroId, Thang = 12, Nam = 2026, IsDeleted = true },
+                new DichVuDienNuocCuaPhong { PhongTroId = room.PhongTroId, Thang = 1, Nam = 2027 },
+                new DichVuDienNuocCuaPhong { PhongTroId = otherRoom.PhongTroId, Thang = 10, Nam = 2026 });
+            await context.SaveChangesAsync();
+
+            var store = new MeterImageStore(context);
+            var result = await store.GetSubsequentPeriodsForUpdateAsync(room.PhongTroId, 8, 2026);
+
+            Assert.Equal(new[] { (10, 2026), (11, 2026), (1, 2027) }, result.Select(p => (p.Thang, p.Nam)).ToArray());
         }
 
         [Fact]
