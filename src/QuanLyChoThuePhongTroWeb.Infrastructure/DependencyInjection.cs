@@ -33,6 +33,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence.IInvoicePaymentStore, Persistence.Features.InvoicePaymentStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence.IInvoiceIssuanceStore, Persistence.Features.InvoiceIssuanceStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence.IInvoicePublicationStore, Persistence.Features.InvoicePublicationStore>();
+            services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence.IInvoiceViewStore, Persistence.Features.InvoiceViewStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Persistence.IDienNuocStore, Persistence.Features.DienNuocStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Persistence.IMeterImageStore, Persistence.Features.MeterImageStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Persistence.IMeterImageQueryStore, Persistence.Features.MeterImageQueryStore>();

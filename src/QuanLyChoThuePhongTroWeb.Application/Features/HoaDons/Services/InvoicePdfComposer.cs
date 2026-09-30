@@ -12,7 +12,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
             string bankId = "";
             string accountNumber = "";
             string accountName = "";
-            if (hd.TrangThaiHoaDon == "Chưa thanh toán")
+            if (!hd.DaHuy && hd.TrangThaiHoaDon == "Chưa thanh toán")
             {
                 bankId = settings.BankId ?? "MB";
                 accountNumber = settings.AccountNumber ?? "";

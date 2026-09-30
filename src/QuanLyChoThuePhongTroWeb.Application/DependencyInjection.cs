@@ -42,6 +42,7 @@ namespace QuanLyChoThuePhongTroWeb.Application
             services.AddScoped<IHoaDonService, HoaDonService>();
             services.AddScoped<IInvoiceIssuanceService, InvoiceIssuanceService>();
             services.AddScoped<IInvoicePublicationService, InvoicePublicationService>();
+            services.AddScoped<IInvoiceViewService, InvoiceViewService>();
             services.AddScoped<IInvoicePaymentConfirmationService, InvoicePaymentConfirmationService>();
             services.AddScoped<ILichSuThanhToanService, LichSuThanhToanService>();
 

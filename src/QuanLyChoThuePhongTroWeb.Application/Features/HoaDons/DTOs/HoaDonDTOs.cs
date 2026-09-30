@@ -57,6 +57,11 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs
         public string NgayTao { get; set; } = string.Empty;
         public string HanThanhToan { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
+        public int TrangThaiPhatHanhValue { get; set; }
+        public string TrangThaiPhatHanh { get; set; } = string.Empty;
+        public bool DaHuy { get; set; }
+        public string LyDoHuy { get; set; } = string.Empty;
+        public List<InvoiceStatusHistoryRes> LichSuTrangThais { get; set; } = new();
         public List<ChiTietHoaDonRes> ChiTietHoaDons { get; set; } = new();
         public List<LichSuThanhToanRes> LichSuThanhToans { get; set; } = new();
     }

@@ -122,29 +122,48 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
 
             query = query.OrderByDescending(h => h.HoaDonId);
 
-            var data = await query
+            var rawData = await query
                 .Skip(request.Start)
                 .Take(request.Length)
-                .Select(h => new HoaDonRes
+                .Select(h => new
                 {
-                    HoaDonId = h.HoaDonId,
-                    MaHoaDon = h.MaHoaDon,
-                    HopDongId = h.HopDongId,
-                    MaHopDong = h.HopDong.MaHopDong,
+                    h.HoaDonId,
+                    h.MaHoaDon,
+                    h.HopDongId,
+                    h.HopDong.MaHopDong,
                     TenPhong = h.HopDong.PhongTro.SoPhong,
                     TenNguoiThue = h.HopDong.NguoiThue.HoVaTen,
                     TenChiNhanh = h.HopDong.PhongTro.ChiNhanh.TenChiNhanh,
-                    Thang = h.Thang,
-                    Nam = h.Nam,
-                    TongTien = h.TongTien,
-                    TrangThaiHoaDon = h.TrangThaiHoaDon == TrangThaiHoaDon.DaThanhToan ? "Đã thanh toán" : "Chưa thanh toán",
-                    TrangThaiHoaDonValue = (int)h.TrangThaiHoaDon,
-                    TrangThaiPhatHanhValue = (int)h.TrangThaiPhatHanh,
-                    NgayTao = h.NgayTao.ToString("dd/MM/yyyy HH:mm"),
+                    h.Thang,
+                    h.Nam,
+                    h.TongTien,
+                    h.TrangThaiHoaDon,
+                    h.TrangThaiPhatHanh,
+                    h.NgayTao,
                     SoDienThoai = h.HopDong.NguoiThue.SoDienThoai,
                     Email = h.HopDong.NguoiThue.Email ?? ""
                 })
                 .ToListAsync(cancellationToken);
+
+            var data = rawData.Select(h => new HoaDonRes
+            {
+                HoaDonId = h.HoaDonId,
+                MaHoaDon = h.MaHoaDon,
+                HopDongId = h.HopDongId,
+                MaHopDong = h.MaHopDong,
+                TenPhong = h.TenPhong,
+                TenNguoiThue = h.TenNguoiThue,
+                TenChiNhanh = h.TenChiNhanh,
+                Thang = h.Thang,
+                Nam = h.Nam,
+                TongTien = h.TongTien,
+                TrangThaiHoaDon = h.TrangThaiHoaDon == TrangThaiHoaDon.DaThanhToan ? "Đã thanh toán" : "Chưa thanh toán",
+                TrangThaiHoaDonValue = (int)h.TrangThaiHoaDon,
+                TrangThaiPhatHanhValue = (int)h.TrangThaiPhatHanh,
+                NgayTao = h.NgayTao.AddHours(7).ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture),
+                SoDienThoai = h.SoDienThoai,
+                Email = h.Email
+            }).ToList();
 
             return new DataTableResponse<HoaDonRes>
             {
@@ -172,45 +191,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
             string donViDien = dienDichVu?.DonVi ?? "kWh";
             string donViNuoc = nuocDichVu?.DonVi ?? "m³";
 
-            return new HoaDonChiTietRes
-            {
-                HoaDonId = hd.HoaDonId,
-                MaHoaDon = hd.MaHoaDon,
-                TenPhong = hd.HopDong.PhongTro.SoPhong,
-                TenNguoiThue = hd.HopDong.NguoiThue.HoVaTen,
-                TenChiNhanh = hd.HopDong.PhongTro.ChiNhanh.TenChiNhanh,
-                DiaChiChiNhanh = hd.HopDong.PhongTro.ChiNhanh.DiaChi,
-                SoDienThoaiChiNhanh = hd.HopDong.PhongTro.ChiNhanh.SoDienThoai ?? "",
-                Thang = hd.Thang,
-                Nam = hd.Nam,
-                TongTien = hd.TongTien,
-                TrangThaiHoaDon = hd.TrangThaiHoaDon == TrangThaiHoaDon.DaThanhToan ? "Đã thanh toán" : "Chưa thanh toán",
-                NgayTao = hd.NgayTao.ToString("dd/MM/yyyy HH:mm"),
-                HanThanhToan = hd.HanThanhToan.HasValue ? hd.HanThanhToan.Value.AddHours(7).ToString("dd/MM/yyyy", CultureInfo.InvariantCulture) : string.Empty,
-                Email = hd.HopDong.NguoiThue.Email ?? "",
-                ChiTietHoaDons = hd.ChiTietHoaDonDichVus.Where(x => !x.IsDeleted).Select(ct => new ChiTietHoaDonRes
-                {
-                    ChiTietHoaDonId = ct.ChiTietHoaDonId,
-                    TenDichVu = ct.TenDichVu,
-                    DonGia = ct.DonGia,
-                    SoLuong = ct.SoLuong,
-                    TongTien = ct.TongTien,
-                    DonVi = ct.DichVu != null ? ct.DichVu.DonVi :
-                            (ct.TenDichVu.Contains("Tiền thuê phòng") ? "Tháng" :
-                            (ct.TenDichVu.ToLower().Contains("điện") ? donViDien :
-                            (ct.TenDichVu.ToLower().Contains("nước") ? donViNuoc : "")))
-                }).ToList(),
-                LichSuThanhToans = hd.LichSuThanhToans.Where(x => !x.IsDeleted).Select(ls => new LichSuThanhToanRes
-                {
-                    LichSuThanhToanId = ls.LichSuThanhToanId,
-                    MaGiaoDich = ls.MaGiaoDich,
-                    SoTienThanhToan = ls.SoTienThanhToan,
-                    PhuongThucThanhToan = ls.PhuongThucThanhToan == PhuongThucThanhToan.TienMat ? "Tiền mặt" : "Chuyển khoản",
-                    NgayThanhToan = ls.NgayThanhToan.ToString("dd/MM/yyyy HH:mm"),
-                    NguoiXacNhan = ls.NguoiXacNhan?.TenDangNhap ?? "",
-                    GhiChu = ls.GhiChu
-                }).ToList()
-            };
+            return InvoiceDetailProjection.ProjectToRes(hd, donViDien, donViNuoc);
         }
 
         public async Task<HoaDon?> GetActiveHoaDonByIdAsync(int id, CancellationToken cancellationToken = default)
@@ -268,28 +249,43 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
 
         public async Task<IReadOnlyList<HoaDonRes>> GetInvoicesByContractIdsAsync(IReadOnlyList<int> contractIds, CancellationToken cancellationToken = default)
         {
-            return await _context.HoaDons
+            var rawData = await _context.HoaDons
                 .Include(x => x.HopDong).ThenInclude(h => h.PhongTro)
                 .Where(x => contractIds.Contains(x.HopDongId) &&
                             ((x.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaGui && !x.IsDeleted) ||
                              (x.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaHuy && x.NgayGui != null)))
                 .OrderByDescending(x => x.NgayTao)
-                .Select(x => new HoaDonRes
+                .Select(x => new
                 {
-                    HoaDonId = x.HoaDonId,
-                    MaHoaDon = x.MaHoaDon,
-                    HopDongId = x.HopDongId,
-                    MaHopDong = x.HopDong.MaHopDong,
+                    x.HoaDonId,
+                    x.MaHoaDon,
+                    x.HopDongId,
+                    x.HopDong.MaHopDong,
                     TenPhong = x.HopDong.PhongTro.SoPhong,
-                    Thang = x.Thang,
-                    Nam = x.Nam,
-                    TongTien = x.TongTien,
-                    TrangThaiHoaDon = x.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaHuy ? "Đã hủy" : (x.TrangThaiHoaDon == TrangThaiHoaDon.DaThanhToan ? "Đã thanh toán" : "Chưa thanh toán"),
-                    TrangThaiHoaDonValue = (int)x.TrangThaiHoaDon,
-                    TrangThaiPhatHanhValue = (int)x.TrangThaiPhatHanh,
-                    NgayTao = x.NgayTao.ToString("dd/MM/yyyy HH:mm")
+                    x.Thang,
+                    x.Nam,
+                    x.TongTien,
+                    x.TrangThaiPhatHanh,
+                    x.TrangThaiHoaDon,
+                    x.NgayTao
                 })
                 .ToListAsync(cancellationToken);
+
+            return rawData.Select(x => new HoaDonRes
+            {
+                HoaDonId = x.HoaDonId,
+                MaHoaDon = x.MaHoaDon,
+                HopDongId = x.HopDongId,
+                MaHopDong = x.MaHopDong,
+                TenPhong = x.TenPhong,
+                Thang = x.Thang,
+                Nam = x.Nam,
+                TongTien = x.TongTien,
+                TrangThaiHoaDon = x.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaHuy ? "Đã hủy" : (x.TrangThaiHoaDon == TrangThaiHoaDon.DaThanhToan ? "Đã thanh toán" : "Chưa thanh toán"),
+                TrangThaiHoaDonValue = (int)x.TrangThaiHoaDon,
+                TrangThaiPhatHanhValue = (int)x.TrangThaiPhatHanh,
+                NgayTao = x.NgayTao.AddHours(7).ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture)
+            }).ToList();
         }
 
         public async Task<bool> CheckHoaDonOwnershipAsync(int hoaDonId, int nguoiThueId, CancellationToken cancellationToken = default)

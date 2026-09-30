@@ -7,6 +7,7 @@ using QuanLyChoThuePhongTroWeb.Application.Abstractions.Security;
 using QuanLyChoThuePhongTroWeb.Application.Common.Security;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs;
 using Microsoft.Extensions.Logging;
+using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services;
 
 namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
 {
@@ -21,6 +22,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         private readonly IInvoiceIssuanceService _invoiceIssuanceService;
         private readonly IEmployeeAccessService _employeeAccessService;
         private readonly IInvoicePublicationService _invoicePublicationService;
+        private readonly IInvoiceViewService _invoiceViewService;
 
         public HoaDonController(
             IHoaDonService hoaDonService,
@@ -30,7 +32,8 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             ILogger<HoaDonController> logger,
             IInvoiceIssuanceService invoiceIssuanceService,
             IEmployeeAccessService employeeAccessService,
-            IInvoicePublicationService invoicePublicationService)
+            IInvoicePublicationService invoicePublicationService,
+            IInvoiceViewService invoiceViewService)
         {
             _invoiceIssuanceService = invoiceIssuanceService;
             _hoaDonService = hoaDonService;
@@ -40,6 +43,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             _logger = logger;
             _employeeAccessService = employeeAccessService;
             _invoicePublicationService = invoicePublicationService;
+            _invoiceViewService = invoiceViewService;
         }
 
         [Route("QuanLyNhaTro/QuanLyHoaDon")]
@@ -151,7 +155,12 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
 
         // Danh sách hóa đơn (DataTable server-side)
         [HttpPost("/HoaDon/GetList")]
-        public async Task<IActionResult> GetList([FromForm] int chiNhanhId = 0, [FromForm] int thang = 0, [FromForm] int nam = 0, [FromForm] int trangThai = -1)
+        public async Task<IActionResult> GetList(
+            [FromForm] int chiNhanhId = 0,
+            [FromForm] int thang = 0,
+            [FromForm] int nam = 0,
+            [FromForm] int trangThai = -1,
+            [FromForm] int trangThaiPhatHanh = -1)
         {
             var form = Request.Form;
             var request = new DataTableRequest
@@ -165,7 +174,16 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             if (!TryGetActorId(out var actorId))
                 return Unauthorized(new { Message = "Người dùng chưa đăng nhập hoặc phiên làm việc đã hết hạn." });
 
-            var data = await _hoaDonService.GetEmployeeInvoiceListAsync(request, chiNhanhId, thang, nam, trangThai, actorId);
+            var filter = new InvoiceListFilter
+            {
+                ChiNhanhId = chiNhanhId,
+                Thang = thang,
+                Nam = nam,
+                TrangThaiThanhToan = trangThai,
+                TrangThaiPhatHanh = trangThaiPhatHanh
+            };
+
+            var data = await _invoiceViewService.GetEmployeeListAsync(request, filter, actorId);
             return Ok(data);
         }
 
@@ -178,7 +196,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             if (!TryGetActorId(out var actorId))
                 return Unauthorized(new { Message = "Người dùng chưa đăng nhập hoặc phiên làm việc đã hết hạn." });
 
-            var data = await _hoaDonService.GetEmployeeInvoiceDetailAsync(id, actorId);
+            var data = await _invoiceViewService.GetEmployeeDetailAsync(id, actorId);
             if (data == null) return NotFound(new { Message = "Không tìm thấy hóa đơn hoặc bạn không có quyền truy cập." });
             return Ok(data);
         }
@@ -229,7 +247,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             if (!TryGetActorId(out var actorId))
                 return Unauthorized(new { Message = "Người dùng chưa đăng nhập hoặc phiên làm việc đã hết hạn." });
 
-            var bytes = await _hoaDonService.ExportEmployeeExcelAsync(id, actorId);
+            var bytes = await _invoiceViewService.ExportEmployeeExcelAsync(id, actorId);
             if (bytes == null) return NotFound();
             return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"HoaDon_{id}.xlsx");
         }
@@ -244,7 +262,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             if (!TryGetActorId(out var actorId))
                 return Unauthorized(new { Message = "Người dùng chưa đăng nhập hoặc phiên làm việc đã hết hạn." });
 
-            var bytes = await _hoaDonService.ExportEmployeePdfAsync(id, actorId);
+            var bytes = await _invoiceViewService.ExportEmployeePdfAsync(id, actorId);
             if (bytes == null) return NotFound();
             return File(bytes, "application/pdf", $"HoaDon_{id}.pdf");
         }

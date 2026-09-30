@@ -110,12 +110,26 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.DocumentExpor
                     page.Margin(30);
                     page.DefaultTextStyle(x => x.FontSize(11));
 
+                    if (hd.DaHuy)
+                    {
+                        page.Foreground()
+                            .AlignCenter()
+                            .AlignMiddle()
+                            .Rotate(-30)
+                            .Text("ĐÃ HỦY")
+                            .FontSize(72)
+                            .Bold()
+                            .FontColor(Colors.Red.Lighten3);
+                    }
+
                     page.Header().Column(col =>
                     {
                         col.Item().AlignCenter().Text("HÓA ĐƠN THANH TOÁN").Bold().FontSize(20).FontColor(Colors.Blue.Darken2);
                         col.Item().AlignCenter().Text($"{hd.TenChiNhanh}").FontSize(12).FontColor(Colors.Grey.Darken1);
                         if (!string.IsNullOrEmpty(hd.DiaChiChiNhanh))
                             col.Item().AlignCenter().Text($"Địa chỉ: {hd.DiaChiChiNhanh}").FontSize(10).FontColor(Colors.Grey.Medium);
+                        if (hd.DaHuy && !string.IsNullOrWhiteSpace(hd.LyDoHuy))
+                            col.Item().AlignCenter().Text($"Lý do hủy: {hd.LyDoHuy}").FontSize(11).FontColor(Colors.Red.Medium).Bold();
                         col.Item().PaddingVertical(5).LineHorizontal(1).LineColor(Colors.Blue.Darken2);
                     });
 
