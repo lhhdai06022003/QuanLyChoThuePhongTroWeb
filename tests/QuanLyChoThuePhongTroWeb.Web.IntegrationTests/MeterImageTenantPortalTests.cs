@@ -514,6 +514,14 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
                 Assert.Equal("Không đọc được, vui lòng chụp lại", map[imgKoDoc.AnhChiSoDongHoId]);
                 Assert.Contains("Đã xác nhận", map[imgXacNhan.AnhChiSoDongHoId]!);
                 Assert.Equal("Đã được thay bằng ảnh khác", map[imgThayThe.AnhChiSoDongHoId]);
+
+                // Màu chấm trạng thái đi cùng nhãn khách thấy (trang khách không tự suy từ mã nội bộ)
+                var mau = images.ToDictionary(x => x.GetProperty("id").GetInt32(), x => x.GetProperty("mauTrangThai").GetString());
+                Assert.Equal("blue", mau[imgMoi.AnhChiSoDongHoId]);
+                Assert.Equal("blue", mau[imgDoc.AnhChiSoDongHoId]);
+                Assert.Equal("orange", mau[imgKoDoc.AnhChiSoDongHoId]);
+                Assert.Equal("green", mau[imgXacNhan.AnhChiSoDongHoId]);
+                Assert.Equal("secondary", mau[imgThayThe.AnhChiSoDongHoId]);
             }
             finally
             {

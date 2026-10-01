@@ -242,6 +242,12 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                 return (false, "Không thể chỉnh sửa hóa đơn đã được thanh toán.");
             }
 
+            // Dòng cũ không đổi đơn giá và số lượng giữ nguyên thành tiền đã lưu: tiền phòng và dịch vụ
+            // cố định có thể đã tính theo số ngày ở (SoLuong = 1, TongTien < DonGia), tính lại sẽ mất phần đó.
+            var dongCu = hd.ChiTietHoaDonDichVus
+                .Where(x => !x.IsDeleted)
+                .ToDictionary(x => x.ChiTietHoaDonId, x => (x.DonGia, x.SoLuong, x.TongTien));
+
             _store.RemoveChiTietHoaDons(hd.ChiTietHoaDonDichVus);
 
             var newChiTiets = new List<ChiTietHoaDon>();
@@ -258,13 +264,18 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                     return (false, "Đơn giá và số lượng phải lớn hơn hoặc bằng 0.");
                 }
 
+                var tongTien = r.ChiTietHoaDonId is int ctId && ctId > 0 &&
+                               dongCu.Remove(ctId, out var cu) && cu.DonGia == r.DonGia && cu.SoLuong == r.SoLuong
+                    ? cu.TongTien
+                    : decimal.Round(r.DonGia * r.SoLuong, 2, MidpointRounding.AwayFromZero);
+
                 newChiTiets.Add(new ChiTietHoaDon
                 {
                     HoaDonId = hoaDonId,
                     TenDichVu = r.TenDichVu,
                     DonGia = r.DonGia,
                     SoLuong = r.SoLuong,
-                    TongTien = decimal.Round(r.DonGia * r.SoLuong, 2, MidpointRounding.AwayFromZero),
+                    TongTien = tongTien,
                     DichVuId = r.DichVuId > 0 ? r.DichVuId : null
                 });
             }

@@ -156,6 +156,16 @@ html[data-bs-theme="dark"] .dn-savebar {
     cursor: not-allowed;
 }
 
+/* Lý do phòng bị khóa, nằm dưới trạng thái "Đã khóa" */
+.dn-lock-reason {
+    max-width: 180px;
+    margin: 0.25rem auto 0;
+    white-space: normal;
+    font-size: 0.75rem;
+    line-height: 1.3;
+    color: var(--tblr-secondary);
+}
+
 /* Thanh lưu: hiện khi có chỉ số chưa lưu, nằm trong vùng nội dung (không đè thanh điều hướng) */
 .dn-savebar {
     position: fixed;

@@ -151,12 +151,6 @@
             let currentNam = 0;
             let tenantViewer = null;
 
-            // Mã trạng thái ảnh -> màu chấm trạng thái của Tabler
-            const STATUS_COLORS = {
-                0: 'secondary', 1: 'blue', 2: 'blue', 3: 'red',
-                4: 'orange', 5: 'orange', 6: 'green', 7: 'secondary'
-            };
-
             function getCsrfToken() {
                 return $('input[name="__RequestVerificationToken"]').first().val() || '';
             }
@@ -328,7 +322,8 @@
 
                 let html = '<div class="list-group list-group-flush kt-list">';
                 images.forEach(img => {
-                    const color = STATUS_COLORS[img.trangThai] || 'blue';
+                    // Server trả sẵn màu đi cùng nhãn; chỉ nhận các giá trị đã biết để không chèn class lạ.
+                    const color = ['blue', 'orange', 'green', 'secondary'].includes(img.mauTrangThai) ? img.mauTrangThai : 'secondary';
                     const official = img.laChinhThuc
                         ? '<span class="badge bg-green-lt ms-1">Số chính thức</span>'
                         : '';

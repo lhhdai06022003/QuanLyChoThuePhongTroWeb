@@ -23,11 +23,24 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
         public Task<IReadOnlyDictionary<int, DichVuDienNuocCuaPhong>> GetCurrentMonthRecordsAsync(IReadOnlyList<int> roomIds, int thang, int nam, CancellationToken cancellationToken = default)
             => Task.FromResult<IReadOnlyDictionary<int, DichVuDienNuocCuaPhong>>(CurrentMonthRecords);
 
+        public Dictionary<int, DichVuDienNuocCuaPhong> PreviousMonthRecords { get; } = new();
+        public HashSet<(int RoomId, int Thang, int Nam)> ContractMonths { get; } = new();
+
         public Task<IReadOnlyDictionary<int, DichVuDienNuocCuaPhong>> GetPreviousMonthRecordsAsync(IReadOnlyList<int> roomIds, int prevThang, int prevNam, CancellationToken cancellationToken = default)
-            => Task.FromResult<IReadOnlyDictionary<int, DichVuDienNuocCuaPhong>>(new Dictionary<int, DichVuDienNuocCuaPhong>());
+            => Task.FromResult<IReadOnlyDictionary<int, DichVuDienNuocCuaPhong>>(PreviousMonthRecords);
 
         public Task<ISet<int>> GetLockedRoomIdsAsync(IReadOnlyList<int> roomIds, int thang, int nam, CancellationToken cancellationToken = default)
             => Task.FromResult<ISet<int>>(new HashSet<int>(LockedRooms));
+
+        public Task<ISet<int>> GetRoomIdsWithContractInMonthAsync(IReadOnlyList<int> roomIds, int thang, int nam, CancellationToken cancellationToken = default)
+        {
+            var set = new HashSet<int>();
+            foreach (var id in roomIds)
+            {
+                if (ContractMonths.Contains((id, thang, nam))) set.Add(id);
+            }
+            return Task.FromResult<ISet<int>>(set);
+        }
 
         public Task<(decimal ChiSoDienMoi, decimal ChiSoNuocMoi)> GetNearestPreviousReadingAsync(int phongTroId, int thang, int nam, CancellationToken cancellationToken = default)
             => Task.FromResult((0m, 0m));

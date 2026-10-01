@@ -812,6 +812,15 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
                 return ServiceResult<MeterPeriodsApprovalResult>.Fail("Thời gian kỳ không hợp lệ.");
             }
 
+            // Cùng quy tắc với bước tải ảnh (MeterUploadRules): không chốt kỳ chưa tới.
+            // Chốt nhầm kỳ tương lai sẽ khóa vĩnh viễn kỳ trước qua HasSubsequentPeriodAsync.
+            var kyChot = new MeterPeriod(request.Thang, request.Nam);
+            if (MeterPeriodPolicy.IsFuture(kyChot, _time.GetUtcNow().UtcDateTime))
+            {
+                return ServiceResult<MeterPeriodsApprovalResult>.Fail($"Không thể chốt chỉ số cho kỳ chưa tới ({request.Thang:00}/{request.Nam}).");
+            }
+            var kyTruoc = MeterPeriodPolicy.Previous(kyChot);
+
             // 0. Validate trùng phòng trong lô
             var duplicateRoom = request.DanhSachPhong
                 .GroupBy(p => p.PhongTroId)
@@ -949,6 +958,17 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
                     {
                         await tx.RollbackAsync(cancellationToken);
                         return ServiceResult<MeterPeriodsApprovalResult>.Fail($"Phòng {item.PhongTroId} kỳ này đã có hóa đơn đã phát hành, không thể duyệt.");
+                    }
+
+                    // Phòng có hợp đồng tháng trước thì kỳ trước phải chốt trước (giống quy tắc 6 khi tải ảnh).
+                    if (await _store.HasContractInMonthAsync(item.PhongTroId, kyTruoc.Thang, kyTruoc.Nam, cancellationToken))
+                    {
+                        var prevPeriod = await _store.GetPeriodRecordAsync(item.PhongTroId, kyTruoc.Thang, kyTruoc.Nam, cancellationToken);
+                        if (prevPeriod == null || prevPeriod.TrangThaiGhiNhan != TrangThaiGhiNhan.DaDuyet)
+                        {
+                            await tx.RollbackAsync(cancellationToken);
+                            return ServiceResult<MeterPeriodsApprovalResult>.Fail($"Phòng {item.PhongTroId}: kỳ {kyTruoc.Thang:00}/{kyTruoc.Nam} chưa được chốt, cần chốt kỳ đó trước.");
+                        }
                     }
 
                     // Xử lý Điện

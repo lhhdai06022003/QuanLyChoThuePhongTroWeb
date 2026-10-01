@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Persistence;
+using QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services;
 using QuanLyChoThuePhongTroWeb.Domain.Entities;
 using QuanLyChoThuePhongTroWeb.Domain.Enums;
 using QuanLyChoThuePhongTroWeb.Infrastructure.Persistence;
@@ -50,14 +51,38 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
 
         public async Task<ISet<int>> GetLockedRoomIdsAsync(IReadOnlyList<int> roomIds, int thang, int nam, CancellationToken cancellationToken = default)
         {
+            // Phòng bị khóa khi kỳ sau đã chốt/có hóa đơn phát hành, hoặc chính kỳ này đã có hóa đơn
+            // phát hành (khớp HasLockedInvoiceAsync). Nếu không đánh dấu, màn chốt sẽ gửi phòng đó lên
+            // và ApprovePeriodsAsync rollback cả lô.
             var list = await _context.DichVuDienNuocCuaPhongs
                 .Where(x => roomIds.Contains(x.PhongTroId) && !x.IsDeleted &&
-                            (x.Nam > nam || (x.Nam == nam && x.Thang > thang)) &&
-                            (x.TrangThaiGhiNhan == TrangThaiGhiNhan.DaDuyet ||
-                             _context.HoaDons.IgnoreQueryFilters().Any(h => h.DichVuDienNuocCuaPhongId == x.DichVuDienNuocCuaPhongId &&
-                                                                            h.TrangThaiPhatHanh != TrangThaiPhatHanhHoaDon.Nhap &&
-                                                                            h.TrangThaiPhatHanh != TrangThaiPhatHanhHoaDon.DaHuy)))
+                            (((x.Nam > nam || (x.Nam == nam && x.Thang > thang)) &&
+                              (x.TrangThaiGhiNhan == TrangThaiGhiNhan.DaDuyet ||
+                               _context.HoaDons.IgnoreQueryFilters().Any(h => h.DichVuDienNuocCuaPhongId == x.DichVuDienNuocCuaPhongId &&
+                                                                              h.TrangThaiPhatHanh != TrangThaiPhatHanhHoaDon.Nhap &&
+                                                                              h.TrangThaiPhatHanh != TrangThaiPhatHanhHoaDon.DaHuy))) ||
+                             (x.Nam == nam && x.Thang == thang &&
+                              _context.HoaDons.IgnoreQueryFilters().Any(h => h.DichVuDienNuocCuaPhongId == x.DichVuDienNuocCuaPhongId &&
+                                                                             h.TrangThaiPhatHanh != TrangThaiPhatHanhHoaDon.Nhap &&
+                                                                             h.TrangThaiPhatHanh != TrangThaiPhatHanhHoaDon.DaHuy))))
                 .Select(x => x.PhongTroId)
+                .Distinct()
+                .ToListAsync(cancellationToken);
+
+            return new HashSet<int>(list);
+        }
+
+        public async Task<ISet<int>> GetRoomIdsWithContractInMonthAsync(IReadOnlyList<int> roomIds, int thang, int nam, CancellationToken cancellationToken = default)
+        {
+            var (startUtc, endExclusiveUtc) = MeterPeriodPolicy.MonthRangeUtc(new MeterPeriod(thang, nam));
+
+            var list = await _context.HopDongs
+                .Where(h => roomIds.Contains(h.PhongTroId) &&
+                            !h.IsDeleted &&
+                            h.TrangThaiHopDong != TrangThaiHopDong.DaHuy &&
+                            h.ThoiDiemBatDau < endExclusiveUtc &&
+                            (h.ThoiDiemKetThuc == null || h.ThoiDiemKetThuc.Value >= startUtc))
+                .Select(h => h.PhongTroId)
                 .Distinct()
                 .ToListAsync(cancellationToken);
 

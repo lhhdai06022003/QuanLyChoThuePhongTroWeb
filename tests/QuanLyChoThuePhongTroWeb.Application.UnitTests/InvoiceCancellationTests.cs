@@ -621,6 +621,128 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.True(_unitOfWork.CurrentTransaction.RolledBack);
         }
 
+        // Nháp có tiền phòng tính theo ngày: thuê từ 16/09, giá 3.000.000 → 1.600.000 (SoLuong = 1).
+        private static HoaDon CreateProratedDraft()
+        {
+            return new HoaDon
+            {
+                HoaDonId = 1,
+                TrangThaiPhatHanh = TrangThaiPhatHanhHoaDon.Nhap,
+                TrangThaiHoaDon = TrangThaiHoaDon.ChuaThanhToan,
+                TongTien = 1700000m,
+                IsDeleted = false,
+                ChiTietHoaDonDichVus = new List<ChiTietHoaDon>
+                {
+                    new ChiTietHoaDon { ChiTietHoaDonId = 1, HoaDonId = 1, TenDichVu = "Tiền phòng", DonGia = 3000000m, SoLuong = 1, TongTien = 1600000m },
+                    new ChiTietHoaDon { ChiTietHoaDonId = 2, HoaDonId = 1, TenDichVu = "Rác", DonGia = 50000m, SoLuong = 2, TongTien = 100000m }
+                }
+            };
+        }
+
+        [Fact]
+        public async Task UpdateHoaDon_UnchangedProratedLine_KeepsStoredAmount()
+        {
+            var invoice = CreateProratedDraft();
+            _hoaDonStore.Invoices[1] = invoice;
+            var req = new UpdateHoaDonReq
+            {
+                ChiTiets = new List<ChiTietHoaDonUpdateReq>
+                {
+                    new ChiTietHoaDonUpdateReq { ChiTietHoaDonId = 1, TenDichVu = "Tiền phòng", DonGia = 3000000m, SoLuong = 1 },
+                    new ChiTietHoaDonUpdateReq { ChiTietHoaDonId = 2, TenDichVu = "Rác", DonGia = 50000m, SoLuong = 2 }
+                }
+            };
+
+            var result = await _hoaDonService.UpdateHoaDonAsync(1, req, actorId: 10);
+
+            Assert.True(result.IsSuccess, result.ErrorMessage);
+            Assert.Equal(1600000m, invoice.ChiTietHoaDonDichVus.Single(x => x.TenDichVu == "Tiền phòng").TongTien);
+            Assert.Equal(1700000m, invoice.TongTien);
+        }
+
+        [Fact]
+        public async Task UpdateHoaDon_RenamedButSamePriceAndQuantity_KeepsStoredAmount()
+        {
+            var invoice = CreateProratedDraft();
+            _hoaDonStore.Invoices[1] = invoice;
+            var req = new UpdateHoaDonReq
+            {
+                ChiTiets = new List<ChiTietHoaDonUpdateReq>
+                {
+                    new ChiTietHoaDonUpdateReq { ChiTietHoaDonId = 1, TenDichVu = "Tiền phòng tháng 9", DonGia = 3000000m, SoLuong = 1 },
+                    new ChiTietHoaDonUpdateReq { ChiTietHoaDonId = 2, TenDichVu = "Rác", DonGia = 50000m, SoLuong = 2 }
+                }
+            };
+
+            var result = await _hoaDonService.UpdateHoaDonAsync(1, req, actorId: 10);
+
+            Assert.True(result.IsSuccess, result.ErrorMessage);
+            Assert.Equal(1600000m, invoice.ChiTietHoaDonDichVus.Single(x => x.TenDichVu == "Tiền phòng tháng 9").TongTien);
+        }
+
+        [Fact]
+        public async Task UpdateHoaDon_ChangedLine_IsRecalculated_OthersKept()
+        {
+            var invoice = CreateProratedDraft();
+            _hoaDonStore.Invoices[1] = invoice;
+            var req = new UpdateHoaDonReq
+            {
+                ChiTiets = new List<ChiTietHoaDonUpdateReq>
+                {
+                    new ChiTietHoaDonUpdateReq { ChiTietHoaDonId = 1, TenDichVu = "Tiền phòng", DonGia = 3000000m, SoLuong = 1 },
+                    new ChiTietHoaDonUpdateReq { ChiTietHoaDonId = 2, TenDichVu = "Rác", DonGia = 50000m, SoLuong = 3 },
+                    new ChiTietHoaDonUpdateReq { ChiTietHoaDonId = 0, TenDichVu = "Phí khác", DonGia = 20000m, SoLuong = 1 }
+                }
+            };
+
+            var result = await _hoaDonService.UpdateHoaDonAsync(1, req, actorId: 10);
+
+            Assert.True(result.IsSuccess, result.ErrorMessage);
+            Assert.Equal(1600000m, invoice.ChiTietHoaDonDichVus.Single(x => x.TenDichVu == "Tiền phòng").TongTien);
+            Assert.Equal(150000m, invoice.ChiTietHoaDonDichVus.Single(x => x.TenDichVu == "Rác").TongTien);
+            Assert.Equal(20000m, invoice.ChiTietHoaDonDichVus.Single(x => x.TenDichVu == "Phí khác").TongTien);
+            Assert.Equal(1770000m, invoice.TongTien);
+        }
+
+        [Fact]
+        public async Task UpdateHoaDon_SameLineIdSentTwice_KeepsStoredAmountOnlyOnce()
+        {
+            var invoice = CreateProratedDraft();
+            _hoaDonStore.Invoices[1] = invoice;
+            var req = new UpdateHoaDonReq
+            {
+                ChiTiets = new List<ChiTietHoaDonUpdateReq>
+                {
+                    new ChiTietHoaDonUpdateReq { ChiTietHoaDonId = 1, TenDichVu = "Tiền phòng", DonGia = 3000000m, SoLuong = 1 },
+                    new ChiTietHoaDonUpdateReq { ChiTietHoaDonId = 1, TenDichVu = "Tiền phòng", DonGia = 3000000m, SoLuong = 1 }
+                }
+            };
+
+            var result = await _hoaDonService.UpdateHoaDonAsync(1, req, actorId: 10);
+
+            Assert.True(result.IsSuccess, result.ErrorMessage);
+            Assert.Equal(4600000m, invoice.TongTien);
+        }
+
+        [Fact]
+        public async Task UpdateHoaDon_LineIdFromAnotherInvoiceOrUnknown_IsRecalculated()
+        {
+            var invoice = CreateProratedDraft();
+            _hoaDonStore.Invoices[1] = invoice;
+            var req = new UpdateHoaDonReq
+            {
+                ChiTiets = new List<ChiTietHoaDonUpdateReq>
+                {
+                    new ChiTietHoaDonUpdateReq { ChiTietHoaDonId = 999, TenDichVu = "Tiền phòng", DonGia = 3000000m, SoLuong = 1 }
+                }
+            };
+
+            var result = await _hoaDonService.UpdateHoaDonAsync(1, req, actorId: 10);
+
+            Assert.True(result.IsSuccess, result.ErrorMessage);
+            Assert.Equal(3000000m, invoice.TongTien);
+        }
+
         [Fact]
         public async Task ThuTien_ReadsInvoiceWithLockInsideTransaction()
         {
