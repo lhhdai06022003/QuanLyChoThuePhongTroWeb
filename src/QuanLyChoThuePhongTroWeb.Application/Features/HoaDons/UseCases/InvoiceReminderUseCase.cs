@@ -45,7 +45,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.UseCases
             var overdueDays = _settings.OverdueDays;
             var overdueThreshold = DateTime.UtcNow.AddDays(-overdueDays);
 
-            _logger.LogInformation("Bắt đầu quét hóa đơn quá hạn chưa thanh toán (Từ {OverdueDays} ngày trước, NgayTao <= {OverdueThreshold:yyyy-MM-dd HH:mm:ss})...", overdueDays, overdueThreshold);
+            _logger.LogInformation("Bắt đầu quét hóa đơn quá hạn chưa thanh toán (Quá hạn thanh toán từ {OverdueDays} ngày trước, HanThanhToan (hoặc NgayGui nếu thiếu hạn) <= {OverdueThreshold:yyyy-MM-dd HH:mm:ss})...", overdueDays, overdueThreshold);
 
             var sentIds = await _stateStore.GetSentInvoiceIdsAsync(cancellationToken);
 

@@ -380,6 +380,12 @@
                 if (!input.files || input.files.length === 0) return;
 
                 const file = input.files[0];
+                // Khớp MeterImageOptions:MaxFileSizeBytes (5 MB). Ảnh lớn hơn giới hạn body của máy chủ sẽ bị ngắt kết nối (ERR_CONNECTION_RESET) thay vì trả thông báo.
+                if (file.size > 5 * 1024 * 1024) {
+                    showError('Ảnh vượt quá dung lượng cho phép (5 MB). Vui lòng chọn ảnh nhỏ hơn hoặc giảm chất lượng ảnh.');
+                    input.value = '';
+                    return;
+                }
                 const formData = new FormData();
                 formData.append('phongTroId', currentPhongTroId);
                 formData.append('thang', currentThang);
@@ -403,7 +409,7 @@
                         loadPeriodData();
                     },
                     error: function (xhr) {
-                        showError(xhr.responseJSON?.message || 'Có lỗi xảy ra khi tải ảnh.');
+                        showError(xhr.responseJSON?.message || (xhr.status === 0 ? 'Mất kết nối với máy chủ khi tải ảnh. Hãy kiểm tra dung lượng ảnh (tối đa 5 MB) rồi thử lại.' : 'Có lỗi xảy ra khi tải ảnh.'));
                         input.value = '';
                     },
                     complete: function () {

@@ -41,8 +41,9 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
                 return new List<DienNuocPhongRes>();
             }
 
-            var startOfMonth = new DateTime(nam, thang, 1, 0, 0, 0, DateTimeKind.Utc);
-            var endOfMonth = startOfMonth.AddMonths(1).AddDays(-1).AddHours(23).AddMinutes(59).AddSeconds(59);
+            // Tháng tính theo giờ Việt Nam (UTC+7), đổi sang UTC để so với mốc hợp đồng lưu UTC.
+            var (startOfMonth, endExclusiveUtc) = MeterPeriodPolicy.MonthRangeUtc(new MeterPeriod(thang, nam));
+            var endOfMonth = endExclusiveUtc.AddSeconds(-1);
 
             var hopDongsActive = await _store.GetActiveContractsInBranchAsync(chiNhanhId, startOfMonth, endOfMonth);
 
@@ -115,7 +116,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
                         CoAnhNuocChinhThuc = officialNuoc != null,
                         GiaTriDienXacNhanTuAnh = officialDien?.GiaTriXacNhan,
                         GiaTriNuocXacNhanTuAnh = officialNuoc?.GiaTriXacNhan,
-                        TrangThaiGhiNhan = currentRecord.TrangThaiGhiNhan,
+                        TrangThaiGhiNhan = (QuanLyChoThuePhongTroWeb.Application.Common.Enums.AppTrangThaiGhiNhan)currentRecord.TrangThaiGhiNhan,
                         IsLocked = isLocked,
                         LyDoKhoa = lyDoKhoa,
                         SoAnhDien = dienImages.Count,

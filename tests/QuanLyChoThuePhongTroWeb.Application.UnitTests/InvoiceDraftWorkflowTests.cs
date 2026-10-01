@@ -212,6 +212,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
 
             public TrangThaiGhiNhan? PeriodStatus { get; set; } = TrangThaiGhiNhan.DaDuyet;
 
+            public Task LockMeterPeriodsForRoomsAsync(IReadOnlyList<int> roomIds, int thang, int nam, CancellationToken ct = default) => Task.CompletedTask;
+
             public Task<TrangThaiGhiNhan?> LockMeterPeriodAsync(int meterPeriodId, CancellationToken ct = default)
             {
                 return Task.FromResult<TrangThaiGhiNhan?>(PeriodStatus);

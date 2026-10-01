@@ -35,6 +35,10 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence
         // SELECT ... FROM dich_vu_dien_nuoc_cua_phong WHERE id = @id FOR UPDATE (AsNoTracking, chỉ để giữ khóa và đọc trạng thái)
         Task<TrangThaiGhiNhan?> LockMeterPeriodAsync(int meterPeriodId, CancellationToken ct = default);
 
+        // SELECT ... FROM dich_vu_dien_nuoc_cua_phong WHERE PhongTroId = ANY(@roomIds) AND Thang/Nam khớp AND !IsDeleted ORDER BY id FOR UPDATE.
+        // Khóa kỳ chỉ số theo id tăng dần trước khi tạo nháp để không đọc số đang bị sửa/xác nhận ở giao dịch khác.
+        Task LockMeterPeriodsForRoomsAsync(IReadOnlyList<int> roomIds, int thang, int nam, CancellationToken ct = default);
+
         // D1 (Task 3b): mọi hợp đồng chưa xóa của phòng + khách; khóa dư có chủ đích
         Task<IReadOnlyList<int>> GetContractIdsForTenantRoomAsync(int phongTroId, int nguoiThueId, CancellationToken ct = default);
     }

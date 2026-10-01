@@ -106,16 +106,18 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                         continue;
                     }
 
-                    if (snapshot.IsDeleted || snapshot.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaHuy)
-                    {
-                        items.Add(BuildSimpleResult(id, snapshot.MaHoaDon, InvoicePublishOutcome.Cancelled));
-                        continue;
-                    }
-
+                    // Kiểm quyền trước mọi kết quả khác và không trả mã hóa đơn khi bị từ chối:
+                    // mã chứa mã chi nhánh, số phòng, hợp đồng và kỳ nên không được lộ sang chi nhánh khác.
                     var canPublish = await _employeeAccessService.CanPerformAsync(actorId, snapshot.ChiNhanhId, EmployeeActionCodes.InvoiceSend, ct);
                     if (!canPublish)
                     {
-                        items.Add(BuildSimpleResult(id, snapshot.MaHoaDon, InvoicePublishOutcome.Forbidden));
+                        items.Add(BuildSimpleResult(id, null, InvoicePublishOutcome.Forbidden));
+                        continue;
+                    }
+
+                    if (snapshot.IsDeleted || snapshot.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaHuy)
+                    {
+                        items.Add(BuildSimpleResult(id, snapshot.MaHoaDon, InvoicePublishOutcome.Cancelled));
                         continue;
                     }
 

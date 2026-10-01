@@ -58,4 +58,13 @@ namespace QuanLyChoThuePhongTroWeb.Application.Common.Enums
         DaXacNhan = 6,
         DaThayThe = 7
     }
+
+    // Trạng thái ghi nhận kỳ chỉ số đi ra ngoài Application; giá trị khớp enum Domain TrangThaiGhiNhan.
+    public enum AppTrangThaiGhiNhan
+    {
+        Nhap = 0,
+        ChoDuyet = 1,
+        DaDuyet = 2,
+        TuChoi = 3
+    }
 }

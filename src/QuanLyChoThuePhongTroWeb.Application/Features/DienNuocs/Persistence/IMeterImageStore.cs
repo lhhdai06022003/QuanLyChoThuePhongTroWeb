@@ -14,6 +14,9 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Persistence
         Task<bool> HasContractInMonthAsync(int phongTroId, int thang, int nam, CancellationToken cancellationToken = default);
         Task<MeterImageAccessContext?> GetImageAccessContextAsync(int imageId, CancellationToken cancellationToken = default);
         Task LockRoomsAsync(IEnumerable<int> roomIds, CancellationToken cancellationToken = default);
+
+        // Số phòng (SoPhong) theo id để thông báo lỗi nói "Phòng 101" thay vì id nội bộ; phòng không có thì không có trong kết quả
+        Task<IReadOnlyDictionary<int, string>> GetRoomNumbersAsync(IReadOnlyList<int> roomIds, CancellationToken cancellationToken = default);
         Task<DichVuDienNuocCuaPhong?> GetPeriodRecordAsync(int phongTroId, int thang, int nam, CancellationToken cancellationToken = default);
         Task<DichVuDienNuocCuaPhong?> GetPeriodRecordWithLockAsync(int phongTroId, int thang, int nam, CancellationToken cancellationToken = default);
         Task<DichVuDienNuocCuaPhong?> GetPeriodForUpdateAsync(int phongTroId, int thang, int nam, CancellationToken cancellationToken = default);

@@ -660,6 +660,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             var item = result.Data!.Items.Single();
             Assert.Equal(InvoicePublishOutcome.Forbidden, item.Publish);
             Assert.Equal("Bạn không có quyền công bố hóa đơn tại chi nhánh này.", item.PublishMessage);
+            Assert.Null(item.MaHoaDon);
             Assert.Equal(0, _unitOfWork.BeginTransactionCount);
             Assert.Contains((10, 2, EmployeeActionCodes.InvoiceSend), _accessService.Calls);
         }

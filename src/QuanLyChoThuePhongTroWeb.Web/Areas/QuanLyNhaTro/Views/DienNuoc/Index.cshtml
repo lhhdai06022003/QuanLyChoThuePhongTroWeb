@@ -14,8 +14,8 @@
                     <h2 class="page-title">Chỉ số điện nước</h2>
                 </div>
                 <div class="col-auto ms-auto" id="saveActionArea" style="display: none;">
-                    <button type="button" class="btn btn-primary" id="btnSaveData">
-                        <i class="ti ti-device-floppy me-1"></i> Lưu chỉ số
+                    <button type="button" class="btn btn-primary" id="btnSaveData" title="Chốt mọi phòng đã có chỉ số mới. Phòng chưa nhập sẽ được bỏ qua.">
+                        <i class="ti ti-checks me-1"></i> Chốt tất cả
                     </button>
                 </div>
             </div>
@@ -44,7 +44,7 @@
                         <select id="filterThang" class="form-select">
                             @for (int i = 1; i <= 12; i++)
                             {
-                                if (i == DateTime.Now.Month)
+                                if (i == DateTime.UtcNow.AddHours(7).Month)
                                 {
                                     <option value="@i" selected>Tháng @i</option>
                                 }
@@ -57,7 +57,7 @@
                     </div>
                     <div class="col-6 col-md-3">
                         <label for="filterNam" class="form-label required">Năm</label>
-                        <input type="number" id="filterNam" class="form-control" value="@DateTime.Now.Year" min="2000">
+                        <input type="number" id="filterNam" class="form-control" value="@DateTime.UtcNow.AddHours(7).Year" min="2000">
                     </div>
                 </div>
             </div>
@@ -82,6 +82,9 @@
                     <table class="table card-table table-vcenter text-nowrap w-100 dn-table" id="dienNuocTable">
                         <thead>
                             <tr>
+                                <th class="text-center dn-col-check">
+                                    <input type="checkbox" class="form-check-input m-0" id="dnSelectAll" aria-label="Chọn tất cả phòng chưa khóa">
+                                </th>
                                 <th class="text-center" width="4%">STT</th>
                                 <th>Phòng</th>
                                 <th>Người đại diện</th>
@@ -91,6 +94,7 @@
                                 <th class="text-center dn-col-nuoc" width="13%"><i class="ti ti-droplet me-1"></i>Nước mới</th>
                                 <th class="text-center" width="13%">Ảnh đồng hồ</th>
                                 <th class="text-center" width="10%">Trạng thái</th>
+                                <th class="text-center dn-col-action">Thao tác</th>
                             </tr>
                         </thead>
                         <tbody id="tbodyDienNuoc">
@@ -99,22 +103,26 @@
                 </div>
                 <div class="card-footer text-secondary small">
                     Nhập chỉ số mới rồi bấm <kbd>Enter</kbd> hoặc <kbd>↑</kbd> <kbd>↓</kbd> để chuyển phòng, <kbd>←</kbd> <kbd>→</kbd> để đổi giữa điện và nước.
+                    Bấm <strong>Chốt phòng</strong> ở từng dòng, hoặc tick nhiều phòng rồi chốt cùng lúc.
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<div class="dn-savebar d-print-none" id="stickyActionBar">
+<div class="dn-savebar d-print-none" id="stickyActionBar" role="region" aria-label="Thao tác chốt chỉ số">
     <div class="container-xl d-flex align-items-center justify-content-between gap-3">
-        <div class="d-flex align-items-center gap-2">
-            <span class="status-dot status-dot-animated bg-orange"></span>
-            <span>Có chỉ số mới chưa lưu.</span>
+        <div class="d-flex align-items-center gap-2 dn-bar-info">
+            <span class="status-dot status-dot-animated bg-orange flex-shrink-0"></span>
+            <div class="dn-bar-text" aria-live="polite">
+                <div class="fw-medium" id="dnBarTitle"></div>
+                <div class="small text-secondary dn-bar-hint" id="dnBarHint"></div>
+            </div>
         </div>
-        <div class="d-flex gap-2">
+        <div class="d-flex gap-2 flex-shrink-0 dn-bar-actions">
             <button type="button" class="btn btn-ghost-secondary" id="btnCancelChanges">Bỏ thay đổi</button>
             <button type="button" class="btn btn-primary" id="btnSaveDataSticky">
-                <i class="ti ti-device-floppy me-1"></i> Lưu chỉ số
+                <i class="ti ti-lock-check me-1"></i><span id="dnBarSaveLabel">Chốt</span>
             </button>
         </div>
     </div>
@@ -216,7 +224,7 @@
 
                 $('#emptyState').hide();
                 $('#tableContainer').show();
-                $('#tbodyDienNuoc').html('<tr><td colspan="9" class="text-center text-secondary py-5"><span class="spinner-border spinner-border-sm me-2" role="status"></span>Đang tải danh sách phòng</td></tr>');
+                $('#tbodyDienNuoc').html('<tr><td colspan="11" class="text-center text-secondary py-5"><span class="spinner-border spinner-border-sm me-2" role="status"></span>Đang tải danh sách phòng</td></tr>');
                 hideStickyBar();
 
                 $.ajax({
@@ -325,8 +333,17 @@
                     </button>
                 `;
 
+                const actionCell = item.isLocked
+                    ? '<span class="text-secondary">—</span>'
+                    : `<button type="button" class="btn btn-sm ${item.isDaChot ? 'btn-ghost-primary' : 'btn-outline-primary'} btn-chot-phong" title="Chốt riêng phòng ${escapeHtml(item.tenPhong)}">
+                            <i class="ti ti-lock-check me-1"></i>${item.isDaChot ? 'Chốt lại' : 'Chốt phòng'}
+                       </button>`;
+
                 return `
                     <tr data-index="${index}" class="${rowClass}">
+                        <td class="text-center align-middle dn-col-check">
+                            <input type="checkbox" class="form-check-input m-0 dn-select" aria-label="Chọn phòng ${escapeHtml(item.tenPhong)}" ${disabledAttr}>
+                        </td>
                         <td class="text-center align-middle">${index + 1}</td>
                         <td class="align-middle fw-medium">${escapeHtml(item.tenPhong)}</td>
                         <td class="align-middle">${escapeHtml(item.tenNguoiDaiDien)}</td>
@@ -354,6 +371,7 @@
                         </td>
                         <td class="text-center align-middle">${anhBtn}</td>
                         <td class="text-center align-middle">${statusBadge}</td>
+                        <td class="text-center align-middle dn-col-action">${actionCell}</td>
                     </tr>
                 `;
             }
@@ -366,7 +384,7 @@
 
                 let html = '';
                 if (data.length === 0) {
-                    html = '<tr><td colspan="9" class="text-center text-secondary py-5">Chi nhánh này chưa có phòng đang thuê.</td></tr>';
+                    html = '<tr><td colspan="11" class="text-center text-secondary py-5">Chi nhánh này chưa có phòng đang thuê.</td></tr>';
                 } else {
                     data.forEach((item, index) => {
                         html += renderRow(item, index);
@@ -374,6 +392,7 @@
                 }
                 
                 $('#tbodyDienNuoc').html(html);
+                $('#dnSelectAll').prop('checked', false).prop('indeterminate', false);
                 updateSummary(data);
 
                 // Khởi tạo lại DataTable (Giữ cuộn dọc, chỉ tìm kiếm và sắp xếp)
@@ -386,7 +405,7 @@
                         "info": false,
                         "autoWidth": false,
                         "columnDefs": [
-                            { "orderable": false, "targets": [0, 3, 4, 5, 6, 7, 8] } // Không sort trên STT, các cột chỉ số, ảnh và trạng thái
+                            { "orderable": false, "targets": [0, 1, 4, 5, 6, 7, 8, 9, 10] } // Không sort trên ô chọn, STT, các cột chỉ số, ảnh, trạng thái và thao tác
                         ]
                     });
                     
@@ -466,35 +485,69 @@
                 }
             });
 
-            // Detect changes in inputs to toggle sticky bottom bar
-            function checkForChanges() {
-                let hasChanges = false;
-                $('#tbodyDienNuoc tr').not('.row-locked').each(function () {
-                    let index = $(this).data('index');
-                    if (index !== undefined) {
-                        let rowData = currentData[index];
-                        let defaultDienMoi = (rowData.chiSoDienMoi === 0 && !rowData.isDaChot) ? rowData.chiSoDienCu : rowData.chiSoDienMoi;
-                        let defaultNuocMoi = (rowData.chiSoNuocMoi === 0 && !rowData.isDaChot) ? rowData.chiSoNuocCu : rowData.chiSoNuocMoi;
-
-                        let currentDienMoi = parseFloat($(this).find('.in-dien-moi').val()) || 0;
-                        let currentNuocMoi = parseFloat($(this).find('.in-nuoc-moi').val()) || 0;
-
-                        if (currentDienMoi !== defaultDienMoi || currentNuocMoi !== defaultNuocMoi) {
-                            hasChanges = true;
-                            return false; // break loop
-                        }
-                    }
-                });
-
-                if (hasChanges) {
-                    showStickyBar();
-                } else {
-                    hideStickyBar();
-                }
+            // ===== Chọn phòng, đếm thay đổi và thanh thao tác =====
+            function allRowNodes() {
+                return table ? table.rows().nodes().to$() : $('#tbodyDienNuoc tr');
             }
 
-            function showStickyBar() {
-                $('#stickyActionBar').addClass('show-bar');
+            function defaultsOf(rowData) {
+                return {
+                    dien: (rowData.chiSoDienMoi === 0 && !rowData.isDaChot) ? rowData.chiSoDienCu : rowData.chiSoDienMoi,
+                    nuoc: (rowData.chiSoNuocMoi === 0 && !rowData.isDaChot) ? rowData.chiSoNuocCu : rowData.chiSoNuocMoi
+                };
+            }
+
+            function rowHasChanges($tr) {
+                const rowData = currentData[$tr.data('index')];
+                if (!rowData || rowData.isLocked) return false;
+                const d = defaultsOf(rowData);
+                return (parseFloat($tr.find('.in-dien-moi').val()) || 0) !== d.dien
+                    || (parseFloat($tr.find('.in-nuoc-moi').val()) || 0) !== d.nuoc;
+            }
+
+            function changedRows() {
+                return allRowNodes().filter(function () { return rowHasChanges($(this)); });
+            }
+
+            function selectedRows() {
+                return allRowNodes().filter(function () { return $(this).find('.dn-select').is(':checked'); });
+            }
+
+            function roomNames($rows) {
+                return $rows.map(function () {
+                    const rowData = currentData[$(this).data('index')];
+                    return rowData ? rowData.tenPhong : null;
+                }).get();
+            }
+
+            function syncSelectAll() {
+                const $boxes = allRowNodes().find('.dn-select:not(:disabled)');
+                const checked = $boxes.filter(':checked').length;
+                $('#dnSelectAll')
+                    .prop('checked', $boxes.length > 0 && checked === $boxes.length)
+                    .prop('indeterminate', checked > 0 && checked < $boxes.length);
+            }
+
+            function updateBar() {
+                const $selected = selectedRows();
+                const $changed = changedRows();
+                const $bar = $('#stickyActionBar');
+
+                if ($selected.length > 0) {
+                    $('#dnBarTitle').text(`Đã chọn ${$selected.length} phòng`);
+                    $('#dnBarHint').text(`${roomNames($selected).join(', ')}. Chốt cùng lúc: một phòng lỗi thì cả nhóm không được chốt.`);
+                    $('#dnBarSaveLabel').text(`Chốt ${$selected.length} phòng`);
+                    $('#btnCancelChanges').text('Bỏ chọn');
+                    $bar.attr('data-mode', 'selection').addClass('show-bar');
+                } else if ($changed.length > 0) {
+                    $('#dnBarTitle').text(`${$changed.length} phòng có chỉ số mới chưa chốt`);
+                    $('#dnBarHint').text(roomNames($changed).join(', '));
+                    $('#dnBarSaveLabel').text(`Chốt ${$changed.length} phòng`);
+                    $('#btnCancelChanges').text('Bỏ thay đổi');
+                    $bar.attr('data-mode', 'changes').addClass('show-bar');
+                } else {
+                    $bar.removeClass('show-bar');
+                }
             }
 
             function hideStickyBar() {
@@ -502,7 +555,23 @@
             }
 
             $('#tbodyDienNuoc').on('input change', '.in-dien-moi, .in-nuoc-moi', function () {
-                checkForChanges();
+                updateBar();
+            });
+
+            $('#tbodyDienNuoc').on('change', '.dn-select', function () {
+                $(this).closest('tr').toggleClass('dn-selected', this.checked);
+                syncSelectAll();
+                updateBar();
+            });
+
+            $('#dnSelectAll').on('change', function () {
+                const on = this.checked;
+                allRowNodes().each(function () {
+                    const $box = $(this).find('.dn-select:not(:disabled)');
+                    $box.prop('checked', on);
+                    $(this).toggleClass('dn-selected', on && $box.length > 0);
+                });
+                updateBar();
             });
 
             // Click open modal ảnh chỉ số
@@ -518,12 +587,12 @@
                 }
             });
 
-            // Hàm làm mới duy nhất 1 dòng sau khi thao tác ảnh chỉ số thành công
-            window.refreshDienNuocRow = function (phongTroId) {
-                let chiNhanhId = $('#filterChiNhanh').val();
-                let thang = $('#filterThang').val();
-                let nam = $('#filterNam').val();
-                if (!chiNhanhId) return;
+            // Làm mới đúng các phòng đã đổi (sau khi chốt hoặc thao tác ảnh); số đang gõ dở ở phòng khác được giữ nguyên
+            function refreshRooms(phongTroIds) {
+                const chiNhanhId = $('#filterChiNhanh').val();
+                const thang = $('#filterThang').val();
+                const nam = $('#filterNam').val();
+                if (!chiNhanhId || !phongTroIds.length) return;
 
                 $.ajax({
                     url: '/DienNuoc/GetDanhSachPhongs',
@@ -531,195 +600,211 @@
                     data: { chiNhanhId: chiNhanhId, thang: thang, nam: nam },
                     success: function (res) {
                         if (!res || !Array.isArray(res)) return;
-                        let updatedItem = res.find(x => x.phongTroId === phongTroId);
-                        if (!updatedItem) return;
 
-                        let idx = currentData.findIndex(x => x.phongTroId === phongTroId);
-                        if (idx === -1) return;
+                        phongTroIds.forEach(function (phongTroId) {
+                            const updatedItem = res.find(x => x.phongTroId === phongTroId);
+                            const idx = currentData.findIndex(x => x.phongTroId === phongTroId);
+                            if (!updatedItem || idx === -1) return;
 
-                        currentData[idx] = updatedItem;
+                            currentData[idx] = updatedItem;
 
-                        let $tr = $(`#tbodyDienNuoc tr[data-index="${idx}"]`);
-                        if ($tr.length > 0) {
-                            let $newTr = $(renderRow(updatedItem, idx));
-                            $tr.attr('class', $newTr.attr('class') || '');
-                            $tr.html($newTr.html());
-                            if (table) {
-                                table.row($tr[0]).invalidate('dom');
+                            // Hàng đang bị DataTables ẩn do tìm kiếm không nằm trong DOM nên lấy qua danh sách node của bảng
+                            const $tr = allRowNodes().filter(function () { return $(this).data('index') === idx; });
+                            if ($tr.length > 0) {
+                                const $newTr = $(renderRow(updatedItem, idx));
+                                $tr.attr('class', $newTr.attr('class') || '');
+                                $tr.html($newTr.html());
+                                if (table) {
+                                    table.row($tr[0]).invalidate('dom');
+                                }
                             }
-                        }
+                        });
+
+                        updateSummary(currentData);
+                        syncSelectAll();
+                        updateBar();
                     }
                 });
+            }
+
+            window.refreshDienNuocRow = function (phongTroId) {
+                refreshRooms([phongTroId]);
             };
 
-            // Reset changes
+            // Bỏ chọn (khi đang chọn phòng) hoặc bỏ thay đổi (khi chỉ có chỉ số chưa chốt)
             $('#btnCancelChanges').on('click', function () {
+                if ($('#stickyActionBar').attr('data-mode') === 'selection') {
+                    allRowNodes().each(function () {
+                        $(this).removeClass('dn-selected').find('.dn-select').prop('checked', false);
+                    });
+                    syncSelectAll();
+                    updateBar();
+                    return;
+                }
+
                 renderTable(currentData);
                 hideStickyBar();
             });
 
-            // Save Data
-            $('#btnSaveData, #btnSaveDataSticky').on('click', function () {
-                saveAllData();
-            });
+            // Chốt: gom đúng các hàng cần chốt, kiểm tra từng hàng, rồi gửi một giao dịch duy nhất (một phòng lỗi thì cả nhóm hủy)
+            function collectPayload($rows) {
+                const danhSachPhong = [];
+                let ok = true;
 
-            function saveAllData() {
-                if (currentData.length === 0) return;
+                $rows.each(function () {
+                    const $tr = $(this);
+                    const index = $tr.data('index');
+                    if (index === undefined) return;
 
-                let chiNhanhId = $('#filterChiNhanh').val();
-                let thang = $('#filterThang').val();
-                let nam = $('#filterNam').val();
+                    const rowData = currentData[index];
+                    if (rowData.isLocked) return;
 
-                let danhSachPhong = [];
-                let hasError = false;
+                    const dienCu = parseFloat($tr.find('.in-dien-cu').val()) || 0;
+                    const dienMoi = parseFloat($tr.find('.in-dien-moi').val()) || 0;
+                    const nuocCu = parseFloat($tr.find('.in-nuoc-cu').val()) || 0;
+                    const nuocMoi = parseFloat($tr.find('.in-nuoc-moi').val()) || 0;
 
-                // Lấy tất cả hàng trong DataTable (kể cả những hàng đang bị ẩn do search)
-                let rows = table ? table.rows().nodes().to$() : $('#tbodyDienNuoc tr');
-
-                rows.each(function () {
-                    let index = $(this).data('index');
-                    if (index !== undefined) {
-                        let rowData = currentData[index];
-                        
-                        // Bỏ qua nếu dòng này đã bị khóa
-                        if (rowData.isLocked) return;
-
-                        let dienCu = parseFloat($(this).find('.in-dien-cu').val()) || 0;
-                        let dienMoi = parseFloat($(this).find('.in-dien-moi').val()) || 0;
-                        let nuocCu = parseFloat($(this).find('.in-nuoc-cu').val()) || 0;
-                        let nuocMoi = parseFloat($(this).find('.in-nuoc-moi').val()) || 0;
-
-                        if (dienMoi < 0 || nuocMoi < 0) {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Chỉ số không hợp lệ',
-                                text: `Phòng ${rowData.tenPhong}: Chỉ số điện/nước mới không được âm.`
-                            });
-                            hasError = true;
-                            return false; // break each
-                        }
-
-                        if (dienMoi < dienCu) {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Chỉ số điện sai lệch',
-                                text: `Phòng ${rowData.tenPhong}: Chỉ số điện mới (${dienMoi}) không được nhỏ hơn chỉ số điện cũ (${dienCu}).`
-                            });
-                            hasError = true;
-                            $(this).find('.in-dien-moi').addClass('is-invalid');
-                            return false; // break each
-                        }
-
-                        if (nuocMoi < nuocCu) {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Chỉ số nước sai lệch',
-                                text: `Phòng ${rowData.tenPhong}: Chỉ số nước mới (${nuocMoi}) không được nhỏ hơn chỉ số nước cũ (${nuocCu}).`
-                            });
-                            hasError = true;
-                            $(this).find('.in-nuoc-moi').addClass('is-invalid');
-                            return false; // break each
-                        }
-
-                        let isOfficialDien = rowData.coAnhDienChinhThuc && (rowData.giaTriDienXacNhanTuAnh != null ? dienMoi === rowData.giaTriDienXacNhanTuAnh : dienMoi === dienCu);
-                        let isOfficialNuoc = rowData.coAnhNuocChinhThuc && (rowData.giaTriNuocXacNhanTuAnh != null ? nuocMoi === rowData.giaTriNuocXacNhanTuAnh : nuocMoi === nuocCu);
-
-                        let lyDoDien = $(this).find('.in-lydo-dien').val()?.trim() || null;
-                        let lyDoNuoc = $(this).find('.in-lydo-nuoc').val()?.trim() || null;
-
-                        if (!isOfficialDien && !lyDoDien) {
-                            Swal.fire({
-                                icon: 'warning',
-                                title: 'Thiếu lý do nhập tay điện',
-                                text: `Phòng ${rowData.tenPhong}: Vui lòng nhập lý do điều chỉnh chỉ số điện thủ công.`
-                            });
-                            hasError = true;
-                            $(this).find('.in-lydo-dien').addClass('is-invalid').focus();
-                            return false;
-                        }
-
-                        if (!isOfficialNuoc && !lyDoNuoc) {
-                            Swal.fire({
-                                icon: 'warning',
-                                title: 'Thiếu lý do nhập tay nước',
-                                text: `Phòng ${rowData.tenPhong}: Vui lòng nhập lý do điều chỉnh chỉ số nước thủ công.`
-                            });
-                            hasError = true;
-                            $(this).find('.in-lydo-nuoc').addClass('is-invalid').focus();
-                            return false;
-                        }
-
-                        danhSachPhong.push({
-                            dichVuDienNuocCuaPhongId: rowData.dichVuDienNuocCuaPhongId,
-                            phongTroId: rowData.phongTroId,
-                            dienMode: isOfficialDien ? 1 : 2,
-                            nuocMode: isOfficialNuoc ? 1 : 2,
-                            chiSoDienCu: dienCu,
-                            chiSoDienMoi: dienMoi,
-                            chiSoNuocCu: nuocCu,
-                            chiSoNuocMoi: nuocMoi,
-                            lyDoNhapThuCongDien: isOfficialDien ? null : lyDoDien,
-                            lyDoNhapThuCongNuoc: isOfficialNuoc ? null : lyDoNuoc
-                        });
+                    if (dienMoi < 0 || nuocMoi < 0) {
+                        Swal.fire({ icon: 'error', title: 'Chỉ số không hợp lệ', text: `Phòng ${rowData.tenPhong}: Chỉ số điện/nước mới không được âm.` });
+                        ok = false;
+                        return false;
                     }
+
+                    if (dienMoi < dienCu) {
+                        Swal.fire({ icon: 'error', title: 'Chỉ số điện sai lệch', text: `Phòng ${rowData.tenPhong}: Chỉ số điện mới (${dienMoi}) không được nhỏ hơn chỉ số điện cũ (${dienCu}).` });
+                        $tr.find('.in-dien-moi').addClass('is-invalid');
+                        ok = false;
+                        return false;
+                    }
+
+                    if (nuocMoi < nuocCu) {
+                        Swal.fire({ icon: 'error', title: 'Chỉ số nước sai lệch', text: `Phòng ${rowData.tenPhong}: Chỉ số nước mới (${nuocMoi}) không được nhỏ hơn chỉ số nước cũ (${nuocCu}).` });
+                        $tr.find('.in-nuoc-moi').addClass('is-invalid');
+                        ok = false;
+                        return false;
+                    }
+
+                    const isOfficialDien = rowData.coAnhDienChinhThuc && (rowData.giaTriDienXacNhanTuAnh != null ? dienMoi === rowData.giaTriDienXacNhanTuAnh : dienMoi === dienCu);
+                    const isOfficialNuoc = rowData.coAnhNuocChinhThuc && (rowData.giaTriNuocXacNhanTuAnh != null ? nuocMoi === rowData.giaTriNuocXacNhanTuAnh : nuocMoi === nuocCu);
+                    const lyDoDien = $tr.find('.in-lydo-dien').val()?.trim() || null;
+                    const lyDoNuoc = $tr.find('.in-lydo-nuoc').val()?.trim() || null;
+
+                    if (!isOfficialDien && !lyDoDien) {
+                        Swal.fire({ icon: 'warning', title: 'Thiếu lý do nhập tay điện', text: `Phòng ${rowData.tenPhong}: Vui lòng nhập lý do điều chỉnh chỉ số điện thủ công.` });
+                        $tr.find('.in-lydo-dien').addClass('is-invalid').focus();
+                        ok = false;
+                        return false;
+                    }
+
+                    if (!isOfficialNuoc && !lyDoNuoc) {
+                        Swal.fire({ icon: 'warning', title: 'Thiếu lý do nhập tay nước', text: `Phòng ${rowData.tenPhong}: Vui lòng nhập lý do điều chỉnh chỉ số nước thủ công.` });
+                        $tr.find('.in-lydo-nuoc').addClass('is-invalid').focus();
+                        ok = false;
+                        return false;
+                    }
+
+                    danhSachPhong.push({
+                        dichVuDienNuocCuaPhongId: rowData.dichVuDienNuocCuaPhongId,
+                        phongTroId: rowData.phongTroId,
+                        dienMode: isOfficialDien ? 1 : 2,
+                        nuocMode: isOfficialNuoc ? 1 : 2,
+                        chiSoDienCu: dienCu,
+                        chiSoDienMoi: dienMoi,
+                        chiSoNuocCu: nuocCu,
+                        chiSoNuocMoi: nuocMoi,
+                        lyDoNhapThuCongDien: isOfficialDien ? null : lyDoDien,
+                        lyDoNhapThuCongNuoc: isOfficialNuoc ? null : lyDoNuoc
+                    });
                 });
 
-                if (hasError) return;
+                return ok ? danhSachPhong : null;
+            }
 
-                if (danhSachPhong.length === 0) {
+            function setChotBusy(busy) {
+                $('#btnSaveData, #btnSaveDataSticky, .btn-chot-phong, #btnCancelChanges').prop('disabled', busy);
+                $('#btnSaveDataSticky').toggleClass('btn-loading', busy);
+            }
+
+            function runChot($rows) {
+                const items = collectPayload($rows);
+                if (items === null) return;
+
+                if (items.length === 0) {
                     Swal.fire({
                         icon: 'info',
-                        title: 'Thông báo',
-                        text: 'Tất cả các phòng trong danh sách đã bị khóa hoặc không có chỉ số mới cần lưu.'
+                        title: 'Chưa có phòng nào để chốt',
+                        text: 'Nhập chỉ số mới cho phòng cần chốt, hoặc tick chọn phòng rồi chốt.'
                     });
                     return;
                 }
 
-                let payload = {
-                    chiNhanhId: parseInt(chiNhanhId),
-                    thang: parseInt(thang),
-                    nam: parseInt(nam),
-                    danhSachPhong: danhSachPhong
-                };
-
-                let $btn = $('#btnSaveData');
-                let $btnSticky = $('#btnSaveDataSticky');
-                let originalHtml = $btn.html();
-                let originalStickyHtml = $btnSticky.html();
+                const thang = parseInt($('#filterThang').val());
+                const nam = parseInt($('#filterNam').val());
+                const names = roomNames($rows);
+                const single = items.length === 1;
 
                 Swal.fire({
-                    title: 'Xác nhận chốt chỉ số?',
-                    text: `Bạn có chắc chắn muốn chốt và lưu chỉ số điện/nước cho các phòng của tháng ${thang}/${nam}?`,
                     icon: 'question',
+                    title: single ? `Chốt phòng ${names[0]}?` : `Chốt ${items.length} phòng?`,
+                    text: single
+                        ? `Chốt chỉ số điện và nước tháng ${thang}/${nam} của phòng ${names[0]}. Các phòng khác không bị ảnh hưởng.`
+                        : `Chốt chỉ số tháng ${thang}/${nam} cho: ${names.join(', ')}. Nếu một phòng không hợp lệ, cả nhóm sẽ không được chốt.`,
                     showCancelButton: true,
-                    confirmButtonText: 'Đồng ý',
-                    cancelButtonText: 'Hủy bỏ'
+                    confirmButtonText: single ? 'Chốt phòng' : 'Chốt nhóm',
+                    cancelButtonText: 'Xem lại'
                 }).then((result) => {
-                    if (result.isConfirmed) {
-                        $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1" role="status"></span> Đang lưu');
-                        $btnSticky.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1" role="status"></span> Đang lưu');
+                    if (!result.isConfirmed) return;
 
-                        $.ajax({
-                            url: '/DienNuoc/SaveChotDienNuoc',
-                            type: 'POST',
-                            contentType: 'application/json',
-                            data: JSON.stringify(payload),
-                            success: function (res) {
-                                showSuccess(res.message).then(() => {
-                                    loadData();
-                                });
-                            },
-                            error: function (xhr) {
-                                showError(xhr.responseJSON?.message || 'Có lỗi xảy ra khi lưu chỉ số.');
-                            },
-                            complete: function () {
-                                $btn.prop('disabled', false).html(originalHtml);
-                                $btnSticky.prop('disabled', false).html(originalStickyHtml);
-                            }
-                        });
-                    }
+                    setChotBusy(true);
+                    $.ajax({
+                        url: '/DienNuoc/SaveChotDienNuoc',
+                        type: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify({
+                            chiNhanhId: parseInt($('#filterChiNhanh').val()),
+                            thang: thang,
+                            nam: nam,
+                            danhSachPhong: items
+                        }),
+                        success: function (res) {
+                            showSuccess(res.message);
+                            refreshRooms(items.map(i => i.phongTroId));
+                        },
+                        error: function (xhr) {
+                            // Giữ nguyên các hàng và lựa chọn để người dùng sửa phòng lỗi rồi chốt lại
+                            showError(xhr.responseJSON?.message || 'Có lỗi xảy ra khi chốt chỉ số.');
+                        },
+                        complete: function () {
+                            setChotBusy(false);
+                        }
+                    });
                 });
             }
+
+            // Chốt tất cả: các phòng đã có chỉ số mới hoặc ảnh chính thức; phòng chưa nhập gì và phòng đã chốt không đổi thì bỏ qua
+            function chotAll() {
+                if (currentData.length === 0) return;
+
+                const $rows = allRowNodes().filter(function () {
+                    const rowData = currentData[$(this).data('index')];
+                    if (!rowData || rowData.isLocked) return false;
+                    if (rowHasChanges($(this))) return true;
+                    if (rowData.isDaChot) return false;
+                    return !!(rowData.coAnhDienChinhThuc || rowData.coAnhNuocChinhThuc);
+                });
+
+                runChot($rows);
+            }
+
+            $('#btnSaveData').on('click', chotAll);
+
+            $('#btnSaveDataSticky').on('click', function () {
+                runChot($('#stickyActionBar').attr('data-mode') === 'selection' ? selectedRows() : changedRows());
+            });
+
+            $('#tbodyDienNuoc').on('click', '.btn-chot-phong', function () {
+                runChot($(this).closest('tr'));
+            });
         });
     </script>
 }

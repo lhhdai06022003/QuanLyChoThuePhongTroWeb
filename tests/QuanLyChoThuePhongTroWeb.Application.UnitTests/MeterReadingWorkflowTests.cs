@@ -621,6 +621,80 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.NotEqual(TrangThaiGhiNhan.DaDuyet, period.TrangThaiGhiNhan);
         }
 
+        private (DichVuDienNuocCuaPhong Room1, DichVuDienNuocCuaPhong Room2) SetupTwoRoomsInOctober()
+        {
+            var room1 = new DichVuDienNuocCuaPhong { DichVuDienNuocCuaPhongId = 1, PhongTroId = 1, Thang = 10, Nam = 2026, ChiSoDienCu = 100, ChiSoNuocCu = 50 };
+            var room2 = new DichVuDienNuocCuaPhong { DichVuDienNuocCuaPhongId = 2, PhongTroId = 2, Thang = 10, Nam = 2026, ChiSoDienCu = 200, ChiSoNuocCu = 80 };
+            _store.Periods[1] = room1;
+            _store.Periods[2] = room2;
+            _store.RoomBranches[1] = 10;
+            _store.RoomBranches[2] = 10;
+            _access.Permissions.Add((2, 10, EmployeeActionCodes.MeterReview));
+            return (room1, room2);
+        }
+
+        [Fact]
+        public async Task ApprovePeriodsAsync_WhenOnlyOneRoomIsSent_LeavesOtherRoomsOfTheBranchUntouched()
+        {
+            var (room1, room2) = SetupTwoRoomsInOctober();
+
+            var result = await _service.ApprovePeriodsAsync(ManualApproveRequest(10, 2026, phongTroId: 1), 2);
+
+            Assert.True(result.Success);
+            Assert.Equal(TrangThaiGhiNhan.DaDuyet, room1.TrangThaiGhiNhan);
+            Assert.NotEqual(TrangThaiGhiNhan.DaDuyet, room2.TrangThaiGhiNhan);
+            Assert.Equal(0m, room2.ChiSoDienMoi);
+        }
+
+        [Fact]
+        public async Task ApprovePeriodsAsync_WhenOneRoomOfTheGroupFails_RollsBackTheWholeGroup()
+        {
+            var (_, room2) = SetupTwoRoomsInOctober();
+            // Phòng 2 có hợp đồng tháng trước nhưng kỳ 09/2026 chưa chốt, nên không được duyệt.
+            _store.Periods[3] = new DichVuDienNuocCuaPhong { DichVuDienNuocCuaPhongId = 3, PhongTroId = 2, Thang = 9, Nam = 2026, TrangThaiGhiNhan = TrangThaiGhiNhan.Nhap };
+            _store.ContractMonths.Add((2, 9, 2026));
+
+            var request = ManualApproveRequest(10, 2026, phongTroId: 1);
+            request.DanhSachPhong = request.DanhSachPhong.Concat(ManualApproveRequest(10, 2026, phongTroId: 2).DanhSachPhong).ToList();
+
+            var result = await _service.ApprovePeriodsAsync(request, 2);
+
+            Assert.False(result.Success);
+            Assert.Contains("09/2026", result.Message);
+            Assert.True(_uow.CurrentTransaction.RolledBack);
+            Assert.False(_uow.CurrentTransaction.Committed);
+            // Không có lần lưu nào: đối tượng trong bộ nhớ của fake có thể đã bị sửa, nhưng giao dịch bị hủy nên DB không đổi.
+            Assert.Equal(0, _uow.SaveChangesCallCount);
+            Assert.NotEqual(TrangThaiGhiNhan.DaDuyet, room2.TrangThaiGhiNhan);
+        }
+
+        [Fact]
+        public async Task ApprovePeriodsAsync_ErrorMessage_UsesRoomNumberInsteadOfInternalId()
+        {
+            _store.Periods[1] = new DichVuDienNuocCuaPhong { DichVuDienNuocCuaPhongId = 1, PhongTroId = 7, Thang = 9, Nam = 2026, TrangThaiGhiNhan = TrangThaiGhiNhan.Nhap };
+            _store.Periods[2] = new DichVuDienNuocCuaPhong { DichVuDienNuocCuaPhongId = 2, PhongTroId = 7, Thang = 10, Nam = 2026, ChiSoDienCu = 100, ChiSoNuocCu = 50 };
+            _store.ContractMonths.Add((7, 9, 2026));
+            _store.RoomBranches[7] = 10;
+            _store.RoomNumbers[7] = "A101";
+            _access.Permissions.Add((2, 10, EmployeeActionCodes.MeterReview));
+
+            var result = await _service.ApprovePeriodsAsync(ManualApproveRequest(10, 2026, phongTroId: 7), 2);
+
+            Assert.False(result.Success);
+            Assert.Contains("Phòng A101", result.Message);
+            Assert.DoesNotContain("Phòng 7", result.Message);
+        }
+
+        [Fact]
+        public async Task ConfirmImageAsync_WhenNoteExceedsColumnLimit_ReturnsFailWithoutTouchingStore()
+        {
+            var result = await _service.ConfirmImageAsync(new ConfirmMeterImageRequest { AnhChiSoDongHoId = 100, GiaTriXacNhan = 150m, GhiChu = new string('x', 1001) }, 2);
+
+            Assert.False(result.Success);
+            Assert.Contains("1000", result.Message);
+            Assert.Equal(0, _uow.SaveChangesCallCount);
+        }
+
         [Fact]
         public async Task ApprovePeriodsAsync_WhenPreviousMonthHadContractAndNoRecord_ReturnsFail()
         {
@@ -2082,6 +2156,65 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.Equal(180000m, electricDetail.TongTien);
         }
 
+        [Theory]
+        [InlineData("Điện tháng 10 (100 → 150)")]
+        [InlineData("Điện: 50 x 3000")]
+        [InlineData("tiền điện phòng")]
+        public async Task CorrectConfirmedImageAsync_WhenDraftElectricLineWasRenamed_UpdatesThatLineInsteadOfAddingSecond(string renamedLine)
+        {
+            var (invoice, _) = SetupDraftWithLine(renamedLine);
+
+            var result = await _service.CorrectConfirmedImageAsync(new CorrectConfirmedMeterImageRequest(100, 160m, "Tăng 10 số điện"), 2);
+
+            Assert.True(result.Success);
+            var line = Assert.Single(invoice.ChiTietHoaDonDichVus);
+            Assert.Equal(60m, line.SoLuong);
+            Assert.Equal(180000m, line.TongTien);
+        }
+
+        [Fact]
+        public async Task CorrectConfirmedImageAsync_WhenDraftHasUnrelatedDienThoaiLine_KeepsItAndAddsElectricLine()
+        {
+            var (invoice, _) = SetupDraftWithLine("Điện thoại bàn");
+
+            var result = await _service.CorrectConfirmedImageAsync(new CorrectConfirmedMeterImageRequest(100, 160m, "Tăng 10 số điện"), 2);
+
+            Assert.True(result.Success);
+            var phone = invoice.ChiTietHoaDonDichVus.Single(d => d.TenDichVu == "Điện thoại bàn");
+            Assert.Equal(150000m, phone.TongTien);
+            Assert.Equal(2, invoice.ChiTietHoaDonDichVus.Count);
+        }
+
+        private (HoaDon Invoice, DichVuDienNuocCuaPhong Period) SetupDraftWithLine(string lineName)
+        {
+            var period = new DichVuDienNuocCuaPhong
+            {
+                DichVuDienNuocCuaPhongId = 1, PhongTroId = 1, Thang = 10, Nam = 2026,
+                ChiSoDienCu = 100m, ChiSoDienMoi = 150m, DonGiaDien = 3000m
+            };
+            _store.Periods[1] = period;
+            _store.RoomBranches[1] = 10;
+            _store.Images[100] = new AnhChiSoDongHo
+            {
+                AnhChiSoDongHoId = 100, DichVuDienNuocCuaPhongId = 1, LoaiDongHo = LoaiDongHo.Dien, Url = "http://test",
+                TrangThaiXuLy = TrangThaiXuLyAnhChiSo.DaXacNhan, DuocChonLamChiSoChinhThuc = true, GiaTriXacNhan = 150m
+            };
+            _access.Permissions.Add((2, 10, EmployeeActionCodes.MeterReview));
+
+            var invoice = new HoaDon
+            {
+                HoaDonId = 1,
+                DichVuDienNuocCuaPhongId = 1,
+                TrangThaiPhatHanh = TrangThaiPhatHanhHoaDon.Nhap,
+                ChiTietHoaDonDichVus = new List<ChiTietHoaDon>
+                {
+                    new() { TenDichVu = lineName, SoLuong = 50, DonGia = 3000m, TongTien = 150000m }
+                }
+            };
+            _hoaDonStore.Invoices.Add(invoice);
+            return (invoice, period);
+        }
+
         #region Cập nhật dây chuyền kỳ sau (kỳ sau còn là bản nháp)
 
         private DichVuDienNuocCuaPhong SetupCorrectionWithLaterPeriods(
@@ -2181,6 +2314,37 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
 
             Assert.True(result.Success);
             Assert.Equal(180m, period.ChiSoDienMoi);
+        }
+
+        // Mô phỏng đua: kiểm tra không khóa (HasSubsequentPeriodAsync) thấy kỳ sau còn nháp, nhưng khi đã giữ khóa
+        // thì kỳ sau đã bị giao dịch khác duyệt/phát hành. Dây chuyền không được sửa số của kỳ đã chốt.
+        [Fact]
+        public async Task CorrectConfirmedImageAsync_WhenNextPeriodApprovedAfterPreCheck_FailsAndKeepsNextPeriod()
+        {
+            var next = LaterPeriod(2, 11, 150m, 150m, 70m, 70m);
+            next.TrangThaiGhiNhan = TrangThaiGhiNhan.DaDuyet;
+            SetupCorrectionWithLaterPeriods(out _, next);
+
+            var result = await _service.CorrectConfirmedImageAsync(new CorrectConfirmedMeterImageRequest(100, 180m, "Sửa số"), 2);
+
+            Assert.False(result.Success);
+            Assert.Contains("11/2026", result.Message);
+            Assert.Equal((150m, 150m), (next.ChiSoDienCu, next.ChiSoDienMoi));
+            Assert.Equal(0, _uow.SaveChangesCallCount);
+        }
+
+        [Fact]
+        public async Task CorrectConfirmedImageAsync_WhenNextPeriodGetsIssuedInvoiceAfterPreCheck_FailsAndKeepsNextPeriod()
+        {
+            var next = LaterPeriod(2, 11, 150m, 150m, 70m, 70m);
+            SetupCorrectionWithLaterPeriods(out _, next);
+            _store.NonDraftInvoicePeriodIds.Add(2);
+
+            var result = await _service.CorrectConfirmedImageAsync(new CorrectConfirmedMeterImageRequest(100, 180m, "Sửa số"), 2);
+
+            Assert.False(result.Success);
+            Assert.Equal((150m, 150m), (next.ChiSoDienCu, next.ChiSoDienMoi));
+            Assert.Equal(0, _uow.SaveChangesCallCount);
         }
 
         private static ApproveMeterPeriodItem ManualApproveItem(int phongTroId, decimal dien, decimal nuoc) => new()

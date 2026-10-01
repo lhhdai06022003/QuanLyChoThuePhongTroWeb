@@ -167,6 +167,105 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             await tx.RollbackAsync();
         }
 
+        private async Task<DichVuDienNuocCuaPhong> CreateMeterPeriodAsync(int phongTroId, int thang, int nam, decimal chiSoDienMoi)
+        {
+            await using var ctx = _fixture.CreateDbContext();
+            var period = new DichVuDienNuocCuaPhong
+            {
+                PhongTroId = phongTroId,
+                Thang = thang,
+                Nam = nam,
+                TrangThaiGhiNhan = TrangThaiGhiNhan.DaDuyet,
+                ChiSoDienCu = 100,
+                ChiSoDienMoi = chiSoDienMoi,
+                DonGiaDien = 3500m,
+                ChiSoNuocCu = 50,
+                ChiSoNuocMoi = 60,
+                DonGiaNuoc = 15000m
+            };
+            ctx.DichVuDienNuocCuaPhongs.Add(period);
+            await ctx.SaveChangesAsync();
+            return period;
+        }
+
+        [Fact]
+        public async Task LockMeterPeriodsForRooms_ConcurrentEdit_DraftCreationReadsCommittedReading()
+        {
+            var (_, room, _, _, _) = await CreateTestHierarchyAsync("lockperiod");
+            var period = await CreateMeterPeriodAsync(room.PhongTroId, 9, 2026, chiSoDienMoi: 150);
+
+            // T1 (sửa số) giữ khóa kỳ và đổi số mới nhưng chưa commit.
+            await using var ctx1 = _fixture.CreateDbContext();
+            await using var tx1 = await ctx1.Database.BeginTransactionAsync();
+            var editStore = new MeterImageStore(ctx1);
+            var locked = await editStore.GetPeriodByIdForUpdateAsync(period.DichVuDienNuocCuaPhongId);
+            Assert.NotNull(locked);
+            locked!.ChiSoDienMoi = 180;
+            await ctx1.SaveChangesAsync();
+
+            decimal? readByDraft = null;
+            var draftTask = Task.Run(async () =>
+            {
+                await using var ctx2 = _fixture.CreateDbContext();
+                await ctx2.Database.ExecuteSqlRawAsync("SET lock_timeout = '10000ms';");
+                await using var tx2 = await ctx2.Database.BeginTransactionAsync();
+                var issuanceStore = new InvoiceIssuanceStore(ctx2);
+                await issuanceStore.LockMeterPeriodsForRoomsAsync(new[] { room.PhongTroId }, 9, 2026);
+                // Đúng thứ tự trong CreateDraftsAsync: khóa kỳ rồi mới đọc số.
+                readByDraft = await ctx2.DichVuDienNuocCuaPhongs
+                    .AsNoTracking()
+                    .Where(x => x.DichVuDienNuocCuaPhongId == period.DichVuDienNuocCuaPhongId)
+                    .Select(x => (decimal?)x.ChiSoDienMoi)
+                    .SingleAsync();
+                await tx2.CommitAsync();
+            });
+
+            // Tạo nháp phải bị chặn cho tới khi T1 commit, không được đọc số cũ.
+            await WaitForBlockedLocksAsync(expectedWaitingCount: 1, timeout: TimeSpan.FromSeconds(5));
+            Assert.Null(readByDraft);
+
+            await tx1.CommitAsync();
+            await draftTask;
+
+            Assert.Equal(180m, readByDraft);
+        }
+
+        [Fact]
+        public async Task LockMeterPeriodsForRooms_LocksOnlyRequestedRoomAndMonth()
+        {
+            var (_, room, _, _, _) = await CreateTestHierarchyAsync("lockperiod_scope");
+            var (_, otherRoom, _, _, _) = await CreateTestHierarchyAsync("lockperiod_scope2");
+            await CreateMeterPeriodAsync(room.PhongTroId, 9, 2026, chiSoDienMoi: 150);
+            var otherMonth = await CreateMeterPeriodAsync(room.PhongTroId, 10, 2026, chiSoDienMoi: 150);
+            var otherRoomPeriod = await CreateMeterPeriodAsync(otherRoom.PhongTroId, 9, 2026, chiSoDienMoi: 150);
+
+            await using var ctx1 = _fixture.CreateDbContext();
+            await using var tx1 = await ctx1.Database.BeginTransactionAsync();
+            await new InvoiceIssuanceStore(ctx1).LockMeterPeriodsForRoomsAsync(new[] { room.PhongTroId }, 9, 2026);
+
+            // Kỳ khác tháng và kỳ của phòng khác không bị khóa: khóa ngắn hạn lấy được ngay.
+            await using var ctx2 = _fixture.CreateDbContext();
+            await ctx2.Database.ExecuteSqlRawAsync("SET lock_timeout = '2000ms';");
+            await using var tx2 = await ctx2.Database.BeginTransactionAsync();
+            var store2 = new MeterImageStore(ctx2);
+            Assert.NotNull(await store2.GetPeriodByIdForUpdateAsync(otherMonth.DichVuDienNuocCuaPhongId));
+            Assert.NotNull(await store2.GetPeriodByIdForUpdateAsync(otherRoomPeriod.DichVuDienNuocCuaPhongId));
+
+            await tx2.RollbackAsync();
+            await tx1.RollbackAsync();
+        }
+
+        [Fact]
+        public async Task LockMeterPeriodsForRooms_WithNoRooms_DoesNothing()
+        {
+            await using var ctx = _fixture.CreateDbContext();
+            await using var tx = await ctx.Database.BeginTransactionAsync();
+
+            await new InvoiceIssuanceStore(ctx).LockMeterPeriodsForRoomsAsync(Array.Empty<int>(), 9, 2026);
+
+            await tx.RollbackAsync();
+        }
+
         [Fact]
         public async Task CountCancelledInvoices_CountsOnlyDaHuyDeleted_ForSameContractAndPeriod()
         {
@@ -1016,8 +1115,8 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
                     NgayTao = DateTime.UtcNow,
                     ChiTietHoaDonDichVus = new List<ChiTietHoaDon>
                     {
-                        new ChiTietHoaDon { TenDichVu = "Tiền phòng", TongTien = 2000000m, DonGia = 2000000m, SoLuong = 1, DichVuId = 1 },
-                        new ChiTietHoaDon { TenDichVu = "Điện: 50 x 3500", TongTien = 175000m, DonGia = 3500m, SoLuong = 50, DichVuId = 2 }
+                        new ChiTietHoaDon { TenDichVu = "Tiền phòng", TongTien = 2000000m, DonGia = 2000000m, SoLuong = 1 },
+                        new ChiTietHoaDon { TenDichVu = "Điện: 50 x 3500", TongTien = 175000m, DonGia = 3500m, SoLuong = 50, DichVuId = 1 }
                     }
                 };
                 seedCtx.HoaDons.Add(inv);

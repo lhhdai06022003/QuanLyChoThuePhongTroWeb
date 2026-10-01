@@ -20,6 +20,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
 {
     public class MeterReadingWorkflowService : IMeterReadingWorkflowService
     {
+        private const int MaxConfirmNoteLength = 1000;
+
         private readonly IMeterImageStore _store;
         private readonly IMeterImageStorageService _storageService;
         private readonly IMeterOcrService _ocrService;
@@ -488,6 +490,12 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
                 return ServiceResult<MeterImageWorkflowResult>.Fail("Chỉ số xác nhận không được có quá 3 chữ số thập phân.");
             }
 
+            // Cột GhiChuXacNhan tối đa 1000 ký tự; vượt quá thì DB lỗi và người dùng nhận thông báo sai "đang được cập nhật bởi thao tác khác".
+            if (request.GhiChu != null && request.GhiChu.Length > MaxConfirmNoteLength)
+            {
+                return ServiceResult<MeterImageWorkflowResult>.Fail($"Ghi chú không được vượt quá {MaxConfirmNoteLength} ký tự.");
+            }
+
             var accessCtx = await _store.GetImageAccessContextAsync(request.AnhChiSoDongHoId, cancellationToken);
             if (accessCtx == null || accessCtx.IsDeleted)
             {
@@ -927,6 +935,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
             {
                 // Lock tất cả các phòng theo RoomId tăng dần để serialize tạo kỳ mới và tránh deadlock
                 await _store.LockRoomsAsync(distinctRoomIds, cancellationToken);
+                var roomNumbers = await _store.GetRoomNumbersAsync(distinctRoomIds, cancellationToken);
+                string Room(int phongTroId) => roomNumbers.TryGetValue(phongTroId, out var soPhong) ? soPhong : phongTroId.ToString();
 
                 var results = new List<MeterPeriodApprovalResult>();
                 var approvedPeriods = new List<DichVuDienNuocCuaPhong>();
@@ -951,13 +961,13 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
                     if (await _store.HasSubsequentPeriodAsync(item.PhongTroId, request.Thang, request.Nam, cancellationToken))
                     {
                         await tx.RollbackAsync(cancellationToken);
-                        return ServiceResult<MeterPeriodsApprovalResult>.Fail($"Phòng {item.PhongTroId}: kỳ sau đã được chốt hoặc đã có hóa đơn phát hành, không thể duyệt kỳ này.");
+                        return ServiceResult<MeterPeriodsApprovalResult>.Fail($"Phòng {Room(item.PhongTroId)}: kỳ sau đã được chốt hoặc đã có hóa đơn phát hành, không thể duyệt kỳ này.");
                     }
 
                     if (await _store.HasLockedInvoiceAsync(period.DichVuDienNuocCuaPhongId, cancellationToken))
                     {
                         await tx.RollbackAsync(cancellationToken);
-                        return ServiceResult<MeterPeriodsApprovalResult>.Fail($"Phòng {item.PhongTroId} kỳ này đã có hóa đơn đã phát hành, không thể duyệt.");
+                        return ServiceResult<MeterPeriodsApprovalResult>.Fail($"Phòng {Room(item.PhongTroId)} kỳ này đã có hóa đơn đã phát hành, không thể duyệt.");
                     }
 
                     // Phòng có hợp đồng tháng trước thì kỳ trước phải chốt trước (giống quy tắc 6 khi tải ảnh).
@@ -967,7 +977,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
                         if (prevPeriod == null || prevPeriod.TrangThaiGhiNhan != TrangThaiGhiNhan.DaDuyet)
                         {
                             await tx.RollbackAsync(cancellationToken);
-                            return ServiceResult<MeterPeriodsApprovalResult>.Fail($"Phòng {item.PhongTroId}: kỳ {kyTruoc.Thang:00}/{kyTruoc.Nam} chưa được chốt, cần chốt kỳ đó trước.");
+                            return ServiceResult<MeterPeriodsApprovalResult>.Fail($"Phòng {Room(item.PhongTroId)}: kỳ {kyTruoc.Thang:00}/{kyTruoc.Nam} chưa được chốt, cần chốt kỳ đó trước.");
                         }
                     }
 
@@ -982,7 +992,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
                         if (val < period.ChiSoDienCu)
                         {
                             await tx.RollbackAsync(cancellationToken);
-                            return ServiceResult<MeterPeriodsApprovalResult>.Fail($"Phòng {item.PhongTroId}: chỉ số điện mới không được nhỏ hơn chỉ số điện cũ.");
+                            return ServiceResult<MeterPeriodsApprovalResult>.Fail($"Phòng {Room(item.PhongTroId)}: chỉ số điện mới không được nhỏ hơn chỉ số điện cũ.");
                         }
 
                         var hadOldOfficialDien = false;
@@ -1004,13 +1014,13 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
                         if (officialDien == null || !officialDien.GiaTriXacNhan.HasValue)
                         {
                             await tx.RollbackAsync(cancellationToken);
-                            return ServiceResult<MeterPeriodsApprovalResult>.Fail($"Phòng {item.PhongTroId} chưa có ảnh điện chính thức hợp lệ.");
+                            return ServiceResult<MeterPeriodsApprovalResult>.Fail($"Phòng {Room(item.PhongTroId)} chưa có ảnh điện chính thức hợp lệ.");
                         }
 
                         if (officialDien.GiaTriXacNhan.Value < period.ChiSoDienCu)
                         {
                             await tx.RollbackAsync(cancellationToken);
-                            return ServiceResult<MeterPeriodsApprovalResult>.Fail($"Phòng {item.PhongTroId}: chỉ số điện mới không được nhỏ hơn chỉ số điện cũ.");
+                            return ServiceResult<MeterPeriodsApprovalResult>.Fail($"Phòng {Room(item.PhongTroId)}: chỉ số điện mới không được nhỏ hơn chỉ số điện cũ.");
                         }
 
                         finalChiSoDien = officialDien.GiaTriXacNhan.Value;
@@ -1028,7 +1038,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
                         if (val < period.ChiSoNuocCu)
                         {
                             await tx.RollbackAsync(cancellationToken);
-                            return ServiceResult<MeterPeriodsApprovalResult>.Fail($"Phòng {item.PhongTroId}: chỉ số nước mới không được nhỏ hơn chỉ số nước cũ.");
+                            return ServiceResult<MeterPeriodsApprovalResult>.Fail($"Phòng {Room(item.PhongTroId)}: chỉ số nước mới không được nhỏ hơn chỉ số nước cũ.");
                         }
 
                         var hadOldOfficialNuoc = false;
@@ -1050,13 +1060,13 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
                         if (officialNuoc == null || !officialNuoc.GiaTriXacNhan.HasValue)
                         {
                             await tx.RollbackAsync(cancellationToken);
-                            return ServiceResult<MeterPeriodsApprovalResult>.Fail($"Phòng {item.PhongTroId} chưa có ảnh nước chính thức hợp lệ.");
+                            return ServiceResult<MeterPeriodsApprovalResult>.Fail($"Phòng {Room(item.PhongTroId)} chưa có ảnh nước chính thức hợp lệ.");
                         }
 
                         if (officialNuoc.GiaTriXacNhan.Value < period.ChiSoNuocCu)
                         {
                             await tx.RollbackAsync(cancellationToken);
-                            return ServiceResult<MeterPeriodsApprovalResult>.Fail($"Phòng {item.PhongTroId}: chỉ số nước mới không được nhỏ hơn chỉ số nước cũ.");
+                            return ServiceResult<MeterPeriodsApprovalResult>.Fail($"Phòng {Room(item.PhongTroId)}: chỉ số nước mới không được nhỏ hơn chỉ số nước cũ.");
                         }
 
                         finalChiSoNuoc = officialNuoc.GiaTriXacNhan.Value;
@@ -1117,7 +1127,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
                     if (cascadeError != null)
                     {
                         await tx.RollbackAsync(cancellationToken);
-                        return ServiceResult<MeterPeriodsApprovalResult>.Fail($"Phòng {item.PhongTroId}: {cascadeError}");
+                        return ServiceResult<MeterPeriodsApprovalResult>.Fail($"Phòng {Room(item.PhongTroId)}: {cascadeError}");
                     }
 
                     approvedPeriods.Add(period);
@@ -1191,6 +1201,14 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
 
             foreach (var next in later.OrderBy(p => p.Nam).ThenBy(p => p.Thang))
             {
+                // Kiểm tra lại sau khi đã giữ khóa: kỳ sau có thể vừa được duyệt/phát hành ở giao dịch khác
+                // sau lúc HasSubsequentPeriodAsync kiểm tra, khi đó không được sửa số của kỳ đã chốt.
+                if (next.TrangThaiGhiNhan == TrangThaiGhiNhan.DaDuyet ||
+                    await _store.HasLockedInvoiceAsync(next.DichVuDienNuocCuaPhongId, cancellationToken))
+                {
+                    return $"Kỳ {next.Thang:00}/{next.Nam} vừa được duyệt hoặc đã có hóa đơn phát hành nên không thể sửa chỉ số kỳ này. Vui lòng tải lại và thử lại.";
+                }
+
                 var touched = false;
 
                 if (next.ChiSoDienCu != dien)
@@ -1242,6 +1260,27 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
             return null;
         }
 
+        /// <summary>
+        /// Dòng điện/nước do hệ thống sinh ra không gắn DichVuId (tiền điện nước tính theo chỉ số của phòng), nên nhận diện theo
+        /// loại dịch vụ nếu có, còn lại theo tên bắt đầu bằng "điện"/"nước" hoặc "tiền điện"/"tiền nước". Nhận cả tên đã bị nhân viên
+        /// sửa khi chỉnh nháp ("Điện tháng 9 (…)") để lần tính lại cập nhật đúng dòng đó thay vì thêm dòng thứ hai gây tính tiền trùng.
+        /// </summary>
+        private static readonly string[] NonMeterNamePrefixes = { "điện thoại", "nước uống", "nước lọc", "nước giải khát" };
+
+        private static bool IsMeterInvoiceLine(ChiTietHoaDon line, LoaiDichVu loai, string keyword)
+        {
+            if (line.IsDeleted) return false;
+            if (line.DichVu != null) return line.DichVu.LoaiDichVu == loai;
+
+            var name = (line.TenDichVu ?? string.Empty).Trim();
+            if (name.StartsWith("Tiền ", StringComparison.OrdinalIgnoreCase)) name = name.Substring(5).TrimStart();
+            if (!name.StartsWith(keyword, StringComparison.OrdinalIgnoreCase)) return false;
+
+            // Sau từ khóa phải là hết tên hoặc ký tự không phải chữ, và loại các dịch vụ thường gặp chỉ tình cờ bắt đầu bằng từ khóa.
+            if (name.Length > keyword.Length && char.IsLetter(name[keyword.Length])) return false;
+            return !NonMeterNamePrefixes.Any(p => name.StartsWith(p, StringComparison.OrdinalIgnoreCase));
+        }
+
         private void RecalculateDraftInvoices(DichVuDienNuocCuaPhong period, IReadOnlyList<HoaDon> invoices)
         {
             if (invoices == null || invoices.Count == 0) return;
@@ -1266,7 +1305,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
                 var dienData = _calculatorService.TinhTienDienNuoc(period.ChiSoDienMoi, period.ChiSoDienCu, period.DonGiaDien, "Tiền điện", soNgayO, daysInMonth);
                 var nuocData = _calculatorService.TinhTienDienNuoc(period.ChiSoNuocMoi, period.ChiSoNuocCu, period.DonGiaNuoc, "Tiền nước", soNgayO, daysInMonth);
 
-                var dienCt = inv.ChiTietHoaDonDichVus.FirstOrDefault(x => !x.IsDeleted && (x.DichVu?.LoaiDichVu == LoaiDichVu.Dien || (x.DichVu == null && (x.TenDichVu.StartsWith("Tiền điện", StringComparison.OrdinalIgnoreCase) || x.TenDichVu.StartsWith("Điện (", StringComparison.OrdinalIgnoreCase)))));
+                var dienCt = inv.ChiTietHoaDonDichVus.FirstOrDefault(x => IsMeterInvoiceLine(x, LoaiDichVu.Dien, "điện"));
                 if (dienCt == null && dienData.SoTien > 0)
                 {
                     dienCt = new ChiTietHoaDon
@@ -1288,7 +1327,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
                     dienCt.TenDichVu = dienData.DienGiai;
                 }
 
-                var nuocCt = inv.ChiTietHoaDonDichVus.FirstOrDefault(x => !x.IsDeleted && (x.DichVu?.LoaiDichVu == LoaiDichVu.Nuoc || (x.DichVu == null && (x.TenDichVu.StartsWith("Tiền nước", StringComparison.OrdinalIgnoreCase) || x.TenDichVu.StartsWith("Nước (", StringComparison.OrdinalIgnoreCase)))));
+                var nuocCt = inv.ChiTietHoaDonDichVus.FirstOrDefault(x => IsMeterInvoiceLine(x, LoaiDichVu.Nuoc, "nước"));
                 if (nuocCt == null && nuocData.SoTien > 0)
                 {
                     nuocCt = new ChiTietHoaDon

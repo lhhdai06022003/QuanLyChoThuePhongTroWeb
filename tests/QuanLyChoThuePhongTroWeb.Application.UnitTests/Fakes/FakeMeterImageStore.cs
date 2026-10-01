@@ -132,6 +132,11 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
 
         public DichVuDienNuocCuaPhong? PeriodForUpdateOverride { get; set; }
 
+        public Dictionary<int, string> RoomNumbers { get; } = new();
+
+        public Task<IReadOnlyDictionary<int, string>> GetRoomNumbersAsync(IReadOnlyList<int> roomIds, CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyDictionary<int, string>>(roomIds.Where(RoomNumbers.ContainsKey).Distinct().ToDictionary(id => id, id => RoomNumbers[id]));
+
         public Task LockRoomsAsync(IEnumerable<int> roomIds, CancellationToken cancellationToken = default) => Task.CompletedTask;
 
         public Task<DichVuDienNuocCuaPhong?> GetPeriodForUpdateAsync(int phongTroId, int thang, int nam, CancellationToken cancellationToken = default)

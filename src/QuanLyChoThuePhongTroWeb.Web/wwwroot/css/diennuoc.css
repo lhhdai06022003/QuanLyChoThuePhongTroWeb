@@ -80,7 +80,7 @@ html[data-bs-theme="dark"] .dn-savebar {
     }
 
     .dn-page .dn-table {
-        min-width: 980px;
+        min-width: 1120px;
     }
 }
 
@@ -145,6 +145,34 @@ html[data-bs-theme="dark"] .dn-savebar {
     background-color: rgba(214, 57, 57, 0.05) !important;
 }
 
+/* Cột chọn phòng và cột thao tác */
+.dn-page .dn-table th.dn-col-check,
+.dn-page .dn-table td.dn-col-check {
+    width: 44px;
+    padding-right: 0.25rem;
+}
+
+.dn-page .dn-table th.dn-col-action,
+.dn-page .dn-table td.dn-col-action {
+    width: 1%;
+    white-space: nowrap;
+}
+
+/* Dòng được chọn: nền nhạt và vạch teal bên trái, để thấy ngay nhóm sắp chốt */
+.dn-page .dn-table tbody tr.dn-selected > td {
+    background-color: rgba(var(--tblr-primary-rgb), 0.07);
+}
+
+.dn-page .dn-table tbody tr.dn-selected > td:first-child {
+    box-shadow: inset 3px 0 0 var(--tblr-primary);
+}
+
+.dn-page .dn-table .dn-select:focus-visible,
+.dn-page #dnSelectAll:focus-visible {
+    outline: 2px solid var(--tblr-primary);
+    outline-offset: 2px;
+}
+
 /* Phòng đã khóa kỳ */
 .row-locked {
     background-color: var(--tblr-bg-surface-secondary, #f6f8fa) !important;
@@ -185,6 +213,48 @@ html[data-bs-theme="dark"] .dn-savebar {
 .dn-savebar.show-bar {
     transform: translateY(0);
     visibility: visible;
+}
+
+/* Thanh thao tác: tên các phòng đang chọn dài thì cắt bằng dấu ba chấm, không đẩy nút xuống dòng */
+.dn-savebar .dn-bar-info {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.dn-savebar .dn-bar-text {
+    min-width: 0;
+}
+
+/* Chừa chỗ cho bong bóng chat nổi ở góc phải dưới, nếu không nó che và nhận mất cú bấm vào nút chốt */
+.dn-savebar .dn-bar-actions {
+    margin-right: 4.75rem;
+}
+
+.dn-savebar .dn-bar-hint {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Điện thoại: thông tin một hàng, nút một hàng riêng để chữ không bị ép xuống nhiều dòng */
+@media (max-width: 575.98px) {
+    .dn-savebar > .container-xl {
+        flex-wrap: wrap;
+        row-gap: 0.5rem;
+    }
+
+    .dn-savebar .dn-bar-info {
+        flex: 1 1 100%;
+    }
+
+    .dn-savebar .dn-bar-actions {
+        flex: 1 1 auto;
+        margin-right: 4.5rem;
+    }
+
+    .dn-savebar .dn-bar-actions .btn-primary {
+        flex: 1 1 auto;
+    }
 }
 
 /* Chừa chỗ cho thanh điều hướng dọc của Tabler (15rem) */

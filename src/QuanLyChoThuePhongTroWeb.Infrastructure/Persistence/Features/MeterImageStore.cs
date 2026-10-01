@@ -96,6 +96,17 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 .FirstOrDefaultAsync(cancellationToken);
         }
 
+        public async Task<IReadOnlyDictionary<int, string>> GetRoomNumbersAsync(IReadOnlyList<int> roomIds, CancellationToken cancellationToken = default)
+        {
+            if (roomIds.Count == 0) return new Dictionary<int, string>();
+
+            var ids = roomIds.Distinct().ToList();
+            return await _context.PhongTros
+                .AsNoTracking()
+                .Where(p => ids.Contains(p.PhongTroId))
+                .ToDictionaryAsync(p => p.PhongTroId, p => p.SoPhong, cancellationToken);
+        }
+
         public async Task LockRoomsAsync(IEnumerable<int> roomIds, CancellationToken cancellationToken = default)
         {
             var ids = roomIds.Distinct().OrderBy(id => id).ToArray();

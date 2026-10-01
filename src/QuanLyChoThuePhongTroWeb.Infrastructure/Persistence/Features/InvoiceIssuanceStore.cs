@@ -126,6 +126,22 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
             return records.FirstOrDefault();
         }
 
+        public async Task LockMeterPeriodsForRoomsAsync(IReadOnlyList<int> roomIds, int thang, int nam, CancellationToken ct = default)
+        {
+            if (roomIds.Count == 0)
+            {
+                return;
+            }
+
+            var ids = roomIds.Distinct().OrderBy(x => x).ToArray();
+            // Chỉ cần giữ khóa hàng đến hết giao dịch; ORDER BY id để mọi giao dịch khóa cùng thứ tự, tránh deadlock.
+            await _context.DichVuDienNuocCuaPhongs
+                .FromSqlInterpolated($"SELECT * FROM dich_vu_dien_nuoc_cua_phong WHERE \"PhongTroId\" = ANY({ids}) AND \"Thang\" = {thang} AND \"Nam\" = {nam} AND \"IsDeleted\" = false ORDER BY \"DichVuDienNuocCuaPhongId\" FOR UPDATE")
+                .AsNoTracking()
+                .Select(x => x.DichVuDienNuocCuaPhongId)
+                .ToListAsync(ct);
+        }
+
         public async Task<IReadOnlyList<int>> GetContractIdsForTenantRoomAsync(int phongTroId, int nguoiThueId, CancellationToken ct = default)
         {
             var contracts = await _context.HopDongs

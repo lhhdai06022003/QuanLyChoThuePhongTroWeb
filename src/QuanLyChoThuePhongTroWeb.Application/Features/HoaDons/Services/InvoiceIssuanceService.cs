@@ -100,6 +100,10 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
             await using var tx = await _unitOfWork.BeginTransactionAsync(ct);
             try
             {
+                // Khóa kỳ chỉ số trước (cùng thứ tự với luồng sửa/xác nhận số: kỳ rồi mới tới hóa đơn/hợp đồng),
+                // để số điện nước đọc bên dưới là số đã commit và không bị sửa chen giữa lúc tạo nháp.
+                await _issuanceStore.LockMeterPeriodsForRoomsAsync(distinctSelectedRoomIds, request.Thang, request.Nam, ct);
+
                 var hopDongIds = hopDongs.Select(h => h.HopDongId).OrderBy(x => x).ToList();
                 if (hopDongIds.Any())
                 {
