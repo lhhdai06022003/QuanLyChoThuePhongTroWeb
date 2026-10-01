@@ -1189,7 +1189,7 @@
                     let tbody = $('#editLinesTable tbody').empty();
 
                     res.chiTietHoaDons.forEach(ct => {
-                        addEditRow(ct.tenDichVu, ct.donGia, ct.soLuong, ct.donVi || '', ct.chiTietHoaDonId, ct.dichVuId);
+                        addEditRow(ct.tenDichVu, ct.donGia, ct.soLuong, ct.donVi || '', ct.chiTietHoaDonId, ct.dichVuId, ct.tongTien);
                     });
 
                     recalculateEditTotal();
@@ -1197,7 +1197,19 @@
                 });
             });
 
-            function addEditRow(ten = '', gia = 0, sl = 1, dv = '', ctId = 0, dvId = null) {
+            // Thành tiền của một dòng: giữ số đã lưu nếu đơn giá và số lượng chưa đổi (tiền phòng/dịch vụ
+            // cố định có thể đã tính theo ngày ở), giống cách server lưu trong UpdateHoaDonAsync.
+            function editRowAmount(tr) {
+                const g = parseFloat(tr.find('.edit-gia').val()) || 0;
+                const s = parseFloat(tr.find('.edit-sl').val()) || 0;
+                const stored = tr.data('storedAmount');
+                if (stored !== undefined && g === tr.data('origGia') && s === tr.data('origSl')) {
+                    return stored;
+                }
+                return g * s;
+            }
+
+            function addEditRow(ten = '', gia = 0, sl = 1, dv = '', ctId = 0, dvId = null, tongTien = undefined) {
                 let tbody = $('#editLinesTable tbody');
                 let rowId = 'editRow_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
                 let tr = $(`
@@ -1215,7 +1227,7 @@
                             <span class="text-secondary edit-dv-label" style="font-size: 0.9rem;">${escapeHtml(dv)}</span>
                         </td>
                         <td>
-                            <input type="text" class="form-control form-control-sm text-end edit-thanhtien hd-num" value="${formatVND(gia * sl)}" disabled />
+                            <input type="text" class="form-control form-control-sm text-end edit-thanhtien hd-num" value="${formatVND(tongTien !== undefined ? tongTien : gia * sl)}" disabled />
                         </td>
                         <td class="text-center align-middle">
                             <button type="button" class="btn btn-link text-danger btn-delete-edit-row p-0"><i class="ti ti-trash"></i></button>
@@ -1225,10 +1237,12 @@
                     </tr>
                 `);
 
+                if (ctId > 0 && tongTien !== undefined) {
+                    tr.data({ storedAmount: tongTien, origGia: parseFloat(gia), origSl: parseFloat(sl) });
+                }
+
                 tr.find('.edit-gia, .edit-sl').on('input', function() {
-                    let g = parseFloat(tr.find('.edit-gia').val()) || 0;
-                    let s = parseFloat(tr.find('.edit-sl').val()) || 0;
-                    tr.find('.edit-thanhtien').val(formatVND(g * s));
+                    tr.find('.edit-thanhtien').val(formatVND(editRowAmount(tr)));
                     recalculateEditTotal();
                 });
 
@@ -1247,9 +1261,7 @@
             function recalculateEditTotal() {
                 let total = 0;
                 $('#editLinesTable tbody tr').each(function() {
-                    let g = parseFloat($(this).find('.edit-gia').val()) || 0;
-                    let s = parseFloat($(this).find('.edit-sl').val()) || 0;
-                    total += g * s;
+                    total += editRowAmount($(this));
                 });
                 $('#editTongTienText').text(formatVND(total));
             }

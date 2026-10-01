@@ -288,7 +288,8 @@
                 let disabledAttr = '';
 
                 if (item.isLocked) {
-                    statusBadge = '<span class="status status-red"><span class="status-dot"></span>Đã khóa</span>';
+                    statusBadge = '<span class="status status-red"><span class="status-dot"></span>Đã khóa</span>'
+                        + (item.lyDoKhoa ? `<div class="dn-lock-reason">${escapeHtml(item.lyDoKhoa)}</div>` : '');
                     rowClass = 'row-locked';
                     disabledAttr = 'disabled';
                 } else if (item.isDaChot) {

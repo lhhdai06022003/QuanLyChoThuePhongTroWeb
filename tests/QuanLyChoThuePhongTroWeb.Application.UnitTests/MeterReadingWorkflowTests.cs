@@ -568,6 +568,90 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.True(_uow.CurrentTransaction.Committed);
         }
 
+        private static ApproveMeterPeriodsRequest ManualApproveRequest(int thang, int nam, int phongTroId = 1) => new()
+        {
+            Thang = thang,
+            Nam = nam,
+            DanhSachPhong = new List<ApproveMeterPeriodItem>
+            {
+                new()
+                {
+                    PhongTroId = phongTroId,
+                    DienMode = MeterReadingSubmissionMode.Manual,
+                    ChiSoDienMoiThuCong = 160m,
+                    LyDoDienThuCong = "Ghi trực tiếp",
+                    NuocMode = MeterReadingSubmissionMode.Manual,
+                    ChiSoNuocMoiThuCong = 65m,
+                    LyDoNuocThuCong = "Ghi trực tiếp"
+                }
+            }
+        };
+
+        [Fact]
+        public async Task ApprovePeriodsAsync_WhenPeriodIsInTheFuture_ReturnsFail_AndDoesNotApprove()
+        {
+            // Giờ cố định của test: 15/10/2026 (giờ VN), nên tháng 11/2026 là kỳ chưa tới.
+            var period = new DichVuDienNuocCuaPhong { DichVuDienNuocCuaPhongId = 1, PhongTroId = 1, Thang = 11, Nam = 2026, ChiSoDienCu = 100, ChiSoNuocCu = 50 };
+            _store.Periods[1] = period;
+            _store.RoomBranches[1] = 10;
+            _access.Permissions.Add((2, 10, EmployeeActionCodes.MeterReview));
+
+            var result = await _service.ApprovePeriodsAsync(ManualApproveRequest(11, 2026), 2);
+
+            Assert.False(result.Success);
+            Assert.Contains("chưa tới", result.Message);
+            Assert.NotEqual(TrangThaiGhiNhan.DaDuyet, period.TrangThaiGhiNhan);
+        }
+
+        [Fact]
+        public async Task ApprovePeriodsAsync_WhenPreviousMonthHadContractButIsNotApproved_ReturnsFail_AndRollsBack()
+        {
+            _store.Periods[1] = new DichVuDienNuocCuaPhong { DichVuDienNuocCuaPhongId = 1, PhongTroId = 1, Thang = 9, Nam = 2026, TrangThaiGhiNhan = TrangThaiGhiNhan.Nhap };
+            var period = new DichVuDienNuocCuaPhong { DichVuDienNuocCuaPhongId = 2, PhongTroId = 1, Thang = 10, Nam = 2026, ChiSoDienCu = 100, ChiSoNuocCu = 50 };
+            _store.Periods[2] = period;
+            _store.ContractMonths.Add((1, 9, 2026));
+            _store.RoomBranches[1] = 10;
+            _access.Permissions.Add((2, 10, EmployeeActionCodes.MeterReview));
+
+            var result = await _service.ApprovePeriodsAsync(ManualApproveRequest(10, 2026), 2);
+
+            Assert.False(result.Success);
+            Assert.Contains("09/2026", result.Message);
+            Assert.True(_uow.CurrentTransaction.RolledBack);
+            Assert.NotEqual(TrangThaiGhiNhan.DaDuyet, period.TrangThaiGhiNhan);
+        }
+
+        [Fact]
+        public async Task ApprovePeriodsAsync_WhenPreviousMonthHadContractAndNoRecord_ReturnsFail()
+        {
+            var period = new DichVuDienNuocCuaPhong { DichVuDienNuocCuaPhongId = 2, PhongTroId = 1, Thang = 10, Nam = 2026, ChiSoDienCu = 100, ChiSoNuocCu = 50 };
+            _store.Periods[2] = period;
+            _store.ContractMonths.Add((1, 9, 2026));
+            _store.RoomBranches[1] = 10;
+            _access.Permissions.Add((2, 10, EmployeeActionCodes.MeterReview));
+
+            var result = await _service.ApprovePeriodsAsync(ManualApproveRequest(10, 2026), 2);
+
+            Assert.False(result.Success);
+            Assert.NotEqual(TrangThaiGhiNhan.DaDuyet, period.TrangThaiGhiNhan);
+        }
+
+        [Fact]
+        public async Task ApprovePeriodsAsync_WhenPreviousMonthApproved_Succeeds()
+        {
+            _store.Periods[1] = new DichVuDienNuocCuaPhong { DichVuDienNuocCuaPhongId = 1, PhongTroId = 1, Thang = 9, Nam = 2026, TrangThaiGhiNhan = TrangThaiGhiNhan.DaDuyet };
+            var period = new DichVuDienNuocCuaPhong { DichVuDienNuocCuaPhongId = 2, PhongTroId = 1, Thang = 10, Nam = 2026, ChiSoDienCu = 100, ChiSoNuocCu = 50 };
+            _store.Periods[2] = period;
+            _store.ContractMonths.Add((1, 9, 2026));
+            _store.RoomBranches[1] = 10;
+            _access.Permissions.Add((2, 10, EmployeeActionCodes.MeterReview));
+
+            var result = await _service.ApprovePeriodsAsync(ManualApproveRequest(10, 2026), 2);
+
+            Assert.True(result.Success, result.Message);
+            Assert.Equal(TrangThaiGhiNhan.DaDuyet, period.TrangThaiGhiNhan);
+        }
+
         [Fact]
         public async Task ApprovePeriodsAsync_ManualModeWithOldOfficialImage_DoesNotCallUpdateImageOrUpdatePeriodRecord()
         {

@@ -56,6 +56,8 @@ namespace QuanLyChoThuePhongTroWeb.Models.ChiSoDienNuoc
         public int Loai { get; set; }
         public string Url { get; set; } = string.Empty;
         public string NhanTrangThai { get; set; } = string.Empty;
+        // Màu chấm trạng thái của Tabler (blue/orange/green/secondary), đi cùng NhanTrangThai.
+        public string MauTrangThai { get; set; } = "secondary";
         public bool LaChinhThuc { get; set; }
         public string NgayGui { get; set; } = string.Empty;
     }
@@ -136,6 +138,18 @@ namespace QuanLyChoThuePhongTroWeb.Models.ChiSoDienNuoc
             };
         }
 
+        // Cùng cách gom trạng thái với GetTenantStatusLabel để nhãn và màu luôn khớp.
+        public static string GetTenantStatusColor(AppTrangThaiAnhChiSo status)
+        {
+            return status switch
+            {
+                AppTrangThaiAnhChiSo.MoiTaiLen or AppTrangThaiAnhChiSo.DangXuLy or AppTrangThaiAnhChiSo.DocDuoc => "blue",
+                AppTrangThaiAnhChiSo.KhongDocDuoc or AppTrangThaiAnhChiSo.Loi or AppTrangThaiAnhChiSo.CanChupLai => "orange",
+                AppTrangThaiAnhChiSo.DaXacNhan => "green",
+                _ => "secondary"
+            };
+        }
+
         public static StaffMeterImageVm ToStaffVm(MeterImageItemRes dto)
         {
             var doTinCayStr = dto.DoTinCay.HasValue
@@ -196,6 +210,7 @@ namespace QuanLyChoThuePhongTroWeb.Models.ChiSoDienNuoc
                 Loai = (int)dto.LoaiDongHo,
                 Url = dto.Url,
                 NhanTrangThai = GetTenantStatusLabel(dto.TrangThai, dto.GiaTriAIGoiY, dto.GiaTriXacNhan),
+                MauTrangThai = GetTenantStatusColor(dto.TrangThai),
                 LaChinhThuc = dto.LaChinhThuc,
                 NgayGui = FormatVnDateTime(dto.NgayGuiUtc)
             };

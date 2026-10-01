@@ -63,6 +63,9 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             public Task<ISet<int>> GetLockedRoomIdsAsync(IReadOnlyList<int> roomIds, int thang, int nam, CancellationToken cancellationToken = default)
                 => Task.FromResult<ISet<int>>(LockedRooms);
 
+            public Task<ISet<int>> GetRoomIdsWithContractInMonthAsync(IReadOnlyList<int> roomIds, int thang, int nam, CancellationToken cancellationToken = default)
+                => Task.FromResult<ISet<int>>(new HashSet<int>());
+
             public Task<(decimal ChiSoDienMoi, decimal ChiSoNuocMoi)> GetNearestPreviousReadingAsync(int phongTroId, int thang, int nam, CancellationToken cancellationToken = default)
                 => Task.FromResult((0m, 0m));
 

@@ -378,6 +378,70 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             Assert.Contains(room.PhongTroId, await store.GetLockedRoomIdsAsync(rooms, 9, 2026));
         }
 
+        [Theory]
+        [InlineData(TrangThaiPhatHanhHoaDon.Nhap, false)]
+        [InlineData(TrangThaiPhatHanhHoaDon.ChoDuyet, true)]
+        [InlineData(TrangThaiPhatHanhHoaDon.DaChot, true)]
+        [InlineData(TrangThaiPhatHanhHoaDon.DaGui, true)]
+        [InlineData(TrangThaiPhatHanhHoaDon.DaHuy, false)]
+        public async Task DienNuocStore_GetLockedRoomIdsAsync_LocksRoomWhenCurrentPeriodHasIssuedInvoice(TrangThaiPhatHanhHoaDon trangThai, bool expectLocked)
+        {
+            await using var context = _fixture.CreateDbContext();
+            await using var tx = await context.Database.BeginTransactionAsync();
+
+            var suffix = Guid.NewGuid().ToString("N").Substring(0, 6);
+            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = $"C_{suffix}", DiaChi = "123", SoDienThoai = "0900", MoTa = "Mo ta" };
+            context.ChiNhanhs.Add(branch);
+            await context.SaveChangesAsync();
+
+            var room = new PhongTro { ChiNhanhId = branch.ChiNhanhId, SoPhong = $"P_{suffix}", GiaThue = 1000m, DienTich = 15, MoTa = "Mo ta phong" };
+            var otherRoom = new PhongTro { ChiNhanhId = branch.ChiNhanhId, SoPhong = $"Q_{suffix}", GiaThue = 1000m, DienTich = 15, MoTa = "Mo ta phong" };
+            context.PhongTros.AddRange(room, otherRoom);
+            await context.SaveChangesAsync();
+
+            var tenant = new NguoiThue { HoVaTen = $"T_{suffix}", Email = $"t_{suffix}@test.com", SoDienThoai = "0901", CCCD = $"001_{suffix}" };
+            context.NguoiThues.Add(tenant);
+            await context.SaveChangesAsync();
+
+            var contract = new HopDong
+            {
+                PhongTroId = room.PhongTroId,
+                NguoiThueId = tenant.NguoiThueId,
+                MaHopDong = $"HD_{suffix}",
+                ThoiDiemBatDau = new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc),
+                ThoiDiemKetThuc = new DateTime(2026, 11, 30, 0, 0, 0, DateTimeKind.Utc),
+                TienCocPhong = 1000m,
+                TienThuePhong = 1000m,
+                TrangThaiHopDong = TrangThaiHopDong.DangHoatDong
+            };
+            context.HopDongs.Add(contract);
+            await context.SaveChangesAsync();
+
+            var period = new DichVuDienNuocCuaPhong { PhongTroId = room.PhongTroId, Thang = 9, Nam = 2026, TrangThaiGhiNhan = TrangThaiGhiNhan.DaDuyet };
+            var otherPeriod = new DichVuDienNuocCuaPhong { PhongTroId = otherRoom.PhongTroId, Thang = 9, Nam = 2026, TrangThaiGhiNhan = TrangThaiGhiNhan.Nhap };
+            context.DichVuDienNuocCuaPhongs.AddRange(period, otherPeriod);
+            await context.SaveChangesAsync();
+
+            context.HoaDons.Add(new HoaDon
+            {
+                MaHoaDon = $"INV_{suffix}",
+                HopDongId = contract.HopDongId,
+                DichVuDienNuocCuaPhongId = period.DichVuDienNuocCuaPhongId,
+                Thang = 9,
+                Nam = 2026,
+                TongTien = 50000,
+                TrangThaiPhatHanh = trangThai,
+                IsDeleted = trangThai == TrangThaiPhatHanhHoaDon.DaHuy
+            });
+            await context.SaveChangesAsync();
+
+            var store = new DienNuocStore(context);
+            var locked = await store.GetLockedRoomIdsAsync(new[] { room.PhongTroId, otherRoom.PhongTroId }, 9, 2026);
+
+            Assert.Equal(expectLocked, locked.Contains(room.PhongTroId));
+            Assert.DoesNotContain(otherRoom.PhongTroId, locked);
+        }
+
         [Fact]
         public async Task GetSubsequentPeriodsForUpdateAsync_ReturnsLaterPeriodsInOrder_ExcludingDeletedAndOtherRooms()
         {
@@ -1334,7 +1398,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
 
                 return await svc1.ApprovePeriodsAsync(new ApproveMeterPeriodsRequest
                 {
-                    Thang = 11,
+                    Thang = 10, // khớp giờ cố định 15/10/2026 của CreateWorkflowService; kỳ chưa tới bị chặn
                     Nam = 2026,
                     DanhSachPhong = new List<ApproveMeterPeriodItem>
                     {
@@ -1353,7 +1417,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
                 // Thứ tự phòng ngược lại: roomBId trước, roomAId sau
                 return await svc2.ApprovePeriodsAsync(new ApproveMeterPeriodsRequest
                 {
-                    Thang = 11,
+                    Thang = 10,
                     Nam = 2026,
                     DanhSachPhong = new List<ApproveMeterPeriodItem>
                     {
@@ -1377,8 +1441,8 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
 
             // 5. Kiểm tra DB dữ liệu cuối cùng hợp lệ
             await using var verifyCtx = _fixture.CreateDbContext();
-            var periodA = await verifyCtx.DichVuDienNuocCuaPhongs.FirstOrDefaultAsync(p => p.PhongTroId == roomAId && p.Thang == 11 && p.Nam == 2026 && !p.IsDeleted);
-            var periodB = await verifyCtx.DichVuDienNuocCuaPhongs.FirstOrDefaultAsync(p => p.PhongTroId == roomBId && p.Thang == 11 && p.Nam == 2026 && !p.IsDeleted);
+            var periodA = await verifyCtx.DichVuDienNuocCuaPhongs.FirstOrDefaultAsync(p => p.PhongTroId == roomAId && p.Thang == 10 && p.Nam == 2026 && !p.IsDeleted);
+            var periodB = await verifyCtx.DichVuDienNuocCuaPhongs.FirstOrDefaultAsync(p => p.PhongTroId == roomBId && p.Thang == 10 && p.Nam == 2026 && !p.IsDeleted);
             Assert.NotNull(periodA);
             Assert.NotNull(periodB);
         }

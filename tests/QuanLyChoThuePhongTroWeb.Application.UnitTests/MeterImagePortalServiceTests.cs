@@ -879,6 +879,79 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.Null(row.TrangThaiAnhNuoc);
         }
 
+        private FakeDienNuocStore StoreWithRoom101()
+        {
+            var store = new FakeDienNuocStore();
+            store.ActiveContracts.Add(new HopDong
+            {
+                HopDongId = 1,
+                PhongTroId = 101,
+                PhongTro = new PhongTro { PhongTroId = 101, SoPhong = "101", ChiNhanhId = 1, MoTa = "Test" },
+                ThoiDiemBatDau = new DateTime(2026, 8, 1, 0, 0, 0, DateTimeKind.Utc),
+                TrangThaiHopDong = TrangThaiHopDong.DangHoatDong,
+                NguoiThue = new NguoiThue { NguoiThueId = 1, HoVaTen = "Nguyen Van A", CCCD = "012345678901" }
+            });
+            return store;
+        }
+
+        private async Task<DienNuocPhongRes> GetRow101(FakeDienNuocStore store)
+        {
+            var access = new FakeEmployeeAccessService();
+            access.Permissions.Add((1, 1, EmployeeActionCodes.MeterRead));
+            var list = await new DienNuocService(store, access, _workflowService).GetDanhSachDienNuocAsync(1, 10, 2026, 1);
+            return Assert.Single(list);
+        }
+
+        [Fact]
+        public async Task GetDanhSachDienNuoc_PreviousMonthHadContractButNotApproved_RowLockedWithReason()
+        {
+            var store = StoreWithRoom101();
+            store.ContractMonths.Add((101, 9, 2026));
+            store.PreviousMonthRecords[101] = new DichVuDienNuocCuaPhong { PhongTroId = 101, Thang = 9, Nam = 2026, TrangThaiGhiNhan = TrangThaiGhiNhan.Nhap };
+
+            var row = await GetRow101(store);
+
+            Assert.True(row.IsLocked);
+            Assert.Contains("09/2026", row.LyDoKhoa);
+        }
+
+        [Fact]
+        public async Task GetDanhSachDienNuoc_PreviousMonthHadContractAndNoRecord_RowLocked()
+        {
+            var store = StoreWithRoom101();
+            store.ContractMonths.Add((101, 9, 2026));
+
+            var row = await GetRow101(store);
+
+            Assert.True(row.IsLocked);
+            Assert.False(string.IsNullOrWhiteSpace(row.LyDoKhoa));
+        }
+
+        [Fact]
+        public async Task GetDanhSachDienNuoc_PreviousMonthApproved_RowNotLocked()
+        {
+            var store = StoreWithRoom101();
+            store.ContractMonths.Add((101, 9, 2026));
+            store.PreviousMonthRecords[101] = new DichVuDienNuocCuaPhong { PhongTroId = 101, Thang = 9, Nam = 2026, TrangThaiGhiNhan = TrangThaiGhiNhan.DaDuyet };
+
+            var row = await GetRow101(store);
+
+            Assert.False(row.IsLocked);
+            Assert.Null(row.LyDoKhoa);
+        }
+
+        [Fact]
+        public async Task GetDanhSachDienNuoc_RoomLockedByInvoiceOrLaterPeriod_HasReason()
+        {
+            var store = StoreWithRoom101();
+            store.LockedRooms.Add(101);
+
+            var row = await GetRow101(store);
+
+            Assert.True(row.IsLocked);
+            Assert.False(string.IsNullOrWhiteSpace(row.LyDoKhoa));
+        }
+
         #endregion
     }
 }

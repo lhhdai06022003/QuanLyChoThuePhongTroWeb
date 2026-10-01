@@ -64,13 +64,27 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
 
             var prevRecords = await _store.GetPreviousMonthRecordsAsync(phongTroIds, prevThang, prevNam);
             var lockedPhongIds = await _store.GetLockedRoomIdsAsync(phongTroIds, thang, nam);
+            var phongCoHopDongThangTruoc = await _store.GetRoomIdsWithContractInMonthAsync(phongTroIds, prevThang, prevNam);
 
             var result = new List<DienNuocPhongRes>();
 
             foreach (var hd in phongĐangThue)
             {
                 var phongTroId = hd.PhongTroId;
-                bool isLocked = lockedPhongIds.Contains(phongTroId);
+
+                // Đánh dấu khóa sẵn mọi phòng mà ApprovePeriodsAsync sẽ từ chối, để màn chốt
+                // không gửi chúng lên và làm rollback cả lô.
+                string? lyDoKhoa = null;
+                if (lockedPhongIds.Contains(phongTroId))
+                {
+                    lyDoKhoa = "Kỳ sau đã chốt hoặc kỳ này đã có hóa đơn phát hành.";
+                }
+                else if (phongCoHopDongThangTruoc.Contains(phongTroId) &&
+                         (!prevRecords.TryGetValue(phongTroId, out var kyTruoc) || kyTruoc.TrangThaiGhiNhan != TrangThaiGhiNhan.DaDuyet))
+                {
+                    lyDoKhoa = $"Kỳ {prevThang:00}/{prevNam} chưa được chốt, cần chốt kỳ đó trước.";
+                }
+                bool isLocked = lyDoKhoa != null;
 
                 if (currentRecords.TryGetValue(phongTroId, out var currentRecord))
                 {
@@ -103,6 +117,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
                         GiaTriNuocXacNhanTuAnh = officialNuoc?.GiaTriXacNhan,
                         TrangThaiGhiNhan = currentRecord.TrangThaiGhiNhan,
                         IsLocked = isLocked,
+                        LyDoKhoa = lyDoKhoa,
                         SoAnhDien = dienImages.Count,
                         SoAnhNuoc = nuocImages.Count,
                         TrangThaiAnhDien = representativeDien != null ? (QuanLyChoThuePhongTroWeb.Application.Common.Enums.AppTrangThaiAnhChiSo)representativeDien.TrangThaiXuLy : null,
@@ -137,6 +152,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
                         ChiSoNuocMoi = 0m,
                         IsDaChot = false,
                         IsLocked = isLocked,
+                        LyDoKhoa = lyDoKhoa,
                         SoAnhDien = 0,
                         SoAnhNuoc = 0,
                         TrangThaiAnhDien = null,
