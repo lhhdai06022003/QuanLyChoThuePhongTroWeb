@@ -1,45 +1,35 @@
 @{
-    ViewData["Title"] = "Chốt Chỉ Số Điện/Nước Hàng Tháng";
+    ViewData["Title"] = "Chỉ số điện nước";
 }
 
 <link rel="stylesheet" href="~/css/diennuoc.css" asp-append-version="true" />
 
 
-<div class="container-xl mt-3">
-    <!-- Page Header -->
-    <div class="page-header d-print-none mb-3">
-        <div class="row align-items-center">
-            <div class="col">
-                <h2 class="page-title text-primary font-weight-bold d-flex align-items-center">
-                    <i class="ti ti-bolt me-1 text-warning"></i> <i class="ti ti-droplet me-2 text-info"></i> Chốt Chỉ Số Điện/Nước Hàng Tháng
-                </h2>
-            </div>
-        </div>
-    </div>
-
-    <partial name="_ChuaPhanCongBanner" />
-
-    <!-- Unified Card Layout -->
-    <div class="card border-0 shadow-sm mb-5">
-        <div class="card-header d-flex justify-content-between align-items-center py-3 border-bottom">
-            <h3 class="card-title font-weight-bold mb-0">
-                <i class="ti ti-list me-2 text-primary"></i> Danh sách ghi nhận chỉ số
-            </h3>
-            <div class="ms-auto" id="saveActionArea" style="display: none;">
-                <button type="button" class="btn btn-success font-weight-bold shadow-sm" id="btnSaveData">
-                    <i class="ti ti-device-floppy me-1"></i> Lưu tất cả chỉ số
-                </button>
+<div class="page-body dn-page">
+    <div class="container-xl">
+        <div class="page-header d-print-none mb-3">
+            <div class="row align-items-center">
+                <div class="col">
+                    <div class="page-pretitle">Chốt kỳ hàng tháng</div>
+                    <h2 class="page-title">Chỉ số điện nước</h2>
+                </div>
+                <div class="col-auto ms-auto" id="saveActionArea" style="display: none;">
+                    <button type="button" class="btn btn-primary" id="btnSaveData">
+                        <i class="ti ti-device-floppy me-1"></i> Lưu chỉ số
+                    </button>
+                </div>
             </div>
         </div>
 
-        <div class="card-body p-0">
-            <!-- Filter Bar inside Card (Horizontal Toolbar) -->
-            <div class="p-3 border-bottom bg-light">
-                <div class="row g-3">
-                    <div class="col-md-4">
-                        <label class="form-label small font-weight-bold text-secondary mb-1">Chi Nhánh <span class="text-danger">*</span></label>
+        <partial name="_ChuaPhanCongBanner" />
+
+        <div class="card">
+            <div class="card-header dn-filters">
+                <div class="row g-2 w-100 align-items-end">
+                    <div class="col-12 col-md-5">
+                        <label for="filterChiNhanh" class="form-label required">Chi nhánh</label>
                         <select id="filterChiNhanh" class="form-select">
-                            <option value="">-- Chọn chi nhánh --</option>
+                            <option value="">Chọn chi nhánh</option>
                             @if (ViewBag.ListChiNhanh != null)
                             {
                                 foreach (var cn in ViewBag.ListChiNhanh)
@@ -49,8 +39,8 @@
                             }
                         </select>
                     </div>
-                    <div class="col-md-4">
-                        <label class="form-label small font-weight-bold text-secondary mb-1">Tháng <span class="text-danger">*</span></label>
+                    <div class="col-6 col-md-4">
+                        <label for="filterThang" class="form-label required">Tháng</label>
                         <select id="filterThang" class="form-select">
                             @for (int i = 1; i <= 12; i++)
                             {
@@ -65,60 +55,68 @@
                             }
                         </select>
                     </div>
-                    <div class="col-md-4">
-                        <label class="form-label small font-weight-bold text-secondary mb-1">Năm <span class="text-danger">*</span></label>
+                    <div class="col-6 col-md-3">
+                        <label for="filterNam" class="form-label required">Năm</label>
                         <input type="number" id="filterNam" class="form-control" value="@DateTime.Now.Year" min="2000">
                     </div>
                 </div>
             </div>
 
-            <!-- Empty State Container -->
-            <div id="emptyState" class="text-center py-5">
-                <i class="ti ti-building fa-3x text-muted mb-3" style="opacity: 0.5;"></i>
-                <p class="text-muted font-weight-medium">Vui lòng chọn <strong>Chi nhánh</strong> để bắt đầu ghi nhận chỉ số điện nước.</p>
+            <div id="dnSummary" class="dn-summary" style="display: none;">
+                <div class="d-flex align-items-center justify-content-between gap-3">
+                    <span id="dnSummaryText">Đã chốt 0/0 phòng</span>
+                    <div class="progress progress-sm flex-grow-1 dn-progress">
+                        <div class="progress-bar" id="dnSummaryBar" style="width: 0%" role="progressbar" aria-label="Tiến độ chốt chỉ số"></div>
+                    </div>
+                </div>
             </div>
 
-            <!-- Table Container (Initially Hidden) -->
-            <div id="tableContainer" style="display: none;" class="p-3">
-                <div class="alert alert-info py-2 mb-3">
-                    <i class="ti ti-info-circle me-1"></i> 
-                    <strong>Hướng dẫn:</strong> Nhập chỉ số điện và nước mới. Chỉ số cũ ở trạng thái chỉ đọc. Bấm các phím <code>Enter</code> hoặc phím <code>Mũi tên lên/xuống</code> để tự động chuyển ô nhập liệu cực kỳ nhanh chóng.
-                </div>
+            <div id="emptyState" class="empty py-5">
+                <div class="empty-icon"><i class="ti ti-building"></i></div>
+                <p class="empty-title">Chọn chi nhánh để bắt đầu</p>
+                <p class="empty-subtitle text-secondary">Danh sách phòng đang thuê và chỉ số kỳ trước sẽ hiện ở đây.</p>
+            </div>
+
+            <div id="tableContainer" style="display: none;">
                 <div class="table-responsive">
-                    <table class="table card-table table-vcenter text-nowrap datatable w-100" id="dienNuocTable">
+                    <table class="table card-table table-vcenter text-nowrap w-100 dn-table" id="dienNuocTable">
                         <thead>
                             <tr>
                                 <th class="text-center" width="4%">STT</th>
                                 <th>Phòng</th>
-                                <th>Người Đại Diện</th>
-                                <th class="text-center bg-warning-light-td" width="11%">Chỉ số Điện Cũ</th>
-                                <th class="text-center bg-danger-light-td" width="13%">Chỉ số Điện Mới</th>
-                                <th class="text-center bg-info-light-td" width="11%">Chỉ số Nước Cũ</th>
-                                <th class="text-center bg-primary-light-td" width="13%">Chỉ số Nước Mới</th>
-                                <th class="text-center" width="13%">Ảnh</th>
-                                <th class="text-center" width="10%">Trạng Thái</th>
+                                <th>Người đại diện</th>
+                                <th class="text-center dn-col-dien" width="11%"><i class="ti ti-bolt me-1"></i>Điện cũ</th>
+                                <th class="text-center dn-col-dien" width="13%"><i class="ti ti-bolt me-1"></i>Điện mới</th>
+                                <th class="text-center dn-col-nuoc" width="11%"><i class="ti ti-droplet me-1"></i>Nước cũ</th>
+                                <th class="text-center dn-col-nuoc" width="13%"><i class="ti ti-droplet me-1"></i>Nước mới</th>
+                                <th class="text-center" width="13%">Ảnh đồng hồ</th>
+                                <th class="text-center" width="10%">Trạng thái</th>
                             </tr>
                         </thead>
                         <tbody id="tbodyDienNuoc">
                         </tbody>
                     </table>
                 </div>
+                <div class="card-footer text-secondary small">
+                    Nhập chỉ số mới rồi bấm <kbd>Enter</kbd> hoặc <kbd>↑</kbd> <kbd>↓</kbd> để chuyển phòng, <kbd>←</kbd> <kbd>→</kbd> để đổi giữa điện và nước.
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Sticky Bottom Action Bar -->
-<div class="fixed-bottom bg-body border-top shadow-lg py-3 px-4 d-flex align-items-center justify-content-between d-print-none" id="stickyActionBar" style="z-index: 1050;">
-    <div class="d-flex align-items-center">
-        <span class="badge bg-yellow-lt text-warning me-2"><i class="ti ti-alert-triangle"></i></span>
-        <span class="font-weight-medium">Bạn có chỉ số mới chưa được lưu lại vào hệ thống.</span>
-    </div>
-    <div class="d-flex gap-2">
-        <button type="button" class="btn btn-secondary px-4" id="btnCancelChanges">Hủy bỏ</button>
-        <button type="button" class="btn btn-success px-4 font-weight-bold" id="btnSaveDataSticky">
-            <i class="ti ti-device-floppy me-1"></i> Lưu thay đổi ngay
-        </button>
+<div class="dn-savebar d-print-none" id="stickyActionBar">
+    <div class="container-xl d-flex align-items-center justify-content-between gap-3">
+        <div class="d-flex align-items-center gap-2">
+            <span class="status-dot status-dot-animated bg-orange"></span>
+            <span>Có chỉ số mới chưa lưu.</span>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-ghost-secondary" id="btnCancelChanges">Bỏ thay đổi</button>
+            <button type="button" class="btn btn-primary" id="btnSaveDataSticky">
+                <i class="ti ti-device-floppy me-1"></i> Lưu chỉ số
+            </button>
+        </div>
     </div>
 </div>
 
@@ -211,13 +209,14 @@
                     $('#emptyState').show();
                     $('#tableContainer').hide();
                     $('#saveActionArea').hide();
+                    $('#dnSummary').hide();
                     hideStickyBar();
                     return;
                 }
 
                 $('#emptyState').hide();
                 $('#tableContainer').show();
-                $('#tbodyDienNuoc').html('<tr><td colspan="9" class="text-center py-4"><i class="ti ti-loader fa-spin fa-2x text-primary mb-2"></i><div>Đang tải dữ liệu...</div></td></tr>');
+                $('#tbodyDienNuoc').html('<tr><td colspan="9" class="text-center text-secondary py-5"><span class="spinner-border spinner-border-sm me-2" role="status"></span>Đang tải danh sách phòng</td></tr>');
                 hideStickyBar();
 
                 $.ajax({
@@ -268,19 +267,34 @@
                     .replace(/'/g, '&#39;');
             }
 
+            function deltaText(cu, moi, unit) {
+                const d = (parseFloat(moi) || 0) - (parseFloat(cu) || 0);
+                if (d < 0) return '';
+                if (d === 0) return 'Chưa dùng';
+                return '+' + new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 3 }).format(d) + ' ' + unit;
+            }
+
+            function updateSummary(data) {
+                const total = data.length;
+                const done = data.filter(x => x.isDaChot).length;
+                $('#dnSummaryText').text(`Đã chốt ${done}/${total} phòng`);
+                $('#dnSummaryBar').css('width', (total ? Math.round(done * 100 / total) : 0) + '%');
+                $('#dnSummary').toggle(total > 0);
+            }
+
             function renderRow(item, index) {
                 let statusBadge = '';
                 let rowClass = '';
                 let disabledAttr = '';
 
                 if (item.isLocked) {
-                    statusBadge = '<span class="badge bg-danger-lt text-danger"><i class="ti ti-lock me-1"></i> Đã khóa</span>';
+                    statusBadge = '<span class="status status-red"><span class="status-dot"></span>Đã khóa</span>';
                     rowClass = 'row-locked';
                     disabledAttr = 'disabled';
                 } else if (item.isDaChot) {
-                    statusBadge = '<span class="badge bg-success-lt text-success"><i class="ti ti-circle-check me-1"></i> Đã chốt</span>';
+                    statusBadge = '<span class="status status-green"><span class="status-dot"></span>Đã chốt</span>';
                 } else {
-                    statusBadge = '<span class="badge bg-secondary-lt text-secondary"><i class="ti ti-clock me-1"></i> Chưa chốt</span>';
+                    statusBadge = '<span class="status status-secondary"><span class="status-dot"></span>Chưa chốt</span>';
                 }
 
                 let defaultDienMoi = (item.chiSoDienMoi === 0 && !item.isDaChot) ? item.chiSoDienCu : item.chiSoDienMoi;
@@ -289,23 +303,23 @@
                 let isOfficialDien = item.coAnhDienChinhThuc && (item.giaTriDienXacNhanTuAnh != null ? defaultDienMoi === item.giaTriDienXacNhanTuAnh : defaultDienMoi === item.chiSoDienCu);
                 let isOfficialNuoc = item.coAnhNuocChinhThuc && (item.giaTriNuocXacNhanTuAnh != null ? defaultNuocMoi === item.giaTriNuocXacNhanTuAnh : defaultNuocMoi === item.chiSoNuocCu);
 
-                let anhDienSummary = item.soAnhDien > 0 ? `⚡ ${item.soAnhDien} · ${getTrangThaiAnhLabel(item.trangThaiAnhDien)}` : '⚡ Chưa có ảnh';
-                let anhNuocSummary = item.soAnhNuoc > 0 ? `💧 ${item.soAnhNuoc} · ${getTrangThaiAnhLabel(item.trangThaiAnhNuoc)}` : '💧 Chưa có ảnh';
+                let anhDienSummary = item.soAnhDien > 0 ? `${item.soAnhDien} ảnh, ${getTrangThaiAnhLabel(item.trangThaiAnhDien).toLowerCase()}` : 'Chưa có ảnh';
+                let anhNuocSummary = item.soAnhNuoc > 0 ? `${item.soAnhNuoc} ảnh, ${getTrangThaiAnhLabel(item.trangThaiAnhNuoc).toLowerCase()}` : 'Chưa có ảnh';
 
                 let btnContent = '';
                 if ((!item.soAnhDien || item.soAnhDien === 0) && (!item.soAnhNuoc || item.soAnhNuoc === 0)) {
-                    btnContent = '<span class="text-muted"><i class="ti ti-camera me-1"></i>Chưa có ảnh</span>';
+                    btnContent = '<span class="text-secondary"><i class="ti ti-camera me-1"></i>Chưa có ảnh</span>';
                 } else {
                     btnContent = `
                         <div class="text-start small lh-sm">
-                            <div>${escapeHtml(anhDienSummary)}</div>
-                            <div class="mt-1">${escapeHtml(anhNuocSummary)}</div>
+                            <div><i class="ti ti-bolt me-1 text-yellow"></i>${escapeHtml(anhDienSummary)}</div>
+                            <div class="mt-1"><i class="ti ti-droplet me-1 text-azure"></i>${escapeHtml(anhNuocSummary)}</div>
                         </div>
                     `;
                 }
 
                 let anhBtn = `
-                    <button type="button" class="btn btn-sm btn-outline-secondary btn-anh-chi-so" data-phong-tro-id="${item.phongTroId}" data-index="${index}" title="Xem và thao tác ảnh chỉ số">
+                    <button type="button" class="btn btn-sm btn-ghost-secondary btn-anh-chi-so" data-phong-tro-id="${item.phongTroId}" data-index="${index}" title="Xem và thao tác ảnh chỉ số">
                         ${btnContent}
                     </button>
                 `;
@@ -313,26 +327,28 @@
                 return `
                     <tr data-index="${index}" class="${rowClass}">
                         <td class="text-center align-middle">${index + 1}</td>
-                        <td class="align-middle font-weight-bold">${escapeHtml(item.tenPhong)}</td>
+                        <td class="align-middle fw-medium">${escapeHtml(item.tenPhong)}</td>
                         <td class="align-middle">${escapeHtml(item.tenNguoiDaiDien)}</td>
-                        <td class="text-center align-middle bg-warning-light-td diennuoc-input-td">
-                            <input type="number" class="form-control text-center in-dien-cu" value="${item.chiSoDienCu}" readonly>
+                        <td class="text-center align-middle diennuoc-input-td">
+                            <input type="number" class="form-control text-center dn-old in-dien-cu" tabindex="-1" value="${item.chiSoDienCu}" readonly>
                         </td>
-                        <td class="text-center align-middle bg-danger-light-td diennuoc-input-td">
-                            <input type="number" class="form-control text-center text-danger font-weight-bold in-dien-moi" value="${defaultDienMoi}" min="0" ${disabledAttr}>
-                            <div class="invalid-feedback text-center small" style="display: none;">Mới phải ≥ Cũ</div>
+                        <td class="text-center align-middle diennuoc-input-td">
+                            <input type="number" class="form-control text-center in-dien-moi" value="${defaultDienMoi}" min="0" ${disabledAttr}>
+                            <div class="dn-delta">${deltaText(item.chiSoDienCu, defaultDienMoi, 'kWh')}</div>
+                            <div class="invalid-feedback text-center small" style="display: none;">Mới phải ≥ cũ</div>
                             <div class="wrap-lydo-dien mt-1" style="${isOfficialDien ? 'display: none;' : ''}">
-                                <input type="text" class="form-control form-control-sm in-lydo-dien" name="lyDoDien" placeholder="Lý do nhập tay điện" value="" ${disabledAttr}>
+                                <input type="text" class="form-control form-control-sm in-lydo-dien" name="lyDoDien" placeholder="Lý do nhập tay" value="" ${disabledAttr}>
                             </div>
                         </td>
-                        <td class="text-center align-middle bg-info-light-td diennuoc-input-td">
-                            <input type="number" class="form-control text-center in-nuoc-cu" value="${item.chiSoNuocCu}" readonly>
+                        <td class="text-center align-middle diennuoc-input-td">
+                            <input type="number" class="form-control text-center dn-old in-nuoc-cu" tabindex="-1" value="${item.chiSoNuocCu}" readonly>
                         </td>
-                        <td class="text-center align-middle bg-primary-light-td diennuoc-input-td">
-                            <input type="number" class="form-control text-center text-primary font-weight-bold in-nuoc-moi" value="${defaultNuocMoi}" min="0" ${disabledAttr}>
-                            <div class="invalid-feedback text-center small" style="display: none;">Mới phải ≥ Cũ</div>
+                        <td class="text-center align-middle diennuoc-input-td">
+                            <input type="number" class="form-control text-center in-nuoc-moi" value="${defaultNuocMoi}" min="0" ${disabledAttr}>
+                            <div class="dn-delta">${deltaText(item.chiSoNuocCu, defaultNuocMoi, 'm³')}</div>
+                            <div class="invalid-feedback text-center small" style="display: none;">Mới phải ≥ cũ</div>
                             <div class="wrap-lydo-nuoc mt-1" style="${isOfficialNuoc ? 'display: none;' : ''}">
-                                <input type="text" class="form-control form-control-sm in-lydo-nuoc" name="lyDoNuoc" placeholder="Lý do nhập tay nước" value="" ${disabledAttr}>
+                                <input type="text" class="form-control form-control-sm in-lydo-nuoc" name="lyDoNuoc" placeholder="Lý do nhập tay" value="" ${disabledAttr}>
                             </div>
                         </td>
                         <td class="text-center align-middle">${anhBtn}</td>
@@ -349,7 +365,7 @@
 
                 let html = '';
                 if (data.length === 0) {
-                    html = '<tr><td colspan="9" class="text-center text-muted py-4">Không có phòng nào đang thuê tại chi nhánh này.</td></tr>';
+                    html = '<tr><td colspan="9" class="text-center text-secondary py-5">Chi nhánh này chưa có phòng đang thuê.</td></tr>';
                 } else {
                     data.forEach((item, index) => {
                         html += renderRow(item, index);
@@ -357,6 +373,7 @@
                 }
                 
                 $('#tbodyDienNuoc').html(html);
+                updateSummary(data);
 
                 // Khởi tạo lại DataTable (Giữ cuộn dọc, chỉ tìm kiếm và sắp xếp)
                 if (data.length > 0) {
@@ -433,6 +450,13 @@
                         tr.find('.wrap-lydo-nuoc').show();
                     }
                 }
+            });
+
+            $('#tbodyDienNuoc').on('input change', '.in-dien-moi, .in-nuoc-moi', function () {
+                const isDien = $(this).hasClass('in-dien-moi');
+                const tr = $(this).closest('tr');
+                const cu = tr.find(isDien ? '.in-dien-cu' : '.in-nuoc-cu').val();
+                $(this).siblings('.dn-delta').text(deltaText(cu, $(this).val(), isDien ? 'kWh' : 'm³'));
             });
 
             $('#tbodyDienNuoc').on('input change', '.in-lydo-dien, .in-lydo-nuoc', function () {
@@ -671,8 +695,8 @@
                     cancelButtonText: 'Hủy bỏ'
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        $btn.prop('disabled', true).html('<i class="ti ti-loader fa-spin me-1"></i> Đang lưu...');
-                        $btnSticky.prop('disabled', true).html('<i class="ti ti-loader fa-spin me-1"></i> Đang lưu...');
+                        $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1" role="status"></span> Đang lưu');
+                        $btnSticky.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1" role="status"></span> Đang lưu');
 
                         $.ajax({
                             url: '/DienNuoc/SaveChotDienNuoc',
@@ -697,19 +721,4 @@
             }
         });
     </script>
-}
-
-@section Styles {
-    <style>
-    /* Đồng bộ màu nền bộ lọc trong chế độ tối */
-    html[data-bs-theme="dark"] .bg-light,
-    [data-bs-theme="dark"] .bg-light {
-        background-color: var(--tblr-bg-surface-secondary, #1b2434) !important;
-        color: var(--tblr-body-color, #f4f6fa) !important;
-    }
-    html[data-bs-theme="dark"] .border-bottom,
-    [data-bs-theme="dark"] .border-bottom {
-        border-color: rgba(255, 255, 255, 0.15) !important;
-    }
-</style>
 }

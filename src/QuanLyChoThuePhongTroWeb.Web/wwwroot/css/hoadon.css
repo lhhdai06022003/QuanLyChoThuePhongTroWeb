@@ -37,34 +37,29 @@
 
 /* Khung hiển thị QR Code và thông tin chuyển khoản (VietQR Card) */
 .qr-payment-box {
-    border-radius: 8px;
-    border: 1px solid #e9ecef;
-    background-color: #ffffff;
+    border-radius: var(--tblr-border-radius, 4px);
+    border: 1px solid var(--tblr-border-color);
+    background-color: var(--tblr-bg-surface);
     transition: all 0.2s ease-in-out;
-}
-
-html[data-bs-theme="dark"] .qr-payment-box {
-    border-color: #2f3e56;
-    background-color: #1b2434;
 }
 
 .qr-payment-box .qr-title {
     font-size: 0.95rem;
-    font-weight: 700;
+    font-weight: 600;
 }
 
 .qr-payment-box img {
-    border: 1px solid #dee2e6;
+    border: 1px solid var(--tblr-border-color);
     background-color: #ffffff;
     padding: 6px;
-    border-radius: 8px;
+    border-radius: var(--tblr-border-radius, 4px);
     max-width: 160px;
     height: auto;
     transition: transform 0.2s ease;
 }
 
 .qr-payment-box img:hover {
-    transform: scale(1.05);
+    transform: scale(1.03);
 }
 
 .qr-details-list {
@@ -76,11 +71,7 @@ html[data-bs-theme="dark"] .qr-payment-box {
     display: flex;
     justify-content: space-between;
     padding: 4px 0;
-    border-bottom: 1px dashed #f1f3f5;
-}
-
-html[data-bs-theme="dark"] .qr-details-list .qr-detail-item {
-    border-bottom-color: #2f3e56;
+    border-bottom: 1px dashed var(--tblr-border-color);
 }
 
 .qr-details-list .qr-detail-item:last-child {
@@ -88,34 +79,281 @@ html[data-bs-theme="dark"] .qr-details-list .qr-detail-item {
 }
 
 .qr-details-list strong {
-    color: #495057;
-}
-
-html[data-bs-theme="dark"] .qr-details-list strong {
-    color: #cbd5e1;
+    color: var(--tblr-body-color);
 }
 
 /* Căn chỉnh bảng nhập liệu chi phí khi chỉnh sửa */
 #editLinesTable th {
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    font-weight: 600;
-    color: #626976;
-    background-color: #f8f9fa;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--tblr-secondary);
+    background-color: var(--tblr-bg-surface-secondary);
 }
 
-html[data-bs-theme="dark"] #editLinesTable th {
-    background-color: #1a2232;
-    color: #8f9baf;
-}
-
-/* Đảm bảo chiều rộng các trường chỉnh sửa hợp lý */
 .edit-ten {
     font-weight: 500;
 }
 
 .edit-gia,
 .edit-sl {
-    font-family: var(--tb-font-monospace, monospace);
+    font-family: var(--tblr-font-monospace, monospace);
+    font-variant-numeric: tabular-nums;
+}
+
+/* ========== Giao diện màn Hóa đơn (phạm vi .hd-page) ========== */
+/* Nền trang và màu sắc chủ đạo theo hướng A (đã chốt 30/09/2026) */
+.hd-page {
+    --tblr-body-bg: #f2f5f4;
+    --tblr-bg-surface: #ffffff;
+    --tblr-primary: #0f6b63;
+    --tblr-primary-rgb: 15, 107, 99;
+    --tblr-link-color: #0f6b63;
+    --tblr-link-color-rgb: 15, 107, 99;
+    --hd-stage-off: var(--tblr-border-color);
+    --hd-stage-wait: #b45309;
+
+    background-color: var(--tblr-body-bg);
+    min-height: calc(100vh - 8rem);
+    margin: -1rem calc(var(--tblr-gutter-x, 0.75rem) * -1) -1.5rem;
+    padding: 0 calc(var(--tblr-gutter-x, 0.75rem)) 2rem;
+}
+
+html[data-bs-theme="dark"] .hd-page {
+    --tblr-body-bg: #0f1615;
+    --tblr-bg-surface: #182120;
+    --tblr-primary: #3fb8ac;
+    --tblr-primary-rgb: 63, 184, 172;
+    --tblr-link-color: #3fb8ac;
+    --tblr-link-color-rgb: 63, 184, 172;
+    --hd-stage-wait: #f0a04b;
+}
+
+/* Nền trang đồng bộ với màu chủ đạo của màn Hóa đơn */
+.hd-page {
+    background-color: var(--tblr-body-bg);
+}
+
+.hd-page .card {
+    background-color: var(--tblr-bg-surface);
+    border: 1px solid var(--tblr-border-color);
+    box-shadow: none;
+}
+
+.hd-page .hd-filters {
+    display: block;
+    padding: 0.875rem 1rem;
+    background-color: var(--tblr-bg-surface);
+    border-bottom: 1px solid var(--tblr-border-color);
+}
+
+.hd-page .hd-filters .form-label {
+    margin-bottom: 0.25rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--tblr-secondary);
+}
+
+.hd-page .hd-bulk {
+    display: none;
+    min-height: 48px;
+    padding: 0.5rem 1rem;
+    background: rgba(var(--tblr-primary-rgb), 0.08);
+    border-bottom: 1px solid rgba(var(--tblr-primary-rgb), 0.25);
+    font-weight: 500;
+}
+
+.hd-page .hd-bulk:not(.d-none) {
+    display: flex;
+}
+
+/* DataTables wrapper bên trong card (L1) */
+.hd-page .card .dataTables_wrapper .card-body,
+.hd-page .card .dataTables_wrapper .card-footer {
+    padding-left: 1rem;
+    padding-right: 1rem;
+    background-color: var(--tblr-bg-surface);
+}
+
+.hd-page .card .dataTables_wrapper .dataTables_length label,
+.hd-page .card .dataTables_wrapper .dataTables_filter label {
+    margin-bottom: 0;
+    font-size: 0.8125rem;
+    color: var(--tblr-secondary);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.hd-page .card .dataTables_wrapper .dataTables_filter input {
+    margin-left: 0;
+}
+
+.hd-page .card .dataTables_wrapper .dataTables_info {
+    font-size: 0.8125rem;
+    color: var(--tblr-secondary);
+    padding-top: 0.25rem;
+}
+
+.hd-page .card .dataTables_wrapper .dataTables_paginate {
+    margin-top: 0;
+}
+
+.hd-page .card .dataTables_wrapper .dataTables_paginate .pagination {
+    margin-bottom: 0;
+    gap: 2px;
+}
+
+/* L2: Tiêu đề cột viết sentence case, cỡ 0.8125rem, đậm 500, màu secondary */
+.hd-page .hd-table thead th {
+    text-transform: none;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--tblr-secondary);
+    letter-spacing: normal;
+    vertical-align: middle;
+}
+
+/* L3: Cột chọn tất cả cố định ≈ 44px, căn giữa */
+.hd-page .hd-table th:first-child,
+.hd-page .hd-table td:first-child {
+    width: 44px;
+    min-width: 44px;
+    max-width: 44px;
+    text-align: center;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+    vertical-align: middle;
+}
+
+/* L4: Thêm khoảng cách cho icon sắp xếp của DataTables không đè lên chữ */
+.hd-page .hd-table thead th.sorting,
+.hd-page .hd-table thead th.sorting_asc,
+.hd-page .hd-table thead th.sorting_desc {
+    padding-right: 1.75rem;
+    white-space: nowrap;
+}
+
+/* site.css ép .table-responsive overflow: visible (để dropdown không bị cắt); màn hẹp thì cho bảng cuộn ngang */
+@media (max-width: 1199.98px) {
+    .hd-page .table-responsive {
+        overflow-x: auto !important;
+    }
+}
+
+/* Căn lề ô đầu và ô cuối trong table-responsive khớp lề thẻ (≥ 16px) */
+.hd-page .table-responsive .hd-table th:first-child,
+.hd-page .table-responsive .hd-table td:first-child {
+    padding-left: 1rem;
+}
+
+.hd-page .table-responsive .hd-table th:last-child,
+.hd-page .table-responsive .hd-table td:last-child {
+    padding-right: 1rem;
+}
+
+/* Số tiền và kỳ căn thẳng cột */
+.hd-page .hd-num {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.hd-page .hd-table tbody tr.selected-row,
+.hd-page .hd-table tbody tr:has(.invoice-select:checked) {
+    background: rgba(var(--tblr-primary-rgb), 0.06);
+}
+
+/* Hàng hóa đơn đã hủy: chữ màu secondary nhẹ, không gạch cả hàng */
+.hd-page .hd-table tbody tr.hd-row-cancelled td {
+    color: var(--tblr-secondary);
+    opacity: 0.85;
+}
+
+/* Thanh 4 chặng phát hành */
+.hd-stage {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    white-space: nowrap;
+}
+
+.hd-stage-bars {
+    display: inline-flex;
+    gap: 3px;
+}
+
+.hd-stage-bars i {
+    display: block;
+    width: 14px;
+    height: 5px;
+    border-radius: 1px;
+    background: var(--hd-stage-off);
+}
+
+.hd-stage-bars i.on {
+    background: var(--tblr-primary);
+}
+
+.hd-stage-wait .hd-stage-bars i.on {
+    background: var(--hd-stage-wait);
+}
+
+.hd-stage-wait .hd-stage-label {
+    color: var(--hd-stage-wait);
+    font-weight: 500;
+}
+
+.hd-stage-cancelled .hd-stage-label {
+    color: var(--tblr-secondary);
+    text-decoration: line-through;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .hd-stage-bars i {
+        transition: background-color 0.15s ease;
+    }
+}
+
+/* Modal styling: chuẩn Tabler, bỏ shadow-lg, padding chuẩn */
+#chiTietModal .modal-content,
+#congBoKetQuaModal .modal-content,
+#thuTienModal .modal-content,
+#previewModal .modal-content,
+#editModal .modal-content {
+    background-color: var(--tblr-bg-surface);
+    border: 1px solid var(--tblr-border-color);
+    box-shadow: none;
+}
+
+#chiTietModal .modal-body,
+#congBoKetQuaModal .modal-body,
+#thuTienModal .modal-body,
+#previewModal .modal-body,
+#editModal .modal-body {
+    padding: 1.25rem;
+}
+
+/* Datagrid khoảng cách chuẩn */
+#chiTietModal .datagrid {
+    --tblr-datagrid-item-width: 12rem;
+}
+
+#chiTietModal .datagrid-title {
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: none;
+    color: var(--tblr-secondary);
+    margin-bottom: 0.25rem;
+}
+
+#chiTietModal .datagrid-content {
+    font-size: 0.9375rem;
+}
+
+/* SweetAlert nút xác nhận tông màu teal của màn Hóa đơn */
+.swal2-popup .swal2-styled.swal2-confirm {
+    background-color: #0f6b63 !important;
+}
+
+html[data-bs-theme="dark"] .swal2-popup .swal2-styled.swal2-confirm {
+    background-color: #3fb8ac !important;
 }

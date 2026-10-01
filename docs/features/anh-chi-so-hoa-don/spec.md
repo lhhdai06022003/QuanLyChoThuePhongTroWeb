@@ -95,7 +95,7 @@ Nếu ứng dụng ngừng sau khi commit công bố nhưng trước khi gọi S
 - Application sở hữu use case, xác thực quyền, chuyển trạng thái, gửi email qua `IEmailService` sau commit và trả kết quả từng hóa đơn; DTO/`UploadFile`/store không dùng kiểu HTTP/EF. Infrastructure sở hữu EF, Cloudinary, Gemini và MailKit. Web/API v1 gọi cùng Application Service; endpoint gửi email cũ không được bỏ qua quy tắc mới.
 - Kiểm tra quyền và chi nhánh tại Application mỗi lần công bố/gửi lại. Sửa truy vấn nhắc nợ để loại nháp, hóa đơn chưa công bố và bản đã hủy; chưa thay hai state store JSON hiện có.
 - **Phân quyền giai đoạn này (chốt 27/09/2026):** chỉ có role `NhanVien` kèm phân công chi nhánh. `EmployeeActionCodes` là nhãn thao tác, không phải quyền riêng: nhân viên được phân công đều qua mọi mã, trừ nhóm chỉ Admin (chốt, trả lại). Không thêm mã mới cho từng thao tác.
-- **API v1 (chốt 27/09/2026):** hoãn. Đợt 3 chỉ làm MVC. `Web/Api/V1` giữ nguyên khung và sẽ được đặc tả ở đợt sau.
+- **API v1 (chốt 27/09/2026, loại khỏi phạm vi module ngày 01/10/2026):** module này chỉ làm MVC. `Web/Api/V1` giữ nguyên khung và không còn là đầu việc của module.
 
 ## 8. Điều kiện nghiệm thu
 
@@ -124,7 +124,7 @@ Lúc nâng cấp cần migration mới, màn Admin cấp/thu hồi, kiểm tra g
 
 ## 11. Giao diện MVC (đợt 3)
 
-Chỉ làm MVC, không có API v1 (§7). Mọi POST có antiforgery (header `RequestVerificationToken` cho AJAX). Web không reference Domain và map DTO của Application sang ViewModel. Nút ẩn/hiện theo role và trạng thái chỉ để hỗ trợ người dùng; Application luôn kiểm tra lại. Giao diện dùng layout, Bootstrap, DataTables và SweetAlert hiện có của từng area, và hiển thị tốt trên màn hình rộng từ 360px.
+Chỉ làm MVC, không có API v1 (§7, đã loại khỏi phạm vi). Mọi POST có antiforgery (header `RequestVerificationToken` cho AJAX). Web không reference Domain và map DTO của Application sang ViewModel. Nút ẩn/hiện theo role và trạng thái chỉ để hỗ trợ người dùng; Application luôn kiểm tra lại. Giao diện dùng layout, Bootstrap, DataTables và SweetAlert hiện có của từng area, và hiển thị tốt trên màn hình rộng từ 360px.
 
 ### 11.1 Quy tắc tải ảnh chung
 

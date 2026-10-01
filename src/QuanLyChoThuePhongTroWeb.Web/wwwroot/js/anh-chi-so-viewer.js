@@ -12,31 +12,44 @@
     }
 
     class MeterImageViewer {
+        // Nhận một phần tử/selector, hoặc object tuỳ chọn { containerId, imageId, zoomInBtnId, ... }
         constructor(containerEl) {
-            this.$container = $(containerEl);
-            this.$img = this.$container.find('.meter-viewer-img');
+            var opts = (containerEl && containerEl.containerId) ? containerEl : null;
+            this.opts = opts;
+            this.$container = opts ? $('#' + opts.containerId) : $(containerEl);
+            this.$img = opts ? $('#' + opts.imageId) : this.$container.find('.meter-viewer-img');
             this.scale = 1.0;
             this.rotation = 0;
             this.initEvents();
         }
 
         initEvents() {
-            this.$container.on('click', '.btn-zoom-in', (e) => {
-                e.preventDefault();
-                this.zoomIn();
-            });
-            this.$container.on('click', '.btn-zoom-out', (e) => {
-                e.preventDefault();
-                this.zoomOut();
-            });
-            this.$container.on('click', '.btn-rotate', (e) => {
-                e.preventDefault();
-                this.rotate();
-            });
-            this.$container.on('click', '.btn-reset', (e) => {
-                e.preventDefault();
-                this.reset();
-            });
+            var self = this;
+            var bind = function (selector, handler) {
+                $(document).on('click', selector, function (e) {
+                    e.preventDefault();
+                    handler.call(self);
+                });
+            };
+            if (this.opts) {
+                bind('#' + this.opts.zoomInBtnId, this.zoomIn);
+                bind('#' + this.opts.zoomOutBtnId, this.zoomOut);
+                bind('#' + this.opts.rotateBtnId, this.rotate);
+                bind('#' + this.opts.resetBtnId, this.reset);
+                return;
+            }
+            this.$container.on('click', '.btn-zoom-in', function (e) { e.preventDefault(); self.zoomIn(); });
+            this.$container.on('click', '.btn-zoom-out', function (e) { e.preventDefault(); self.zoomOut(); });
+            this.$container.on('click', '.btn-rotate', function (e) { e.preventDefault(); self.rotate(); });
+            this.$container.on('click', '.btn-reset', function (e) { e.preventDefault(); self.reset(); });
+        }
+
+        loadImage(url) {
+            this.reset();
+            if (!this.$img || !this.$img.length) {
+                this.$img = this.$container.find('.meter-viewer-img');
+            }
+            this.$img.attr('src', url);
         }
 
         setImage(url) {

@@ -183,14 +183,11 @@
 - Modify: `src/QuanLyChoThuePhongTroWeb.Web/Areas/QuanLyNhaTro/Views/HoaDon/Index.cshtml`
 - Create: `src/QuanLyChoThuePhongTroWeb.Web/Areas/KhachThue/Views/DienNuoc/Index.cshtml`
 - Modify: `src/QuanLyChoThuePhongTroWeb.Web/Areas/KhachThue/Views/HoaDon/Index.cshtml`
-- Create: `src/QuanLyChoThuePhongTroWeb.Web/Api/V1/MeterReadingsController.cs`
-- Create: `src/QuanLyChoThuePhongTroWeb.Web/Api/V1/InvoiceIssuanceController.cs`
 - Modify: `tests/QuanLyChoThuePhongTroWeb.Web.IntegrationTests/Areas/AreaRoutingTests.cs`
 
 - [x] *(đợt 3A xong, commit `8f1a2c0`; riêng phần "màn Admin chốt/trả lại hóa đơn" làm ở đợt 3B)* Web nhận `IFormFile`, chuyển `UploadFile`; JPEG/PNG tối đa 5 MB, kiểm tra nội dung. Màn khách cho tải ảnh mới khi ảnh/OCR lỗi; màn nhân viên tách số OCR và số chính thức, duyệt/nhập tay kèm lý do; màn Admin chốt/trả lại hóa đơn. Không tạo ô số khách đề xuất hoặc màn cấp quyền chức năng riêng từng nhân viên (phương án 2) trong đợt này; màn phân công chi nhánh làm ở Mục 6B.
 - [x] *(xong ở đợt 2B và 3B, rà lại ngày 30/09/2026)* Màn hóa đơn hiển thị preview, tạo/gửi hàng loạt và kết quả email tức thời theo từng `HoaDonId`. Sau khi tải lại trang chỉ hiển thị trạng thái công bố trên cổng, không suy ra email đã gửi hay thất bại. Nút "Gửi lại email" trên `DaGui` có cảnh báo khả năng gửi trùng; bản hủy không có nút này. Nút theo role/chi nhánh và trạng thái; Application vẫn quyết định quyền.
-- [x] *(hoãn theo spec §7 ngày 27/09/2026: không làm API v1 trong module này, sẽ đặc tả ở đợt sau; `Web/Api/V1` giữ nguyên khung)* API v1 gọi cùng service, 400 cho input sai, 403/404 cho không có quyền/tài nguyên, 409 cho xung đột; bảo vệ POST với auth/CSRF phù hợp cookie hiện có.
-- [x] *(đã có test rải qua các đợt, phần API v1 hoãn theo mục trên; rà lại ngày 30/09/2026)* Test route, antiforgery, phân công đúng/sai chi nhánh, Admin-only chốt/trả lại, ảnh sai định dạng, khách xem nháp qua URL. Test lô có một SMTP lỗi và một thành công vẫn công bố cả hai; bấm "Gửi hóa đơn" lặp/hai request đồng thời chỉ có một thông báo/sự kiện công bố và không tự gửi email lần nữa; "Gửi lại email" là thao tác riêng, có quyền và chặn bản hủy.
+- [x] *(đã có test rải qua các đợt; rà lại ngày 30/09/2026)* Test route, antiforgery, phân công đúng/sai chi nhánh, Admin-only chốt/trả lại, ảnh sai định dạng, khách xem nháp qua URL. Test lô có một SMTP lỗi và một thành công vẫn công bố cả hai; bấm "Gửi hóa đơn" lặp/hai request đồng thời chỉ có một thông báo/sự kiện công bố và không tự gửi email lần nữa; "Gửi lại email" là thao tác riêng, có quyền và chặn bản hủy.
 - [x] *(đợt 3A xong, commit `8f1a2c0`)* Màn nhân viên có thao tác sửa số ảnh đã xác nhận kèm lý do (dùng `CorrectConfirmedImageAsync`).
 
 ## 10. Kiểm chứng và bàn giao

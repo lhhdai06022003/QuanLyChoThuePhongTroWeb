@@ -41,5 +41,14 @@ Bản ghi này không liệt kê kết quả từng kịch bản nhỏ vì ngư�
 - Chưa có nút giao diện để tạo bản thay thế (`-R1`, `-R2`); bản thay thế đi qua luồng phát sinh hóa đơn thường.
 - Tra cứu chi tiết hóa đơn ở màn quản lý chỉ phân biệt "Đã thanh toán" và "Chưa thanh toán" trong chuỗi trạng thái; trạng thái "Thanh toán một phần" hiển thị đúng ở danh sách.
 - Các thông báo lỗi "Kỳ này đã có kỳ sau" chưa đổi chữ dù nay chỉ áp dụng khi kỳ sau đã chốt hoặc có hóa đơn phát hành.
-- API v1 hoãn theo spec §7.
+- API v1 đã loại khỏi phạm vi module (01/10/2026).
 - Nhánh chưa push, chưa gửi người B review (plan mục 10, dòng cuối).
+
+## 5. Bổ sung ngày 01/10/2026 (làm lại giao diện, chưa commit)
+
+- Sửa bảng hóa đơn không hiện (chuỗi `dom` DataTable thừa `>`), bỏ `modal-blur` ở 5 modal hóa đơn, đưa màn Hóa đơn về cấu trúc `page-body` của Tabler.
+- Làm lại giao diện màn Chốt chỉ số, modal ảnh chỉ số và trang khách thuê `ChiSoDienNuoc` theo Tabler; xem bằng mắt trên app dùng DB `quanlyphongtro_test`.
+- Sửa `anh-chi-so-viewer.js` khớp lời gọi của hai modal (trước đó khung xem ảnh trống, panel thao tác không hiện).
+- Gemini `gemini-3.5-flash` đọc ảnh công tơ thật: `12547.9`, độ tin cậy 0.98; lỗi 503 trước đó là tạm thời.
+- Loại API v1 khỏi phạm vi module. Giữ nguyên validate upload ảnh theo quyết định của người dùng.
+- Tự động: build 0 lỗi; Domain 100, Application 515, Infrastructure 254, Web 188 test đều qua trên `quanlyphongtro_test`. Test tự động không kiểm tra giao diện.
