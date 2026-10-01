@@ -8,6 +8,8 @@ using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Persistence;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Services;
 using QuanLyChoThuePhongTroWeb.Application.Common.Models;
@@ -23,13 +25,19 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.AiAssistants
         private readonly HttpClient _httpClient;
         private readonly string _apiKey;
         private readonly string _model;
+        private readonly ILogger<AiAssistantService> _logger;
 
-        public AiAssistantService(ApplicationDbContext db, HttpClient httpClient, IConfiguration configuration)
+        public AiAssistantService(
+            ApplicationDbContext db,
+            HttpClient httpClient,
+            IConfiguration configuration,
+            ILogger<AiAssistantService>? logger = null)
         {
             _db = db;
             _httpClient = httpClient;
             _apiKey = configuration["Gemini:ApiKey"] ?? string.Empty;
             _model = configuration["Gemini:Model"] ?? "gemini-1.5-flash";
+            _logger = logger ?? NullLogger<AiAssistantService>.Instance;
         }
 
         public async Task<List<PhongTroChuaChotRes>> GetPhongTroChuaChotDienNuocAsync(int thang = 0, int nam = 0)
@@ -276,14 +284,13 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.AiAssistants
                 WriteIndented = false
             };
 
-            var url = $"https://generativelanguage.googleapis.com/v1beta/models/{_model}:generateContent?key={_apiKey}";
-            var httpContent = new StringContent(JsonSerializer.Serialize(requestPayload, serializeOptions), Encoding.UTF8, "application/json");
-
-            var response = await _httpClient.PostAsync(url, httpContent);
+            var response = await PostGeminiAsync(requestPayload, serializeOptions);
             if (!response.IsSuccessStatusCode)
             {
                 var errContent = await response.Content.ReadAsStringAsync();
-                return ServiceResult.Fail($"Lỗi kết nối Gemini API (HTTP {response.StatusCode}): {errContent}");
+                var truncatedErr = errContent.Length > 500 ? errContent.Substring(0, 500) : errContent;
+                _logger.LogWarning("Lỗi kết nối Gemini API (HTTP {StatusCode}): {ErrorContent}", (int)response.StatusCode, truncatedErr);
+                return ServiceResult.Fail($"Trợ lý AI tạm thời không phản hồi (HTTP {(int)response.StatusCode}). Vui lòng thử lại sau.");
             }
 
             var responseJsonStr = await response.Content.ReadAsStringAsync();
@@ -351,13 +358,14 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.AiAssistants
                     tools = toolsConfig
                 };
 
-                var secondHttpContent = new StringContent(JsonSerializer.Serialize(secondRequestPayload, serializeOptions), Encoding.UTF8, "application/json");
-                var secondResponse = await _httpClient.PostAsync(url, secondHttpContent);
+                var secondResponse = await PostGeminiAsync(secondRequestPayload, serializeOptions);
 
                 if (!secondResponse.IsSuccessStatusCode)
                 {
                     var errContent = await secondResponse.Content.ReadAsStringAsync();
-                    return ServiceResult.Fail($"Lỗi kết nối Gemini API lượt 2 (HTTP {secondResponse.StatusCode}): {errContent}");
+                    var truncatedErr = errContent.Length > 500 ? errContent.Substring(0, 500) : errContent;
+                    _logger.LogWarning("Lỗi kết nối Gemini API lượt 2 (HTTP {StatusCode}): {ErrorContent}", (int)secondResponse.StatusCode, truncatedErr);
+                    return ServiceResult.Fail($"Trợ lý AI tạm thời không phản hồi (HTTP {(int)secondResponse.StatusCode}). Vui lòng thử lại sau.");
                 }
 
                 var secondResponseJsonStr = await secondResponse.Content.ReadAsStringAsync();
@@ -368,6 +376,17 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.AiAssistants
             }
 
             return ServiceResult.Ok(part["text"]?.ToString() ?? "Trợ lý AI không phản hồi.");
+        }
+
+        private async Task<HttpResponseMessage> PostGeminiAsync(object payload, JsonSerializerOptions options, CancellationToken ct = default)
+        {
+            var url = $"https://generativelanguage.googleapis.com/v1beta/models/{_model}:generateContent";
+            var request = new HttpRequestMessage(HttpMethod.Post, url)
+            {
+                Content = new StringContent(JsonSerializer.Serialize(payload, options), Encoding.UTF8, "application/json")
+            };
+            request.Headers.Add("x-goog-api-key", _apiKey);
+            return await _httpClient.SendAsync(request, ct);
         }
 
         private async Task<object> HandleFunctionCallAsync(string functionName, JsonNode? args, string userRole, int? nguoiThueId)

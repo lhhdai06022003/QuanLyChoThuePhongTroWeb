@@ -15,6 +15,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Persistence
         Task<(decimal ChiSoDienMoi, decimal ChiSoNuocMoi)> GetNearestPreviousReadingAsync(int phongTroId, int thang, int nam, CancellationToken cancellationToken = default);
         Task<decimal> GetServicePriceAsync(string serviceKeyword, int chiNhanhId, CancellationToken cancellationToken = default);
         Task<IReadOnlyDictionary<int, string>> GetRoomNumbersAsync(IReadOnlyList<int> roomIds, CancellationToken cancellationToken = default);
+        Task<IReadOnlyDictionary<int, int>> GetRoomBranchIdsAsync(IReadOnlyList<int> roomIds, CancellationToken cancellationToken = default);
 
         Task AddRecordAsync(DichVuDienNuocCuaPhong record, CancellationToken cancellationToken = default);
         void UpdateRecord(DichVuDienNuocCuaPhong record);

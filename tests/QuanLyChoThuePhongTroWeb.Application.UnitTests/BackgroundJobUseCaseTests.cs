@@ -91,13 +91,17 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             public Task<IReadOnlyList<YeuCauSuCo>> GetBillableSuCosAsync(IReadOnlyList<int> roomIds, CancellationToken cancellationToken = default) => throw new NotImplementedException();
             public Task<IReadOnlyList<PhongTro>> GetPhongTrosByChiNhanhIdAsync(int chiNhanhId, CancellationToken cancellationToken = default) => throw new NotImplementedException();
             public Task<HoaDon?> GetHoaDonWithDetailsForUpdateAsync(int id, CancellationToken cancellationToken = default) => throw new NotImplementedException();
-            public Task<DataTableResponse<HoaDonRes>> GetHoaDonsDataTableAsync(DataTableRequest request, int chiNhanhId, int thang, int nam, int trangThai, CancellationToken cancellationToken = default) => throw new NotImplementedException();
+            public Task<DataTableResponse<HoaDonRes>> GetHoaDonsDataTableAsync(DataTableRequest request, int chiNhanhId, int thang, int nam, int trangThai, IReadOnlyList<int>? allowedBranchIds = null, CancellationToken cancellationToken = default) => throw new NotImplementedException();
             public Task<HoaDonChiTietRes?> GetHoaDonDetailByIdAsync(int id, CancellationToken cancellationToken = default) => throw new NotImplementedException();
             public Task<HoaDon?> GetActiveHoaDonByIdAsync(int id, CancellationToken cancellationToken = default) => throw new NotImplementedException();
             public Task<IReadOnlyList<HoaDonRes>> GetUnpaidInvoicesAsync(int chiNhanhId, int thang, int nam, CancellationToken cancellationToken = default) => throw new NotImplementedException();
             public Task<IReadOnlyList<int>> GetContractIdsByTenantIdAsync(int nguoiThueId, CancellationToken cancellationToken = default) => throw new NotImplementedException();
             public Task<IReadOnlyList<HoaDonRes>> GetInvoicesByContractIdsAsync(IReadOnlyList<int> contractIds, CancellationToken cancellationToken = default) => throw new NotImplementedException();
             public Task<bool> CheckHoaDonOwnershipAsync(int hoaDonId, int nguoiThueId, CancellationToken cancellationToken = default) => throw new NotImplementedException();
+            public Task<int?> GetHoaDonBranchIdAsync(int hoaDonId, CancellationToken cancellationToken = default) => Task.FromResult<int?>(null);
+            public Task<IReadOnlyDictionary<int, int>> GetRoomBranchIdsAsync(IReadOnlyList<int> roomIds, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyDictionary<int, int>>(new Dictionary<int, int>());
+            public Task<IReadOnlyList<HoaDon>> GetInvoicesByMeterReadingIdsAsync(IReadOnlyList<int> meterReadingIds, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<HoaDon>>(new List<HoaDon>());
+            public Task<InvoiceCancellationBlockers> GetCancellationBlockersAsync(int hoaDonId, CancellationToken cancellationToken = default) => Task.FromResult(new InvoiceCancellationBlockers(false, false, false));
             public Task AddInvoicesAsync(IEnumerable<HoaDon> invoices, CancellationToken cancellationToken = default) => throw new NotImplementedException();
             public void UpdateSuCos(IEnumerable<YeuCauSuCo> suCos) => throw new NotImplementedException();
             public void RemoveChiTietHoaDons(IEnumerable<ChiTietHoaDon> chiTiets) => throw new NotImplementedException();
@@ -188,16 +192,22 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
                 return Task.FromResult<byte[]?>(new byte[] { 1, 2, 3, 4 });
             }
 
-            public Task<PhatSinhHoaDonResult> PhatSinhHoaDonAsync(int chiNhanhId, int thang, int nam, List<int> selectedPhongTroIds) => throw new NotImplementedException();
-            public Task<List<PhatSinhPreviewRes>> PreviewPhatSinhHoaDonAsync(int chiNhanhId, int thang, int nam) => throw new NotImplementedException();
-            public Task<(bool IsSuccess, string? ErrorMessage)> UpdateHoaDonAsync(int hoaDonId, UpdateHoaDonReq req) => throw new NotImplementedException();
+                        public Task<List<PhatSinhPreviewRes>> PreviewPhatSinhHoaDonAsync(int chiNhanhId, int thang, int nam, int actorId) => throw new NotImplementedException();
+            public Task<(bool IsSuccess, string? ErrorMessage)> UpdateHoaDonAsync(int hoaDonId, UpdateHoaDonReq req, int actorId = 0) => throw new NotImplementedException();
             public Task<DataTableResponse<HoaDonRes>> GetDanhSachHoaDonAsync(DataTableRequest request, int chiNhanhId, int thang, int nam, int trangThai) => throw new NotImplementedException();
+            public Task<DataTableResponse<HoaDonRes>> GetEmployeeInvoiceListAsync(DataTableRequest request, int chiNhanhId, int thang, int nam, int trangThai, int actorId) => throw new NotImplementedException();
+            public Task<HoaDonChiTietRes?> GetEmployeeInvoiceDetailAsync(int id, int actorId) => throw new NotImplementedException();
             public Task<(bool IsSuccess, string? ErrorMessage)> ThuTienAsync(int hoaDonId, int phuongThuc, string ghiChu, int nguoiXacNhanId) => throw new NotImplementedException();
-            public Task<(bool IsSuccess, string? ErrorMessage)> DeleteHoaDonAsync(int id) => throw new NotImplementedException();
+            public Task<(bool IsSuccess, string? ErrorMessage)> DeleteHoaDonAsync(int id, int actorId, string lyDo, CancellationToken cancellationToken = default) => throw new NotImplementedException();
             public Task<byte[]?> ExportExcelAsync(int hoaDonId) => throw new NotImplementedException();
+            public Task<byte[]?> ExportEmployeeExcelAsync(int hoaDonId, int actorId) => throw new NotImplementedException();
+            public Task<byte[]?> ExportEmployeePdfAsync(int hoaDonId, int actorId) => throw new NotImplementedException();
             public Task<List<HoaDonRes>> GetDanhSachHoaDonChuaThanhToanAsync(int chiNhanhId, int thang, int nam) => throw new NotImplementedException();
+            public Task<List<HoaDonRes>> GetEmployeeUnpaidInvoicesAsync(int chiNhanhId, int thang, int nam, int actorId) => throw new NotImplementedException();
             public Task<List<HoaDonRes>> GetHoaDonsByNguoiThueIdAsync(int nguoiThueId) => throw new NotImplementedException();
             public Task<bool> CheckHoaDonOwnershipAsync(int hoaDonId, int nguoiThueId) => throw new NotImplementedException();
+            public Task<(bool IsSuccess, string? ErrorMessage)> CheckInvoicePermissionAsync(int hoaDonId, int actorId, string actionCode) => throw new NotImplementedException();
+            public Task<bool> CanTenantRequestPaymentAsync(int hoaDonId, int nguoiThueId, CancellationToken cancellationToken = default) => Task.FromResult(true);
         }
 
         [Fact]
@@ -661,16 +671,22 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
 
             public Task<byte[]?> ExportPdfAsync(int id) => Task.FromResult<byte[]?>(null);
 
-            public Task<PhatSinhHoaDonResult> PhatSinhHoaDonAsync(int chiNhanhId, int thang, int nam, List<int> selectedPhongTroIds) => throw new NotImplementedException();
-            public Task<List<PhatSinhPreviewRes>> PreviewPhatSinhHoaDonAsync(int chiNhanhId, int thang, int nam) => throw new NotImplementedException();
-            public Task<(bool IsSuccess, string? ErrorMessage)> UpdateHoaDonAsync(int hoaDonId, UpdateHoaDonReq req) => throw new NotImplementedException();
+                        public Task<List<PhatSinhPreviewRes>> PreviewPhatSinhHoaDonAsync(int chiNhanhId, int thang, int nam, int actorId) => throw new NotImplementedException();
+            public Task<(bool IsSuccess, string? ErrorMessage)> UpdateHoaDonAsync(int hoaDonId, UpdateHoaDonReq req, int actorId = 0) => throw new NotImplementedException();
             public Task<DataTableResponse<HoaDonRes>> GetDanhSachHoaDonAsync(DataTableRequest request, int chiNhanhId, int thang, int nam, int trangThai) => throw new NotImplementedException();
+            public Task<DataTableResponse<HoaDonRes>> GetEmployeeInvoiceListAsync(DataTableRequest request, int chiNhanhId, int thang, int nam, int trangThai, int actorId) => throw new NotImplementedException();
+            public Task<HoaDonChiTietRes?> GetEmployeeInvoiceDetailAsync(int id, int actorId) => throw new NotImplementedException();
             public Task<(bool IsSuccess, string? ErrorMessage)> ThuTienAsync(int hoaDonId, int phuongThuc, string ghiChu, int nguoiXacNhanId) => throw new NotImplementedException();
-            public Task<(bool IsSuccess, string? ErrorMessage)> DeleteHoaDonAsync(int id) => throw new NotImplementedException();
+            public Task<(bool IsSuccess, string? ErrorMessage)> DeleteHoaDonAsync(int id, int actorId, string lyDo, CancellationToken cancellationToken = default) => throw new NotImplementedException();
             public Task<byte[]?> ExportExcelAsync(int hoaDonId) => throw new NotImplementedException();
+            public Task<byte[]?> ExportEmployeeExcelAsync(int hoaDonId, int actorId) => throw new NotImplementedException();
+            public Task<byte[]?> ExportEmployeePdfAsync(int hoaDonId, int actorId) => throw new NotImplementedException();
             public Task<List<HoaDonRes>> GetDanhSachHoaDonChuaThanhToanAsync(int chiNhanhId, int thang, int nam) => throw new NotImplementedException();
+            public Task<List<HoaDonRes>> GetEmployeeUnpaidInvoicesAsync(int chiNhanhId, int thang, int nam, int actorId) => throw new NotImplementedException();
             public Task<List<HoaDonRes>> GetHoaDonsByNguoiThueIdAsync(int nguoiThueId) => throw new NotImplementedException();
             public Task<bool> CheckHoaDonOwnershipAsync(int hoaDonId, int nguoiThueId) => throw new NotImplementedException();
+            public Task<(bool IsSuccess, string? ErrorMessage)> CheckInvoicePermissionAsync(int hoaDonId, int actorId, string actionCode) => throw new NotImplementedException();
+            public Task<bool> CanTenantRequestPaymentAsync(int hoaDonId, int nguoiThueId, CancellationToken cancellationToken = default) => Task.FromResult(true);
         }
     }
 }

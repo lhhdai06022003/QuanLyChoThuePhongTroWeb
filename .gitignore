@@ -395,3 +395,14 @@ secrets.json
 .agent/
 .agents/
 AGENTS.md
+
+# Unit test results and coverage reports
+**/TestResults/**
+**/coverage/**
+**/*.trx
+**/*.coverlet/**
+**/*.cobertura.xml
+**/*.lcov
+**/*.htmlcov/
+
+docs/KeHoachHienTai/

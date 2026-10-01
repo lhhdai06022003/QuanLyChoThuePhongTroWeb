@@ -44,11 +44,114 @@ namespace QuanLyChoThuePhongTroWeb.Domain.Entities
         public ICollection<LichSuTrangThaiHoaDon> LichSuTrangThaiHoaDons { get; set; } = new List<LichSuTrangThaiHoaDon>();
         public ICollection<YeuCauThanhToanHoaDon> YeuCauThanhToanHoaDons { get; set; } = new List<YeuCauThanhToanHoaDon>();
 
+        public void KhoiTaoNhap(int nguoiTaoId)
+        {
+            if (nguoiTaoId <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(nguoiTaoId), "Người tạo hóa đơn không hợp lệ.");
+            }
+
+            if (TrangThaiPhatHanh != TrangThaiPhatHanhHoaDon.Nhap)
+            {
+                throw new InvalidOperationException($"Chỉ hóa đơn ở trạng thái {TrangThaiPhatHanhHoaDon.Nhap} mới có thể khởi tạo nháp.");
+            }
+
+            if (LichSuTrangThaiHoaDons.Count > 0)
+            {
+                throw new InvalidOperationException("Hóa đơn đã được khởi tạo lịch sử trước đó.");
+            }
+
+            LichSuTrangThaiHoaDons.Add(new LichSuTrangThaiHoaDon
+            {
+                HoaDonId = HoaDonId,
+                TrangThaiPhatHanhCu = null,
+                TrangThaiPhatHanhMoi = TrangThaiPhatHanhHoaDon.Nhap,
+                TrangThaiThanhToanCu = TrangThaiHoaDon,
+                TrangThaiThanhToanMoi = TrangThaiHoaDon,
+                NguoiThucHienId = nguoiTaoId,
+                NgayThucHien = DateTime.UtcNow,
+                LyDo = "Tạo hóa đơn nháp"
+            });
+        }
+
+        public void GuiDuyet(int? nguoiThucHienId = null, string? lyDo = null)
+        {
+            if (TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaHuy)
+            {
+                throw new InvalidOperationException("Không thể gửi duyệt hóa đơn đã hủy.");
+            }
+
+            if (TrangThaiPhatHanh != TrangThaiPhatHanhHoaDon.Nhap)
+            {
+                throw new InvalidOperationException($"Chỉ hóa đơn ở trạng thái {TrangThaiPhatHanhHoaDon.Nhap} mới có thể gửi duyệt.");
+            }
+
+            var trangThaiCu = TrangThaiPhatHanh;
+            TrangThaiPhatHanh = TrangThaiPhatHanhHoaDon.ChoDuyet;
+            NgayCapNhat = DateTime.UtcNow;
+
+            LichSuTrangThaiHoaDons.Add(new LichSuTrangThaiHoaDon
+            {
+                HoaDonId = HoaDonId,
+                TrangThaiPhatHanhCu = trangThaiCu,
+                TrangThaiPhatHanhMoi = TrangThaiPhatHanhHoaDon.ChoDuyet,
+                TrangThaiThanhToanCu = TrangThaiHoaDon,
+                TrangThaiThanhToanMoi = TrangThaiHoaDon,
+                NguoiThucHienId = nguoiThucHienId,
+                NgayThucHien = DateTime.UtcNow,
+                LyDo = lyDo
+            });
+        }
+
+        public void TraLai(int? nguoiThucHienId, string lyDo)
+        {
+            if (string.IsNullOrWhiteSpace(lyDo))
+            {
+                throw new ArgumentException("Lý do trả lại hóa đơn không được để trống.", nameof(lyDo));
+            }
+
+            if (TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaHuy)
+            {
+                throw new InvalidOperationException("Không thể trả lại hóa đơn đã hủy.");
+            }
+
+            if (TrangThaiPhatHanh != TrangThaiPhatHanhHoaDon.ChoDuyet)
+            {
+                throw new InvalidOperationException($"Chỉ có thể trả lại hóa đơn khi đang ở trạng thái {TrangThaiPhatHanhHoaDon.ChoDuyet}.");
+            }
+
+            var trangThaiCu = TrangThaiPhatHanh;
+            TrangThaiPhatHanh = TrangThaiPhatHanhHoaDon.Nhap;
+            NgayCapNhat = DateTime.UtcNow;
+
+            LichSuTrangThaiHoaDons.Add(new LichSuTrangThaiHoaDon
+            {
+                HoaDonId = HoaDonId,
+                TrangThaiPhatHanhCu = trangThaiCu,
+                TrangThaiPhatHanhMoi = TrangThaiPhatHanhHoaDon.Nhap,
+                TrangThaiThanhToanCu = TrangThaiHoaDon,
+                TrangThaiThanhToanMoi = TrangThaiHoaDon,
+                NguoiThucHienId = nguoiThucHienId,
+                NgayThucHien = DateTime.UtcNow,
+                LyDo = lyDo
+            });
+        }
+
         public void ChotHoaDon(int nguoiChotId, string? lyDo = null)
         {
             if (TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaHuy)
             {
                 throw new InvalidOperationException("Không thể chốt hóa đơn đã hủy.");
+            }
+
+            if (TrangThaiPhatHanh != TrangThaiPhatHanhHoaDon.ChoDuyet)
+            {
+                throw new InvalidOperationException("Chỉ hóa đơn ở trạng thái chờ duyệt mới có thể chốt.");
+            }
+
+            if (nguoiChotId <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(nguoiChotId), "Người chốt không hợp lệ.");
             }
 
             var trangThaiCu = TrangThaiPhatHanh;
@@ -70,8 +173,28 @@ namespace QuanLyChoThuePhongTroWeb.Domain.Entities
             });
         }
 
-        public void GuiHoaDon(int? nguoiGuiId = null, string? lyDo = null)
+        public void GuiHoaDon(int nguoiGuiId, DateTime nowUtc, DateTime hanThanhToanMacDinhUtc, string? lyDo = null)
         {
+            if (nguoiGuiId <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(nguoiGuiId), "Người gửi hóa đơn không hợp lệ.");
+            }
+
+            if (nowUtc.Kind != DateTimeKind.Utc)
+            {
+                throw new ArgumentOutOfRangeException(nameof(nowUtc), "Thời điểm gửi hóa đơn phải là UTC.");
+            }
+
+            if (hanThanhToanMacDinhUtc <= nowUtc)
+            {
+                throw new ArgumentOutOfRangeException(nameof(hanThanhToanMacDinhUtc), "Hạn thanh toán mặc định phải sau thời điểm gửi.");
+            }
+
+            if (TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaHuy)
+            {
+                throw new InvalidOperationException("Không thể gửi hóa đơn đã hủy.");
+            }
+
             if (TrangThaiPhatHanh != TrangThaiPhatHanhHoaDon.DaChot)
             {
                 throw new InvalidOperationException("Chỉ hóa đơn đã chốt mới có thể gửi cho khách thuê.");
@@ -79,8 +202,9 @@ namespace QuanLyChoThuePhongTroWeb.Domain.Entities
 
             var trangThaiCu = TrangThaiPhatHanh;
             TrangThaiPhatHanh = TrangThaiPhatHanhHoaDon.DaGui;
-            NgayGui = DateTime.UtcNow;
-            NgayCapNhat = DateTime.UtcNow;
+            NgayGui = nowUtc;
+            NgayCapNhat = nowUtc;
+            HanThanhToan ??= hanThanhToanMacDinhUtc;
 
             LichSuTrangThaiHoaDons.Add(new LichSuTrangThaiHoaDon
             {
@@ -90,7 +214,7 @@ namespace QuanLyChoThuePhongTroWeb.Domain.Entities
                 TrangThaiThanhToanCu = TrangThaiHoaDon,
                 TrangThaiThanhToanMoi = TrangThaiHoaDon,
                 NguoiThucHienId = nguoiGuiId,
-                NgayThucHien = DateTime.UtcNow,
+                NgayThucHien = nowUtc,
                 LyDo = lyDo
             });
         }
@@ -102,13 +226,24 @@ namespace QuanLyChoThuePhongTroWeb.Domain.Entities
                 throw new ArgumentException("Lý do hủy hóa đơn không được để trống.", nameof(lyDo));
             }
 
-            if (TrangThaiHoaDon == TrangThaiHoaDon.DaThanhToan)
+            if (TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaHuy)
             {
-                throw new InvalidOperationException("Không thể hủy hóa đơn đã thanh toán đầy đủ.");
+                throw new InvalidOperationException("Hóa đơn đã bị hủy trước đó.");
+            }
+
+            if (TrangThaiPhatHanh != TrangThaiPhatHanhHoaDon.DaChot && TrangThaiPhatHanh != TrangThaiPhatHanhHoaDon.DaGui)
+            {
+                throw new InvalidOperationException("Chỉ hóa đơn đã chốt hoặc đã gửi mới có thể hủy.");
+            }
+
+            if (TrangThaiHoaDon != TrangThaiHoaDon.ChuaThanhToan)
+            {
+                throw new InvalidOperationException("Không thể hủy hóa đơn đã thanh toán đầy đủ hoặc thanh toán một phần.");
             }
 
             var trangThaiCu = TrangThaiPhatHanh;
             TrangThaiPhatHanh = TrangThaiPhatHanhHoaDon.DaHuy;
+            IsDeleted = true;
             NgayCapNhat = DateTime.UtcNow;
 
             LichSuTrangThaiHoaDons.Add(new LichSuTrangThaiHoaDon
@@ -152,9 +287,9 @@ namespace QuanLyChoThuePhongTroWeb.Domain.Entities
 
         public bool KiemTraDuDieuKienYeuCauThanhToan()
         {
-            if (TrangThaiPhatHanh != TrangThaiPhatHanhHoaDon.DaChot && TrangThaiPhatHanh != TrangThaiPhatHanhHoaDon.DaGui)
+            if (TrangThaiPhatHanh != TrangThaiPhatHanhHoaDon.DaGui || IsDeleted)
             {
-                throw new InvalidOperationException("Chỉ hóa đơn đã chốt hoặc đã gửi mới được tạo yêu cầu thanh toán.");
+                throw new InvalidOperationException("Chỉ hóa đơn đã gửi cho khách thuê mới được tạo yêu cầu thanh toán.");
             }
 
             if (TrangThaiHoaDon == TrangThaiHoaDon.DaThanhToan)

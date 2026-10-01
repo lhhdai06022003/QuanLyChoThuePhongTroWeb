@@ -4,9 +4,11 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Persistence;
+using QuanLyChoThuePhongTroWeb.Application.Abstractions.Security;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Services;
 using QuanLyChoThuePhongTroWeb.Application.Common.Configurations;
 using QuanLyChoThuePhongTroWeb.Application.Common.Models;
+using QuanLyChoThuePhongTroWeb.Application.Common.Security;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence;
 using QuanLyChoThuePhongTroWeb.Domain.Entities;
@@ -23,6 +25,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
         private readonly IHoaDonCalculatorService _calculatorService;
         private readonly IInvoiceDocumentExporter _documentExporter;
         private readonly IVietQRService _vietQRService;
+        private readonly IEmployeeAccessService _employeeAccessService;
+        private readonly IInvoiceIssuanceStore? _issuanceStore;
 
         public HoaDonService(
             IHoaDonStore store,
@@ -31,7 +35,10 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
             ILogger<HoaDonService> logger,
             IHoaDonCalculatorService calculatorService,
             IInvoiceDocumentExporter documentExporter,
-            IVietQRService vietQRService)
+            IVietQRService vietQRService,
+            IEmployeeAccessService employeeAccessService,
+            IEmailService emailService,
+            IInvoiceIssuanceStore? issuanceStore = null)
         {
             _store = store;
             _unitOfWork = unitOfWork;
@@ -40,237 +47,20 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
             _calculatorService = calculatorService;
             _documentExporter = documentExporter;
             _vietQRService = vietQRService;
-        }
-
-        // =================== PHÁT SINH HÓA ĐƠN HÀNG LOẠT ===================
-        public async Task<PhatSinhHoaDonResult> PhatSinhHoaDonAsync(int chiNhanhId, int thang, int nam, List<int> selectedPhongTroIds)
-        {
-            var result = new PhatSinhHoaDonResult { IsSuccess = true, Message = "" };
-
-            try
-            {
-                if (selectedPhongTroIds == null || !selectedPhongTroIds.Any())
-                {
-                    result.IsSuccess = false;
-                    result.Message = "Không có phòng nào được chọn để phát sinh hóa đơn.";
-                    return result;
-                }
-
-                // 1. Cấu hình thời gian chuẩn
-                var startOfMonthVn = new DateTime(nam, thang, 1, 0, 0, 0, DateTimeKind.Unspecified);
-                var endOfMonthVn = startOfMonthVn.AddMonths(1).AddDays(-1).AddHours(23).AddMinutes(59).AddSeconds(59);
-                var startOfMonthUtc = DateTime.SpecifyKind(startOfMonthVn.AddHours(-7), DateTimeKind.Utc);
-                var endOfMonthUtc = DateTime.SpecifyKind(endOfMonthVn.AddHours(-7), DateTimeKind.Utc);
-                var daysInMonth = DateTime.DaysInMonth(nam, thang);
-
-                var chiNhanh = await _store.GetChiNhanhByIdAsync(chiNhanhId);
-                if (chiNhanh == null)
-                {
-                    result.IsSuccess = false;
-                    result.Message = "Không tìm thấy chi nhánh.";
-                    return result;
-                }
-
-                // 2. Lấy TẤT CẢ hợp đồng thuộc danh sách phòng được chọn và có hiệu lực trong tháng
-                var hopDongs = await _store.GetValidContractsForBillingAsync(chiNhanhId, selectedPhongTroIds, startOfMonthUtc, endOfMonthUtc);
-
-                if (!hopDongs.Any())
-                {
-                    result.IsSuccess = false;
-                    result.Message = "Không tìm thấy hợp đồng hợp lệ nào cho các phòng đã chọn.";
-                    return result;
-                }
-
-                var hopDongIds = hopDongs.Select(h => h.HopDongId).ToList();
-                var selectedPhongIds = hopDongs.Select(h => h.PhongTroId).Distinct().ToList();
-
-                // 3. Tải trước dữ liệu
-                var existingInvoiceHopDongIds = await _store.GetExistingInvoiceContractIdsAsync(hopDongIds, thang, nam);
-                var existingInvoiceHopDongIdsSet = new HashSet<int>(existingInvoiceHopDongIds);
-
-                var dienNuocRecords = await _store.GetDichVuDienNuocByRoomIdsAsync(selectedPhongIds, thang, nam);
-                var dienNuocDict = dienNuocRecords.ToDictionary(x => x.PhongTroId);
-
-                var dangKyDvs = await _store.GetDangKyDichVusForBillingAsync(selectedPhongIds, startOfMonthUtc, endOfMonthUtc);
-                var dangKyDvsLookup = dangKyDvs.ToLookup(d => d.PhongTroId);
-
-                var suCosCanCong = await _store.GetBillableSuCosAsync(selectedPhongIds);
-                var suCosLookup = suCosCanCong.ToLookup(x => x.PhongTroId);
-
-                var validInvoices = new List<HoaDon>();
-                var suCosToUpdate = new List<YeuCauSuCo>();
-
-                // 4. Lặp qua TỪNG HỢP ĐỒNG để phát sinh hóa đơn
-                foreach (var hd in hopDongs)
-                {
-                    string baseRoomName = hd.PhongTro.SoPhong;
-
-                    if (existingInvoiceHopDongIdsSet.Contains(hd.HopDongId))
-                    {
-                        result.Skipped.Add($"Phòng {baseRoomName} (HĐ: {hd.MaHopDong}): Đã tồn tại hóa đơn trong tháng.");
-                        continue;
-                    }
-
-                    var chiTietList = new List<ChiTietHoaDon>();
-                    decimal tongTien = 0m;
-
-                    var tienPhongData = _calculatorService.TinhTienPhong(hd.TienThuePhong, hd.ThoiDiemBatDau, hd.ThoiDiemKetThuc, thang, nam);
-                    if (tienPhongData.SoNgayO <= 0)
-                    {
-                        result.Skipped.Add($"Phòng {baseRoomName} (HĐ: {hd.MaHopDong}): Không có số ngày ở thực tế.");
-                        continue;
-                    }
-
-                    chiTietList.Add(new ChiTietHoaDon
-                    {
-                        TenDichVu = tienPhongData.DienGiai,
-                        DonGia = hd.TienThuePhong,
-                        SoLuong = 1,
-                        TongTien = tienPhongData.SoTien
-                    });
-                    tongTien += tienPhongData.SoTien;
-
-                    int? dienNuocId = null;
-                    if (dienNuocDict.TryGetValue(hd.PhongTroId, out var dienNuoc))
-                    {
-                        dienNuocId = dienNuoc.DichVuDienNuocCuaPhongId;
-                        try
-                        {
-                            var dienDichVu = dangKyDvsLookup[hd.PhongTroId].FirstOrDefault(d => d.DichVuChiNhanh?.DichVu?.LoaiDichVu == LoaiDichVu.Dien)?.DichVuChiNhanh?.DichVuId;
-                            var dienData = _calculatorService.TinhTienDienNuoc(dienNuoc.ChiSoDienMoi, dienNuoc.ChiSoDienCu, dienNuoc.DonGiaDien, "Tiền điện", tienPhongData.SoNgayO, daysInMonth);
-                            if (dienData.SoTien > 0)
-                            {
-                                chiTietList.Add(new ChiTietHoaDon
-                                {
-                                    TenDichVu = dienData.DienGiai,
-                                    DonGia = dienNuoc.DonGiaDien,
-                                    SoLuong = decimal.Round(dienData.SoLuong, 3, MidpointRounding.AwayFromZero),
-                                    TongTien = dienData.SoTien,
-                                    DichVuId = dienDichVu
-                                });
-                                tongTien += dienData.SoTien;
-                            }
-
-                            var nuocDichVu = dangKyDvsLookup[hd.PhongTroId].FirstOrDefault(d => d.DichVuChiNhanh?.DichVu?.LoaiDichVu == LoaiDichVu.Nuoc)?.DichVuChiNhanh?.DichVuId;
-                            var nuocData = _calculatorService.TinhTienDienNuoc(dienNuoc.ChiSoNuocMoi, dienNuoc.ChiSoNuocCu, dienNuoc.DonGiaNuoc, "Tiền nước", tienPhongData.SoNgayO, daysInMonth);
-                            if (nuocData.SoTien > 0)
-                            {
-                                chiTietList.Add(new ChiTietHoaDon
-                                {
-                                    TenDichVu = nuocData.DienGiai,
-                                    DonGia = dienNuoc.DonGiaNuoc,
-                                    SoLuong = decimal.Round(nuocData.SoLuong, 3, MidpointRounding.AwayFromZero),
-                                    TongTien = nuocData.SoTien,
-                                    DichVuId = nuocDichVu
-                                });
-                                tongTien += nuocData.SoTien;
-                            }
-                        }
-                        catch (InvalidOperationException ex)
-                        {
-                            result.Skipped.Add($"Phòng {baseRoomName} (HĐ: {hd.MaHopDong}): {ex.Message}");
-                            continue;
-                        }
-                    }
-                    else
-                    {
-                        result.Skipped.Add($"Phòng {baseRoomName} (HĐ: {hd.MaHopDong}): Chưa chốt chỉ số điện/nước tháng này.");
-                        continue;
-                    }
-
-                    var dsDichVu = dangKyDvsLookup[hd.PhongTroId];
-                    foreach (var dk in dsDichVu)
-                    {
-                        var dichVu = dk.DichVuChiNhanh?.DichVu;
-                        if (dichVu == null || dichVu.LoaiDichVu == LoaiDichVu.Dien || dichVu.LoaiDichVu == LoaiDichVu.Nuoc)
-                            continue;
-
-                        var dvData = _calculatorService.TinhTienDichVuCoDinh(dk.DichVuChiNhanh.GiaDichVu, dk.SoLuong, dichVu.TenDichVu, dk.NgayBatDau, dk.NgayKetThuc, thang, nam, hd.ThoiDiemBatDau, hd.ThoiDiemKetThuc);
-                        if (dvData.SoTien > 0)
-                        {
-                            chiTietList.Add(new ChiTietHoaDon
-                            {
-                                TenDichVu = dvData.DienGiai,
-                                DonGia = dk.DichVuChiNhanh.GiaDichVu,
-                                SoLuong = dk.SoLuong,
-                                TongTien = dvData.SoTien,
-                                DichVuId = dichVu.DichVuId
-                            });
-                            tongTien += dvData.SoTien;
-                        }
-                    }
-
-                    var suCos = suCosLookup[hd.PhongTroId]
-                        .Where(sc => sc.CongVaoHoaDon && sc.ChiPhiSuaChua > 0 && sc.NguoiThueId == hd.NguoiThueId)
-                        .ToList();
-                    foreach (var sc in suCos)
-                    {
-                        chiTietList.Add(new ChiTietHoaDon
-                        {
-                            TenDichVu = $"Sửa chữa sự cố: {sc.TieuDe}",
-                            DonGia = sc.ChiPhiSuaChua,
-                            SoLuong = 1,
-                            TongTien = sc.ChiPhiSuaChua
-                        });
-                        tongTien += sc.ChiPhiSuaChua;
-
-                        sc.CongVaoHoaDon = false;
-                        suCosToUpdate.Add(sc);
-                    }
-
-                    var hoaDon = new HoaDon
-                    {
-                        MaHoaDon = $"HD-{chiNhanh.MaChiNhanh}-P{baseRoomName}-{hd.HopDongId}-{thang:D2}{nam}",
-                        HopDongId = hd.HopDongId,
-                        Thang = thang,
-                        Nam = nam,
-                        TongTien = tongTien,
-                        TrangThaiHoaDon = TrangThaiHoaDon.ChuaThanhToan,
-                        DichVuDienNuocCuaPhongId = dienNuocId,
-                        ChiTietHoaDonDichVus = chiTietList
-                    };
-
-                    validInvoices.Add(hoaDon);
-                    result.Successes.Add($"Phòng {baseRoomName} (HĐ: {hd.MaHopDong}): Đã tạo hóa đơn.");
-                }
-
-                if (validInvoices.Any())
-                {
-                    await _store.AddInvoicesAsync(validInvoices);
-
-                    if (suCosToUpdate.Any())
-                    {
-                        _store.UpdateSuCos(suCosToUpdate.Distinct());
-                    }
-
-                    await _unitOfWork.SaveChangesAsync();
-                }
-
-                result.SoHoaDonMoi = validInvoices.Count;
-                result.Message = $"Phát sinh thành công {validInvoices.Count} hóa đơn.";
-                if (result.Skipped.Any())
-                {
-                    result.Message += $" Bỏ qua {result.Skipped.Count} hợp đồng (xem chi tiết).";
-                }
-
-                return result;
-            }
-            catch (Exception ex)
-            {
-                var innerMsg = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
-                _logger.LogError(ex, "Lỗi khi phát sinh hóa đơn chi nhánh {ChiNhanhId}, tháng {Thang}/{Nam}. Inner: {InnerMessage}", chiNhanhId, thang, nam, innerMsg);
-                result.IsSuccess = false;
-                result.Message = ex.GetType().Name.Contains("DbUpdate")
-                    ? "Hợp đồng đã phát sinh hóa đơn trong tháng này (Lỗi dữ liệu trùng lặp). Vui lòng thử lại."
-                    : $"Lỗi hệ thống: {innerMsg}";
-                return result;
-            }
+            _employeeAccessService = employeeAccessService;
+            _issuanceStore = issuanceStore;
         }
 
         // =================== XEM TRƯỚC PHÁT SINH HÓA ĐƠN ===================
-        public async Task<List<PhatSinhPreviewRes>> PreviewPhatSinhHoaDonAsync(int chiNhanhId, int thang, int nam)
+        public async Task<List<PhatSinhPreviewRes>> PreviewPhatSinhHoaDonAsync(int chiNhanhId, int thang, int nam, int actorId)
         {
             var result = new List<PhatSinhPreviewRes>();
+
+            if (actorId <= 0 ||
+                !await _employeeAccessService.CanPerformAsync(actorId, chiNhanhId, EmployeeActionCodes.InvoiceRead))
+            {
+                return result;
+            }
 
             var phongTros = await _store.GetPhongTrosByChiNhanhIdAsync(chiNhanhId);
             if (!phongTros.Any())
@@ -280,6 +70,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
             var endOfMonthVn = startOfMonthVn.AddMonths(1).AddDays(-1).AddHours(23).AddMinutes(59).AddSeconds(59);
             var startOfMonthUtc = DateTime.SpecifyKind(startOfMonthVn.AddHours(-7), DateTimeKind.Utc);
             var endOfMonthUtc = DateTime.SpecifyKind(endOfMonthVn.AddHours(-7), DateTimeKind.Utc);
+            var nextMonthStartUtc = DateTime.SpecifyKind(startOfMonthVn.AddMonths(1).AddHours(-7), DateTimeKind.Utc);
             var daysInMonth = DateTime.DaysInMonth(nam, thang);
 
             var phongIds = phongTros.Select(p => p.PhongTroId).ToList();
@@ -291,7 +82,9 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
             var dangKyDvs = await _store.GetDangKyDichVusForBillingAsync(phongIds, startOfMonthUtc, endOfMonthUtc);
             var dangKyDvsLookup = dangKyDvs.ToLookup(d => d.PhongTroId);
 
-            var suCosCanCong = await _store.GetBillableSuCosAsync(phongIds);
+            var suCosCanCong = _issuanceStore != null
+                ? await _issuanceStore.GetBillableIncidentsInPeriodAsync(phongIds, startOfMonthUtc, nextMonthStartUtc)
+                : await _store.GetBillableSuCosAsync(phongIds);
             var suCosLookup = suCosCanCong.ToLookup(x => x.PhongTroId);
 
             var hopDongIds = hopDongs.Select(h => h.HopDongId).ToList();
@@ -340,17 +133,25 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
 
                 if (dienNuocDict.TryGetValue(hd.PhongTroId, out var dienNuoc))
                 {
-                    previewItem.DaChotDienNuoc = true;
-                    try
+                    if (dienNuoc.TrangThaiGhiNhan == TrangThaiGhiNhan.DaDuyet)
                     {
-                        var dienData = _calculatorService.TinhTienDienNuoc(dienNuoc.ChiSoDienMoi, dienNuoc.ChiSoDienCu, dienNuoc.DonGiaDien, "Điện", previewItem.SoNgayO, daysInMonth);
-                        var nuocData = _calculatorService.TinhTienDienNuoc(dienNuoc.ChiSoNuocMoi, dienNuoc.ChiSoNuocCu, dienNuoc.DonGiaNuoc, "Nước", previewItem.SoNgayO, daysInMonth);
-                        previewItem.TongTienDuKien += dienData.SoTien + nuocData.SoTien;
+                        previewItem.DaChotDienNuoc = true;
+                        try
+                        {
+                            var dienData = _calculatorService.TinhTienDienNuoc(dienNuoc.ChiSoDienMoi, dienNuoc.ChiSoDienCu, dienNuoc.DonGiaDien, "Điện", previewItem.SoNgayO, daysInMonth);
+                            var nuocData = _calculatorService.TinhTienDienNuoc(dienNuoc.ChiSoNuocMoi, dienNuoc.ChiSoNuocCu, dienNuoc.DonGiaNuoc, "Nước", previewItem.SoNgayO, daysInMonth);
+                            previewItem.TongTienDuKien += dienData.SoTien + nuocData.SoTien;
+                        }
+                        catch (InvalidOperationException)
+                        {
+                            previewItem.GhiChuTrangThai = "Lỗi tính toán chỉ số điện/nước.";
+                            previewItem.HopDongHopLe = false;
+                        }
                     }
-                    catch (InvalidOperationException ex)
+                    else
                     {
-                        previewItem.GhiChuTrangThai = ex.Message;
-                        previewItem.HopDongHopLe = false;
+                        previewItem.DaChotDienNuoc = false;
+                        previewItem.GhiChuTrangThai = "Chỉ số điện/nước chưa được duyệt";
                     }
                 }
                 else
@@ -361,11 +162,12 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                 var dsDichVu = dangKyDvsLookup[hd.PhongTroId];
                 foreach (var dk in dsDichVu)
                 {
-                    var dichVu = dk.DichVuChiNhanh?.DichVu;
-                    if (dichVu == null || dichVu.LoaiDichVu == LoaiDichVu.Dien || dichVu.LoaiDichVu == LoaiDichVu.Nuoc)
+                    var dichVuChiNhanh = dk.DichVuChiNhanh;
+                    var dichVu = dichVuChiNhanh?.DichVu;
+                    if (dichVu == null || MeterServiceClassifier.IsMeterBased(dichVu.LoaiDichVu, dichVu.TenDichVu, dichVu.DonVi))
                         continue;
 
-                    var dvData = _calculatorService.TinhTienDichVuCoDinh(dk.DichVuChiNhanh.GiaDichVu, dk.SoLuong, dichVu.TenDichVu, dk.NgayBatDau, dk.NgayKetThuc, thang, nam, hd.ThoiDiemBatDau, hd.ThoiDiemKetThuc);
+                    var dvData = _calculatorService.TinhTienDichVuCoDinh(dichVuChiNhanh!.GiaDichVu, dk.SoLuong, dichVu.TenDichVu, dk.NgayBatDau, dk.NgayKetThuc, thang, nam, hd.ThoiDiemBatDau, hd.ThoiDiemKetThuc);
                     previewItem.TongTienDuKien += dvData.SoTien;
                 }
 
@@ -384,7 +186,10 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                 }
                 else if (!previewItem.DaChotDienNuoc)
                 {
-                    previewItem.GhiChuTrangThai = "Chưa chốt chỉ số Đ/N";
+                    if (string.IsNullOrEmpty(previewItem.GhiChuTrangThai))
+                    {
+                        previewItem.GhiChuTrangThai = "Chưa chốt chỉ số Đ/N";
+                    }
                 }
                 else if (previewItem.HopDongHopLe && string.IsNullOrEmpty(previewItem.GhiChuTrangThai))
                 {
@@ -398,13 +203,44 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
         }
 
         // =================== CẬP NHẬT/CHỈNH SỬA HÓA ĐƠN ===================
-        public async Task<(bool IsSuccess, string? ErrorMessage)> UpdateHoaDonAsync(int hoaDonId, UpdateHoaDonReq req)
+        public async Task<(bool IsSuccess, string? ErrorMessage)> UpdateHoaDonAsync(int hoaDonId, UpdateHoaDonReq req, int actorId = 0)
         {
+            if (actorId <= 0)
+            {
+                return (false, "Người thực hiện không hợp lệ.");
+            }
+
+            var branchId = await _store.GetHoaDonBranchIdAsync(hoaDonId);
+            if (!branchId.HasValue)
+            {
+                return (false, "Không tìm thấy hóa đơn.");
+            }
+
+            var canPerform = await _employeeAccessService.CanPerformAsync(actorId, branchId.Value, EmployeeActionCodes.InvoiceDraft);
+            if (!canPerform)
+            {
+                return (false, "Bạn không có quyền chỉnh sửa hóa đơn tại chi nhánh này.");
+            }
+
+            await using var tx = await _unitOfWork.BeginTransactionAsync();
+
             var hd = await _store.GetHoaDonWithDetailsForUpdateAsync(hoaDonId);
 
-            if (hd == null) return (false, "Không tìm thấy hóa đơn.");
+            if (hd == null)
+            {
+                await tx.RollbackAsync();
+                return (false, "Không tìm thấy hóa đơn.");
+            }
+            if (hd.TrangThaiPhatHanh != TrangThaiPhatHanhHoaDon.Nhap)
+            {
+                await tx.RollbackAsync();
+                return (false, "Chỉ hóa đơn nháp mới được chỉnh sửa. Hóa đơn chờ duyệt phải được Admin trả lại trước khi sửa.");
+            }
             if (hd.TrangThaiHoaDon == TrangThaiHoaDon.DaThanhToan)
+            {
+                await tx.RollbackAsync();
                 return (false, "Không thể chỉnh sửa hóa đơn đã được thanh toán.");
+            }
 
             _store.RemoveChiTietHoaDons(hd.ChiTietHoaDonDichVus);
 
@@ -412,9 +248,15 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
             foreach (var r in req.ChiTiets)
             {
                 if (string.IsNullOrWhiteSpace(r.TenDichVu))
+                {
+                    await tx.RollbackAsync();
                     return (false, "Tên dịch vụ không được để trống.");
+                }
                 if (r.DonGia < 0 || r.SoLuong < 0)
+                {
+                    await tx.RollbackAsync();
                     return (false, "Đơn giá và số lượng phải lớn hơn hoặc bằng 0.");
+                }
 
                 newChiTiets.Add(new ChiTietHoaDon
                 {
@@ -433,63 +275,249 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
 
             _store.UpdateHoaDon(hd);
             await _unitOfWork.SaveChangesAsync();
+            await tx.CommitAsync();
 
             return (true, string.Empty);
         }
 
         // =================== DANH SÁCH HÓA ĐƠN ===================
-        public async Task<DataTableResponse<HoaDonRes>> GetDanhSachHoaDonAsync(DataTableRequest request, int chiNhanhId, int thang, int nam, int trangThai)
+        public Task<DataTableResponse<HoaDonRes>> GetDanhSachHoaDonAsync(DataTableRequest request, int chiNhanhId, int thang, int nam, int trangThai)
         {
+            return _store.GetHoaDonsDataTableAsync(request, chiNhanhId, thang, nam, trangThai);
+        }
+
+        public async Task<DataTableResponse<HoaDonRes>> GetEmployeeInvoiceListAsync(DataTableRequest request, int chiNhanhId, int thang, int nam, int trangThai, int actorId)
+        {
+            var denied = new DataTableResponse<HoaDonRes>
+            {
+                draw = request.Draw,
+                recordsTotal = 0,
+                recordsFiltered = 0,
+                data = new List<HoaDonRes>()
+            };
+
+            if (actorId <= 0)
+            {
+                return denied;
+            }
+
+            var scope = await _employeeAccessService.GetScopeAsync(actorId);
+            if (scope == null)
+            {
+                return denied;
+            }
+
+            if (!scope.IsAdmin)
+            {
+                if (scope.ActiveBranchIds.Count == 0)
+                {
+                    return denied;
+                }
+
+                if (chiNhanhId > 0)
+                {
+                    if (!scope.CanAccessBranch(chiNhanhId))
+                    {
+                        return denied;
+                    }
+
+                    return await _store.GetHoaDonsDataTableAsync(request, chiNhanhId, thang, nam, trangThai);
+                }
+
+                return await _store.GetHoaDonsDataTableAsync(request, 0, thang, nam, trangThai, scope.ActiveBranchIds.ToList());
+            }
+
             return await _store.GetHoaDonsDataTableAsync(request, chiNhanhId, thang, nam, trangThai);
         }
 
         // =================== CHI TIẾT HÓA ĐƠN ===================
-        public async Task<HoaDonChiTietRes?> GetHoaDonByIdAsync(int id)
+        public Task<HoaDonChiTietRes?> GetHoaDonByIdAsync(int id)
         {
-            return await _store.GetHoaDonDetailByIdAsync(id);
+            return _store.GetHoaDonDetailByIdAsync(id);
+        }
+
+        public async Task<HoaDonChiTietRes?> GetEmployeeInvoiceDetailAsync(int id, int actorId)
+        {
+            if (actorId <= 0)
+            {
+                return null;
+            }
+
+            var branchId = await _store.GetHoaDonBranchIdAsync(id);
+            if (!branchId.HasValue)
+            {
+                return null;
+            }
+
+            var canRead = await _employeeAccessService.CanPerformAsync(actorId, branchId.Value, EmployeeActionCodes.InvoiceRead);
+            return canRead ? await _store.GetHoaDonDetailByIdAsync(id) : null;
         }
 
         // =================== THU TIỀN ===================
+        // =================== THU TIỀN ===================
         public async Task<(bool IsSuccess, string? ErrorMessage)> ThuTienAsync(int hoaDonId, int phuongThuc, string ghiChu, int nguoiXacNhanId)
         {
-            var hd = await _store.GetActiveHoaDonByIdAsync(hoaDonId);
-            if (hd == null) return (false, "Không tìm thấy hóa đơn.");
-            if (hd.TrangThaiHoaDon == TrangThaiHoaDon.DaThanhToan)
-                return (false, "Hóa đơn này đã được thanh toán trước đó.");
-
-            var lichSu = new LichSuThanhToan
+            if (nguoiXacNhanId <= 0)
             {
-                MaGiaoDich = $"GD-{DateTime.UtcNow:yyyyMMddHHmmss}-{hoaDonId}",
-                HoaDonId = hoaDonId,
-                NguoiXacNhanId = nguoiXacNhanId,
-                SoTienThanhToan = hd.TongTien,
-                PhuongThucThanhToan = (PhuongThucThanhToan)phuongThuc,
-                NgayThanhToan = DateTime.UtcNow,
-                GhiChu = ghiChu
-            };
+                return (false, "Người thực hiện không hợp lệ.");
+            }
 
-            await _store.AddLichSuThanhToanAsync(lichSu);
+            var branchId = await _store.GetHoaDonBranchIdAsync(hoaDonId);
+            if (!branchId.HasValue)
+            {
+                return (false, "Không tìm thấy hóa đơn.");
+            }
 
-            hd.TrangThaiHoaDon = TrangThaiHoaDon.DaThanhToan;
-            hd.NgayCapNhat = DateTime.UtcNow;
-            _store.UpdateHoaDon(hd);
+            var canPerform = await _employeeAccessService.CanPerformAsync(nguoiXacNhanId, branchId.Value, EmployeeActionCodes.InvoiceSend);
+            if (!canPerform)
+            {
+                return (false, "Bạn không có quyền thu tiền hóa đơn tại chi nhánh này.");
+            }
 
-            await _unitOfWork.SaveChangesAsync();
-            return (true, string.Empty);
+            await using var tx = await _unitOfWork.BeginTransactionAsync();
+            try
+            {
+                var hd = await _store.GetHoaDonWithDetailsForUpdateAsync(hoaDonId);
+                if (hd == null || hd.IsDeleted)
+                {
+                    await tx.RollbackAsync();
+                    return (false, "Không tìm thấy hóa đơn.");
+                }
+
+                if (hd.TrangThaiPhatHanh != TrangThaiPhatHanhHoaDon.DaGui)
+                {
+                    await tx.RollbackAsync();
+                    return (false, "Chỉ có thể thu tiền cho hóa đơn đã gửi đến khách thuê.");
+                }
+
+                if (hd.TrangThaiHoaDon == TrangThaiHoaDon.DaThanhToan)
+                {
+                    await tx.RollbackAsync();
+                    return (false, "Hóa đơn này đã được thanh toán trước đó.");
+                }
+
+                if (hd.TrangThaiHoaDon != TrangThaiHoaDon.ChuaThanhToan)
+                {
+                    await tx.RollbackAsync();
+                    return (false, "Hóa đơn đã được thanh toán một phần. Vui lòng xác nhận phần còn lại qua luồng xác nhận thanh toán.");
+                }
+
+                var lichSu = new LichSuThanhToan
+                {
+                    MaGiaoDich = $"GD-{DateTime.UtcNow:yyyyMMddHHmmss}-{hoaDonId}",
+                    HoaDonId = hoaDonId,
+                    NguoiXacNhanId = nguoiXacNhanId,
+                    SoTienThanhToan = hd.TongTien,
+                    PhuongThucThanhToan = (PhuongThucThanhToan)phuongThuc,
+                    NgayThanhToan = DateTime.UtcNow,
+                    GhiChu = ghiChu
+                };
+
+                await _store.AddLichSuThanhToanAsync(lichSu);
+
+                hd.TrangThaiHoaDon = TrangThaiHoaDon.DaThanhToan;
+                hd.NgayCapNhat = DateTime.UtcNow;
+
+                await _unitOfWork.SaveChangesAsync();
+                await tx.CommitAsync();
+
+                return (true, string.Empty);
+            }
+            catch (Exception ex)
+            {
+                await tx.RollbackAsync();
+                _logger.LogError(ex, "Lỗi khi thu tiền hóa đơn Id={Id}", hoaDonId);
+                return (false, "Lỗi hệ thống khi thu tiền hóa đơn.");
+            }
         }
 
-        // =================== XÓA HÓA ĐƠN ===================
-        public async Task<(bool IsSuccess, string? ErrorMessage)> DeleteHoaDonAsync(int id)
+        // =================== XÓA / HỦY HÓA ĐƠN ===================
+        public async Task<(bool IsSuccess, string? ErrorMessage)> DeleteHoaDonAsync(int id, int actorId, string lyDo, CancellationToken cancellationToken = default)
         {
-            var hd = await _store.GetActiveHoaDonByIdAsync(id);
-            if (hd == null) return (false, "Không tìm thấy hóa đơn.");
-            if (hd.TrangThaiHoaDon == TrangThaiHoaDon.DaThanhToan)
-                return (false, "Không thể xóa hóa đơn đã thanh toán.");
+            if (actorId <= 0)
+            {
+                return (false, "Người thực hiện không hợp lệ.");
+            }
 
-            hd.IsDeleted = true;
-            hd.NgayCapNhat = DateTime.UtcNow;
-            _store.UpdateHoaDon(hd);
-            await _unitOfWork.SaveChangesAsync();
+            if (string.IsNullOrWhiteSpace(lyDo))
+            {
+                return (false, "Lý do hủy hóa đơn là bắt buộc.");
+            }
+
+            var branchId = await _store.GetHoaDonBranchIdAsync(id, cancellationToken);
+            if (!branchId.HasValue)
+            {
+                return (false, "Không tìm thấy hóa đơn.");
+            }
+
+            var canPerform = await _employeeAccessService.CanPerformAsync(actorId, branchId.Value, EmployeeActionCodes.InvoiceCancel);
+            if (!canPerform)
+            {
+                return (false, "Bạn không có quyền hủy hóa đơn tại chi nhánh này.");
+            }
+
+            await using var tx = await _unitOfWork.BeginTransactionAsync(cancellationToken);
+            try
+            {
+                var hd = await _store.GetHoaDonWithDetailsForUpdateAsync(id, cancellationToken);
+                if (hd == null || hd.IsDeleted)
+                {
+                    await tx.RollbackAsync(cancellationToken);
+                    return (false, "Không tìm thấy hóa đơn.");
+                }
+
+                if (hd.TrangThaiPhatHanh != TrangThaiPhatHanhHoaDon.DaChot && hd.TrangThaiPhatHanh != TrangThaiPhatHanhHoaDon.DaGui)
+                {
+                    await tx.RollbackAsync(cancellationToken);
+                    return (false, "Chỉ hóa đơn đã chốt hoặc đã gửi mới được phép hủy.");
+                }
+
+                var blockers = await _store.GetCancellationBlockersAsync(id, cancellationToken);
+                if (blockers.HasPayment)
+                {
+                    await tx.RollbackAsync(cancellationToken);
+                    return (false, "Không thể hủy hóa đơn đã phát sinh khoản thanh toán.");
+                }
+
+                if (blockers.HasPendingRequest || blockers.HasPendingProof)
+                {
+                    await tx.RollbackAsync(cancellationToken);
+                    return (false, "Không thể hủy hóa đơn đang có yêu cầu hoặc minh chứng thanh toán chờ xử lý.");
+                }
+
+                hd.HuyHoaDon(actorId, lyDo.Trim());
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+                await tx.CommitAsync(cancellationToken);
+
+                return (true, string.Empty);
+            }
+            catch (Exception ex)
+            {
+                await tx.RollbackAsync(cancellationToken);
+                _logger.LogError(ex, "Lỗi khi hủy hóa đơn Id={Id}", id);
+                return (false, "Lỗi hệ thống khi hủy hóa đơn.");
+            }
+        }
+
+        public async Task<(bool IsSuccess, string? ErrorMessage)> CheckInvoicePermissionAsync(int hoaDonId, int actorId, string actionCode)
+        {
+            if (actorId <= 0)
+            {
+                return (false, "Người thực hiện không hợp lệ.");
+            }
+
+            var branchId = await _store.GetHoaDonBranchIdAsync(hoaDonId);
+            if (!branchId.HasValue)
+            {
+                return (false, "Không tìm thấy hóa đơn.");
+            }
+
+            var canPerform = await _employeeAccessService.CanPerformAsync(actorId, branchId.Value, actionCode);
+            if (!canPerform)
+            {
+                return (false, $"Bạn không có quyền thực hiện thao tác '{actionCode}' đối với hóa đơn này.");
+            }
+
             return (true, string.Empty);
         }
 
@@ -502,35 +530,47 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
             return _documentExporter.ExportExcel(hd);
         }
 
+        public async Task<byte[]?> ExportEmployeeExcelAsync(int hoaDonId, int actorId)
+        {
+            var hd = await GetEmployeeInvoiceDetailAsync(hoaDonId, actorId);
+            return hd == null ? null : _documentExporter.ExportExcel(hd);
+        }
+
         // =================== XUẤT PDF ===================
         public async Task<byte[]?> ExportPdfAsync(int hoaDonId)
         {
             var hd = await GetHoaDonByIdAsync(hoaDonId);
             if (hd == null) return null;
 
-            byte[]? qrBytes = null;
-            string bankId = "";
-            string accountNumber = "";
-            string accountName = "";
+            return ExportPdf(hd);
+        }
 
-            if (hd.TrangThaiHoaDon == "Chưa thanh toán")
-            {
-                bankId = _vietQrSettings.BankId ?? "MB";
-                accountNumber = _vietQrSettings.AccountNumber ?? "";
-                accountName = _vietQrSettings.AccountName ?? "";
+        public async Task<byte[]?> ExportEmployeePdfAsync(int hoaDonId, int actorId)
+        {
+            var hd = await GetEmployeeInvoiceDetailAsync(hoaDonId, actorId);
+            return hd == null ? null : ExportPdf(hd);
+        }
 
-                string memo = $"THANH TOAN {hd.MaHoaDon}";
-                string qrString = _vietQRService.GenerateVietQRString(bankId, accountNumber, hd.TongTien, memo);
-                qrBytes = _vietQRService.GenerateQRCodePNGBytes(qrString);
-            }
-
-            return _documentExporter.ExportPdf(hd, qrBytes, bankId, accountNumber, accountName);
+        private byte[] ExportPdf(HoaDonChiTietRes hd)
+        {
+            return InvoicePdfComposer.Compose(hd, _vietQRService, _vietQrSettings, _documentExporter);
         }
 
         public async Task<List<HoaDonRes>> GetDanhSachHoaDonChuaThanhToanAsync(int chiNhanhId, int thang, int nam)
         {
             var result = await _store.GetUnpaidInvoicesAsync(chiNhanhId, thang, nam);
             return result.ToList();
+        }
+
+        public async Task<List<HoaDonRes>> GetEmployeeUnpaidInvoicesAsync(int chiNhanhId, int thang, int nam, int actorId)
+        {
+            if (actorId <= 0 ||
+                !await _employeeAccessService.CanPerformAsync(actorId, chiNhanhId, EmployeeActionCodes.InvoiceRead))
+            {
+                return new List<HoaDonRes>();
+            }
+
+            return await GetDanhSachHoaDonChuaThanhToanAsync(chiNhanhId, thang, nam);
         }
 
         public async Task<List<HoaDonRes>> GetHoaDonsByNguoiThueIdAsync(int nguoiThueId)
@@ -549,6 +589,18 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
         public async Task<bool> CheckHoaDonOwnershipAsync(int hoaDonId, int nguoiThueId)
         {
             return await _store.CheckHoaDonOwnershipAsync(hoaDonId, nguoiThueId);
+        }
+
+        public async Task<bool> CanTenantRequestPaymentAsync(int hoaDonId, int nguoiThueId, CancellationToken cancellationToken = default)
+        {
+            var isOwn = await _store.CheckHoaDonOwnershipAsync(hoaDonId, nguoiThueId, cancellationToken);
+            if (!isOwn) return false;
+
+            var hd = await _store.GetActiveHoaDonByIdAsync(hoaDonId, cancellationToken);
+            if (hd == null || hd.IsDeleted) return false;
+
+            return hd.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaGui
+                && hd.TrangThaiHoaDon != TrangThaiHoaDon.DaThanhToan;
         }
     }
 }

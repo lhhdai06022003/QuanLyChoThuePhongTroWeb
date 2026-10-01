@@ -1,8 +1,151 @@
+/* ========== Chỉ số điện nước (phạm vi .dn-page) ========== */
+/* Cùng bảng màu teal đã chốt cho màn Hóa đơn, dựng trên biến của Tabler */
+.dn-page,
+.kt-page,
+.dn-savebar {
+    --tblr-primary: #0f6b63;
+    --tblr-primary-rgb: 15, 107, 99;
+    --tblr-link-color: #0f6b63;
+    --tblr-link-color-rgb: 15, 107, 99;
+    --dn-dien: #b7791f;
+    --dn-nuoc: #1d6fa5;
+}
+
+html[data-bs-theme="dark"] .dn-page,
+html[data-bs-theme="dark"] .kt-page,
+html[data-bs-theme="dark"] .dn-savebar {
+    --tblr-primary: #3fb8ac;
+    --tblr-primary-rgb: 63, 184, 172;
+    --tblr-link-color: #3fb8ac;
+    --tblr-link-color-rgb: 63, 184, 172;
+    --dn-dien: #f0b44b;
+    --dn-nuoc: #6bb7e8;
+}
+
+.dn-page .dn-filters {
+    display: block;
+    padding: 0.875rem 1rem;
+}
+
+.dn-page .dn-filters .form-label {
+    margin-bottom: 0.25rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--tblr-secondary);
+}
+
+/* Tiến độ chốt của chi nhánh trong kỳ */
+.dn-page .dn-summary {
+    padding: 0.625rem 1rem;
+    border-bottom: 1px solid var(--tblr-border-color);
+    font-size: 0.8125rem;
+    color: var(--tblr-secondary);
+}
+
+.dn-page .dn-progress {
+    max-width: 280px;
+}
+
+.dn-page .dn-progress .progress-bar {
+    background-color: var(--tblr-primary);
+}
+
+/* Tiêu đề cột */
+.dn-page .dn-table thead th {
+    text-transform: none;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    letter-spacing: normal;
+    color: var(--tblr-secondary);
+    vertical-align: middle;
+}
+
+.dn-page .dn-table thead th.dn-col-dien .ti { color: var(--dn-dien); }
+.dn-page .dn-table thead th.dn-col-nuoc .ti { color: var(--dn-nuoc); }
+
+.dn-page .dn-table th:first-child,
+.dn-page .dn-table td:first-child {
+    padding-left: 1rem;
+}
+
+.dn-page .dn-table th:last-child,
+.dn-page .dn-table td:last-child {
+    padding-right: 1rem;
+}
+
+/* site.css ép .table-responsive overflow: visible; màn hẹp thì bảng giữ bề rộng tối thiểu và cuộn ngang */
+@media (max-width: 1399.98px) {
+    .dn-page .table-responsive {
+        overflow-x: auto !important;
+    }
+
+    .dn-page .dn-table {
+        min-width: 980px;
+    }
+}
+
+/* Ô nhập chỉ số */
+.diennuoc-input-td {
+    position: relative !important;
+    padding-bottom: 1.65rem !important; /* chỗ cố định cho mức tiêu thụ / báo lỗi, không làm nhảy dòng */
+}
+
+.diennuoc-input-td input {
+    max-width: 120px;
+    margin: 0 auto;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Chỉ số kỳ trước: chỉ đọc, hiện như số liệu mờ thay vì ô nhập */
+.dn-page .dn-old {
+    border-color: transparent;
+    background-color: transparent;
+    box-shadow: none;
+    color: var(--tblr-secondary);
+    cursor: default;
+}
+
+.dn-page .in-dien-moi:not(:disabled),
+.dn-page .in-nuoc-moi:not(:disabled) {
+    font-weight: 600;
+}
+
+.dn-page .in-dien-moi:focus { border-color: var(--dn-dien); box-shadow: 0 0 0 0.2rem rgba(183, 121, 31, 0.18); }
+.dn-page .in-nuoc-moi:focus { border-color: var(--dn-nuoc); box-shadow: 0 0 0 0.2rem rgba(29, 111, 165, 0.18); }
+
+/* Mức tiêu thụ tính ngay khi nhập, nằm dưới ô chỉ số mới */
+.diennuoc-input-td .dn-delta,
+.diennuoc-input-td .invalid-feedback {
+    position: absolute !important;
+    bottom: 4px !important;
+    left: 0 !important;
+    right: 0 !important;
+    margin: 0 auto !important;
+    width: 120px !important;
+    text-align: center !important;
+    font-size: 0.75rem !important;
+    line-height: 1.2 !important;
+    white-space: nowrap !important;
+}
+
+.diennuoc-input-td .dn-delta {
+    color: var(--tblr-secondary);
+    font-variant-numeric: tabular-nums;
+}
+
+.diennuoc-input-td .in-dien-moi + .dn-delta:not(:empty) { color: var(--dn-dien); }
+.diennuoc-input-td .in-nuoc-moi + .dn-delta:not(:empty) { color: var(--dn-nuoc); }
+
+.diennuoc-input-td .is-invalid ~ .dn-delta {
+    display: none;
+}
+
 .is-invalid {
     border-color: var(--tblr-danger, #d63939) !important;
     background-color: rgba(214, 57, 57, 0.05) !important;
 }
 
+/* Phòng đã khóa kỳ */
 .row-locked {
     background-color: var(--tblr-bg-surface-secondary, #f6f8fa) !important;
     opacity: 0.65;
@@ -13,78 +156,39 @@
     cursor: not-allowed;
 }
 
-/* Styling meter inputs inside table cells */
-.diennuoc-input-td {
-    position: relative !important;
-    padding-bottom: 1.65rem !important; /* Dành khoảng trống cố định cho thông báo lỗi absolute */
-}
-
-.diennuoc-input-td input {
-    max-width: 120px;
-    margin: 0 auto;
-    font-weight: 600;
-}
-
-/* Định vị tuyệt đối cho thông báo lỗi để không dịch chuyển ô input và không thay đổi chiều cao dòng */
-.diennuoc-input-td .invalid-feedback {
-    position: absolute !important;
-    bottom: 4px !important;
-    left: 0 !important;
-    right: 0 !important;
-    margin: 0 auto !important;
-    width: 120px !important;
-    text-align: center !important;
-    font-size: 0.72rem !important;
-    line-height: 1.2 !important;
-    white-space: nowrap !important;
-}
-
-.bg-warning-light-td {
-    background-color: rgba(245, 159, 0, 0.06) !important;
-}
-
-.bg-danger-light-td {
-    background-color: rgba(214, 57, 57, 0.06) !important;
-}
-
-.bg-info-light-td {
-    background-color: rgba(66, 153, 225, 0.06) !important;
-}
-
-.bg-primary-light-td {
-    background-color: rgba(32, 107, 196, 0.06) !important;
-}
-
-[data-bs-theme="dark"] .bg-warning-light-td {
-    background-color: rgba(245, 159, 0, 0.15) !important;
-}
-
-[data-bs-theme="dark"] .bg-danger-light-td {
-    background-color: rgba(214, 57, 57, 0.15) !important;
-}
-
-[data-bs-theme="dark"] .bg-info-light-td {
-    background-color: rgba(66, 153, 225, 0.15) !important;
-}
-
-[data-bs-theme="dark"] .bg-primary-light-td {
-    background-color: rgba(32, 107, 196, 0.15) !important;
-}
-
-/* Sticky Action Bar styling */
-#stickyActionBar {
+/* Thanh lưu: hiện khi có chỉ số chưa lưu, nằm trong vùng nội dung (không đè thanh điều hướng) */
+.dn-savebar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1030;
+    padding: 0.75rem 0;
+    background: var(--tblr-bg-surface);
+    border-top: 1px solid var(--tblr-border-color);
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.06);
     transform: translateY(100%);
     visibility: hidden;
-    transition: transform 0.3s ease, visibility 0.3s ease;
-    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.08) !important;
+    transition: transform 0.2s ease, visibility 0.2s ease;
 }
 
-#stickyActionBar.show-bar {
-    transform: translateY(0) !important;
-    visibility: visible !important;
+.dn-savebar.show-bar {
+    transform: translateY(0);
+    visibility: visible;
 }
 
-/* Align table headers perfectly with inputs by removing sorting padding on centered columns */
+/* Chừa chỗ cho thanh điều hướng dọc của Tabler (15rem) */
+@media (min-width: 992px) {
+    .dn-savebar {
+        left: 15rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .dn-savebar { transition: none; }
+}
+
+/* Căn tiêu đề cột giữa thẳng với ô nhập, bỏ mũi tên sắp xếp của DataTables */
 #dienNuocTable thead th.text-center {
     padding-right: 8px !important;
     padding-left: 8px !important;
@@ -93,4 +197,222 @@
 #dienNuocTable thead th.text-center::before,
 #dienNuocTable thead th.text-center::after {
     display: none !important;
+}
+
+/* Meter image modal and viewer styling */
+.meter-viewer-container {
+    position: relative;
+    background: #1a1a1a;
+    border-radius: 6px;
+    overflow: hidden;
+    min-height: 320px;
+    display: flex;
+    flex-direction: column;
+}
+.meter-viewer-viewport {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    min-height: 280px;
+    max-height: 480px;
+    padding: 10px;
+}
+.meter-viewer-img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    user-select: none;
+}
+.meter-viewer-controls {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px;
+    background: rgba(0, 0, 0, 0.4);
+}
+.meter-thumbnail-strip {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding: 8px 4px;
+    margin-bottom: 12px;
+}
+.meter-thumb-item {
+    cursor: pointer;
+    border: 2px solid transparent;
+    border-radius: 6px;
+    padding: 2px;
+    flex: 0 0 80px;
+    text-align: center;
+    position: relative;
+    background: var(--tblr-bg-surface-secondary, #f8fafc);
+}
+.meter-thumb-item.active {
+    border-color: var(--tblr-primary, #206bc4);
+}
+.meter-thumb-item img {
+    width: 76px;
+    height: 76px;
+    object-fit: cover;
+    border-radius: 4px;
+}
+.meter-thumb-badge {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    font-size: 0.65rem;
+    padding: 2px 4px;
+}
+.meter-thumb-official {
+    position: absolute;
+    bottom: 4px;
+    left: 4px;
+    font-size: 0.65rem;
+    padding: 2px 4px;
+}
+.btn-anh-chi-so {
+    text-align: left;
+    font-size: 0.8rem;
+    line-height: 1.3;
+    padding: 4px 8px;
+}
+/* ===== Modal ảnh chỉ số: các class đang dùng trong _AnhChiSoModal ===== */
+.meter-viewer-container {
+    position: relative;
+    background: var(--tblr-bg-surface-dark, #1d273b);
+    border-radius: var(--tblr-border-radius, 4px);
+    overflow: hidden;
+}
+
+.meter-viewer-toolbar {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 2;
+    display: flex;
+    gap: 4px;
+}
+
+.meter-viewer-stage {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 380px;
+    overflow: hidden;
+}
+
+.meter-viewer-stage .meter-viewer-img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.meter-thumbnail-item {
+    flex: 0 0 96px;
+    cursor: pointer;
+    padding: 4px;
+    border: 2px solid transparent;
+    border-radius: var(--tblr-border-radius, 4px);
+    background: var(--tblr-bg-surface-secondary, #f6f8fa);
+}
+
+.meter-thumbnail-item.meter-thumbnail-active {
+    border-color: var(--tblr-primary, #0f6b63);
+}
+
+.meter-thumbnail-img {
+    display: block;
+    width: 100%;
+    height: 72px;
+    object-fit: cover;
+    border-radius: 3px;
+}
+
+/* ===== Cổng khách thuê: gửi ảnh đồng hồ (.kt-page) ===== */
+.kt-page .kt-intro {
+    max-width: 62ch;
+    margin-bottom: 1rem;
+}
+
+.kt-page .avatar {
+    --tblr-avatar-size: 2.5rem;
+}
+
+.kt-page .kt-avatar-dien {
+    background-color: rgba(183, 121, 31, 0.14);
+    color: var(--dn-dien);
+}
+
+.kt-page .kt-avatar-nuoc {
+    background-color: rgba(29, 111, 165, 0.14);
+    color: var(--dn-nuoc);
+}
+
+/* Hai đồng hồ chung một thẻ, ngăn bằng đường kẻ thay vì hai thẻ giống hệt nhau */
+@media (min-width: 768px) {
+    .kt-page .kt-meter-dien {
+        border-right: 1px solid var(--tblr-border-color);
+    }
+}
+
+@media (max-width: 767.98px) {
+    .kt-page .kt-meter-dien {
+        border-bottom: 1px solid var(--tblr-border-color);
+    }
+}
+
+.kt-page .kt-empty {
+    padding: 1.5rem 1rem;
+    text-align: center;
+    color: var(--tblr-secondary);
+    border: 1px dashed var(--tblr-border-color);
+    border-radius: var(--tblr-border-radius, 4px);
+}
+
+.kt-page .kt-empty .ti {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-size: 1.75rem;
+    opacity: 0.6;
+}
+
+.kt-page .kt-list {
+    border: 1px solid var(--tblr-border-color);
+    border-radius: var(--tblr-border-radius, 4px);
+    overflow: hidden;
+}
+
+.kt-page .kt-img-card {
+    padding: 0.625rem 0.75rem;
+}
+
+.kt-page .kt-thumb {
+    flex: 0 0 56px;
+    width: 56px;
+    height: 56px;
+    object-fit: cover;
+    border-radius: var(--tblr-border-radius, 4px);
+    background: var(--tblr-bg-surface-secondary, #f6f8fa);
+}
+
+.kt-page .min-w-0 {
+    min-width: 0;
+}
+
+/* Vùng bấm đủ lớn trên điện thoại */
+@media (max-width: 575.98px) {
+    .kt-page .btn-tai-anh {
+        padding-top: 0.75rem;
+        padding-bottom: 0.75rem;
+    }
+}
+
+.kt-page .kt-meter .status {
+    white-space: nowrap;
+}
+
+.kt-page .kt-meter .card-title {
+    white-space: nowrap;
 }

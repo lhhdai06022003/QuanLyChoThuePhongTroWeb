@@ -36,6 +36,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
         public async Task<IReadOnlyDictionary<int, DichVuDienNuocCuaPhong>> GetCurrentMonthRecordsAsync(IReadOnlyList<int> roomIds, int thang, int nam, CancellationToken cancellationToken = default)
         {
             return await _context.DichVuDienNuocCuaPhongs
+                .Include(x => x.AnhChiSoDongHos)
                 .Where(x => roomIds.Contains(x.PhongTroId) && x.Thang == thang && x.Nam == nam && !x.IsDeleted)
                 .ToDictionaryAsync(x => x.PhongTroId, cancellationToken);
         }
@@ -51,7 +52,11 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
         {
             var list = await _context.DichVuDienNuocCuaPhongs
                 .Where(x => roomIds.Contains(x.PhongTroId) && !x.IsDeleted &&
-                            (x.Nam > nam || (x.Nam == nam && x.Thang > thang)))
+                            (x.Nam > nam || (x.Nam == nam && x.Thang > thang)) &&
+                            (x.TrangThaiGhiNhan == TrangThaiGhiNhan.DaDuyet ||
+                             _context.HoaDons.IgnoreQueryFilters().Any(h => h.DichVuDienNuocCuaPhongId == x.DichVuDienNuocCuaPhongId &&
+                                                                            h.TrangThaiPhatHanh != TrangThaiPhatHanhHoaDon.Nhap &&
+                                                                            h.TrangThaiPhatHanh != TrangThaiPhatHanhHoaDon.DaHuy)))
                 .Select(x => x.PhongTroId)
                 .Distinct()
                 .ToListAsync(cancellationToken);
@@ -86,6 +91,13 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
             return await _context.PhongTros
                 .Where(x => roomIds.Contains(x.PhongTroId))
                 .ToDictionaryAsync(x => x.PhongTroId, x => x.SoPhong, cancellationToken);
+        }
+
+        public async Task<IReadOnlyDictionary<int, int>> GetRoomBranchIdsAsync(IReadOnlyList<int> roomIds, CancellationToken cancellationToken = default)
+        {
+            return await _context.PhongTros
+                .Where(x => roomIds.Contains(x.PhongTroId) && !x.IsDeleted)
+                .ToDictionaryAsync(x => x.PhongTroId, x => x.ChiNhanhId, cancellationToken);
         }
 
         public async Task AddRecordAsync(DichVuDienNuocCuaPhong record, CancellationToken cancellationToken = default)

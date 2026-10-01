@@ -112,6 +112,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             return RedirectToAction("DangNhap", "NguoiDung", new { area = "QuanLyNhaTro" });
         }
 
+        [Authorize(Roles = "Admin")]
         [Route("QuanLyNhaTro/QuanLyTaiKhoanDangNhap")]
         public IActionResult QuanLyTaiKhoanDangNhap()
         {
@@ -120,6 +121,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         }
 
         // 1. API: Lấy danh sách tài khoản
+        [Authorize(Roles = "Admin")]
         [HttpGet]
         [Route("QuanLyNhaTro/NguoiDung/GetAllApi")]
         public async Task<IActionResult> GetAllApi()
@@ -129,6 +131,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         }
 
         // 2. API: Lấy chi tiết tài khoản theo ID
+        [Authorize(Roles = "Admin")]
         [HttpGet]
         [Route("QuanLyNhaTro/NguoiDung/GetByIdApi/{id}")]
         public async Task<IActionResult> GetByIdApi(int id)
@@ -142,6 +145,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         }
 
         // 3. API: Thêm mới tài khoản
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         [Route("QuanLyNhaTro/NguoiDung/CreateApi")]
         public async Task<IActionResult> CreateApi([FromBody] QuanLyChoThuePhongTroWeb.Application.Features.NguoiDungs.DTOs.CreateNguoiDungReq nguoiDung)
@@ -169,6 +173,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         }
 
         // 4. API: Cập nhật tài khoản
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         [Route("QuanLyNhaTro/NguoiDung/EditApi/{id}")]
         public async Task<IActionResult> EditApi(int id, [FromBody] QuanLyChoThuePhongTroWeb.Application.Features.NguoiDungs.DTOs.EditNguoiDungReq dataGiaoDien)
@@ -196,6 +201,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         }
 
         // 5. API: Xóa mềm tài khoản
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         [Route("QuanLyNhaTro/NguoiDung/DeleteApi/{id}")]
         public async Task<IActionResult> DeleteApi(int id)
@@ -213,6 +219,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         }
 
         // 6. API: Đặt lại mật khẩu về số điện thoại
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         [Route("QuanLyNhaTro/NguoiDung/ResetPasswordToPhoneApi/{id}")]
         public async Task<IActionResult> ResetPasswordToPhoneApi(int id)

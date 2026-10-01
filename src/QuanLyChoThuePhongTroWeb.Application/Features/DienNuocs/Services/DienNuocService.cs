@@ -4,31 +4,43 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Persistence;
+using QuanLyChoThuePhongTroWeb.Application.Abstractions.Security;
+using QuanLyChoThuePhongTroWeb.Application.Common.Security;
 using QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Persistence;
+using QuanLyChoThuePhongTroWeb.Application.Features.NhanViens.Services;
 using QuanLyChoThuePhongTroWeb.Domain.Entities;
 using QuanLyChoThuePhongTroWeb.Domain.Enums;
+
+using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence;
+using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services;
 
 namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
 {
     public class DienNuocService : IDienNuocService
     {
         private readonly IDienNuocStore _store;
-        private readonly IUnitOfWork _unitOfWork;
-        private readonly ILogger<DienNuocService> _logger;
+        private readonly IEmployeeAccessService _employeeAccessService;
+        private readonly IMeterReadingWorkflowService _workflowService;
 
         public DienNuocService(
             IDienNuocStore store,
-            IUnitOfWork unitOfWork,
-            ILogger<DienNuocService> logger)
+            IEmployeeAccessService employeeAccessService,
+            IMeterReadingWorkflowService workflowService)
         {
-            _store = store;
-            _unitOfWork = unitOfWork;
-            _logger = logger;
+            _store = store ?? throw new ArgumentNullException(nameof(store));
+            _employeeAccessService = employeeAccessService ?? throw new ArgumentNullException(nameof(employeeAccessService));
+            _workflowService = workflowService ?? throw new ArgumentNullException(nameof(workflowService));
         }
 
-        public async Task<List<DienNuocPhongRes>> GetDanhSachDienNuocAsync(int chiNhanhId, int thang, int nam)
+        public async Task<List<DienNuocPhongRes>> GetDanhSachDienNuocAsync(int chiNhanhId, int thang, int nam, int actorId)
         {
+            if (actorId <= 0 ||
+                !await _employeeAccessService.CanPerformAsync(actorId, chiNhanhId, EmployeeActionCodes.MeterRead))
+            {
+                return new List<DienNuocPhongRes>();
+            }
+
             var startOfMonth = new DateTime(nam, thang, 1, 0, 0, 0, DateTimeKind.Utc);
             var endOfMonth = startOfMonth.AddMonths(1).AddDays(-1).AddHours(23).AddMinutes(59).AddSeconds(59);
 
@@ -62,6 +74,18 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
 
                 if (currentRecords.TryGetValue(phongTroId, out var currentRecord))
                 {
+                    var nonDeletedImages = currentRecord.AnhChiSoDongHos?.Where(a => !a.IsDeleted).ToList() ?? new List<AnhChiSoDongHo>();
+                    var dienImages = nonDeletedImages.Where(a => a.LoaiDongHo == LoaiDongHo.Dien).ToList();
+                    var nuocImages = nonDeletedImages.Where(a => a.LoaiDongHo == LoaiDongHo.Nuoc).ToList();
+
+                    var officialDien = dienImages.FirstOrDefault(a => a.DuocChonLamChiSoChinhThuc);
+                    var newestDien = dienImages.OrderByDescending(a => a.NgayGui).ThenByDescending(a => a.AnhChiSoDongHoId).FirstOrDefault();
+                    var representativeDien = officialDien ?? newestDien;
+
+                    var officialNuoc = nuocImages.FirstOrDefault(a => a.DuocChonLamChiSoChinhThuc);
+                    var newestNuoc = nuocImages.OrderByDescending(a => a.NgayGui).ThenByDescending(a => a.AnhChiSoDongHoId).FirstOrDefault();
+                    var representativeNuoc = officialNuoc ?? newestNuoc;
+
                     result.Add(new DienNuocPhongRes
                     {
                         DichVuDienNuocCuaPhongId = currentRecord.DichVuDienNuocCuaPhongId,
@@ -72,8 +96,17 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
                         ChiSoDienMoi = currentRecord.ChiSoDienMoi,
                         ChiSoNuocCu = currentRecord.ChiSoNuocCu,
                         ChiSoNuocMoi = currentRecord.ChiSoNuocMoi,
-                        IsDaChot = true,
-                        IsLocked = isLocked
+                        IsDaChot = currentRecord.TrangThaiGhiNhan == TrangThaiGhiNhan.DaDuyet,
+                        CoAnhDienChinhThuc = officialDien != null,
+                        CoAnhNuocChinhThuc = officialNuoc != null,
+                        GiaTriDienXacNhanTuAnh = officialDien?.GiaTriXacNhan,
+                        GiaTriNuocXacNhanTuAnh = officialNuoc?.GiaTriXacNhan,
+                        TrangThaiGhiNhan = currentRecord.TrangThaiGhiNhan,
+                        IsLocked = isLocked,
+                        SoAnhDien = dienImages.Count,
+                        SoAnhNuoc = nuocImages.Count,
+                        TrangThaiAnhDien = representativeDien != null ? (QuanLyChoThuePhongTroWeb.Application.Common.Enums.AppTrangThaiAnhChiSo)representativeDien.TrangThaiXuLy : null,
+                        TrangThaiAnhNuoc = representativeNuoc != null ? (QuanLyChoThuePhongTroWeb.Application.Common.Enums.AppTrangThaiAnhChiSo)representativeNuoc.TrangThaiXuLy : null
                     });
                 }
                 else
@@ -103,7 +136,11 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
                         ChiSoNuocCu = nuocCu,
                         ChiSoNuocMoi = 0m,
                         IsDaChot = false,
-                        IsLocked = isLocked
+                        IsLocked = isLocked,
+                        SoAnhDien = 0,
+                        SoAnhNuoc = 0,
+                        TrangThaiAnhDien = null,
+                        TrangThaiAnhNuoc = null
                     });
                 }
             }
@@ -111,7 +148,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
             return result.OrderBy(x => x.TenPhong).ToList();
         }
 
-        public async Task<(bool IsSuccess, string? ErrorMessage)> SaveChotDienNuocAsync(ChotDienNuocReq input)
+        public async Task<(bool IsSuccess, string? ErrorMessage)> SaveChotDienNuocAsync(ChotDienNuocReq input, int actorId = 0)
         {
             if (input == null || input.DanhSachPhong == null || !input.DanhSachPhong.Any())
             {
@@ -123,114 +160,59 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
                 return (false, "Thời gian chốt chỉ số điện nước không hợp lệ.");
             }
 
-            if (input.ChiNhanhId <= 0)
+            if (actorId <= 0)
             {
-                return (false, "Chi nhánh không hợp lệ.");
+                return (false, "Người thực hiện không hợp lệ.");
             }
 
-            decimal donGiaDien = await _store.GetServicePriceAsync("điện", input.ChiNhanhId);
-            decimal donGiaNuoc = await _store.GetServicePriceAsync("nước", input.ChiNhanhId);
-
-            var phongTroIds = input.DanhSachPhong.Select(x => x.PhongTroId).ToList();
-
-            var currentRecords = await _store.GetCurrentMonthRecordsAsync(phongTroIds, input.Thang, input.Nam);
-
-            int prevThang = input.Thang == 1 ? 12 : input.Thang - 1;
-            int prevNam = input.Thang == 1 ? input.Nam - 1 : input.Nam;
-
-            var prevRecords = await _store.GetPreviousMonthRecordsAsync(phongTroIds, prevThang, prevNam);
-            var lockedPhongIds = await _store.GetLockedRoomIdsAsync(phongTroIds, input.Thang, input.Nam);
-            var phongNames = await _store.GetRoomNumbersAsync(phongTroIds);
-
-            await using var transaction = await _unitOfWork.BeginTransactionAsync();
-            try
+            var phongTroIds = input.DanhSachPhong.Select(x => x.PhongTroId).Distinct().ToList();
+            var roomBranches = await _store.GetRoomBranchIdsAsync(phongTroIds);
+            if (roomBranches.Count != phongTroIds.Count)
             {
-                foreach (var req in input.DanhSachPhong)
+                return (false, "Một hoặc nhiều phòng trọ không tồn tại hoặc đã bị xóa.");
+            }
+
+            var distinctBranchIds = roomBranches.Values.Distinct().ToList();
+            if (distinctBranchIds.Count > 1)
+            {
+                return (false, "Dữ liệu chốt điện nước không hợp lệ: các phòng trọ thuộc nhiều chi nhánh khác nhau.");
+            }
+
+            var actualBranchId = distinctBranchIds.First();
+            if (input.ChiNhanhId != actualBranchId)
+            {
+                return (false, "Chi nhánh yêu cầu không khớp với chi nhánh thực tế của các phòng trọ.");
+            }
+
+            var canPerform = await _employeeAccessService.CanPerformAsync(actorId, actualBranchId, EmployeeActionCodes.MeterReview);
+            if (!canPerform)
+            {
+                return (false, "Bạn không có quyền chốt chỉ số điện nước tại chi nhánh này.");
+            }
+
+            var workflowReq = new ApproveMeterPeriodsRequest
+            {
+                Thang = input.Thang,
+                Nam = input.Nam,
+                DanhSachPhong = input.DanhSachPhong.Select(req => new ApproveMeterPeriodItem
                 {
-                    string soPhong = phongNames.TryGetValue(req.PhongTroId, out var name) ? name : $"ID {req.PhongTroId}";
+                    PhongTroId = req.PhongTroId,
+                    DienMode = req.DienMode,
+                    NuocMode = req.NuocMode,
+                    ChiSoDienMoiThuCong = req.DienMode == MeterReadingSubmissionMode.Manual ? req.ChiSoDienMoi : null,
+                    ChiSoNuocMoiThuCong = req.NuocMode == MeterReadingSubmissionMode.Manual ? req.ChiSoNuocMoi : null,
+                    LyDoDienThuCong = req.DienMode == MeterReadingSubmissionMode.Manual ? req.LyDoNhapThuCongDien : null,
+                    LyDoNuocThuCong = req.NuocMode == MeterReadingSubmissionMode.Manual ? req.LyDoNhapThuCongNuoc : null
+                }).ToList()
+            };
 
-                    if (lockedPhongIds.Contains(req.PhongTroId))
-                    {
-                        return (false, $"Phòng {soPhong}: Không thể lưu chỉ số tháng {input.Thang}/{input.Nam} vì tháng tiếp theo đã được chốt.");
-                    }
-
-                    if (req.ChiSoDienCu < 0 || req.ChiSoDienMoi < 0 || req.ChiSoNuocCu < 0 || req.ChiSoNuocMoi < 0)
-                    {
-                        return (false, $"Phòng {soPhong}: Chỉ số điện/nước không được phép âm.");
-                    }
-
-                    if (req.ChiSoDienMoi < req.ChiSoDienCu)
-                    {
-                        return (false, $"Phòng {soPhong}: Chỉ số điện mới không được nhỏ hơn chỉ số điện cũ.");
-                    }
-                    if (req.ChiSoNuocMoi < req.ChiSoNuocCu)
-                    {
-                        return (false, $"Phòng {soPhong}: Chỉ số nước mới không được nhỏ hơn chỉ số nước cũ.");
-                    }
-
-                    decimal actualPrevDienMoi = 0m;
-                    decimal actualPrevNuocMoi = 0m;
-                    if (prevRecords.TryGetValue(req.PhongTroId, out var prevRecord))
-                    {
-                        actualPrevDienMoi = prevRecord.ChiSoDienMoi;
-                        actualPrevNuocMoi = prevRecord.ChiSoNuocMoi;
-                    }
-                    else
-                    {
-                        var ganNhat = await _store.GetNearestPreviousReadingAsync(req.PhongTroId, input.Thang, input.Nam);
-                        actualPrevDienMoi = ganNhat.ChiSoDienMoi;
-                        actualPrevNuocMoi = ganNhat.ChiSoNuocMoi;
-                    }
-
-                    if (req.ChiSoDienCu != actualPrevDienMoi)
-                    {
-                        return (false, $"Phòng {soPhong}: Chỉ số điện đầu kỳ ({req.ChiSoDienCu}) không khớp với chỉ số cuối kỳ trước ({actualPrevDienMoi}).");
-                    }
-                    if (req.ChiSoNuocCu != actualPrevNuocMoi)
-                    {
-                        return (false, $"Phòng {soPhong}: Chỉ số nước đầu kỳ ({req.ChiSoNuocCu}) không khớp với chỉ số cuối kỳ trước ({actualPrevNuocMoi}).");
-                    }
-
-                    if (currentRecords.TryGetValue(req.PhongTroId, out var record))
-                    {
-                        record.ChiSoDienCu = req.ChiSoDienCu;
-                        record.ChiSoDienMoi = req.ChiSoDienMoi;
-                        record.ChiSoNuocCu = req.ChiSoNuocCu;
-                        record.ChiSoNuocMoi = req.ChiSoNuocMoi;
-                        record.DonGiaDien = donGiaDien;
-                        record.DonGiaNuoc = donGiaNuoc;
-                        record.NgayCapNhat = DateTime.UtcNow;
-                        _store.UpdateRecord(record);
-                    }
-                    else
-                    {
-                        var newRecord = new DichVuDienNuocCuaPhong
-                        {
-                            PhongTroId = req.PhongTroId,
-                            Thang = input.Thang,
-                            Nam = input.Nam,
-                            ChiSoDienCu = req.ChiSoDienCu,
-                            ChiSoDienMoi = req.ChiSoDienMoi,
-                            DonGiaDien = donGiaDien,
-                            ChiSoNuocCu = req.ChiSoNuocCu,
-                            ChiSoNuocMoi = req.ChiSoNuocMoi,
-                            DonGiaNuoc = donGiaNuoc,
-                            NgayTao = DateTime.UtcNow
-                        };
-                        await _store.AddRecordAsync(newRecord);
-                    }
-                }
-
-                await _unitOfWork.SaveChangesAsync();
-                await transaction.CommitAsync();
-                return (true, string.Empty);
-            }
-            catch (Exception ex)
+            var batchResult = await _workflowService.ApprovePeriodsAsync(workflowReq, actorId);
+            if (!batchResult.Success)
             {
-                await transaction.RollbackAsync();
-                _logger.LogError(ex, "Lỗi hệ thống khi lưu chốt điện nước.");
-                return (false, "Lỗi hệ thống khi lưu chốt điện nước.");
+                return (false, batchResult.Message);
             }
+
+            return (true, string.Empty);
         }
     }
 }

@@ -15,8 +15,10 @@ using Npgsql;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.BackgroundJobs;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Services;
 using QuanLyChoThuePhongTroWeb.Application.Common.Files;
+using QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.Emails.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs;
+using QuanLyChoThuePhongTroWeb.Domain.Enums;
 using QuanLyChoThuePhongTroWeb.Infrastructure.Persistence;
 
 namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests.Fixtures
@@ -25,6 +27,9 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests.Fixtures
     {
         private static readonly string TestConnectionString = ResolveTestConnectionString();
         public TestLogSink LogSink { get; } = new();
+        public FakeEmailService FakeEmailServiceInstance { get; } = new();
+        public FakeMeterImageStorageService FakeMeterImageStorageInstance { get; } = new();
+        public FakeMeterOcrService FakeMeterOcrServiceInstance { get; } = new();
 
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
@@ -57,9 +62,10 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests.Fixtures
                     options.UseNpgsql(TestConnectionString, npgsql =>
                         npgsql.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName)));
 
-                // Thay thế EmailService thật bằng test fake
+                // Thay thế EmailService thật bằng test fake (một instance singleton để test có thể quan sát/định cấu hình).
                 services.RemoveAll<IEmailService>();
-                services.AddScoped<IEmailService, FakeEmailService>();
+                services.AddSingleton(FakeEmailServiceInstance);
+                services.AddSingleton<IEmailService>(FakeEmailServiceInstance);
 
                 // Thay thế ImageStorageService thật bằng test fake
                 services.RemoveAll<IImageStorageService>();
@@ -71,6 +77,16 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests.Fixtures
 
                 services.RemoveAll<IContractExpiryAlertStateStore>();
                 services.AddSingleton<IContractExpiryAlertStateStore, InMemoryContractExpiryAlertStateStore>();
+
+                // Thay thế MeterImageStorageService thật bằng test fake
+                services.RemoveAll<IMeterImageStorageService>();
+                services.AddSingleton(FakeMeterImageStorageInstance);
+                services.AddSingleton<IMeterImageStorageService>(FakeMeterImageStorageInstance);
+
+                // Thay thế MeterOcrService thật bằng test fake
+                services.RemoveAll<IMeterOcrService>();
+                services.AddSingleton(FakeMeterOcrServiceInstance);
+                services.AddSingleton<IMeterOcrService>(FakeMeterOcrServiceInstance);
             });
         }
 
@@ -154,8 +170,33 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests.Fixtures
 
         public class FakeEmailService : IEmailService
         {
+            public record InvoiceEmailCall(string ToEmail, string MaHoaDon, string HanThanhToan);
+
+            public ConcurrentQueue<InvoiceEmailCall> InvoiceEmailCalls { get; } = new();
+
+            /// <summary>
+            /// Cấu hình kết quả theo địa chỉ email cụ thể: true = thành công, false = trả lỗi an toàn.
+            /// Không có trong dictionary => mặc định thành công.
+            /// </summary>
+            public ConcurrentDictionary<string, (bool IsSuccess, string ErrorMessage)> ResultByAddress { get; } = new();
+
+            /// <summary>Địa chỉ trong tập này sẽ khiến SendInvoiceEmailAsync ném exception thay vì trả lỗi.</summary>
+            public ConcurrentDictionary<string, bool> ThrowForAddress { get; } = new();
+
             public Task<(bool IsSuccess, string ErrorMessage)> SendInvoiceEmailAsync(string toEmail, HoaDonChiTietRes hoaDon, byte[] pdfBytes)
             {
+                InvoiceEmailCalls.Enqueue(new InvoiceEmailCall(toEmail, hoaDon.MaHoaDon, hoaDon.HanThanhToan));
+
+                if (ThrowForAddress.ContainsKey(toEmail))
+                {
+                    throw new InvalidOperationException("Fake SMTP exception for test address: " + toEmail);
+                }
+
+                if (ResultByAddress.TryGetValue(toEmail, out var configured))
+                {
+                    return Task.FromResult(configured);
+                }
+
                 return Task.FromResult((true, string.Empty));
             }
 
@@ -170,6 +211,70 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests.Fixtures
             public Task<string> UploadImageAsync(UploadFile file, string folderName)
             {
                 return Task.FromResult("https://fake.storage/test-image.png");
+            }
+        }
+
+        public class FakeMeterImageStorageService : IMeterImageStorageService
+        {
+            public int DeleteCallCount { get; private set; }
+            public System.Func<UploadFile, string, Task<MeterImageUploadResult>>? OnUpload { get; set; }
+
+            public Task<MeterImageUploadResult> UploadAsync(UploadFile file, string folder, CancellationToken cancellationToken = default)
+            {
+                if (OnUpload != null) return OnUpload(file, folder);
+                var guid = System.Guid.NewGuid().ToString("N");
+                return Task.FromResult(new MeterImageUploadResult($"https://example.test/meter/{guid}.jpg", $"meter_{guid}"));
+            }
+
+            public Task<MeterImageReadResult> ReadAsync(string publicId, string url, CancellationToken cancellationToken = default)
+            {
+                var bytes = new byte[] { 0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x00, 0x01 };
+                return Task.FromResult(new MeterImageReadResult(bytes, "image/jpeg"));
+            }
+
+            public Task DeleteAsync(string publicId, CancellationToken cancellationToken = default)
+            {
+                DeleteCallCount++;
+                return Task.CompletedTask;
+            }
+
+            public void Reset()
+            {
+                DeleteCallCount = 0;
+                OnUpload = null;
+            }
+        }
+
+        public class FakeMeterOcrService : IMeterOcrService
+        {
+            public bool ShouldThrow { get; set; }
+            public bool ShouldReturnUnreadable { get; set; }
+            public string? UnreadableReason { get; set; }
+            public decimal DefaultSuggestedValue { get; set; } = 123.4m;
+            public double DefaultConfidence { get; set; } = 0.9;
+
+            public Task<MeterOcrResult> ProcessImageAsync(byte[] imageBytes, string contentType, LoaiDongHo loaiDongHo, CancellationToken cancellationToken = default)
+            {
+                if (ShouldThrow)
+                {
+                    throw new System.InvalidOperationException("Simulated OCR exception.");
+                }
+
+                if (ShouldReturnUnreadable)
+                {
+                    return Task.FromResult(MeterOcrResult.Unreadable(UnreadableReason ?? "Không đọc được chỉ số"));
+                }
+
+                return Task.FromResult(MeterOcrResult.Readable(DefaultSuggestedValue, DefaultConfidence));
+            }
+
+            public void Reset()
+            {
+                ShouldThrow = false;
+                ShouldReturnUnreadable = false;
+                UnreadableReason = null;
+                DefaultSuggestedValue = 123.4m;
+                DefaultConfidence = 0.9;
             }
         }
 

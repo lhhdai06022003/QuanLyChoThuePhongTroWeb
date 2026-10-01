@@ -1,5 +1,6 @@
 @{
     ViewBag.Title = "Hóa đơn & Thanh toán";
+    var moHoaDonId = (ViewBag.MoHoaDonId != null && (int)ViewBag.MoHoaDonId > 0) ? (int)ViewBag.MoHoaDonId : 0;
 }
 <link rel="stylesheet" href="~/css/hoadon.css" asp-append-version="true" />
 
@@ -49,8 +50,11 @@
             <div class="modal-body py-4" id="chiTietBody">
                 <div class="text-center"><i class="ti ti-loader fa-spin fa-2x"></i> Đang tải dữ liệu...</div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i> Đóng</button>
+            <div class="modal-footer" id="chiTietFooter">
+                <a href="#" class="btn btn-outline-danger me-auto d-none" id="btnDownloadPdf" target="_blank">
+                    <i class="ti ti-file-type-pdf me-1"></i> Tải PDF
+                </a>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i> Đóng</button>
             </div>
         </div>
     </div>
@@ -58,6 +62,22 @@
 
 @section Scripts {
     <script>
+        function escapeHtml(unsafe) {
+            return (unsafe || "").toString()
+                 .replace(/&/g, "&amp;")
+                 .replace(/</g, "&lt;")
+                 .replace(/>/g, "&gt;")
+                 .replace(/"/g, "&quot;")
+                 .replace(/'/g, "&#039;");
+        }
+
+        function formatVND(n) {
+            if (n === null || n === undefined) return "0 ₫";
+            return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n);
+        }
+
+        var autoOpenHoaDonId = @moHoaDonId;
+
         $(document).ready(function () {
             $('#hoaDonTable').DataTable({
                 "ajax": {
@@ -65,33 +85,48 @@
                     "dataSrc": ""
                 },
                 "columns": [
-                    { "data": "maHoaDon" },
-                    { 
+                    {
+                        "data": "maHoaDon",
+                        "render": function(data) {
+                            return `<span class="fw-bold">${escapeHtml(data)}</span>`;
+                        }
+                    },
+                    {
                         "data": null,
                         "render": function (data, type, row) {
                             return "Tháng " + row.thang + " / " + row.nam;
                         }
                     },
-                    { 
+                    {
                         "data": "tongTien",
                         "render": function (data) {
                             return '<span class="font-weight-bold text-danger">' + formatVND(data) + '</span>';
                         }
                     },
-                    { 
-                        "data": "trangThaiHoaDon",
-                        "render": function (data) {
-                            if (data === 0) {
-                                return '<span class="badge bg-warning-lt">Chưa thanh toán</span>';
-                            } else if (data === 1) {
-                                return '<span class="badge bg-success-lt">Đã thanh toán</span>';
+                    {
+                        "data": null,
+                        "render": function (data, type, row) {
+                            if (row.trangThaiPhatHanh === 4) {
+                                return '<span class="badge bg-secondary-lt">Đã hủy</span>';
                             }
-                            return '';
+                            if (row.trangThaiHoaDon === 1) {
+                                return '<span class="badge bg-success-lt">Đã thanh toán</span>';
+                            } else if (row.trangThaiHoaDon === 2) {
+                                return '<span class="badge bg-info-lt">Thanh toán một phần</span>';
+                            } else {
+                                return '<span class="badge bg-warning-lt">Chưa thanh toán</span>';
+                            }
                         }
                     },
-                    { "data": "ngayTao" },
-                    { 
+                    {
+                        "data": "ngayTao",
+                        "render": function(data) {
+                            return escapeHtml(data);
+                        }
+                    },
+                    {
                         "data": "hoaDonId",
+                        "orderable": false,
                         "render": function (data) {
                             return '<button class="btn btn-sm btn-primary" onclick="showChiTiet(' + data + ')"><i class="ti ti-eye me-1"></i> Xem chi tiết</button>';
                         }
@@ -103,30 +138,59 @@
                 "pageLength": 10,
                 "ordering": true,
                 "info": true,
-                "autoWidth": false
+                "autoWidth": false,
+                "initComplete": function () {
+                    if (autoOpenHoaDonId > 0) {
+                        showChiTiet(autoOpenHoaDonId);
+                        if (window.history && window.history.replaceState) {
+                            const url = new URL(window.location.href);
+                            url.searchParams.delete('hoaDonId');
+                            window.history.replaceState({}, document.title, url.pathname + (url.search ? url.search : ''));
+                        }
+                    }
+                }
             });
         });
 
-        function formatVND(n) {
-            if (n === null || n === undefined) return "0 ₫";
-            return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n);
-        }
-
         function showChiTiet(hoaDonId) {
-            var modal = new bootstrap.Modal(document.getElementById('chiTietModal'));
+            var modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('chiTietModal'));
             modal.show();
 
-            $('#chiTietBody').html('<div class="text-center"><i class="ti ti-loader fa-spin fa-2x"></i> Đang tải dữ liệu...</div>');
+            $('#chiTietBody').html('<div class="text-center py-4"><i class="ti ti-loader fa-spin fa-2x text-primary mb-2"></i><div>Đang tải dữ liệu...</div></div>');
+            $('#btnDownloadPdf').addClass('d-none');
 
             $.get(`/KhachThue/HoaDon/XemChiTiet?id=${hoaDonId}`, function(res) {
+                // Configure PDF button in footer
+                $('#btnDownloadPdf').attr('href', `/KhachThue/HoaDon/TaiPdf/${res.hoaDonId}`).removeClass('d-none');
+
+                let cancelBanner = '';
+                if (res.daHuy) {
+                    cancelBanner = `
+                        <div class="alert alert-danger py-2 mb-3">
+                            <i class="ti ti-alert-circle me-2"></i>
+                            <strong>Hóa đơn đã hủy</strong> — Lý do: ${escapeHtml(res.lyDoHuy || '(không có lý do)')}
+                        </div>
+                    `;
+                }
+
+                let ttBadge = '';
+                if (res.daHuy) {
+                    ttBadge = '<span class="badge bg-secondary-lt px-2 py-1">Đã hủy</span>';
+                } else if (res.trangThaiHoaDon === 'Đã thanh toán') {
+                    ttBadge = '<span class="badge bg-success-lt px-2 py-1">Đã thanh toán</span>';
+                } else {
+                    ttBadge = '<span class="badge bg-warning-lt px-2 py-1">Chưa thanh toán</span>';
+                }
+
                 let html = `
+                    ${cancelBanner}
                     <div class="row mb-3 fs-3">
-                        <div class="col-md-6 mb-2"><strong>Mã HĐ:</strong> <span class="text-primary font-weight-bold">${res.maHoaDon}</span></div>
-                        <div class="col-md-6 mb-2"><strong>Ngày tạo:</strong> ${res.ngayTao}</div>
-                        <div class="col-md-6 mb-2"><strong>Phòng:</strong> <span class="text-primary font-weight-bold">${res.tenPhong}</span></div>
+                        <div class="col-md-6 mb-2"><strong>Mã HĐ:</strong> <span class="text-primary font-weight-bold">${escapeHtml(res.maHoaDon)}</span></div>
+                        <div class="col-md-6 mb-2"><strong>Ngày tạo:</strong> ${escapeHtml(res.ngayTao)}</div>
+                        <div class="col-md-6 mb-2"><strong>Phòng:</strong> <span class="text-primary font-weight-bold">${escapeHtml(res.tenPhong)}</span></div>
                         <div class="col-md-6 mb-2"><strong>Kỳ:</strong> Tháng ${res.thang}/${res.nam}</div>
-                        <div class="col-md-6 mb-2"><strong>Người thuê:</strong> ${res.tenNguoiThue}</div>
-                        <div class="col-md-6 mb-2"><strong>Trạng thái:</strong> <span class="badge ${res.trangThaiHoaDon === 'Đã thanh toán' ? 'bg-success-lt' : 'bg-warning-lt'} px-2 py-1">${res.trangThaiHoaDon}</span></div>
+                        <div class="col-md-6 mb-2"><strong>Người thuê:</strong> ${escapeHtml(res.tenNguoiThue)}</div>
+                        <div class="col-md-6 mb-2"><strong>Trạng thái:</strong> ${ttBadge}</div>
                     </div>
                     <h4 class="font-weight-bold border-bottom pb-2 mt-4"><i class="ti ti-list me-1"></i> Chi tiết các khoản phí</h4>
                     <div class="table-responsive mb-3">
@@ -147,10 +211,10 @@
                     let donViText = ct.donVi ? ct.donVi : '-';
                     html += `<tr>
                         <td class="text-center align-middle">${idx+1}</td>
-                        <td class="align-middle">${ct.tenDichVu}</td>
+                        <td class="align-middle">${escapeHtml(ct.tenDichVu)}</td>
                         <td class="text-right align-middle">${formatVND(ct.donGia)}</td>
                         <td class="text-center align-middle">${ct.soLuong}</td>
-                        <td class="text-center align-middle">${donViText}</td>
+                        <td class="text-center align-middle">${escapeHtml(donViText)}</td>
                         <td class="text-right align-middle font-weight-bold">${formatVND(ct.tongTien)}</td>
                     </tr>`;
                 });
@@ -174,13 +238,13 @@
                                 <tr><th>Mã GD</th><th class="text-right">Số tiền</th><th>Phương thức</th><th>Ngày</th><th>Người xác nhận</th><th>Ghi chú</th></tr>
                             </thead><tbody>`;
                     res.lichSuThanhToans.forEach(ls => {
-                        html += `<tr><td>${ls.maGiaoDich}</td><td class="text-right font-weight-bold text-success">${formatVND(ls.soTienThanhToan)}</td><td>${ls.phuongThucThanhToan}</td><td>${ls.ngayThanhToan}</td><td>${ls.nguoiXacNhan}</td><td>${ls.ghiChu || ''}</td></tr>`;
+                        html += `<tr><td>${escapeHtml(ls.maGiaoDich)}</td><td class="text-right font-weight-bold text-success">${formatVND(ls.soTienThanhToan)}</td><td>${escapeHtml(ls.phuongThucThanhToan)}</td><td>${escapeHtml(ls.ngayThanhToan)}</td><td>${escapeHtml(ls.nguoiXacNhan)}</td><td>${escapeHtml(ls.ghiChu || '')}</td></tr>`;
                     });
                     html += `</tbody></table></div>`;
                 }
 
-                // Nhúng mã QR thanh toán nếu chưa thanh toán
-                if (res.trangThaiHoaDon === 'Chưa thanh toán') {
+                // Nhúng mã QR thanh toán CHỈ KHI coTheThanhToan
+                if (res.coTheThanhToan) {
                     html += `
                     <div class="row mt-4 pt-3 border-top justify-content-center">
                         <div class="col-md-7 text-center">
@@ -191,11 +255,11 @@
                                 </div>
                                 <p class="small text-muted mb-3">Sử dụng ứng dụng ngân hàng hoặc ví điện tử để quét mã QR</p>
                                 <div class="qr-details-list bg-body-secondary p-3 rounded text-start">
-                                    <div class="qr-detail-item"><span>Ngân hàng:</span><strong>${res.bankId}</strong></div>
-                                    <div class="qr-detail-item"><span>Số tài khoản:</span><strong>${res.accountNumber}</strong></div>
-                                    <div class="qr-detail-item"><span>Chủ tài khoản:</span><strong>${res.accountName}</strong></div>
+                                    <div class="qr-detail-item"><span>Ngân hàng:</span><strong>${escapeHtml(res.bankId)}</strong></div>
+                                    <div class="qr-detail-item"><span>Số tài khoản:</span><strong>${escapeHtml(res.accountNumber)}</strong></div>
+                                    <div class="qr-detail-item"><span>Chủ tài khoản:</span><strong>${escapeHtml(res.accountName)}</strong></div>
                                     <div class="qr-detail-item"><span>Số tiền:</span><strong class="text-danger">${formatVND(res.tongTien)}</strong></div>
-                                    <div class="qr-detail-item"><span>Nội dung CK:</span><code class="text-primary font-weight-bold">THANH TOAN ${res.maHoaDon}</code></div>
+                                    <div class="qr-detail-item"><span>Nội dung CK:</span><code class="text-primary font-weight-bold">THANH TOAN ${escapeHtml(res.maHoaDon)}</code></div>
                                 </div>
                             </div>
                         </div>
@@ -204,9 +268,9 @@
                 }
 
                 $('#chiTietBody').html(html);
-            }).fail(function(xhr) {
-                $('#chiTietModal').modal('hide');
-                Swal.fire('Lỗi', xhr.responseText || 'Không thể tải chi tiết hóa đơn.', 'error');
+            }).fail(function() {
+                modal.hide();
+                Swal.fire('Lỗi', 'Không tìm thấy hóa đơn hoặc bạn không có quyền xem.', 'error');
             });
         }
     </script>

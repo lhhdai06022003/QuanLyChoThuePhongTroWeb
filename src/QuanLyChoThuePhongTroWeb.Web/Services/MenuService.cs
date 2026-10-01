@@ -18,9 +18,11 @@ namespace QuanLyChoThuePhongTroWeb.Services
                 {
                     Name = "Quản lý người dùng",
                     Icon = "ti ti-user-cog",
+                    Roles = new List<string> { "Admin" },
                     Children = new List<MenuItem>
                     {
-                        new MenuItem { Name = "Quản lý tài khoản", Icon = "ti ti-users-group", Url = "/QuanLyNhaTro/QuanLyTaiKhoanDangNhap" }
+                        new MenuItem { Name = "Quản lý tài khoản", Icon = "ti ti-users-group", Url = "/QuanLyNhaTro/QuanLyTaiKhoanDangNhap" },
+                        new MenuItem { Name = "Phân công chi nhánh", Icon = "ti ti-sitemap", Url = "/QuanLyNhaTro/PhanCongChiNhanh", Roles = new List<string> { "Admin" } }
                     }
                 },
                 new MenuItem
@@ -29,7 +31,7 @@ namespace QuanLyChoThuePhongTroWeb.Services
                     Icon = "ti ti-building-community",
                     Children = new List<MenuItem>
                     {
-                        new MenuItem { Name = "Chi nhánh", Icon = "ti ti-building-store", Url = "/ChiNhanhs/QuanLyChiNhanh" },
+                        new MenuItem { Name = "Chi nhánh", Icon = "ti ti-building-store", Url = "/ChiNhanhs/QuanLyChiNhanh", Roles = new List<string> { "Admin" } },
                         new MenuItem { Name = "Phòng trọ", Icon = "ti ti-bed", Url = "/PhongTros/QuanLyPhongTro" },
                         //new MenuItem { Name = "Sơ đồ phòng", Icon = "ti ti-layout-grid", Url = "/PhongTros/SoDoPhong" },
                         new MenuItem { Name = "Người thuê", Icon = "ti ti-users", Url = "/QuanLyNhaTro/QuanLyNguoiThue" },

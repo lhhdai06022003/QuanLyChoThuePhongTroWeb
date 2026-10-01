@@ -163,7 +163,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             {
                 HoaDonId = 1,
                 TongTien = 3_000_000m,
-                TrangThaiPhatHanh = TrangThaiPhatHanhHoaDon.DaChot,
+                TrangThaiPhatHanh = TrangThaiPhatHanhHoaDon.DaGui,
                 TrangThaiHoaDon = TrangThaiHoaDon.ChuaThanhToan,
                 ChoPhepThanhToanMotPhan = true,
                 SoTienThanhToanToiThieu = 1_000_000m

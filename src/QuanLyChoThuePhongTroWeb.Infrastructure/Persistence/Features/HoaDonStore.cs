@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -86,11 +87,12 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
         public async Task<HoaDon?> GetHoaDonWithDetailsForUpdateAsync(int id, CancellationToken cancellationToken = default)
         {
             return await _context.HoaDons
+                .FromSqlInterpolated($"SELECT * FROM hoa_don WHERE \"HoaDonId\" = {id} AND \"IsDeleted\" = false FOR UPDATE")
                 .Include(h => h.ChiTietHoaDonDichVus)
-                .FirstOrDefaultAsync(h => h.HoaDonId == id && !h.IsDeleted, cancellationToken);
+                .FirstOrDefaultAsync(cancellationToken);
         }
 
-        public async Task<DataTableResponse<HoaDonRes>> GetHoaDonsDataTableAsync(DataTableRequest request, int chiNhanhId, int thang, int nam, int trangThai, CancellationToken cancellationToken = default)
+        public async Task<DataTableResponse<HoaDonRes>> GetHoaDonsDataTableAsync(DataTableRequest request, int chiNhanhId, int thang, int nam, int trangThai, IReadOnlyList<int>? allowedBranchIds = null, CancellationToken cancellationToken = default)
         {
             var query = _context.HoaDons
                 .Include(h => h.HopDong).ThenInclude(hd => hd.PhongTro).ThenInclude(p => p.ChiNhanh)
@@ -99,6 +101,9 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
 
             if (chiNhanhId > 0)
                 query = query.Where(h => h.HopDong.PhongTro.ChiNhanhId == chiNhanhId);
+            else if (allowedBranchIds != null)
+                query = query.Where(h => allowedBranchIds.Contains(h.HopDong.PhongTro.ChiNhanhId));
+
             if (thang > 0)
                 query = query.Where(h => h.Thang == thang);
             if (nam > 0)
@@ -118,28 +123,48 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
 
             query = query.OrderByDescending(h => h.HoaDonId);
 
-            var data = await query
+            var rawData = await query
                 .Skip(request.Start)
                 .Take(request.Length)
-                .Select(h => new HoaDonRes
+                .Select(h => new
                 {
-                    HoaDonId = h.HoaDonId,
-                    MaHoaDon = h.MaHoaDon,
-                    HopDongId = h.HopDongId,
-                    MaHopDong = h.HopDong.MaHopDong,
+                    h.HoaDonId,
+                    h.MaHoaDon,
+                    h.HopDongId,
+                    h.HopDong.MaHopDong,
                     TenPhong = h.HopDong.PhongTro.SoPhong,
                     TenNguoiThue = h.HopDong.NguoiThue.HoVaTen,
                     TenChiNhanh = h.HopDong.PhongTro.ChiNhanh.TenChiNhanh,
-                    Thang = h.Thang,
-                    Nam = h.Nam,
-                    TongTien = h.TongTien,
-                    TrangThaiHoaDon = h.TrangThaiHoaDon == TrangThaiHoaDon.DaThanhToan ? "Đã thanh toán" : "Chưa thanh toán",
-                    TrangThaiHoaDonValue = (int)h.TrangThaiHoaDon,
-                    NgayTao = h.NgayTao.ToString("dd/MM/yyyy HH:mm"),
+                    h.Thang,
+                    h.Nam,
+                    h.TongTien,
+                    h.TrangThaiHoaDon,
+                    h.TrangThaiPhatHanh,
+                    h.NgayTao,
                     SoDienThoai = h.HopDong.NguoiThue.SoDienThoai,
                     Email = h.HopDong.NguoiThue.Email ?? ""
                 })
                 .ToListAsync(cancellationToken);
+
+            var data = rawData.Select(h => new HoaDonRes
+            {
+                HoaDonId = h.HoaDonId,
+                MaHoaDon = h.MaHoaDon,
+                HopDongId = h.HopDongId,
+                MaHopDong = h.MaHopDong,
+                TenPhong = h.TenPhong,
+                TenNguoiThue = h.TenNguoiThue,
+                TenChiNhanh = h.TenChiNhanh,
+                Thang = h.Thang,
+                Nam = h.Nam,
+                TongTien = h.TongTien,
+                TrangThaiHoaDon = h.TrangThaiHoaDon == TrangThaiHoaDon.DaThanhToan ? "Đã thanh toán" : "Chưa thanh toán",
+                TrangThaiHoaDonValue = (int)h.TrangThaiHoaDon,
+                TrangThaiPhatHanhValue = (int)h.TrangThaiPhatHanh,
+                NgayTao = h.NgayTao.AddHours(7).ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture),
+                SoDienThoai = h.SoDienThoai,
+                Email = h.Email
+            }).ToList();
 
             return new DataTableResponse<HoaDonRes>
             {
@@ -167,44 +192,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
             string donViDien = dienDichVu?.DonVi ?? "kWh";
             string donViNuoc = nuocDichVu?.DonVi ?? "m³";
 
-            return new HoaDonChiTietRes
-            {
-                HoaDonId = hd.HoaDonId,
-                MaHoaDon = hd.MaHoaDon,
-                TenPhong = hd.HopDong.PhongTro.SoPhong,
-                TenNguoiThue = hd.HopDong.NguoiThue.HoVaTen,
-                TenChiNhanh = hd.HopDong.PhongTro.ChiNhanh.TenChiNhanh,
-                DiaChiChiNhanh = hd.HopDong.PhongTro.ChiNhanh.DiaChi,
-                SoDienThoaiChiNhanh = hd.HopDong.PhongTro.ChiNhanh.SoDienThoai ?? "",
-                Thang = hd.Thang,
-                Nam = hd.Nam,
-                TongTien = hd.TongTien,
-                TrangThaiHoaDon = hd.TrangThaiHoaDon == TrangThaiHoaDon.DaThanhToan ? "Đã thanh toán" : "Chưa thanh toán",
-                NgayTao = hd.NgayTao.ToString("dd/MM/yyyy HH:mm"),
-                Email = hd.HopDong.NguoiThue.Email ?? "",
-                ChiTietHoaDons = hd.ChiTietHoaDonDichVus.Where(x => !x.IsDeleted).Select(ct => new ChiTietHoaDonRes
-                {
-                    ChiTietHoaDonId = ct.ChiTietHoaDonId,
-                    TenDichVu = ct.TenDichVu,
-                    DonGia = ct.DonGia,
-                    SoLuong = ct.SoLuong,
-                    TongTien = ct.TongTien,
-                    DonVi = ct.DichVu != null ? ct.DichVu.DonVi :
-                            (ct.TenDichVu.Contains("Tiền thuê phòng") ? "Tháng" :
-                            (ct.TenDichVu.ToLower().Contains("điện") ? donViDien :
-                            (ct.TenDichVu.ToLower().Contains("nước") ? donViNuoc : "")))
-                }).ToList(),
-                LichSuThanhToans = hd.LichSuThanhToans.Where(x => !x.IsDeleted).Select(ls => new LichSuThanhToanRes
-                {
-                    LichSuThanhToanId = ls.LichSuThanhToanId,
-                    MaGiaoDich = ls.MaGiaoDich,
-                    SoTienThanhToan = ls.SoTienThanhToan,
-                    PhuongThucThanhToan = ls.PhuongThucThanhToan == PhuongThucThanhToan.TienMat ? "Tiền mặt" : "Chuyển khoản",
-                    NgayThanhToan = ls.NgayThanhToan.ToString("dd/MM/yyyy HH:mm"),
-                    NguoiXacNhan = ls.NguoiXacNhan?.TenDangNhap ?? "",
-                    GhiChu = ls.GhiChu
-                }).ToList()
-            };
+            return InvoiceDetailProjection.ProjectToRes(hd, donViDien, donViNuoc);
         }
 
         public async Task<HoaDon?> GetActiveHoaDonByIdAsync(int id, CancellationToken cancellationToken = default)
@@ -217,7 +205,9 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
             var query = _context.HoaDons
                 .Include(h => h.HopDong).ThenInclude(hd => hd.PhongTro)
                 .Include(h => h.HopDong).ThenInclude(hd => hd.NguoiThue)
-                .Where(h => !h.IsDeleted && h.TrangThaiHoaDon == TrangThaiHoaDon.ChuaThanhToan);
+                .Where(h => !h.IsDeleted &&
+                            h.TrangThaiHoaDon == TrangThaiHoaDon.ChuaThanhToan &&
+                            h.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaGui);
 
             if (chiNhanhId > 0)
                 query = query.Where(h => h.HopDong.PhongTro.ChiNhanhId == chiNhanhId);
@@ -242,6 +232,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                     TongTien = h.TongTien,
                     TrangThaiHoaDon = "Chưa thanh toán",
                     TrangThaiHoaDonValue = (int)h.TrangThaiHoaDon,
+                    TrangThaiPhatHanhValue = (int)h.TrangThaiPhatHanh,
                     NgayTao = h.NgayTao.ToString("dd/MM/yyyy HH:mm"),
                     SoDienThoai = h.HopDong.NguoiThue.SoDienThoai,
                     Email = h.HopDong.NguoiThue.Email ?? ""
@@ -259,32 +250,54 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
 
         public async Task<IReadOnlyList<HoaDonRes>> GetInvoicesByContractIdsAsync(IReadOnlyList<int> contractIds, CancellationToken cancellationToken = default)
         {
-            return await _context.HoaDons
+            var rawData = await _context.HoaDons
                 .Include(x => x.HopDong).ThenInclude(h => h.PhongTro)
-                .Where(x => contractIds.Contains(x.HopDongId) && !x.IsDeleted)
+                .Where(x => contractIds.Contains(x.HopDongId) &&
+                            ((x.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaGui && !x.IsDeleted) ||
+                             (x.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaHuy && x.NgayGui != null)))
                 .OrderByDescending(x => x.NgayTao)
-                .Select(x => new HoaDonRes
+                .Select(x => new
                 {
-                    HoaDonId = x.HoaDonId,
-                    MaHoaDon = x.MaHoaDon,
-                    HopDongId = x.HopDongId,
-                    MaHopDong = x.HopDong.MaHopDong,
+                    x.HoaDonId,
+                    x.MaHoaDon,
+                    x.HopDongId,
+                    x.HopDong.MaHopDong,
                     TenPhong = x.HopDong.PhongTro.SoPhong,
-                    Thang = x.Thang,
-                    Nam = x.Nam,
-                    TongTien = x.TongTien,
-                    TrangThaiHoaDon = x.TrangThaiHoaDon == TrangThaiHoaDon.DaThanhToan ? "Đã thanh toán" : "Chưa thanh toán",
-                    TrangThaiHoaDonValue = (int)x.TrangThaiHoaDon,
-                    NgayTao = x.NgayTao.ToString("dd/MM/yyyy HH:mm")
+                    x.Thang,
+                    x.Nam,
+                    x.TongTien,
+                    x.TrangThaiPhatHanh,
+                    x.TrangThaiHoaDon,
+                    x.NgayTao
                 })
                 .ToListAsync(cancellationToken);
+
+            return rawData.Select(x => new HoaDonRes
+            {
+                HoaDonId = x.HoaDonId,
+                MaHoaDon = x.MaHoaDon,
+                HopDongId = x.HopDongId,
+                MaHopDong = x.MaHopDong,
+                TenPhong = x.TenPhong,
+                Thang = x.Thang,
+                Nam = x.Nam,
+                TongTien = x.TongTien,
+                TrangThaiHoaDon = x.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaHuy ? "Đã hủy" : (x.TrangThaiHoaDon == TrangThaiHoaDon.DaThanhToan ? "Đã thanh toán" : "Chưa thanh toán"),
+                TrangThaiHoaDonValue = (int)x.TrangThaiHoaDon,
+                TrangThaiPhatHanhValue = (int)x.TrangThaiPhatHanh,
+                NgayTao = x.NgayTao.AddHours(7).ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture)
+            }).ToList();
         }
 
         public async Task<bool> CheckHoaDonOwnershipAsync(int hoaDonId, int nguoiThueId, CancellationToken cancellationToken = default)
         {
             return await _context.HoaDons
                 .Include(h => h.HopDong)
-                .AnyAsync(h => h.HoaDonId == hoaDonId && h.HopDong.NguoiThueId == nguoiThueId && !h.IsDeleted, cancellationToken);
+                .AnyAsync(h => h.HoaDonId == hoaDonId &&
+                               h.HopDong.NguoiThueId == nguoiThueId &&
+                               ((h.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaGui && !h.IsDeleted) ||
+                                (h.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaHuy && h.NgayGui != null)),
+                          cancellationToken);
         }
 
         public async Task<IReadOnlyList<HoaDon>> GetOverdueInvoicesAsync(DateTime thresholdUtc, CancellationToken cancellationToken = default)
@@ -293,9 +306,60 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 .Include(h => h.HopDong)
                     .ThenInclude(hd => hd.NguoiThue)
                 .Where(h => !h.IsDeleted
-                    && h.TrangThaiHoaDon == TrangThaiHoaDon.ChuaThanhToan
-                    && h.NgayTao <= thresholdUtc)
+                    && h.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaGui
+                    && h.TrangThaiHoaDon != TrangThaiHoaDon.DaThanhToan
+                    && (h.HanThanhToan != null ? h.HanThanhToan <= thresholdUtc : h.NgayGui <= thresholdUtc))
                 .ToListAsync(cancellationToken);
+        }
+
+        public async Task<int?> GetHoaDonBranchIdAsync(int hoaDonId, CancellationToken cancellationToken = default)
+        {
+            return await _context.HoaDons
+                .Where(h => h.HoaDonId == hoaDonId && !h.IsDeleted)
+                .Select(h => (int?)h.HopDong.PhongTro.ChiNhanhId)
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+
+        public async Task<IReadOnlyDictionary<int, int>> GetRoomBranchIdsAsync(IReadOnlyList<int> roomIds, CancellationToken cancellationToken = default)
+        {
+            return await _context.PhongTros
+                .Where(x => roomIds.Contains(x.PhongTroId) && !x.IsDeleted)
+                .ToDictionaryAsync(x => x.PhongTroId, x => x.ChiNhanhId, cancellationToken);
+        }
+
+        public async Task<IReadOnlyList<HoaDon>> GetInvoicesByMeterReadingIdsAsync(IReadOnlyList<int> meterReadingIds, CancellationToken cancellationToken = default)
+        {
+            if (meterReadingIds == null || meterReadingIds.Count == 0)
+            {
+                return Array.Empty<HoaDon>();
+            }
+
+            return await _context.HoaDons
+                .Include(h => h.HopDong)
+                .Include(h => h.ChiTietHoaDonDichVus)
+                    .ThenInclude(ct => ct.DichVu)
+                .Where(h => h.DichVuDienNuocCuaPhongId.HasValue &&
+                            meterReadingIds.Contains(h.DichVuDienNuocCuaPhongId.Value))
+                .ToListAsync(cancellationToken);
+        }
+
+        public async Task<InvoiceCancellationBlockers> GetCancellationBlockersAsync(int hoaDonId, CancellationToken cancellationToken = default)
+        {
+            var hasPayment = await _context.LichSuThanhToans
+                .AnyAsync(x => x.HoaDonId == hoaDonId && !x.IsDeleted && x.SoTienThanhToan > 0, cancellationToken);
+
+            var hasPendingRequest = await _context.YeuCauThanhToanHoaDons
+                .AnyAsync(x => x.HoaDonId == hoaDonId && !x.IsDeleted &&
+                    (x.TrangThai == TrangThaiYeuCauThanhToan.ChoThanhToan ||
+                     x.TrangThai == TrangThaiYeuCauThanhToan.DaBaoChuyen ||
+                     x.TrangThai == TrangThaiYeuCauThanhToan.DangDoiChieu), cancellationToken);
+
+            var hasPendingProof = await _context.YeuCauThanhToanHoaDons
+                .Where(x => x.HoaDonId == hoaDonId && !x.IsDeleted)
+                .SelectMany(x => x.MinhChungThanhToanHoaDons)
+                .AnyAsync(x => !x.IsDeleted && x.TrangThaiDoiChieu == TrangThaiMinhChungThanhToan.ChoXacNhan, cancellationToken);
+
+            return new InvoiceCancellationBlockers(hasPayment, hasPendingRequest, hasPendingProof);
         }
 
         public async Task AddInvoicesAsync(IEnumerable<HoaDon> invoices, CancellationToken cancellationToken = default)

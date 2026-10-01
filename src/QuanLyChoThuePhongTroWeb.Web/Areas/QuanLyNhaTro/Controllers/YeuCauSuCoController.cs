@@ -2,8 +2,10 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.Extensions.Logging;
+using QuanLyChoThuePhongTroWeb.Application.Abstractions.Security;
 using QuanLyChoThuePhongTroWeb.Models;
 using System;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
@@ -16,17 +18,20 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         private readonly IChiNhanhService _chiNhanhService;
         private readonly IThongBaoService _thongBaoService;
         private readonly ILogger<YeuCauSuCoController> _logger;
+        private readonly IEmployeeAccessService _employeeAccessService;
 
         public YeuCauSuCoController(
-            IYeuCauSuCoService yeuCauSuCoService, 
-            IChiNhanhService chiNhanhService, 
+            IYeuCauSuCoService yeuCauSuCoService,
+            IChiNhanhService chiNhanhService,
             IThongBaoService thongBaoService,
-            ILogger<YeuCauSuCoController> logger)
+            ILogger<YeuCauSuCoController> logger,
+            IEmployeeAccessService employeeAccessService)
         {
             _yeuCauSuCoService = yeuCauSuCoService;
             _chiNhanhService = chiNhanhService;
             _thongBaoService = thongBaoService;
             _logger = logger;
+            _employeeAccessService = employeeAccessService;
         }
 
         public async Task<IActionResult> Index(int? chiNhanhId, QuanLyChoThuePhongTroWeb.Application.Common.Enums.AppTrangThaiSuCo? trangThai, int? soThang = 6)
@@ -37,6 +42,14 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             ViewBag.ChiNhanhId = new SelectList(chiNhanhs, "ChiNhanhId", "TenChiNhanh", chiNhanhId);
             ViewBag.CurrentTrangThai = trangThai;
             ViewBag.CurrentSoThang = soThang ?? 6;
+
+            var chuaPhanCong = false;
+            if (User.IsInRole("NhanVien") && int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var actorId))
+            {
+                var scope = await _employeeAccessService.GetScopeAsync(actorId);
+                chuaPhanCong = scope != null && !scope.IsAdmin && scope.ActiveBranchIds.Count == 0;
+            }
+            ViewBag.ChuaPhanCongChiNhanh = chuaPhanCong;
 
             return View(data);
         }
@@ -52,12 +65,18 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
                     return Json(new { success = false, message = "Vui lòng nhập lý do từ chối." });
                 }
 
+                var actorIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (!int.TryParse(actorIdStr, out var actorId) || actorId <= 0)
+                {
+                    return Json(new { success = false, message = "Người dùng chưa đăng nhập hoặc phiên làm việc đã hết hạn." });
+                }
+
                 var suco = await _yeuCauSuCoService.GetByIdAsync(Id);
                 if (suco == null) return Json(new { success = false, message = "Không tìm thấy sự cố." });
 
-                bool success = await _yeuCauSuCoService.UpdateStatusAsync(Id, TrangThai, ChiPhiSuaChua, CongVaoHoaDon, LyDoTuChoi, GhiChuAdmin);
+                var result = await _yeuCauSuCoService.UpdateStatusAsync(Id, TrangThai, ChiPhiSuaChua, CongVaoHoaDon, LyDoTuChoi, GhiChuAdmin, actorId);
                 
-                if (success)
+                if (result.Success)
                 {
                     string statusName = TrangThai switch
                     {
@@ -75,7 +94,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
                 }
                 else
                 {
-                    return Json(new { success = false, message = "Không tìm thấy yêu cầu hoặc có lỗi xảy ra." });
+                    return Json(new { success = false, message = result.Message });
                 }
             }
             catch (Exception ex)
@@ -91,11 +110,14 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         {
             try
             {
-                bool success = await _yeuCauSuCoService.SoftDeleteAsync(id);
-                if (success)
-                    return Json(new { success = true });
-                else
-                    return Json(new { success = false, message = "Lỗi khi xóa sự cố." });
+                var actorIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (!int.TryParse(actorIdStr, out var actorId) || actorId <= 0)
+                {
+                    return Json(new { success = false, message = "Người dùng chưa đăng nhập hoặc phiên làm việc đã hết hạn." });
+                }
+
+                var result = await _yeuCauSuCoService.SoftDeleteAsync(id, actorId);
+                return Json(new { success = result.Success, message = result.Message });
             }
             catch (Exception ex)
             {

@@ -34,10 +34,15 @@ namespace QuanLyChoThuePhongTroWeb.Application
             services.AddScoped<IHopDongService, HopDongService>();
             services.AddScoped<IThanhVienHopDongService, ThanhVienHopDongService>();
             services.AddScoped<IDienNuocService, DienNuocService>();
+            services.AddScoped<IMeterReadingWorkflowService, MeterReadingWorkflowService>();
+            services.AddScoped<IMeterImagePortalService, MeterImagePortalService>();
 
             // Phase 6.4 services
             services.AddScoped<IHoaDonCalculatorService, HoaDonCalculatorService>();
             services.AddScoped<IHoaDonService, HoaDonService>();
+            services.AddScoped<IInvoiceIssuanceService, InvoiceIssuanceService>();
+            services.AddScoped<IInvoicePublicationService, InvoicePublicationService>();
+            services.AddScoped<IInvoiceViewService, InvoiceViewService>();
             services.AddScoped<IInvoicePaymentConfirmationService, InvoicePaymentConfirmationService>();
             services.AddScoped<ILichSuThanhToanService, LichSuThanhToanService>();
 
@@ -50,6 +55,13 @@ namespace QuanLyChoThuePhongTroWeb.Application
             services.AddScoped<Features.HopDongs.UseCases.IContractAutoCloseUseCase, Features.HopDongs.UseCases.ContractAutoCloseUseCase>();
             services.AddScoped<Features.HopDongs.UseCases.IContractExpiryAlertUseCase, Features.HopDongs.UseCases.ContractExpiryAlertUseCase>();
             services.AddScoped<Features.HoaDons.UseCases.IInvoiceReminderUseCase, Features.HoaDons.UseCases.InvoiceReminderUseCase>();
+
+            // Security & Employee Access Services
+            services.AddScoped<Abstractions.Security.IEmployeeAccessService, Features.NhanViens.Services.EmployeeAccessService>();
+            services.AddScoped<Features.NhanViens.Services.IEmployeeBranchAssignmentService, Features.NhanViens.Services.EmployeeBranchAssignmentService>();
+            services.AddScoped<Features.NguoiDungs.Services.IUserSessionService, Features.NguoiDungs.Services.UserSessionService>();
+
+            Microsoft.Extensions.DependencyInjection.Extensions.ServiceCollectionDescriptorExtensions.TryAddSingleton(services, System.TimeProvider.System);
 
             return services;
         }

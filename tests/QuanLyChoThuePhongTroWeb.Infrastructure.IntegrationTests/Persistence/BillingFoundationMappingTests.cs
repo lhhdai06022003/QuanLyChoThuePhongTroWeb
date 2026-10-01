@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
@@ -107,16 +108,38 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             await using var connection = new NpgsqlConnection(connectionString);
             await connection.OpenAsync();
 
+            await using var databaseNameCommand = connection.CreateCommand();
+            databaseNameCommand.CommandText = "SELECT current_database();";
+            var databaseName = Convert.ToString(await databaseNameCommand.ExecuteScalarAsync());
+
             await using var countCommand = connection.CreateCommand();
             countCommand.CommandText = """
-                SELECT COUNT(*)
+                SELECT table_name
                 FROM information_schema.tables
                 WHERE table_schema = 'public'
                   AND table_type = 'BASE TABLE'
-                  AND table_name <> '__EFMigrationsHistory';
+                  AND table_name <> '__EFMigrationsHistory'
+                ORDER BY table_name;
                 """;
-            var tableCount = Convert.ToInt32(await countCommand.ExecuteScalarAsync());
-            Assert.Equal(37, tableCount);
+            var databaseTables = new List<string>();
+            await using (var reader = await countCommand.ExecuteReaderAsync())
+            {
+                while (await reader.ReadAsync())
+                {
+                    databaseTables.Add(reader.GetString(0));
+                }
+            }
+
+            var modelTables = _context.Model.GetEntityTypes()
+                .Where(e => !e.IsOwned())
+                .Select(e => e.GetTableName())
+                .Where(name => name != null)
+                .Cast<string>()
+                .ToHashSet(StringComparer.Ordinal);
+            var unexpectedTables = databaseTables.Where(name => !modelTables.Contains(name)).ToList();
+            Assert.True(
+                databaseTables.Count == 37,
+                $"Database '{databaseName}' expected 37 business tables but found {databaseTables.Count}. Unexpected tables: {string.Join(", ", unexpectedTables)}");
 
             await using var removedTablesCommand = connection.CreateCommand();
             removedTablesCommand.CommandText = """

@@ -3,6 +3,7 @@
 - **Người phụ trách:** A
 - **Mốc roadmap:** ngày 11–31, ổn định ngày 32–53
 - **Hiện trạng:** đã có schema, tính điện nước/hóa đơn cũ và model trạng thái phát hành; luồng OCR → duyệt → hóa đơn nháp → chốt chưa hoàn chỉnh.
+- **Phân quyền giai đoạn này:** mọi `NhanVien` có phân công chi nhánh còn hiệu lực cùng quyền thao tác nhân viên trong module; chỉ Admin chốt/trả lại. Quyền riêng từng nhân viên được ghi ở `spec.md` như hướng phát triển sau.
 
 ## Tính năng cần hoàn thành
 
@@ -16,12 +17,10 @@
 
 ## Ranh giới
 
-A sở hữu luồng chỉ số và hóa đơn. Thanh toán hóa đơn được theo dõi riêng tại module 2. B không sửa service, controller hoặc view thuộc luồng này. Schema đã có; thay đổi database cần migration do A tạo và kiểm thử trên PostgreSQL test.
+A sở hữu luồng chỉ số và hóa đơn. Thanh toán hóa đơn được theo dõi riêng tại module 2. B không sửa service, controller hoặc view thuộc luồng này. Giai đoạn này dùng schema hiện có, không tạo migration hay thêm cột/bảng cho chỉ số và email. Khi thật sự cần mở rộng schema ở giai đoạn sau, A lập thiết kế riêng và kiểm thử migration trên PostgreSQL test.
 
 ## Hồ sơ triển khai
 
-- `spec/`: viết đặc tả khi bắt đầu thực hiện.
-- `plan/`: viết kế hoạch triển khai sau khi đặc tả được chốt.
+- `spec.md`: đặc tả nghiệp vụ và thiết kế đã chốt.
+- `plan.md`: kế hoạch triển khai theo từng phần.
 - `review/`: lưu kết quả review và kiểm chứng khi có mã triển khai.
-
-Hiện các thư mục trên chỉ có `.gitkeep`; chưa có tài liệu spec, plan hoặc review.

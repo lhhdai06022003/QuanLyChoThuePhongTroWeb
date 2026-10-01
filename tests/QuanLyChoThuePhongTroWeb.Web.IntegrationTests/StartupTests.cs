@@ -65,11 +65,15 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             var storageService = sp.GetRequiredService<IImageStorageService>();
             var invoiceStore = sp.GetRequiredService<IInvoiceReminderStateStore>();
             var contractStore = sp.GetRequiredService<IContractExpiryAlertStateStore>();
+            var meterStorageService = sp.GetRequiredService<IMeterImageStorageService>();
+            var meterOcrService = sp.GetRequiredService<IMeterOcrService>();
 
             Assert.IsType<CustomWebApplicationFactory.FakeEmailService>(emailService);
             Assert.IsType<CustomWebApplicationFactory.FakeImageStorageService>(storageService);
             Assert.IsType<CustomWebApplicationFactory.InMemoryInvoiceReminderStateStore>(invoiceStore);
             Assert.IsType<CustomWebApplicationFactory.InMemoryContractExpiryAlertStateStore>(contractStore);
+            Assert.IsType<CustomWebApplicationFactory.FakeMeterImageStorageService>(meterStorageService);
+            Assert.IsType<CustomWebApplicationFactory.FakeMeterOcrService>(meterOcrService);
         }
 
         [Fact]

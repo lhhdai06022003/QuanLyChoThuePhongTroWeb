@@ -1,0 +1,445 @@
+@using QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
+@{
+    ViewBag.Title = "Chỉ số điện nước";
+    var danhSachKy = ViewBag.DanhSachKy as IReadOnlyList<MeterPeriod> ?? Array.Empty<MeterPeriod>();
+    var kyMacDinh = ViewBag.KyMacDinh as string ?? "";
+}
+
+<link rel="stylesheet" href="~/css/diennuoc.css" asp-append-version="true" />
+
+<div class="page-body kt-page">
+    <div class="container-xl">
+        <div class="page-header d-print-none mb-3">
+            <div class="row g-3 align-items-end">
+                <div class="col-12 col-md">
+                    <div class="page-pretitle">Gửi ảnh đồng hồ hàng tháng</div>
+                    <h2 class="page-title">Chỉ số điện nước</h2>
+                </div>
+                <div class="col-6 col-md-auto">
+                    <label class="form-label" for="selectKy">Kỳ ghi nhận</label>
+                    <select class="form-select" id="selectKy">
+                        @foreach (var k in danhSachKy)
+                        {
+                            var val = $"{k.Thang:D2}/{k.Nam}";
+                            if (val == kyMacDinh)
+                            {
+                                <option value="@val" data-thang="@k.Thang" data-nam="@k.Nam" selected>Kỳ @val</option>
+                            }
+                            else
+                            {
+                                <option value="@val" data-thang="@k.Thang" data-nam="@k.Nam">Kỳ @val</option>
+                            }
+                        }
+                    </select>
+                </div>
+                <div class="col-6 col-md-auto" id="wrapSelectPhong" style="display: none;">
+                    <label class="form-label" for="selectPhong">Phòng thuê</label>
+                    <select class="form-select" id="selectPhong">
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div id="tenantEmptyState" class="card" style="display: none;">
+            <div class="empty">
+                <div class="empty-icon"><i class="ti ti-door-off"></i></div>
+                <p class="empty-title">Bạn chưa có phòng trong kỳ này</p>
+                <p class="empty-subtitle text-secondary">Chọn kỳ khác ở góc phải nếu bạn vừa chuyển phòng hoặc vừa ký hợp đồng.</p>
+            </div>
+        </div>
+
+        <div id="tenantMeterContent" style="display: none;">
+            <p class="text-secondary kt-intro">Chụp rõ mặt số đồng hồ rồi tải lên. Nhân viên sẽ đối chiếu và xác nhận chỉ số cuối cùng cho hóa đơn của bạn.</p>
+
+            <div class="card">
+                <div class="row g-0">
+                    <div class="col-12 col-md-6 kt-meter kt-meter-dien">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center gap-3 mb-3">
+                                <span class="avatar kt-avatar-dien"><i class="ti ti-bolt"></i></span>
+                                <div class="flex-fill">
+                                    <h3 class="card-title mb-0">Đồng hồ điện</h3>
+                                    <div class="text-secondary small" id="badgeCountDien">0 ảnh</div>
+                                </div>
+                                <span id="trangThaiDien"></span>
+                            </div>
+
+                            <div class="kt-img-list" id="listAnhDien"></div>
+
+                            <div class="mt-3">
+                                <input type="file" id="fileInputDien" class="d-none" accept="image/jpeg,image/png,image/webp" capture="environment" />
+                                <button type="button" class="btn btn-primary w-100 btn-tai-anh" id="btnTaiDien" data-loai="0">
+                                    <i class="ti ti-camera me-1"></i> Chụp hoặc chọn ảnh điện
+                                </button>
+                                <div class="text-secondary small mt-2 ly-do-khong-the-tai" id="lyDoTaiDien" style="display: none;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 col-md-6 kt-meter kt-meter-nuoc">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center gap-3 mb-3">
+                                <span class="avatar kt-avatar-nuoc"><i class="ti ti-droplet"></i></span>
+                                <div class="flex-fill">
+                                    <h3 class="card-title mb-0">Đồng hồ nước</h3>
+                                    <div class="text-secondary small" id="badgeCountNuoc">0 ảnh</div>
+                                </div>
+                                <span id="trangThaiNuoc"></span>
+                            </div>
+
+                            <div class="kt-img-list" id="listAnhNuoc"></div>
+
+                            <div class="mt-3">
+                                <input type="file" id="fileInputNuoc" class="d-none" accept="image/jpeg,image/png,image/webp" capture="environment" />
+                                <button type="button" class="btn btn-primary w-100 btn-tai-anh" id="btnTaiNuoc" data-loai="1">
+                                    <i class="ti ti-camera me-1"></i> Chụp hoặc chọn ảnh nước
+                                </button>
+                                <div class="text-secondary small mt-2 ly-do-khong-the-tai" id="lyDoTaiNuoc" style="display: none;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalTenantImageViewer" tabindex="-1" data-bs-focus="false" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h5 class="modal-title" id="tenantModalTitle">Ảnh đồng hồ</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body p-3">
+                <div class="meter-viewer-container">
+                    <div class="meter-viewer-toolbar">
+                        <button type="button" class="btn btn-sm btn-dark" id="btnTenantZoomIn" title="Phóng to" aria-label="Phóng to">
+                            <i class="ti ti-zoom-in"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-dark" id="btnTenantZoomOut" title="Thu nhỏ" aria-label="Thu nhỏ">
+                            <i class="ti ti-zoom-out"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-dark" id="btnTenantRotate" title="Xoay 90°" aria-label="Xoay 90 độ">
+                            <i class="ti ti-rotate-clockwise"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-secondary" id="btnTenantReset" title="Đặt lại" aria-label="Đặt lại">
+                            <i class="ti ti-arrows-maximize"></i>
+                        </button>
+                    </div>
+                    <div class="meter-viewer-stage" id="tenantViewerStage">
+                        <img src="" alt="Ảnh đồng hồ" class="meter-viewer-img" id="tenantViewerImg" style="display: none;" />
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @Html.AntiForgeryToken()
+    <script src="~/js/anh-chi-so-viewer.js" asp-append-version="true"></script>
+    <script>
+        (function () {
+            let currentRooms = [];
+            let currentPeriodData = null;
+            let currentPhongTroId = 0;
+            let currentThang = 0;
+            let currentNam = 0;
+            let tenantViewer = null;
+
+            // Mã trạng thái ảnh -> màu chấm trạng thái của Tabler
+            const STATUS_COLORS = {
+                0: 'secondary', 1: 'blue', 2: 'blue', 3: 'red',
+                4: 'orange', 5: 'orange', 6: 'green', 7: 'secondary'
+            };
+
+            function getCsrfToken() {
+                return $('input[name="__RequestVerificationToken"]').first().val() || '';
+            }
+
+            function escapeHtml(str) {
+                if (!str) return '';
+                return String(str)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#39;');
+            }
+
+            function initTenantViewer() {
+                if (!tenantViewer) {
+                    tenantViewer = new MeterImageViewer({
+                        containerId: 'tenantViewerStage',
+                        imageId: 'tenantViewerImg',
+                        zoomInBtnId: 'btnTenantZoomIn',
+                        zoomOutBtnId: 'btnTenantZoomOut',
+                        rotateBtnId: 'btnTenantRotate',
+                        resetBtnId: 'btnTenantReset'
+                    });
+                }
+            }
+
+            $(document).ready(function () {
+                initTenantViewer();
+                readSelectedPeriod();
+                loadRooms();
+            });
+
+            function readSelectedPeriod() {
+                const $opt = $('#selectKy option:selected');
+                currentThang = parseInt($opt.data('thang'));
+                currentNam = parseInt($opt.data('nam'));
+            }
+
+            $('#selectKy').on('change', function () {
+                readSelectedPeriod();
+                loadRooms();
+            });
+
+            $('#selectPhong').on('change', function () {
+                currentPhongTroId = parseInt($(this).val());
+                if (currentPhongTroId > 0) {
+                    loadPeriodData();
+                }
+            });
+
+            function loadRooms() {
+                $.ajax({
+                    url: '/KhachThue/ChiSoDienNuoc/Phong',
+                    type: 'GET',
+                    data: { thang: currentThang, nam: currentNam },
+                    success: function (res) {
+                        if (res && res.success && Array.isArray(res.data)) {
+                            currentRooms = res.data;
+                            if (currentRooms.length === 0) {
+                                $('#wrapSelectPhong').hide();
+                                $('#tenantMeterContent').hide();
+                                $('#tenantEmptyState').show();
+                                currentPhongTroId = 0;
+                            } else {
+                                $('#tenantEmptyState').hide();
+                                renderRoomSelect(currentRooms);
+                            }
+                        }
+                    },
+                    error: function (xhr) {
+                        showError(xhr.responseJSON?.message || 'Có lỗi xảy ra khi lấy danh sách phòng.');
+                        $('#tenantMeterContent').hide();
+                        $('#tenantEmptyState').show();
+                    }
+                });
+            }
+
+            function renderRoomSelect(rooms) {
+                const $select = $('#selectPhong');
+                $select.empty();
+
+                rooms.forEach(r => {
+                    $select.append(`<option value="${r.phongTroId}">Phòng ${escapeHtml(r.tenPhong)}</option>`);
+                });
+
+                if (rooms.length >= 2) {
+                    $('#wrapSelectPhong').show();
+                } else {
+                    $('#wrapSelectPhong').hide();
+                }
+
+                currentPhongTroId = rooms[0].phongTroId;
+                $select.val(currentPhongTroId);
+                loadPeriodData();
+            }
+
+            function loadPeriodData() {
+                if (!currentPhongTroId) return;
+
+                $.ajax({
+                    url: '/KhachThue/ChiSoDienNuoc/Ky',
+                    type: 'GET',
+                    data: { phongTroId: currentPhongTroId, thang: currentThang, nam: currentNam },
+                    success: function (res) {
+                        if (res && res.success && res.data) {
+                            currentPeriodData = res.data;
+                            renderPeriod(res.data);
+                            $('#tenantMeterContent').show();
+                        }
+                    },
+                    error: function (xhr) {
+                        showError(xhr.responseJSON?.message || 'Không thể tải dữ liệu chỉ số của phòng.');
+                        $('#tenantMeterContent').hide();
+                    }
+                });
+            }
+
+            // Tóm tắt một dòng cho từng đồng hồ: chưa gửi / chờ xác nhận / đã xác nhận
+            function renderMeterState(selector, images) {
+                let html;
+                if (!images || images.length === 0) {
+                    html = '<span class="status status-secondary"><span class="status-dot"></span>Chưa gửi ảnh</span>';
+                } else if (images.some(x => x.laChinhThuc)) {
+                    html = '<span class="status status-green"><span class="status-dot"></span>Đã xác nhận</span>';
+                } else {
+                    html = '<span class="status status-orange"><span class="status-dot status-dot-animated"></span>Chờ xác nhận</span>';
+                }
+                $(selector).html(html);
+            }
+
+            function renderPeriod(data) {
+                const anhDien = data.anhDien || [];
+                const anhNuoc = data.anhNuoc || [];
+
+                $('#badgeCountDien').text(`${anhDien.length} ảnh`);
+                $('#badgeCountNuoc').text(`${anhNuoc.length} ảnh`);
+
+                renderMeterState('#trangThaiDien', anhDien);
+                renderMeterState('#trangThaiNuoc', anhNuoc);
+
+                renderImageList('#listAnhDien', anhDien, 'điện');
+                renderImageList('#listAnhNuoc', anhNuoc, 'nước');
+
+                if (data.coTheTaiAnh) {
+                    $('#btnTaiDien').prop('disabled', false);
+                    $('#btnTaiNuoc').prop('disabled', false);
+                    $('#lyDoTaiDien').hide();
+                    $('#lyDoTaiNuoc').hide();
+                } else {
+                    $('#btnTaiDien').prop('disabled', true);
+                    $('#btnTaiNuoc').prop('disabled', true);
+                    const msg = data.lyDoKhongTheTai || 'Không thể tải ảnh cho kỳ này.';
+                    $('#lyDoTaiDien').text(msg).show();
+                    $('#lyDoTaiNuoc').text(msg).show();
+                }
+            }
+
+            function renderImageList(selector, images, labelLoai) {
+                if (!images || images.length === 0) {
+                    $(selector).html(`
+                        <div class="kt-empty">
+                            <i class="ti ti-photo-plus"></i>
+                            <div>Chưa có ảnh đồng hồ ${labelLoai} cho kỳ này.</div>
+                        </div>
+                    `);
+                    return;
+                }
+
+                let html = '<div class="list-group list-group-flush kt-list">';
+                images.forEach(img => {
+                    const color = STATUS_COLORS[img.trangThai] || 'blue';
+                    const official = img.laChinhThuc
+                        ? '<span class="badge bg-green-lt ms-1">Số chính thức</span>'
+                        : '';
+
+                    html += `
+                        <button type="button" class="list-group-item list-group-item-action kt-img-card" data-url="${escapeHtml(img.url)}" data-title="Ảnh đồng hồ ${labelLoai}, ${escapeHtml(img.ngayGui)}">
+                            <span class="d-flex align-items-center gap-3">
+                                <img src="${escapeHtml(img.url)}" alt="Ảnh đồng hồ ${labelLoai}" class="kt-thumb" loading="lazy" />
+                                <span class="flex-fill text-start min-w-0">
+                                    <span class="d-block">
+                                        <span class="status status-${color}"><span class="status-dot"></span>${escapeHtml(img.nhanTrangThai)}</span>${official}
+                                    </span>
+                                    <span class="d-block text-secondary small mt-1">
+                                        <i class="ti ti-clock me-1"></i>${escapeHtml(img.ngayGui)}
+                                    </span>
+                                </span>
+                                <i class="ti ti-chevron-right text-secondary"></i>
+                            </span>
+                        </button>
+                    `;
+                });
+                html += '</div>';
+
+                $(selector).html(html);
+            }
+
+            $('#tenantMeterContent').on('click', '.kt-img-card', function () {
+                const url = $(this).data('url');
+                if (url && tenantViewer) {
+                    $('#tenantModalTitle').text($(this).data('title') || 'Ảnh đồng hồ');
+                    tenantViewer.loadImage(url);
+                    $('#tenantViewerImg').show();
+                    $('#modalTenantImageViewer').modal('show');
+                }
+            });
+
+            $('#btnTaiDien').on('click', function () {
+                $('#fileInputDien').click();
+            });
+
+            $('#btnTaiNuoc').on('click', function () {
+                $('#fileInputNuoc').click();
+            });
+
+            $('#fileInputDien').on('change', function () {
+                handleUpload(this, 0, $('#btnTaiDien'));
+            });
+
+            $('#fileInputNuoc').on('change', function () {
+                handleUpload(this, 1, $('#btnTaiNuoc'));
+            });
+
+            function handleUpload(input, loaiDongHo, $btn) {
+                if (!input.files || input.files.length === 0) return;
+
+                const file = input.files[0];
+                const formData = new FormData();
+                formData.append('phongTroId', currentPhongTroId);
+                formData.append('thang', currentThang);
+                formData.append('nam', currentNam);
+                formData.append('loaiDongHo', loaiDongHo);
+                formData.append('file', file);
+
+                const origHtml = $btn.html();
+                $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1" role="status"></span> Đang tải ảnh và nhận diện');
+
+                $.ajax({
+                    url: '/KhachThue/ChiSoDienNuoc/TaiAnh',
+                    type: 'POST',
+                    headers: { 'RequestVerificationToken': getCsrfToken() },
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function (res) {
+                        showSuccess(res.message || 'Tải ảnh và nhận diện thành công.');
+                        input.value = '';
+                        loadPeriodData();
+                    },
+                    error: function (xhr) {
+                        showError(xhr.responseJSON?.message || 'Có lỗi xảy ra khi tải ảnh.');
+                        input.value = '';
+                    },
+                    complete: function () {
+                        $btn.prop('disabled', false).html(origHtml);
+                    }
+                });
+            }
+
+            function showSuccess(msg) {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Thành công',
+                        text: msg,
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                }
+            }
+
+            function showError(msg) {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Lỗi',
+                        text: msg
+                    });
+                } else {
+                    alert(msg);
+                }
+            }
+        })();
+    </script>
+}
