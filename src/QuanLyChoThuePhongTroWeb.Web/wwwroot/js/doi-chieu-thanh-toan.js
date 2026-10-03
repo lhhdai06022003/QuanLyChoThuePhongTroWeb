@@ -46,11 +46,15 @@
 
     function initTable() {
         table = $('#dcTable').DataTable({
+            dom: "<'card-body py-2 border-bottom'<'row g-2 align-items-center'<'col-sm-6'l><'col-sm-6 text-sm-end'f>>>" +
+                "<'table-responsive dc-scroll'tr>" +
+                "<'card-footer py-2'<'row g-2 align-items-center'<'col-sm-6'i><'col-sm-6 d-flex justify-content-sm-end justify-content-center'p>>>",
             language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/vi.json' },
             serverSide: true,
             processing: true,
             ordering: false,
             pageLength: 25,
+            autoWidth: false,
             ajax: {
                 url: '/DoiChieuThanhToan/DanhSach',
                 type: 'POST',
@@ -62,15 +66,27 @@
                 }
             },
             columns: [
-                { data: 'maYeuCau', className: 'fw-medium text-nowrap', render: esc },
-                { data: 'maHoaDon', className: 'text-nowrap', render: esc },
-                { data: 'tenPhong', render: esc },
-                { data: 'tenChiNhanh', className: 'text-secondary', render: esc },
-                { data: 'tenKhachThue', render: esc },
+                {
+                    // Mã lượt và mã hóa đơn cùng một ô, hai dòng, để hai mã dài không đè lên nhau.
+                    data: null, className: 'text-nowrap', render: function (row) {
+                        return '<div class="fw-medium">' + esc(row.maYeuCau) + '</div>' +
+                            '<div class="text-secondary small">' + esc(row.maHoaDon) + '</div>';
+                    }
+                },
+                {
+                    data: null, className: 'text-nowrap', render: function (row) {
+                        return esc(row.tenPhong) + '<div class="text-secondary small">' + esc(row.tenChiNhanh) + '</div>';
+                    }
+                },
+                { data: 'tenKhachThue', className: 'text-nowrap', render: esc },
                 { data: 'soTienLuot', className: 'text-end hd-num', render: vnd },
                 { data: 'maGiaoDichKhaiBao', render: function (d) { return d ? '<code>' + esc(d) + '</code>' : '<span class="text-secondary">—</span>'; } },
-                { data: 'ngayChuyenKhaiBaoUtc', className: 'hd-num', render: dt },
-                { data: 'ngayNopUtc', className: 'hd-num', render: dt },
+                {
+                    data: null, className: 'hd-num', render: function (row) {
+                        return '<div>Chuyển: ' + esc(dt(row.ngayChuyenKhaiBaoUtc)) + '</div>' +
+                            '<div class="text-secondary small">Nộp: ' + esc(dt(row.ngayNopUtc)) + '</div>';
+                    }
+                },
                 {
                     data: null, render: function (row) {
                         return proofBadge(row.trangThai) + (row.choAdmin ? ' <span class="badge bg-orange text-white">Chờ Admin</span>' : '');
@@ -150,6 +166,17 @@
         }
     }
 
+    // Ảnh được ẩn sẵn trong view; chỉ hiện khi tải xong để khung không trống hoặc hiện biểu tượng ảnh lỗi.
+    function showProofImage(minhChungId) {
+        var $img = $('#dcViewerImg');
+        var $msg = $('#dcViewerMsg');
+        $msg.text('Đang tải ảnh...');
+        $img.hide().off('load error')
+            .on('load', function () { $msg.text(''); $img.show(); })
+            .on('error', function () { $msg.text('Không tải được ảnh minh chứng.'); });
+        viewer.loadImage('/DoiChieuThanhToan/AnhMinhChung/' + minhChungId);
+    }
+
     function openProof(minhChungId) {
         initViewer();
         $('#dcInfo').html('<div class="text-secondary"><span class="spinner-border spinner-border-sm me-2"></span>Đang tải...</div>');
@@ -158,7 +185,7 @@
 
         $.get('/DoiChieuThanhToan/ChiTiet/' + minhChungId).done(function (res) {
             renderDetail(res.data);
-            viewer.loadImage('/DoiChieuThanhToan/AnhMinhChung/' + minhChungId);
+            showProofImage(minhChungId);
         }).fail(function (xhr) {
             $('#dcInfo').html('<div class="alert alert-danger">' + esc(errorMessage(xhr, 'Không tải được minh chứng.')) + '</div>');
         });
@@ -269,10 +296,32 @@
                 })
             }).done(function (res) {
                 bootstrap.Modal.getOrCreateInstance(document.getElementById('dcModal')).hide();
-                Swal.fire('Đã xử lý', res.message, 'success');
                 table.ajax.reload(null, false);
+                var conLai = res.data && res.data.conLai;
+                // soTienGhiNhan = 0 nghĩa là lượt được chuyển cho Admin (tiền thừa), chưa ghi gì nên không gợi ý thu thêm.
+                if (conLai > 0 && res.data.soTienGhiNhan > 0) {
+                    // Khách chuyển thiếu: gợi ý thu phần còn lại ngay (tiền mặt hoặc chuyển khoản ngoài hệ thống).
+                    Swal.fire({
+                        title: 'Đã ghi nhận',
+                        html: esc(res.message) + '<br>Hóa đơn còn nợ <strong>' + vnd(conLai) + '</strong>.',
+                        icon: 'success',
+                        showCancelButton: true,
+                        confirmButtonText: 'Thu phần còn lại',
+                        cancelButtonText: 'Để sau'
+                    }).then(function (r) {
+                        if (r.isConfirmed && window.HdThanhToan) {
+                            window.HdThanhToan.openThuTien({
+                                hoaDonId: d.hoaDonId,
+                                maHoaDon: d.maHoaDon,
+                                onDone: function () { table.ajax.reload(null, false); }
+                            });
+                        }
+                    });
+                } else {
+                    Swal.fire('Đã xử lý', res.message, 'success');
+                }
             }).fail(function (xhr) {
-                Swal.fire('Không xác nhận được', errorMessage(xhr, 'Có lỗi xảy ra.'), 'error');
+                Swal.fire('Không xác nhận được',errorMessage(xhr, 'Có lỗi xảy ra.'), 'error');
             }).always(function () {
                 $btn.prop('disabled', false);
             });

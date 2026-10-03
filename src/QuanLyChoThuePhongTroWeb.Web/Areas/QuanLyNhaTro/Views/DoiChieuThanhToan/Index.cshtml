@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="~/css/hoadon.css" asp-append-version="true" />
 @Html.AntiForgeryToken()
 
-<div class="page-body">
+<div class="page-body hd-page">
     <div class="container-xl">
         <div class="page-header d-print-none mb-3">
             <div class="row align-items-center">
@@ -66,26 +66,21 @@
                     </div>
                 </div>
             </div>
-            <div class="table-responsive">
-                <table id="dcTable" class="table card-table table-vcenter table-hover w-100">
-                    <thead>
-                        <tr>
-                            <th>Mã lượt</th>
-                            <th>Hóa đơn</th>
-                            <th>Phòng</th>
-                            <th>Chi nhánh</th>
-                            <th>Khách</th>
-                            <th class="text-end">Số tiền lượt</th>
-                            <th>Mã GD khai báo</th>
-                            <th>Khách khai chuyển</th>
-                            <th>Ngày nộp</th>
-                            <th>Trạng thái</th>
-                            <th class="w-1"></th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-            </div>
+            <table id="dcTable" class="table card-table table-vcenter table-hover w-100 hd-table">
+                <thead>
+                    <tr>
+                        <th>Mã lượt · Hóa đơn</th>
+                        <th>Phòng · Chi nhánh</th>
+                        <th>Khách</th>
+                        <th class="text-end">Số tiền lượt</th>
+                        <th>Mã GD khai báo</th>
+                        <th>Thời gian</th>
+                        <th>Trạng thái</th>
+                        <th class="w-1"></th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
         </div>
     </div>
 </div>
@@ -110,6 +105,7 @@
                             </div>
                             <div class="meter-viewer-stage" id="dcViewerStage">
                                 <img src="" alt="Ảnh minh chứng" class="meter-viewer-img" id="dcViewerImg" style="display: none;" />
+                                <div class="text-white-50 small" id="dcViewerMsg"></div>
                             </div>
                         </div>
                         <div id="dcOtherProofs" class="mt-2 small"></div>
@@ -125,8 +121,27 @@
     </div>
 </div>
 
+@section Styles {
+    <style>
+        /* site.css ép .table-responsive về overflow: visible, nên bảng rộng phải tự cuộn ngang trong thẻ. */
+        #dcModal .meter-viewer-stage { height: min(62vh, 560px); }
+        .dc-scroll { overflow-x: auto !important; }
+        /* hoadon.css ép cột đầu của .hd-table rộng 44px (cột checkbox); bảng này cột đầu chứa mã nên phải bỏ ràng buộc đó. */
+        .hd-page #dcTable th:first-child,
+        .hd-page #dcTable td:first-child {
+            width: auto;
+            min-width: 13rem;
+            max-width: none;
+            text-align: left;
+        }
+        .dc-scroll .table { margin-bottom: 0; }
+        #dcInfo .datagrid { --tblr-datagrid-padding: 0.75rem; --tblr-datagrid-item-width: 9.5rem; }
+    </style>
+}
+
 @section Scripts {
     <script src="~/js/anh-chi-so-viewer.js" asp-append-version="true"></script>
+    <script src="~/js/hoadon-thanhtoan-quanly.js" asp-append-version="true"></script>
     <script>
         window.dcConfig = { laAdmin: @(laAdmin ? "true" : "false"), maTraCuu: '@Html.Raw(System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(maTraCuu))' };
     </script>

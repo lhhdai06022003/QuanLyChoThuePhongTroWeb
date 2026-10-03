@@ -251,6 +251,11 @@ html[data-bs-theme="dark"] .hd-page {
     padding-right: 1rem;
 }
 
+/* Nhãn trạng thái (chấm + chữ) không xuống dòng: tránh chấm tròn lệch khỏi chữ */
+.status {
+    white-space: nowrap;
+}
+
 /* Số tiền và kỳ căn thẳng cột */
 .hd-page .hd-num {
     font-variant-numeric: tabular-nums;

@@ -120,16 +120,14 @@
             </div>
 
             <!-- Bảng dữ liệu -->
-            <div class="table-responsive">
+            <div class="table-responsive" style="overflow-x: auto !important;">
                 <table id="lichSuTable" class="table card-table table-vcenter table-striped table-hover w-100">
                     <thead>
                         <tr>
                             <th class="text-center" width="4%">STT</th>
-                            <th>Mã GD</th>
-                            <th>Mã HĐ</th>
-                            <th>Phòng</th>
+                            <th>Mã GD · Mã HĐ</th>
+                            <th>Phòng · Chi nhánh</th>
                             <th>Khách thuê</th>
-                            <th>Chi nhánh</th>
                             <th class="text-right">Số tiền</th>
                             <th class="text-center">Phương thức</th>
                             <th>Ngày thanh toán</th>
@@ -296,11 +294,16 @@
                         "orderable": false, 
                         "render": (d, t, r, m) => m.row + m.settings._iDisplayStart + 1 
                     },
-                    { "data": "maGiaoDich", "className": "align-middle font-weight-bold" },
-                    { "data": "maHoaDon", "className": "align-middle font-weight-bold text-info" },
-                    { "data": "tenPhong", "className": "align-middle font-weight-bold text-primary" },
-                    { "data": "tenNguoiThue", "className": "align-middle" },
-                    { "data": "tenChiNhanh", "className": "align-middle text-muted" },
+                    {
+                        // Hai mã dài xếp hai dòng trong một ô, không cho xuống dòng giữa mã.
+                        "data": null, "className": "align-middle text-nowrap",
+                        "render": (d, t, r) => `<div class="fw-bold">${escapeHtml(r.maGiaoDich)}</div><div class="small text-info">${escapeHtml(r.maHoaDon)}</div>`
+                    },
+                    {
+                        "data": null, "className": "align-middle text-nowrap",
+                        "render": (d, t, r) => `<div class="fw-bold text-primary">${escapeHtml(r.tenPhong)}</div><div class="small text-muted">${escapeHtml(r.tenChiNhanh)}</div>`
+                    },
+                    { "data": "tenNguoiThue", "className": "align-middle text-nowrap" },
                     {
                         "data": "soTienThanhToan",
                         "className": "text-right align-middle font-weight-bold text-success",
