@@ -69,6 +69,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.DTOs
         public int Thang { get; set; }
         public QuanLyChoThuePhongTroWeb.Domain.Enums.TrangThaiHoaDon TrangThai { get; set; }
         public decimal TongTien { get; set; }
+        // Tổng các khoản ghi nhận chưa xóa mềm của nhóm hóa đơn.
+        public decimal DaThu { get; set; }
     }
 
     public class DashboardContractUtilityCheckDto

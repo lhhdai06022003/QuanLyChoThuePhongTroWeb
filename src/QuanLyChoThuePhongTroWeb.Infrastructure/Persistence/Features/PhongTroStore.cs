@@ -121,13 +121,20 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 .ToListAsync(cancellationToken);
 
             var hopDongIds = hopDongs.Select(h => h.HopDongId).ToList();
-            var unpaidInvoicesSums = await _context.HoaDons
+            // Số còn nợ (tổng trừ các khoản đã ghi nhận) của hóa đơn chưa trả đủ, kể cả trả một phần.
+            var unpaidRows = await _context.HoaDons
                 .Where(hd => hopDongIds.Contains(hd.HopDongId) &&
-                             hd.TrangThaiHoaDon == TrangThaiHoaDon.ChuaThanhToan &&
+                             hd.TrangThaiHoaDon != TrangThaiHoaDon.DaThanhToan &&
                              !hd.IsDeleted)
-                .GroupBy(hd => hd.HopDongId)
-                .Select(g => new { HopDongId = g.Key, Sum = g.Sum(hd => hd.TongTien) })
-                .ToDictionaryAsync(x => x.HopDongId, x => x.Sum, cancellationToken);
+                .Select(hd => new
+                {
+                    hd.HopDongId,
+                    ConLai = hd.TongTien - hd.LichSuThanhToans.Where(l => !l.IsDeleted).Sum(l => l.SoTienThanhToan)
+                })
+                .ToListAsync(cancellationToken);
+            var unpaidInvoicesSums = unpaidRows
+                .GroupBy(x => x.HopDongId)
+                .ToDictionary(g => g.Key, g => g.Sum(x => x.ConLai));
 
             var result = new List<PhongCardRes>();
 
@@ -242,7 +249,8 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                     .ThenInclude(h => h.PhongTro)
                 .Include(i => i.HopDong)
                     .ThenInclude(h => h.NguoiThue)
-                .Where(i => i.HopDong.PhongTroId == phongTroId && i.TrangThaiHoaDon == TrangThaiHoaDon.ChuaThanhToan && !i.IsDeleted)
+                .Include(i => i.LichSuThanhToans)
+                .Where(i => i.HopDong.PhongTroId == phongTroId && i.TrangThaiHoaDon != TrangThaiHoaDon.DaThanhToan && !i.IsDeleted)
                 .OrderByDescending(i => i.NgayTao)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -271,6 +279,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 thang = invoice.Thang,
                 nam = invoice.Nam,
                 tongTien = invoice.TongTien,
+                conLai = invoice.TongTien - invoice.LichSuThanhToans.Where(l => !l.IsDeleted).Sum(l => l.SoTienThanhToan),
                 tenPhong = invoice.HopDong.PhongTro.SoPhong,
                 tenNguoiThue = invoice.HopDong.NguoiThue.HoVaTen,
                 chiTiets = mappedDetails

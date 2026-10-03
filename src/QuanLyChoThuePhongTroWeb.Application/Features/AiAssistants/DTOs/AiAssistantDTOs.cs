@@ -30,6 +30,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.AiAssistants.DTOs
         public string SoPhong { get; set; } = string.Empty;
         public string KhachThueTen { get; set; } = string.Empty;
         public decimal TongTien { get; set; }
+        public decimal SoTienConLai { get; set; }
         public int Thang { get; set; }
         public int Nam { get; set; }
     }

@@ -753,7 +753,8 @@
                 $('#qpInvoicePeriod').text(`Tháng ${res.thang}/${res.nam}`);
                 $('#qpInvoiceCode').text(res.maHoaDon);
                 $('#qpTenantName').text(res.tenNguoiThue);
-                $('#qpTotalAmount').text(formatVND(res.tongTien));
+                $('#qpTotalAmount').html(formatVND(res.tongTien) +
+                    (res.conLai < res.tongTien ? `<div class="small text-secondary fw-normal">Còn lại ${formatVND(res.conLai)}</div>` : ''));
 
                 $('#qpQRImage').attr('src', `/HoaDon/GetVietQR?hoaDonId=${res.hoaDonId}`);
                 $('#qpCKContent').text(`THANH TOAN ${res.maHoaDon}`);

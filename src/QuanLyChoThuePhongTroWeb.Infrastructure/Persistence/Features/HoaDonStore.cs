@@ -210,7 +210,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 .Include(h => h.HopDong).ThenInclude(hd => hd.PhongTro)
                 .Include(h => h.HopDong).ThenInclude(hd => hd.NguoiThue)
                 .Where(h => !h.IsDeleted &&
-                            h.TrangThaiHoaDon == TrangThaiHoaDon.ChuaThanhToan &&
+                            h.TrangThaiHoaDon != TrangThaiHoaDon.DaThanhToan &&
                             h.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaGui);
 
             if (chiNhanhId > 0)
@@ -234,7 +234,9 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                     Thang = h.Thang,
                     Nam = h.Nam,
                     TongTien = h.TongTien,
-                    TrangThaiHoaDon = "Chưa thanh toán",
+                    DaThu = h.LichSuThanhToans.Where(l => !l.IsDeleted).Sum(l => l.SoTienThanhToan),
+                    ConLai = h.TongTien - h.LichSuThanhToans.Where(l => !l.IsDeleted).Sum(l => l.SoTienThanhToan),
+                    TrangThaiHoaDon = h.TrangThaiHoaDon == TrangThaiHoaDon.ThanhToanMotPhan ? "Thanh toán một phần" : "Chưa thanh toán",
                     TrangThaiHoaDonValue = (int)h.TrangThaiHoaDon,
                     TrangThaiPhatHanhValue = (int)h.TrangThaiPhatHanh,
                     NgayTao = h.NgayTao.ToString("dd/MM/yyyy HH:mm"),

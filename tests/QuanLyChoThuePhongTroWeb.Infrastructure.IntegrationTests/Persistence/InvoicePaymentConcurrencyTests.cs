@@ -338,9 +338,10 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
         public async Task UniqueViolation_IsTranslated_AndTransactionNotReused()
         {
             var seeded = await SeedSentInvoiceAsync("unique");
+            var dupCode = $"DUP-{Guid.NewGuid().ToString("N")[..10]}";
             await using (var ctx = _fixture.CreateDbContext())
             {
-                ctx.LichSuThanhToans.Add(new LichSuThanhToan { HoaDonId = seeded.InvoiceId, MaGiaoDich = "DUP-RAW", SoTienThanhToan = 1m, PhuongThucThanhToan = PhuongThucThanhToan.TienMat });
+                ctx.LichSuThanhToans.Add(new LichSuThanhToan { HoaDonId = seeded.InvoiceId, MaGiaoDich = dupCode, SoTienThanhToan = 1m, PhuongThucThanhToan = PhuongThucThanhToan.TienMat });
                 await ctx.SaveChangesAsync();
             }
 
@@ -350,14 +351,14 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             // Bỏ qua kiểm tra trùng ở Application để chạm thẳng unique index.
             var result = await transaction.RunAsync(seeded.InvoiceId, seeded.ActorId, async scope =>
             {
-                scope.Store.AddLedgerEntry(new LichSuThanhToan { HoaDonId = seeded.InvoiceId, MaGiaoDich = "DUP-RAW", SoTienThanhToan = 1m, PhuongThucThanhToan = PhuongThucThanhToan.TienMat });
+                scope.Store.AddLedgerEntry(new LichSuThanhToan { HoaDonId = seeded.InvoiceId, MaGiaoDich = dupCode, SoTienThanhToan = 1m, PhuongThucThanhToan = PhuongThucThanhToan.TienMat });
                 await scope.ApplyLedgerChangeAsync("trùng");
                 return ServiceResult<bool>.Ok(true);
             });
 
             Assert.False(result.Success);
             Assert.Equal("Mã giao dịch đã được ghi nhận.", result.Message);
-            Assert.Equal(1, await context.LichSuThanhToans.AsNoTracking().CountAsync(l => l.MaGiaoDich == "DUP-RAW"));
+            Assert.Equal(1, await context.LichSuThanhToans.AsNoTracking().CountAsync(l => l.MaGiaoDich == dupCode));
         }
 
         [Fact]

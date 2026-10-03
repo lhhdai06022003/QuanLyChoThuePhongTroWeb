@@ -56,13 +56,14 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.Services
             // --- 4. THỐNG KÊ HÓA ĐƠN & DOANH THU THÁNG ---
             var hoaDonStats = await _store.GetInvoiceMonthlyStatsAsync(branchId, selectedYear);
 
+            // Đã thu tính theo ledger để hóa đơn trả một phần được tính đúng phần đã nhận và phần còn nợ.
             model.DoanhThuThangNay = hoaDonStats
-                .Where(h => h.Thang == selectedMonth && h.TrangThai == TrangThaiHoaDon.DaThanhToan)
-                .Sum(h => h.TongTien);
+                .Where(h => h.Thang == selectedMonth)
+                .Sum(h => h.DaThu);
 
             model.TongTienChoThu = hoaDonStats
-                .Where(h => h.Thang == selectedMonth && h.TrangThai == TrangThaiHoaDon.ChuaThanhToan)
-                .Sum(h => h.TongTien);
+                .Where(h => h.Thang == selectedMonth && h.TrangThai != TrangThaiHoaDon.DaThanhToan)
+                .Sum(h => h.TongTien - h.DaThu);
 
             model.SoPhongChuaThanhToan = await _store.CountUnpaidRoomsAsync(branchId);
 
@@ -72,12 +73,12 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.Services
                 model.ChartLabels.Add($"T{month}");
 
                 var daThu = hoaDonStats
-                    .Where(h => h.Thang == month && h.TrangThai == TrangThaiHoaDon.DaThanhToan)
-                    .Sum(h => h.TongTien);
+                    .Where(h => h.Thang == month)
+                    .Sum(h => h.DaThu);
 
                 var choThu = hoaDonStats
-                    .Where(h => h.Thang == month && h.TrangThai == TrangThaiHoaDon.ChuaThanhToan)
-                    .Sum(h => h.TongTien);
+                    .Where(h => h.Thang == month && h.TrangThai != TrangThaiHoaDon.DaThanhToan)
+                    .Sum(h => h.TongTien - h.DaThu);
 
                 model.ChartData.Add(daThu);
                 model.ChartDataChoThu.Add(choThu);

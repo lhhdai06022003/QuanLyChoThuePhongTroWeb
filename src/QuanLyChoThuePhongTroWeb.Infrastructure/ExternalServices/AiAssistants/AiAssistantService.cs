@@ -71,8 +71,8 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.AiAssistants
                 .AsNoTracking()
                 .Include(h => h.HopDong).ThenInclude(hd => hd.PhongTro).ThenInclude(p => p.ChiNhanh)
                 .Include(h => h.HopDong).ThenInclude(hd => hd.NguoiThue)
-                .Where(h => !h.IsDeleted && 
-                            h.TrangThaiHoaDon == TrangThaiHoaDon.ChuaThanhToan && 
+                .Where(h => !h.IsDeleted &&
+                            h.TrangThaiHoaDon != TrangThaiHoaDon.DaThanhToan &&
                             h.HopDong.PhongTro.TrangThai == TrangThaiPhong.DaThue);
 
             if (thang > 0)
@@ -92,6 +92,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.AiAssistants
                     SoPhong = h.HopDong.PhongTro.SoPhong + " (" + h.HopDong.PhongTro.ChiNhanh.TenChiNhanh + ")",
                     KhachThueTen = h.HopDong.NguoiThue.HoVaTen,
                     TongTien = h.TongTien,
+                    SoTienConLai = h.TongTien - h.LichSuThanhToans.Where(l => !l.IsDeleted).Sum(l => l.SoTienThanhToan),
                     Thang = h.Thang,
                     Nam = h.Nam
                 })
@@ -177,7 +178,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.AiAssistants
                 .AsNoTracking()
                 .Include(h => h.HopDong).ThenInclude(hd => hd.PhongTro)
                 .Include(h => h.LichSuThanhToans)
-                .Where(h => !h.IsDeleted && h.HopDong.PhongTro.SoPhong.ToLower() == soPhong && h.TrangThaiHoaDon == TrangThaiHoaDon.ChuaThanhToan)
+                .Where(h => !h.IsDeleted && h.HopDong.PhongTro.SoPhong.ToLower() == soPhong && h.TrangThaiHoaDon != TrangThaiHoaDon.DaThanhToan)
                 .ToListAsync();
 
             decimal totalDebt = 0m;
@@ -519,9 +520,13 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.AiAssistants
 
         private async Task<object> GetMyHoaDonChuaThanhToanAsync(int nguoiThueId)
         {
+            // Khách chỉ thấy hóa đơn đã gửi; hóa đơn trả một phần vẫn còn nợ.
             var hoaDons = await _db.HoaDons.AsNoTracking()
                 .Include(h => h.HopDong)
-                .Where(h => !h.IsDeleted && h.HopDong.NguoiThueId == nguoiThueId && h.TrangThaiHoaDon == TrangThaiHoaDon.ChuaThanhToan)
+                .Include(h => h.LichSuThanhToans)
+                .Where(h => !h.IsDeleted && h.HopDong.NguoiThueId == nguoiThueId &&
+                            h.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaGui &&
+                            h.TrangThaiHoaDon != TrangThaiHoaDon.DaThanhToan)
                 .ToListAsync();
 
             if (!hoaDons.Any()) return new { message = "Tuyệt vời, bạn không có hóa đơn nào chưa thanh toán." };
@@ -531,7 +536,8 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.AiAssistants
                 MaHoaDon = h.MaHoaDon,
                 Thang = h.Thang,
                 Nam = h.Nam,
-                TongTien = h.TongTien
+                TongTien = h.TongTien,
+                SoTienConLai = h.TongTien - h.LichSuThanhToans.Where(l => !l.IsDeleted).Sum(l => l.SoTienThanhToan)
             });
         }
     }

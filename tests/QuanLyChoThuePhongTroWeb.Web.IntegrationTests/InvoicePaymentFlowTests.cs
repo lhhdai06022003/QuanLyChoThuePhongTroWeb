@@ -173,6 +173,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
         public async Task TenantPaysByQr_StaffScopeEnforced_AdminConfirms_InvoicePaid()
         {
             var seed = await SeedAsync();
+            var bankCode = $"FT-WEB-{Guid.NewGuid().ToString("N")[..8]}";
             var (tenant, tenantToken) = await LoginAsync(NewClient(), seed.Tenant, "/KhachThue/HoaDon");
 
             // Tạo lượt và lấy QR theo lượt
@@ -190,7 +191,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             {
                 { new StringContent(yeuCauId.ToString()), "yeuCauId" },
                 { new StringContent(VnNow(-5)), "ngayChuyen" },
-                { new StringContent("FT-WEB-1"), "maGiaoDich" }
+                { new StringContent(bankCode), "maGiaoDich" }
             };
             var file = new ByteArrayContent(jpeg);
             file.Headers.ContentType = new MediaTypeHeaderValue("image/jpeg");
@@ -227,7 +228,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             // Admin xác nhận đúng số
             var (admin, adminToken) = await LoginAsync(NewClient(), seed.Admin, "/QuanLyNhaTro/DoiChieuThanhToan");
             var confirmed = await PostJsonAsync(admin, adminToken, "/DoiChieuThanhToan/XacNhan",
-                new { minhChungId, soTienThucNhan = 2000000, maGiaoDich = "FT-WEB-1", ngayGiaoDich = VnNow(-4) });
+                new { minhChungId, soTienThucNhan = 2000000, maGiaoDich = bankCode, ngayGiaoDich = VnNow(-4) });
             Assert.Equal(HttpStatusCode.OK, confirmed.StatusCode);
 
             using var scope = _factory.Services.CreateScope();
@@ -236,7 +237,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             Assert.Equal(TrangThaiHoaDon.DaThanhToan, invoice.TrangThaiHoaDon);
             var ledger = await db.LichSuThanhToans.AsNoTracking().SingleAsync(l => l.HoaDonId == seed.HoaDonId);
             Assert.Equal(minhChungId, ledger.MinhChungThanhToanHoaDonId);
-            Assert.Equal("FT-WEB-1", ledger.MaGiaoDich);
+            Assert.Equal(bankCode, ledger.MaGiaoDich);
         }
 
         [Fact]

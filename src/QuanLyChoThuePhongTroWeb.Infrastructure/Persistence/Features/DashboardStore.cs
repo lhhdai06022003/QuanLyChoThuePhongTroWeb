@@ -75,21 +75,34 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 query = query.Where(h => h.HopDong.PhongTro.ChiNhanhId == branchId.Value);
             }
 
-            return await query
+            // Lấy từng hóa đơn rồi gom trong bộ nhớ: số hóa đơn một năm của một chi nhánh nhỏ,
+            // tránh dịch GroupBy trên cột tính từ subquery ledger.
+            var rows = await query
+                .Select(h => new
+                {
+                    h.Thang,
+                    h.TrangThaiHoaDon,
+                    h.TongTien,
+                    DaThu = h.LichSuThanhToans.Where(l => !l.IsDeleted).Sum(l => l.SoTienThanhToan)
+                })
+                .ToListAsync(cancellationToken);
+
+            return rows
                 .GroupBy(h => new { h.Thang, h.TrangThaiHoaDon })
                 .Select(g => new DashboardInvoiceStatDto
                 {
                     Thang = g.Key.Thang,
                     TrangThai = g.Key.TrangThaiHoaDon,
-                    TongTien = g.Sum(h => h.TongTien)
+                    TongTien = g.Sum(h => h.TongTien),
+                    DaThu = g.Sum(h => h.DaThu)
                 })
-                .ToListAsync(cancellationToken);
+                .ToList();
         }
 
         public async Task<int> CountUnpaidRoomsAsync(int? branchId, CancellationToken cancellationToken = default)
         {
             var query = _context.HoaDons
-                .Where(h => !h.IsDeleted && h.TrangThaiHoaDon == TrangThaiHoaDon.ChuaThanhToan);
+                .Where(h => !h.IsDeleted && h.TrangThaiHoaDon != TrangThaiHoaDon.DaThanhToan);
 
             if (branchId.HasValue)
             {
@@ -157,7 +170,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
         public async Task<IReadOnlyList<DashboardUnpaidGroupDto>> GetUnpaidInvoicesGroupedAsync(int? branchId, CancellationToken cancellationToken = default)
         {
             var query = _context.HoaDons
-                .Where(h => !h.IsDeleted && h.TrangThaiHoaDon == TrangThaiHoaDon.ChuaThanhToan);
+                .Where(h => !h.IsDeleted && h.TrangThaiHoaDon != TrangThaiHoaDon.DaThanhToan);
 
             if (branchId.HasValue)
             {

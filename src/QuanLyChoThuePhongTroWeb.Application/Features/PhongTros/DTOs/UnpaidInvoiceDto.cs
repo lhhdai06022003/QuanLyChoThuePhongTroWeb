@@ -19,6 +19,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.PhongTros.DTOs
         public int thang { get; init; }
         public int nam { get; init; }
         public decimal tongTien { get; init; }
+        // Số còn nợ sau các khoản đã ghi nhận (hóa đơn có thể đã trả một phần).
+        public decimal conLai { get; init; }
         public string tenPhong { get; init; } = string.Empty;
         public string tenNguoiThue { get; init; } = string.Empty;
         public IReadOnlyList<UnpaidInvoiceDetailDto> chiTiets { get; init; } = Array.Empty<UnpaidInvoiceDetailDto>();
