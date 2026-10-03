@@ -14,8 +14,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
         Task<DataTableResponse<HoaDonRes>> GetEmployeeInvoiceListAsync(DataTableRequest request, int chiNhanhId, int thang, int nam, int trangThai, int actorId);
         Task<HoaDonChiTietRes?> GetHoaDonByIdAsync(int id);
         Task<HoaDonChiTietRes?> GetEmployeeInvoiceDetailAsync(int id, int actorId);
-        Task<(bool IsSuccess, string? ErrorMessage)> ThuTienAsync(int hoaDonId, int phuongThuc, string ghiChu, int nguoiXacNhanId);
-        Task<(bool IsSuccess, string? ErrorMessage)> DeleteHoaDonAsync(int id, int actorId, string lyDo, CancellationToken cancellationToken = default);
         Task<byte[]?> ExportExcelAsync(int hoaDonId);
         Task<byte[]?> ExportEmployeeExcelAsync(int hoaDonId, int actorId);
         Task<byte[]?> ExportPdfAsync(int hoaDonId);
@@ -25,6 +23,5 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
         Task<List<HoaDonRes>> GetHoaDonsByNguoiThueIdAsync(int nguoiThueId);
         Task<bool> CheckHoaDonOwnershipAsync(int hoaDonId, int nguoiThueId);
         Task<(bool IsSuccess, string? ErrorMessage)> CheckInvoicePermissionAsync(int hoaDonId, int actorId, string actionCode);
-        Task<bool> CanTenantRequestPaymentAsync(int hoaDonId, int nguoiThueId, CancellationToken cancellationToken = default);
     }
 }

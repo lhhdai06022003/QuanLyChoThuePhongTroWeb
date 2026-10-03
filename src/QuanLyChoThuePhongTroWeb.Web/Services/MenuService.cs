@@ -40,6 +40,7 @@ namespace QuanLyChoThuePhongTroWeb.Services
                         new MenuItem { Name = "Dịch vụ", Icon = "ti ti-apps", Url = "/QuanLyNhaTro/QuanLyDichVu" },
                         new MenuItem { Name = "Điện nước", Icon = "ti ti-bolt", Url = "/QuanLyNhaTro/ChotDienNuoc" },
                         new MenuItem { Name = "Hóa đơn", Icon = "ti ti-file-invoice", Url = "/QuanLyNhaTro/QuanLyHoaDon" },
+                        new MenuItem { Name = "Đối chiếu thanh toán", Icon = "ti ti-receipt-2", Url = "/QuanLyNhaTro/DoiChieuThanhToan" },
                         new MenuItem { Name = "Lịch sử thanh toán", Icon = "ti ti-history", Url = "/QuanLyNhaTro/LichSuThanhToan" },
                         new MenuItem { Name = "Sự cố & Sửa chữa", Icon = "ti ti-tools", Url = "/QuanLyNhaTro/YeuCauSuCo" }
                     }

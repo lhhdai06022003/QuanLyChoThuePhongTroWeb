@@ -8,11 +8,9 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.LichSuThanhToans.Service
     public interface ILichSuThanhToanService
     {
         Task<DataTableResponse<LichSuThanhToanGiaoDichRes>> GetDanhSachThanhToanAsync(
-            DataTableRequest request, int chiNhanhId, int phuongThuc, DateTime? tuNgay, DateTime? denNgay);
+            DataTableRequest request, int chiNhanhId, int phuongThuc, DateTime? tuNgay, DateTime? denNgay, bool chiCoTienThua = false);
 
         Task<ThongKeThanhToanRes> GetThongKeThanhToanAsync(int chiNhanhId, DateTime? tuNgay, DateTime? denNgay);
-
-        Task<(bool IsSuccess, string? ErrorMessage)> HuyGiaoDichAsync(int id, int adminUserId);
 
         Task<IReadOnlyList<LichSuThanhToanKhachThueDto>> GetLichSuByNguoiThueIdAsync(int nguoiThueId);
     }

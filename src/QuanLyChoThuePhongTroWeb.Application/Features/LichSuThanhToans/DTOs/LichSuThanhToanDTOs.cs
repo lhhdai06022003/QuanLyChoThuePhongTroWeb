@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System;
 
 namespace QuanLyChoThuePhongTroWeb.Application.Features.LichSuThanhToans.DTOs
@@ -17,6 +18,11 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.LichSuThanhToans.DTOs
         public string NgayThanhToan { get; set; } = string.Empty;
         public string NguoiXacNhan { get; set; } = string.Empty;
         public string GhiChu { get; set; } = string.Empty;
+        // Tách từ các thẻ [CHENH-LECH], [TIEN-THUA] trong GhiChu để hiển thị (spec thanh toán §16.2, §27.2).
+        public decimal? TienThua { get; set; }
+        public decimal? ChenhLech { get; set; }
+        public List<string> NhanGhiChu { get; set; } = new();
+        public string NoiDungGhiChu { get; set; } = string.Empty;
     }
 
     public class ThongKeThanhToanRes

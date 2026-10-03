@@ -219,7 +219,7 @@ namespace QuanLyChoThuePhongTroWeb.Domain.Entities
             });
         }
 
-        public void HuyHoaDon(int? nguoiHuyId, string lyDo)
+        public void HuyHoaDon(int? nguoiHuyId, string lyDo, DateTime? nowUtc = null)
         {
             if (string.IsNullOrWhiteSpace(lyDo))
             {
@@ -241,10 +241,11 @@ namespace QuanLyChoThuePhongTroWeb.Domain.Entities
                 throw new InvalidOperationException("Không thể hủy hóa đơn đã thanh toán đầy đủ hoặc thanh toán một phần.");
             }
 
+            var now = nowUtc ?? DateTime.UtcNow;
             var trangThaiCu = TrangThaiPhatHanh;
             TrangThaiPhatHanh = TrangThaiPhatHanhHoaDon.DaHuy;
             IsDeleted = true;
-            NgayCapNhat = DateTime.UtcNow;
+            NgayCapNhat = now;
 
             LichSuTrangThaiHoaDons.Add(new LichSuTrangThaiHoaDon
             {
@@ -254,7 +255,7 @@ namespace QuanLyChoThuePhongTroWeb.Domain.Entities
                 TrangThaiThanhToanCu = TrangThaiHoaDon,
                 TrangThaiThanhToanMoi = TrangThaiHoaDon,
                 NguoiThucHienId = nguoiHuyId,
-                NgayThucHien = DateTime.UtcNow,
+                NgayThucHien = now,
                 LyDo = lyDo
             });
         }

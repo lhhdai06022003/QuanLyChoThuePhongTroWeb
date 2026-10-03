@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Configuration;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services;
 
 namespace QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers
@@ -13,19 +12,13 @@ namespace QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers
     {
         private readonly IHoaDonService _hoaDonService;
         private readonly IInvoiceViewService _invoiceViewService;
-        private readonly IConfiguration _configuration;
-        private readonly IVietQRService _vietQRService;
 
         public HoaDonController(
             IHoaDonService hoaDonService,
-            IInvoiceViewService invoiceViewService,
-            IConfiguration configuration,
-            IVietQRService vietQRService)
+            IInvoiceViewService invoiceViewService)
         {
             _hoaDonService = hoaDonService;
             _invoiceViewService = invoiceViewService;
-            _configuration = configuration;
-            _vietQRService = vietQRService;
         }
 
         public IActionResult Index([FromQuery] int? hoaDonId)
@@ -85,15 +78,14 @@ namespace QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers
                 nam = data.Nam,
                 tenNguoiThue = data.TenNguoiThue,
                 trangThaiHoaDon = data.TrangThaiHoaDon,
+                trangThaiThanhToanValue = data.TrangThaiThanhToanValue,
                 tongTien = data.TongTien,
+                daThu = data.DaThu,
+                conLai = data.ConLai,
                 chiTietHoaDons = data.ChiTietHoaDons,
                 lichSuThanhToans = data.LichSuThanhToans,
                 daHuy = data.DaHuy,
-                lyDoHuy = data.LyDoHuy,
-                coTheThanhToan = !data.DaHuy && data.TrangThaiHoaDon == "Chưa thanh toán",
-                bankId = data.DaHuy ? "" : (_configuration["VietQRSettings:BankId"] ?? "MB"),
-                accountNumber = data.DaHuy ? "" : (_configuration["VietQRSettings:AccountNumber"] ?? ""),
-                accountName = data.DaHuy ? "" : (_configuration["VietQRSettings:AccountName"] ?? "")
+                lyDoHuy = data.LyDoHuy
             });
         }
 
@@ -108,29 +100,6 @@ namespace QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers
             if (bytes == null) return NotFound("Không tìm thấy hóa đơn hoặc không có quyền truy cập.");
 
             return File(bytes, "application/pdf", $"HoaDon_{id}.pdf");
-        }
-
-        [HttpGet("/KhachThue/HoaDon/GetVietQR")]
-        public async Task<IActionResult> GetVietQR([FromQuery] int hoaDonId)
-        {
-            var nguoiThueIdClaim = User.FindFirst("NguoiThueId");
-            if (nguoiThueIdClaim == null) return Unauthorized();
-            int nguoiThueId = int.Parse(nguoiThueIdClaim.Value);
-
-            var canPay = await _hoaDonService.CanTenantRequestPaymentAsync(hoaDonId, nguoiThueId);
-            if (!canPay) return BadRequest(new { Message = "Hóa đơn không ở trạng thái cho phép thanh toán hoặc không tồn tại." });
-
-            var hd = await _hoaDonService.GetHoaDonByIdAsync(hoaDonId);
-            if (hd == null) return NotFound(new { Message = "Không tìm thấy hóa đơn." });
-
-            var bankId = _configuration["VietQRSettings:BankId"] ?? "MB";
-            var accountNumber = _configuration["VietQRSettings:AccountNumber"] ?? "";
-            string memo = $"THANH TOAN {hd.MaHoaDon}";
-
-            string qrString = _vietQRService.GenerateVietQRString(bankId, accountNumber, hd.TongTien, memo);
-            byte[] qrBytes = _vietQRService.GenerateQRCodePNGBytes(qrString);
-
-            return File(qrBytes, "image/png");
         }
     }
 }

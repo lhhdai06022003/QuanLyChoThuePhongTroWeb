@@ -188,40 +188,6 @@
         </div>
     </div>
 
-    <!-- Modal Thu tiền -->
-    <div class="modal fade" id="thuTienModal" tabindex="-1" role="dialog" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered" role="document">
-            <div class="modal-content">
-                <div class="modal-header py-2">
-                    <h5 class="modal-title"><i class="ti ti-report-money me-1"></i> Xác nhận Thu tiền</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body py-3">
-                    <input type="hidden" id="thuTienHoaDonId" />
-                    <p class="fs-3 mb-2">Bạn đang thu tiền cho hóa đơn: <strong id="thuTienMaHD" class="text-primary"></strong></p>
-                    <p class="fs-3 mb-3">Tổng tiền: <strong class="text-danger hd-num" id="thuTienTongTien"></strong></p>
-                    <div class="mb-3">
-                        <label for="thuTienPhuongThuc" class="form-label fw-medium">Phương thức thanh toán</label>
-                        <select id="thuTienPhuongThuc" class="form-select">
-                            <option value="0">Tiền mặt</option>
-                            <option value="1">Chuyển khoản</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="thuTienGhiChu" class="form-label fw-medium">Ghi chú</label>
-                        <textarea id="thuTienGhiChu" class="form-control" rows="2" placeholder="VD: Đã nhận đủ tiền mặt..."></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
-                    <button type="button" class="btn btn-primary" id="btnConfirmThuTien">
-                        <i class="ti ti-device-floppy me-1"></i> Lưu dữ liệu
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- Modal Xem trước Phát sinh Hóa đơn -->
     <div class="modal fade" id="previewModal" tabindex="-1" role="dialog" aria-hidden="true">
         <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
@@ -419,6 +385,7 @@
 </div>
 
 @section Scripts {
+    <script src="~/js/hoadon-thanhtoan-quanly.js" asp-append-version="true"></script>
     <script>
         function escapeHtml(unsafe) {
             return (unsafe || "").toString()
@@ -445,6 +412,7 @@
             if (urlNam) $('#filterNam').val(urlNam);
             if (urlTrangThai) $('#filterTrangThai').val(urlTrangThai);
             if (urlChiNhanh) $('#filterChiNhanh').val(urlChiNhanh);
+            const urlHoaDonId = parseInt(urlParams.get('hoaDonId') || '0');
 
             function formatVND(n) {
                 if (n === null || n === undefined) return "0 ₫";
@@ -612,8 +580,8 @@
                                                     <i class="ti ti-arrow-back me-2"></i> Trả lại
                                                 </button>
                                             ` : ''}
-                                            ${row.trangThaiHoaDonValue === 0 && row.trangThaiPhatHanhValue === 3 ? `
-                                                <button class="dropdown-item btn-thutien py-2" data-id="${data}" data-ma="${maAttr}" data-tien="${row.tongTien}">
+                                            ${row.trangThaiHoaDonValue !== 1 && row.trangThaiPhatHanhValue === 3 ? `
+                                                <button class="dropdown-item btn-thutien py-2" data-id="${data}" data-ma="${maAttr}">
                                                     <i class="ti ti-report-money me-2"></i> Thu tiền
                                                 </button>
                                             ` : ''}
@@ -993,7 +961,10 @@
 
             // ========== Xem chi tiết ==========
             $('#hoaDonTable').on('click', '.btn-detail', function() {
-                let id = $(this).data('id');
+                showInvoiceDetail($(this).data('id'));
+            });
+
+            function showInvoiceDetail(id) {
                 $.get(`/HoaDon/GetById/${id}`, function(res) {
                     $('#chiTietModalTitle').html('<i class="ti ti-file-description me-1"></i> Hóa đơn ' + escapeHtml(res.maHoaDon));
 
@@ -1010,9 +981,9 @@
                     let paymentStatusHtml = '';
                     if (res.daHuy) {
                         paymentStatusHtml = '<span class="text-secondary">—</span>';
-                    } else if (res.trangThaiHoaDonValue === 1 || res.trangThaiHoaDon === 'Đã thanh toán') {
+                    } else if (res.trangThaiThanhToanValue === 1) {
                         paymentStatusHtml = '<span class="status status-green"><span class="status-dot"></span>Đã thanh toán</span>';
-                    } else if (res.trangThaiHoaDonValue === 2 || res.trangThaiHoaDon === 'Thanh toán một phần') {
+                    } else if (res.trangThaiThanhToanValue === 2) {
                         paymentStatusHtml = '<span class="status status-blue"><span class="status-dot"></span>Thanh toán một phần</span>';
                     } else {
                         paymentStatusHtml = '<span class="status status-secondary"><span class="status-dot"></span>Chưa thanh toán</span>';
@@ -1109,8 +1080,13 @@
                         html += `</tbody></table></div>`;
                     }
 
-                    // Nhúng mã QR thanh toán nếu chưa thanh toán và CHƯA HỦY
-                    if (!res.daHuy && res.trangThaiHoaDon === 'Chưa thanh toán') {
+                    // Tóm tắt thanh toán (đã thu, còn lại, lượt đang hoạt động, cấu hình trả một phần)
+                    if (!res.daHuy && res.trangThaiPhatHanhValue === 3) {
+                        html += '<div id="hdPaymentSummary"></div>';
+                    }
+
+                    // QR ngoài luồng theo số còn lại; tiền chuyển qua QR này cần thu thủ công khi đối chiếu
+                    if (!res.daHuy && res.conLai > 0) {
                         html += `
                         <div class="row mt-4 pt-3 border-top justify-content-center">
                             <div class="col-md-7 text-center">
@@ -1124,7 +1100,7 @@
                                         <div class="qr-detail-item"><span>Ngân hàng:</span><strong>${escapeHtml(bankId)}</strong></div>
                                         <div class="qr-detail-item"><span>Số tài khoản:</span><strong>${escapeHtml(accountNumber)}</strong></div>
                                         <div class="qr-detail-item"><span>Chủ tài khoản:</span><strong>${escapeHtml(accountName)}</strong></div>
-                                        <div class="qr-detail-item"><span>Số tiền:</span><strong class="text-primary hd-num">${formatVND(res.tongTien)}</strong></div>
+                                        <div class="qr-detail-item"><span>Số tiền:</span><strong class="text-primary hd-num">${formatVND(res.conLai)}</strong></div>
                                         <div class="qr-detail-item"><span>Nội dung CK:</span><code class="text-primary fw-bold">THANH TOAN ${escapeHtml(res.maHoaDon)}</code></div>
                                     </div>
                                 </div>
@@ -1134,6 +1110,9 @@
                     }
 
                     $('#chiTietBody').html(html);
+                    if (!res.daHuy && res.trangThaiPhatHanhValue === 3) {
+                        HdThanhToan.renderSummary(res.hoaDonId, '#hdPaymentSummary', { daGui: true });
+                    }
 
                     // Render Tab Lịch sử trạng thái (Bắt buộc giữ đủ 7 trường)
                     let lsHtml = '';
@@ -1176,7 +1155,12 @@
                     bootstrap.Tab.getOrCreateInstance(document.getElementById('tab-chitiet-link')).show();
                     bootstrap.Modal.getOrCreateInstance(document.getElementById('chiTietModal')).show();
                 });
-            });
+            }
+
+            // Mở thẳng chi tiết khi đến từ màn đối chiếu thanh toán (?hoaDonId=)
+            if (urlHoaDonId > 0) {
+                showInvoiceDetail(urlHoaDonId);
+            }
 
             // ========== Chỉnh sửa hóa đơn ==========
             $('#hoaDonTable').on('click', '.btn-edit', function() {
@@ -1332,49 +1316,12 @@
                 });
             });
 
-            // ========== Thu tiền ==========
+            // ========== Thu tiền (theo số thực nhận) ==========
             $('#hoaDonTable').on('click', '.btn-thutien', function() {
-                $('#thuTienHoaDonId').val($(this).data('id'));
-                $('#thuTienMaHD').text($(this).data('ma'));
-                $('#thuTienTongTien').text(formatVND($(this).data('tien')));
-                $('#thuTienPhuongThuc').val(0);
-                $('#thuTienGhiChu').val('');
-                bootstrap.Modal.getOrCreateInstance(document.getElementById('thuTienModal')).show();
-            });
-
-            $('#btnConfirmThuTien').click(function() {
-                let req = {
-                    hoaDonId: parseInt($('#thuTienHoaDonId').val()),
-                    phuongThucThanhToan: parseInt($('#thuTienPhuongThuc').val()),
-                    ghiChu: $('#thuTienGhiChu').val()
-                };
-
-                Swal.fire({
-                    title: 'Xác nhận thu tiền?',
-                    text: 'Bạn có chắc chắn muốn xác nhận thanh toán cho hóa đơn này?',
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonText: 'Đồng ý',
-                    cancelButtonText: 'Hủy bỏ'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        let $btn = $(this);
-                        $btn.prop('disabled', true);
-
-                        $.ajax({
-                            url: '/HoaDon/ThuTien',
-                            type: 'POST',
-                            contentType: 'application/json',
-                            data: JSON.stringify(req),
-                            success: function(res) {
-                                showSuccess(res.message);
-                                bootstrap.Modal.getOrCreateInstance(document.getElementById('thuTienModal')).hide();
-                                table.ajax.reload(null, false);
-                            },
-                            error: function(xhr) { showError(xhr.responseJSON?.message || 'Có lỗi xảy ra.'); },
-                            complete: function() { $btn.prop('disabled', false); }
-                        });
-                    }
+                HdThanhToan.openThuTien({
+                    hoaDonId: $(this).data('id'),
+                    maHoaDon: $(this).data('ma'),
+                    onDone: function () { table.ajax.reload(null, false); }
                 });
             });
 

@@ -113,6 +113,10 @@
                         </div>
                     </div>
                 </div>
+                <label class="form-check form-check-inline mt-2 mb-0">
+                    <input class="form-check-input" type="checkbox" id="filterCoTienThua">
+                    <span class="form-check-label">Chỉ khoản có tiền thừa (cần xử lý ngoài hệ thống)</span>
+                </label>
             </div>
 
             <!-- Bảng dữ liệu -->
@@ -282,6 +286,7 @@
                         d.chiNhanhId = $('#filterChiNhanh').val();
                         d.phuongThuc = $('#filterPhuongThuc').val();
                         d.dateRange = $('#filterDateRange').val();
+                        d.coTienThua = $('#filterCoTienThua').is(':checked');
                     }
                 },
                 "columns": [
@@ -296,10 +301,14 @@
                     { "data": "tenPhong", "className": "align-middle font-weight-bold text-primary" },
                     { "data": "tenNguoiThue", "className": "align-middle" },
                     { "data": "tenChiNhanh", "className": "align-middle text-muted" },
-                    { 
-                        "data": "soTienThanhToan", 
-                        "className": "text-right align-middle font-weight-bold text-success", 
-                        "render": (d) => formatVND(d) 
+                    {
+                        "data": "soTienThanhToan",
+                        "className": "text-right align-middle font-weight-bold text-success",
+                        "render": function (d, t, row) {
+                            // Thẻ [CHENH-LECH], [TIEN-THUA] trong ghi chú hiển thị thành nhãn dễ đọc
+                            let tags = (row.nhanGhiChu || []).map(n => `<div><span class="badge bg-orange-lt fw-normal">${escapeHtml(n)}</span></div>`).join('');
+                            return formatVND(d) + tags;
+                        }
                     },
                     {
                         "data": "phuongThucThanhToan", 
@@ -327,7 +336,7 @@
                             `;
                             if (isAdmin) {
                                 actionHtml += `
-                                    <button class="btn btn-icon btn-ghost-danger btn-sm btn-void" data-id="${row.lichSuThanhToanId}" data-code="${escapeHtml(row.maGiaoDich)}" title="Hủy giao dịch thanh toán">
+                                    <button class="btn btn-icon btn-ghost-danger btn-sm btn-void" data-id="${row.lichSuThanhToanId}" data-code="${escapeHtml(row.maGiaoDich)}" title="Hủy ghi nhận thanh toán">
                                         <i class="ti ti-trash"></i>
                                     </button>
                                 `;
@@ -343,7 +352,7 @@
             loadStats();
 
             // Tự động lọc khi thay đổi input/select
-            $('#filterChiNhanh, #filterPhuongThuc').change(function () {
+            $('#filterChiNhanh, #filterPhuongThuc, #filterCoTienThua').change(function () {
                 table.ajax.reload();
                 loadStats();
             });
@@ -412,8 +421,8 @@
                         html += `</tbody></table></div>`;
                     }
 
-                    // QR code nếu chưa thanh toán (chỉ hiển thị dự phòng)
-                    if (res.trangThaiHoaDon === 'Chưa thanh toán') {
+                    // QR theo số còn lại (chỉ hiển thị dự phòng)
+                    if (!res.daHuy && res.conLai > 0) {
                         html += `
                         <div class="row mt-4 pt-3 border-top justify-content-center">
                             <div class="col-md-7 text-center">
@@ -427,7 +436,7 @@
                                         <div class="d-flex justify-content-between mb-1"><span>Ngân hàng:</span><strong>${escapeHtml(bankId)}</strong></div>
                                         <div class="d-flex justify-content-between mb-1"><span>Số tài khoản:</span><strong>${escapeHtml(accountNumber)}</strong></div>
                                         <div class="d-flex justify-content-between mb-1"><span>Chủ tài khoản:</span><strong>${escapeHtml(accountName)}</strong></div>
-                                        <div class="d-flex justify-content-between mb-1"><span>Số tiền:</span><strong class="text-danger">${formatVND(res.tongTien)}</strong></div>
+                                        <div class="d-flex justify-content-between mb-1"><span>Số tiền:</span><strong class="text-danger">${formatVND(res.conLai)}</strong></div>
                                         <div class="d-flex justify-content-between"><span>Nội dung CK:</span><code class="text-primary font-weight-bold">THANH TOAN ${escapeHtml(res.maHoaDon)}</code></div>
                                     </div>
                                 </div>
@@ -441,19 +450,22 @@
                 });
             });
 
-            // Hủy giao dịch thanh toán
+            // Hủy ghi nhận thanh toán (chỉ Admin, bắt buộc lý do; spec thanh toán §20)
             $('#lichSuTable').on('click', '.btn-void', function () {
                 let id = $(this).data('id');
                 let code = $(this).data('code');
 
                 Swal.fire({
-                    title: 'Xác nhận hủy thanh toán?',
-                    text: `Giao dịch ${code} sẽ bị xóa và hóa đơn liên quan sẽ trở lại trạng thái "Chưa thanh toán".`,
+                    title: 'Hủy ghi nhận thanh toán?',
+                    html: `Khoản <strong>${escapeHtml(code)}</strong> sẽ không còn được tính vào công nợ; trạng thái hóa đơn được tính lại từ các khoản còn lại.<br>` +
+                          '<span class="text-danger">Thao tác này chỉ thay đổi ghi nhận trong hệ thống, không hoàn tiền qua ngân hàng.</span>',
                     icon: 'warning',
+                    input: 'textarea',
+                    inputPlaceholder: 'Lý do hủy ghi nhận (bắt buộc, tối đa 500 ký tự)',
+                    inputAttributes: { maxlength: 500 },
+                    inputValidator: (value) => !value || !value.trim() ? 'Vui lòng nhập lý do.' : undefined,
                     showCancelButton: true,
-                    confirmButtonColor: '#d33',
-                    cancelButtonColor: '#3085d6',
-                    confirmButtonText: 'Đồng ý hủy!',
+                    confirmButtonText: 'Hủy ghi nhận',
                     cancelButtonText: 'Không, giữ lại',
                     customClass: {
                         confirmButton: 'btn btn-danger me-2',
@@ -465,21 +477,15 @@
                         $.ajax({
                             url: `/LichSuThanhToan/HuyThanhToan/${id}`,
                             type: 'DELETE',
+                            contentType: 'application/json',
+                            data: JSON.stringify({ lyDo: result.value }),
                             success: function (res) {
-                                Swal.fire(
-                                    'Đã hủy!',
-                                    res.message,
-                                    'success'
-                                );
+                                Swal.fire('Đã hủy ghi nhận', res.message, 'success');
                                 table.ajax.reload(null, false);
                                 loadStats();
                             },
                             error: function (xhr) {
-                                Swal.fire(
-                                    'Lỗi!',
-                                    xhr.responseJSON?.message || 'Có lỗi xảy ra khi thực hiện yêu cầu.',
-                                    'error'
-                                );
+                                Swal.fire('Lỗi!', xhr.responseJSON?.message || 'Có lỗi xảy ra khi thực hiện yêu cầu.', 'error');
                             }
                         });
                     }

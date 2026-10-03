@@ -278,7 +278,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
         }
 
         [Fact]
-        public async Task Tenant_CannotViewDraftDetail_OrVietQR_ByGuessingId()
+        public async Task Tenant_CannotViewDraftDetail_OrPaymentPanel_ByGuessingId()
         {
             var suffix = Guid.NewGuid().ToString("N")[..8];
             var (branch, room, tenant, contract, invoice) = await SeedInvoiceHierarchyAsync(suffix, TrangThaiPhatHanhHoaDon.DaChot);
@@ -299,9 +299,13 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             var detailRes = await client.GetAsync($"/KhachThue/HoaDon/XemChiTiet/{invoice.HoaDonId}");
             Assert.Equal(HttpStatusCode.NotFound, detailRes.StatusCode);
 
-            // 2. Tenant cố tình lấy mã QR cho hóa đơn DaChot -> 400 BadRequest
+            // 2. Tenant cố tình mở khung thanh toán của hóa đơn DaChot -> 404 (không lộ sự tồn tại)
+            var panelRes = await client.GetAsync($"/KhachThue/HoaDon/ThanhToan/{invoice.HoaDonId}");
+            Assert.Equal(HttpStatusCode.NotFound, panelRes.StatusCode);
+
+            // 3. Endpoint QR cũ theo hóa đơn đã bỏ (spec thanh toán §27.1)
             var qrRes = await client.GetAsync($"/KhachThue/HoaDon/GetVietQR?hoaDonId={invoice.HoaDonId}");
-            Assert.Equal(HttpStatusCode.BadRequest, qrRes.StatusCode);
+            Assert.Equal(HttpStatusCode.NotFound, qrRes.StatusCode);
         }
 
         private async Task CreateTenantUserAsync(string username, string password, int nguoiThueId)

@@ -8,6 +8,7 @@ using QuanLyChoThuePhongTroWeb.Application.Common.Security;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs;
 using Microsoft.Extensions.Logging;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services;
+using QuanLyChoThuePhongTroWeb.Web.Helpers;
 
 namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
 {
@@ -23,6 +24,8 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         private readonly IEmployeeAccessService _employeeAccessService;
         private readonly IInvoicePublicationService _invoicePublicationService;
         private readonly IInvoiceViewService _invoiceViewService;
+        private readonly IInvoiceLedgerService _ledgerService;
+        private readonly IInvoicePaymentConfirmationService _paymentService;
 
         public HoaDonController(
             IHoaDonService hoaDonService,
@@ -33,8 +36,12 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             IInvoiceIssuanceService invoiceIssuanceService,
             IEmployeeAccessService employeeAccessService,
             IInvoicePublicationService invoicePublicationService,
-            IInvoiceViewService invoiceViewService)
+            IInvoiceViewService invoiceViewService,
+            IInvoiceLedgerService ledgerService,
+            IInvoicePaymentConfirmationService paymentService)
         {
+            _ledgerService = ledgerService;
+            _paymentService = paymentService;
             _invoiceIssuanceService = invoiceIssuanceService;
             _hoaDonService = hoaDonService;
             _phongTroService = phongTroService;
@@ -201,9 +208,9 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             return Ok(data);
         }
 
-        // Thu tiền
+        // Thu tiền thủ công theo số thực nhận (spec thanh toán §18)
         [HttpPost("/HoaDon/ThuTien")]
-        public async Task<IActionResult> ThuTien([FromBody] ThuTienReq req)
+        public async Task<IActionResult> ThuTien([FromBody] ThuTienFormReq req, CancellationToken ct)
         {
             if (req == null || req.HoaDonId <= 0) return BadRequest(new { Message = "Dữ liệu hóa đơn không hợp lệ." });
             if (!TryGetActorId(out var actorId))
@@ -211,14 +218,65 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
                 return Unauthorized(new { Message = "Người dùng chưa đăng nhập hoặc phiên làm việc đã hết hạn." });
             }
 
-            var result = await _hoaDonService.ThuTienAsync(req.HoaDonId, req.PhuongThucThanhToan, req.GhiChu, actorId);
-            if (!result.IsSuccess) return BadRequest(new { Message = result.ErrorMessage });
-            return Ok(new { Message = "Thu tiền thành công!" });
+            if (!VietnamTime.TryParseToUtc(req.NgayThanhToan, out var ngayThanhToanUtc))
+            {
+                return BadRequest(new { Message = "Vui lòng nhập ngày thanh toán hợp lệ." });
+            }
+
+            var result = await _ledgerService.CollectManuallyAsync(new ManualCollectionRequest
+            {
+                HoaDonId = req.HoaDonId,
+                SoTienThucNhan = req.SoTienThucNhan,
+                PhuongThuc = (AppPhuongThucThanhToan)req.PhuongThucThanhToan,
+                NgayThanhToanUtc = ngayThanhToanUtc,
+                MaGiaoDich = req.MaGiaoDich,
+                GhiChu = req.GhiChu
+            }, actorId, ct);
+
+            if (!result.Success) return this.ToErrorResult(result);
+            var data = result.Data!;
+            var message = data.ConLai > 0
+                ? $"Đã ghi nhận {data.SoTienGhiNhan:#,##0}đ, hóa đơn còn nợ {data.ConLai:#,##0}đ."
+                : "Thu tiền thành công, hóa đơn đã thanh toán đủ.";
+            if (data.MaLuotDaHuy != null)
+            {
+                message += $" Lượt {data.MaLuotDaHuy} của khách đã được hủy.";
+            }
+
+            return Ok(new { Message = message, data });
         }
 
-        // Hủy hóa đơn
+        // Tóm tắt thanh toán cho modal chi tiết: số còn lại, lượt đang hoạt động, cấu hình trả một phần
+        [HttpGet("/HoaDon/ThanhToanTomTat/{id:int}")]
+        public async Task<IActionResult> ThanhToanTomTat(int id, CancellationToken ct)
+        {
+            if (!TryGetActorId(out var actorId))
+                return Unauthorized(new { Message = "Người dùng chưa đăng nhập hoặc phiên làm việc đã hết hạn." });
+
+            var result = await _paymentService.GetInvoicePaymentSummaryAsync(id, actorId, ct);
+            return result.Success ? Ok(result.Data) : this.ToErrorResult(result);
+        }
+
+        // Bật/tắt thanh toán một phần, chỉ Admin (spec thanh toán §19)
+        [HttpPost("/HoaDon/CauHinhThanhToanMotPhan/{id:int}")]
+        public async Task<IActionResult> CauHinhThanhToanMotPhan(int id, [FromBody] CauHinhMotPhanReq req, CancellationToken ct)
+        {
+            if (!TryGetActorId(out var actorId))
+                return Unauthorized(new { Message = "Người dùng chưa đăng nhập hoặc phiên làm việc đã hết hạn." });
+
+            var result = await _paymentService.ConfigurePartialPaymentAsync(new ConfigurePartialPaymentRequest
+            {
+                HoaDonId = id,
+                ChoPhep = req?.ChoPhep ?? false,
+                SoTienToiThieu = req?.SoTienToiThieu
+            }, actorId, ct);
+
+            return result.Success ? Ok(new { Message = result.Message, data = result.Data }) : this.ToErrorResult(result);
+        }
+
+        // Hủy hóa đơn (spec thanh toán §31.2: tự hủy lượt chờ thanh toán, chặn khi đang đối chiếu)
         [HttpDelete("/HoaDon/Delete/{id}")]
-        public async Task<IActionResult> Delete(int id, [FromBody] CancelInvoiceReq req)
+        public async Task<IActionResult> Delete(int id, [FromBody] CancelInvoiceReq req, CancellationToken ct)
         {
             if (id <= 0) return BadRequest(new { Message = "ID hóa đơn không hợp lệ." });
             if (req == null || string.IsNullOrWhiteSpace(req.LyDo))
@@ -226,14 +284,13 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
                 return BadRequest(new { Message = "Vui lòng nhập lý do hủy hóa đơn." });
             }
 
-            var actorIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (!int.TryParse(actorIdStr, out var actorId) || actorId <= 0)
+            if (!TryGetActorId(out var actorId))
             {
                 return Unauthorized(new { Message = "Người dùng chưa đăng nhập hoặc phiên làm việc đã hết hạn." });
             }
 
-            var result = await _hoaDonService.DeleteHoaDonAsync(id, actorId, req.LyDo);
-            if (!result.IsSuccess) return BadRequest(new { Message = result.ErrorMessage });
+            var result = await _ledgerService.CancelInvoiceAsync(id, actorId, req.LyDo, ct);
+            if (!result.Success) return this.ToErrorResult(result);
             return Ok(new { Message = "Đã hủy hóa đơn thành công." });
         }
 
@@ -277,8 +334,8 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             var hd = await _hoaDonService.GetEmployeeInvoiceDetailAsync(hoaDonId, actorId);
             if (hd == null) return NotFound(new { Message = "Không tìm thấy hóa đơn hoặc bạn không có quyền truy cập." });
 
-            // Chỉ hiển thị QR nếu chưa thanh toán
-            if (hd.TrangThaiHoaDon != "Chưa thanh toán")
+            // QR theo số còn lại; chỉ khi hóa đơn còn nợ
+            if (hd.DaHuy || hd.ConLai <= 0)
             {
                 return BadRequest(new { Message = "Hóa đơn đã được thanh toán hoặc không hợp lệ." });
             }
@@ -287,7 +344,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             var accountNumber = _configuration["VietQRSettings:AccountNumber"] ?? "";
             string memo = $"THANH TOAN {hd.MaHoaDon}";
 
-            string qrString = _vietQRService.GenerateVietQRString(bankId, accountNumber, hd.TongTien, memo);
+            string qrString = _vietQRService.GenerateVietQRString(bankId, accountNumber, hd.ConLai, memo);
             byte[] qrBytes = _vietQRService.GenerateQRCodePNGBytes(qrString);
 
             return File(qrBytes, "image/png");
@@ -524,6 +581,23 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
     public class PublishInvoicesReq
     {
         public List<int>? HoaDonIds { get; set; }
+    }
+
+    public class ThuTienFormReq
+    {
+        public int HoaDonId { get; set; }
+        public decimal SoTienThucNhan { get; set; }
+        public int PhuongThucThanhToan { get; set; } // 0 = Tiền mặt, 1 = Chuyển khoản
+        // Giờ Việt Nam, ví dụ "2026-10-03T14:30".
+        public string? NgayThanhToan { get; set; }
+        public string? MaGiaoDich { get; set; }
+        public string? GhiChu { get; set; }
+    }
+
+    public class CauHinhMotPhanReq
+    {
+        public bool ChoPhep { get; set; }
+        public decimal? SoTienToiThieu { get; set; }
     }
 }
 

@@ -1,15 +1,21 @@
-using System;
 using System.Threading;
 using System.Threading.Tasks;
+using QuanLyChoThuePhongTroWeb.Application.Abstractions.Services;
+using QuanLyChoThuePhongTroWeb.Application.Common.Models;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs;
 
 namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
 {
+    // Phía quản lý (spec §23.2): nhân viên được phân công chi nhánh của hóa đơn hoặc Admin.
     public interface IInvoicePaymentConfirmationService
     {
-        Task<YeuCauThanhToanRes> TaoYeuCauThanhToanAsync(int hoaDonId, decimal soTien, string noiDung, int? nguoiTaoId = null, CancellationToken cancellationToken = default);
-        Task<MinhChungThanhToanRes> NopMinhChungAsync(int yeuCauId, string hinhAnhUrl, decimal soTienKhaiBao, DateTime ngayChuyen, string? maGiaoDich = null, string? publicId = null, CancellationToken cancellationToken = default);
-        Task<XacNhanThanhToanRes> XacNhanMinhChungAsync(int minhChungId, int nguoiXacNhanId, string? ghiChu = null, CancellationToken cancellationToken = default);
-        Task TuChoiMinhChungAsync(int minhChungId, int nguoiDoiChieuId, string lyDo, CancellationToken cancellationToken = default);
+        Task<ServiceResult<DataTableResponse<ReviewQueueRowDto>>> GetReviewQueueAsync(int actorId, ReviewQueueFilter filter, DataTableRequest request, CancellationToken ct = default);
+        Task<ServiceResult<PaymentRequestDetailDto>> GetProofDetailAsync(int minhChungId, int actorId, CancellationToken ct = default);
+        Task<ServiceResult<MeterImageReadResult>> GetProofImageAsync(int minhChungId, int actorId, CancellationToken ct = default);
+        Task<ServiceResult<ConfirmPaymentResult>> ConfirmAsync(ConfirmPaymentRequest request, int actorId, CancellationToken ct = default);
+        Task<ServiceResult<bool>> RejectAsync(int minhChungId, int actorId, string lyDo, CancellationToken ct = default);
+        Task<ServiceResult<InvoicePaymentSummaryDto>> ConfigurePartialPaymentAsync(ConfigurePartialPaymentRequest request, int actorId, CancellationToken ct = default);
+        Task<ServiceResult<PaymentRequestDetailDto>> SearchPaymentRequestAsync(string maYeuCau, int actorId, CancellationToken ct = default);
+        Task<ServiceResult<InvoicePaymentSummaryDto>> GetInvoicePaymentSummaryAsync(int hoaDonId, int actorId, CancellationToken ct = default);
     }
 }

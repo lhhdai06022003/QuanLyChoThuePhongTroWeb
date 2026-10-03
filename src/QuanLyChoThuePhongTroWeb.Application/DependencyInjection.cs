@@ -44,6 +44,10 @@ namespace QuanLyChoThuePhongTroWeb.Application
             services.AddScoped<IInvoicePublicationService, InvoicePublicationService>();
             services.AddScoped<IInvoiceViewService, InvoiceViewService>();
             services.AddScoped<IInvoicePaymentConfirmationService, InvoicePaymentConfirmationService>();
+            services.AddScoped<IInvoicePaymentRequestService, InvoicePaymentRequestService>();
+            services.AddScoped<IInvoiceLedgerService, InvoiceLedgerService>();
+            services.AddScoped<Features.HoaDons.Payments.InvoicePaymentTransaction>();
+            services.AddSingleton<Features.HoaDons.Payments.IPaymentCodeGenerator, Features.HoaDons.Payments.PaymentCodeGenerator>();
             services.AddScoped<ILichSuThanhToanService, LichSuThanhToanService>();
 
             // Phase 6.5 services

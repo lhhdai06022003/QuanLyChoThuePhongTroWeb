@@ -61,6 +61,7 @@
 </div>
 
 @section Scripts {
+    <script src="~/js/khachthue-thanhtoan.js" asp-append-version="true"></script>
     <script>
         function escapeHtml(unsafe) {
             return (unsafe || "").toString()
@@ -152,6 +153,10 @@
             });
         });
 
+        $(document).on('hidden.bs.modal', '#chiTietModal', function () {
+            KtThanhToan.stop();
+        });
+
         function showChiTiet(hoaDonId) {
             var modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('chiTietModal'));
             modal.show();
@@ -176,8 +181,10 @@
                 let ttBadge = '';
                 if (res.daHuy) {
                     ttBadge = '<span class="badge bg-secondary-lt px-2 py-1">Đã hủy</span>';
-                } else if (res.trangThaiHoaDon === 'Đã thanh toán') {
+                } else if (res.trangThaiThanhToanValue === 1) {
                     ttBadge = '<span class="badge bg-success-lt px-2 py-1">Đã thanh toán</span>';
+                } else if (res.trangThaiThanhToanValue === 2) {
+                    ttBadge = '<span class="badge bg-info-lt px-2 py-1">Thanh toán một phần</span>';
                 } else {
                     ttBadge = '<span class="badge bg-warning-lt px-2 py-1">Chưa thanh toán</span>';
                 }
@@ -243,31 +250,17 @@
                     html += `</tbody></table></div>`;
                 }
 
-                // Nhúng mã QR thanh toán CHỈ KHI coTheThanhToan
-                if (res.coTheThanhToan) {
-                    html += `
-                    <div class="row mt-4 pt-3 border-top justify-content-center">
-                        <div class="col-md-7 text-center">
-                            <div class="qr-payment-box p-4 shadow-sm">
-                                <h4 class="qr-title text-primary font-weight-bold mb-3"><i class="ti ti-qrcode me-1"></i> Quét mã QR để chuyển khoản nhanh</h4>
-                                <div class="mb-3">
-                                    <img src="/KhachThue/HoaDon/GetVietQR?hoaDonId=${res.hoaDonId}" alt="VietQR" />
-                                </div>
-                                <p class="small text-muted mb-3">Sử dụng ứng dụng ngân hàng hoặc ví điện tử để quét mã QR</p>
-                                <div class="qr-details-list bg-body-secondary p-3 rounded text-start">
-                                    <div class="qr-detail-item"><span>Ngân hàng:</span><strong>${escapeHtml(res.bankId)}</strong></div>
-                                    <div class="qr-detail-item"><span>Số tài khoản:</span><strong>${escapeHtml(res.accountNumber)}</strong></div>
-                                    <div class="qr-detail-item"><span>Chủ tài khoản:</span><strong>${escapeHtml(res.accountName)}</strong></div>
-                                    <div class="qr-detail-item"><span>Số tiền:</span><strong class="text-danger">${formatVND(res.tongTien)}</strong></div>
-                                    <div class="qr-detail-item"><span>Nội dung CK:</span><code class="text-primary font-weight-bold">THANH TOAN ${escapeHtml(res.maHoaDon)}</code></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    `;
+                // Khung "Thanh toán": lượt thanh toán, QR theo lượt và nộp minh chứng.
+                if (!res.daHuy) {
+                    html += '<div id="ktPaymentPanel" class="mt-4 pt-3 border-top"></div>';
                 }
 
                 $('#chiTietBody').html(html);
+                if (!res.daHuy) {
+                    KtThanhToan.load(res.hoaDonId, '#ktPaymentPanel', function () {
+                        $('#hoaDonTable').DataTable().ajax.reload(null, false);
+                    });
+                }
             }).fail(function() {
                 modal.hide();
                 Swal.fire('Lỗi', 'Không tìm thấy hóa đơn hoặc bạn không có quyền xem.', 'error');

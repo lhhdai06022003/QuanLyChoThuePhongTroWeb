@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs;
+using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Payments;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services;
 using QuanLyChoThuePhongTroWeb.Domain.Entities;
 using QuanLyChoThuePhongTroWeb.Domain.Enums;
@@ -64,7 +65,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                     PhuongThucThanhToan = ls.PhuongThucThanhToan == PhuongThucThanhToan.TienMat ? "Tiền mặt" : "Chuyển khoản",
                     NgayThanhToan = ls.NgayThanhToan.AddHours(7).ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture),
                     NguoiXacNhan = ls.NguoiXacNhan?.TenDangNhap ?? "",
-                    GhiChu = ls.GhiChu
+                    GhiChu = PaymentNoteTags.ToDisplayText(ls.GhiChu)
                 }).ToList()
             };
         }

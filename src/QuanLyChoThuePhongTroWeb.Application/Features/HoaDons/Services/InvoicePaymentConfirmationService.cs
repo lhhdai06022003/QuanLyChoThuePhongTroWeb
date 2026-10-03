@@ -1,9 +1,16 @@
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using QuanLyChoThuePhongTroWeb.Application.Abstractions.Persistence;
+using QuanLyChoThuePhongTroWeb.Application.Abstractions.Security;
+using QuanLyChoThuePhongTroWeb.Application.Abstractions.Services;
+using QuanLyChoThuePhongTroWeb.Application.Common.Configurations;
+using QuanLyChoThuePhongTroWeb.Application.Common.Enums;
+using QuanLyChoThuePhongTroWeb.Application.Common.Models;
+using QuanLyChoThuePhongTroWeb.Application.Common.Security;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs;
+using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Payments;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence;
 using QuanLyChoThuePhongTroWeb.Domain.Entities;
 using QuanLyChoThuePhongTroWeb.Domain.Enums;
@@ -12,352 +19,483 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
 {
     public class InvoicePaymentConfirmationService : IInvoicePaymentConfirmationService
     {
+        private const string ProofNotFound = "Không tìm thấy minh chứng thanh toán.";
+        private const string RequestNotFound = "Không tìm thấy lượt thanh toán.";
+        private const string NoReviewPermission = "Bạn không có quyền đối chiếu thanh toán tại chi nhánh này.";
+
         private readonly IInvoicePaymentStore _store;
-        private readonly IUnitOfWork _unitOfWork;
+        private readonly InvoicePaymentTransaction _transaction;
+        private readonly IEmployeeAccessService _access;
+        private readonly IMeterImageStorageService _storage;
+        private readonly InvoicePaymentOptions _options;
         private readonly ILogger<InvoicePaymentConfirmationService> _logger;
 
         public InvoicePaymentConfirmationService(
             IInvoicePaymentStore store,
-            IUnitOfWork unitOfWork,
+            InvoicePaymentTransaction transaction,
+            IEmployeeAccessService access,
+            IMeterImageStorageService storage,
+            InvoicePaymentOptions options,
             ILogger<InvoicePaymentConfirmationService> logger)
         {
             _store = store;
-            _unitOfWork = unitOfWork;
+            _transaction = transaction;
+            _access = access;
+            _storage = storage;
+            _options = options;
             _logger = logger;
         }
 
-        public async Task<YeuCauThanhToanRes> TaoYeuCauThanhToanAsync(
-            int hoaDonId,
-            decimal soTien,
-            string noiDung,
-            int? nguoiTaoId = null,
-            CancellationToken cancellationToken = default)
+        public async Task<ServiceResult<DataTableResponse<ReviewQueueRowDto>>> GetReviewQueueAsync(
+            int actorId, ReviewQueueFilter filter, DataTableRequest request, CancellationToken ct = default)
         {
-            var hoaDon = await _store.GetHoaDonByIdAsync(hoaDonId, cancellationToken);
-            if (hoaDon == null)
+            var scope = await _access.GetScopeAsync(actorId, ct);
+            if (scope == null)
             {
-                throw new InvalidOperationException("Không tìm thấy hóa đơn.");
+                return ServiceResult<DataTableResponse<ReviewQueueRowDto>>.Forbidden("Bạn không có quyền xem hàng đợi đối chiếu.");
             }
 
-            hoaDon.KiemTraDuDieuKienYeuCauThanhToan();
-
-            var tongDaThanhToan = await _store.GetTongTienDaThanhToanHoaDonAsync(hoaDonId, cancellationToken);
-            var conLai = hoaDon.TongTien - tongDaThanhToan;
-
-            if (soTien <= 0)
+            filter ??= new ReviewQueueFilter();
+            var empty = new DataTableResponse<ReviewQueueRowDto> { draw = request.Draw };
+            if (filter.ChiNhanhId > 0 && !scope.CanAccessBranch(filter.ChiNhanhId))
             {
-                throw new ArgumentOutOfRangeException(nameof(soTien), "Số tiền yêu cầu thanh toán phải lớn hơn 0.");
+                return ServiceResult<DataTableResponse<ReviewQueueRowDto>>.Ok(empty);
             }
 
-            if (soTien > conLai)
+            var page = await _store.GetReviewQueueAsync(new ReviewQueueQuery
             {
-                throw new InvalidOperationException("Số tiền yêu cầu thanh toán vượt quá số tiền còn lại của hóa đơn.");
-            }
+                ChiNhanhId = filter.ChiNhanhId,
+                AllowedBranchIds = scope.IsAdmin ? null : scope.ActiveBranchIds.ToList(),
+                DaXuLy = filter.DaXuLy,
+                ChiChoAdmin = filter.ChiChoAdmin,
+                SearchValue = request.SearchValue,
+                Start = Math.Max(0, request.Start),
+                Length = request.Length is > 0 and <= 100 ? request.Length : 25
+            }, ct);
 
-            if (soTien < conLai)
+            return ServiceResult<DataTableResponse<ReviewQueueRowDto>>.Ok(new DataTableResponse<ReviewQueueRowDto>
             {
-                if (!hoaDon.ChoPhepThanhToanMotPhan)
-                {
-                    throw new InvalidOperationException("Hóa đơn này không cho phép thanh toán một phần.");
-                }
-
-                if (hoaDon.SoTienThanhToanToiThieu.HasValue && soTien < hoaDon.SoTienThanhToanToiThieu.Value)
-                {
-                    throw new InvalidOperationException($"Số tiền thanh toán phải lớn hơn hoặc bằng mức tối thiểu ({hoaDon.SoTienThanhToanToiThieu.Value:#,##0} VNĐ).");
-                }
-            }
-
-            var yeuCau = new YeuCauThanhToanHoaDon
-            {
-                HoaDonId = hoaDonId,
-                MaYeuCau = $"REQ-{DateTime.UtcNow:yyyyMMddHHmmss}-{hoaDonId}",
-                SoTien = soTien,
-                NoiDungChuyenKhoan = noiDung,
-                HanThanhToan = hoaDon.HanThanhToan,
-                TrangThai = TrangThaiYeuCauThanhToan.ChoThanhToan,
-                NguoiTaoId = nguoiTaoId,
-                NgayTao = DateTime.UtcNow
-            };
-
-            await _store.AddYeuCauThanhToanAsync(yeuCau, cancellationToken);
-            await _store.AddLichSuTrangThaiYeuCauAsync(new LichSuTrangThaiYeuCauThanhToanHoaDon
-            {
-                YeuCauThanhToanHoaDon = yeuCau,
-                TrangThaiCu = null,
-                TrangThaiMoi = TrangThaiYeuCauThanhToan.ChoThanhToan,
-                NguoiThucHienId = nguoiTaoId,
-                NgayThucHien = DateTime.UtcNow,
-                LyDo = "Tạo yêu cầu thanh toán mới"
-            }, cancellationToken);
-
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
-
-            return new YeuCauThanhToanRes
-            {
-                YeuCauThanhToanHoaDonId = yeuCau.YeuCauThanhToanHoaDonId,
-                HoaDonId = yeuCau.HoaDonId,
-                MaYeuCau = yeuCau.MaYeuCau,
-                SoTien = yeuCau.SoTien,
-                NoiDungChuyenKhoan = yeuCau.NoiDungChuyenKhoan,
-                HanThanhToan = yeuCau.HanThanhToan,
-                TrangThai = yeuCau.TrangThai,
-                NgayTao = yeuCau.NgayTao
-            };
+                draw = request.Draw,
+                recordsTotal = page.Total,
+                recordsFiltered = page.Total,
+                data = page.Rows.Select(PaymentDtoMapper.ToDto).ToList()
+            });
         }
 
-        public async Task<MinhChungThanhToanRes> NopMinhChungAsync(
-            int yeuCauId,
-            string hinhAnhUrl,
-            decimal soTienKhaiBao,
-            DateTime ngayChuyen,
-            string? maGiaoDich = null,
-            string? publicId = null,
-            CancellationToken cancellationToken = default)
+        public async Task<ServiceResult<PaymentRequestDetailDto>> GetProofDetailAsync(int minhChungId, int actorId, CancellationToken ct = default)
         {
-            var yeuCau = await _store.GetYeuCauThanhToanByIdAsync(yeuCauId, cancellationToken);
-            if (yeuCau == null)
+            var target = await _store.GetTargetByMinhChungAsync(minhChungId, ct);
+            if (target?.YeuCauId == null)
             {
-                throw new InvalidOperationException("Không tìm thấy yêu cầu thanh toán.");
+                return ServiceResult<PaymentRequestDetailDto>.NotFound(ProofNotFound);
             }
 
-            if (yeuCau.TrangThai == TrangThaiYeuCauThanhToan.DaHoanTat ||
-                yeuCau.TrangThai == TrangThaiYeuCauThanhToan.DaHuy ||
-                yeuCau.TrangThai == TrangThaiYeuCauThanhToan.HetHan)
+            if (!await _access.CanPerformAsync(actorId, target.ChiNhanhId, EmployeeActionCodes.PaymentReview, ct))
             {
-                throw new InvalidOperationException($"Yêu cầu thanh toán ở trạng thái {yeuCau.TrangThai}, không thể nộp thêm minh chứng.");
+                return ServiceResult<PaymentRequestDetailDto>.Forbidden(NoReviewPermission);
             }
 
-            var minhChung = new MinhChungThanhToanHoaDon
-            {
-                YeuCauThanhToanHoaDonId = yeuCauId,
-                HinhAnhUrl = hinhAnhUrl,
-                PublicId = publicId,
-                MaGiaoDichNganHang = maGiaoDich,
-                SoTienKhaiBao = soTienKhaiBao,
-                NgayChuyenKhaiBao = ngayChuyen,
-                TrangThaiDoiChieu = TrangThaiMinhChungThanhToan.ChoXacNhan,
-                NgayTao = DateTime.UtcNow
-            };
-
-            var trangThaiCu = yeuCau.TrangThai;
-            yeuCau.TrangThai = TrangThaiYeuCauThanhToan.DangDoiChieu;
-            yeuCau.NgayCapNhat = DateTime.UtcNow;
-            _store.UpdateYeuCauThanhToan(yeuCau);
-
-            await _store.AddMinhChungThanhToanAsync(minhChung, cancellationToken);
-            await _store.AddLichSuTrangThaiYeuCauAsync(new LichSuTrangThaiYeuCauThanhToanHoaDon
-            {
-                YeuCauThanhToanHoaDonId = yeuCauId,
-                TrangThaiCu = trangThaiCu,
-                TrangThaiMoi = TrangThaiYeuCauThanhToan.DangDoiChieu,
-                NgayThucHien = DateTime.UtcNow,
-                LyDo = "Khách thuê nộp minh chứng chuyển khoản"
-            }, cancellationToken);
-
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
-
-            return new MinhChungThanhToanRes
-            {
-                MinhChungThanhToanHoaDonId = minhChung.MinhChungThanhToanHoaDonId,
-                YeuCauThanhToanHoaDonId = minhChung.YeuCauThanhToanHoaDonId,
-                HinhAnhUrl = minhChung.HinhAnhUrl,
-                PublicId = minhChung.PublicId,
-                MaGiaoDichNganHang = minhChung.MaGiaoDichNganHang,
-                SoTienKhaiBao = minhChung.SoTienKhaiBao,
-                NgayChuyenKhaiBao = minhChung.NgayChuyenKhaiBao,
-                TrangThaiDoiChieu = minhChung.TrangThaiDoiChieu,
-                LyDoTuChoi = minhChung.LyDoTuChoi
-            };
+            return await BuildDetailAsync(target, minhChungId, actorId, ct);
         }
 
-        public async Task<XacNhanThanhToanRes> XacNhanMinhChungAsync(
-            int minhChungId,
-            int nguoiXacNhanId,
-            string? ghiChu = null,
-            CancellationToken cancellationToken = default)
+        public async Task<ServiceResult<MeterImageReadResult>> GetProofImageAsync(int minhChungId, int actorId, CancellationToken ct = default)
         {
-            await using var tx = await _unitOfWork.BeginTransactionAsync(cancellationToken);
-            try
+            var target = await _store.GetTargetByMinhChungAsync(minhChungId, ct);
+            if (target?.YeuCauId == null)
             {
-                var minhChung = await _store.GetMinhChungByIdWithDetailsAsync(minhChungId, cancellationToken);
-                if (minhChung == null)
-                {
-                    throw new InvalidOperationException("Không tìm thấy minh chứng thanh toán.");
-                }
-
-                if (minhChung.TrangThaiDoiChieu == TrangThaiMinhChungThanhToan.DaXacNhan)
-                {
-                    throw new InvalidOperationException("Minh chứng thanh toán này đã được xác nhận trước đó.");
-                }
-
-                if (minhChung.TrangThaiDoiChieu == TrangThaiMinhChungThanhToan.TuChoi)
-                {
-                    throw new InvalidOperationException("Không thể xác nhận minh chứng đã bị từ chối.");
-                }
-
-                var yeuCau = minhChung.YeuCauThanhToanHoaDon;
-                if (yeuCau == null)
-                {
-                    throw new InvalidOperationException("Không tìm thấy yêu cầu thanh toán của minh chứng.");
-                }
-
-                var hoaDon = yeuCau.HoaDon;
-                if (hoaDon == null)
-                {
-                    throw new InvalidOperationException("Không tìm thấy hóa đơn của yêu cầu thanh toán.");
-                }
-
-                var tongDaThanhToan = await _store.GetTongTienDaThanhToanHoaDonAsync(hoaDon.HoaDonId, cancellationToken);
-                if (tongDaThanhToan + minhChung.SoTienKhaiBao > hoaDon.TongTien)
-                {
-                    throw new InvalidOperationException("Tổng số tiền thanh toán không được vượt quá tổng tiền hóa đơn.");
-                }
-
-                // 1. Cập nhật minh chứng
-                minhChung.TrangThaiDoiChieu = TrangThaiMinhChungThanhToan.DaXacNhan;
-                minhChung.NguoiDoiChieuId = nguoiXacNhanId;
-                minhChung.NgayDoiChieu = DateTime.UtcNow;
-                _store.UpdateMinhChungThanhToan(minhChung);
-
-                // 2. Tạo bản ghi LichSuThanhToan
-                var maGiaoDich = !string.IsNullOrWhiteSpace(minhChung.MaGiaoDichNganHang)
-                    ? minhChung.MaGiaoDichNganHang
-                    : $"PAY-{DateTime.UtcNow:yyyyMMddHHmmss}-{minhChung.MinhChungThanhToanHoaDonId}";
-
-                var lichSu = new LichSuThanhToan
-                {
-                    HoaDonId = hoaDon.HoaDonId,
-                    MaGiaoDich = maGiaoDich,
-                    SoTienThanhToan = minhChung.SoTienKhaiBao,
-                    PhuongThucThanhToan = PhuongThucThanhToan.ChuyenKhoan,
-                    NguoiXacNhanId = nguoiXacNhanId,
-                    NgayThanhToan = minhChung.NgayChuyenKhaiBao,
-                    NgayXacNhan = DateTime.UtcNow,
-                    MinhChungThanhToanHoaDonId = minhChung.MinhChungThanhToanHoaDonId,
-                    GhiChu = ghiChu ?? "Xác nhận chuyển khoản VietQR"
-                };
-                await _store.AddLichSuThanhToanAsync(lichSu, cancellationToken);
-
-                // 3. Cập nhật yêu cầu thanh toán
-                var oldYcStatus = yeuCau.TrangThai;
-                yeuCau.TrangThai = TrangThaiYeuCauThanhToan.DaHoanTat;
-                yeuCau.NgayCapNhat = DateTime.UtcNow;
-                _store.UpdateYeuCauThanhToan(yeuCau);
-
-                await _store.AddLichSuTrangThaiYeuCauAsync(new LichSuTrangThaiYeuCauThanhToanHoaDon
-                {
-                    YeuCauThanhToanHoaDonId = yeuCau.YeuCauThanhToanHoaDonId,
-                    TrangThaiCu = oldYcStatus,
-                    TrangThaiMoi = TrangThaiYeuCauThanhToan.DaHoanTat,
-                    NguoiThucHienId = nguoiXacNhanId,
-                    NgayThucHien = DateTime.UtcNow,
-                    LyDo = "Đối soát minh chứng thành công"
-                }, cancellationToken);
-
-                // 4. Cập nhật trạng thái hóa đơn
-                var oldHdStatus = hoaDon.TrangThaiHoaDon;
-                var tongSauThanhToan = tongDaThanhToan + minhChung.SoTienKhaiBao;
-                var newHdStatus = (tongSauThanhToan >= hoaDon.TongTien)
-                    ? TrangThaiHoaDon.DaThanhToan
-                    : TrangThaiHoaDon.ThanhToanMotPhan;
-
-                hoaDon.TrangThaiHoaDon = newHdStatus;
-                hoaDon.NgayCapNhat = DateTime.UtcNow;
-                _store.UpdateHoaDon(hoaDon);
-
-                await _store.AddLichSuTrangThaiHoaDonAsync(new LichSuTrangThaiHoaDon
-                {
-                    HoaDonId = hoaDon.HoaDonId,
-                    TrangThaiPhatHanhCu = hoaDon.TrangThaiPhatHanh,
-                    TrangThaiPhatHanhMoi = hoaDon.TrangThaiPhatHanh,
-                    TrangThaiThanhToanCu = oldHdStatus,
-                    TrangThaiThanhToanMoi = newHdStatus,
-                    NguoiThucHienId = nguoiXacNhanId,
-                    NgayThucHien = DateTime.UtcNow,
-                    LyDo = $"Xác nhận thanh toán minh chứng {minhChung.MinhChungThanhToanHoaDonId}"
-                }, cancellationToken);
-
-                await _unitOfWork.SaveChangesAsync(cancellationToken);
-                await tx.CommitAsync(cancellationToken);
-
-                return new XacNhanThanhToanRes
-                {
-                    LichSuThanhToanId = lichSu.LichSuThanhToanId,
-                    HoaDonId = hoaDon.HoaDonId,
-                    MaGiaoDich = lichSu.MaGiaoDich,
-                    SoTienThanhToan = lichSu.SoTienThanhToan,
-                    MinhChungThanhToanHoaDonId = lichSu.MinhChungThanhToanHoaDonId,
-                    TrangThaiHoaDon = newHdStatus,
-                    NgayThanhToan = lichSu.NgayThanhToan
-                };
+                return ServiceResult<MeterImageReadResult>.NotFound("Không tìm thấy ảnh minh chứng.");
             }
-            catch (Exception ex)
+
+            if (!await _access.CanPerformAsync(actorId, target.ChiNhanhId, EmployeeActionCodes.PaymentReview, ct))
             {
-                await tx.RollbackAsync(cancellationToken);
-                _logger.LogError(ex, "Lỗi khi xác nhận minh chứng thanh toán ID: {MinhChungId}", minhChungId);
-                throw;
+                return ServiceResult<MeterImageReadResult>.Forbidden(NoReviewPermission);
             }
+
+            return await PaymentProofImageReader.ReadAsync(_store, _storage, _logger, target.YeuCauId.Value, minhChungId, ct);
         }
 
-        public async Task TuChoiMinhChungAsync(
-            int minhChungId,
-            int nguoiDoiChieuId,
-            string lyDo,
-            CancellationToken cancellationToken = default)
+        public async Task<ServiceResult<PaymentRequestDetailDto>> SearchPaymentRequestAsync(string maYeuCau, int actorId, CancellationToken ct = default)
         {
-            if (string.IsNullOrWhiteSpace(lyDo))
+            if (string.IsNullOrWhiteSpace(maYeuCau))
             {
-                throw new ArgumentException("Lý do từ chối không được để trống.", nameof(lyDo));
+                return ServiceResult<PaymentRequestDetailDto>.Fail("Vui lòng nhập mã lượt thanh toán.");
             }
 
-            await using var tx = await _unitOfWork.BeginTransactionAsync(cancellationToken);
-            try
+            var target = await _store.GetTargetByMaYeuCauAsync(maYeuCau, ct);
+            // Ngoài phạm vi chi nhánh trả "không tìm thấy" như không tồn tại (spec §21).
+            if (target?.YeuCauId == null ||
+                !await _access.CanPerformAsync(actorId, target.ChiNhanhId, EmployeeActionCodes.PaymentReview, ct))
             {
-                var minhChung = await _store.GetMinhChungByIdWithDetailsAsync(minhChungId, cancellationToken);
-                if (minhChung == null)
+                return ServiceResult<PaymentRequestDetailDto>.NotFound(RequestNotFound);
+            }
+
+            return await BuildDetailAsync(target, null, actorId, ct);
+        }
+
+        private async Task<ServiceResult<PaymentRequestDetailDto>> BuildDetailAsync(
+            InvoicePaymentTarget target, int? minhChungId, int actorId, CancellationToken ct)
+        {
+            var invoice = await _store.GetInvoiceSnapshotAsync(target.HoaDonId, ct);
+            var request = await _store.GetRequestSnapshotAsync(target.YeuCauId!.Value, ct);
+            if (invoice == null || request == null)
+            {
+                return ServiceResult<PaymentRequestDetailDto>.NotFound(RequestNotFound);
+            }
+
+            var isAdmin = await IsAdminAsync(actorId, ct);
+            var requestDto = PaymentDtoMapper.ToDto(request, _transaction.UtcNow);
+            var proof = minhChungId.HasValue ? requestDto.MinhChungs.FirstOrDefault(m => m.MinhChungId == minhChungId.Value) : null;
+
+            return ServiceResult<PaymentRequestDetailDto>.Ok(new PaymentRequestDetailDto
+            {
+                HoaDonId = invoice.HoaDonId,
+                MaHoaDon = invoice.MaHoaDon,
+                TenPhong = invoice.TenPhong,
+                TenChiNhanh = invoice.TenChiNhanh,
+                TenKhachThue = invoice.TenKhachThue,
+                TongTien = invoice.TongTien,
+                DaThu = invoice.DaThu,
+                ConLai = invoice.TongTien - invoice.DaThu,
+                ChoPhepThanhToanMotPhan = invoice.ChoPhepThanhToanMotPhan,
+                TrangThaiHoaDon = InvoiceStatusLabels.HienThi(invoice.TrangThaiPhatHanh, invoice.TrangThaiHoaDon),
+                HoaDonDaHuy = invoice.IsDeleted || invoice.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaHuy,
+                LuotThanhToan = requestDto,
+                MinhChungDangXemId = proof?.MinhChungId,
+                LaAdmin = isAdmin,
+                CoTheDoiChieu = proof != null &&
+                    proof.TrangThai == AppTrangThaiMinhChungThanhToan.ChoXacNhan &&
+                    requestDto.TrangThai == AppTrangThaiYeuCauThanhToan.DangDoiChieu &&
+                    (isAdmin || !requestDto.ChoAdmin)
+            });
+        }
+
+        public async Task<ServiceResult<ConfirmPaymentResult>> ConfirmAsync(ConfirmPaymentRequest request, int actorId, CancellationToken ct = default)
+        {
+            if (request == null)
+            {
+                return ServiceResult<ConfirmPaymentResult>.Fail("Dữ liệu không hợp lệ.");
+            }
+
+            var inputError = InvoicePaymentPolicy.ValidateWholeAmount(request.SoTienThucNhan, "Số tiền thực nhận")
+                ?? (request.NgayGiaoDichUtc == default ? "Vui lòng nhập ngày giao dịch." : null)
+                ?? InvoicePaymentPolicy.ValidateNotFuture(request.NgayGiaoDichUtc, _transaction.UtcNow, _options.DungSaiNgayTuongLaiPhut, "Ngày giao dịch")
+                ?? InvoicePaymentPolicy.ValidateGhiChuTuyChon(request.GhiChu);
+            var maGiaoDich = InvoicePaymentPolicy.NormalizeText(request.MaGiaoDich);
+            inputError ??= InvoicePaymentPolicy.ValidateMaGiaoDich(maGiaoDich);
+            if (inputError != null)
+            {
+                return ServiceResult<ConfirmPaymentResult>.Fail(inputError);
+            }
+
+            var target = await _store.GetTargetByMinhChungAsync(request.MinhChungId, ct);
+            if (target == null)
+            {
+                return ServiceResult<ConfirmPaymentResult>.NotFound(ProofNotFound);
+            }
+
+            if (!await _access.CanPerformAsync(actorId, target.ChiNhanhId, EmployeeActionCodes.PaymentReview, ct))
+            {
+                return ServiceResult<ConfirmPaymentResult>.Forbidden(NoReviewPermission);
+            }
+
+            var isAdmin = await IsAdminAsync(actorId, ct);
+            var ghiChu = InvoicePaymentPolicy.NormalizeText(request.GhiChu);
+
+            return await _transaction.RunAsync(target.HoaDonId, actorId, async scope =>
+            {
+                var (minhChung, error) = await LoadReviewableProofAsync(scope, request.MinhChungId, isAdmin, ct);
+                if (error != null)
                 {
-                    throw new InvalidOperationException("Không tìm thấy minh chứng thanh toán.");
+                    return ServiceResult<ConfirmPaymentResult>.FailFrom(error);
                 }
 
-                if (minhChung.TrangThaiDoiChieu != TrangThaiMinhChungThanhToan.ChoXacNhan)
+                var yeuCau = minhChung!.YeuCauThanhToanHoaDon;
+                var hoaDon = scope.HoaDon;
+                if (scope.ConLai <= 0)
                 {
-                    throw new InvalidOperationException($"Không thể từ chối minh chứng ở trạng thái {minhChung.TrangThaiDoiChieu}.");
+                    return ServiceResult<ConfirmPaymentResult>.Fail("Hóa đơn đã được thanh toán đủ; khoản tiền này cần Admin xử lý ngoài hệ thống.");
                 }
 
-                minhChung.TrangThaiDoiChieu = TrangThaiMinhChungThanhToan.TuChoi;
-                minhChung.LyDoTuChoi = lyDo;
-                minhChung.NguoiDoiChieuId = nguoiDoiChieuId;
-                minhChung.NgayDoiChieu = DateTime.UtcNow;
-                _store.UpdateMinhChungThanhToan(minhChung);
-
-                var yeuCau = minhChung.YeuCauThanhToanHoaDon;
-                if (yeuCau != null)
+                var conLaiTruoc = scope.ConLai;
+                var thucNhan = request.SoTienThucNhan;
+                var decision = InvoicePaymentPolicy.DecideRecording(thucNhan, yeuCau.SoTien, conLaiTruoc, isAdmin);
+                if (decision.Kind != RecordingKind.Exact && ghiChu == null)
                 {
-                    var oldYcStatus = yeuCau.TrangThai;
-                    yeuCau.TrangThai = TrangThaiYeuCauThanhToan.TuChoi;
-                    yeuCau.NgayCapNhat = DateTime.UtcNow;
-                    _store.UpdateYeuCauThanhToan(yeuCau);
+                    return ServiceResult<ConfirmPaymentResult>.Fail("Số thực nhận khác số lượt, vui lòng ghi chú lý do.");
+                }
 
-                    await _store.AddLichSuTrangThaiYeuCauAsync(new LichSuTrangThaiYeuCauThanhToanHoaDon
+                var link = $"/QuanLyNhaTro/DoiChieuThanhToan?ma={yeuCau.MaYeuCau}";
+
+                if (decision.Kind == RecordingKind.NeedsAdmin)
+                {
+                    yeuCau.GhiChuyenAdmin(actorId, scope.NowUtc, PaymentNoteTags.ChoAdmin(thucNhan, conLaiTruoc, ghiChu));
+                    await scope.NotifyAdminsAsync(
+                        "Thanh toán cần Admin xử lý",
+                        $"Lượt {yeuCau.MaYeuCau} (hóa đơn {hoaDon.MaHoaDon}): thực nhận {Vnd(thucNhan)}đ, vượt số còn nợ {Vnd(conLaiTruoc)}đ.",
+                        link);
+
+                    return ServiceResult<ConfirmPaymentResult>.Ok(new ConfirmPaymentResult
                     {
-                        YeuCauThanhToanHoaDonId = yeuCau.YeuCauThanhToanHoaDonId,
-                        TrangThaiCu = oldYcStatus,
-                        TrangThaiMoi = TrangThaiYeuCauThanhToan.TuChoi,
-                        NguoiThucHienId = nguoiDoiChieuId,
-                        NgayThucHien = DateTime.UtcNow,
-                        LyDo = lyDo
-                    }, cancellationToken);
+                        KetQua = KetQuaDoiChieu.DaChuyenAdmin,
+                        ChenhLech = decision.ChenhLech,
+                        ConLai = conLaiTruoc,
+                        TrangThaiHoaDon = InvoiceStatusLabels.ThanhToan(hoaDon.TrangThaiHoaDon),
+                        Message = "Số thực nhận vượt số còn nợ, đã chuyển Admin xử lý."
+                    }, "Đã chuyển Admin xử lý.");
                 }
 
-                await _unitOfWork.SaveChangesAsync(cancellationToken);
-                await tx.CommitAsync(cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                await tx.RollbackAsync(cancellationToken);
-                _logger.LogError(ex, "Lỗi khi từ chối minh chứng thanh toán ID: {MinhChungId}", minhChungId);
-                throw;
-            }
+                var maGhiNhan = maGiaoDich ?? yeuCau.MaYeuCau;
+                if (await scope.Store.ExistsMaGiaoDichAsync(maGhiNhan, ct))
+                {
+                    return ServiceResult<ConfirmPaymentResult>.Fail("Mã giao dịch đã được ghi nhận.");
+                }
+
+                scope.Store.AddLedgerEntry(new LichSuThanhToan
+                {
+                    HoaDonId = hoaDon.HoaDonId,
+                    MaGiaoDich = maGhiNhan,
+                    SoTienThanhToan = decision.SoTienGhiNhan,
+                    PhuongThucThanhToan = PhuongThucThanhToan.ChuyenKhoan,
+                    NgayThanhToan = request.NgayGiaoDichUtc,
+                    NgayXacNhan = scope.NowUtc,
+                    NguoiXacNhanId = actorId,
+                    MinhChungThanhToanHoaDonId = minhChung.MinhChungThanhToanHoaDonId,
+                    GhiChu = decision.Kind switch
+                    {
+                        RecordingKind.Variance => PaymentNoteTags.ChenhLech(decision.ChenhLech, ghiChu!),
+                        RecordingKind.Overpay => PaymentNoteTags.TienThua(decision.ChenhLech, ghiChu!),
+                        _ => ghiChu ?? string.Empty
+                    }
+                });
+
+                yeuCau.HoanTat(minhChung, actorId, scope.NowUtc, decision.Kind switch
+                {
+                    RecordingKind.Variance => $"Thực nhận {Vnd(thucNhan)}, khác số lượt {Vnd(yeuCau.SoTien)}: {ghiChu}",
+                    RecordingKind.Overpay => $"Thực nhận {Vnd(thucNhan)}, vượt số còn nợ {Vnd(conLaiTruoc)}; ghi nhận {Vnd(decision.SoTienGhiNhan)}, tiền thừa {Vnd(decision.ChenhLech)}: {ghiChu}",
+                    _ => $"Đối chiếu khớp, ghi nhận {Vnd(decision.SoTienGhiNhan)}"
+                });
+
+                await scope.ApplyLedgerChangeAsync($"Xác nhận thanh toán lượt {yeuCau.MaYeuCau}");
+
+                await scope.NotifyTenantAsync(
+                    "Thanh toán đã được xác nhận",
+                    $"Hóa đơn {hoaDon.MaHoaDon}: đã ghi nhận {Vnd(decision.SoTienGhiNhan)}đ, còn lại {Vnd(scope.ConLai)}đ.");
+
+                if (decision.Kind == RecordingKind.Overpay)
+                {
+                    await scope.NotifyAdminsAsync(
+                        "Ghi nhận thanh toán có tiền thừa",
+                        $"Hóa đơn {hoaDon.MaHoaDon}: tiền thừa {Vnd(decision.ChenhLech)}đ cần xử lý ngoài hệ thống.",
+                        link);
+                }
+                else if (decision.Kind == RecordingKind.Variance && !hoaDon.ChoPhepThanhToanMotPhan && scope.ConLai > 0)
+                {
+                    await scope.NotifyAdminsAsync(
+                        "Ghi nhận thanh toán thiếu",
+                        $"Hóa đơn {hoaDon.MaHoaDon} không cho trả một phần nhưng thực nhận {Vnd(thucNhan)}đ, còn nợ {Vnd(scope.ConLai)}đ.",
+                        link);
+                }
+
+                var ketQua = decision.Kind switch
+                {
+                    RecordingKind.Variance => KetQuaDoiChieu.DaGhiNhanSoThucNhan,
+                    RecordingKind.Overpay => KetQuaDoiChieu.DaXacNhanCoTienThua,
+                    _ => KetQuaDoiChieu.DaXacNhan
+                };
+
+                return ServiceResult<ConfirmPaymentResult>.Ok(new ConfirmPaymentResult
+                {
+                    KetQua = ketQua,
+                    SoTienGhiNhan = decision.SoTienGhiNhan,
+                    ChenhLech = decision.ChenhLech,
+                    ConLai = scope.ConLai,
+                    TrangThaiHoaDon = InvoiceStatusLabels.ThanhToan(hoaDon.TrangThaiHoaDon),
+                    Message = $"Đã ghi nhận {Vnd(decision.SoTienGhiNhan)}đ."
+                }, "Đã xác nhận thanh toán.");
+            }, ct);
         }
+
+        public async Task<ServiceResult<bool>> RejectAsync(int minhChungId, int actorId, string lyDo, CancellationToken ct = default)
+        {
+            var lyDoError = InvoicePaymentPolicy.ValidateLyDo(lyDo, "Lý do từ chối");
+            if (lyDoError != null)
+            {
+                return ServiceResult<bool>.Fail(lyDoError);
+            }
+
+            var target = await _store.GetTargetByMinhChungAsync(minhChungId, ct);
+            if (target == null)
+            {
+                return ServiceResult<bool>.NotFound(ProofNotFound);
+            }
+
+            if (!await _access.CanPerformAsync(actorId, target.ChiNhanhId, EmployeeActionCodes.PaymentReview, ct))
+            {
+                return ServiceResult<bool>.Forbidden(NoReviewPermission);
+            }
+
+            var isAdmin = await IsAdminAsync(actorId, ct);
+            var lyDoTrim = lyDo.Trim();
+
+            return await _transaction.RunAsync(target.HoaDonId, actorId, async scope =>
+            {
+                var (minhChung, error) = await LoadReviewableProofAsync(scope, minhChungId, isAdmin, ct);
+                if (error != null)
+                {
+                    return ServiceResult<bool>.FailFrom(error);
+                }
+
+                var yeuCau = minhChung!.YeuCauThanhToanHoaDon;
+                yeuCau.TuChoiMinhChung(minhChung, actorId, lyDoTrim, scope.NowUtc, scope.NowUtc.AddHours(_options.YeuCauHetHanSauGio));
+
+                await scope.NotifyTenantAsync(
+                    "Minh chứng thanh toán bị từ chối",
+                    $"Lượt {yeuCau.MaYeuCau} (hóa đơn {scope.HoaDon.MaHoaDon}): {lyDoTrim}. Bạn có thể nộp lại minh chứng trên cùng lượt.");
+
+                return ServiceResult<bool>.Ok(true, "Đã từ chối minh chứng.");
+            }, ct);
+        }
+
+        // Minh chứng phải còn chờ xác nhận, lượt đang chờ đối chiếu; lượt "chờ Admin" chỉ Admin xử lý (spec §16.1).
+        private static async Task<(MinhChungThanhToanHoaDon? MinhChung, ServiceResult? Error)> LoadReviewableProofAsync(
+            InvoicePaymentScope scope, int minhChungId, bool isAdmin, CancellationToken ct)
+        {
+            var minhChung = await scope.Store.GetProofAsync(minhChungId, ct);
+            if (minhChung == null || minhChung.YeuCauThanhToanHoaDon.HoaDonId != scope.HoaDon.HoaDonId)
+            {
+                return (null, ServiceResult.NotFound(ProofNotFound));
+            }
+
+            if (minhChung.TrangThaiDoiChieu != TrangThaiMinhChungThanhToan.ChoXacNhan ||
+                minhChung.YeuCauThanhToanHoaDon.TrangThai != TrangThaiYeuCauThanhToan.DangDoiChieu)
+            {
+                return (null, ServiceResult.Fail("Minh chứng đã được xử lý trước đó."));
+            }
+
+            if (scope.HoaDon.IsDeleted || scope.HoaDon.TrangThaiPhatHanh != TrangThaiPhatHanhHoaDon.DaGui)
+            {
+                return (null, ServiceResult.Fail("Hóa đơn không còn ở trạng thái nhận thanh toán."));
+            }
+
+            if (!isAdmin && PaymentNoteTags.IsWaitingAdmin(minhChung.YeuCauThanhToanHoaDon))
+            {
+                return (null, ServiceResult.Forbidden("Lượt này đang chờ Admin xử lý."));
+            }
+
+            return (minhChung, null);
+        }
+
+        public async Task<ServiceResult<InvoicePaymentSummaryDto>> ConfigurePartialPaymentAsync(
+            ConfigurePartialPaymentRequest request, int actorId, CancellationToken ct = default)
+        {
+            if (request == null)
+            {
+                return ServiceResult<InvoicePaymentSummaryDto>.Fail("Dữ liệu không hợp lệ.");
+            }
+
+            if (request.ChoPhep)
+            {
+                var amountError = request.SoTienToiThieu.HasValue
+                    ? InvoicePaymentPolicy.ValidateWholeAmount(request.SoTienToiThieu.Value, "Mức thanh toán tối thiểu")
+                    : "Vui lòng nhập mức thanh toán tối thiểu.";
+                if (amountError != null)
+                {
+                    return ServiceResult<InvoicePaymentSummaryDto>.Fail(amountError);
+                }
+            }
+
+            var target = await _store.GetTargetByHoaDonAsync(request.HoaDonId, ct);
+            if (target == null)
+            {
+                return ServiceResult<InvoicePaymentSummaryDto>.NotFound("Không tìm thấy hóa đơn.");
+            }
+
+            if (!await _access.CanPerformAsync(actorId, target.ChiNhanhId, EmployeeActionCodes.PaymentConfigurePartial, ct))
+            {
+                return ServiceResult<InvoicePaymentSummaryDto>.Forbidden("Chỉ Admin được cấu hình thanh toán một phần.");
+            }
+
+            return await _transaction.RunAsync(request.HoaDonId, actorId, async scope =>
+            {
+                var hoaDon = scope.HoaDon;
+                if (hoaDon.IsDeleted || hoaDon.TrangThaiPhatHanh != TrangThaiPhatHanhHoaDon.DaGui)
+                {
+                    return ServiceResult<InvoicePaymentSummaryDto>.Fail("Chỉ cấu hình cho hóa đơn đã gửi khách.");
+                }
+
+                if (hoaDon.TrangThaiHoaDon == TrangThaiHoaDon.DaThanhToan)
+                {
+                    return ServiceResult<InvoicePaymentSummaryDto>.Fail("Hóa đơn đã được thanh toán đủ.");
+                }
+
+                if (await scope.Store.GetActiveRequestAsync(hoaDon.HoaDonId, scope.NowUtc, ct) != null)
+                {
+                    return ServiceResult<InvoicePaymentSummaryDto>.Fail("Hóa đơn đang có lượt thanh toán chưa hoàn tất, chưa thể đổi cấu hình.");
+                }
+
+                if (request.ChoPhep && request.SoTienToiThieu!.Value > hoaDon.TongTien)
+                {
+                    return ServiceResult<InvoicePaymentSummaryDto>.Fail("Mức tối thiểu không được vượt tổng tiền hóa đơn.");
+                }
+
+                hoaDon.CauHinhThanhToanMotPhan(request.ChoPhep, request.ChoPhep ? request.SoTienToiThieu : null, actorId, scope.NowUtc);
+
+                return ServiceResult<InvoicePaymentSummaryDto>.Ok(new InvoicePaymentSummaryDto
+                {
+                    HoaDonId = hoaDon.HoaDonId,
+                    TongTien = hoaDon.TongTien,
+                    DaThu = scope.DaThu,
+                    ConLai = scope.ConLai,
+                    ChoPhepThanhToanMotPhan = hoaDon.ChoPhepThanhToanMotPhan,
+                    SoTienThanhToanToiThieu = hoaDon.SoTienThanhToanToiThieu,
+                    LaAdmin = true
+                }, request.ChoPhep ? "Đã bật thanh toán một phần." : "Đã tắt thanh toán một phần.");
+            }, ct);
+        }
+
+        public async Task<ServiceResult<InvoicePaymentSummaryDto>> GetInvoicePaymentSummaryAsync(int hoaDonId, int actorId, CancellationToken ct = default)
+        {
+            var target = await _store.GetTargetByHoaDonAsync(hoaDonId, ct);
+            if (target == null)
+            {
+                return ServiceResult<InvoicePaymentSummaryDto>.NotFound("Không tìm thấy hóa đơn.");
+            }
+
+            if (!await _access.CanPerformAsync(actorId, target.ChiNhanhId, EmployeeActionCodes.InvoiceRead, ct))
+            {
+                return ServiceResult<InvoicePaymentSummaryDto>.Forbidden("Bạn không có quyền xem hóa đơn tại chi nhánh này.");
+            }
+
+            var invoice = await _store.GetInvoiceSnapshotAsync(hoaDonId, ct);
+            if (invoice == null)
+            {
+                return ServiceResult<InvoicePaymentSummaryDto>.NotFound("Không tìm thấy hóa đơn.");
+            }
+
+            var now = _transaction.UtcNow;
+            var active = (await _store.GetRequestSnapshotsAsync(hoaDonId, ct))
+                .Select(r => PaymentDtoMapper.ToDto(r, now))
+                .FirstOrDefault(PaymentDtoMapper.IsActive);
+
+            return ServiceResult<InvoicePaymentSummaryDto>.Ok(new InvoicePaymentSummaryDto
+            {
+                HoaDonId = invoice.HoaDonId,
+                TongTien = invoice.TongTien,
+                DaThu = invoice.DaThu,
+                ConLai = invoice.TongTien - invoice.DaThu,
+                ChoPhepThanhToanMotPhan = invoice.ChoPhepThanhToanMotPhan,
+                SoTienThanhToanToiThieu = invoice.SoTienThanhToanToiThieu,
+                MaLuotHoatDong = active?.MaYeuCau,
+                TrangThaiLuotHoatDong = active?.TrangThaiHieuLuc,
+                LaAdmin = await IsAdminAsync(actorId, ct)
+            });
+        }
+
+        private async Task<bool> IsAdminAsync(int actorId, CancellationToken ct)
+        {
+            return (await _access.GetScopeAsync(actorId, ct))?.IsAdmin == true;
+        }
+
+        private static string Vnd(decimal soTien) => InvoicePaymentPolicy.FormatVnd(soTien);
     }
 }

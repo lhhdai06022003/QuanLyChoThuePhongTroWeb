@@ -248,6 +248,18 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             });
         }
 
+        private static async Task<HttpResponseMessage> PostTaoLuotAsync(HttpClient client, int hoaDonId)
+        {
+            var page = await client.GetAsync("/KhachThue/HoaDon");
+            var token = ExtractAntiForgeryToken(await page.Content.ReadAsStringAsync());
+            var req = new HttpRequestMessage(HttpMethod.Post, "/KhachThue/HoaDon/ThanhToan/Tao")
+            {
+                Content = new StringContent(JsonSerializer.Serialize(new { hoaDonId }), System.Text.Encoding.UTF8, "application/json")
+            };
+            req.Headers.Add("RequestVerificationToken", token);
+            return await client.SendAsync(req);
+        }
+
         [Fact]
         public async Task GetDanhSach_IncludesPublishState_CancelledMarked()
         {
@@ -275,7 +287,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
         }
 
         [Fact]
-        public async Task XemChiTiet_Cancelled_200_DaHuyReason_NoBankInfo_CannotPay()
+        public async Task XemChiTiet_Cancelled_200_DaHuyReason_PanelCannotPay()
         {
             var data = await SeedTestDataAsync("XCT_Can");
             var client = CreateHttpClient();
@@ -289,10 +301,12 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
 
             Assert.True(root.GetProperty("daHuy").GetBoolean());
             Assert.Equal("Khách yêu cầu hủy", root.GetProperty("lyDoHuy").GetString());
-            Assert.False(root.GetProperty("coTheThanhToan").GetBoolean());
-            Assert.Equal("", root.GetProperty("bankId").GetString());
-            Assert.Equal("", root.GetProperty("accountNumber").GetString());
-            Assert.Equal("", root.GetProperty("accountName").GetString());
+            Assert.False(root.TryGetProperty("bankId", out _));
+
+            var panel = await client.GetAsync($"/KhachThue/HoaDon/ThanhToan/{data.InvoiceCancelled.HoaDonId}");
+            Assert.Equal(HttpStatusCode.OK, panel.StatusCode);
+            using var panelDoc = JsonDocument.Parse(await panel.Content.ReadAsStringAsync());
+            Assert.False(panelDoc.RootElement.GetProperty("data").GetProperty("coTheTaoLuot").GetBoolean());
         }
 
         [Fact]
@@ -309,8 +323,12 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             var root = doc.RootElement;
 
             Assert.False(root.GetProperty("daHuy").GetBoolean());
-            Assert.True(root.GetProperty("coTheThanhToan").GetBoolean());
-            Assert.NotEmpty(root.GetProperty("bankId").GetString() ?? "");
+            Assert.Equal(root.GetProperty("tongTien").GetDecimal(), root.GetProperty("conLai").GetDecimal());
+
+            var panel = await client.GetAsync($"/KhachThue/HoaDon/ThanhToan/{data.InvoiceDaGui.HoaDonId}");
+            Assert.Equal(HttpStatusCode.OK, panel.StatusCode);
+            using var panelDoc = JsonDocument.Parse(await panel.Content.ReadAsStringAsync());
+            Assert.True(panelDoc.RootElement.GetProperty("data").GetProperty("coTheTaoLuot").GetBoolean());
         }
 
         [Fact]
@@ -455,13 +473,13 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
         }
 
         [Fact]
-        public async Task GetVietQR_Cancelled_400()
+        public async Task CreatePaymentRequest_Cancelled_400()
         {
             var data = await SeedTestDataAsync("VQR_Can");
             var client = CreateHttpClient();
             await LoginTenantAsync(client, data.TenantAUsername, data.TenantAPassword);
 
-            var res = await client.GetAsync($"/KhachThue/HoaDon/GetVietQR?hoaDonId={data.InvoiceCancelled.HoaDonId}");
+            var res = await PostTaoLuotAsync(client, data.InvoiceCancelled.HoaDonId);
             Assert.Equal(HttpStatusCode.BadRequest, res.StatusCode);
         }
     }

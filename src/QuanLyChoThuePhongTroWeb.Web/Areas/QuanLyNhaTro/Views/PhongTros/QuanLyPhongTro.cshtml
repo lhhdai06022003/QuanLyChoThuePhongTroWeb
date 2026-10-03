@@ -403,22 +403,7 @@
                             </tfoot>
                         </table>
 
-                        <div class="card p-3 bg-light border-0">
-                            <h6 class="font-weight-bold text-success mb-3"><i class="ti ti-checks me-1"></i> Cấu hình thu tiền nhanh</h6>
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label font-weight-bold">Phương thức thanh toán</label>
-                                    <select id="qpPaymentMethod" class="form-select">
-                                        <option value="0">Tiền mặt</option>
-                                        <option value="1">Chuyển khoản</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label font-weight-bold">Ghi chú nhanh</label>
-                                    <input type="text" id="qpNotes" class="form-control" placeholder="Ví dụ: Đã nhận đủ chuyển khoản...">
-                                </div>
-                            </div>
-                        </div>
+                        <p class="text-secondary small mb-0"><i class="ti ti-info-circle me-1"></i> Bấm "Thu tiền" để ghi nhận đúng số tiền thực nhận, phương thức và ngày thanh toán.</p>
                     </div>
 
                     <div class="col-lg-5 text-center mt-3 mt-lg-0">
@@ -447,7 +432,7 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i> Đóng</button>
                 <button type="button" class="btn btn-primary font-weight-bold px-4" id="btnConfirmQuickPayment">
-                    <i class="ti ti-circle-check me-1"></i> Thêm dữ liệu
+                    <i class="ti ti-report-money me-1"></i> Thu tiền
                 </button>
             </div>
         </div>
@@ -456,6 +441,7 @@
 
 @section Scripts {
     @await Html.PartialAsync("~/Areas/QuanLyNhaTro/Views/Shared/_DangKyDichVuPartial.cshtml")
+    <script src="~/js/hoadon-thanhtoan-quanly.js" asp-append-version="true"></script>
     <script>
         // ========== Shared State ==========
         var table;
@@ -753,7 +739,6 @@
             $('#qpTenantName').text('Đang tải...');
             $('#qpTotalAmount').text('0 ₫');
             $('#qpDetailsBody').html('<tr><td colspan="6" class="text-center"><i class="ti ti-loader fa-spin"></i> Đang tải hóa đơn...</td></tr>');
-            $('#qpNotes').val('');
             $('#qpQRImage').attr('src', '');
             $('#qpCKContent').text('');
 
@@ -800,59 +785,32 @@
             });
         }
 
-        // Đăng ký sự kiện nút xác nhận thanh toán nhanh
+        // Thu tiền thủ công qua modal dùng chung (ghi số thực nhận, spec thanh toán §18)
         $(document).on('click', '#btnConfirmQuickPayment', function () {
-            let hoaDonId = $('#qpInvoiceId').val();
-            let pMethod = $('#qpPaymentMethod').val();
-            let notes = $('#qpNotes').val();
-
+            let hoaDonId = parseInt($('#qpInvoiceId').val());
             if (!hoaDonId) return;
 
-            let $btn = $(this);
-            let originalText = $btn.html();
-            $btn.prop('disabled', true).html('<i class="ti ti-loader fa-spin mr-1"></i> Đang xử lý...');
+            $('#quickPaymentModal').modal('hide');
+            HdThanhToan.openThuTien({
+                hoaDonId: hoaDonId,
+                maHoaDon: $('#qpInvoiceCode').text(),
+                onDone: function (data) {
+                    if (!data || data.conLai > 0) return;
 
-            $.ajax({
-                url: '/HoaDon/ThuTien',
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({
-                    hoaDonId: parseInt(hoaDonId),
-                    phuongThucThanhToan: parseInt(pMethod),
-                    ghiChu: notes
-                }),
-                success: function (res) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Thành công',
-                        text: 'Đã xác nhận thu tiền phòng thành công!'
-                    });
-                    $('#quickPaymentModal').modal('hide');
-                    
-                    // Cập nhật giao diện động
+                    // Hóa đơn đã trả đủ: bỏ huy hiệu nợ của phòng
                     let card = $(`.room-card[data-id="${currentQuickPaymentRoomId}"]`);
                     card.find('.badge-debt').fadeOut(400, function() { $(this).remove(); });
-                    
+
                     let statNo = $('#statNoTien');
                     if (statNo.length > 0) {
                         let currentVal = parseInt(statNo.text()) || 0;
                         if (currentVal > 0) statNo.text(currentVal - 1);
                     }
-                    
+
                     let roomItem = allRooms.find(r => r.phongTroId === currentQuickPaymentRoomId);
                     if (roomItem) {
                         roomItem.coNoTien = false;
                     }
-                },
-                error: function (xhr) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Thất bại',
-                        text: xhr.responseJSON?.message || 'Có lỗi xảy ra khi xác nhận thanh toán.'
-                    });
-                },
-                complete: function () {
-                    $btn.prop('disabled', false).html(originalText);
                 }
             });
         });

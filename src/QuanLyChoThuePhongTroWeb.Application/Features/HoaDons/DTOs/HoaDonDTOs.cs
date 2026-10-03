@@ -11,14 +11,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs
         public List<int> SelectedPhongTroIds { get; set; } = new();
     }
 
-    // Request để thu tiền
-    public class ThuTienReq
-    {
-        public int HoaDonId { get; set; }
-        public int PhuongThucThanhToan { get; set; } // 0 = Tiền mặt, 1 = Chuyển khoản
-        public string GhiChu { get; set; } = string.Empty;
-    }
-
     // Response hiển thị danh sách hóa đơn
     public class HoaDonRes
     {

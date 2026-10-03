@@ -442,26 +442,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.Equal(initialDetailsCount, invoice.ChiTietHoaDonDichVus.Count);
         }
 
-        [Fact]
-        public async Task DeleteHoaDon_Rejects_WhenStaffNotAssignedToInvoiceBranch()
-        {
-            // Nhân viên 20 cố hủy hóa đơn 1
-            var result = await _hoaDonService.DeleteHoaDonAsync(id: 1, actorId: 20, lyDo: "Lý do hủy kiểm thử");
-
-            Assert.False(result.IsSuccess);
-            Assert.Contains("không có quyền", result.ErrorMessage, StringComparison.OrdinalIgnoreCase);
-        }
-
-        [Fact]
-        public async Task DeleteHoaDon_Allows_WhenStaffAssignedToInvoiceBranch()
-        {
-            // Nhân viên 10 hủy hóa đơn 1 (đã chốt)
-            var result = await _hoaDonService.DeleteHoaDonAsync(id: 1, actorId: 10, lyDo: "Lý do hủy kiểm thử");
-
-            Assert.True(result.IsSuccess);
-            Assert.Equal(TrangThaiPhatHanhHoaDon.DaHuy, _hoaDonStore.Invoices[1].TrangThaiPhatHanh);
-            Assert.True(_hoaDonStore.Invoices[1].IsDeleted);
-        }
+        // Phân quyền hủy hóa đơn theo chi nhánh: xem InvoiceLedgerServiceTests.
 
         [Fact]
         public async Task CheckInvoicePermission_Rejects_SendAction_WhenStaffNotAssignedToBranch()

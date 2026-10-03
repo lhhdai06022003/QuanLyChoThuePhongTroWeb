@@ -1,0 +1,134 @@
+@{
+    ViewData["Title"] = "Đối chiếu thanh toán";
+    var laAdmin = User.IsInRole("Admin");
+    var maTraCuu = (string)(ViewBag.MaTraCuu ?? string.Empty);
+}
+
+<link rel="stylesheet" href="~/css/diennuoc.css" asp-append-version="true" />
+<link rel="stylesheet" href="~/css/hoadon.css" asp-append-version="true" />
+@Html.AntiForgeryToken()
+
+<div class="page-body">
+    <div class="container-xl">
+        <div class="page-header d-print-none mb-3">
+            <div class="row align-items-center">
+                <div class="col">
+                    <div class="page-pretitle">Thanh toán hóa đơn</div>
+                    <h2 class="page-title">Đối chiếu thanh toán</h2>
+                </div>
+            </div>
+        </div>
+
+        <partial name="_ChuaPhanCongBanner" />
+
+        <div class="card mb-3">
+            <div class="card-body">
+                <form id="dcTraCuuForm" class="row g-2 align-items-end" autocomplete="off">
+                    <div class="col-12 col-md-6">
+                        <label for="dcMaTraCuu" class="form-label">Tra cứu lượt theo mã (nội dung chuyển khoản)</label>
+                        <input type="text" id="dcMaTraCuu" class="form-control" placeholder="Ví dụ: TT125ABC234" value="@maTraCuu" />
+                    </div>
+                    <div class="col-auto">
+                        <button type="submit" class="btn btn-primary"><i class="ti ti-search me-1"></i> Tra cứu</button>
+                    </div>
+                    <div class="col-12 form-hint mt-1">Tìm được cả lượt đã hết hạn hoặc đã hủy, dùng khi tiền về trễ hoặc khách chuyển theo QR cũ.</div>
+                </form>
+                <div id="dcTraCuuKetQua" class="mt-3"></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <ul class="nav nav-tabs card-header-tabs" role="tablist">
+                    <li class="nav-item"><a href="#" class="nav-link active" data-dc-tab="0">Chờ đối chiếu</a></li>
+                    <li class="nav-item"><a href="#" class="nav-link" data-dc-tab="1">Đã xử lý</a></li>
+                </ul>
+            </div>
+            <div class="card-body border-bottom py-2">
+                <div class="row g-2 align-items-center">
+                    <div class="col-12 col-md-4">
+                        <select id="dcChiNhanh" class="form-select form-select-sm">
+                            <option value="0">Tất cả chi nhánh được phân công</option>
+                            @if (ViewBag.ListChiNhanh != null)
+                            {
+                                foreach (var cn in ViewBag.ListChiNhanh)
+                                {
+                                    <option value="@cn.Value">@cn.Text</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                    <div class="col-auto">
+                        <label class="form-check mb-0">
+                            <input class="form-check-input" type="checkbox" id="dcChiChoAdmin">
+                            <span class="form-check-label">Chỉ lượt chờ Admin</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table id="dcTable" class="table card-table table-vcenter table-hover w-100">
+                    <thead>
+                        <tr>
+                            <th>Mã lượt</th>
+                            <th>Hóa đơn</th>
+                            <th>Phòng</th>
+                            <th>Chi nhánh</th>
+                            <th>Khách</th>
+                            <th class="text-end">Số tiền lượt</th>
+                            <th>Mã GD khai báo</th>
+                            <th>Khách khai chuyển</th>
+                            <th>Ngày nộp</th>
+                            <th>Trạng thái</th>
+                            <th class="w-1"></th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal đối chiếu: ảnh minh chứng bên trái, thông tin và form bên phải -->
+<div class="modal fade" id="dcModal" tabindex="-1" data-bs-focus="false" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h5 class="modal-title"><i class="ti ti-receipt-2 me-2 text-primary"></i>Đối chiếu lượt <span id="dcModalMa" class="text-primary"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body p-3">
+                <div class="row g-3">
+                    <div class="col-lg-7">
+                        <div class="meter-viewer-container">
+                            <div class="meter-viewer-toolbar">
+                                <button type="button" class="btn btn-sm btn-dark" id="dcZoomIn" title="Phóng to"><i class="ti ti-zoom-in"></i></button>
+                                <button type="button" class="btn btn-sm btn-dark" id="dcZoomOut" title="Thu nhỏ"><i class="ti ti-zoom-out"></i></button>
+                                <button type="button" class="btn btn-sm btn-dark" id="dcRotate" title="Xoay 90°"><i class="ti ti-rotate-clockwise"></i></button>
+                                <button type="button" class="btn btn-sm btn-secondary" id="dcReset" title="Đặt lại"><i class="ti ti-arrows-maximize"></i></button>
+                            </div>
+                            <div class="meter-viewer-stage" id="dcViewerStage">
+                                <img src="" alt="Ảnh minh chứng" class="meter-viewer-img" id="dcViewerImg" style="display: none;" />
+                            </div>
+                        </div>
+                        <div id="dcOtherProofs" class="mt-2 small"></div>
+                    </div>
+                    <div class="col-lg-5">
+                        <div id="dcInfo"></div>
+                        <div id="dcFormWrap"></div>
+                        <div id="dcHistory" class="mt-3"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/anh-chi-so-viewer.js" asp-append-version="true"></script>
+    <script>
+        window.dcConfig = { laAdmin: @(laAdmin ? "true" : "false"), maTraCuu: '@Html.Raw(System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(maTraCuu))' };
+    </script>
+    <script src="~/js/doi-chieu-thanh-toan.js" asp-append-version="true"></script>
+}
