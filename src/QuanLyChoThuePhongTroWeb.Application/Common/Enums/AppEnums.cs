@@ -67,4 +67,24 @@ namespace QuanLyChoThuePhongTroWeb.Application.Common.Enums
         DaDuyet = 2,
         TuChoi = 3
     }
+
+    // Giá trị khớp enum Domain TrangThaiYeuCauThanhToan (lượt thanh toán hóa đơn).
+    public enum AppTrangThaiYeuCauThanhToan
+    {
+        ChoThanhToan = 0,
+        DaBaoChuyen = 1,
+        DangDoiChieu = 2,
+        DaHoanTat = 3,
+        TuChoi = 4,
+        HetHan = 5,
+        DaHuy = 6
+    }
+
+    // Giá trị khớp enum Domain TrangThaiMinhChungThanhToan.
+    public enum AppTrangThaiMinhChungThanhToan
+    {
+        ChoXacNhan = 0,
+        DaXacNhan = 1,
+        TuChoi = 2
+    }
 }

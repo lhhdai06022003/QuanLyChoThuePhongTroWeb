@@ -1,10 +1,19 @@
 namespace QuanLyChoThuePhongTroWeb.Application.Common.Models
 {
+    // Loại lỗi để tầng Web chọn mã HTTP; Fail() mặc định là Validation nên code cũ không đổi.
+    public enum ServiceErrorKind
+    {
+        Validation = 0,
+        Forbidden = 1,
+        NotFound = 2
+    }
+
     public class ServiceResult
     {
         public bool Success { get; set; }
         public string Message { get; set; } = string.Empty;
         public object? Data { get; set; }
+        public ServiceErrorKind ErrorKind { get; set; }
 
         public static ServiceResult Ok(string message = "Thành công", object? data = null)
         {
@@ -14,6 +23,16 @@ namespace QuanLyChoThuePhongTroWeb.Application.Common.Models
         public static ServiceResult Fail(string message)
         {
             return new ServiceResult { Success = false, Message = message };
+        }
+
+        public static ServiceResult Forbidden(string message)
+        {
+            return new ServiceResult { Success = false, Message = message, ErrorKind = ServiceErrorKind.Forbidden };
+        }
+
+        public static ServiceResult NotFound(string message)
+        {
+            return new ServiceResult { Success = false, Message = message, ErrorKind = ServiceErrorKind.NotFound };
         }
     }
 
@@ -33,6 +52,22 @@ namespace QuanLyChoThuePhongTroWeb.Application.Common.Models
         public static new ServiceResult<T> Fail(string message)
         {
             return new ServiceResult<T> { Success = false, Message = message, Data = default };
+        }
+
+        public static new ServiceResult<T> Forbidden(string message)
+        {
+            return new ServiceResult<T> { Success = false, Message = message, ErrorKind = ServiceErrorKind.Forbidden };
+        }
+
+        public static new ServiceResult<T> NotFound(string message)
+        {
+            return new ServiceResult<T> { Success = false, Message = message, ErrorKind = ServiceErrorKind.NotFound };
+        }
+
+        // Chuyển một kết quả thất bại sang kiểu khác, giữ nguyên thông báo và loại lỗi.
+        public static ServiceResult<T> FailFrom(ServiceResult failure)
+        {
+            return new ServiceResult<T> { Success = false, Message = failure.Message, ErrorKind = failure.ErrorKind };
         }
     }
 }

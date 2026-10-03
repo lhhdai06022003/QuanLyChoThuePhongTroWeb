@@ -60,6 +60,10 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure
             invoiceIssuanceOptions.Validate();
             services.AddSingleton(invoiceIssuanceOptions);
 
+            var invoicePaymentOptions = configuration.GetSection(QuanLyChoThuePhongTroWeb.Application.Common.Configurations.InvoicePaymentOptions.SectionName).Get<QuanLyChoThuePhongTroWeb.Application.Common.Configurations.InvoicePaymentOptions>() ?? new QuanLyChoThuePhongTroWeb.Application.Common.Configurations.InvoicePaymentOptions();
+            invoicePaymentOptions.Validate();
+            services.AddSingleton(invoicePaymentOptions);
+
             services.AddHttpClient<QuanLyChoThuePhongTroWeb.Application.Abstractions.Services.IMeterImageStorageService, ExternalServices.Storage.CloudinaryMeterImageStorageService>(client =>
             {
                 client.Timeout = TimeSpan.FromSeconds(meterOptions.DownloadTimeoutSeconds);

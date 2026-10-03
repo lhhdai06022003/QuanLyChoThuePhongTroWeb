@@ -18,6 +18,12 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
             };
         }
 
+        // Nhãn trạng thái trên danh sách: hóa đơn đã hủy hiện "Đã hủy", còn lại theo trạng thái thanh toán.
+        public static string HienThi(TrangThaiPhatHanhHoaDon phatHanh, TrangThaiHoaDon thanhToan)
+        {
+            return phatHanh == TrangThaiPhatHanhHoaDon.DaHuy ? "Đã hủy" : ThanhToan(thanhToan);
+        }
+
         public static string ThanhToan(TrangThaiHoaDon? v)
         {
             if (!v.HasValue) return "—";

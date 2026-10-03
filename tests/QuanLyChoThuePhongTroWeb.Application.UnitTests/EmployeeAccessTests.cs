@@ -50,6 +50,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         [InlineData(EmployeeActionCodes.InvoiceCancel)]
         [InlineData(EmployeeActionCodes.InvoiceFinalize)]
         [InlineData(EmployeeActionCodes.InvoiceReject)]
+        [InlineData(EmployeeActionCodes.PaymentReview)]
+        [InlineData(EmployeeActionCodes.PaymentConfigurePartial)]
         public async Task Admin_CanPerform_AllActions_AtAnyBranch(string action)
         {
             _store.Actors[1] = new EmployeeBranchActorDto
@@ -146,6 +148,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         [Theory]
         [InlineData(EmployeeActionCodes.InvoiceFinalize)]
         [InlineData(EmployeeActionCodes.InvoiceReject)]
+        [InlineData(EmployeeActionCodes.PaymentConfigurePartial)]
         public async Task Staff_CannotPerform_AdminOnlyActions_EvenAtAssignedBranch(string adminAction)
         {
             _store.Actors[10] = new EmployeeBranchActorDto
@@ -261,6 +264,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         [Theory]
         [InlineData("Invoice.Read")]
         [InlineData("Meter.Read")]
+        [InlineData("Payment.Review")]
         public void ReadActions_AreRecognizedAsValid(string action)
         {
             Assert.True(EmployeeActionCodes.IsValid(action));

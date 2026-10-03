@@ -17,6 +17,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
             List<InvoiceStatusHistoryRes>? lichSuTrangThais = null,
             string? lyDoHuy = null)
         {
+            var daThu = hd.LichSuThanhToans.Where(x => !x.IsDeleted).Sum(x => x.SoTienThanhToan);
             return new HoaDonChiTietRes
             {
                 HoaDonId = hd.HoaDonId,
@@ -29,7 +30,12 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 Thang = hd.Thang,
                 Nam = hd.Nam,
                 TongTien = hd.TongTien,
-                TrangThaiHoaDon = hd.TrangThaiHoaDon == TrangThaiHoaDon.DaThanhToan ? "Đã thanh toán" : "Chưa thanh toán",
+                DaThu = daThu,
+                ConLai = hd.TongTien - daThu,
+                TrangThaiHoaDon = InvoiceStatusLabels.ThanhToan(hd.TrangThaiHoaDon),
+                TrangThaiThanhToanValue = (int)hd.TrangThaiHoaDon,
+                ChoPhepThanhToanMotPhan = hd.ChoPhepThanhToanMotPhan,
+                SoTienThanhToanToiThieu = hd.SoTienThanhToanToiThieu,
                 TrangThaiPhatHanhValue = (int)hd.TrangThaiPhatHanh,
                 TrangThaiPhatHanh = InvoiceStatusLabels.PhatHanh(hd.TrangThaiPhatHanh),
                 DaHuy = hd.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaHuy,

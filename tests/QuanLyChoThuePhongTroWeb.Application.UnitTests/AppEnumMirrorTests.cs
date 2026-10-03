@@ -41,5 +41,22 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
                 Assert.Equal(domainVal, appVal);
             }
         }
+
+        [Theory]
+        [InlineData(typeof(AppTrangThaiYeuCauThanhToan), typeof(TrangThaiYeuCauThanhToan))]
+        [InlineData(typeof(AppTrangThaiMinhChungThanhToan), typeof(TrangThaiMinhChungThanhToan))]
+        public void AppEnumMirror_MatchesDomain_ThanhToanHoaDon(Type appEnum, Type domainEnum)
+        {
+            var appNames = Enum.GetNames(appEnum);
+            var domainNames = Enum.GetNames(domainEnum);
+
+            Assert.Equal(domainNames.Length, appNames.Length);
+
+            foreach (var name in domainNames)
+            {
+                Assert.Contains(name, appNames);
+                Assert.Equal((int)Enum.Parse(domainEnum, name), (int)Enum.Parse(appEnum, name));
+            }
+        }
     }
 }

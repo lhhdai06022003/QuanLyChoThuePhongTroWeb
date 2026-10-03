@@ -12,14 +12,14 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
             string bankId = "";
             string accountNumber = "";
             string accountName = "";
-            if (!hd.DaHuy && hd.TrangThaiHoaDon == "Chưa thanh toán")
+            if (!hd.DaHuy && hd.ConLai > 0)
             {
                 bankId = settings.BankId ?? "MB";
                 accountNumber = settings.AccountNumber ?? "";
                 accountName = settings.AccountName ?? "";
 
                 string memo = $"THANH TOAN {hd.MaHoaDon}";
-                string qrString = vietQr.GenerateVietQRString(bankId, accountNumber, hd.TongTien, memo);
+                string qrString = vietQr.GenerateVietQRString(bankId, accountNumber, hd.ConLai, memo);
                 qrBytes = vietQr.GenerateQRCodePNGBytes(qrString);
             }
 

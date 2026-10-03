@@ -30,5 +30,36 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.Equal(bytes.Length, file.Length);
             Assert.NotNull(file.Content);
         }
+
+        [Fact]
+        public void ServiceResult_Fail_DefaultsToValidationKind()
+        {
+            Assert.Equal(ServiceErrorKind.Validation, ServiceResult.Fail("x").ErrorKind);
+            Assert.Equal(ServiceErrorKind.Validation, ServiceResult<int>.Fail("x").ErrorKind);
+        }
+
+        [Fact]
+        public void ServiceResult_ForbiddenAndNotFound_CarryKind()
+        {
+            var forbidden = ServiceResult<int>.Forbidden("cấm");
+            var notFound = ServiceResult.NotFound("không thấy");
+
+            Assert.False(forbidden.Success);
+            Assert.Equal(ServiceErrorKind.Forbidden, forbidden.ErrorKind);
+            Assert.Equal("cấm", forbidden.Message);
+            Assert.False(notFound.Success);
+            Assert.Equal(ServiceErrorKind.NotFound, notFound.ErrorKind);
+        }
+
+        [Fact]
+        public void ServiceResult_FailFrom_KeepsMessageAndKind()
+        {
+            var converted = ServiceResult<string>.FailFrom(ServiceResult.Forbidden("cấm"));
+
+            Assert.False(converted.Success);
+            Assert.Equal("cấm", converted.Message);
+            Assert.Equal(ServiceErrorKind.Forbidden, converted.ErrorKind);
+            Assert.Null(converted.Data);
+        }
     }
 }

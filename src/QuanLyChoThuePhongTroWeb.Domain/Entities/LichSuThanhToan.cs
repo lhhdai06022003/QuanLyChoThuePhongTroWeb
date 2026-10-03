@@ -28,5 +28,17 @@ namespace QuanLyChoThuePhongTroWeb.Domain.Entities
         public int? MinhChungThanhToanHoaDonId { get; set; }
         [ForeignKey("MinhChungThanhToanHoaDonId")]
         public MinhChungThanhToanHoaDon? MinhChungThanhToanHoaDon { get; set; }
+
+        // Hủy ghi nhận chỉ xóa mềm và thay ghi chú (đã kèm dấu vết hủy); không sửa số tiền (spec §20).
+        public void HuyGhiNhan(string ghiChuMoi)
+        {
+            if (IsDeleted)
+            {
+                throw new InvalidOperationException("Khoản thanh toán đã bị hủy ghi nhận trước đó.");
+            }
+
+            IsDeleted = true;
+            GhiChu = ghiChuMoi ?? string.Empty;
+        }
     }
 }

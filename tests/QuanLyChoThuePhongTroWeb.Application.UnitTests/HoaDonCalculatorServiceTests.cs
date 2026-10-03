@@ -110,7 +110,25 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             decimal donGia = 3500.50m;
             (decimal soLuong, decimal soTien, string dienGiai) = _calculator.TinhTienDienNuoc(chiSoMoi, chiSoCu, donGia, "Điện", 30, 30);
             Assert.Equal(50.331m, soLuong);
-            Assert.Equal(176183.67m, soTien);
+            // 50.331 × 3500.50 = 176183.6655, làm tròn về đồng nguyên (spec thanh toán §31.1).
+            Assert.Equal(176184m, soTien);
+        }
+
+        [Theory]
+        [InlineData(3_700_000, 2026, 2, 1)]
+        [InlineData(3_700_000, 2026, 1, 17)]
+        [InlineData(1_234_567, 2026, 4, 30)]
+        public void MoneyResults_AreWholeVnd_ForProratedPeriods(decimal gia, int nam, int thang, int ngayBatDau)
+        {
+            var batDauUtc = new DateTime(nam, thang, ngayBatDau, 0, 0, 0, DateTimeKind.Utc).AddHours(-7);
+
+            var (tienPhong, _, _) = _calculator.TinhTienPhong(gia, batDauUtc, null, thang, nam);
+            var (tienDichVu, _) = _calculator.TinhTienDichVuCoDinh(gia, 3, "Wifi", batDauUtc, null, thang, nam);
+            var (_, tienDien, _) = _calculator.TinhTienDienNuoc(123.457m, 100m, 3_333m, "Điện", 13, 31);
+
+            Assert.Equal(decimal.Truncate(tienPhong), tienPhong);
+            Assert.Equal(decimal.Truncate(tienDichVu), tienDichVu);
+            Assert.Equal(decimal.Truncate(tienDien), tienDien);
         }
     }
 }

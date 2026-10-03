@@ -31,5 +31,35 @@ namespace QuanLyChoThuePhongTroWeb.Domain.Entities
         public bool IsDeleted { get; set; } = false;
 
         public LichSuThanhToan? LichSuThanhToan { get; set; }
+
+        public void XacNhan(int nguoiDoiChieuId, DateTime nowUtc)
+        {
+            KiemTraChoXacNhan();
+            TrangThaiDoiChieu = TrangThaiMinhChungThanhToan.DaXacNhan;
+            NguoiDoiChieuId = nguoiDoiChieuId;
+            NgayDoiChieu = nowUtc;
+        }
+
+        public void TuChoi(int nguoiDoiChieuId, string lyDo, DateTime nowUtc)
+        {
+            if (string.IsNullOrWhiteSpace(lyDo))
+            {
+                throw new ArgumentException("Lý do từ chối minh chứng không được để trống.", nameof(lyDo));
+            }
+
+            KiemTraChoXacNhan();
+            TrangThaiDoiChieu = TrangThaiMinhChungThanhToan.TuChoi;
+            LyDoTuChoi = lyDo;
+            NguoiDoiChieuId = nguoiDoiChieuId;
+            NgayDoiChieu = nowUtc;
+        }
+
+        private void KiemTraChoXacNhan()
+        {
+            if (TrangThaiDoiChieu != TrangThaiMinhChungThanhToan.ChoXacNhan)
+            {
+                throw new InvalidOperationException("Minh chứng đã được xử lý trước đó.");
+            }
+        }
     }
 }

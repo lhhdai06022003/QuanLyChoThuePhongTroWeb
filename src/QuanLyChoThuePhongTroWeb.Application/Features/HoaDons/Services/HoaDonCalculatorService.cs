@@ -20,7 +20,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
 
             if (activeDays <= 0) return (0m, "Không có ngày ở thực tế", 0);
 
-            decimal tienPhong = decimal.Round((giaThue / daysInMonth) * activeDays, 2, MidpointRounding.AwayFromZero);
+            decimal tienPhong = InvoiceMoney.RoundVnd((giaThue / daysInMonth) * activeDays);
 
             string dienGiai = "Tiền thuê phòng";
             if (activeDays < daysInMonth)
@@ -41,7 +41,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
             decimal tongTieuThu = chiSoMoi - chiSoCu;
             decimal tyLe = (decimal)soNgayO / tongNgayTrongThang;
             decimal soLuongTyLe = decimal.Round(tongTieuThu * tyLe, 3, MidpointRounding.AwayFromZero);
-            decimal soTien = decimal.Round(soLuongTyLe * donGia, 2, MidpointRounding.AwayFromZero);
+            decimal soTien = InvoiceMoney.RoundVnd(soLuongTyLe * donGia);
             
             string dienGiai = tenDichVu;
             if (soNgayO < tongNgayTrongThang)
@@ -86,7 +86,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
 
             if (activeDays <= 0) return (0m, $"Dịch vụ {tenDichVu} không phát sinh");
 
-            decimal tienDichVu = decimal.Round((giaDv * soLuong / daysInMonth) * activeDays, 2, MidpointRounding.AwayFromZero);
+            decimal tienDichVu = InvoiceMoney.RoundVnd((giaDv * soLuong / daysInMonth) * activeDays);
             
             string dienGiai = tenDichVu;
             if (activeDays < daysInMonth)

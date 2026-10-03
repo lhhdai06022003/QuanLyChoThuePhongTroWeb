@@ -309,7 +309,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                         HopDongId = hd.HopDongId,
                         Thang = request.Thang,
                         Nam = request.Nam,
-                        TongTien = decimal.Round(tongTien, 2, MidpointRounding.AwayFromZero),
+                        TongTien = InvoiceMoney.RoundVnd(tongTien),
                         TrangThaiHoaDon = TrangThaiHoaDon.ChuaThanhToan,
                         TrangThaiPhatHanh = TrangThaiPhatHanhHoaDon.Nhap,
                         DichVuDienNuocCuaPhongId = meterPeriod.DichVuDienNuocCuaPhongId,

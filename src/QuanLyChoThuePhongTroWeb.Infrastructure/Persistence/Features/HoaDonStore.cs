@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using QuanLyChoThuePhongTroWeb.Application.Common.Models;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence;
+using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services;
 using QuanLyChoThuePhongTroWeb.Domain.Entities;
 using QuanLyChoThuePhongTroWeb.Domain.Enums;
 using QuanLyChoThuePhongTroWeb.Infrastructure.Persistence;
@@ -138,6 +139,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                     h.Thang,
                     h.Nam,
                     h.TongTien,
+                    DaThu = h.LichSuThanhToans.Where(l => !l.IsDeleted).Sum(l => l.SoTienThanhToan),
                     h.TrangThaiHoaDon,
                     h.TrangThaiPhatHanh,
                     h.NgayTao,
@@ -158,7 +160,9 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 Thang = h.Thang,
                 Nam = h.Nam,
                 TongTien = h.TongTien,
-                TrangThaiHoaDon = h.TrangThaiHoaDon == TrangThaiHoaDon.DaThanhToan ? "Đã thanh toán" : "Chưa thanh toán",
+                DaThu = h.DaThu,
+                ConLai = h.TongTien - h.DaThu,
+                TrangThaiHoaDon = InvoiceStatusLabels.ThanhToan(h.TrangThaiHoaDon),
                 TrangThaiHoaDonValue = (int)h.TrangThaiHoaDon,
                 TrangThaiPhatHanhValue = (int)h.TrangThaiPhatHanh,
                 NgayTao = h.NgayTao.AddHours(7).ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture),
@@ -266,6 +270,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                     x.Thang,
                     x.Nam,
                     x.TongTien,
+                    DaThu = x.LichSuThanhToans.Where(l => !l.IsDeleted).Sum(l => l.SoTienThanhToan),
                     x.TrangThaiPhatHanh,
                     x.TrangThaiHoaDon,
                     x.NgayTao
@@ -282,7 +287,9 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 Thang = x.Thang,
                 Nam = x.Nam,
                 TongTien = x.TongTien,
-                TrangThaiHoaDon = x.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaHuy ? "Đã hủy" : (x.TrangThaiHoaDon == TrangThaiHoaDon.DaThanhToan ? "Đã thanh toán" : "Chưa thanh toán"),
+                DaThu = x.DaThu,
+                ConLai = x.TongTien - x.DaThu,
+                TrangThaiHoaDon = InvoiceStatusLabels.HienThi(x.TrangThaiPhatHanh, x.TrangThaiHoaDon),
                 TrangThaiHoaDonValue = (int)x.TrangThaiHoaDon,
                 TrangThaiPhatHanhValue = (int)x.TrangThaiPhatHanh,
                 NgayTao = x.NgayTao.AddHours(7).ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture)

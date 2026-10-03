@@ -259,13 +259,19 @@ namespace QuanLyChoThuePhongTroWeb.Domain.Entities
             });
         }
 
-        public void CauHinhThanhToanMotPhan(bool choPhep, decimal? soTienToiThieu)
+        // nguoiThucHienId có giá trị thì ghi một dòng lịch sử (trạng thái giữ nguyên) làm dấu vết cấu hình.
+        public void CauHinhThanhToanMotPhan(bool choPhep, decimal? soTienToiThieu, int? nguoiThucHienId = null, DateTime? nowUtc = null)
         {
             if (choPhep)
             {
                 if (!soTienToiThieu.HasValue || soTienToiThieu.Value <= 0)
                 {
                     throw new ArgumentOutOfRangeException(nameof(soTienToiThieu), "Số tiền thanh toán tối thiểu phải lớn hơn 0.");
+                }
+
+                if (soTienToiThieu.Value != decimal.Truncate(soTienToiThieu.Value))
+                {
+                    throw new ArgumentOutOfRangeException(nameof(soTienToiThieu), "Số tiền thanh toán tối thiểu phải là số nguyên VND.");
                 }
 
                 if (soTienToiThieu.Value > TongTien)
@@ -282,7 +288,63 @@ namespace QuanLyChoThuePhongTroWeb.Domain.Entities
                 SoTienThanhToanToiThieu = null;
             }
 
-            NgayCapNhat = DateTime.UtcNow;
+            var now = nowUtc ?? DateTime.UtcNow;
+            NgayCapNhat = now;
+
+            if (nguoiThucHienId.HasValue)
+            {
+                ThemLichSuThanhToan(TrangThaiHoaDon, nguoiThucHienId, now, choPhep
+                    ? $"Bật thanh toán một phần, tối thiểu {SoTienThanhToanToiThieu:#,##0}"
+                    : "Tắt thanh toán một phần");
+            }
+        }
+
+        // Method thay vì property để EF không coi là cột.
+        public bool TongTienLaSoNguyen() => TongTien == decimal.Truncate(TongTien);
+
+        // Tính lại trạng thái thanh toán từ tổng các khoản ghi nhận chưa xóa mềm (không cộng dồn).
+        // Trả về true nếu trạng thái đổi. Tổng âm hoặc vượt tổng tiền là dữ liệu hỏng nên ném lỗi.
+        public bool CapNhatTrangThaiThanhToan(decimal tongDaThanhToan, int? nguoiThucHienId, string? lyDo, DateTime nowUtc, bool luonGhiLichSu = false)
+        {
+            if (tongDaThanhToan < 0)
+            {
+                throw new InvalidOperationException("Tổng đã thanh toán của hóa đơn không được âm.");
+            }
+
+            if (tongDaThanhToan > TongTien)
+            {
+                throw new InvalidOperationException($"Tổng đã thanh toán ({tongDaThanhToan:0.##}) vượt tổng tiền hóa đơn ({TongTien:0.##}).");
+            }
+
+            var trangThaiMoi = tongDaThanhToan == 0
+                ? TrangThaiHoaDon.ChuaThanhToan
+                : tongDaThanhToan == TongTien ? TrangThaiHoaDon.DaThanhToan : TrangThaiHoaDon.ThanhToanMotPhan;
+
+            var daDoi = trangThaiMoi != TrangThaiHoaDon;
+            if (!daDoi && !luonGhiLichSu)
+            {
+                return false;
+            }
+
+            ThemLichSuThanhToan(trangThaiMoi, nguoiThucHienId, nowUtc, lyDo);
+            TrangThaiHoaDon = trangThaiMoi;
+            NgayCapNhat = nowUtc;
+            return daDoi;
+        }
+
+        private void ThemLichSuThanhToan(TrangThaiHoaDon trangThaiMoi, int? nguoiThucHienId, DateTime nowUtc, string? lyDo)
+        {
+            LichSuTrangThaiHoaDons.Add(new LichSuTrangThaiHoaDon
+            {
+                HoaDonId = HoaDonId,
+                TrangThaiPhatHanhCu = TrangThaiPhatHanh,
+                TrangThaiPhatHanhMoi = TrangThaiPhatHanh,
+                TrangThaiThanhToanCu = TrangThaiHoaDon,
+                TrangThaiThanhToanMoi = trangThaiMoi,
+                NguoiThucHienId = nguoiThucHienId,
+                NgayThucHien = nowUtc,
+                LyDo = lyDo
+            });
         }
 
         public bool KiemTraDuDieuKienYeuCauThanhToan()

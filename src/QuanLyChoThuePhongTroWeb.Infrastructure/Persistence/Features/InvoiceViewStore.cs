@@ -98,6 +98,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                     h.Thang,
                     h.Nam,
                     h.TongTien,
+                    DaThu = h.LichSuThanhToans.Where(l => !l.IsDeleted).Sum(l => l.SoTienThanhToan),
                     h.TrangThaiHoaDon,
                     h.TrangThaiPhatHanh,
                     h.NgayTao,
@@ -118,9 +119,9 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 Thang = h.Thang,
                 Nam = h.Nam,
                 TongTien = h.TongTien,
-                TrangThaiHoaDon = h.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaHuy
-                    ? "Đã hủy"
-                    : (h.TrangThaiHoaDon == TrangThaiHoaDon.DaThanhToan ? "Đã thanh toán" : "Chưa thanh toán"),
+                DaThu = h.DaThu,
+                ConLai = h.TongTien - h.DaThu,
+                TrangThaiHoaDon = InvoiceStatusLabels.HienThi(h.TrangThaiPhatHanh, h.TrangThaiHoaDon),
                 TrangThaiHoaDonValue = (int)h.TrangThaiHoaDon,
                 TrangThaiPhatHanhValue = (int)h.TrangThaiPhatHanh,
                 NgayTao = h.NgayTao.AddHours(7).ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture),

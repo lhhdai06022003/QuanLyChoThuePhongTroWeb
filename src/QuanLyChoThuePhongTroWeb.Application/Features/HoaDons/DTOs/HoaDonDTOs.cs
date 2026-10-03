@@ -32,6 +32,9 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs
         public int Thang { get; set; }
         public int Nam { get; set; }
         public decimal TongTien { get; set; }
+        // Tổng các khoản ghi nhận chưa xóa mềm và số còn nợ (TongTien - DaThu).
+        public decimal DaThu { get; set; }
+        public decimal ConLai { get; set; }
         public string TrangThaiHoaDon { get; set; } = string.Empty;
         public int TrangThaiHoaDonValue { get; set; }
         public int TrangThaiPhatHanhValue { get; set; }
@@ -53,7 +56,12 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs
         public int Thang { get; set; }
         public int Nam { get; set; }
         public decimal TongTien { get; set; }
+        public decimal DaThu { get; set; }
+        public decimal ConLai { get; set; }
         public string TrangThaiHoaDon { get; set; } = string.Empty;
+        public int TrangThaiThanhToanValue { get; set; }
+        public bool ChoPhepThanhToanMotPhan { get; set; }
+        public decimal? SoTienThanhToanToiThieu { get; set; }
         public string NgayTao { get; set; } = string.Empty;
         public string HanThanhToan { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;

@@ -263,11 +263,16 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                     await tx.RollbackAsync();
                     return (false, "Đơn giá và số lượng phải lớn hơn hoặc bằng 0.");
                 }
+                if (!InvoiceMoney.IsWholeVnd(r.DonGia))
+                {
+                    await tx.RollbackAsync();
+                    return (false, "Đơn giá phải là số nguyên VND.");
+                }
 
                 var tongTien = r.ChiTietHoaDonId is int ctId && ctId > 0 &&
                                dongCu.Remove(ctId, out var cu) && cu.DonGia == r.DonGia && cu.SoLuong == r.SoLuong
-                    ? cu.TongTien
-                    : decimal.Round(r.DonGia * r.SoLuong, 2, MidpointRounding.AwayFromZero);
+                    ? InvoiceMoney.RoundVnd(cu.TongTien)
+                    : InvoiceMoney.RoundVnd(r.DonGia * r.SoLuong);
 
                 newChiTiets.Add(new ChiTietHoaDon
                 {

@@ -241,6 +241,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             {
                 HoaDonId = hoaDonId,
                 DaHuy = false,
+                TongTien = 1_500_000m,
+                ConLai = 1_500_000m,
                 TrangThaiHoaDon = "Chưa thanh toán"
             };
             _viewStore.Details[hoaDonId] = detail;
@@ -249,6 +251,28 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
 
             Assert.NotNull(bytes);
             Assert.NotNull(_exporter.LastQrBytes);
+        }
+
+        [Fact]
+        public async Task ExportEmployeePdf_FullyPaid_NoQr()
+        {
+            var service = CreateService();
+            int hoaDonId = 101;
+            _viewStore.BranchIds[hoaDonId] = 5;
+            _accessService.Permissions.Add((2, 5, EmployeeActionCodes.InvoiceRead));
+            _viewStore.Details[hoaDonId] = new HoaDonChiTietRes
+            {
+                HoaDonId = hoaDonId,
+                TongTien = 1_500_000m,
+                DaThu = 1_500_000m,
+                ConLai = 0m,
+                TrangThaiHoaDon = "Đã thanh toán"
+            };
+
+            var bytes = await service.ExportEmployeePdfAsync(hoaDonId, actorId: 2);
+
+            Assert.NotNull(bytes);
+            Assert.Null(_exporter.LastQrBytes);
         }
 
         [Fact]

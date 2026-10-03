@@ -9,6 +9,7 @@ using QuanLyChoThuePhongTroWeb.Application.Abstractions.Security;
 using QuanLyChoThuePhongTroWeb.Application.Common.Enums;
 using QuanLyChoThuePhongTroWeb.Application.Common.Models;
 using QuanLyChoThuePhongTroWeb.Application.Common.Security;
+using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services;
 using QuanLyChoThuePhongTroWeb.Application.Features.YeuCauSuCos.DTOs;
@@ -119,6 +120,11 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.YeuCauSuCos.Services
             int actorId,
             CancellationToken ct = default)
         {
+            if (chiPhi < 0 || !InvoiceMoney.IsWholeVnd(chiPhi))
+            {
+                return ServiceResult.Fail("Chi phí sửa chữa phải là số nguyên VND không âm.");
+            }
+
             var suco = await _store.GetByIdAsync(id, ct);
             if (suco == null || suco.IsDeleted)
             {
@@ -256,7 +262,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.YeuCauSuCos.Services
                     var newLines = InvoiceIncidentLines.BuildIncidentLines(tenantIncidents);
                     InvoiceIncidentLines.ReplaceIncidentLines(hoaDon, newLines);
 
-                    hoaDon.TongTien = Math.Round(hoaDon.ChiTietHoaDonDichVus.Where(x => !x.IsDeleted).Sum(x => x.TongTien), 2, MidpointRounding.AwayFromZero);
+                    hoaDon.TongTien = InvoiceMoney.RoundVnd(hoaDon.ChiTietHoaDonDichVus.Where(x => !x.IsDeleted).Sum(x => x.TongTien));
                 }
 
                 await _unitOfWork.SaveChangesAsync(ct);
