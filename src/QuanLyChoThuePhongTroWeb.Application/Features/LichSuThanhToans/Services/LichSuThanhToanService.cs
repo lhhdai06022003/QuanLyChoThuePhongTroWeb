@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Linq;
+using QuanLyChoThuePhongTroWeb.Application.Abstractions.Security;
 using QuanLyChoThuePhongTroWeb.Application.Common.Models;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Payments;
 using QuanLyChoThuePhongTroWeb.Application.Features.LichSuThanhToans.DTOs;
@@ -12,16 +13,36 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.LichSuThanhToans.Service
     public class LichSuThanhToanService : ILichSuThanhToanService
     {
         private readonly ILichSuThanhToanStore _store;
+        private readonly IEmployeeAccessService _access;
 
-        public LichSuThanhToanService(ILichSuThanhToanStore store)
+        public LichSuThanhToanService(ILichSuThanhToanStore store, IEmployeeAccessService access)
         {
             _store = store;
+            _access = access;
+        }
+
+        // Admin xem mọi chi nhánh; nhân viên chỉ thấy chi nhánh đang được phân công. Allowed = false nếu không có quyền xem.
+        private async Task<(bool Allowed, IReadOnlyCollection<int>? BranchIds)> ResolveBranchesAsync(int actorId, int chiNhanhId)
+        {
+            var scope = await _access.GetScopeAsync(actorId);
+            if (scope == null || (chiNhanhId > 0 && !scope.CanAccessBranch(chiNhanhId)))
+            {
+                return (false, null);
+            }
+
+            return (true, scope.IsAdmin ? null : scope.ActiveBranchIds.ToList());
         }
 
         public async Task<DataTableResponse<LichSuThanhToanGiaoDichRes>> GetDanhSachThanhToanAsync(
-            DataTableRequest request, int chiNhanhId, int phuongThuc, DateTime? tuNgay, DateTime? denNgay, bool chiCoTienThua = false)
+            int actorId, DataTableRequest request, int chiNhanhId, int phuongThuc, DateTime? tuNgay, DateTime? denNgay, bool chiCoTienThua = false)
         {
-            var page = await _store.GetDanhSachThanhToanAsync(request, chiNhanhId, phuongThuc, tuNgay, denNgay, chiCoTienThua);
+            var (allowed, branchIds) = await ResolveBranchesAsync(actorId, chiNhanhId);
+            if (!allowed)
+            {
+                return new DataTableResponse<LichSuThanhToanGiaoDichRes> { draw = request.Draw };
+            }
+
+            var page = await _store.GetDanhSachThanhToanAsync(request, chiNhanhId, phuongThuc, tuNgay, denNgay, chiCoTienThua, branchIds);
             foreach (var row in page.data)
             {
                 var info = PaymentNoteTags.Parse(row.GhiChu);
@@ -34,9 +55,15 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.LichSuThanhToans.Service
             return page;
         }
 
-        public async Task<ThongKeThanhToanRes> GetThongKeThanhToanAsync(int chiNhanhId, DateTime? tuNgay, DateTime? denNgay)
+        public async Task<ThongKeThanhToanRes> GetThongKeThanhToanAsync(int actorId, int chiNhanhId, DateTime? tuNgay, DateTime? denNgay)
         {
-            return await _store.GetThongKeThanhToanAsync(chiNhanhId, tuNgay, denNgay);
+            var (allowed, branchIds) = await ResolveBranchesAsync(actorId, chiNhanhId);
+            if (!allowed)
+            {
+                return new ThongKeThanhToanRes();
+            }
+
+            return await _store.GetThongKeThanhToanAsync(chiNhanhId, tuNgay, denNgay, branchIds);
         }
 
         public async Task<IReadOnlyList<LichSuThanhToanKhachThueDto>> GetLichSuByNguoiThueIdAsync(int nguoiThueId)

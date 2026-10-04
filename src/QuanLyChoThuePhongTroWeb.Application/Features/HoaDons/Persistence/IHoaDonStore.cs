@@ -30,7 +30,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence
         Task<int?> GetHoaDonBranchIdAsync(int hoaDonId, CancellationToken cancellationToken = default);
         Task<IReadOnlyDictionary<int, int>> GetRoomBranchIdsAsync(IReadOnlyList<int> roomIds, CancellationToken cancellationToken = default);
         Task<IReadOnlyList<HoaDon>> GetInvoicesByMeterReadingIdsAsync(IReadOnlyList<int> meterReadingIds, CancellationToken cancellationToken = default);
-        Task<InvoiceCancellationBlockers> GetCancellationBlockersAsync(int hoaDonId, CancellationToken cancellationToken = default);
 
         Task AddInvoicesAsync(IEnumerable<HoaDon> invoices, CancellationToken cancellationToken = default);
         void UpdateSuCos(IEnumerable<YeuCauSuCo> suCos);

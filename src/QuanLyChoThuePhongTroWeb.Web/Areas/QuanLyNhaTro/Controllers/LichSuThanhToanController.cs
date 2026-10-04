@@ -47,6 +47,11 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             [FromForm] string dateRange = "",
             [FromForm] bool coTienThua = false)
         {
+            if (!TryGetActorId(out var actorId))
+            {
+                return Unauthorized(new { Message = "Người dùng chưa đăng nhập hoặc phiên làm việc đã hết hạn." });
+            }
+
             var form = Request.Form;
             var request = new DataTableRequest
             {
@@ -78,13 +83,18 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
                 }
             }
 
-            var data = await _lichSuThanhToanService.GetDanhSachThanhToanAsync(request, chiNhanhId, phuongThuc, tuNgay, denNgay, coTienThua);
+            var data = await _lichSuThanhToanService.GetDanhSachThanhToanAsync(actorId, request, chiNhanhId, phuongThuc, tuNgay, denNgay, coTienThua);
             return Ok(data);
         }
 
         [HttpGet("/LichSuThanhToan/GetStats")]
         public async Task<IActionResult> GetStats([FromQuery] int chiNhanhId = 0, [FromQuery] string dateRange = "")
         {
+            if (!TryGetActorId(out var actorId))
+            {
+                return Unauthorized(new { Message = "Người dùng chưa đăng nhập hoặc phiên làm việc đã hết hạn." });
+            }
+
             DateTime? tuNgay = null;
             DateTime? denNgay = null;
 
@@ -106,7 +116,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
                 }
             }
 
-            var stats = await _lichSuThanhToanService.GetThongKeThanhToanAsync(chiNhanhId, tuNgay, denNgay);
+            var stats = await _lichSuThanhToanService.GetThongKeThanhToanAsync(actorId, chiNhanhId, tuNgay, denNgay);
             return Ok(stats);
         }
 
@@ -126,6 +136,11 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             }
 
             return Ok(new { Message = result.Message, data = result.Data });
+        }
+
+        private bool TryGetActorId(out int actorId)
+        {
+            return int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out actorId) && actorId > 0;
         }
     }
 }

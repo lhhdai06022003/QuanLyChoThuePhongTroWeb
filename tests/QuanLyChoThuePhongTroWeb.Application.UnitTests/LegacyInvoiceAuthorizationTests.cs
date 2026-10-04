@@ -154,9 +154,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
                 return Task.FromResult<IReadOnlyList<HoaDon>>(list);
             }
 
-            public Task<InvoiceCancellationBlockers> GetCancellationBlockersAsync(int hoaDonId, CancellationToken cancellationToken = default)
-                => Task.FromResult(new InvoiceCancellationBlockers(false, false, false));
-
             public Task AddInvoicesAsync(IEnumerable<HoaDon> invoices, CancellationToken cancellationToken = default) => Task.CompletedTask;
             public void UpdateSuCos(IEnumerable<YeuCauSuCo> suCos) { }
             public void RemoveChiTietHoaDons(IEnumerable<ChiTietHoaDon> chiTiets) { }

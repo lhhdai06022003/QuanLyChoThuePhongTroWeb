@@ -81,5 +81,8 @@
 - [x] `dotnet build`, toàn bộ test trên `quanlyphongtro_test`, `has-pending-model-changes`, không có thay đổi trong `Migrations/`, `git diff --check`.
 - [x] Review chất lượng (3 agent, 03/10/2026): sửa thẻ hệ thống tự gõ, ghi chú thô hiện cho khách, `HuyHoaDon` dùng `TimeProvider`, lỗi nghiệp vụ khi trạng thái lệch ledger; bổ sung test (`724977e`).
 - [x] Cập nhật `spec.md` lên 2.1 (§2, §12, §18, §20, §22, §23.3, §26, §32, §36) theo các quyết định trên.
-- [ ] Xem giao diện bằng mắt trên app: khung "Thanh toán" của khách, màn "Đối chiếu thanh toán", thu tiền, hủy ghi nhận.
+- [x] Xem giao diện trên app (04/10/2026, người dùng kiểm và phản hồi): sửa màn Đối chiếu (ảnh minh chứng, cuộn bảng, cột mã bị đè), Lịch sử thanh toán (mã HĐ xuống dòng), nhãn "Thanh toán một phần" (`white-space: nowrap`).
+- [x] Thêm nút "Thu phần còn lại" sau khi xác nhận khoản chuyển thiếu (mở form thu tiền thủ công của hóa đơn).
+- [x] `LichSuThanhToan` (danh sách và thống kê) lọc theo chi nhánh được phân công của nhân viên; Admin xem tất cả; test `LichSuThanhToanBranchScopeTests`.
+- [x] Bỏ `IHoaDonStore.GetCancellationBlockersAsync`, record `InvoiceCancellationBlockers` và test của hàm này (không còn nơi gọi).
 - [ ] Push nhánh và mở PR.

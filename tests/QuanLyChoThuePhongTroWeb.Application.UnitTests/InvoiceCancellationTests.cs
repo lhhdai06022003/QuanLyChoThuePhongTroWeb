@@ -72,21 +72,11 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         {
             public Dictionary<int, HoaDon> Invoices { get; set; } = new();
             public Dictionary<int, int> InvoiceBranches { get; set; } = new();
-            public Dictionary<int, InvoiceCancellationBlockers> Blockers { get; set; } = new();
             public int UpdateHoaDonCalls { get; private set; }
             public Func<bool>? IsInsideTransaction { get; set; }
             public List<bool> LockedReadInsideTransaction { get; } = new();
             public Action<HoaDon>? OnLockedRead { get; set; }
             public List<LichSuThanhToan> AddedPayments { get; } = new();
-
-            public Task<InvoiceCancellationBlockers> GetCancellationBlockersAsync(int hoaDonId, CancellationToken cancellationToken = default)
-            {
-                if (Blockers.TryGetValue(hoaDonId, out var b))
-                {
-                    return Task.FromResult(b);
-                }
-                return Task.FromResult(new InvoiceCancellationBlockers(false, false, false));
-            }
 
             public Task<HoaDon?> GetActiveHoaDonByIdAsync(int id, CancellationToken cancellationToken = default)
             {

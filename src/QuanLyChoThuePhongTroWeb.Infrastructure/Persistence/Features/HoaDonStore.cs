@@ -352,25 +352,6 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 .ToListAsync(cancellationToken);
         }
 
-        public async Task<InvoiceCancellationBlockers> GetCancellationBlockersAsync(int hoaDonId, CancellationToken cancellationToken = default)
-        {
-            var hasPayment = await _context.LichSuThanhToans
-                .AnyAsync(x => x.HoaDonId == hoaDonId && !x.IsDeleted && x.SoTienThanhToan > 0, cancellationToken);
-
-            var hasPendingRequest = await _context.YeuCauThanhToanHoaDons
-                .AnyAsync(x => x.HoaDonId == hoaDonId && !x.IsDeleted &&
-                    (x.TrangThai == TrangThaiYeuCauThanhToan.ChoThanhToan ||
-                     x.TrangThai == TrangThaiYeuCauThanhToan.DaBaoChuyen ||
-                     x.TrangThai == TrangThaiYeuCauThanhToan.DangDoiChieu), cancellationToken);
-
-            var hasPendingProof = await _context.YeuCauThanhToanHoaDons
-                .Where(x => x.HoaDonId == hoaDonId && !x.IsDeleted)
-                .SelectMany(x => x.MinhChungThanhToanHoaDons)
-                .AnyAsync(x => !x.IsDeleted && x.TrangThaiDoiChieu == TrangThaiMinhChungThanhToan.ChoXacNhan, cancellationToken);
-
-            return new InvoiceCancellationBlockers(hasPayment, hasPendingRequest, hasPendingProof);
-        }
-
         public async Task AddInvoicesAsync(IEnumerable<HoaDon> invoices, CancellationToken cancellationToken = default)
         {
             await _context.HoaDons.AddRangeAsync(invoices, cancellationToken);

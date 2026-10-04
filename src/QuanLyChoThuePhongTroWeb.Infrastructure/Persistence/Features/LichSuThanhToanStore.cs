@@ -24,7 +24,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
         }
 
         public async Task<DataTableResponse<LichSuThanhToanGiaoDichRes>> GetDanhSachThanhToanAsync(
-            DataTableRequest request, int chiNhanhId, int phuongThuc, DateTime? tuNgay, DateTime? denNgay, bool chiCoTienThua = false, CancellationToken cancellationToken = default)
+            DataTableRequest request, int chiNhanhId, int phuongThuc, DateTime? tuNgay, DateTime? denNgay, bool chiCoTienThua = false, IReadOnlyCollection<int>? allowedBranchIds = null, CancellationToken cancellationToken = default)
         {
             var query = _context.LichSuThanhToans
                 .Where(l => !l.IsDeleted);
@@ -32,6 +32,11 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
             if (chiCoTienThua)
             {
                 query = query.Where(l => l.GhiChu.StartsWith(PaymentNoteTags.TienThuaPrefix));
+            }
+
+            if (allowedBranchIds != null)
+            {
+                query = query.Where(l => allowedBranchIds.Contains(l.HoaDon.HopDong.PhongTro.ChiNhanhId));
             }
 
             if (chiNhanhId > 0)
@@ -98,10 +103,15 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
             };
         }
 
-        public async Task<ThongKeThanhToanRes> GetThongKeThanhToanAsync(int chiNhanhId, DateTime? tuNgay, DateTime? denNgay, CancellationToken cancellationToken = default)
+        public async Task<ThongKeThanhToanRes> GetThongKeThanhToanAsync(int chiNhanhId, DateTime? tuNgay, DateTime? denNgay, IReadOnlyCollection<int>? allowedBranchIds = null, CancellationToken cancellationToken = default)
         {
             var query = _context.LichSuThanhToans
                 .Where(l => !l.IsDeleted);
+
+            if (allowedBranchIds != null)
+            {
+                query = query.Where(l => allowedBranchIds.Contains(l.HoaDon.HopDong.PhongTro.ChiNhanhId));
+            }
 
             if (chiNhanhId > 0)
             {
