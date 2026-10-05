@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Persistence;
+using QuanLyChoThuePhongTroWeb.Application.Abstractions.Security;
 using QuanLyChoThuePhongTroWeb.Application.Common.Models;
+using QuanLyChoThuePhongTroWeb.Application.Common.Security;
 using QuanLyChoThuePhongTroWeb.Application.Features.DichVus.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.DichVus.Persistence;
 using QuanLyChoThuePhongTroWeb.Domain.Entities;
@@ -12,13 +14,38 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DichVus.Services
 {
     public class DichVuService : IDichVuService
     {
+        private const string KhongCoQuyenBangGia = "Bạn không có quyền thiết lập bảng giá dịch vụ tại chi nhánh này.";
+
         private readonly IDichVuStore _store;
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IEmployeeAccessService _access;
 
-        public DichVuService(IDichVuStore store, IUnitOfWork unitOfWork)
+        public DichVuService(IDichVuStore store, IUnitOfWork unitOfWork, IEmployeeAccessService access)
         {
             _store = store;
             _unitOfWork = unitOfWork;
+            _access = access;
+        }
+
+
+        private async Task<bool> IsAdminAsync(int actorId)
+        {
+            return (await _access.GetScopeAsync(actorId))?.IsAdmin == true;
+        }
+
+        public async Task<ServiceResult> CreateDichVuAsync(int actorId, DichVuReq input)
+        {
+            return await IsAdminAsync(actorId) ? ServiceResult.FromTuple(await CreateDichVuCoreAsync(input)) : ServiceResult.Forbidden("Chỉ Admin được thêm dịch vụ hệ thống.");
+        }
+
+        public async Task<ServiceResult> UpdateDichVuAsync(int actorId, int id, DichVuReq input)
+        {
+            return await IsAdminAsync(actorId) ? ServiceResult.FromTuple(await UpdateDichVuCoreAsync(id, input)) : ServiceResult.Forbidden("Chỉ Admin được sửa dịch vụ hệ thống.");
+        }
+
+        public async Task<ServiceResult> DeleteDichVuAsync(int actorId, int id)
+        {
+            return await IsAdminAsync(actorId) ? ServiceResult.FromTuple(await DeleteDichVuCoreAsync(id)) : ServiceResult.Forbidden("Chỉ Admin được xóa dịch vụ hệ thống.");
         }
 
         public async Task<DataTableResponse<DichVuRes>> GetDanhSachDichVuAsync(DataTableRequest request)
@@ -33,7 +60,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DichVus.Services
             return new DichVuRes { DichVuId = dv.DichVuId, TenDichVu = dv.TenDichVu, DonVi = dv.DonVi, GhiChu = dv.GhiChu };
         }
 
-        public async Task<(bool IsSuccess, string? ErrorMessage)> CreateDichVuAsync(DichVuReq input)
+        private async Task<(bool IsSuccess, string? ErrorMessage)> CreateDichVuCoreAsync(DichVuReq input)
         {
             bool exists = await _store.ExistsDichVuNameAsync(input.TenDichVu);
             if (exists) return (false, "Tên dịch vụ đã tồn tại.");
@@ -49,7 +76,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DichVus.Services
             return (true, null);
         }
 
-        public async Task<(bool IsSuccess, string? ErrorMessage)> UpdateDichVuAsync(int id, DichVuReq input)
+        private async Task<(bool IsSuccess, string? ErrorMessage)> UpdateDichVuCoreAsync(int id, DichVuReq input)
         {
             var dv = await _store.GetDichVuByIdAsync(id);
             if (dv == null) return (false, "Không tìm thấy dịch vụ.");
@@ -67,7 +94,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DichVus.Services
             return (true, null);
         }
 
-        public async Task<(bool IsSuccess, string? ErrorMessage)> DeleteDichVuAsync(int id)
+        private async Task<(bool IsSuccess, string? ErrorMessage)> DeleteDichVuCoreAsync(int id)
         {
             var dv = await _store.GetDichVuByIdAsync(id);
             if (dv == null) return (false, "Không tìm thấy dịch vụ.");
@@ -84,15 +111,22 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DichVus.Services
             return (true, null);
         }
 
-        public async Task<DataTableResponse<DichVuChiNhanhRes>> GetDanhSachDichVuChiNhanhAsync(DataTableRequest request, int chiNhanhId)
+        public async Task<DataTableResponse<DichVuChiNhanhRes>> GetDanhSachDichVuChiNhanhAsync(int actorId, DataTableRequest request, int chiNhanhId)
         {
-            return await _store.GetPagedDichVuChiNhanhAsync(request, chiNhanhId);
+            var scope = await _access.GetScopeAsync(actorId);
+            if (scope == null || (chiNhanhId > 0 && !scope.CanAccessBranch(chiNhanhId)))
+            {
+                return new DataTableResponse<DichVuChiNhanhRes> { draw = request.Draw };
+            }
+
+            return await _store.GetPagedDichVuChiNhanhAsync(request, chiNhanhId, scope.AllowedBranchIds);
         }
 
-        public async Task<DichVuChiNhanhRes?> GetDichVuChiNhanhByIdAsync(int id)
+        public async Task<DichVuChiNhanhRes?> GetDichVuChiNhanhByIdAsync(int actorId, int id)
         {
-            var dcn = await _store.GetDichVuChiNhanhByIdAsync(id);
-            if (dcn == null) return null;
+            var scope = await _access.GetScopeAsync(actorId);
+            var dcn = scope == null ? null : await _store.GetDichVuChiNhanhByIdAsync(id);
+            if (dcn == null || !scope!.CanAccessBranch(dcn.ChiNhanhId)) return null;
 
             return new DichVuChiNhanhRes
             {
@@ -106,7 +140,16 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DichVus.Services
             };
         }
 
-        public async Task<(bool IsSuccess, string? ErrorMessage)> CreateDichVuChiNhanhAsync(DichVuChiNhanhReq input)
+        public async Task<ServiceResult> CreateDichVuChiNhanhAsync(int actorId, DichVuChiNhanhReq input)
+        {
+            var scope = await _access.GetScopeAsync(actorId);
+            if (scope == null || !scope.CanAccessBranch(input.ChiNhanhId))
+                return ServiceResult.Forbidden(KhongCoQuyenBangGia);
+
+            return ServiceResult.FromTuple(await CreateDichVuChiNhanhCoreAsync(input));
+        }
+
+        private async Task<(bool IsSuccess, string? ErrorMessage)> CreateDichVuChiNhanhCoreAsync(DichVuChiNhanhReq input)
         {
             bool exists = await _store.ExistsDichVuChiNhanhAsync(input.ChiNhanhId, input.DichVuId);
             if (exists) return (false, "Dịch vụ này đã được cài đặt giá cho chi nhánh đã chọn.");
@@ -123,10 +166,21 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DichVus.Services
             return (true, null);
         }
 
-        public async Task<(bool IsSuccess, string? ErrorMessage)> UpdateDichVuChiNhanhAsync(int id, DichVuChiNhanhReq input)
+        public async Task<ServiceResult> UpdateDichVuChiNhanhAsync(int actorId, int id, DichVuChiNhanhReq input)
         {
             var dcn = await _store.GetDichVuChiNhanhByIdAsync(id);
-            if (dcn == null) return (false, "Không tìm thấy bảng giá dịch vụ.");
+            if (dcn == null) return ServiceResult.NotFound("Không tìm thấy bảng giá dịch vụ.");
+
+            // Kiểm cả chi nhánh hiện tại và chi nhánh mới: không được chuyển dòng giá sang chi nhánh khác.
+            var scope = await _access.GetScopeAsync(actorId);
+            if (scope == null || !scope.CanAccessBranch(dcn.ChiNhanhId) || !scope.CanAccessBranch(input.ChiNhanhId))
+                return ServiceResult.Forbidden(KhongCoQuyenBangGia);
+
+            return ServiceResult.FromTuple(await UpdateDichVuChiNhanhCoreAsync(dcn, id, input));
+        }
+
+        private async Task<(bool IsSuccess, string? ErrorMessage)> UpdateDichVuChiNhanhCoreAsync(DichVuChiNhanh dcn, int id, DichVuChiNhanhReq input)
+        {
 
             bool exists = await _store.ExistsDichVuChiNhanhAsync(input.ChiNhanhId, input.DichVuId, id);
             if (exists) return (false, "Dịch vụ này đã được cài đặt giá cho chi nhánh đã chọn.");
@@ -142,24 +196,29 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DichVus.Services
             return (true, null);
         }
 
-        public async Task<(bool IsSuccess, string? ErrorMessage)> DeleteDichVuChiNhanhAsync(int id)
+        public async Task<ServiceResult> DeleteDichVuChiNhanhAsync(int actorId, int id)
         {
             var dcn = await _store.GetDichVuChiNhanhByIdAsync(id);
-            if (dcn == null) return (false, "Không tìm thấy bảng giá dịch vụ.");
+            if (dcn == null) return ServiceResult.NotFound("Không tìm thấy bảng giá dịch vụ.");
+
+            var scope = await _access.GetScopeAsync(actorId);
+            if (scope == null || !scope.CanAccessBranch(dcn.ChiNhanhId))
+                return ServiceResult.Forbidden(KhongCoQuyenBangGia);
 
             dcn.IsDeleted = true;
             dcn.NgayCapNhat = DateTime.UtcNow;
             _store.UpdateDichVuChiNhanh(dcn);
             await _unitOfWork.SaveChangesAsync();
-            return (true, null);
+            return ServiceResult.Ok();
         }
 
         // ===== ĐĂNG KÝ DỊCH VỤ CHO PHÒNG =====
 
-        public async Task<List<DichVuChiNhanhWithDangKyRes>> GetDichVuVaDangKyCuaPhongAsync(int phongTroId)
+        public async Task<List<DichVuChiNhanhWithDangKyRes>?> GetDichVuVaDangKyCuaPhongAsync(int actorId, int phongTroId)
         {
-            var phong = await _store.GetPhongTroByIdAsync(phongTroId);
-            if (phong == null) return new List<DichVuChiNhanhWithDangKyRes>();
+            var scope = await _access.GetScopeAsync(actorId);
+            var phong = scope == null ? null : await _store.GetPhongTroByIdAsync(phongTroId);
+            if (phong == null || !scope!.CanAccessBranch(phong.ChiNhanhId)) return null;
 
             int chiNhanhId = phong.ChiNhanhId;
 
@@ -186,10 +245,27 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DichVus.Services
             return result;
         }
 
-        public async Task<(bool IsSuccess, string? ErrorMessage)> LuuDangKyDichVuAsync(DangKyDichVuReq input)
+        public async Task<ServiceResult> LuuDangKyDichVuAsync(int actorId, DangKyDichVuReq input)
         {
             var phong = await _store.GetPhongTroByIdAsync(input.PhongTroId);
-            if (phong == null) return (false, "Phòng trọ không tồn tại.");
+            if (phong == null) return ServiceResult.NotFound("Phòng trọ không tồn tại.");
+
+            var scope = await _access.GetScopeAsync(actorId);
+            if (scope == null || !scope.CanAccessBranch(phong.ChiNhanhId))
+                return ServiceResult.Forbidden("Bạn không có quyền đăng ký dịch vụ cho phòng tại chi nhánh này.");
+
+            // Dịch vụ được chọn phải là bảng giá đang dùng của đúng chi nhánh chứa phòng (áp dụng cả Admin).
+            var bangGiaCuaChiNhanh = (await _store.GetActiveDichVuChiNhanhsAsync(phong.ChiNhanhId))
+                .Select(x => x.DichVuChiNhanhId)
+                .ToHashSet();
+            if (input.DichVus.Any(x => x.IsSelected && !bangGiaCuaChiNhanh.Contains(x.DichVuChiNhanhId)))
+                return ServiceResult.Fail("Có dịch vụ không thuộc bảng giá của chi nhánh chứa phòng.");
+
+            return ServiceResult.FromTuple(await LuuDangKyDichVuCoreAsync(input));
+        }
+
+        private async Task<(bool IsSuccess, string? ErrorMessage)> LuuDangKyDichVuCoreAsync(DangKyDichVuReq input)
+        {
 
             using var transaction = await _unitOfWork.BeginTransactionAsync();
             try

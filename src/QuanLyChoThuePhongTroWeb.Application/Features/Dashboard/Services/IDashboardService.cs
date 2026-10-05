@@ -5,6 +5,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.Services
 {
     public interface IDashboardService
     {
-        Task<DashboardDataDto> GetDashboardDataAsync(int? branchId, int selectedYear, int selectedMonth);
+        // Nhân viên chỉ thấy số liệu của chi nhánh được phân công; chọn chi nhánh khác thì mọi số liệu bằng 0.
+        Task<DashboardDataDto> GetDashboardDataAsync(int actorId, int? branchId, int selectedYear, int selectedMonth);
     }
 }

@@ -1,14 +1,16 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using QuanLyChoThuePhongTroWeb.Application.Common.Models;
 using QuanLyChoThuePhongTroWeb.Application.Features.ThanhVienHopDongs.DTOs;
 
 namespace QuanLyChoThuePhongTroWeb.Application.Features.ThanhVienHopDongs.Services
 {
     public interface IThanhVienHopDongService
     {
-        Task<List<ThanhVienHopDongRes>> GetThanhVienByHopDongIdAsync(int hopDongId);
-        Task<(bool IsSuccess, string? ErrorMessage)> AddThanhVienVaoHopDongAsync(ThanhVienHopDongReq request);
-        Task<(bool IsSuccess, string? ErrorMessage)> BaoRoiPhongAsync(int chiTietId);
-        Task<(bool IsSuccess, string? ErrorMessage)> XoaThanhVienNhamAsync(int chiTietId);
+        // Hợp đồng phải thuộc chi nhánh được phân công của actor.
+        Task<List<ThanhVienHopDongRes>> GetThanhVienByHopDongIdAsync(int actorId, int hopDongId);
+        Task<ServiceResult> AddThanhVienVaoHopDongAsync(int actorId, ThanhVienHopDongReq request);
+        Task<ServiceResult> BaoRoiPhongAsync(int actorId, int chiTietId);
+        Task<ServiceResult> XoaThanhVienNhamAsync(int actorId, int chiTietId);
     }
 }

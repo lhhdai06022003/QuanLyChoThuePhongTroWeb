@@ -48,7 +48,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         [ApiExplorerSettings(IgnoreApi = true)]
         public async Task<IActionResult> Index([FromQuery] string? ma)
         {
-            ViewBag.ListChiNhanh = await _phongTroService.GetDanhSachChiNhanhDropdownAsync();
+            ViewBag.ListChiNhanh = await _phongTroService.GetDanhSachChiNhanhDropdownAsync(CurrentActorId);
             ViewBag.MaTraCuu = ma ?? string.Empty;
 
             var chuaPhanCong = false;

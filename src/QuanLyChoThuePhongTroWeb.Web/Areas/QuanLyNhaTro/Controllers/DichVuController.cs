@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using QuanLyChoThuePhongTroWeb.Web.Helpers;
 
 namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
 {
@@ -18,7 +20,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         [ApiExplorerSettings(IgnoreApi = true)]
         public async Task<IActionResult> Index()
         {
-            ViewBag.ListChiNhanh = await _phongTroService.GetDanhSachChiNhanhDropdownAsync();
+            ViewBag.ListChiNhanh = await _phongTroService.GetDanhSachChiNhanhDropdownAsync(CurrentActorId);
             return View();
         }
 
@@ -50,28 +52,29 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             return Ok(data);
         }
 
+        // Danh mục dịch vụ hệ thống dùng chung cho mọi chi nhánh: chỉ Admin được sửa.
         [HttpPost("/DichVu/Create")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> CreateDichVu([FromBody] DichVuReq request)
         {
-            var result = await _dichVuService.CreateDichVuAsync(request);
-            if (!result.IsSuccess) return BadRequest(new { Message = result.ErrorMessage });
-            return Ok(new { Message = "Thêm thành công!" });
+            var result = await _dichVuService.CreateDichVuAsync(CurrentActorId, request);
+            return result.Success ? Ok(new { Message = "Thêm thành công!" }) : this.ToErrorResult(result);
         }
 
         [HttpPut("/DichVu/Update/{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> UpdateDichVu(int id, [FromBody] DichVuReq request)
         {
-            var result = await _dichVuService.UpdateDichVuAsync(id, request);
-            if (!result.IsSuccess) return BadRequest(new { Message = result.ErrorMessage });
-            return Ok(new { Message = "Cập nhật thành công!" });
+            var result = await _dichVuService.UpdateDichVuAsync(CurrentActorId, id, request);
+            return result.Success ? Ok(new { Message = "Cập nhật thành công!" }) : this.ToErrorResult(result);
         }
 
         [HttpDelete("/DichVu/Delete/{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteDichVu(int id)
         {
-            var result = await _dichVuService.DeleteDichVuAsync(id);
-            if (!result.IsSuccess) return BadRequest(new { Message = result.ErrorMessage });
-            return Ok(new { Message = "Đã xóa thành công." });
+            var result = await _dichVuService.DeleteDichVuAsync(CurrentActorId, id);
+            return result.Success ? Ok(new { Message = "Đã xóa thành công." }) : this.ToErrorResult(result);
         }
 
         // --- CRUD Dich Vu Chi Nhanh (Bang Gia) ---
@@ -90,14 +93,14 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
                 SearchValue = form["search[value]"].FirstOrDefault()
             };
 
-            var data = await _dichVuService.GetDanhSachDichVuChiNhanhAsync(request, validChiNhanhId);
+            var data = await _dichVuService.GetDanhSachDichVuChiNhanhAsync(CurrentActorId, request, validChiNhanhId);
             return Ok(data);
         }
 
         [HttpGet("/DichVuChiNhanh/GetById/{id}")]
         public async Task<IActionResult> GetDichVuChiNhanhById(int id)
         {
-            var data = await _dichVuService.GetDichVuChiNhanhByIdAsync(id);
+            var data = await _dichVuService.GetDichVuChiNhanhByIdAsync(CurrentActorId, id);
             if (data == null) return NotFound(new { Message = "Không tìm thấy" });
             return Ok(data);
         }
@@ -105,25 +108,22 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         [HttpPost("/DichVuChiNhanh/Create")]
         public async Task<IActionResult> CreateDichVuChiNhanh([FromBody] DichVuChiNhanhReq request)
         {
-            var result = await _dichVuService.CreateDichVuChiNhanhAsync(request);
-            if (!result.IsSuccess) return BadRequest(new { Message = result.ErrorMessage });
-            return Ok(new { Message = "Thêm bảng giá thành công!" });
+            var result = await _dichVuService.CreateDichVuChiNhanhAsync(CurrentActorId, request);
+            return result.Success ? Ok(new { Message = "Thêm bảng giá thành công!" }) : this.ToErrorResult(result);
         }
 
         [HttpPut("/DichVuChiNhanh/Update/{id}")]
         public async Task<IActionResult> UpdateDichVuChiNhanh(int id, [FromBody] DichVuChiNhanhReq request)
         {
-            var result = await _dichVuService.UpdateDichVuChiNhanhAsync(id, request);
-            if (!result.IsSuccess) return BadRequest(new { Message = result.ErrorMessage });
-            return Ok(new { Message = "Cập nhật bảng giá thành công!" });
+            var result = await _dichVuService.UpdateDichVuChiNhanhAsync(CurrentActorId, id, request);
+            return result.Success ? Ok(new { Message = "Cập nhật bảng giá thành công!" }) : this.ToErrorResult(result);
         }
 
         [HttpDelete("/DichVuChiNhanh/Delete/{id}")]
         public async Task<IActionResult> DeleteDichVuChiNhanh(int id)
         {
-            var result = await _dichVuService.DeleteDichVuChiNhanhAsync(id);
-            if (!result.IsSuccess) return BadRequest(new { Message = result.ErrorMessage });
-            return Ok(new { Message = "Đã xóa bảng giá thành công." });
+            var result = await _dichVuService.DeleteDichVuChiNhanhAsync(CurrentActorId, id);
+            return result.Success ? Ok(new { Message = "Đã xóa bảng giá thành công." }) : this.ToErrorResult(result);
         }
 
         // Endpoint phụ để lấy dropdown dịch vụ hệ thống cho bảng giá
@@ -141,16 +141,16 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         public async Task<IActionResult> GetDangKyDichVuByPhong([FromQuery] int phongTroId)
         {
             if (phongTroId <= 0) return BadRequest(new { Message = "PhongTroId không hợp lệ." });
-            var data = await _dichVuService.GetDichVuVaDangKyCuaPhongAsync(phongTroId);
+            var data = await _dichVuService.GetDichVuVaDangKyCuaPhongAsync(CurrentActorId, phongTroId);
+            if (data == null) return NotFound(new { Message = "Không tìm thấy phòng trọ." });
             return Ok(data);
         }
 
         [HttpPost("/DangKyDichVu/Luu")]
         public async Task<IActionResult> LuuDangKyDichVu([FromBody] DangKyDichVuReq request)
         {
-            var result = await _dichVuService.LuuDangKyDichVuAsync(request);
-            if (!result.IsSuccess) return BadRequest(new { Message = result.ErrorMessage });
-            return Ok(new { Message = "Đăng ký dịch vụ thành công!" });
+            var result = await _dichVuService.LuuDangKyDichVuAsync(CurrentActorId, request);
+            return result.Success ? Ok(new { Message = "Đăng ký dịch vụ thành công!" }) : this.ToErrorResult(result);
         }
     }
 }

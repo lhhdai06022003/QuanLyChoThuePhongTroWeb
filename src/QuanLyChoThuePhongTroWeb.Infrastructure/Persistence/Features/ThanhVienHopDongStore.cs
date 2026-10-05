@@ -81,6 +81,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
         {
             return await _context.ChiTietThanhVienHopDongs
                 .Include(x => x.HopDong)
+                    .ThenInclude(h => h.PhongTro)
                 .FirstOrDefaultAsync(x => x.ChiTietThanhVienHopDongId == chiTietId && !x.IsDeleted, cancellationToken);
         }
 

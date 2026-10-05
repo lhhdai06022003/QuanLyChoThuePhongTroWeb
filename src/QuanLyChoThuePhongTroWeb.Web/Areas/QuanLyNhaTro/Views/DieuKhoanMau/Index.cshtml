@@ -1,6 +1,8 @@
 @model IEnumerable<QuanLyChoThuePhongTroWeb.Application.Features.DieuKhoanMaus.DTOs.DieuKhoanMauRes>
 @{
     ViewData["Title"] = "Quản lý Điều khoản Hợp đồng";
+    // Điều khoản mẫu dùng chung: nhân viên chỉ xem, server chặn ghi lần nữa.
+    var laAdmin = User.IsInRole("Admin");
 }
 
 <div class="container-xl mt-3">
@@ -15,9 +17,12 @@
             </div>
             <div class="col-auto ms-auto d-print-none">
                 <div class="btn-list">
-                    <button class="btn btn-success d-none d-sm-inline-block shadow-sm font-weight-bold" id="btnOpenAddModal">
-                        <i class="ti ti-circle-plus me-1"></i> Thêm điều khoản mới
-                    </button>
+                    @if (laAdmin)
+                    {
+                        <button class="btn btn-success d-none d-sm-inline-block shadow-sm font-weight-bold" id="btnOpenAddModal">
+                            <i class="ti ti-circle-plus me-1"></i> Thêm điều khoản mới
+                        </button>
+                    }
                 </div>
             </div>
         </div>
@@ -52,14 +57,17 @@
                                         @Html.Raw(item.NoiDung.Length > 200 ? item.NoiDung.Substring(0, 200) + "..." : item.NoiDung)
                                     </td>
                                     <td class="text-center align-middle">
-                                        <div class="btn-list flex-nowrap justify-content-center">
-                                            <button type="button" class="btn btn-icon btn-ghost-warning btn-sm btn-edit-dk" data-id="@item.DieuKhoanMauId" title="Chỉnh sửa">
-                                                <i class="ti ti-edit"></i>
-                                            </button>
-                                            <button type="button" class="btn btn-icon btn-ghost-danger btn-sm btn-delete-dk" data-id="@item.DieuKhoanMauId" title="Xóa">
-                                                <i class="ti ti-trash"></i>
-                                            </button>
-                                        </div>
+                                        @if (laAdmin)
+                                        {
+                                            <div class="btn-list flex-nowrap justify-content-center">
+                                                <button type="button" class="btn btn-icon btn-ghost-warning btn-sm btn-edit-dk" data-id="@item.DieuKhoanMauId" title="Chỉnh sửa">
+                                                    <i class="ti ti-edit"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-icon btn-ghost-danger btn-sm btn-delete-dk" data-id="@item.DieuKhoanMauId" title="Xóa">
+                                                    <i class="ti ti-trash"></i>
+                                                </button>
+                                            </div>
+                                        }
                                     </td>
                                 </tr>
                             }
@@ -76,11 +84,14 @@
                                         <p class="empty-subtitle text-muted">
                                             Thư viện điều khoản hiện tại đang trống. Vui lòng thêm điều khoản mới.
                                         </p>
-                                        <div class="empty-action mt-3">
-                                            <button class="btn btn-success font-weight-bold shadow-sm" id="btnOpenAddModalEmpty">
-                                                <i class="ti ti-circle-plus me-1"></i> Thêm ngay
-                                            </button>
-                                        </div>
+                                        @if (laAdmin)
+                                        {
+                                            <div class="empty-action mt-3">
+                                                <button class="btn btn-success font-weight-bold shadow-sm" id="btnOpenAddModalEmpty">
+                                                    <i class="ti ti-circle-plus me-1"></i> Thêm ngay
+                                                </button>
+                                            </div>
+                                        }
                                     </div>
                                 </td>
                             </tr>

@@ -14,6 +14,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.DTOs
         public DateTime NgayTao { get; set; }
 
         // Thông tin Bên A (Chi nhánh/Quản lý)
+        public int ChiNhanhId { get; set; }
         public string TenChiNhanh { get; set; } = string.Empty;
         public string DiaChiChiNhanh { get; set; } = string.Empty;
         public string SoDienThoaiChiNhanh { get; set; } = string.Empty;

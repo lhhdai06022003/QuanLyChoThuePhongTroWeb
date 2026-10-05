@@ -20,10 +20,15 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
             _context = context;
         }
 
-        public async Task<IReadOnlyList<BranchLookupItemDto>> GetActiveBranchesAsync(CancellationToken cancellationToken = default)
+        public async Task<IReadOnlyList<BranchLookupItemDto>> GetActiveBranchesAsync(IReadOnlyCollection<int>? allowedBranchIds = null, CancellationToken cancellationToken = default)
         {
-            return await _context.ChiNhanhs
-                .Where(c => !c.IsDeleted)
+            var query = _context.ChiNhanhs.Where(c => !c.IsDeleted);
+            if (allowedBranchIds != null)
+            {
+                query = query.Where(c => allowedBranchIds.Contains(c.ChiNhanhId));
+            }
+
+            return await query
                 .Select(c => new BranchLookupItemDto
                 {
                     Id = c.ChiNhanhId,
@@ -32,12 +37,17 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 .ToListAsync(cancellationToken);
         }
 
-        public async Task<(int Trong, int DaThue, int BaoTri)> GetRoomStatusCountsAsync(int? branchId, CancellationToken cancellationToken = default)
+        public async Task<(int Trong, int DaThue, int BaoTri)> GetRoomStatusCountsAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds = null, CancellationToken cancellationToken = default)
         {
             var query = _context.PhongTros.Where(p => !p.IsDeleted);
             if (branchId.HasValue)
             {
                 query = query.Where(p => p.ChiNhanhId == branchId.Value);
+            }
+
+            if (allowedBranchIds != null)
+            {
+                query = query.Where(p => allowedBranchIds.Contains(p.ChiNhanhId));
             }
 
             var phongStats = await query
@@ -52,7 +62,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
             return (trong, daThue, baoTri);
         }
 
-        public async Task<int> CountActiveContractsAsync(int? branchId, CancellationToken cancellationToken = default)
+        public async Task<int> CountActiveContractsAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds = null, CancellationToken cancellationToken = default)
         {
             var query = _context.HopDongs
                 .Where(h => !h.IsDeleted && h.TrangThaiHopDong == TrangThaiHopDong.DangHoatDong);
@@ -62,10 +72,15 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 query = query.Where(h => h.PhongTro.ChiNhanhId == branchId.Value);
             }
 
+            if (allowedBranchIds != null)
+            {
+                query = query.Where(h => allowedBranchIds.Contains(h.PhongTro.ChiNhanhId));
+            }
+
             return await query.CountAsync(cancellationToken);
         }
 
-        public async Task<IReadOnlyList<DashboardInvoiceStatDto>> GetInvoiceMonthlyStatsAsync(int? branchId, int year, CancellationToken cancellationToken = default)
+        public async Task<IReadOnlyList<DashboardInvoiceStatDto>> GetInvoiceMonthlyStatsAsync(int? branchId, int year, IReadOnlyCollection<int>? allowedBranchIds = null, CancellationToken cancellationToken = default)
         {
             var query = _context.HoaDons
                 .Where(h => !h.IsDeleted && h.Nam == year);
@@ -73,6 +88,11 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
             if (branchId.HasValue)
             {
                 query = query.Where(h => h.HopDong.PhongTro.ChiNhanhId == branchId.Value);
+            }
+
+            if (allowedBranchIds != null)
+            {
+                query = query.Where(h => allowedBranchIds.Contains(h.HopDong.PhongTro.ChiNhanhId));
             }
 
             // Lấy từng hóa đơn rồi gom trong bộ nhớ: số hóa đơn một năm của một chi nhánh nhỏ,
@@ -99,7 +119,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 .ToList();
         }
 
-        public async Task<int> CountUnpaidRoomsAsync(int? branchId, CancellationToken cancellationToken = default)
+        public async Task<int> CountUnpaidRoomsAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds = null, CancellationToken cancellationToken = default)
         {
             var query = _context.HoaDons
                 .Where(h => !h.IsDeleted && h.TrangThaiHoaDon != TrangThaiHoaDon.DaThanhToan);
@@ -109,13 +129,18 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 query = query.Where(h => h.HopDong.PhongTro.ChiNhanhId == branchId.Value);
             }
 
+            if (allowedBranchIds != null)
+            {
+                query = query.Where(h => allowedBranchIds.Contains(h.HopDong.PhongTro.ChiNhanhId));
+            }
+
             return await query
                 .Select(h => h.HopDong.PhongTroId)
                 .Distinct()
                 .CountAsync(cancellationToken);
         }
 
-        public async Task<IReadOnlyList<DashboardContractUtilityCheckDto>> GetActiveContractsForUtilityCheckAsync(int? branchId, CancellationToken cancellationToken = default)
+        public async Task<IReadOnlyList<DashboardContractUtilityCheckDto>> GetActiveContractsForUtilityCheckAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds = null, CancellationToken cancellationToken = default)
         {
             var query = _context.HopDongs
                 .Where(h => !h.IsDeleted && h.TrangThaiHopDong == TrangThaiHopDong.DangHoatDong);
@@ -123,6 +148,11 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
             if (branchId.HasValue)
             {
                 query = query.Where(h => h.PhongTro.ChiNhanhId == branchId.Value);
+            }
+
+            if (allowedBranchIds != null)
+            {
+                query = query.Where(h => allowedBranchIds.Contains(h.PhongTro.ChiNhanhId));
             }
 
             return await query
@@ -150,7 +180,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 .ToListAsync(cancellationToken);
         }
 
-        public async Task<int> CountExpiringContractsAsync(int? branchId, DateTime today, DateTime limitDate, CancellationToken cancellationToken = default)
+        public async Task<int> CountExpiringContractsAsync(int? branchId, DateTime today, DateTime limitDate, IReadOnlyCollection<int>? allowedBranchIds = null, CancellationToken cancellationToken = default)
         {
             var query = _context.HopDongs
                 .Where(h => !h.IsDeleted &&
@@ -164,10 +194,15 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 query = query.Where(h => h.PhongTro.ChiNhanhId == branchId.Value);
             }
 
+            if (allowedBranchIds != null)
+            {
+                query = query.Where(h => allowedBranchIds.Contains(h.PhongTro.ChiNhanhId));
+            }
+
             return await query.CountAsync(cancellationToken);
         }
 
-        public async Task<IReadOnlyList<DashboardUnpaidGroupDto>> GetUnpaidInvoicesGroupedAsync(int? branchId, CancellationToken cancellationToken = default)
+        public async Task<IReadOnlyList<DashboardUnpaidGroupDto>> GetUnpaidInvoicesGroupedAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds = null, CancellationToken cancellationToken = default)
         {
             var query = _context.HoaDons
                 .Where(h => !h.IsDeleted && h.TrangThaiHoaDon != TrangThaiHoaDon.DaThanhToan);
@@ -175,6 +210,11 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
             if (branchId.HasValue)
             {
                 query = query.Where(h => h.HopDong.PhongTro.ChiNhanhId == branchId.Value);
+            }
+
+            if (allowedBranchIds != null)
+            {
+                query = query.Where(h => allowedBranchIds.Contains(h.HopDong.PhongTro.ChiNhanhId));
             }
 
             return await query
@@ -191,7 +231,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 .ToListAsync(cancellationToken);
         }
 
-        public async Task<IReadOnlyList<DashboardRecentPaymentDto>> GetRecentPaymentsAsync(int? branchId, int count = 5, CancellationToken cancellationToken = default)
+        public async Task<IReadOnlyList<DashboardRecentPaymentDto>> GetRecentPaymentsAsync(int? branchId, int count = 5, IReadOnlyCollection<int>? allowedBranchIds = null, CancellationToken cancellationToken = default)
         {
             var query = _context.LichSuThanhToans
                 .Include(l => l.HoaDon).ThenInclude(h => h.HopDong).ThenInclude(hd => hd.PhongTro)
@@ -200,6 +240,11 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
             if (branchId.HasValue)
             {
                 query = query.Where(l => l.HoaDon.HopDong.PhongTro.ChiNhanhId == branchId.Value);
+            }
+
+            if (allowedBranchIds != null)
+            {
+                query = query.Where(l => allowedBranchIds.Contains(l.HoaDon.HopDong.PhongTro.ChiNhanhId));
             }
 
             return await query
@@ -215,7 +260,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 .ToListAsync(cancellationToken);
         }
 
-        public async Task<IReadOnlyList<DashboardRecentContractDto>> GetRecentContractsAsync(int? branchId, int count = 5, CancellationToken cancellationToken = default)
+        public async Task<IReadOnlyList<DashboardRecentContractDto>> GetRecentContractsAsync(int? branchId, int count = 5, IReadOnlyCollection<int>? allowedBranchIds = null, CancellationToken cancellationToken = default)
         {
             var query = _context.HopDongs
                 .Include(h => h.PhongTro)
@@ -225,6 +270,11 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
             if (branchId.HasValue)
             {
                 query = query.Where(h => h.PhongTro.ChiNhanhId == branchId.Value);
+            }
+
+            if (allowedBranchIds != null)
+            {
+                query = query.Where(h => allowedBranchIds.Contains(h.PhongTro.ChiNhanhId));
             }
 
             return await query

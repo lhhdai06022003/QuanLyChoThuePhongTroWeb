@@ -34,6 +34,12 @@ namespace QuanLyChoThuePhongTroWeb.Application.Common.Models
         {
             return new ServiceResult { Success = false, Message = message, ErrorKind = ServiceErrorKind.NotFound };
         }
+
+        // Chuyển kết quả dạng tuple của các service cũ sang ServiceResult (lỗi nghiệp vụ = Validation).
+        public static ServiceResult FromTuple((bool IsSuccess, string? ErrorMessage) result)
+        {
+            return result.IsSuccess ? Ok() : Fail(result.ErrorMessage ?? "Có lỗi xảy ra.");
+        }
     }
 
     public class ServiceResult<T> : ServiceResult

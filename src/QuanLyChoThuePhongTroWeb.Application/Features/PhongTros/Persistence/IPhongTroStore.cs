@@ -9,14 +9,14 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.PhongTros.Persistence
 {
     public interface IPhongTroStore
     {
-        Task<IReadOnlyList<SelectOptionDto>> GetChiNhanhDropdownAsync(CancellationToken cancellationToken = default);
-        Task<IReadOnlyList<PhongTroListItemDto>> GetDanhSachPhongTroAsync(CancellationToken cancellationToken = default);
+        Task<IReadOnlyList<SelectOptionDto>> GetChiNhanhDropdownAsync(IReadOnlyCollection<int>? allowedBranchIds = null, CancellationToken cancellationToken = default);
+        Task<IReadOnlyList<PhongTroListItemDto>> GetDanhSachPhongTroAsync(IReadOnlyCollection<int>? allowedBranchIds = null, CancellationToken cancellationToken = default);
         Task<PhongTro?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
         Task<bool> ExistsSoPhongAsync(string soPhong, int chiNhanhId, int excludeId = 0, CancellationToken cancellationToken = default);
         Task<bool> HasActiveHopDongAsync(int phongTroId, CancellationToken cancellationToken = default);
         Task<int> GetActiveMembersCountForActiveContractAsync(int phongTroId, CancellationToken cancellationToken = default);
-        Task<List<PhongTro>> GetDanhSachPhongTroConTrongAsync(CancellationToken cancellationToken = default);
-        Task<List<PhongCardRes>> GetSoDoPhongAsync(int chiNhanhId, CancellationToken cancellationToken = default);
+        Task<List<PhongTro>> GetDanhSachPhongTroConTrongAsync(IReadOnlyCollection<int>? allowedBranchIds = null, CancellationToken cancellationToken = default);
+        Task<List<PhongCardRes>> GetSoDoPhongAsync(int chiNhanhId, IReadOnlyCollection<int>? allowedBranchIds = null, CancellationToken cancellationToken = default);
         Task<QuickContractDto?> GetQuickContractAsync(int phongTroId, CancellationToken cancellationToken = default);
         Task<UnpaidInvoiceDto?> GetUnpaidInvoiceAsync(int phongTroId, CancellationToken cancellationToken = default);
         Task<List<ChiNhanh>> GetAllActiveChiNhanhsAsync(CancellationToken cancellationToken = default);

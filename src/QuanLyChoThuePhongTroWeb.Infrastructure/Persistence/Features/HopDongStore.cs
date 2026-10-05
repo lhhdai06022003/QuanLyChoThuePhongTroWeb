@@ -29,6 +29,13 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 .Include(x => x.NguoiThue)
                 .Where(x => !x.IsDeleted);
 
+            // Lọc chi nhánh trước khi đếm tổng, để con số tổng không lộ số hợp đồng của chi nhánh khác.
+            var allowedBranchIds = request.AllowedBranchIds;
+            if (allowedBranchIds != null)
+            {
+                query = query.Where(x => allowedBranchIds.Contains(x.PhongTro.ChiNhanhId));
+            }
+
             int totalRecords = await query.CountAsync(cancellationToken);
 
             if (request.ChiNhanhId.HasValue && request.ChiNhanhId > 0)
@@ -275,6 +282,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 TienThuePhong = hopDong.TienThuePhong,
                 NgayTao = hopDong.NgayTao,
 
+                ChiNhanhId = hopDong.PhongTro.ChiNhanhId,
                 TenChiNhanh = hopDong.PhongTro.ChiNhanh.TenChiNhanh,
                 DiaChiChiNhanh = hopDong.PhongTro.ChiNhanh.DiaChi,
                 SoDienThoaiChiNhanh = hopDong.PhongTro.ChiNhanh.SoDienThoai,

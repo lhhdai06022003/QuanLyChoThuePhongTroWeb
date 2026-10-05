@@ -5,8 +5,10 @@ using System.Threading.Tasks;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Persistence;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Security;
 using QuanLyChoThuePhongTroWeb.Application.Common.Models;
+using QuanLyChoThuePhongTroWeb.Application.Common.Security;
 using QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.Persistence;
+using QuanLyChoThuePhongTroWeb.Application.Features.NguoiThues.Persistence;
 using QuanLyChoThuePhongTroWeb.Domain.Entities;
 using QuanLyChoThuePhongTroWeb.Domain.Enums;
 
@@ -14,28 +16,61 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.Services
 {
     public class HopDongService : IHopDongService
     {
+        private const string KhongCoQuyen = "Bạn không có quyền thao tác hợp đồng tại chi nhánh này.";
+
         private readonly IHopDongStore _store;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IPasswordService _passwordService;
+        private readonly IEmployeeAccessService _access;
+        private readonly ITenantVisibilityStore _tenantVisibility;
 
         public HopDongService(
             IHopDongStore store,
             IUnitOfWork unitOfWork,
-            IPasswordService passwordService)
+            IPasswordService passwordService,
+            IEmployeeAccessService access,
+            ITenantVisibilityStore tenantVisibility)
         {
             _store = store;
             _unitOfWork = unitOfWork;
             _passwordService = passwordService;
+            _access = access;
+            _tenantVisibility = tenantVisibility;
         }
 
-        public async Task<DataTableResponse<HopDongRes>> DanhSachHopDongSideAsync(HopDongFilterReq request)
+
+        // Mọi phòng liên quan phải thuộc chi nhánh được phân công (phòng không tồn tại để logic bên dưới báo lỗi).
+        private async Task<bool> CanAccessRoomsAsync(EmployeeAccessScope? scope, params int[] phongTroIds)
         {
+            if (scope == null) return false;
+            if (scope.IsAdmin) return true;
+
+            foreach (var phongTroId in phongTroIds.Distinct())
+            {
+                var phong = await _store.GetPhongTroByIdAsync(phongTroId);
+                if (phong != null && !scope.CanAccessBranch(phong.ChiNhanhId)) return false;
+            }
+
+            return true;
+        }
+
+        public async Task<DataTableResponse<HopDongRes>> DanhSachHopDongSideAsync(int actorId, HopDongFilterReq request)
+        {
+            var scope = await _access.GetScopeAsync(actorId);
+            if (scope == null || (request.ChiNhanhId > 0 && !scope.CanAccessBranch(request.ChiNhanhId.Value)))
+            {
+                return new DataTableResponse<HopDongRes> { draw = request.Draw };
+            }
+
+            request.AllowedBranchIds = scope.AllowedBranchIds;
             return await _store.GetDataTableResponseAsync(request);
         }
 
-        public async Task<HopDongDetailRes?> GetByIdAsync(int id)
+        public async Task<HopDongDetailRes?> GetByIdAsync(int actorId, int id)
         {
-            return await _store.GetDetailByIdAsync(id);
+            var scope = await _access.GetScopeAsync(actorId);
+            var detail = scope == null ? null : await _store.GetDetailByIdAsync(id);
+            return detail != null && scope!.CanAccessBranch(detail.ChiNhanhId) ? detail : null;
         }
 
         private async Task<string> GenerateMaHopDongAsync(int chiNhanhId, DateTime thoiDiemBatDau, int offset = 0)
@@ -49,7 +84,23 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.Services
             return $"{prefix}{seq}";
         }
 
-        public async Task<(bool IsSuccess, string? ErrorMessage)> CreateAsync(HopDongReq input)
+        public async Task<ServiceResult> CreateAsync(int actorId, HopDongReq input)
+        {
+            // Kiểm chi nhánh của phòng trước mọi kiểm tra khác, để không lộ tình trạng phòng của chi nhánh khác.
+            var scope = await _access.GetScopeAsync(actorId);
+            if (!await CanAccessRoomsAsync(scope, input.PhongTroId))
+                return ServiceResult.Forbidden(KhongCoQuyen);
+
+            // Người đại diện và thành viên phải là người thuê nhân viên nhìn thấy được (không lấy người của chi nhánh khác).
+            var tenantIds = new List<int> { input.NguoiThueId };
+            if (input.ThanhVienKhacIds != null) tenantIds.AddRange(input.ThanhVienKhacIds);
+            if (!scope!.IsAdmin && !await _tenantVisibility.AreAllVisibleAsync(tenantIds, scope.AllowedBranchIds!))
+                return ServiceResult.Forbidden("Bạn không có quyền dùng người thuê thuộc chi nhánh khác.");
+
+            return ServiceResult.FromTuple(await CreateCoreAsync(input));
+        }
+
+        private async Task<(bool IsSuccess, string? ErrorMessage)> CreateCoreAsync(HopDongReq input)
         {
             if (input.ThoiDiemKetThuc.HasValue && input.ThoiDiemKetThuc.Value.Date < input.ThoiDiemBatDau.Date)
             {
@@ -217,10 +268,20 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.Services
             }
         }
 
-        public async Task<(bool IsSuccess, string? ErrorMessage)> UpdateAsync(int id, HopDongReq input)
+        public async Task<ServiceResult> UpdateAsync(int actorId, int id, HopDongReq input)
         {
             var entity = await _store.GetActiveByIdAsync(id);
-            if (entity == null) return (false, "Không tìm thấy hợp đồng.");
+            if (entity == null) return ServiceResult.NotFound("Không tìm thấy hợp đồng.");
+
+            // Kiểm cả phòng hiện tại và phòng mới gửi lên.
+            if (!await CanAccessRoomsAsync(await _access.GetScopeAsync(actorId), entity.PhongTroId, input.PhongTroId))
+                return ServiceResult.Forbidden(KhongCoQuyen);
+
+            return ServiceResult.FromTuple(await UpdateCoreAsync(entity, id, input));
+        }
+
+        private async Task<(bool IsSuccess, string? ErrorMessage)> UpdateCoreAsync(HopDong entity, int id, HopDongReq input)
+        {
 
             var targetStatus = (TrangThaiHopDong)(int)input.TrangThaiHopDong;
             if (targetStatus == TrangThaiHopDong.DaHuy)
@@ -331,14 +392,17 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.Services
             }
         }
 
-        public async Task<(bool IsSuccess, string? ErrorMessage)> DeleteAsync(int id)
+        public async Task<ServiceResult> DeleteAsync(int actorId, int id)
         {
             var entity = await _store.GetActiveByIdAsync(id);
-            if (entity == null) return (false, "Không tìm thấy hợp đồng.");
+            if (entity == null) return ServiceResult.NotFound("Không tìm thấy hợp đồng.");
+
+            if (!await CanAccessRoomsAsync(await _access.GetScopeAsync(actorId), entity.PhongTroId))
+                return ServiceResult.Forbidden(KhongCoQuyen);
 
             if (entity.TrangThaiHopDong == TrangThaiHopDong.DangHoatDong)
             {
-                return (false, "Không thể xóa hợp đồng đang trong trạng thái Hoạt động. Vui lòng thanh lý hợp đồng trước.");
+                return ServiceResult.Fail("Không thể xóa hợp đồng đang trong trạng thái Hoạt động. Vui lòng thanh lý hợp đồng trước.");
             }
 
             entity.IsDeleted = true;
@@ -364,12 +428,14 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.Services
             }
 
             await _unitOfWork.SaveChangesAsync();
-            return (true, string.Empty);
+            return ServiceResult.Ok();
         }
 
-        public async Task<HopDongPrintRes?> GetPrintDataAsync(int id)
+        public async Task<HopDongPrintRes?> GetPrintDataAsync(int actorId, int id)
         {
-            return await _store.GetPrintDataAsync(id);
+            var scope = await _access.GetScopeAsync(actorId);
+            var data = scope == null ? null : await _store.GetPrintDataAsync(id);
+            return data != null && scope!.CanAccessBranch(data.ChiNhanhId) ? data : null;
         }
 
         public async Task<IReadOnlyList<HopDongRes>> GetHopDongsByNguoiThueIdAsync(int nguoiThueId)

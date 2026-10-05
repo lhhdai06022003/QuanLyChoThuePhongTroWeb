@@ -21,19 +21,25 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
             _context = context;
         }
 
-        public async Task<IReadOnlyList<SelectOptionDto>> GetChiNhanhDropdownAsync(CancellationToken cancellationToken = default)
+        public async Task<IReadOnlyList<SelectOptionDto>> GetChiNhanhDropdownAsync(IReadOnlyCollection<int>? allowedBranchIds = null, CancellationToken cancellationToken = default)
         {
-            return await _context.ChiNhanhs
-                .Where(c => !c.IsDeleted)
+            var query = _context.ChiNhanhs.Where(c => !c.IsDeleted);
+            if (allowedBranchIds != null)
+                query = query.Where(c => allowedBranchIds.Contains(c.ChiNhanhId));
+
+            return await query
                 .Select(c => new SelectOptionDto(c.ChiNhanhId.ToString(), c.TenChiNhanh))
                 .ToListAsync(cancellationToken);
         }
 
-        public async Task<IReadOnlyList<PhongTroListItemDto>> GetDanhSachPhongTroAsync(CancellationToken cancellationToken = default)
+        public async Task<IReadOnlyList<PhongTroListItemDto>> GetDanhSachPhongTroAsync(IReadOnlyCollection<int>? allowedBranchIds = null, CancellationToken cancellationToken = default)
         {
-            return await _context.PhongTros
+            var query = _context.PhongTros.Where(p => !p.IsDeleted);
+            if (allowedBranchIds != null)
+                query = query.Where(p => allowedBranchIds.Contains(p.ChiNhanhId));
+
+            return await query
                 .Include(p => p.ChiNhanh)
-                .Where(p => !p.IsDeleted)
                 .Select(p => new PhongTroListItemDto
                 {
                     PhongTroId = p.PhongTroId,
@@ -83,10 +89,13 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 .CountAsync(x => x.HopDongId == hopDongActive.HopDongId && !x.IsDeleted && x.NgayChuyenDi == null, cancellationToken);
         }
 
-        public async Task<List<PhongTro>> GetDanhSachPhongTroConTrongAsync(CancellationToken cancellationToken = default)
+        public async Task<List<PhongTro>> GetDanhSachPhongTroConTrongAsync(IReadOnlyCollection<int>? allowedBranchIds = null, CancellationToken cancellationToken = default)
         {
-            return await _context.PhongTros
-                .Where(p => !p.IsDeleted)
+            var query = _context.PhongTros.Where(p => !p.IsDeleted);
+            if (allowedBranchIds != null)
+                query = query.Where(p => allowedBranchIds.Contains(p.ChiNhanhId));
+
+            return await query
                 .Select(p => new PhongTro
                 {
                     PhongTroId = p.PhongTroId,
@@ -98,7 +107,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 .ToListAsync(cancellationToken);
         }
 
-        public async Task<List<PhongCardRes>> GetSoDoPhongAsync(int chiNhanhId, CancellationToken cancellationToken = default)
+        public async Task<List<PhongCardRes>> GetSoDoPhongAsync(int chiNhanhId, IReadOnlyCollection<int>? allowedBranchIds = null, CancellationToken cancellationToken = default)
         {
             var today = DateTime.UtcNow;
             var in15Days = today.AddDays(15);
@@ -106,6 +115,9 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
             var query = _context.PhongTros
                 .Include(p => p.ChiNhanh)
                 .Where(p => !p.IsDeleted);
+
+            if (allowedBranchIds != null)
+                query = query.Where(p => allowedBranchIds.Contains(p.ChiNhanhId));
 
             if (chiNhanhId > 0)
                 query = query.Where(p => p.ChiNhanhId == chiNhanhId);

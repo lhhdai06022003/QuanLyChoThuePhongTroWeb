@@ -2,6 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Persistence;
+using QuanLyChoThuePhongTroWeb.Application.Abstractions.Security;
+using QuanLyChoThuePhongTroWeb.Application.Common.Models;
+using QuanLyChoThuePhongTroWeb.Application.Features.NguoiThues.Persistence;
 using QuanLyChoThuePhongTroWeb.Application.Features.ThanhVienHopDongs.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.ThanhVienHopDongs.Persistence;
 using QuanLyChoThuePhongTroWeb.Domain.Entities;
@@ -11,24 +14,58 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.ThanhVienHopDongs.Servic
 {
     public class ThanhVienHopDongService : IThanhVienHopDongService
     {
+        private const string KhongCoQuyen = "Bạn không có quyền thao tác hợp đồng tại chi nhánh này.";
+        private const string KhongTimThayThanhVien = "Không tìm thấy thông tin thành viên.";
+
         private readonly IThanhVienHopDongStore _store;
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IEmployeeAccessService _access;
+        private readonly ITenantVisibilityStore _tenantVisibility;
 
-        public ThanhVienHopDongService(IThanhVienHopDongStore store, IUnitOfWork unitOfWork)
+        public ThanhVienHopDongService(IThanhVienHopDongStore store, IUnitOfWork unitOfWork, IEmployeeAccessService access, ITenantVisibilityStore tenantVisibility)
         {
             _store = store;
             _unitOfWork = unitOfWork;
+            _access = access;
+            _tenantVisibility = tenantVisibility;
         }
 
-        public async Task<List<ThanhVienHopDongRes>> GetThanhVienByHopDongIdAsync(int hopDongId)
+        private async Task<bool> CanAccessBranchAsync(int actorId, int chiNhanhId)
         {
+            var scope = await _access.GetScopeAsync(actorId);
+            return scope != null && scope.CanAccessBranch(chiNhanhId);
+        }
+
+        public async Task<List<ThanhVienHopDongRes>> GetThanhVienByHopDongIdAsync(int actorId, int hopDongId)
+        {
+            var hopDong = await _store.GetHopDongWithPhongTroAsync(hopDongId);
+            if (hopDong == null || !await CanAccessBranchAsync(actorId, hopDong.PhongTro.ChiNhanhId))
+                return new List<ThanhVienHopDongRes>();
+
             return await _store.GetThanhVienByHopDongIdAsync(hopDongId);
         }
 
-        public async Task<(bool IsSuccess, string? ErrorMessage)> AddThanhVienVaoHopDongAsync(ThanhVienHopDongReq request)
+        public async Task<ServiceResult> AddThanhVienVaoHopDongAsync(int actorId, ThanhVienHopDongReq request)
         {
             var hopDong = await _store.GetHopDongWithPhongTroAsync(request.HopDongId);
-            if (hopDong == null) return (false, "Không tìm thấy hợp đồng.");
+            if (hopDong == null) return ServiceResult.NotFound("Không tìm thấy hợp đồng.");
+            var scope = await _access.GetScopeAsync(actorId);
+            if (scope == null || !scope.CanAccessBranch(hopDong.PhongTro.ChiNhanhId))
+                return ServiceResult.Forbidden(KhongCoQuyen);
+
+            // Người được thêm (chọn sẵn hoặc trùng CCCD với người đã có) phải nhìn thấy được với nhân viên.
+            int? nguoiThueId = request.NguoiThueId > 0
+                ? request.NguoiThueId
+                : string.IsNullOrWhiteSpace(request.CCCD) ? null : (await _store.GetNguoiThueByCccdAsync(request.CCCD))?.NguoiThueId;
+            if (nguoiThueId.HasValue && !scope.IsAdmin
+                && !await _tenantVisibility.AreAllVisibleAsync(new[] { nguoiThueId.Value }, scope.AllowedBranchIds!))
+                return ServiceResult.Forbidden("Bạn không có quyền dùng người thuê thuộc chi nhánh khác.");
+
+            return ServiceResult.FromTuple(await AddCoreAsync(hopDong, request));
+        }
+
+        private async Task<(bool IsSuccess, string? ErrorMessage)> AddCoreAsync(HopDong hopDong, ThanhVienHopDongReq request)
+        {
             if (hopDong.TrangThaiHopDong != TrangThaiHopDong.DangHoatDong)
                 return (false, "Chỉ có thể thêm thành viên vào hợp đồng đang hoạt động.");
 
@@ -103,10 +140,18 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.ThanhVienHopDongs.Servic
             }
         }
 
-        public async Task<(bool IsSuccess, string? ErrorMessage)> BaoRoiPhongAsync(int chiTietId)
+        public async Task<ServiceResult> BaoRoiPhongAsync(int actorId, int chiTietId)
         {
             var chiTiet = await _store.GetChiTietWithHopDongAsync(chiTietId);
-            if (chiTiet == null) return (false, "Không tìm thấy thông tin thành viên.");
+            if (chiTiet == null) return ServiceResult.NotFound(KhongTimThayThanhVien);
+            if (!await CanAccessBranchAsync(actorId, chiTiet.HopDong.PhongTro.ChiNhanhId))
+                return ServiceResult.Forbidden(KhongCoQuyen);
+
+            return ServiceResult.FromTuple(await BaoRoiPhongCoreAsync(chiTiet));
+        }
+
+        private async Task<(bool IsSuccess, string? ErrorMessage)> BaoRoiPhongCoreAsync(ChiTietThanhVienHopDong chiTiet)
+        {
 
             if (chiTiet.NgayChuyenDi.HasValue) return (false, "Thành viên này đã rời phòng trước đó.");
 
@@ -123,10 +168,18 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.ThanhVienHopDongs.Servic
             return (true, string.Empty);
         }
 
-        public async Task<(bool IsSuccess, string? ErrorMessage)> XoaThanhVienNhamAsync(int chiTietId)
+        public async Task<ServiceResult> XoaThanhVienNhamAsync(int actorId, int chiTietId)
         {
             var chiTiet = await _store.GetChiTietWithHopDongAsync(chiTietId);
-            if (chiTiet == null) return (false, "Không tìm thấy thông tin thành viên.");
+            if (chiTiet == null) return ServiceResult.NotFound(KhongTimThayThanhVien);
+            if (!await CanAccessBranchAsync(actorId, chiTiet.HopDong.PhongTro.ChiNhanhId))
+                return ServiceResult.Forbidden(KhongCoQuyen);
+
+            return ServiceResult.FromTuple(await XoaThanhVienCoreAsync(chiTiet));
+        }
+
+        private async Task<(bool IsSuccess, string? ErrorMessage)> XoaThanhVienCoreAsync(ChiTietThanhVienHopDong chiTiet)
+        {
 
             if (chiTiet.HopDong != null 
                 && chiTiet.NguoiThueId == chiTiet.HopDong.NguoiThueId 

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using QuanLyChoThuePhongTroWeb.Web.Helpers;
 
 namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
 {
@@ -15,7 +16,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         [HttpGet("/ThanhVienHopDong/GetDanhSach/{hopDongId}")]
         public async Task<IActionResult> GetDanhSach(int hopDongId)
         {
-            var data = await _thanhVienService.GetThanhVienByHopDongIdAsync(hopDongId);
+            var data = await _thanhVienService.GetThanhVienByHopDongIdAsync(CurrentActorId, hopDongId);
             return Ok(data);
         }
 
@@ -27,34 +28,22 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
                 return BadRequest(new { Message = "Dữ liệu không hợp lệ." });
             }
 
-            var result = await _thanhVienService.AddThanhVienVaoHopDongAsync(request);
-            if (!result.IsSuccess)
-            {
-                return BadRequest(new { Message = result.ErrorMessage });
-            }
-            return Ok(new { Message = "Thêm thành viên thành công!" });
+            var result = await _thanhVienService.AddThanhVienVaoHopDongAsync(CurrentActorId, request);
+            return result.Success ? Ok(new { Message = "Thêm thành viên thành công!" }) : this.ToErrorResult(result);
         }
 
         [HttpPost("/ThanhVienHopDong/BaoRoiPhong/{chiTietId}")]
         public async Task<IActionResult> BaoRoiPhong(int chiTietId)
         {
-            var result = await _thanhVienService.BaoRoiPhongAsync(chiTietId);
-            if (!result.IsSuccess)
-            {
-                return BadRequest(new { Message = result.ErrorMessage });
-            }
-            return Ok(new { Message = "Đã báo rời phòng thành công!" });
+            var result = await _thanhVienService.BaoRoiPhongAsync(CurrentActorId, chiTietId);
+            return result.Success ? Ok(new { Message = "Đã báo rời phòng thành công!" }) : this.ToErrorResult(result);
         }
 
         [HttpDelete("/ThanhVienHopDong/XoaThanhVien/{chiTietId}")]
         public async Task<IActionResult> XoaThanhVien(int chiTietId)
         {
-            var result = await _thanhVienService.XoaThanhVienNhamAsync(chiTietId);
-            if (!result.IsSuccess)
-            {
-                return BadRequest(new { Message = result.ErrorMessage });
-            }
-            return Ok(new { Message = "Đã xoá thành viên thành công!" });
+            var result = await _thanhVienService.XoaThanhVienNhamAsync(CurrentActorId, chiTietId);
+            return result.Success ? Ok(new { Message = "Đã xoá thành viên thành công!" }) : this.ToErrorResult(result);
         }
     }
 }

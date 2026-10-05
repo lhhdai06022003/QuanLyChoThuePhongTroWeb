@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using QuanLyChoThuePhongTroWeb.Application.Abstractions.Security;
 using QuanLyChoThuePhongTroWeb.Application.Common.Configurations;
 using QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.Persistence;
@@ -13,15 +14,25 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.Services
     {
         private readonly IDashboardStore _store;
         private readonly DashboardSettings _settings;
+        private readonly IEmployeeAccessService _access;
 
-        public DashboardService(IDashboardStore store, DashboardSettings settings)
+        public DashboardService(IDashboardStore store, DashboardSettings settings, IEmployeeAccessService access)
         {
             _store = store;
             _settings = settings;
+            _access = access;
         }
 
-        public async Task<DashboardDataDto> GetDashboardDataAsync(int? branchId, int selectedYear, int selectedMonth)
+        public async Task<DashboardDataDto> GetDashboardDataAsync(int actorId, int? branchId, int selectedYear, int selectedMonth)
         {
+            // Admin: null (không giới hạn). Nhân viên: chi nhánh được phân công. Actor không hợp lệ hoặc chọn
+            // chi nhánh ngoài phạm vi: danh sách rỗng, mọi truy vấn trả 0 nhưng biểu đồ vẫn đủ cấu trúc.
+            var scope = await _access.GetScopeAsync(actorId);
+            IReadOnlyCollection<int>? branchFilter = scope == null ? Array.Empty<int>() : scope.AllowedBranchIds;
+            IReadOnlyCollection<int>? allowed = scope == null || (branchId.HasValue && !scope.CanAccessBranch(branchId.Value))
+                ? Array.Empty<int>()
+                : scope.AllowedBranchIds;
+
             var today = DateTime.UtcNow.AddHours(7);
             var model = new DashboardDataDto
             {
@@ -31,7 +42,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.Services
             };
 
             // --- 1. CHUẨN BỊ DROPDOWNS ---
-            var chiNhanhs = await _store.GetActiveBranchesAsync();
+            var chiNhanhs = await _store.GetActiveBranchesAsync(branchFilter);
             model.AvailableBranches = chiNhanhs.ToList();
 
             for (int i = today.Year - 5; i <= today.Year; i++)
@@ -40,7 +51,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.Services
             }
 
             // --- 2. THỐNG KÊ PHÒNG TRỌ (Có lọc chi nhánh) ---
-            var (trong, daThue, baoTri) = await _store.GetRoomStatusCountsAsync(branchId);
+            var (trong, daThue, baoTri) = await _store.GetRoomStatusCountsAsync(branchId, allowedBranchIds: allowed);
             model.SoPhongTrong = trong;
             model.SoPhongDaThue = daThue;
             model.SoPhongBaoTri = baoTri;
@@ -51,10 +62,10 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.Services
                 : 0;
 
             // --- 3. THỐNG KÊ HỢP ĐỒNG ĐANG HOẠT ĐỘNG ---
-            model.TongSoHopDongHoatDong = await _store.CountActiveContractsAsync(branchId);
+            model.TongSoHopDongHoatDong = await _store.CountActiveContractsAsync(branchId, allowedBranchIds: allowed);
 
             // --- 4. THỐNG KÊ HÓA ĐƠN & DOANH THU THÁNG ---
-            var hoaDonStats = await _store.GetInvoiceMonthlyStatsAsync(branchId, selectedYear);
+            var hoaDonStats = await _store.GetInvoiceMonthlyStatsAsync(branchId, selectedYear, allowedBranchIds: allowed);
 
             // Đã thu tính theo ledger để hóa đơn trả một phần được tính đúng phần đã nhận và phần còn nợ.
             model.DoanhThuThangNay = hoaDonStats
@@ -65,7 +76,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.Services
                 .Where(h => h.Thang == selectedMonth && h.TrangThai != TrangThaiHoaDon.DaThanhToan)
                 .Sum(h => h.TongTien - h.DaThu);
 
-            model.SoPhongChuaThanhToan = await _store.CountUnpaidRoomsAsync(branchId);
+            model.SoPhongChuaThanhToan = await _store.CountUnpaidRoomsAsync(branchId, allowedBranchIds: allowed);
 
             // --- 5. BIỂU ĐỒ DOANH THU 12 THÁNG (Theo năm được chọn) ---
             for (int month = 1; month <= 12; month++)
@@ -115,7 +126,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.Services
 
             var checkStartDate = new DateTime(targetYear, targetMonth, 1).AddMonths(-5);
 
-            var activeContracts = await _store.GetActiveContractsForUtilityCheckAsync(branchId);
+            var activeContracts = await _store.GetActiveContractsForUtilityCheckAsync(branchId, allowedBranchIds: allowed);
             var recordedUtilities = await _store.GetRecordedUtilitiesAsync(checkStartDate);
 
             int totalMissing = 0;
@@ -172,7 +183,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.Services
 
             // 7b. Hợp đồng sắp hết hạn (trong vòng 30 ngày)
             var limitDate = today.AddDays(30);
-            var sapHetHanCount = await _store.CountExpiringContractsAsync(branchId, today, limitDate);
+            var sapHetHanCount = await _store.CountExpiringContractsAsync(branchId, today, limitDate, allowedBranchIds: allowed);
             model.SoHopDongSapHetHan = sapHetHanCount;
             if (sapHetHanCount > 0)
             {
@@ -187,7 +198,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.Services
             }
 
             // 7c. Hóa đơn chưa thanh toán
-            var unpaidGroupedByMonthBranch = await _store.GetUnpaidInvoicesGroupedAsync(branchId);
+            var unpaidGroupedByMonthBranch = await _store.GetUnpaidInvoicesGroupedAsync(branchId, allowedBranchIds: allowed);
 
             foreach (var item in unpaidGroupedByMonthBranch)
             {
@@ -202,8 +213,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.Services
             }
 
             // --- 8. HOẠT ĐỘNG GẦN ĐÂY (Recent Activities) ---
-            var recentPayments = await _store.GetRecentPaymentsAsync(branchId, 5);
-            var recentContracts = await _store.GetRecentContractsAsync(branchId, 5);
+            var recentPayments = await _store.GetRecentPaymentsAsync(branchId, 5, allowedBranchIds: allowed);
+            var recentContracts = await _store.GetRecentContractsAsync(branchId, 5, allowedBranchIds: allowed);
 
             var activities = new List<(DateTime Time, string Title, string Description, string Icon, string ColorClass)>();
             foreach (var p in recentPayments)
