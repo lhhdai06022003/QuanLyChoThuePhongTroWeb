@@ -1,11 +1,11 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
-using System.Security.Claims;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using QuanLyChoThuePhongTroWeb.Application.Abstractions.Services;
+using QuanLyChoThuePhongTroWeb.Application.Common.Models;
 using QuanLyChoThuePhongTroWeb.Application.Features.AiAssistants.DTOs;
+using QuanLyChoThuePhongTroWeb.Application.Features.AiAssistants.Services;
 
 namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
 {
@@ -21,20 +21,16 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Chat([FromBody] ChatRequest request)
+        public async Task<IActionResult> Chat([FromBody] ChatRequest? request, CancellationToken ct)
         {
-            if (request == null || string.IsNullOrWhiteSpace(request.Message))
-            {
-                return Json(ServiceResult.Fail("Nội dung tin nhắn không được trống."));
-            }
-
             try
             {
-                string userRole = User.IsInRole("Admin") ? "Admin" : "NhanVien";
-                int? nguoiThueId = null;
-
-                var result = await _aiService.ChatWithAssistantAsync(request.Message, request.History, userRole, nguoiThueId);
+                var result = await _aiService.ChatQuanLyAsync(CurrentActorId, request ?? new ChatRequest(), ct);
                 return Json(result);
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
             }
             catch (Exception ex)
             {

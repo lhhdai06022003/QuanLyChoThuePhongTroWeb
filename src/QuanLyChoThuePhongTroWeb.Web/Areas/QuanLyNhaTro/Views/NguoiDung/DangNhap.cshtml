@@ -696,6 +696,11 @@
     </div>
 
     <script>
+        // Xóa lịch sử chat trợ lý AI khi về trang đăng nhập (đăng xuất luôn chuyển về đây)
+        Object.keys(sessionStorage)
+            .filter(function (k) { return k.indexOf('ai_chat_history') === 0; })
+            .forEach(function (k) { sessionStorage.removeItem(k); });
+
         // Toggle ẩn/hiện mật khẩu
         const btnToggle = document.getElementById('btnTogglePassword');
         const txtMatKhau = document.getElementById('txtMatKhau');

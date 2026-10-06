@@ -15,6 +15,7 @@ using Npgsql;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.BackgroundJobs;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Services;
 using QuanLyChoThuePhongTroWeb.Application.Common.Files;
+using QuanLyChoThuePhongTroWeb.Application.Features.AiAssistants.ChatModel;
 using QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.Emails.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs;
@@ -30,6 +31,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests.Fixtures
         public FakeEmailService FakeEmailServiceInstance { get; } = new();
         public FakeMeterImageStorageService FakeMeterImageStorageInstance { get; } = new();
         public FakeMeterOcrService FakeMeterOcrServiceInstance { get; } = new();
+        public FakeAiChatModel FakeAiChatModelInstance { get; } = new();
 
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
@@ -87,6 +89,10 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests.Fixtures
                 services.RemoveAll<IMeterOcrService>();
                 services.AddSingleton(FakeMeterOcrServiceInstance);
                 services.AddSingleton<IMeterOcrService>(FakeMeterOcrServiceInstance);
+
+                // Thay thế mô hình AI thật (Gemini) bằng test fake: test không bao giờ gọi mạng.
+                services.RemoveAll<IAiChatModel>();
+                services.AddSingleton<IAiChatModel>(FakeAiChatModelInstance);
             });
         }
 
@@ -275,6 +281,37 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests.Fixtures
                 UnreadableReason = null;
                 DefaultSuggestedValue = 123.4m;
                 DefaultConfidence = 0.9;
+            }
+        }
+
+        public class FakeAiChatModel : IAiChatModel
+        {
+            private readonly object _lock = new();
+            private readonly List<AiModelRequest> _requests = new();
+
+            public IReadOnlyList<AiModelRequest> Requests
+            {
+                get { lock (_lock) return _requests.ToList(); }
+            }
+
+            // Tham số int là lần gọi trong test hiện tại, bắt đầu từ 1.
+            public System.Func<AiModelRequest, int, AiModelResult> Responder { get; set; } = (_, _) => AiModelResult.Ok("Xin chào");
+
+            public Task<AiModelResult> GenerateAsync(AiModelRequest request, CancellationToken cancellationToken = default)
+            {
+                int count;
+                lock (_lock)
+                {
+                    _requests.Add(request);
+                    count = _requests.Count;
+                }
+                return Task.FromResult(Responder(request, count));
+            }
+
+            public void Reset()
+            {
+                lock (_lock) _requests.Clear();
+                Responder = (_, _) => AiModelResult.Ok("Xin chào");
             }
         }
 

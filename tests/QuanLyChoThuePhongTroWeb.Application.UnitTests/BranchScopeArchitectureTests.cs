@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using QuanLyChoThuePhongTroWeb.Application.Features.AiAssistants.Services;
 using QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.Services;
 using QuanLyChoThuePhongTroWeb.Application.Features.DichVus.Services;
 using QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.Services;
@@ -22,7 +23,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             typeof(IThanhVienHopDongService),
             typeof(INguoiThueService),
             typeof(IDichVuService),
-            typeof(IDashboardService)
+            typeof(IDashboardService),
+            typeof(IAiAssistantService)
         };
 
         private static readonly HashSet<string> Exceptions = new()
@@ -31,6 +33,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             $"{nameof(INguoiThueService)}.{nameof(INguoiThueService.GetByIdAsync)}",
             $"{nameof(IHopDongService)}.{nameof(IHopDongService.GetHopDongsByNguoiThueIdAsync)}",
             $"{nameof(IHopDongService)}.{nameof(IHopDongService.GetChiTietHopDongKhachThueAsync)}",
+            // Cổng khách thuê: giới hạn theo NguoiThueId
+            $"{nameof(IAiAssistantService)}.{nameof(IAiAssistantService.ChatKhachThueAsync)}",
             // Danh mục dịch vụ dùng chung: ai cũng được xem.
             $"{nameof(IDichVuService)}.{nameof(IDichVuService.GetDanhSachDichVuAsync)}",
             $"{nameof(IDichVuService)}.{nameof(IDichVuService.GetDichVuByIdAsync)}"

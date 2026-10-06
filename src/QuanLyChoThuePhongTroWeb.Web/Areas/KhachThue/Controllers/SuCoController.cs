@@ -38,6 +38,15 @@ namespace QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers
             _logger = logger;
         }
 
+        // Chỉ phòng của hợp đồng đang hoạt động mới được báo sự cố; người thuê cũ không báo cho phòng người khác đang ở.
+        private async Task<System.Collections.Generic.List<QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.DTOs.HopDongRes>> GetHopDongDangHoatDongAsync(int nguoiThueId)
+        {
+            var hopDongs = await _hopDongService.GetHopDongsByNguoiThueIdAsync(nguoiThueId);
+            return hopDongs
+                .Where(h => h.TrangThaiHopDong == QuanLyChoThuePhongTroWeb.Application.Common.Enums.AppTrangThaiHopDong.DangHoatDong)
+                .ToList();
+        }
+
         private int GetNguoiThueId()
         {
             var claim = User.FindFirst("NguoiThueId");
@@ -49,7 +58,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers
             int nguoiThueId = GetNguoiThueId();
             if (nguoiThueId == 0) return Content("Lỗi xác thực NguoiThueId.");
 
-            var hopDongs = await _hopDongService.GetHopDongsByNguoiThueIdAsync(nguoiThueId);
+            var hopDongs = await GetHopDongDangHoatDongAsync(nguoiThueId);
             var phongTros = hopDongs.Select(h => new { Id = h.PhongTroId, TenPhong = h.SoPhong }).ToList();
             ViewBag.PhongTroId = new SelectList(phongTros, "Id", "TenPhong");
 
@@ -67,6 +76,13 @@ namespace QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers
 
             try
             {
+                var hopDongs = await GetHopDongDangHoatDongAsync(nguoiThueId);
+                var phong = hopDongs.FirstOrDefault(h => h.PhongTroId == model.PhongTroId);
+                if (phong == null)
+                {
+                    return Json(new { success = false, message = "Phòng không thuộc hợp đồng đang hoạt động của bạn." });
+                }
+
                 var urlList = new System.Collections.Generic.List<string>();
 
                 if (HinhAnhFiles != null && HinhAnhFiles.Count > 0)
@@ -114,13 +130,15 @@ namespace QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers
                     bool success = await _yeuCauSuCoService.CreateAsync(model);
                     if (success)
                     {
-                        var hopDongs = await _hopDongService.GetHopDongsByNguoiThueIdAsync(nguoiThueId);
-                        var phong = hopDongs.FirstOrDefault(h => h.PhongTroId == model.PhongTroId);
-                        string tenPhong = phong != null ? phong.SoPhong : "chưa rõ";
-
-                        string msg = $"Phòng {tenPhong} vừa báo cáo sự cố: '{model.TieuDe}'";
-                        await _thongBaoService.GuiChoQuyenAsync(QuanLyChoThuePhongTroWeb.Application.Common.Enums.AppRole.Admin, "Sự cố mới", msg, "SuCo", "/QuanLyNhaTro/YeuCauSuCo");
-                        await _thongBaoService.GuiChoQuyenAsync(QuanLyChoThuePhongTroWeb.Application.Common.Enums.AppRole.NhanVien, "Sự cố mới", msg, "SuCo", "/QuanLyNhaTro/YeuCauSuCo");
+                        try
+                        {
+                            string msg = $"Phòng {phong.SoPhong} vừa báo cáo sự cố: '{model.TieuDe}'";
+                            await _thongBaoService.GuiChoNguoiPhuTrachPhongAsync(model.PhongTroId, "Sự cố mới", msg, "SuCo", "/QuanLyNhaTro/YeuCauSuCo");
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "Không gửi được thông báo sự cố mới cho phòng {PhongTroId}", model.PhongTroId);
+                        }
 
                         return Json(new { success = true, message = "Gửi báo cáo sự cố thành công!" });
                     }

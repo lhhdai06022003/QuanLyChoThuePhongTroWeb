@@ -45,9 +45,23 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 .ToListAsync(cancellationToken);
         }
 
-        public async Task<ThongBao?> GetByIdAsync(int thongBaoId, CancellationToken cancellationToken = default)
+        public async Task<List<int>> GetRoomResponsibleUserIdsAsync(int phongTroId, CancellationToken cancellationToken = default)
         {
-            return await _context.ThongBaos.FirstOrDefaultAsync(x => x.Id == thongBaoId, cancellationToken);
+            // Phòng không tồn tại thì chiNhanhId null và chỉ còn Admin nhận.
+            var chiNhanhId = await _context.PhongTros
+                .AsNoTracking()
+                .Where(p => p.PhongTroId == phongTroId)
+                .Select(p => (int?)p.ChiNhanhId)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            return await _context.NguoiDungs
+                .AsNoTracking()
+                .Where(u => u.IsActive && !u.IsDeleted &&
+                            (u.Role == Role.Admin ||
+                             (chiNhanhId != null && u.Role == Role.NhanVien &&
+                              u.NhanVienChiNhanhs.Any(nv => nv.ChiNhanhId == chiNhanhId && nv.IsActive && nv.NgayThuHoi == null))))
+                .Select(u => u.NguoiDungId)
+                .ToListAsync(cancellationToken);
         }
 
         public async Task<ThongBao?> GetByIdAndUserAsync(int thongBaoId, int nguoiDungId, CancellationToken cancellationToken = default)

@@ -11,7 +11,8 @@ $(document).ready(function () {
                 toast: true,
                 position: 'bottom-end',
                 icon: 'info',
-                title: thongBao.tieuDe,
+                // titleText thay cho title: SweetAlert2 hiểu title là HTML.
+                titleText: thongBao.tieuDe,
                 text: thongBao.noiDung,
                 showConfirmButton: false,
                 timer: 5000,
@@ -38,6 +39,25 @@ $(document).ready(function () {
     }
 });
 
+// Tiêu đề và nội dung thông báo có thể chứa chữ do khách thuê nhập (sự cố), phải escape trước khi chèn HTML.
+function escapeHtml(value) {
+    return String(value == null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+// Chỉ nhận đường dẫn nội bộ dạng "/..."; chặn "//host", "javascript:" và URL tuyệt đối.
+function safeLink(url) {
+    return typeof url === 'string' && url.charAt(0) === '/' && url.charAt(1) !== '/' && url.charAt(1) !== '\\' ? url : '#';
+}
+
+$(document).on('click', '#list-thong-bao .list-group-item[data-id]', function () {
+    markAsRead($(this).data('id'), $(this).attr('data-link'));
+});
+
 function loadThongBaos() {
     $.get('/api/ThongBao/LayMoiNhat', function (data) {
         var $list = $('#list-thong-bao');
@@ -55,13 +75,13 @@ function loadThongBaos() {
                 var iconClass = tb.linhVuc === 'SuCo' ? 'fa-tools text-orange' : 'fa-info-circle text-blue';
                 
                 var html = `
-                    <div class="list-group-item ${bgClass}" onclick="markAsRead(${tb.id}, '${tb.linkDieuHuong || '#'}')" style="cursor:pointer">
+                    <div class="list-group-item ${bgClass}" data-id="${Number(tb.id)}" data-link="${escapeHtml(safeLink(tb.linkDieuHuong))}" style="cursor:pointer">
                         <div class="row align-items-center">
                             <div class="col-auto"><i class="fas ${iconClass} fa-lg"></i></div>
                             <div class="col text-truncate">
-                                <div class="text-reset d-block fw-bold">${tb.tieuDe}</div>
-                                <div class="d-block text-muted text-truncate mt-n1" style="font-size: 0.85rem;">${tb.noiDung}</div>
-                                <div class="text-muted small mt-1" style="font-size: 0.75rem;"><i class="fas fa-clock me-1"></i>${tb.createdAt}</div>
+                                <div class="text-reset d-block fw-bold">${escapeHtml(tb.tieuDe)}</div>
+                                <div class="d-block text-muted text-truncate mt-n1" style="font-size: 0.85rem;">${escapeHtml(tb.noiDung)}</div>
+                                <div class="text-muted small mt-1" style="font-size: 0.75rem;"><i class="fas fa-clock me-1"></i>${escapeHtml(tb.createdAt)}</div>
                             </div>
                             ${!tb.isRead ? '<div class="col-auto"><span class="badge bg-blue">Mới</span></div>' : ''}
                         </div>
@@ -87,7 +107,8 @@ function updateBadge(count) {
 
 function markAsRead(id, url) {
     $.post('/api/ThongBao/DanhDauDaDoc/' + id, function (res) {
-        if (url && url !== '#') {
+        url = safeLink(url);
+        if (url !== '#') {
             window.location.href = url;
         } else {
             loadThongBaos();

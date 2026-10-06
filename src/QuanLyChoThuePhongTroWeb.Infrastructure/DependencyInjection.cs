@@ -21,6 +21,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure
             // Feature Stores
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.ChiNhanhs.Persistence.IChiNhanhStore, Persistence.Features.ChiNhanhStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.DieuKhoanMaus.Persistence.IDieuKhoanMauStore, Persistence.Features.DieuKhoanMauStore>();
+            services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.AiAssistants.Persistence.IAiAssistantStore, Persistence.Features.AiAssistantStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.YeuCauSuCos.Persistence.IYeuCauSuCoStore, Persistence.Features.YeuCauSuCoStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.DichVus.Persistence.IDichVuStore, Persistence.Features.DichVuStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.NguoiThues.Persistence.INguoiThueStore, Persistence.Features.NguoiThueStore>();
@@ -69,7 +70,11 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure
             {
                 client.Timeout = TimeSpan.FromSeconds(meterOptions.DownloadTimeoutSeconds);
             });
-            services.AddHttpClient<QuanLyChoThuePhongTroWeb.Application.Abstractions.Services.IAiAssistantService, ExternalServices.AiAssistants.AiAssistantService>();
+            services.AddHttpClient<QuanLyChoThuePhongTroWeb.Application.Features.AiAssistants.ChatModel.IAiChatModel, ExternalServices.AiAssistants.GeminiChatModel>(client =>
+            {
+                // Một câu hỏi gọi model tối đa 4 lần; 30 giây mỗi lần để request không treo quá lâu.
+                client.Timeout = TimeSpan.FromSeconds(30);
+            });
             services.AddHttpClient<QuanLyChoThuePhongTroWeb.Application.Abstractions.Services.IMeterOcrService, ExternalServices.AiAssistants.GeminiMeterOcrService>();
 
             // Security services

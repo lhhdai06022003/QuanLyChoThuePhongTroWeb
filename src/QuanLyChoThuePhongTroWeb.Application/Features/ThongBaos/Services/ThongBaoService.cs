@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Notifications;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Persistence;
 using QuanLyChoThuePhongTroWeb.Application.Common.Enums;
@@ -19,15 +21,18 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.ThongBaos.Services
         private readonly IThongBaoStore _store;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IThongBaoNotifier _notifier;
+        private readonly ILogger<ThongBaoService> _logger;
 
         public ThongBaoService(
             IThongBaoStore store,
             IUnitOfWork unitOfWork,
-            IThongBaoNotifier notifier)
+            IThongBaoNotifier notifier,
+            ILogger<ThongBaoService>? logger = null)
         {
             _store = store;
             _unitOfWork = unitOfWork;
             _notifier = notifier;
+            _logger = logger ?? NullLogger<ThongBaoService>.Instance;
         }
 
         private static ThongBaoRes MapToRes(ThongBao t)
@@ -131,10 +136,54 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.ThongBaos.Services
             return ServiceResult.Fail("Lỗi khi lưu thông báo nhóm vào hệ thống.");
         }
 
-        public async Task<ServiceResult> DanhDauDaDocAsync(int thongBaoId, CancellationToken cancellationToken = default)
+        public async Task<ServiceResult> GuiChoNguoiPhuTrachPhongAsync(int phongTroId, string tieuDe, string noiDung, string? linhVuc = null, string? linkDieuHuong = null, CancellationToken cancellationToken = default)
         {
-            var tb = await _store.GetByIdAsync(thongBaoId, cancellationToken);
-            if (tb == null) return ServiceResult.Fail("Không tìm thấy thông báo.");
+            var userIds = (await _store.GetRoomResponsibleUserIdsAsync(phongTroId, cancellationToken)).Distinct().ToList();
+            if (userIds.Count == 0)
+                return ServiceResult.Fail("Không có người nhận thông báo.");
+
+            var thongBaos = userIds.Select(userId => new ThongBao
+            {
+                NguoiDungId = userId,
+                TieuDe = tieuDe,
+                NoiDung = noiDung,
+                LinhVuc = linhVuc,
+                LinkDieuHuong = linkDieuHuong,
+                CreatedAt = DateTime.UtcNow
+            }).ToList();
+
+            _store.AddRange(thongBaos);
+            var saved = await _unitOfWork.SaveChangesAsync(cancellationToken) > 0;
+            if (!saved)
+                return ServiceResult.Fail("Lỗi khi lưu thông báo vào hệ thống.");
+
+            foreach (var thongBao in thongBaos)
+            {
+                try
+                {
+                    await _notifier.SendToUserAsync(thongBao.NguoiDungId!.Value, new
+                    {
+                        id = thongBao.Id,
+                        tieuDe = thongBao.TieuDe,
+                        noiDung = thongBao.NoiDung,
+                        linhVuc = thongBao.LinhVuc,
+                        linkDieuHuong = thongBao.LinkDieuHuong,
+                        createdAt = thongBao.CreatedAt.AddHours(7).ToString("dd/MM/yyyy HH:mm")
+                    }, cancellationToken);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    _logger.LogWarning(ex, "Không đẩy được thông báo thời gian thực cho người dùng {NguoiDungId}", thongBao.NguoiDungId);
+                }
+            }
+
+            return ServiceResult.Ok("Đã gửi thông báo cho người phụ trách phòng.");
+        }
+
+        public async Task<ServiceResult> DanhDauDaDocAsync(int thongBaoId, int nguoiDungId, CancellationToken cancellationToken = default)
+        {
+            var tb = await _store.GetByIdAndUserAsync(thongBaoId, nguoiDungId, cancellationToken);
+            if (tb == null) return ServiceResult.NotFound("Không tìm thấy thông báo.");
             if (tb.IsRead) return ServiceResult.Ok("Thông báo đã được đọc.");
 
             tb.IsRead = true;

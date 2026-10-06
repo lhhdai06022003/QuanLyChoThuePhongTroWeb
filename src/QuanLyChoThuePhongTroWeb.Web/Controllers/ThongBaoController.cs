@@ -83,7 +83,7 @@ namespace QuanLyChoThuePhongTroWeb.Controllers
                 int nguoiDungId = GetNguoiDungId();
                 if (nguoiDungId == 0) return Unauthorized();
 
-                var result = await _thongBaoService.DanhDauDaDocAsync(id, cancellationToken);
+                var result = await _thongBaoService.DanhDauDaDocAsync(id, nguoiDungId, cancellationToken);
                 return Ok(new { success = result.Success, message = result.Message });
             }
             catch (System.Exception ex)

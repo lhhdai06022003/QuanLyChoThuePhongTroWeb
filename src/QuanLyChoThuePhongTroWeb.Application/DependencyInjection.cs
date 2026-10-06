@@ -55,6 +55,10 @@ namespace QuanLyChoThuePhongTroWeb.Application
             services.AddScoped<IThongBaoService, ThongBaoService>();
             services.AddScoped<IDashboardService, DashboardService>();
 
+            // AI assistant
+            services.AddScoped<Features.AiAssistants.Services.IAiAssistantService, Features.AiAssistants.Services.AiAssistantService>();
+            services.AddScoped<Features.AiAssistants.Tools.AiToolExecutor>();
+
             // Phase 8 Background Job Use Cases
             services.AddScoped<Features.HopDongs.UseCases.IContractAutoCloseUseCase, Features.HopDongs.UseCases.ContractAutoCloseUseCase>();
             services.AddScoped<Features.HopDongs.UseCases.IContractExpiryAlertUseCase, Features.HopDongs.UseCases.ContractExpiryAlertUseCase>();
