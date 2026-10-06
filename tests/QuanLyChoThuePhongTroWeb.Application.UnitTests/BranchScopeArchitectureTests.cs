@@ -8,6 +8,7 @@ using QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.Services;
 using QuanLyChoThuePhongTroWeb.Application.Features.NguoiThues.Services;
 using QuanLyChoThuePhongTroWeb.Application.Features.PhongTros.Services;
 using QuanLyChoThuePhongTroWeb.Application.Features.ThanhVienHopDongs.Services;
+using QuanLyChoThuePhongTroWeb.Application.Features.YeuCauSuCos.Services;
 using Xunit;
 
 namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
@@ -24,7 +25,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             typeof(INguoiThueService),
             typeof(IDichVuService),
             typeof(IDashboardService),
-            typeof(IAiAssistantService)
+            typeof(IAiAssistantService),
+            typeof(IYeuCauSuCoService)
         };
 
         private static readonly HashSet<string> Exceptions = new()
@@ -35,6 +37,9 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             $"{nameof(IHopDongService)}.{nameof(IHopDongService.GetChiTietHopDongKhachThueAsync)}",
             // Cổng khách thuê: giới hạn theo NguoiThueId
             $"{nameof(IAiAssistantService)}.{nameof(IAiAssistantService.ChatKhachThueAsync)}",
+            // Cổng khách thuê: xem và gửi sự cố của chính mình (NguoiThueId lấy từ claim, phòng lấy từ hợp đồng của khách).
+            $"{nameof(IYeuCauSuCoService)}.{nameof(IYeuCauSuCoService.GetByNguoiThueAsync)}",
+            $"{nameof(IYeuCauSuCoService)}.{nameof(IYeuCauSuCoService.CreateAsync)}",
             // Danh mục dịch vụ dùng chung: ai cũng được xem.
             $"{nameof(IDichVuService)}.{nameof(IDichVuService.GetDanhSachDichVuAsync)}",
             $"{nameof(IDichVuService)}.{nameof(IDichVuService.GetDichVuByIdAsync)}"

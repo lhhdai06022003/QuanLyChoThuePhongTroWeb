@@ -134,5 +134,37 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
 
             await tx.RollbackAsync();
         }
+
+        [Fact]
+        public async Task YeuCauSuCoStore_ListFiltersByBranch()
+        {
+            await using var db = _fixture.CreateDbContext();
+            await using var tx = await db.Database.BeginTransactionAsync();
+            var w = await SeedAsync(db);
+            YeuCauSuCo Incident(int room, int tenant) => new()
+            {
+                PhongTroId = room, NguoiThueId = tenant, TieuDe = "Hong den", MoTa = "M",
+                TrangThai = TrangThaiSuCo.ChoTiepNhan, NgayGui = DateTime.UtcNow
+            };
+            var inA = Incident(w.RoomA, w.EndedInA);
+            var inB = Incident(w.RoomB, w.OnlyInB);
+            db.YeuCauSuCos.AddRange(inA, inB);
+            await db.SaveChangesAsync();
+            var store = new YeuCauSuCoStore(db);
+
+            var onlyA = (await store.GetAllAsync(null, null, 6, new[] { w.BranchA })).Select(x => x.Id).ToList();
+            Assert.Contains(inA.Id, onlyA);
+            Assert.DoesNotContain(inB.Id, onlyA);
+
+            // Lọc chi nhánh B trong khi chỉ được phép chi nhánh A: không có dữ liệu.
+            Assert.Empty(await store.GetAllAsync(w.BranchB, null, 6, new[] { w.BranchA }));
+            Assert.Empty(await store.GetAllAsync(null, null, 6, Array.Empty<int>()));
+
+            var unrestricted = (await store.GetAllAsync(null, null, 6)).Select(x => x.Id).ToList();
+            Assert.Contains(inA.Id, unrestricted);
+            Assert.Contains(inB.Id, unrestricted);
+
+            await tx.RollbackAsync();
+        }
     }
 }

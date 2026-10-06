@@ -19,12 +19,17 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
             _context = context;
         }
 
-        public async Task<List<YeuCauSuCo>> GetAllAsync(int? chiNhanhId, TrangThaiSuCo? trangThai, int? soThang = 6, CancellationToken cancellationToken = default)
+        public async Task<List<YeuCauSuCo>> GetAllAsync(int? chiNhanhId, TrangThaiSuCo? trangThai, int? soThang = 6, IReadOnlyCollection<int>? allowedBranchIds = null, CancellationToken cancellationToken = default)
         {
             var query = _context.YeuCauSuCos
                 .Include(x => x.PhongTro).ThenInclude(p => p.ChiNhanh)
                 .Include(x => x.NguoiThue)
                 .Where(x => !x.IsDeleted);
+
+            if (allowedBranchIds != null)
+            {
+                query = query.Where(x => allowedBranchIds.Contains(x.PhongTro.ChiNhanhId));
+            }
 
             if (chiNhanhId.HasValue && chiNhanhId.Value > 0)
             {

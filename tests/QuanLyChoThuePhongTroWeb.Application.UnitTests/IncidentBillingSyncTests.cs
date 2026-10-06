@@ -72,7 +72,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         {
             public Dictionary<int, YeuCauSuCo> Incidents { get; } = new();
 
-            public Task<List<YeuCauSuCo>> GetAllAsync(int? chiNhanhId, TrangThaiSuCo? trangThai, int? soThang = 6, CancellationToken cancellationToken = default)
+            public Task<List<YeuCauSuCo>> GetAllAsync(int? chiNhanhId, TrangThaiSuCo? trangThai, int? soThang = 6, IReadOnlyCollection<int>? allowedBranchIds = null, CancellationToken cancellationToken = default)
                 => Task.FromResult(Incidents.Values.ToList());
 
             public Task<List<YeuCauSuCo>> GetByNguoiThueAsync(int nguoiThueId, CancellationToken cancellationToken = default)
@@ -522,7 +522,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             var incident = SetupIncident(suCoStore, access, actorId: 2, branchId: 1);
             access.Permissions.Add((20, 2, EmployeeActionCodes.InvoiceDraft));
 
-            var result = await service.SoftDeleteAsync(incident.Id, 20);
+            var result = await service.SoftDeleteAsync(20, incident.Id);
 
             Assert.False(result.Success);
             Assert.Contains("không có quyền", result.Message, StringComparison.OrdinalIgnoreCase);
@@ -541,7 +541,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             var hoaDon = CreateSeptemberInvoice(TrangThaiPhatHanhHoaDon.Nhap, withIncidentLine: true);
             issuanceStore.Invoices[(incident.PhongTroId, incident.NguoiThueId, 9, 2026)] = hoaDon;
 
-            var result = await service.SoftDeleteAsync(incident.Id, 1);
+            var result = await service.SoftDeleteAsync(1, incident.Id);
 
             Assert.True(result.Success);
             Assert.True(incident.IsDeleted);
@@ -563,7 +563,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             issuanceStore.ContractIds.Add(50);
             issuanceStore.Invoices[(incident.PhongTroId, incident.NguoiThueId, 9, 2026)] = CreateSeptemberInvoice(invoiceStatus, withIncidentLine: true);
 
-            var result = await service.SoftDeleteAsync(incident.Id, 1);
+            var result = await service.SoftDeleteAsync(1, incident.Id);
 
             Assert.False(result.Success);
             Assert.Equal("Hóa đơn tháng 9/2026 đã gửi duyệt hoặc đã chốt. Admin cần trả lại hoặc hủy hóa đơn trước khi sửa chi phí sự cố.", result.Message);
@@ -577,7 +577,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             var (service, suCoStore, issuanceStore, access, uow) = CreateService();
             var incident = SetupIncident(suCoStore, access);
 
-            var result = await service.SoftDeleteAsync(incident.Id, 1);
+            var result = await service.SoftDeleteAsync(1, incident.Id);
 
             Assert.True(result.Success);
             Assert.True(incident.IsDeleted);
@@ -592,7 +592,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             var incident = SetupIncident(suCoStore, access);
             MakeBilled(incident);
 
-            var result = await service.SoftDeleteAsync(incident.Id, 1);
+            var result = await service.SoftDeleteAsync(1, incident.Id);
 
             Assert.True(result.Success);
             Assert.True(incident.IsDeleted);
@@ -609,7 +609,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             issuanceStore.Invoices[(incident.PhongTroId, incident.NguoiThueId, 9, 2026)] = CreateSeptemberInvoice(TrangThaiPhatHanhHoaDon.Nhap, withIncidentLine: true);
             uow.ThrowOnSave = true;
 
-            var result = await service.SoftDeleteAsync(incident.Id, 1);
+            var result = await service.SoftDeleteAsync(1, incident.Id);
 
             Assert.False(result.Success);
             Assert.Equal("Không thể xóa sự cố. Vui lòng thử lại.", result.Message);

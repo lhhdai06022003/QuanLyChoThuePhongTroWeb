@@ -74,10 +74,16 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.YeuCauSuCos.Services
             };
         }
 
-        public async Task<List<YeuCauSuCoRes>> GetAllAsync(int? chiNhanhId, AppTrangThaiSuCo? trangThai, int? soThang = 6)
+        public async Task<List<YeuCauSuCoRes>> GetAllAsync(int actorId, int? chiNhanhId, AppTrangThaiSuCo? trangThai, int? soThang = 6)
         {
+            var scope = await _employeeAccessService.GetScopeAsync(actorId);
+            if (scope == null || (chiNhanhId > 0 && !scope.CanAccessBranch(chiNhanhId.Value)))
+            {
+                return new List<YeuCauSuCoRes>();
+            }
+
             var domainTrangThai = trangThai.HasValue ? (TrangThaiSuCo?)(int)trangThai.Value : null;
-            var list = await _store.GetAllAsync(chiNhanhId, domainTrangThai, soThang);
+            var list = await _store.GetAllAsync(chiNhanhId, domainTrangThai, soThang, scope.AllowedBranchIds);
             return list.Select(MapToRes).ToList();
         }
 
@@ -87,10 +93,17 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.YeuCauSuCos.Services
             return list.Select(MapToRes).ToList();
         }
 
-        public async Task<YeuCauSuCoRes?> GetByIdAsync(int id)
+        public async Task<YeuCauSuCoRes?> GetByIdAsync(int actorId, int id)
         {
+            var scope = await _employeeAccessService.GetScopeAsync(actorId);
             var entity = await _store.GetByIdAsync(id);
-            return entity == null ? null : MapToRes(entity);
+            // Sự cố của chi nhánh khác trả null để không lộ việc sự cố tồn tại.
+            if (entity == null || scope == null || !scope.CanAccessBranch(entity.PhongTro?.ChiNhanhId ?? 0))
+            {
+                return null;
+            }
+
+            return MapToRes(entity);
         }
 
         public async Task<bool> CreateAsync(CreateYeuCauSuCoReq req)
@@ -111,13 +124,13 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.YeuCauSuCos.Services
         }
 
         public async Task<ServiceResult> UpdateStatusAsync(
+            int actorId,
             int id,
             AppTrangThaiSuCo trangThai,
             decimal chiPhi,
             bool congVaoHoaDon,
             string? lyDoTuChoi,
             string? ghiChuAdmin,
-            int actorId,
             CancellationToken ct = default)
         {
             if (chiPhi < 0 || !InvoiceMoney.IsWholeVnd(chiPhi))
@@ -278,7 +291,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.YeuCauSuCos.Services
             }
         }
 
-        public async Task<ServiceResult> SoftDeleteAsync(int id, int actorId, CancellationToken ct = default)
+        public async Task<ServiceResult> SoftDeleteAsync(int actorId, int id, CancellationToken ct = default)
         {
             var suco = await _store.GetByIdAsync(id, ct);
             if (suco == null || suco.IsDeleted)

@@ -250,6 +250,66 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
         }
 
         [Fact]
+        public async Task SuCo_StaffOfBranchA_IsBlockedFromBranchB()
+        {
+            var w = await SeedAsync(_factory);
+            var s = System.Guid.NewGuid().ToString("N")[..8];
+            var (incidentA, incidentB) = await ReadAsync(_factory, async db =>
+            {
+                QuanLyChoThuePhongTroWeb.Domain.Entities.YeuCauSuCo Incident(int room, int tenant, string title) => new()
+                {
+                    PhongTroId = room, NguoiThueId = tenant, TieuDe = title, MoTa = "M",
+                    TrangThai = QuanLyChoThuePhongTroWeb.Domain.Enums.TrangThaiSuCo.ChoTiepNhan, NgayGui = System.DateTime.UtcNow
+                };
+                var a = Incident(w.RoomA, w.TenantA, $"SuCoA_{s}");
+                var b = Incident(w.RoomB, w.TenantB, $"SuCoB_{s}");
+                db.YeuCauSuCos.AddRange(a, b);
+                await db.SaveChangesAsync();
+                return (a.Id, b.Id);
+            });
+            var (staff, token) = await LoginAsync(_factory, w.Staff, "/QuanLyNhaTro/YeuCauSuCo");
+
+            // Danh sách và dropdown chi nhánh chỉ có chi nhánh A, kể cả khi cố lọc chi nhánh B.
+            var page = await (await staff.GetAsync("/QuanLyNhaTro/YeuCauSuCo")).Content.ReadAsStringAsync();
+            Assert.Contains($"SuCoA_{s}", page);
+            Assert.DoesNotContain($"SuCoB_{s}", page);
+            Assert.DoesNotContain(w.BranchNameB, page);
+            var filteredB = await (await staff.GetAsync($"/QuanLyNhaTro/YeuCauSuCo?chiNhanhId={w.BranchB}")).Content.ReadAsStringAsync();
+            Assert.DoesNotContain($"SuCoB_{s}", filteredB);
+
+            // Cập nhật / xóa sự cố chi nhánh B bị từ chối, dữ liệu không đổi.
+            var update = await JsonAsync(await PostFormAsync(staff, token, "/QuanLyNhaTro/YeuCauSuCo/UpdateStatus", new Dictionary<string, string>
+            {
+                ["Id"] = incidentB.ToString(),
+                ["TrangThai"] = "1",
+                ["ChiPhiSuaChua"] = "0",
+                ["CongVaoHoaDon"] = "false",
+                ["LyDoTuChoi"] = "",
+                ["GhiChuAdmin"] = "sua"
+            }));
+            Assert.False(update.GetProperty("success").GetBoolean());
+            var delete = await JsonAsync(await PostFormAsync(staff, token, "/QuanLyNhaTro/YeuCauSuCo/Delete", new Dictionary<string, string>
+            {
+                ["id"] = incidentB.ToString()
+            }));
+            Assert.False(delete.GetProperty("success").GetBoolean());
+
+            var (stateB, deletedB) = await ReadAsync(_factory, async db =>
+            {
+                var b = await db.YeuCauSuCos.AsNoTracking().SingleAsync(x => x.Id == incidentB);
+                return (b.TrangThai, b.IsDeleted);
+            });
+            Assert.Equal(QuanLyChoThuePhongTroWeb.Domain.Enums.TrangThaiSuCo.ChoTiepNhan, stateB);
+            Assert.False(deletedB);
+
+            // Admin thấy sự cố và chi nhánh B.
+            var (admin, _) = await LoginAsync(_factory, w.Admin, "/QuanLyNhaTro/YeuCauSuCo");
+            var adminPage = await (await admin.GetAsync("/QuanLyNhaTro/YeuCauSuCo")).Content.ReadAsStringAsync();
+            Assert.Contains($"SuCoB_{s}", adminPage);
+            Assert.Contains(w.BranchNameB, adminPage);
+        }
+
+        [Fact]
         public async Task PhongTro_Admin_SeesAllBranches()
         {
             var w = await SeedAsync(_factory);

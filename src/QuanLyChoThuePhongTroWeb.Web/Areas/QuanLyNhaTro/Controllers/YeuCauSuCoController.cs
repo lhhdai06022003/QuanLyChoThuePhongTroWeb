@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.Extensions.Logging;
@@ -10,25 +9,23 @@ using System.Threading.Tasks;
 
 namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
 {
-    [Area("QuanLyNhaTro")]
-    [Authorize(Roles = "Admin,NhanVien")]
-    public class YeuCauSuCoController : Controller
+    public class YeuCauSuCoController : AdminBaseController
     {
         private readonly IYeuCauSuCoService _yeuCauSuCoService;
-        private readonly IChiNhanhService _chiNhanhService;
+        private readonly IPhongTroService _phongTroService;
         private readonly IThongBaoService _thongBaoService;
         private readonly ILogger<YeuCauSuCoController> _logger;
         private readonly IEmployeeAccessService _employeeAccessService;
 
         public YeuCauSuCoController(
             IYeuCauSuCoService yeuCauSuCoService,
-            IChiNhanhService chiNhanhService,
+            IPhongTroService phongTroService,
             IThongBaoService thongBaoService,
             ILogger<YeuCauSuCoController> logger,
             IEmployeeAccessService employeeAccessService)
         {
             _yeuCauSuCoService = yeuCauSuCoService;
-            _chiNhanhService = chiNhanhService;
+            _phongTroService = phongTroService;
             _thongBaoService = thongBaoService;
             _logger = logger;
             _employeeAccessService = employeeAccessService;
@@ -36,10 +33,10 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
 
         public async Task<IActionResult> Index(int? chiNhanhId, QuanLyChoThuePhongTroWeb.Application.Common.Enums.AppTrangThaiSuCo? trangThai, int? soThang = 6)
         {
-            var data = await _yeuCauSuCoService.GetAllAsync(chiNhanhId, trangThai, soThang);
+            var data = await _yeuCauSuCoService.GetAllAsync(CurrentActorId, chiNhanhId, trangThai, soThang);
 
-            var chiNhanhs = await _chiNhanhService.DanhSachChiNhanh();
-            ViewBag.ChiNhanhId = new SelectList(chiNhanhs, "ChiNhanhId", "TenChiNhanh", chiNhanhId);
+            var chiNhanhs = await _phongTroService.GetDanhSachChiNhanhDropdownAsync(CurrentActorId);
+            ViewBag.ChiNhanhId = new SelectList(chiNhanhs, nameof(SelectOptionDto.Value), nameof(SelectOptionDto.Text), chiNhanhId?.ToString());
             ViewBag.CurrentTrangThai = trangThai;
             ViewBag.CurrentSoThang = soThang ?? 6;
 
@@ -71,10 +68,10 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
                     return Json(new { success = false, message = "Người dùng chưa đăng nhập hoặc phiên làm việc đã hết hạn." });
                 }
 
-                var suco = await _yeuCauSuCoService.GetByIdAsync(Id);
+                var suco = await _yeuCauSuCoService.GetByIdAsync(actorId, Id);
                 if (suco == null) return Json(new { success = false, message = "Không tìm thấy sự cố." });
 
-                var result = await _yeuCauSuCoService.UpdateStatusAsync(Id, TrangThai, ChiPhiSuaChua, CongVaoHoaDon, LyDoTuChoi, GhiChuAdmin, actorId);
+                var result = await _yeuCauSuCoService.UpdateStatusAsync(actorId, Id, TrangThai, ChiPhiSuaChua, CongVaoHoaDon, LyDoTuChoi, GhiChuAdmin);
                 
                 if (result.Success)
                 {
@@ -116,7 +113,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
                     return Json(new { success = false, message = "Người dùng chưa đăng nhập hoặc phiên làm việc đã hết hạn." });
                 }
 
-                var result = await _yeuCauSuCoService.SoftDeleteAsync(id, actorId);
+                var result = await _yeuCauSuCoService.SoftDeleteAsync(actorId, id);
                 return Json(new { success = result.Success, message = result.Message });
             }
             catch (Exception ex)

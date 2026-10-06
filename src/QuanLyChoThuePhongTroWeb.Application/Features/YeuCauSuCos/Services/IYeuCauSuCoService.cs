@@ -8,11 +8,11 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.YeuCauSuCos.Services
 {
     public interface IYeuCauSuCoService
     {
-        Task<List<YeuCauSuCoRes>> GetAllAsync(int? chiNhanhId, AppTrangThaiSuCo? trangThai, int? soThang = 6);
+        Task<List<YeuCauSuCoRes>> GetAllAsync(int actorId, int? chiNhanhId, AppTrangThaiSuCo? trangThai, int? soThang = 6);
         Task<List<YeuCauSuCoRes>> GetByNguoiThueAsync(int nguoiThueId);
-        Task<YeuCauSuCoRes?> GetByIdAsync(int id);
+        Task<YeuCauSuCoRes?> GetByIdAsync(int actorId, int id);
         Task<bool> CreateAsync(CreateYeuCauSuCoReq req);
-        Task<ServiceResult> UpdateStatusAsync(int id, AppTrangThaiSuCo trangThai, decimal chiPhi, bool congVaoHoaDon, string? lyDoTuChoi, string? ghiChuAdmin, int actorId, CancellationToken ct = default);
-        Task<ServiceResult> SoftDeleteAsync(int id, int actorId, CancellationToken ct = default);
+        Task<ServiceResult> UpdateStatusAsync(int actorId, int id, AppTrangThaiSuCo trangThai, decimal chiPhi, bool congVaoHoaDon, string? lyDoTuChoi, string? ghiChuAdmin, CancellationToken ct = default);
+        Task<ServiceResult> SoftDeleteAsync(int actorId, int id, CancellationToken ct = default);
     }
 }
