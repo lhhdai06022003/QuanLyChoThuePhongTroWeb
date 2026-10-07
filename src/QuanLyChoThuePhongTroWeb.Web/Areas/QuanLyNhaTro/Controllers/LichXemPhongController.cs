@@ -13,7 +13,7 @@ public sealed class LichXemPhongController(IPhongTroService roomService,
         var publishedIds = configuration.GetSection("PublicRooms:RoomIds").Get<int[]>()?.ToHashSet();
         var rooms = await roomService.GetDanhSachPhongTroAsync(CurrentActorId);
         IReadOnlyList<PhongTroListItemDto> availableRooms = rooms
-            .Where(room => room.TrangThai == 0 && room.DuocDangTin &&
+            .Where(room => room.TrangThai == 0 && room.DuocDangTin && room.ChiNhanhConHoatDong &&
                 (publishedIds is null || publishedIds.Contains(room.PhongTroId)))
             .ToArray();
         return View(availableRooms);

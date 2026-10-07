@@ -6,8 +6,7 @@ using QuanLyChoThuePhongTroWeb.ViewModels.PublicRooms;
 namespace QuanLyChoThuePhongTroWeb.Controllers;
 
 [Route("phong")]
-public sealed class PhongController(IPublicRoomService rooms, IConfiguration configuration,
-    IWebHostEnvironment environment) : Controller
+public sealed class PhongController(IPublicRoomService rooms, IConfiguration configuration) : Controller
 {
     private const int PageSize = 9;
 
@@ -63,22 +62,5 @@ public sealed class PhongController(IPublicRoomService rooms, IConfiguration con
     [HttpGet("/tai-khoan/yeu-cau-phong")]
     public IActionResult YeuCauCuaToi() => View();
 
-    private IReadOnlyList<string> GetImages(PublicRoomDto room)
-    {
-        if (room.ImageUrls is { Count: > 0 })
-            return room.ImageUrls;
-
-        var roomId = room.PhongTroId;
-        var directory = Path.Combine(environment.WebRootPath, "uploads", "rooms", roomId.ToString());
-        if (!Directory.Exists(directory))
-            return [];
-
-        return Directory.EnumerateFiles(directory)
-            .Where(path => new[] { ".jpg", ".jpeg", ".png", ".webp" }
-                .Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase))
-            .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
-            .Take(10)
-            .Select(path => $"/uploads/rooms/{roomId}/{Uri.EscapeDataString(Path.GetFileName(path))}")
-            .ToArray();
-    }
+    private static IReadOnlyList<string> GetImages(PublicRoomDto room) => room.ImageUrls ?? [];
 }

@@ -50,6 +50,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                     DienTich = p.DienTich,
                     TrangThai = (int)p.TrangThai,
                     DuocDangTin = p.DuocDangTin,
+                    ChiNhanhConHoatDong = !p.ChiNhanh.IsDeleted,
                     SoAnhDangHoatDong = p.AnhPhongTros.Count(anh => anh.IsActive),
                     AnhDaiDienUrl = p.AnhPhongTros.Where(anh => anh.IsActive)
                         .OrderByDescending(anh => anh.LaAnhDaiDien)

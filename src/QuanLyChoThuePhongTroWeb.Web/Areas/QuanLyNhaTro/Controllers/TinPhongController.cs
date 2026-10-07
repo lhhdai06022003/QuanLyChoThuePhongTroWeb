@@ -13,7 +13,7 @@ public sealed class TinPhongController(IPhongTroService roomService, IConfigurat
         var rooms = await roomService.GetDanhSachPhongTroAsync(CurrentActorId);
         var items = rooms.Select(room =>
         {
-            var visible = room.TrangThai == 0 && room.DuocDangTin &&
+            var visible = room.TrangThai == 0 && room.DuocDangTin && room.ChiNhanhConHoatDong &&
                 (publishedIds is null || publishedIds.Contains(room.PhongTroId));
             var cover = room.AnhDaiDienUrl;
             return new ListingPreviewItem(room.PhongTroId, room.SoPhong,

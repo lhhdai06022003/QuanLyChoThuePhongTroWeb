@@ -47,4 +47,4 @@
 
 - [x] Build solution and run Domain/Application unit tests without any DB.
 - [x] Inspect changed paths and confirm zero schema/migration changes.
-- [ ] Commit the new local branch; leave `thuan` untouched.
+- [x] Commit the new local branch; leave `thuan` untouched.
