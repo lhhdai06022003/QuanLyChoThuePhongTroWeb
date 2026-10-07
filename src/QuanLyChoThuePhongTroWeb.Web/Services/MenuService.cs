@@ -33,6 +33,9 @@ namespace QuanLyChoThuePhongTroWeb.Services
                     {
                         new MenuItem { Name = "Chi nhánh", Icon = "ti ti-building-store", Url = "/ChiNhanhs/QuanLyChiNhanh", Roles = new List<string> { "Admin" } },
                         new MenuItem { Name = "Phòng trọ", Icon = "ti ti-bed", Url = "/PhongTros/QuanLyPhongTro" },
+                        new MenuItem { Name = "Tin phòng công khai", Icon = "ti ti-photo", Url = "/QuanLyNhaTro/TinPhong" },
+                        new MenuItem { Name = "Lịch xem phòng", Icon = "ti ti-calendar-event", Url = "/QuanLyNhaTro/LichXemPhong" },
+                        new MenuItem { Name = "Đặt cọc phòng", Icon = "ti ti-receipt", Url = "/QuanLyNhaTro/GiuCho" },
                         //new MenuItem { Name = "Sơ đồ phòng", Icon = "ti ti-layout-grid", Url = "/PhongTros/SoDoPhong" },
                         new MenuItem { Name = "Người thuê", Icon = "ti ti-users", Url = "/QuanLyNhaTro/QuanLyNguoiThue" },
                         new MenuItem { Name = "Hợp đồng", Icon = "ti ti-file-text", Url = "/QuanLyNhaTro/QuanLyHopDong" },

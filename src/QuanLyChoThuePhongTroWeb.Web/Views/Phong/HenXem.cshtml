@@ -1,0 +1,42 @@
+@model QuanLyChoThuePhongTroWeb.ViewModels.PublicRooms.PublicRoomCardModel
+@{
+    Layout = "_PublicRoomLayout";
+    ViewData["Title"] = $"Hẹn xem phòng {Model.Room.SoPhong}";
+    var room = Model.Room;
+}
+
+<div class="guest-container guest-form-page">
+    <a class="guest-back" href="/phong/@room.PhongTroId">← Về thông tin phòng</a>
+    <div class="guest-form-grid">
+        <div>
+            <p class="guest-kicker">Hẹn xem phòng</p>
+            <h1>Chọn ngày đến<br />xem phòng.</h1>
+            <p class="guest-form-lead">Bạn sẽ chọn khung giờ còn chỗ hoặc đề xuất thời gian khác. Email là bắt buộc để nhận thông báo nếu phòng được thuê trước ngày hẹn.</p>
+            <div class="guest-form-room">
+                <span>Phòng bạn muốn xem</span>
+                <strong>Phòng @room.SoPhong</strong>
+                <small>@room.TenChiNhanh · @room.DiaChi</small>
+            </div>
+        </div>
+        <div class="guest-viewing-form" role="group" aria-label="Thông tin hẹn xem phòng">
+            <h2>Thông tin lịch xem</h2>
+            <label for="viewingSlot">Khung giờ có sẵn</label>
+            <select id="viewingSlot" disabled><option>Chưa có khung giờ để chọn</option></select>
+            <label for="preferredTime">Thời gian mong muốn</label>
+            <input id="preferredTime" type="datetime-local" />
+            <div class="guest-form-divider"></div>
+            <h2>Thông tin liên hệ</h2>
+            <label for="viewerName">Họ và tên <span>*</span></label>
+            <input id="viewerName" type="text" autocomplete="name" placeholder="Nguyễn Văn A" />
+            <label for="viewerPhone">Số điện thoại <span>*</span></label>
+            <input id="viewerPhone" type="tel" autocomplete="tel" inputmode="tel" placeholder="09..." />
+            <label for="viewerEmail">Email nhận thông báo <span>*</span></label>
+            <input id="viewerEmail" type="email" autocomplete="email" placeholder="ban@example.com" required />
+            <p class="guest-field-hint">Nếu phòng được thuê trước lịch hẹn, thông báo hủy lịch sẽ gửi đến địa chỉ này.</p>
+            <label for="viewerNote">Ghi chú cho nhân viên</label>
+            <textarea id="viewerNote" rows="3" placeholder="Bạn muốn hỏi thêm điều gì?"></textarea>
+            <button class="guest-button guest-button-primary guest-button-disabled" type="button" disabled>Gửi yêu cầu xem phòng</button>
+            <p class="guest-form-footnote">Bạn có thể hủy lịch trước giờ hẹn bắt đầu.</p>
+        </div>
+    </div>
+</div>

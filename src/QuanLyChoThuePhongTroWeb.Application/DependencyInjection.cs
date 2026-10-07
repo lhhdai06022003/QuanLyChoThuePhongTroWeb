@@ -13,6 +13,7 @@ using QuanLyChoThuePhongTroWeb.Application.Features.LichSuThanhToans.Services;
 using QuanLyChoThuePhongTroWeb.Application.Features.YeuCauSuCos.Services;
 using QuanLyChoThuePhongTroWeb.Application.Features.ThongBaos.Services;
 using QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.Services;
+using QuanLyChoThuePhongTroWeb.Application.Features.PublicRooms;
 
 namespace QuanLyChoThuePhongTroWeb.Application
 {
@@ -27,6 +28,7 @@ namespace QuanLyChoThuePhongTroWeb.Application
 
             // Phase 6.2 services
             services.AddScoped<IPhongTroService, PhongTroService>();
+            services.AddScoped<IPublicRoomService, PublicRoomService>();
             services.AddScoped<INguoiThueService, NguoiThueService>();
             services.AddScoped<INguoiDungService, NguoiDungService>();
 

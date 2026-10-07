@@ -1,0 +1,128 @@
+@model IReadOnlyList<QuanLyChoThuePhongTroWeb.Application.Features.PhongTros.DTOs.PhongTroListItemDto>
+@{
+    ViewData["Title"] = "Lịch xem phòng";
+}
+
+<div class="container-xl py-4 guest-admin">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+        <div>
+            <h1 class="page-title mb-2">Lịch xem phòng</h1>
+            <p class="text-secondary mb-0">Theo dõi lịch khách đăng ký và chuẩn bị khung giờ xem phòng.</p>
+        </div>
+        <button class="btn btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#slotPreviewModal">
+            <i class="ti ti-calendar-plus me-1" aria-hidden="true"></i>Tạo khung giờ
+        </button>
+    </div>
+
+    <div class="card guest-admin-table mb-4">
+        <div class="card-header d-flex flex-wrap gap-2 align-items-center justify-content-between">
+            <h2 class="card-title mb-0">Lịch hẹn của khách</h2>
+            <div class="d-flex flex-wrap gap-2 align-items-center" aria-label="Trạng thái lịch">
+                <span class="badge bg-yellow-lt">Chờ xác nhận</span>
+                <span class="badge bg-green-lt">Đã xác nhận</span>
+                <span class="badge bg-secondary-lt">Đã hủy</span>
+                <button class="btn btn-outline-primary btn-sm ms-sm-2" type="button" data-bs-toggle="modal" data-bs-target="#appointmentPreviewModal">Đổi hoặc hủy lịch</button>
+                <button class="btn btn-outline-primary btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#viewingEmailPreviewModal">Nội dung email</button>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-vcenter card-table">
+                <thead><tr><th>Phòng</th><th>Khách liên hệ</th><th>Thời gian mong muốn</th><th>Trạng thái</th><th>Email báo thay đổi</th><th class="text-end">Thao tác</th></tr></thead>
+                <tbody>
+                    <tr><td class="guest-admin-empty" colspan="6">
+                        <i class="ti ti-calendar-off" aria-hidden="true"></i>
+                        <strong>Chưa có lịch hẹn để hiển thị</strong>
+                        <span>Lịch khách đăng ký sẽ xuất hiện tại đây.</span>
+                    </td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card guest-admin-workflow mb-4">
+        <div class="card-body d-flex align-items-start gap-3">
+            <i class="ti ti-mail guest-admin-workflow-icon" aria-hidden="true"></i>
+            <div>
+                <h2 class="card-title mb-1">Báo khách khi phòng đã được thuê</h2>
+                <p class="text-secondary mb-0">Bản xem trước nội dung email dự kiến gửi khi phòng đã được thuê. Chưa có chức năng tự hủy lịch hoặc gửi email ở giai đoạn này.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="card guest-admin-table">
+        <div class="card-header d-flex flex-wrap gap-2 align-items-center justify-content-between">
+            <div><h2 class="card-title mb-1">Khung giờ xem phòng</h2><div class="text-secondary small">Chỉ tạo cho phòng đang đăng công khai và còn trống.</div></div>
+            <span class="badge bg-blue-lt">@Model.Count phòng đủ điều kiện</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-vcenter card-table">
+                <thead><tr><th>Phòng</th><th>Bắt đầu</th><th>Kết thúc</th><th>Số khách tối đa</th><th>Đã đăng ký</th><th class="text-end">Thao tác</th></tr></thead>
+                <tbody>
+                    <tr><td class="guest-admin-empty" colspan="6">
+                        <i class="ti ti-clock-off" aria-hidden="true"></i>
+                        <strong>Chưa có khung giờ xem</strong>
+                        <span>Dùng “Tạo khung giờ” để thiết lập lịch xem cho phòng.</span>
+                    </td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal modal-blur fade" id="viewingEmailPreviewModal" tabindex="-1" aria-labelledby="viewingEmailPreviewTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content">
+        <div class="modal-header"><h2 class="modal-title" id="viewingEmailPreviewTitle">Email báo phòng đã được thuê</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button></div>
+        <div class="modal-body">
+            <dl class="guest-admin-mail-meta">
+                <dt>Người nhận</dt><dd>Từng khách có lịch xem còn hiệu lực của phòng vừa được thuê</dd>
+                <dt>Tiêu đề</dt><dd>Thông báo hủy lịch xem: Phòng [số phòng] đã được thuê</dd>
+            </dl>
+            <div class="guest-admin-mail-body">
+                <p>Xin chào [tên khách],</p>
+                <p>Phòng [số phòng] tại [chi nhánh] đã được thuê trước lịch xem của bạn vào [ngày, giờ]. Vì vậy, lịch xem này đã được hủy; bạn không cần đến xem phòng.</p>
+                <p>Bạn có thể xem các phòng còn trống tại trang tìm phòng. Cảm ơn bạn đã quan tâm.</p>
+            </div>
+            <p class="text-secondary small mb-0">Chỉ gửi thông tin về lịch của chính người nhận; không đưa danh sách khách khác vào email.</p>
+        </div>
+        <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button><span class="badge bg-blue-lt">Mẫu email xem trước</span></div>
+    </div></div>
+</div>
+
+<div class="modal modal-blur fade" id="appointmentPreviewModal" tabindex="-1" aria-labelledby="appointmentPreviewTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+        <div class="modal-header"><h2 class="modal-title" id="appointmentPreviewTitle">Đổi hoặc hủy lịch hẹn</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button></div>
+        <div class="modal-body">
+            <div class="alert alert-info mb-3">Khi đổi lịch, chỉ chọn khung giờ còn chỗ.</div>
+            <div class="mb-3"><label class="form-label" for="appointmentSlot">Khung giờ mới còn chỗ</label><select class="form-select" id="appointmentSlot" disabled><option>Chưa có khung giờ</option></select></div>
+            <div><label class="form-label" for="appointmentReason">Lý do cập nhật</label><textarea class="form-control" id="appointmentReason" rows="2" placeholder="Ví dụ: Đã thống nhất lại với khách..."></textarea></div>
+        </div>
+        <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button><button type="button" class="btn btn-outline-danger" disabled>Hủy lịch</button><button type="button" class="btn btn-primary" disabled>Đổi lịch</button></div>
+    </div></div>
+</div>
+
+<div class="modal modal-blur fade" id="slotPreviewModal" tabindex="-1" aria-labelledby="slotPreviewTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+        <div class="modal-header"><h2 class="modal-title" id="slotPreviewTitle">Tạo khung giờ xem phòng</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button></div>
+        <div class="modal-body">
+            <div class="mb-3">
+                <label class="form-label" for="slotRoom">Phòng đăng công khai</label>
+                <select class="form-select" id="slotRoom">
+                    <option value="">Chọn phòng</option>
+                    @foreach (var room in Model)
+                    {
+                        <option value="@room.PhongTroId">Phòng @room.SoPhong — @room.TenChiNhanh</option>
+                    }
+                </select>
+                @if (Model.Count == 0) { <div class="form-hint mt-1">Chưa có phòng trống được đăng công khai.</div> }
+            </div>
+            <div class="row g-3">
+                <div class="col-sm-6"><label class="form-label" for="slotStart">Bắt đầu</label><input class="form-control" id="slotStart" type="datetime-local" /></div>
+                <div class="col-sm-6"><label class="form-label" for="slotEnd">Kết thúc</label><input class="form-control" id="slotEnd" type="datetime-local" /></div>
+                <div class="col-sm-6"><label class="form-label" for="slotCapacity">Số khách tối đa</label><input class="form-control" id="slotCapacity" type="number" min="1" value="1" /></div>
+            </div>
+        </div>
+        <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button><button type="button" class="btn btn-primary" disabled>Lưu khung giờ</button></div>
+    </div></div>
+</div>
+
+@section Styles { <link rel="stylesheet" href="~/css/staff-guest-management.css" asp-append-version="true" /> }

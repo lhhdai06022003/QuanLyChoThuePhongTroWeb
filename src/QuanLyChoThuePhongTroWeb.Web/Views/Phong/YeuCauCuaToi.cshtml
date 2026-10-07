@@ -1,0 +1,46 @@
+@{
+    Layout = "_PublicRoomLayout";
+    ViewData["Title"] = "Yêu cầu của tôi";
+}
+
+<div class="guest-container guest-form-page guest-reservation-page">
+    <a class="guest-back" href="/phong">← Tiếp tục xem phòng</a>
+    <p class="guest-kicker">Tài khoản của bạn</p>
+    <h1>Lịch xem và giữ chỗ.</h1>
+    <p>Theo dõi lịch hẹn, yêu cầu giữ chỗ, hạn chuyển tiền và các khoản hoàn.</p>
+    <div class="guest-preview-grid">
+        <section class="guest-preview-panel">
+            <h2>Lịch xem phòng</h2>
+            <p>Bạn chưa có lịch hẹn xem phòng.</p>
+            <a class="guest-section-link" href="/phong">Chọn phòng để hẹn xem</a>
+            <div class="guest-cancel-preview">
+                <strong>Khi đã đặt lịch</strong>
+                <p>Bạn có thể tự hủy lịch trước giờ bắt đầu. Lịch đã hủy không còn giữ khung giờ.</p>
+                <button class="guest-button guest-button-outline" type="button" data-preview-dialog-open="cancelViewingPreview">Hủy lịch xem</button>
+            </div>
+        </section>
+        <section class="guest-preview-panel">
+            <h2>Giữ chỗ và đặt cọc</h2>
+            <p>Bạn chưa có yêu cầu giữ chỗ hoặc khoản chuyển tiền nào.</p>
+            <a class="guest-section-link" href="/phong">Xem phòng đang công khai</a>
+        </section>
+    </div>
+</div>
+
+<dialog class="guest-preview-dialog" id="cancelViewingPreview" aria-labelledby="cancelViewingTitle">
+    <div class="guest-preview-dialog-head">
+        <h2 id="cancelViewingTitle">Hủy lịch xem phòng</h2>
+        <button type="button" class="guest-dialog-close" data-preview-dialog-close aria-label="Đóng">×</button>
+    </div>
+    <p>Chọn lịch cần hủy. Bạn chỉ có thể hủy trước giờ hẹn bắt đầu.</p>
+    <label class="guest-dialog-label" for="cancelViewingId">Lịch xem của bạn</label>
+    <select class="guest-dialog-select" id="cancelViewingId" disabled><option>Chưa có lịch xem sắp tới</option></select>
+    <div class="guest-preview-dialog-actions">
+        <button class="guest-button guest-button-outline" type="button" data-preview-dialog-close>Quay lại</button>
+        <button class="guest-button guest-button-primary guest-button-disabled" type="button" disabled>Xác nhận hủy lịch</button>
+    </div>
+</dialog>
+
+@section Scripts {
+    <script src="~/js/khach-vang-lai-preview-dialog.js" asp-append-version="true" defer></script>
+}

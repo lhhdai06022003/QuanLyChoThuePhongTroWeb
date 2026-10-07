@@ -1,0 +1,33 @@
+@model QuanLyChoThuePhongTroWeb.ViewModels.PublicRooms.PublicRoomCardModel
+@{
+    Layout = "_PublicRoomLayout";
+    ViewData["Title"] = $"Đặt cọc phòng {Model.Room.SoPhong}";
+    var room = Model.Room;
+    var estimatedDeposit = decimal.Round(room.GiaThue / 2m, 0, MidpointRounding.AwayFromZero);
+}
+
+<div class="guest-container guest-form-page guest-reservation-page">
+    <a class="guest-back" href="/phong/@room.PhongTroId">← Về thông tin phòng</a>
+    <p class="guest-kicker">Giữ chỗ và đặt cọc</p>
+    <h1>Bắt đầu đặt cọc <em>phòng @room.SoPhong</em></h1>
+    <p>Trước tiên bạn gửi yêu cầu giữ chỗ. Khi nhân viên duyệt, số tiền cần chuyển là 50% giá thuê tháng; tài khoản nhận, hạn chuyển tiền và hạn ký hợp đồng sẽ hiển thị ở bước tiếp theo.</p>
+    <div class="guest-preview-notice" role="status">Chỉ chuyển tiền sau khi nhân viên duyệt và cung cấp thông tin tài khoản nhận cọc.</div>
+    <div class="guest-form-room">
+        <span>Phòng bạn chọn</span>
+        <strong>Phòng @room.SoPhong</strong>
+        <small>@room.TenChiNhanh · @room.GiaThue.ToString("N0") ₫ / tháng</small>
+    </div>
+    <div class="guest-deposit-preview">
+        <div>
+            <span>Số tiền dự kiến (50% tiền thuê)</span>
+            <strong>@estimatedDeposit.ToString("N0") ₫</strong>
+            <small>Số tiền chính thức được xác định khi nhân viên duyệt yêu cầu.</small>
+        </div>
+        <ol>
+            <li>Xác nhận hồ sơ và gửi yêu cầu giữ chỗ.</li>
+            <li>Nhận hạn thanh toán, hạn ký hợp đồng và thông tin tài khoản nhận.</li>
+            <li>Chuyển một giao dịch đủ tiền, gửi ảnh minh chứng và chờ đối chiếu.</li>
+        </ol>
+    </div>
+    <button class="guest-button guest-button-primary guest-button-disabled guest-reservation-actions" type="button" disabled>Gửi yêu cầu giữ chỗ</button>
+</div>

@@ -82,9 +82,10 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 
 var app = builder.Build();
 
-// Khởi tạo Database và Seed data qua Infrastructure Initializer
-using (var scope = app.Services.CreateScope())
+// Chỉ chạy migration/seed khi được bật rõ ràng; bản giao diện không tự thay đổi database.
+if (builder.Configuration.GetValue("Database:InitializeOnStartup", false))
 {
+    using var scope = app.Services.CreateScope();
     var initializer = scope.ServiceProvider.GetRequiredService<IDatabaseInitializer>();
     await initializer.InitializeAsync();
 }
