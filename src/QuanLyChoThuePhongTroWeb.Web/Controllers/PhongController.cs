@@ -6,7 +6,8 @@ using QuanLyChoThuePhongTroWeb.ViewModels.PublicRooms;
 namespace QuanLyChoThuePhongTroWeb.Controllers;
 
 [Route("phong")]
-public sealed class PhongController(IPublicRoomService rooms, IConfiguration configuration) : Controller
+public sealed class PhongController(IPublicRoomService rooms, IConfiguration configuration,
+    IWebHostEnvironment environment) : Controller
 {
     private const int PageSize = 9;
 
@@ -62,5 +63,22 @@ public sealed class PhongController(IPublicRoomService rooms, IConfiguration con
     [HttpGet("/tai-khoan/yeu-cau-phong")]
     public IActionResult YeuCauCuaToi() => View();
 
-    private static IReadOnlyList<string> GetImages(PublicRoomDto room) => room.ImageUrls ?? [];
+    private IReadOnlyList<string> GetImages(PublicRoomDto room)
+    {
+        if (!configuration.GetValue<bool>("PublicRooms:LegacySchemaPreview"))
+            return room.ImageUrls ?? [];
+
+        var directory = Path.Combine(environment.WebRootPath, "uploads", "rooms",
+            room.PhongTroId.ToString());
+        if (!Directory.Exists(directory))
+            return [];
+
+        return Directory.EnumerateFiles(directory)
+            .Where(path => new[] { ".jpg", ".jpeg", ".png", ".webp" }
+                .Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase))
+            .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
+            .Take(10)
+            .Select(path => $"/uploads/rooms/{room.PhongTroId}/{Uri.EscapeDataString(Path.GetFileName(path))}")
+            .ToArray();
+    }
 }
