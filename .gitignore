@@ -380,7 +380,7 @@ secrets.json
 **/sent_invoice_reminders.json
 **/sent_contract_alerts.json
 **/sent_*.json
-/wwwroot/uploads/
+**/wwwroot/uploads/
 
 # Local database and backup files
 *.db
