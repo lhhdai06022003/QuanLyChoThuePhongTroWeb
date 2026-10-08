@@ -34,6 +34,14 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.ThanhVienHopDongs.Persistence.IThanhVienHopDongStore, Persistence.Features.ThanhVienHopDongStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.ThongBaos.Persistence.IThongBaoStore, Persistence.Features.ThongBaoStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.NguoiDungs.Persistence.INguoiDungStore, Persistence.Features.NguoiDungStore>();
+            services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.GuestAccounts.IGuestAccountStore, Persistence.Features.GuestAccounts.GuestAccountStore>();
+            services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.Viewings.IViewingRequestStore, Persistence.Features.Viewings.ViewingRequestStore>();
+            services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.Viewings.IViewingSlotAdminStore, Persistence.Features.Viewings.ViewingSlotAdminStore>();
+            services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.Viewings.IViewingAdminRequestStore, Persistence.Features.Viewings.ViewingAdminRequestStore>();
+            services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.Reservations.IReservationStore, Persistence.Features.Reservations.ReservationStore>();
+            services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.ReservationPayments.IReservationPaymentStore, Persistence.Features.ReservationPayments.ReservationPaymentStore>();
+            services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.ReservationSettlement.IReservationSettlementStore, Persistence.Features.ReservationSettlement.ReservationSettlementStore>();
+            services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.RoomDepositedNotices.IRoomNoticeStore, Persistence.Features.RoomDepositedNotices.RoomNoticeStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.Persistence.IHopDongStore, Persistence.Features.HopDongStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence.IHoaDonStore, Persistence.Features.HoaDonStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence.IInvoicePaymentStore, Persistence.Features.InvoicePaymentStore>();

@@ -1,8 +1,8 @@
-@model QuanLyChoThuePhongTroWeb.ViewModels.PublicRooms.PublicRoomCardModel
+@model QuanLyChoThuePhongTroWeb.ViewModels.PublicRooms.ViewingPageModel
 @{
     Layout = "_PublicRoomLayout";
-    ViewData["Title"] = $"Hẹn xem phòng {Model.Room.SoPhong}";
-    var room = Model.Room;
+    ViewData["Title"] = $"Hẹn xem phòng {Model.Room.Room.SoPhong}";
+    var room = Model.Room.Room;
 }
 
 <div class="guest-container guest-form-page">
@@ -18,25 +18,39 @@
                 <small>@room.TenChiNhanh · @room.DiaChi</small>
             </div>
         </div>
-        <div class="guest-viewing-form" role="group" aria-label="Thông tin hẹn xem phòng">
+        <form class="guest-viewing-form" method="post" aria-label="Thông tin hẹn xem phòng">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
             <h2>Thông tin lịch xem</h2>
-            <label for="viewingSlot">Khung giờ có sẵn</label>
-            <select id="viewingSlot" disabled><option>Chưa có khung giờ để chọn</option></select>
-            <label for="preferredTime">Thời gian mong muốn</label>
-            <input id="preferredTime" type="datetime-local" />
+            <label asp-for="SlotId">Khung giờ có sẵn</label>
+            <select asp-for="SlotId">
+                <option value="">Chọn khung giờ hoặc nhập thời gian bên dưới</option>
+                @foreach (var slot in Model.Slots)
+                {
+                    var start = new DateTimeOffset(slot.StartUtc, TimeSpan.Zero).ToOffset(TimeSpan.FromHours(7));
+                    var end = new DateTimeOffset(slot.EndUtc, TimeSpan.Zero).ToOffset(TimeSpan.FromHours(7));
+                    <option value="@slot.Id">@start.ToString("dd/MM/yyyy HH:mm") – @end.ToString("HH:mm") · còn @slot.RemainingPlaces chỗ</option>
+                }
+            </select>
+            <label asp-for="PreferredTimeLocal">Thời gian mong muốn khác</label>
+            <input asp-for="PreferredTimeLocal" type="datetime-local" />
+            <p class="guest-field-hint">Chỉ chọn một trong hai cách. Giờ tự đề xuất sẽ chờ nhân viên xác nhận.</p>
             <div class="guest-form-divider"></div>
             <h2>Thông tin liên hệ</h2>
-            <label for="viewerName">Họ và tên <span>*</span></label>
-            <input id="viewerName" type="text" autocomplete="name" placeholder="Nguyễn Văn A" />
-            <label for="viewerPhone">Số điện thoại <span>*</span></label>
-            <input id="viewerPhone" type="tel" autocomplete="tel" inputmode="tel" placeholder="09..." />
-            <label for="viewerEmail">Email nhận thông báo <span>*</span></label>
-            <input id="viewerEmail" type="email" autocomplete="email" placeholder="ban@example.com" required />
+            <label asp-for="FullName">Họ và tên <span>*</span></label>
+            <input asp-for="FullName" type="text" autocomplete="name" placeholder="Nguyễn Văn A" required />
+            <span asp-validation-for="FullName" class="text-danger"></span>
+            <label asp-for="Phone">Số điện thoại <span>*</span></label>
+            <input asp-for="Phone" type="tel" autocomplete="tel" inputmode="tel" placeholder="09..." required />
+            <span asp-validation-for="Phone" class="text-danger"></span>
+            <label asp-for="Email">Email nhận thông báo <span>*</span></label>
+            <input asp-for="Email" type="email" autocomplete="email" placeholder="ban@example.com" required />
+            <span asp-validation-for="Email" class="text-danger"></span>
             <p class="guest-field-hint">Nếu phòng được thuê trước lịch hẹn, thông báo hủy lịch sẽ gửi đến địa chỉ này.</p>
-            <label for="viewerNote">Ghi chú cho nhân viên</label>
-            <textarea id="viewerNote" rows="3" placeholder="Bạn muốn hỏi thêm điều gì?"></textarea>
-            <button class="guest-button guest-button-primary guest-button-disabled" type="button" disabled>Gửi yêu cầu xem phòng</button>
+            <label asp-for="Note">Ghi chú cho nhân viên</label>
+            <textarea asp-for="Note" rows="3" placeholder="Bạn muốn hỏi thêm điều gì?"></textarea>
+            <button class="guest-button guest-button-primary" type="submit">Gửi yêu cầu xem phòng</button>
             <p class="guest-form-footnote">Bạn có thể hủy lịch trước giờ hẹn bắt đầu.</p>
-        </div>
+        </form>
     </div>
 </div>

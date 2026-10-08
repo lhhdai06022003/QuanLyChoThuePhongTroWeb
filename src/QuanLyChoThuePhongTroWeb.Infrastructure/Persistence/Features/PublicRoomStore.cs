@@ -5,7 +5,7 @@ using QuanLyChoThuePhongTroWeb.Domain.Enums;
 
 namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features;
 
-public sealed class PublicRoomStore(ApplicationDbContext context) : IPublicRoomStore
+public sealed class PublicRoomStore(ApplicationDbContext context, TimeProvider clock) : IPublicRoomStore
 {
     public async Task<IReadOnlyList<PublicRoomDto>> ListAvailableAsync(
         CancellationToken cancellationToken = default)
@@ -25,13 +25,21 @@ public sealed class PublicRoomStore(ApplicationDbContext context) : IPublicRoomS
         return room is null ? null : ToDto(room);
     }
 
-    private IQueryable<PhongTro> AvailableRooms() =>
-        context.PhongTros.AsNoTracking()
+    private IQueryable<PhongTro> AvailableRooms()
+    {
+        var nowUtc = clock.GetUtcNow().UtcDateTime;
+        return context.PhongTros.AsNoTracking()
             .AsSplitQuery()
             .Include(room => room.ChiNhanh)
             .Include(room => room.AnhPhongTros)
             .Where(room => !room.IsDeleted && !room.ChiNhanh.IsDeleted &&
-                room.DuocDangTin && room.TrangThai == TrangThaiPhong.Trong);
+                room.DuocDangTin && room.TrangThai == TrangThaiPhong.Trong &&
+                !context.YeuCauGiuChos.Any(hold => hold.PhongTroId == room.PhongTroId &&
+                    (hold.TrangThai == TrangThaiYeuCauGiuCho.ChoThanhToan &&
+                        hold.HanThanhToan > nowUtc ||
+                     hold.TrangThai == TrangThaiYeuCauGiuCho.ChoXacNhanTien ||
+                     hold.TrangThai == TrangThaiYeuCauGiuCho.DangGiuCho)));
+    }
 
     private static PublicRoomDto ToDto(PhongTro room) => new(
         room.PhongTroId, room.SoPhong, room.ChiNhanh.TenChiNhanh,

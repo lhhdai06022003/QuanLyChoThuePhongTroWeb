@@ -1,3 +1,4 @@
+@model QuanLyChoThuePhongTroWeb.ViewModels.PublicRooms.GuestRegistrationModel
 @{
     Layout = "_PublicRoomLayout";
     ViewData["Title"] = "Đăng ký tài khoản";
@@ -9,23 +10,29 @@
         <h1>Tài khoản cho<br /><em>chỗ ở mới.</em></h1>
         <p>Dùng tài khoản để hẹn xem phòng, gửi yêu cầu giữ chỗ và theo dõi tiền cọc.</p>
     </div>
-    <div class="guest-viewing-form guest-account-form" role="group" aria-label="Thông tin đăng ký">
+    <form class="guest-viewing-form guest-account-form" method="post" asp-action="Index" aria-label="Thông tin đăng ký">
+        @Html.AntiForgeryToken()
+        <input asp-for="ReturnUrl" type="hidden" />
+        <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
         <h2>Thông tin tài khoản</h2>
-        <label for="newUsername">Tên đăng nhập</label>
-        <input id="newUsername" type="text" autocomplete="username" placeholder="Tên đăng nhập của bạn" />
-        <label for="newPassword">Mật khẩu</label>
-        <input id="newPassword" type="password" autocomplete="new-password" placeholder="Tạo mật khẩu" />
+        <label asp-for="Username">Tên đăng nhập</label>
+        <input asp-for="Username" type="text" autocomplete="username" placeholder="Tên đăng nhập của bạn" required />
+        <span asp-validation-for="Username" class="text-danger"></span>
+        <label asp-for="Password">Mật khẩu</label>
+        <input asp-for="Password" type="password" autocomplete="new-password" placeholder="Ít nhất 8 ký tự" required />
+        <span asp-validation-for="Password" class="text-danger"></span>
         <div class="guest-form-divider"></div>
         <h2>Thông tin liên hệ</h2>
-        <label for="newFullName">Họ và tên</label>
-        <input id="newFullName" type="text" autocomplete="name" placeholder="Nguyễn Văn A" />
-        <label for="newPhone">Số điện thoại</label>
-        <input id="newPhone" type="tel" autocomplete="tel" placeholder="09..." />
-        <label for="newEmail">Email</label>
-        <input id="newEmail" type="email" autocomplete="email" placeholder="ban@example.com" />
-        <label for="newIdentity">CCCD</label>
-        <input id="newIdentity" type="text" inputmode="numeric" placeholder="Số căn cước công dân" />
-        <button class="guest-button guest-button-primary guest-button-disabled" type="button" disabled>Tạo tài khoản</button>
-        <p class="guest-form-footnote">Nếu đã có tài khoản, hãy <a asp-area="QuanLyNhaTro" asp-controller="NguoiDung" asp-action="DangNhap" asp-route-returnUrl="@ViewBag.ReturnUrl">đăng nhập tại đây</a>.</p>
-    </div>
+        <label asp-for="FullName">Họ và tên</label>
+        <input asp-for="FullName" type="text" autocomplete="name" placeholder="Nguyễn Văn A" required />
+        <span asp-validation-for="FullName" class="text-danger"></span>
+        <label asp-for="Phone">Số điện thoại</label>
+        <input asp-for="Phone" type="tel" autocomplete="tel" placeholder="09..." required />
+        <span asp-validation-for="Phone" class="text-danger"></span>
+        <label asp-for="Email">Email</label>
+        <input asp-for="Email" type="email" autocomplete="email" placeholder="ban@example.com" required />
+        <span asp-validation-for="Email" class="text-danger"></span>
+        <button class="guest-button guest-button-primary" type="submit">Tạo tài khoản</button>
+        <p class="guest-form-footnote">Nếu đã có tài khoản, hãy <a asp-area="QuanLyNhaTro" asp-controller="NguoiDung" asp-action="DangNhap" asp-route-returnUrl="@Model.ReturnUrl">đăng nhập tại đây</a>.</p>
+    </form>
 </div>

@@ -1,9 +1,13 @@
-@model IReadOnlyList<QuanLyChoThuePhongTroWeb.Application.Features.PhongTros.DTOs.PhongTroListItemDto>
+@model QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.ViewingAdminPageModel
 @{
     ViewData["Title"] = "Lịch xem phòng";
 }
 
 <div class="container-xl py-4 guest-admin">
+    @if (TempData["ViewingAdminMessage"] is string message)
+    {
+        <div class="alert alert-info" role="status">@message</div>
+    }
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
         <div>
             <h1 class="page-title mb-2">Lịch xem phòng</h1>
@@ -21,19 +25,61 @@
                 <span class="badge bg-yellow-lt">Chờ xác nhận</span>
                 <span class="badge bg-green-lt">Đã xác nhận</span>
                 <span class="badge bg-secondary-lt">Đã hủy</span>
-                <button class="btn btn-outline-primary btn-sm ms-sm-2" type="button" data-bs-toggle="modal" data-bs-target="#appointmentPreviewModal">Đổi hoặc hủy lịch</button>
-                <button class="btn btn-outline-primary btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#viewingEmailPreviewModal">Nội dung email</button>
             </div>
         </div>
         <div class="table-responsive">
             <table class="table table-vcenter card-table">
-                <thead><tr><th>Phòng</th><th>Khách liên hệ</th><th>Thời gian mong muốn</th><th>Trạng thái</th><th>Email báo thay đổi</th><th class="text-end">Thao tác</th></tr></thead>
+                <thead><tr><th>Phòng</th><th>Khách liên hệ</th><th>Thời gian</th><th>Trạng thái</th><th>Ghi chú</th><th>Thao tác</th></tr></thead>
                 <tbody>
-                    <tr><td class="guest-admin-empty" colspan="6">
-                        <i class="ti ti-calendar-off" aria-hidden="true"></i>
-                        <strong>Chưa có lịch hẹn để hiển thị</strong>
-                        <span>Lịch khách đăng ký sẽ xuất hiện tại đây.</span>
-                    </td></tr>
+                    @if (Model.Requests.Count == 0)
+                    {
+                        <tr><td class="guest-admin-empty" colspan="6">Chưa có lịch hẹn để hiển thị.</td></tr>
+                    }
+                    @foreach (var request in Model.Requests)
+                    {
+                        var desired = new DateTimeOffset(request.DesiredTimeUtc, TimeSpan.Zero).ToOffset(TimeSpan.FromHours(7));
+                        var confirmed = request.ConfirmedTimeUtc.HasValue
+                            ? new DateTimeOffset(request.ConfirmedTimeUtc.Value, TimeSpan.Zero).ToOffset(TimeSpan.FromHours(7))
+                            : (DateTimeOffset?)null;
+                        <tr>
+                            <td>Phòng @request.RoomNumber</td>
+                            <td>@request.GuestName<br /><small>@request.Phone · @request.Email</small></td>
+                            <td>@(confirmed?.ToString("dd/MM/yyyy HH:mm") ?? desired.ToString("dd/MM/yyyy HH:mm"))</td>
+                            <td>@request.Status</td>
+                            <td>@request.Note</td>
+                            <td>
+                                @if (request.Status == "ChoNhanVienXuLy")
+                                {
+                                    <form method="post" asp-action="XuLyYeuCau" class="d-flex gap-1 mb-2">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="requestId" value="@request.Id" />
+                                        <input type="hidden" name="action" value="Confirm" />
+                                        <input class="form-control form-control-sm" type="datetime-local" name="confirmedTimeLocal" required aria-label="Giờ xác nhận" />
+                                        <button class="btn btn-primary btn-sm" type="submit">Xác nhận</button>
+                                    </form>
+                                }
+                                @if (request.Status is "ChoNhanVienXuLy" or "DaXacNhanLich")
+                                {
+                                    <form method="post" asp-action="XuLyYeuCau" class="d-flex gap-1 mb-2">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="requestId" value="@request.Id" />
+                                        <input type="hidden" name="action" value="Reject" />
+                                        <input class="form-control form-control-sm" name="reason" maxlength="500" required placeholder="Lý do từ chối" aria-label="Lý do từ chối" />
+                                        <button class="btn btn-outline-danger btn-sm" type="submit">Từ chối</button>
+                                    </form>
+                                }
+                                @if (request.Status == "DaXacNhanLich" && request.ConfirmedTimeUtc <= DateTime.UtcNow)
+                                {
+                                    <form method="post" asp-action="XuLyYeuCau">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="requestId" value="@request.Id" />
+                                        <input type="hidden" name="action" value="MarkViewed" />
+                                        <button class="btn btn-outline-primary btn-sm" type="submit">Đã xem phòng</button>
+                                    </form>
+                                }
+                            </td>
+                        </tr>
+                    }
                 </tbody>
             </table>
         </div>
@@ -43,8 +89,9 @@
         <div class="card-body d-flex align-items-start gap-3">
             <i class="ti ti-mail guest-admin-workflow-icon" aria-hidden="true"></i>
             <div>
-                <h2 class="card-title mb-1">Báo khách khi phòng đã được thuê</h2>
-                <p class="text-secondary mb-0">Bản xem trước nội dung email dự kiến gửi khi phòng đã được thuê. Chưa có chức năng tự hủy lịch hoặc gửi email ở giai đoạn này.</p>
+                <h2 class="card-title mb-1">Báo khách khi phòng đã có người đặt cọc</h2>
+                <p class="text-secondary mb-0">Vào chi tiết giữ chỗ của phòng đã nhận đủ tiền để xem trước người nhận và gửi email riêng từng khách.</p>
+                <a asp-area="QuanLyNhaTro" asp-controller="GiuCho" asp-action="Index">Xem các yêu cầu giữ chỗ</a>
             </div>
         </div>
     </div>
@@ -52,17 +99,37 @@
     <div class="card guest-admin-table">
         <div class="card-header d-flex flex-wrap gap-2 align-items-center justify-content-between">
             <div><h2 class="card-title mb-1">Khung giờ xem phòng</h2><div class="text-secondary small">Chỉ tạo cho phòng đang đăng công khai và còn trống.</div></div>
-            <span class="badge bg-blue-lt">@Model.Count phòng đủ điều kiện</span>
+            <span class="badge bg-blue-lt">@Model.Rooms.Count phòng đủ điều kiện</span>
         </div>
         <div class="table-responsive">
             <table class="table table-vcenter card-table">
                 <thead><tr><th>Phòng</th><th>Bắt đầu</th><th>Kết thúc</th><th>Số khách tối đa</th><th>Đã đăng ký</th><th class="text-end">Thao tác</th></tr></thead>
                 <tbody>
-                    <tr><td class="guest-admin-empty" colspan="6">
-                        <i class="ti ti-clock-off" aria-hidden="true"></i>
-                        <strong>Chưa có khung giờ xem</strong>
-                        <span>Dùng “Tạo khung giờ” để thiết lập lịch xem cho phòng.</span>
-                    </td></tr>
+                    @if (Model.Slots.Count == 0)
+                    {
+                        <tr><td class="guest-admin-empty" colspan="6">
+                            <i class="ti ti-clock-off" aria-hidden="true"></i>
+                            <strong>Chưa có khung giờ xem</strong>
+                            <span>Dùng “Tạo khung giờ” để thiết lập lịch xem cho phòng.</span>
+                        </td></tr>
+                    }
+                    else
+                    {
+                        @foreach (var slot in Model.Slots)
+                        {
+                            var start = new DateTimeOffset(slot.StartUtc, TimeSpan.Zero).ToOffset(TimeSpan.FromHours(7));
+                            var end = new DateTimeOffset(slot.EndUtc, TimeSpan.Zero).ToOffset(TimeSpan.FromHours(7));
+                            var room = Model.Rooms.FirstOrDefault(item => item.PhongTroId == slot.RoomId);
+                            <tr>
+                                <td>Phòng @room?.SoPhong</td>
+                                <td>@start.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>@end.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>@slot.Capacity</td>
+                                <td>@slot.Booked</td>
+                                <td class="text-end"><span class="badge bg-green-lt">Đang mở</span></td>
+                            </tr>
+                        }
+                    }
                 </tbody>
             </table>
         </div>
@@ -101,28 +168,29 @@
 </div>
 
 <div class="modal modal-blur fade" id="slotPreviewModal" tabindex="-1" aria-labelledby="slotPreviewTitle" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+    <div class="modal-dialog modal-dialog-centered"><form class="modal-content" method="post" asp-action="TaoKhungGio">
+        @Html.AntiForgeryToken()
         <div class="modal-header"><h2 class="modal-title" id="slotPreviewTitle">Tạo khung giờ xem phòng</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button></div>
         <div class="modal-body">
             <div class="mb-3">
                 <label class="form-label" for="slotRoom">Phòng đăng công khai</label>
-                <select class="form-select" id="slotRoom">
+                <select class="form-select" id="slotRoom" name="RoomId" required>
                     <option value="">Chọn phòng</option>
-                    @foreach (var room in Model)
+                    @foreach (var room in Model.Rooms)
                     {
                         <option value="@room.PhongTroId">Phòng @room.SoPhong — @room.TenChiNhanh</option>
                     }
                 </select>
-                @if (Model.Count == 0) { <div class="form-hint mt-1">Chưa có phòng trống được đăng công khai.</div> }
+                @if (Model.Rooms.Count == 0) { <div class="form-hint mt-1">Chưa có phòng trống được đăng công khai.</div> }
             </div>
             <div class="row g-3">
-                <div class="col-sm-6"><label class="form-label" for="slotStart">Bắt đầu</label><input class="form-control" id="slotStart" type="datetime-local" /></div>
-                <div class="col-sm-6"><label class="form-label" for="slotEnd">Kết thúc</label><input class="form-control" id="slotEnd" type="datetime-local" /></div>
-                <div class="col-sm-6"><label class="form-label" for="slotCapacity">Số khách tối đa</label><input class="form-control" id="slotCapacity" type="number" min="1" value="1" /></div>
+                <div class="col-sm-6"><label class="form-label" for="slotStart">Bắt đầu</label><input class="form-control" id="slotStart" name="StartLocal" type="datetime-local" required /></div>
+                <div class="col-sm-6"><label class="form-label" for="slotEnd">Kết thúc</label><input class="form-control" id="slotEnd" name="EndLocal" type="datetime-local" required /></div>
+                <div class="col-sm-6"><label class="form-label" for="slotCapacity">Số khách tối đa</label><input class="form-control" id="slotCapacity" name="Capacity" type="number" min="1" max="100" value="1" required /></div>
             </div>
         </div>
-        <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button><button type="button" class="btn btn-primary" disabled>Lưu khung giờ</button></div>
-    </div></div>
+        <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button><button type="submit" class="btn btn-primary">Lưu khung giờ</button></div>
+    </form></div>
 </div>
 
 @section Styles { <link rel="stylesheet" href="~/css/staff-guest-management.css" asp-append-version="true" /> }

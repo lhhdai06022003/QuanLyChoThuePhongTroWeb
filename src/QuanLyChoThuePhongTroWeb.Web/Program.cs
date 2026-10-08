@@ -15,6 +15,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Cấu hình Infrastructure & Persistence & Application
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddApplication();
+builder.Services.AddSingleton<QuanLyChoThuePhongTroWeb.Services.PrivateHoldEvidenceFiles>();
 
 // Add services to the container.
 builder.Services.AddControllersWithViews(options =>

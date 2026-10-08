@@ -1,3 +1,4 @@
+@model QuanLyChoThuePhongTroWeb.ViewModels.PublicRooms.GuestRequestsPageModel
 @{
     Layout = "_PublicRoomLayout";
     ViewData["Title"] = "Yêu cầu của tôi";
@@ -8,39 +9,170 @@
     <p class="guest-kicker">Tài khoản của bạn</p>
     <h1>Lịch xem và giữ chỗ.</h1>
     <p>Theo dõi lịch hẹn, yêu cầu giữ chỗ, hạn chuyển tiền và các khoản hoàn.</p>
+    @if (TempData["GuestViewingMessage"] is string message)
+    {
+        <div class="guest-preview-notice" role="status">@message</div>
+    }
+    @if (TempData["GuestReservationMessage"] is string reservationMessage)
+    {
+        <div class="guest-preview-notice" role="status">@reservationMessage</div>
+    }
     <div class="guest-preview-grid">
         <section class="guest-preview-panel">
             <h2>Lịch xem phòng</h2>
-            <p>Bạn chưa có lịch hẹn xem phòng.</p>
+            @if (Model.Viewings.Count == 0)
+            {
+                <p>Bạn chưa có lịch hẹn xem phòng.</p>
+            }
+            else
+            {
+                @foreach (var viewing in Model.Viewings)
+                {
+                    var dueUtc = viewing.ConfirmedTimeUtc ?? viewing.DesiredTimeUtc;
+                    var due = new DateTimeOffset(dueUtc, TimeSpan.Zero).ToOffset(TimeSpan.FromHours(7));
+                    var status = viewing.Status switch
+                    {
+                        "ChoNhanVienXuLy" => "Chờ nhân viên xác nhận",
+                        "DaXacNhanLich" => "Đã xác nhận lịch",
+                        "DaXemPhong" => "Đã xem phòng",
+                        "TuChoi" => "Đã từ chối",
+                        "DaHuy" => "Đã hủy",
+                        _ => "Đang xử lý"
+                    };
+                    <div class="guest-cancel-preview">
+                        <strong>Phòng @viewing.RoomNumber · @status</strong>
+                        <p>@due.ToString("dd/MM/yyyy HH:mm")</p>
+                        @if (viewing.CanCancel)
+                        {
+                            <form method="post" action="/tai-khoan/yeu-cau-phong/lich-xem/@viewing.Id/huy">
+                                @Html.AntiForgeryToken()
+                                <button class="guest-button guest-button-outline" type="submit">Hủy lịch xem</button>
+                            </form>
+                        }
+                        @if (viewing.Status is "DaXacNhanLich" or "DaXemPhong")
+                        {
+                            <a class="guest-section-link" href="/phong/@viewing.RoomId/giu-cho?viewingId=@viewing.Id">Giữ chỗ từ lịch xem này</a>
+                        }
+                    </div>
+                }
+            }
             <a class="guest-section-link" href="/phong">Chọn phòng để hẹn xem</a>
-            <div class="guest-cancel-preview">
-                <strong>Khi đã đặt lịch</strong>
-                <p>Bạn có thể tự hủy lịch trước giờ bắt đầu. Lịch đã hủy không còn giữ khung giờ.</p>
-                <button class="guest-button guest-button-outline" type="button" data-preview-dialog-open="cancelViewingPreview">Hủy lịch xem</button>
-            </div>
         </section>
         <section class="guest-preview-panel">
             <h2>Giữ chỗ và đặt cọc</h2>
-            <p>Bạn chưa có yêu cầu giữ chỗ hoặc khoản chuyển tiền nào.</p>
+            @if (Model.Reservations.Count == 0)
+            {
+                <p>Bạn chưa có yêu cầu giữ chỗ.</p>
+            }
+            else
+            {
+                @foreach (var reservation in Model.Reservations)
+                {
+                    var reservationStatus = reservation.Status switch
+                    {
+                        "MoiTao" => "Chờ nhân viên duyệt",
+                        "ChoThanhToan" => "Chờ chuyển tiền",
+                        "ChoXacNhanTien" => "Chờ đối soát tiền",
+                        "DangGiuCho" => "Đang giữ chỗ",
+                        "DaChuyenHopDong" => "Đã ký hợp đồng",
+                        "DaHuy" => "Đã hủy",
+                        "HetHan" => "Đã hết hạn",
+                        "TuChoi" => "Đã từ chối",
+                        _ => reservation.Status
+                    };
+                    <div class="guest-cancel-preview">
+                        <strong>Phòng @reservation.RoomNumber · @reservationStatus</strong>
+                        @if (reservation.HoldAmount.HasValue)
+                        {
+                            <p>Số tiền giữ chỗ: @reservation.HoldAmount.Value.ToString("N0") ₫</p>
+                        }
+                        @if (reservation.PaymentDeadlineUtc.HasValue)
+                        {
+                            var deadline = new DateTimeOffset(reservation.PaymentDeadlineUtc.Value, TimeSpan.Zero).ToOffset(TimeSpan.FromHours(7));
+                            <p>Hạn chuyển: @deadline.ToString("dd/MM/yyyy HH:mm")</p>
+                        }
+                        @if (reservation.ContractDeadlineUtc.HasValue)
+                        {
+                            var contractDeadline = new DateTimeOffset(reservation.ContractDeadlineUtc.Value, TimeSpan.Zero).ToOffset(TimeSpan.FromHours(7));
+                            <p>Hạn ký hợp đồng: @contractDeadline.ToString("dd/MM/yyyy HH:mm")</p>
+                        }
+                        <p>Tiền đã xác nhận: @reservation.ConfirmedAmount.ToString("N0") ₫</p>
+                        @if (Model.Settlements.FirstOrDefault(s => s.ReservationId == reservation.Id) is { } settlement)
+                        {
+                            @if (settlement.AppliedToContractDeposit > 0)
+                            {
+                                <p>Đã trừ vào cọc hợp đồng #@settlement.ContractId: @settlement.AppliedToContractDeposit.ToString("N0") ₫</p>
+                            }
+                            @if (settlement.ApprovedRefundAmount.HasValue)
+                            {
+                                <p>Hoàn đã duyệt: @settlement.ApprovedRefundAmount.Value.ToString("N0") ₫ · Đã hoàn thực tế: @settlement.RefundedAmount.ToString("N0") ₫</p>
+                            }
+                            @if (settlement.MandatoryRefundAmount > 0)
+                            {
+                                <p>Phần cần hoàn tối thiểu: @settlement.MandatoryRefundAmount.ToString("N0") ₫</p>
+                            }
+                        }
+                        @if (reservation.PaymentRequestId.HasValue)
+                        {
+                            <p>Nội dung chuyển khoản: <strong>@reservation.PaymentCode</strong></p>
+                            <p>Trạng thái thanh toán: @(reservation.PaymentStatus switch
+                                {
+                                    "ChoThanhToan" => "Chờ chuyển tiền",
+                                    "DaBaoChuyen" => "Đã báo chuyển, chờ đối soát",
+                                    "DangDoiChieu" => "Đang đối soát",
+                                    "DaHoanTat" => "Đã nhận đủ",
+                                    "HetHan" => "Đã hết hạn",
+                                    "DaHuy" => "Đã hủy",
+                                    _ => reservation.PaymentStatus ?? "Chưa có"
+                                })</p>
+                            @if (reservation.Status is "ChoThanhToan" or "ChoXacNhanTien")
+                            {
+                                @if (Model.Bank is { } bank)
+                                {
+                                    <p>Chuyển khoản tới @bank.BankId · <strong>@bank.AccountNumber</strong> · @bank.AccountName. Ghi đúng nội dung <strong>@reservation.PaymentCode</strong>.</p>
+                                }
+                                else
+                                {
+                                    <p>Chưa cấu hình tài khoản nhận. Vui lòng liên hệ nhân viên trước khi chuyển tiền.</p>
+                                }
+                            }
+                            @foreach (var evidence in Model.Evidence.Where(e => e.PaymentRequestId == reservation.PaymentRequestId))
+                            {
+                                <p>Minh chứng #@evidence.Id · @evidence.ClaimedAmount.ToString("N0") ₫ · @(evidence.Status switch
+                                    {
+                                        "ChoXacNhan" => "Chờ nhân viên xác nhận",
+                                        "DaXacNhan" => "Đã đối soát",
+                                        "TuChoi" => "Đã từ chối",
+                                        _ => evidence.Status
+                                    })
+                                    <a href="/tai-khoan/yeu-cau-phong/minh-chung/@evidence.Id" target="_blank" rel="noopener">Xem ảnh</a>
+                                </p>
+                            }
+                        }
+                        @if (reservation.PaymentRequestId.HasValue &&
+                            reservation.Status is "ChoThanhToan" or "ChoXacNhanTien")
+                        {
+                            <form method="post" enctype="multipart/form-data" action="/tai-khoan/yeu-cau-phong/minh-chung">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="paymentRequestId" value="@reservation.PaymentRequestId.Value" />
+                                <label>Số tiền đã chuyển (₫) <input type="number" name="claimedAmount" min="1" step="1" required /></label>
+                                <label>Thời gian chuyển <input type="datetime-local" name="transferTimeLocal" required /></label>
+                                <label>Mã giao dịch ngân hàng (nếu có) <input type="text" name="bankReference" maxlength="100" /></label>
+                                <label>Ảnh minh chứng <input type="file" name="image" accept="image/jpeg,image/png,image/webp" required /></label>
+                                <button class="guest-button guest-button-outline" type="submit">Gửi minh chứng</button>
+                            </form>
+                        }
+                        @if (reservation.CanCancel)
+                        {
+                            <form method="post" action="/tai-khoan/yeu-cau-phong/giu-cho/@reservation.Id/huy">
+                                @Html.AntiForgeryToken()
+                                <button class="guest-button guest-button-outline" type="submit">Hủy yêu cầu giữ chỗ</button>
+                            </form>
+                        }
+                    </div>
+                }
+            }
             <a class="guest-section-link" href="/phong">Xem phòng đang công khai</a>
         </section>
     </div>
 </div>
-
-<dialog class="guest-preview-dialog" id="cancelViewingPreview" aria-labelledby="cancelViewingTitle">
-    <div class="guest-preview-dialog-head">
-        <h2 id="cancelViewingTitle">Hủy lịch xem phòng</h2>
-        <button type="button" class="guest-dialog-close" data-preview-dialog-close aria-label="Đóng">×</button>
-    </div>
-    <p>Chọn lịch cần hủy. Bạn chỉ có thể hủy trước giờ hẹn bắt đầu.</p>
-    <label class="guest-dialog-label" for="cancelViewingId">Lịch xem của bạn</label>
-    <select class="guest-dialog-select" id="cancelViewingId" disabled><option>Chưa có lịch xem sắp tới</option></select>
-    <div class="guest-preview-dialog-actions">
-        <button class="guest-button guest-button-outline" type="button" data-preview-dialog-close>Quay lại</button>
-        <button class="guest-button guest-button-primary guest-button-disabled" type="button" disabled>Xác nhận hủy lịch</button>
-    </div>
-</dialog>
-
-@section Scripts {
-    <script src="~/js/khach-vang-lai-preview-dialog.js" asp-append-version="true" defer></script>
-}

@@ -34,6 +34,12 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
                 {
                     return RedirectToAction("Index", "Dashboard", new { area = "KhachThue" });
                 }
+                if (User.IsInRole("KhachVangLai"))
+                {
+                    return Url.IsLocalUrl(returnUrl) && !returnUrl.Contains("/QuanLyNhaTro", StringComparison.OrdinalIgnoreCase)
+                        ? Redirect(returnUrl)
+                        : Redirect("/tai-khoan/yeu-cau-phong");
+                }
                 return RedirectToAction("Index", "Dashboard", new { area = "QuanLyNhaTro" });
             }
 
@@ -92,6 +98,15 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
                     return Redirect(returnUrl);
                 }
                 return RedirectToAction("Index", "Dashboard", new { area = "KhachThue" });
+            }
+
+            if (user.Role == QuanLyChoThuePhongTroWeb.Application.Common.Enums.AppRole.KhachVangLai)
+            {
+                if (Url.IsLocalUrl(returnUrl) &&
+                    !returnUrl.Contains("/QuanLyNhaTro", StringComparison.OrdinalIgnoreCase))
+                    return Redirect(returnUrl);
+
+                return Redirect("/tai-khoan/yeu-cau-phong");
             }
 
             if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
