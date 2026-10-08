@@ -30,15 +30,18 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         {
             if (User.Identity != null && User.Identity.IsAuthenticated)
             {
+                if ((User.IsInRole("KhachThue") || User.IsInRole("KhachVangLai")) &&
+                    Url.IsLocalUrl(returnUrl) &&
+                    !returnUrl.Contains("/QuanLyNhaTro", StringComparison.OrdinalIgnoreCase))
+                    return Redirect(returnUrl);
+
                 if (User.IsInRole("KhachThue"))
                 {
                     return RedirectToAction("Index", "Dashboard", new { area = "KhachThue" });
                 }
                 if (User.IsInRole("KhachVangLai"))
                 {
-                    return Url.IsLocalUrl(returnUrl) && !returnUrl.Contains("/QuanLyNhaTro", StringComparison.OrdinalIgnoreCase)
-                        ? Redirect(returnUrl)
-                        : Redirect("/tai-khoan/yeu-cau-phong");
+                    return Redirect("/tai-khoan/yeu-cau-phong");
                 }
                 return RedirectToAction("Index", "Dashboard", new { area = "QuanLyNhaTro" });
             }

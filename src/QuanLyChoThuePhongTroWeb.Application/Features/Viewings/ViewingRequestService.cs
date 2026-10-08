@@ -56,7 +56,7 @@ public sealed class ViewingRequestService(IViewingRequestStore store, TimeProvid
 
         return result.Error switch
         {
-            ViewingCreateError.GuestMissing => ServiceResult<int>.Forbidden("Cần đăng nhập tài khoản khách vãng lai."),
+            ViewingCreateError.GuestMissing => ServiceResult<int>.Forbidden("Không tìm thấy hồ sơ khách hợp lệ cho tài khoản. Vui lòng liên hệ nhân viên."),
             ViewingCreateError.RoomUnavailable => ServiceResult<int>.NotFound("Phòng không còn được đăng công khai."),
             ViewingCreateError.SlotUnavailable => ServiceResult<int>.Fail("Khung giờ không còn khả dụng."),
             ViewingCreateError.SlotFull => ServiceResult<int>.Fail("Khung giờ đã hết chỗ."),

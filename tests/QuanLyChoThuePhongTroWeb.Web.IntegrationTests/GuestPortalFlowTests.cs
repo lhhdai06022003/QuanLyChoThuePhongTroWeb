@@ -14,13 +14,17 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests;
 [Collection(WebTestCollection.Name)]
 public sealed class GuestPortalFlowTests(CustomWebApplicationFactory factory)
 {
-    [Fact]
-    public async Task GuestCanRegisterLoginRequestViewingAndHold()
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task CustomerCanLoginRequestViewingAndHold(bool useExistingTenant,
+        bool bookBeforeViewing)
     {
         var suffix = Guid.NewGuid().ToString("N")[..8];
         var username = "guest_http_" + suffix;
         var email = "guest_http_" + suffix + "@example.com";
-        int? branchId = null, roomId = null, adminId = null;
+        int? branchId = null, roomId = null, adminId = null, tenantId = null;
         try
         {
             using (var scope = factory.Services.CreateScope())
@@ -50,6 +54,23 @@ public sealed class GuestPortalFlowTests(CustomWebApplicationFactory factory)
                 await db.SaveChangesAsync();
                 branchId = branch.ChiNhanhId;
                 roomId = room.PhongTroId;
+                if (useExistingTenant)
+                {
+                    var tenant = new NguoiThue
+                    {
+                        HoVaTen = "Khách kiểm thử", Email = email,
+                        SoDienThoai = "0912345678", CCCD = "HTTP" + suffix
+                    };
+                    var passwords = scope.ServiceProvider.GetRequiredService<
+                        QuanLyChoThuePhongTroWeb.Application.Abstractions.Security.IPasswordService>();
+                    db.NguoiDungs.Add(new NguoiDung
+                    {
+                        TenDangNhap = username, MatKhauHash = passwords.HashPassword("GuestTest123!"),
+                        Role = Role.KhachThue, NguoiThue = tenant
+                    });
+                    await db.SaveChangesAsync();
+                    tenantId = tenant.NguoiThueId;
+                }
             }
 
             var client = factory.CreateClient(new WebApplicationFactoryClientOptions
@@ -70,16 +91,20 @@ public sealed class GuestPortalFlowTests(CustomWebApplicationFactory factory)
             Assert.Contains(viewingPath,
                 WebUtility.UrlDecode(anonymousResponse.Headers.Location!.ToString()));
 
-            var registerHtml = await (await client.GetAsync("/dang-ky-khach"))
-                .Content.ReadAsStringAsync();
-            var registerResponse = await client.PostAsync("/dang-ky-khach",
-                Form(("__RequestVerificationToken", Token(registerHtml)),
-                    ("Username", username), ("Password", "GuestTest123!"),
-                    ("FullName", "Khách kiểm thử"), ("Phone", "0912345678"),
-                    ("Email", email), ("ReturnUrl", viewingPath)));
-            Assert.Equal(HttpStatusCode.Redirect, registerResponse.StatusCode);
-
-            var loginHtml = await (await client.GetAsync(registerResponse.Headers.Location))
+            var loginLocation = anonymousResponse.Headers.Location;
+            if (!useExistingTenant)
+            {
+                var registerHtml = await (await client.GetAsync("/dang-ky-khach"))
+                    .Content.ReadAsStringAsync();
+                var registerResponse = await client.PostAsync("/dang-ky-khach",
+                    Form(("__RequestVerificationToken", Token(registerHtml)),
+                        ("Username", username), ("Password", "GuestTest123!"),
+                        ("FullName", "Khách kiểm thử"), ("Phone", "0912345678"),
+                        ("Email", email), ("ReturnUrl", viewingPath)));
+                Assert.Equal(HttpStatusCode.Redirect, registerResponse.StatusCode);
+                loginLocation = registerResponse.Headers.Location;
+            }
+            var loginHtml = await (await client.GetAsync(loginLocation))
                 .Content.ReadAsStringAsync();
             var loginResponse = await client.PostAsync("/QuanLyNhaTro/DangNhap",
                 Form(("__RequestVerificationToken", Token(loginHtml)),
@@ -89,8 +114,43 @@ public sealed class GuestPortalFlowTests(CustomWebApplicationFactory factory)
             Assert.Equal(viewingPath,
                 loginResponse.Headers.Location?.ToString());
 
+            var alreadySignedIn = await client.GetAsync(
+                "/QuanLyNhaTro/DangNhap?returnUrl=" + WebUtility.UrlEncode(viewingPath));
+            Assert.Equal(viewingPath, alreadySignedIn.Headers.Location?.ToString());
+
             var viewingPage = await client.GetAsync($"/phong/{roomId}/hen-xem");
             Assert.Equal(HttpStatusCode.OK, viewingPage.StatusCode);
+            if (useExistingTenant)
+            {
+                using var scope = factory.Services.CreateScope();
+                var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                Assert.False(await db.KhachVangLais.AnyAsync(g =>
+                    g.NguoiDung.TenDangNhap == username));
+            }
+            if (bookBeforeViewing)
+            {
+                var directBookingPage = await client.GetAsync($"/phong/{roomId}/giu-cho");
+                Assert.Equal(HttpStatusCode.OK, directBookingPage.StatusCode);
+                var directBookingResponse = await client.PostAsync($"/phong/{roomId}/giu-cho",
+                    Form(("__RequestVerificationToken",
+                        Token(await directBookingPage.Content.ReadAsStringAsync()))));
+                Assert.Equal("/tai-khoan/yeu-cau-phong",
+                    directBookingResponse.Headers.Location?.ToString());
+                int directHoldId;
+                using (var scope = factory.Services.CreateScope())
+                {
+                    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                    directHoldId = await db.YeuCauGiuChos.Where(h =>
+                        h.KhachVangLai.NguoiDung.TenDangNhap == username)
+                        .Select(h => h.YeuCauGiuChoId).SingleAsync();
+                }
+                var directRequestsHtml = await (await client.GetAsync("/tai-khoan/yeu-cau-phong"))
+                    .Content.ReadAsStringAsync();
+                var directCancelResponse = await client.PostAsync(
+                    $"/tai-khoan/yeu-cau-phong/giu-cho/{directHoldId}/huy",
+                    Form(("__RequestVerificationToken", Token(directRequestsHtml))));
+                Assert.Equal(HttpStatusCode.Redirect, directCancelResponse.StatusCode);
+            }
             var preferredLocal = DateTimeOffset.UtcNow.AddDays(2)
                 .ToOffset(TimeSpan.FromHours(7)).ToString("yyyy-MM-ddTHH:mm");
             var viewingResponse = await client.PostAsync($"/phong/{roomId}/hen-xem",
@@ -152,7 +212,8 @@ public sealed class GuestPortalFlowTests(CustomWebApplicationFactory factory)
                 Assert.Single(await db.YeuCauXemPhongs.Where(v =>
                     v.KhachVangLai!.NguoiDung.TenDangNhap == username).ToListAsync());
                 holdId = Assert.Single(await db.YeuCauGiuChos.Where(h =>
-                    h.KhachVangLai.NguoiDung.TenDangNhap == username).ToListAsync())
+                    h.KhachVangLai.NguoiDung.TenDangNhap == username &&
+                    h.TrangThai == TrangThaiYeuCauGiuCho.MoiTao).ToListAsync())
                     .YeuCauGiuChoId;
             }
 
@@ -202,6 +263,18 @@ public sealed class GuestPortalFlowTests(CustomWebApplicationFactory factory)
                 await depositResponse.Content.ReadAsStringAsync());
             Assert.Contains("Thông tin chuyển khoản", depositHtml);
             Assert.Contains("name=\"paymentRequestId\"", depositHtml);
+            var missingEvidenceResponse = await client.PostAsync(
+                "/tai-khoan/yeu-cau-phong/minh-chung",
+                Form(("__RequestVerificationToken", Token(depositHtml))));
+            Assert.Equal("/tai-khoan/yeu-cau-phong",
+                missingEvidenceResponse.Headers.Location?.ToString());
+            using (var scope = factory.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                var user = await db.NguoiDungs.SingleAsync(u => u.TenDangNhap == username);
+                Assert.Equal(useExistingTenant ? Role.KhachThue : Role.KhachVangLai, user.Role);
+                Assert.Equal(1, await db.KhachVangLais.CountAsync(g => g.NguoiDungId == user.NguoiDungId));
+            }
         }
         finally
         {
@@ -248,6 +321,9 @@ public sealed class GuestPortalFlowTests(CustomWebApplicationFactory factory)
             if (adminId.HasValue)
                 await db.NguoiDungs.Where(u => u.NguoiDungId == adminId.Value)
                     .ExecuteDeleteAsync();
+            await db.NguoiDungs.Where(u => u.TenDangNhap == username).ExecuteDeleteAsync();
+            if (tenantId.HasValue)
+                await db.NguoiThues.Where(t => t.NguoiThueId == tenantId.Value).ExecuteDeleteAsync();
         }
     }
 

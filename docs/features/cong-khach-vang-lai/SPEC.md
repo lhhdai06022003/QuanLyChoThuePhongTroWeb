@@ -40,6 +40,7 @@ Domain có role `KhachVangLai=3`; Application và kiểm tra cookie phải hỗ 
 - Kiểm thử role khách, tranh chấp suất cuối, hai nhân viên duyệt cùng phòng, file sai loại, mã giao dịch trùng, hủy sau khi chuyển tiền, áp dụng/hoàn đồng thời và truy cập chéo tài khoản/chi nhánh.
 - Giữ kiểu chữ, màu và bố cục `/phong` đang có. Khi chức năng thực hoạt động, nút gửi/duyệt tương ứng được mở và báo kết quả từ dữ liệu thật; không báo đã đặt cọc chỉ vì có ảnh minh chứng.
 - Mỗi thẻ phòng có nút **Hẹn xem phòng** và **Đặt phòng**. Khách chưa đăng nhập được đưa tới trang đăng nhập, sau đó quay lại đúng đường dẫn đã chọn (kể cả tham số lịch xem); đăng ký từ trang đăng nhập cũng giữ đường dẫn này.
+- Tài khoản **KhachThue** hiện có cũng được hẹn xem và đặt phòng trên các trang riêng dùng layout công khai. Đăng nhập xác định chủ yêu cầu, không đưa khách về Dashboard khi đang tiếp tục thao tác phòng. Khi gửi yêu cầu đầu tiên, nếu chưa có hồ sơ `khach_vang_lai`, dùng thông tin người thuê liên kết để lưu hồ sơ trong bảng hiện có cùng giao dịch yêu cầu; không đổi role, không tạo hồ sơ khi chỉ mở trang, không đổi schema.
 - Mục **Lịch xem và đặt phòng** có nút hủy lịch trước giờ hẹn và đường dẫn tới trang đặt cọc riêng của từng yêu cầu. Trang đặt cọc hiển thị số tiền được duyệt, tiền đã xác nhận, hạn, thông tin chuyển khoản, form minh chứng và kết quả xử lý; chỉ chủ yêu cầu được truy cập.
 
 ## Logic còn cần chủ dự án trả lời

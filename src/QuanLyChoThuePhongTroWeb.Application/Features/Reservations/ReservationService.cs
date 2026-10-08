@@ -37,7 +37,7 @@ public sealed class ReservationService(IReservationStore store,
             ? ServiceResult<int>.Ok(result.Id.Value, "Đã gửi yêu cầu giữ chỗ.")
             : result.Error switch
             {
-                ReservationError.GuestMissing => ServiceResult<int>.Forbidden("Cần đăng nhập tài khoản khách vãng lai."),
+                ReservationError.GuestMissing => ServiceResult<int>.Forbidden("Không tìm thấy hồ sơ khách hợp lệ cho tài khoản. Vui lòng liên hệ nhân viên."),
                 ReservationError.RoomUnavailable => ServiceResult<int>.NotFound("Phòng không còn trống hoặc công khai."),
                 ReservationError.ViewingUnavailable => ServiceResult<int>.Fail("Lịch xem không thuộc phòng hoặc tài khoản của bạn."),
                 ReservationError.Duplicate => ServiceResult<int>.Fail("Bạn đã có yêu cầu giữ chỗ đang chờ cho phòng này."),

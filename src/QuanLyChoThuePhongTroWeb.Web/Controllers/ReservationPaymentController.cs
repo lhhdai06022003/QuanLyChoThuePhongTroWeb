@@ -14,7 +14,7 @@ public sealed class ReservationPaymentController(
     private int ActorId => int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier),
         out var id) ? id : 0;
 
-    [Authorize(Roles = "KhachVangLai")]
+    [Authorize(Roles = "KhachVangLai,KhachThue")]
     [HttpPost("")]
     [ValidateAntiForgeryToken]
     [RequestSizeLimit(6 * 1024 * 1024)]

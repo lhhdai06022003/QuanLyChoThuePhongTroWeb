@@ -1,6 +1,7 @@
 using System.Data;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features.GuestAccounts;
 using QuanLyChoThuePhongTroWeb.Application.Features.Viewings;
 using QuanLyChoThuePhongTroWeb.Domain.Entities;
 using QuanLyChoThuePhongTroWeb.Domain.Enums;
@@ -107,13 +108,9 @@ public sealed class ViewingRequestStore(ApplicationDbContext context) : IViewing
             await using var transaction = await context.Database.BeginTransactionAsync(
                 IsolationLevel.Serializable, cancellationToken);
 
-            var guestId = await context.KhachVangLais.AsNoTracking()
-                .Where(guest => guest.NguoiDungId == actorId &&
-                    guest.NguoiDung.IsActive && !guest.NguoiDung.IsDeleted &&
-                    guest.NguoiDung.Role == Role.KhachVangLai)
-                .Select(guest => (int?)guest.KhachVangLaiId)
-                .SingleOrDefaultAsync(cancellationToken);
-            if (!guestId.HasValue)
+            var guest = await RoomApplicantProfile.ResolveAsync(context, actorId,
+                nowUtc, cancellationToken);
+            if (guest is null)
                 return new ViewingCreateResult(null, ViewingCreateError.GuestMissing);
 
             var roomAvailable = await context.PhongTros.AsNoTracking()
@@ -153,7 +150,7 @@ public sealed class ViewingRequestStore(ApplicationDbContext context) : IViewing
             var request = new YeuCauXemPhong
             {
                 PhongTroId = input.RoomId,
-                KhachVangLaiId = guestId.Value,
+                KhachVangLai = guest,
                 KhungGioXemPhongId = slot?.KhungGioXemPhongId,
                 HoTen = input.FullName.Trim(),
                 SoDienThoai = input.Phone.Trim(),
@@ -178,7 +175,13 @@ public sealed class ViewingRequestStore(ApplicationDbContext context) : IViewing
             await transaction.CommitAsync(cancellationToken);
             return new ViewingCreateResult(request.YeuCauXemPhongId, ViewingCreateError.None);
         }
-        catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.SerializationFailure)
+        catch (PostgresException ex) when (ex.SqlState is
+            PostgresErrorCodes.SerializationFailure or PostgresErrorCodes.UniqueViolation)
+        {
+            return new ViewingCreateResult(null, ViewingCreateError.Conflict);
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException pg &&
+            pg.SqlState is PostgresErrorCodes.SerializationFailure or PostgresErrorCodes.UniqueViolation)
         {
             return new ViewingCreateResult(null, ViewingCreateError.Conflict);
         }

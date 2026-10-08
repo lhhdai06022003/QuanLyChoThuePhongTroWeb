@@ -124,3 +124,11 @@ Các quy tắc chính đã được chốt trong SPEC. Cần xác nhận ranh gi
 - [x] `GuestPortalFlowTests` và `SessionRevalidationTests`: 5/5 đạt trên DB `_Test`.
 - [x] Review code và kiểm tra giao diện danh sách/đăng nhập trên bản xem thử; giữ nguyên schema. Lỗi thông báo chờ duyệt sau hủy đã được tái hiện bằng test và sửa; 5/5 test liên quan đạt sau sửa.
 - [x] Build solution thành công; `git diff --check` đạt, không có thay đổi schema hoặc migration.
+
+## Sửa luồng tài khoản khách thuê — 08/10/2026
+
+- [x] Tái hiện bằng trình duyệt và test: tài khoản KhachThue bấm hẹn xem bị chặn role, GET đăng nhập bỏ ReturnUrl và đưa về Dashboard.
+- [x] Cho KhachThue và KhachVangLai dùng các trang hẹn xem, đặt phòng, đặt cọc và theo dõi yêu cầu riêng; GET đăng nhập giữ ReturnUrl nội bộ cho khách đã đăng nhập.
+- [x] Tạo/liên kết hồ sơ người yêu cầu từ người thuê hiện có khi gửi yêu cầu đầu tiên, giữ role tài khoản, dùng bảng hiện có trong cùng giao dịch.
+- [x] Kiểm thử hai loại khách, đặt phòng trực tiếp trước lịch xem, hủy, trang đặt cọc/quyền gửi minh chứng và bảo toàn role: 7/7 HTTP/session đạt. Store/concurrency giữ chỗ: 11/11 đạt trên DB `_Test`.
+- [x] Build solution thành công (12 cảnh báo, không lỗi); review không có lỗi cần xử lý. Trình duyệt với phiên KhachThue thực tế mở được form hẹn xem và trang đặt phòng riêng, không về Dashboard. Chỉ mở form, không gửi yêu cầu thay khách.

@@ -1,6 +1,7 @@
 using System.Data;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features.GuestAccounts;
 using QuanLyChoThuePhongTroWeb.Application.Features.Reservations;
 using QuanLyChoThuePhongTroWeb.Domain.Entities;
 using QuanLyChoThuePhongTroWeb.Domain.Enums;
@@ -64,13 +65,9 @@ public sealed class ReservationStore(ApplicationDbContext context) : IReservatio
         {
             await using var transaction = await context.Database.BeginTransactionAsync(
                 IsolationLevel.Serializable, cancellationToken);
-            var guestId = await context.KhachVangLais.AsNoTracking()
-                .Where(guest => guest.NguoiDungId == actorId &&
-                    guest.NguoiDung.Role == Role.KhachVangLai &&
-                    guest.NguoiDung.IsActive && !guest.NguoiDung.IsDeleted)
-                .Select(guest => (int?)guest.KhachVangLaiId)
-                .SingleOrDefaultAsync(cancellationToken);
-            if (!guestId.HasValue)
+            var guest = await RoomApplicantProfile.ResolveAsync(context, actorId,
+                nowUtc, cancellationToken);
+            if (guest is null)
                 return new(null, ReservationError.GuestMissing);
 
             var roomAvailable = await context.PhongTros.AsNoTracking()
@@ -87,14 +84,15 @@ public sealed class ReservationStore(ApplicationDbContext context) : IReservatio
 
             if (viewingId.HasValue && !await context.YeuCauXemPhongs.AsNoTracking()
                     .AnyAsync(viewing => viewing.YeuCauXemPhongId == viewingId &&
-                        viewing.KhachVangLaiId == guestId && viewing.PhongTroId == roomId &&
+                        viewing.KhachVangLai != null &&
+                        viewing.KhachVangLai.NguoiDungId == actorId && viewing.PhongTroId == roomId &&
                         viewing.TrangThai != TrangThaiYeuCauXemPhong.TuChoi &&
                         viewing.TrangThai != TrangThaiYeuCauXemPhong.DaHuy,
                         cancellationToken))
                 return new(null, ReservationError.ViewingUnavailable);
 
             if (await context.YeuCauGiuChos.AsNoTracking().AnyAsync(hold =>
-                    hold.KhachVangLaiId == guestId && hold.PhongTroId == roomId &&
+                    hold.KhachVangLai.NguoiDungId == actorId && hold.PhongTroId == roomId &&
                     (hold.TrangThai == TrangThaiYeuCauGiuCho.MoiTao ||
                      hold.TrangThai == TrangThaiYeuCauGiuCho.ChoThanhToan ||
                      hold.TrangThai == TrangThaiYeuCauGiuCho.ChoXacNhanTien ||
@@ -104,7 +102,7 @@ public sealed class ReservationStore(ApplicationDbContext context) : IReservatio
 
             var hold = new YeuCauGiuCho
             {
-                KhachVangLaiId = guestId.Value,
+                KhachVangLai = guest,
                 PhongTroId = roomId,
                 YeuCauXemPhongId = viewingId,
                 TrangThai = TrangThaiYeuCauGiuCho.MoiTao,
@@ -122,12 +120,13 @@ public sealed class ReservationStore(ApplicationDbContext context) : IReservatio
             await transaction.CommitAsync(cancellationToken);
             return new(hold.YeuCauGiuChoId, ReservationError.None);
         }
-        catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.SerializationFailure)
+        catch (PostgresException ex) when (ex.SqlState is
+            PostgresErrorCodes.SerializationFailure or PostgresErrorCodes.UniqueViolation)
         {
             return new(null, ReservationError.Conflict);
         }
         catch (DbUpdateException ex) when (ex.InnerException is PostgresException pg &&
-            pg.SqlState == PostgresErrorCodes.SerializationFailure)
+            pg.SqlState is PostgresErrorCodes.SerializationFailure or PostgresErrorCodes.UniqueViolation)
         {
             return new(null, ReservationError.Conflict);
         }

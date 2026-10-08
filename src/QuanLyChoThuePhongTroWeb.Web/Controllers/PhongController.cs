@@ -51,7 +51,7 @@ public sealed class PhongController(IPublicRoomService rooms, IViewingRequestSer
         return room is null ? NotFound() : View(new PublicRoomCardModel(room, GetImages(room)));
     }
 
-    [Authorize(Roles = "KhachVangLai")]
+    [Authorize(Roles = "KhachVangLai,KhachThue")]
     [HttpGet("{id:int}/hen-xem")]
     public async Task<IActionResult> HenXem(int id, CancellationToken cancellationToken)
     {
@@ -63,7 +63,7 @@ public sealed class PhongController(IPublicRoomService rooms, IViewingRequestSer
         });
     }
 
-    [Authorize(Roles = "KhachVangLai")]
+    [Authorize(Roles = "KhachVangLai,KhachThue")]
     [HttpPost("{id:int}/hen-xem")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> HenXem(int id, ViewingPageModel model,
@@ -101,7 +101,7 @@ public sealed class PhongController(IPublicRoomService rooms, IViewingRequestSer
         return Redirect("/tai-khoan/yeu-cau-phong");
     }
 
-    [Authorize(Roles = "KhachVangLai")]
+    [Authorize(Roles = "KhachVangLai,KhachThue")]
     [HttpGet("{id:int}/giu-cho")]
     public async Task<IActionResult> GiuCho(int id, int? viewingId,
         CancellationToken cancellationToken)
@@ -111,7 +111,7 @@ public sealed class PhongController(IPublicRoomService rooms, IViewingRequestSer
             new PublicRoomCardModel(room, GetImages(room)), viewingId));
     }
 
-    [Authorize(Roles = "KhachVangLai")]
+    [Authorize(Roles = "KhachVangLai,KhachThue")]
     [HttpPost("{id:int}/giu-cho")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> GuiYeuCauGiuCho(int id, int? viewingId,
@@ -134,7 +134,7 @@ public sealed class PhongController(IPublicRoomService rooms, IViewingRequestSer
             viewingId));
     }
 
-    [Authorize(Roles = "KhachVangLai")]
+    [Authorize(Roles = "KhachVangLai,KhachThue")]
     [HttpGet("/tai-khoan/yeu-cau-phong")]
     public async Task<IActionResult> YeuCauCuaToi(CancellationToken cancellationToken)
     {
@@ -148,7 +148,7 @@ public sealed class PhongController(IPublicRoomService rooms, IViewingRequestSer
             GetBankInfo()));
     }
 
-    [Authorize(Roles = "KhachVangLai")]
+    [Authorize(Roles = "KhachVangLai,KhachThue")]
     [HttpGet("/tai-khoan/yeu-cau-phong/giu-cho/{reservationId:int}/dat-coc")]
     public async Task<IActionResult> DatCoc(int reservationId,
         CancellationToken cancellationToken)
@@ -181,7 +181,7 @@ public sealed class PhongController(IPublicRoomService rooms, IViewingRequestSer
             : null;
     }
 
-    [Authorize(Roles = "KhachVangLai")]
+    [Authorize(Roles = "KhachVangLai,KhachThue")]
     [HttpPost("/tai-khoan/yeu-cau-phong/lich-xem/{requestId:int}/huy")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> HuyLichXem(int requestId,
@@ -194,7 +194,7 @@ public sealed class PhongController(IPublicRoomService rooms, IViewingRequestSer
         return Redirect("/tai-khoan/yeu-cau-phong");
     }
 
-    [Authorize(Roles = "KhachVangLai")]
+    [Authorize(Roles = "KhachVangLai,KhachThue")]
     [HttpPost("/tai-khoan/yeu-cau-phong/giu-cho/{requestId:int}/huy")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> HuyGiuCho(int requestId,
