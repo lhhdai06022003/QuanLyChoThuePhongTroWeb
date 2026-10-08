@@ -14,8 +14,8 @@
 
 - Đã nối giao diện và mã xử lý cho đăng ký/đăng nhập khách, lịch xem, giữ chỗ, ảnh minh chứng riêng tư, đối soát nhiều giao dịch, áp dụng vào cọc hợp đồng, quyết định/ghi nhận hoàn tiền và email nhân viên gửi sau khi xem trước.
 - Đã bổ sung nhả phòng khi hết hạn chuyển tiền, gia hạn hoặc hủy sau hạn ký hợp đồng, và dùng thời điểm ngân hàng thực nhận để phân loại khoản đến muộn. Bản xem thử dùng `QuanLyPhongTroDb` với `Database:InitializeOnStartup=false`.
-- `dotnet build` thành công; Domain 122/122, Application 813/813, Web integration 234/234, Infrastructure integration 302/302 khi loại 2 phép đếm số bảng. Hai phép đếm đó kỳ vọng 37 bảng, trong khi DB `_Test` hiện có 38 bảng; không sửa schema để chiều theo DB thử.
-- Chưa gửi thử email qua SMTP thật. Việc kiểm tra tay toàn bộ chuỗi thao tác với dữ liệu mẫu trong DB `_Test` vẫn cần thực hiện trước khi phát hành.
+- `dotnet build` thành công; Domain 122/122, Application 813/813, Web integration 235/235, Infrastructure integration 302/302 khi loại 2 phép đếm số bảng. Test HTTP mới đã qua: đăng ký → đăng nhập → gửi lịch xem → gửi giữ chỗ → xem trạng thái trên DB `_Test`. Hai phép đếm số bảng kỳ vọng 37 bảng, trong khi DB `_Test` hiện có 38 bảng; không sửa schema để chiều theo DB thử.
+- Chưa gửi thử email qua SMTP thật. Chưa kiểm tra tay các POST đối soát, cọc hợp đồng và hoàn tiền qua giao diện; store và service tương ứng đã có kiểm thử tự động trên DB `_Test`.
 
 ## Global Constraints
 
