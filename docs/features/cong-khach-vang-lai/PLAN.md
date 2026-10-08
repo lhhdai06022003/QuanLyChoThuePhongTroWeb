@@ -113,3 +113,14 @@ Các quy tắc chính đã được chốt trong SPEC. Cần xác nhận ranh gi
 - [ ] Chạy Domain và Application unit tests; chạy Infrastructure/Web integration tests **chỉ khi** `QLCTPT_TEST_CONNECTION_STRING` trỏ tới DB kết thúc `_test` hoặc `_integration_test`.
 - [ ] Chạy `git diff --check`; kiểm tra `git diff --name-only` không chứa migration hoặc thay đổi schema.
 - [ ] Kiểm tra tay luồng HTTP trên DB thử riêng: xem phòng → đăng ký → lịch → giữ chỗ → minh chứng → đối soát → áp dụng cọc/hoàn → email; lưu kết quả review cạnh SPEC.
+
+## Bổ sung giao diện theo phản hồi — 08/10/2026
+
+- [x] Thêm nút hẹn xem và đặt phòng trực tiếp trên thẻ phòng, giữ thiết kế công khai hiện có.
+- [x] Làm rõ màn gửi yêu cầu đặt phòng và các bước chờ nhân viên duyệt trước khi chuyển tiền.
+- [x] Tách trang đặt cọc riêng, kiểm tra chủ yêu cầu và hiển thị form minh chứng theo trạng thái/hạn.
+- [x] Đưa lịch xem, nút hủy lịch và đặt phòng vào mục tài khoản có tên rõ ràng.
+- [x] Kiểm thử HTTP: khách chưa đăng nhập đi qua đăng ký/đăng nhập và quay lại đúng trang hẹn xem hoặc đặt phòng, giữ query string; hủy lịch và mở trang đặt cọc đã duyệt.
+- [x] `GuestPortalFlowTests` và `SessionRevalidationTests`: 5/5 đạt trên DB `_Test`.
+- [x] Review code và kiểm tra giao diện danh sách/đăng nhập trên bản xem thử; giữ nguyên schema. Lỗi thông báo chờ duyệt sau hủy đã được tái hiện bằng test và sửa; 5/5 test liên quan đạt sau sửa.
+- [x] Build solution thành công; `git diff --check` đạt, không có thay đổi schema hoặc migration.

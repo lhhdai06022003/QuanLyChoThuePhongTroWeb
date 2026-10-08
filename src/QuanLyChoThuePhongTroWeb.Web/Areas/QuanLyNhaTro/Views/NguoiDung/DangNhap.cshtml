@@ -607,7 +607,14 @@
                 <div class="form-header">
                     <div class="form-badge">Cổng Truy Cập Hệ Thống</div>
                     <h2 class="form-title">Đăng nhập tài khoản</h2>
-                    <p class="form-subtitle">Điền thông tin xác thực để vào hệ thống quản lý phòng trọ.</p>
+                    @if ((ViewBag.ReturnUrl as string)?.StartsWith("/phong/", StringComparison.OrdinalIgnoreCase) == true)
+                    {
+                        <p class="form-subtitle">Đăng nhập để hẹn xem hoặc đặt phòng. Sau khi đăng nhập, bạn sẽ trở lại đúng phòng vừa chọn để tiếp tục.</p>
+                    }
+                    else
+                    {
+                        <p class="form-subtitle">Đăng nhập để tiếp tục sử dụng tài khoản của bạn.</p>
+                    }
                 </div>
 
                 @if (ViewBag.Error != null)
@@ -630,7 +637,7 @@
                                    id="txtTenDangNhap"
                                    class="input-control"
                                    name="TenDangNhap"
-                                   placeholder="Tên tài khoản quản lý hoặc khách thuê"
+                                   placeholder="Tên tài khoản của bạn"
                                    required
                                    autocomplete="username"
                                    value="@(Model?.TenDangNhap)">
@@ -678,7 +685,7 @@
                 </form>
 
                 <p style="margin: 16px 0 0; text-align: center; color: #64748b; font-size: 14px;">
-                    Chưa có tài khoản? <a href="/dang-ky-khach?returnUrl=@Uri.EscapeDataString(ViewBag.ReturnUrl as string ?? "/phong")" style="color: #b45309; font-weight: 600;">Xem trước trang đăng ký</a>
+                    Chưa có tài khoản? <a href="/dang-ky-khach?returnUrl=@Uri.EscapeDataString(ViewBag.ReturnUrl as string ?? "/phong")" style="color: #b45309; font-weight: 600;">Tạo tài khoản khách vãng lai</a>
                 </p>
 
                 <!-- Thử nghiệm nhanh tài khoản demo -->

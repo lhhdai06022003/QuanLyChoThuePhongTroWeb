@@ -21,7 +21,7 @@
                 @if (User.Identity?.IsAuthenticated == true)
                 {
                     <span class="guest-signed-in">Đang đăng nhập: <strong>@User.Identity.Name</strong></span>
-                    <a href="/tai-khoan/yeu-cau-phong">Yêu cầu của tôi</a>
+                    <a href="/tai-khoan/yeu-cau-phong">Lịch xem và đặt phòng</a>
                     <form method="post" asp-area="QuanLyNhaTro" asp-controller="NguoiDung" asp-action="DangXuat">@Html.AntiForgeryToken()<button class="guest-nav-button" type="submit">Đăng xuất</button></form>
                 }
                 else

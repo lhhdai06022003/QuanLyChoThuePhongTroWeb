@@ -86,6 +86,10 @@
                             <p><strong>@room.GiaThue.ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("vi-VN")) ₫</strong><span>/ tháng</span></p>
                             <a href="/phong/@room.PhongTroId" aria-label="Xem chi tiết phòng @room.SoPhong">Xem phòng <span aria-hidden="true">↗</span></a>
                         </div>
+                        <div class="guest-room-actions" aria-label="Đăng ký phòng @room.SoPhong">
+                            <a class="guest-button guest-button-outline" href="/phong/@room.PhongTroId/hen-xem">Hẹn xem phòng</a>
+                            <a class="guest-button guest-button-primary" href="/phong/@room.PhongTroId/giu-cho">Đặt phòng</a>
+                        </div>
                     </div>
                 </article>
             }

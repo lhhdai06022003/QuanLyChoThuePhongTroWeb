@@ -1,32 +1,48 @@
 @model QuanLyChoThuePhongTroWeb.ViewModels.PublicRooms.ReservationPageModel
 @{
     Layout = "_PublicRoomLayout";
-    ViewData["Title"] = $"Giữ chỗ phòng {Model.Room.Room.SoPhong}";
+    ViewData["Title"] = $"Đặt phòng {Model.Room.Room.SoPhong}";
     var room = Model.Room.Room;
+    var cover = Model.Room.Images.FirstOrDefault();
 }
 
-<div class="guest-container guest-form-page guest-reservation-page">
+<div class="guest-container guest-form-page">
     <a class="guest-back" href="/phong/@room.PhongTroId">← Về thông tin phòng</a>
-    <p class="guest-kicker">Giữ chỗ và đặt cọc</p>
-    <h1>Gửi yêu cầu giữ chỗ <em>phòng @room.SoPhong</em></h1>
-    <p>Nhân viên sẽ xem xét yêu cầu, quyết định số tiền giữ chỗ, hạn thanh toán và hạn ký hợp đồng. Bạn chỉ chuyển tiền sau khi yêu cầu được duyệt.</p>
-    <div class="guest-form-room">
-        <span>Phòng bạn chọn</span>
-        <strong>Phòng @room.SoPhong</strong>
-        <small>@room.TenChiNhanh · @room.GiaThue.ToString("N0") ₫ / tháng</small>
+    <div class="guest-form-grid">
+        <section>
+            <h1>Đặt phòng @room.SoPhong</h1>
+            <p class="guest-form-lead">Gửi yêu cầu giữ chỗ cho căn phòng bạn đã chọn. Nhân viên sẽ duyệt số tiền đặt cọc và thời hạn trước khi bạn chuyển khoản.</p>
+            <ol class="guest-booking-steps">
+                <li><strong>Gửi yêu cầu đặt phòng</strong><span>Đặt trực tiếp hoặc tiếp tục từ lịch xem của bạn.</span></li>
+                <li><strong>Nhân viên duyệt giữ chỗ</strong><span>Bạn nhận số tiền cần chuyển, hạn thanh toán và hạn ký hợp đồng.</span></li>
+                <li><strong>Chuyển khoản và gửi minh chứng</strong><span>Theo dõi xác nhận tiền trong mục Lịch xem và đặt phòng.</span></li>
+            </ol>
+        </section>
+        <section class="guest-booking-summary" aria-label="Xác nhận đặt phòng">
+            @if (cover is not null)
+            {
+                <img class="guest-booking-cover" src="@cover" alt="Phòng @room.SoPhong" />
+            }
+            <div class="guest-booking-content">
+                <h2>Phòng @room.SoPhong</h2>
+                <p>@room.TenChiNhanh · @room.DiaChi</p>
+                <p>@room.DienTich.ToString("0.#") m² · Tối đa @room.SoNguoiToiDa người</p>
+                <p class="guest-booking-price"><strong>@room.GiaThue.ToString("N0") ₫</strong> / tháng</p>
+                @if (Model.ViewingId.HasValue)
+                {
+                    <p>Đặt phòng từ lịch xem #@Model.ViewingId.Value.</p>
+                }
+                <div asp-validation-summary="All" class="text-danger" role="alert"></div>
+                <form method="post" action="/phong/@room.PhongTroId/giu-cho">
+                    @Html.AntiForgeryToken()
+                    @if (Model.ViewingId.HasValue)
+                    {
+                        <input type="hidden" name="viewingId" value="@Model.ViewingId.Value" />
+                    }
+                    <button class="guest-button guest-button-primary" type="submit">Gửi yêu cầu đặt phòng</button>
+                </form>
+                <p class="guest-field-hint">Chưa cần chuyển tiền ở bước này. Bạn có thể hủy yêu cầu trong tài khoản của mình.</p>
+            </div>
+        </section>
     </div>
-    @if (Model.ViewingId.HasValue)
-    {
-        <p>Yêu cầu này sẽ gắn với lịch xem #@Model.ViewingId.Value. Hệ thống kiểm tra lịch xem thuộc tài khoản và đúng phòng.</p>
-    }
-    <div asp-validation-summary="All" class="text-danger" role="alert"></div>
-    <form method="post" action="/phong/@room.PhongTroId/giu-cho" class="guest-reservation-actions">
-        @Html.AntiForgeryToken()
-        @if (Model.ViewingId.HasValue)
-        {
-            <input type="hidden" name="viewingId" value="@Model.ViewingId.Value" />
-        }
-        <button class="guest-button guest-button-primary" type="submit">Gửi yêu cầu giữ chỗ</button>
-    </form>
-    <div class="guest-preview-notice" role="status">Số tiền chính thức do nhân viên duyệt. Ảnh chuyển khoản chỉ là thông báo; tiền được ghi nhận sau khi nhân viên đối soát.</div>
 </div>

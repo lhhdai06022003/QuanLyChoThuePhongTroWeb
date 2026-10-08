@@ -1,13 +1,13 @@
 @model QuanLyChoThuePhongTroWeb.ViewModels.PublicRooms.GuestRequestsPageModel
 @{
     Layout = "_PublicRoomLayout";
-    ViewData["Title"] = "Yêu cầu của tôi";
+    ViewData["Title"] = "Lịch xem và đặt phòng";
 }
 
 <div class="guest-container guest-form-page guest-reservation-page">
     <a class="guest-back" href="/phong">← Tiếp tục xem phòng</a>
     <p class="guest-kicker">Tài khoản của bạn</p>
-    <h1>Lịch xem và giữ chỗ.</h1>
+    <h1>Lịch xem và đặt phòng</h1>
     <p>Theo dõi lịch hẹn, yêu cầu giữ chỗ, hạn chuyển tiền và các khoản hoàn.</p>
     @if (TempData["GuestViewingMessage"] is string message)
     {
@@ -18,7 +18,7 @@
         <div class="guest-preview-notice" role="status">@reservationMessage</div>
     }
     <div class="guest-preview-grid">
-        <section class="guest-preview-panel">
+        <section class="guest-preview-panel" id="lich-xem">
             <h2>Lịch xem phòng</h2>
             @if (Model.Viewings.Count == 0)
             {
@@ -44,6 +44,7 @@
                         <p>@due.ToString("dd/MM/yyyy HH:mm")</p>
                         @if (viewing.CanCancel)
                         {
+                            <p>Bạn có thể hủy trước giờ hẹn bắt đầu.</p>
                             <form method="post" action="/tai-khoan/yeu-cau-phong/lich-xem/@viewing.Id/huy">
                                 @Html.AntiForgeryToken()
                                 <button class="guest-button guest-button-outline" type="submit">Hủy lịch xem</button>
@@ -58,8 +59,8 @@
             }
             <a class="guest-section-link" href="/phong">Chọn phòng để hẹn xem</a>
         </section>
-        <section class="guest-preview-panel">
-            <h2>Giữ chỗ và đặt cọc</h2>
+        <section class="guest-preview-panel" id="dat-phong">
+            <h2>Đặt phòng và đặt cọc</h2>
             @if (Model.Reservations.Count == 0)
             {
                 <p>Bạn chưa có yêu cầu giữ chỗ.</p>
@@ -149,19 +150,7 @@
                                 </p>
                             }
                         }
-                        @if (reservation.PaymentRequestId.HasValue &&
-                            reservation.Status is "ChoThanhToan" or "ChoXacNhanTien")
-                        {
-                            <form method="post" enctype="multipart/form-data" action="/tai-khoan/yeu-cau-phong/minh-chung">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="paymentRequestId" value="@reservation.PaymentRequestId.Value" />
-                                <label>Số tiền đã chuyển (₫) <input type="number" name="claimedAmount" min="1" step="1" required /></label>
-                                <label>Thời gian chuyển <input type="datetime-local" name="transferTimeLocal" required /></label>
-                                <label>Mã giao dịch ngân hàng (nếu có) <input type="text" name="bankReference" maxlength="100" /></label>
-                                <label>Ảnh minh chứng <input type="file" name="image" accept="image/jpeg,image/png,image/webp" required /></label>
-                                <button class="guest-button guest-button-outline" type="submit">Gửi minh chứng</button>
-                            </form>
-                        }
+                        <a class="guest-button guest-button-primary guest-deposit-link" href="/tai-khoan/yeu-cau-phong/giu-cho/@reservation.Id/dat-coc">@(reservation.Status is "ChoThanhToan" or "ChoXacNhanTien" ? "Đặt cọc / gửi minh chứng" : "Xem chi tiết đặt phòng")</a>
                         @if (reservation.CanCancel)
                         {
                             <form method="post" action="/tai-khoan/yeu-cau-phong/giu-cho/@reservation.Id/huy">

@@ -140,21 +140,45 @@ public sealed class PhongController(IPublicRoomService rooms, IViewingRequestSer
     {
         var actorId = int.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value,
             out var idNguoiDung) ? idNguoiDung : 0;
-        var bank = configuration.GetSection("VietQRSettings")
-            .Get<QuanLyChoThuePhongTroWeb.Application.Common.Configurations.VietQrSettings>();
-        var bankInfo = bank is not null &&
-            !string.IsNullOrWhiteSpace(bank.BankId) &&
-            !string.IsNullOrWhiteSpace(bank.AccountNumber) &&
-            !string.IsNullOrWhiteSpace(bank.AccountName) &&
-            !bank.AccountNumber.StartsWith('<')
-            ? new GuestBankInfo(bank.BankId, bank.AccountNumber, bank.AccountName)
-            : null;
         return View(new GuestRequestsPageModel(
             await viewings.ListMineAsync(actorId, cancellationToken),
             await reservations.ListMineAsync(actorId, cancellationToken),
             await payments.ListMineAsync(actorId, cancellationToken),
             await settlements.ListMineAsync(actorId, cancellationToken),
-            bankInfo));
+            GetBankInfo()));
+    }
+
+    [Authorize(Roles = "KhachVangLai")]
+    [HttpGet("/tai-khoan/yeu-cau-phong/giu-cho/{reservationId:int}/dat-coc")]
+    public async Task<IActionResult> DatCoc(int reservationId,
+        CancellationToken cancellationToken)
+    {
+        var actorId = int.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value,
+            out var userId) ? userId : 0;
+        var reservation = (await reservations.ListMineAsync(actorId, cancellationToken))
+            .SingleOrDefault(item => item.Id == reservationId);
+        if (reservation is null)
+            return NotFound();
+        var evidence = (await payments.ListMineAsync(actorId, cancellationToken))
+            .Where(item => item.PaymentRequestId == reservation.PaymentRequestId).ToArray();
+        var settlement = (await settlements.ListMineAsync(actorId, cancellationToken))
+            .SingleOrDefault(item => item.ReservationId == reservationId);
+        return View(new GuestDepositPageModel(reservation, evidence,
+            settlement, GetBankInfo()));
+    }
+
+    private GuestBankInfo? GetBankInfo()
+    {
+        var bank = configuration.GetSection("VietQRSettings")
+            .Get<QuanLyChoThuePhongTroWeb.Application.Common.Configurations.VietQrSettings>();
+        return bank is not null &&
+            !string.IsNullOrWhiteSpace(bank.BankId) &&
+            !string.IsNullOrWhiteSpace(bank.AccountNumber) &&
+            !string.IsNullOrWhiteSpace(bank.AccountName) &&
+            !bank.BankId.StartsWith('<') && !bank.AccountNumber.StartsWith('<') &&
+            !bank.AccountName.StartsWith('<')
+            ? new GuestBankInfo(bank.BankId, bank.AccountNumber, bank.AccountName)
+            : null;
     }
 
     [Authorize(Roles = "KhachVangLai")]
