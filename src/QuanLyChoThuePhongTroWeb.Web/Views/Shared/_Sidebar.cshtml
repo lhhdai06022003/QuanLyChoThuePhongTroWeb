@@ -8,11 +8,27 @@
             <span class="navbar-toggler-icon"></span>
         </button>
         
-        <!-- Logo -->
-        <h1 class="navbar-brand navbar-brand-autodark py-2">
-            <a href="/Home/Index" class="d-flex align-items-center justify-content-center text-decoration-none">
-                <img src="~/Theme/images/logo-hcmute.png" alt="HCMUTE Logo" class="navbar-brand-image" style="max-height: 2rem;">
-                <span class="brand-text ms-2 font-weight-bold text-primary" style="font-size: 1.05rem; letter-spacing: 0.5px;">SYSTEM RENTAL</span>
+        <!-- Logo & Brand -->
+        <h1 class="navbar-brand navbar-brand-autodark px-3 py-2 m-0">
+            <a href="/Home/Index" class="d-flex align-items-center text-decoration-none">
+                <svg class="brand-logo-icon flex-shrink-0" width="34" height="34" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <defs>
+                        <linearGradient id="troSyncBg" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#2563eb" />
+                            <stop offset="100%" stop-color="#1d4ed8" />
+                        </linearGradient>
+                    </defs>
+                    <rect width="36" height="36" rx="9" fill="url(#troSyncBg)" />
+                    <!-- Khối kiến trúc đa chi nhánh & đồng bộ -->
+                    <path d="M8 25V17L14.5 12V25H8Z" fill="#ffffff" fill-opacity="0.4" />
+                    <path d="M13.5 25V14L20.5 8.5L27.5 14V25H22.5V17.5H18.5V25H13.5Z" fill="#ffffff" />
+                    <circle cx="20.5" cy="8.5" r="2.2" fill="#38bdf8" />
+                    <circle cx="20.5" cy="8.5" r="0.9" fill="#ffffff" />
+                </svg>
+                <div class="brand-text-wrapper ms-2 d-flex flex-column text-start">
+                    <span class="brand-title lh-1">Tro<span class="text-primary font-weight-bold">Sync</span></span>
+                    <span class="brand-subtitle mt-1">Quản lý trọ đa chi nhánh</span>
+                </div>
             </a>
         </h1>
 

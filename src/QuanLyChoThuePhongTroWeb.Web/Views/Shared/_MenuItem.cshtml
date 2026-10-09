@@ -26,53 +26,61 @@
     var isVisible = Model.IsVisibleFor(User) && !(hasOriginalChildren && !hasChild);
 }
 
-@if (!isVisible)
+@if (isVisible)
 {
-}
-else if (hasChild)
-{
-    <li class="nav-item dropdown @(isAnyChildActive ? "active" : "")">
-        <a class="nav-link dropdown-toggle" href="#navbar-menu-@Model.Name.GetHashCode()" data-bs-toggle="dropdown" data-bs-auto-close="false" role="button" aria-expanded="@(isAnyChildActive ? "true" : "false")">
-            <span class="nav-link-icon d-md-none d-lg-inline-block">
-                <i class="@(string.IsNullOrEmpty(Model.Icon) ? "ti ti-point" : Model.Icon)"></i>
-            </span>
-            <span class="nav-link-title">
-                @Model.Name
-            </span>
-        </a>
-        <div class="dropdown-menu @(isAnyChildActive ? "show" : "")" data-bs-popper="@(isAnyChildActive ? "static" : "")">
-            <div class="dropdown-menu-columns">
-                <div class="dropdown-menu-column">
-                    @foreach (var child in visibleChildren!)
-                    {
-                        var isChildActive = IsActiveUrl(child.Url);
-                        <a class="dropdown-item py-2 @(isChildActive ? "active" : "")" href="@child.Url">
-                            @if (!string.IsNullOrEmpty(child.Icon))
-                            {
-                                <i class="@child.Icon me-2"></i>
-                            }
-                            @child.Name
-                        </a>
-                    }
+    if (hasChild)
+    {
+        var menuSlug = "sidebar-menu-" + System.Text.RegularExpressions.Regex.Replace(Model.Name, @"\W+", "-").Trim('-').ToLowerInvariant();
+        <li class="nav-item dropdown @(isAnyChildActive ? "active" : "")">
+            <a class="nav-link dropdown-toggle @(isAnyChildActive ? "show text-primary font-weight-bold" : "")"
+               href="#@menuSlug"
+               data-bs-toggle="dropdown"
+               data-bs-auto-close="false"
+               role="button"
+               aria-expanded="@(isAnyChildActive ? "true" : "false")">
+                <span class="nav-link-icon d-md-none d-lg-inline-block">
+                    <i class="@(string.IsNullOrEmpty(Model.Icon) ? "ti ti-point" : Model.Icon)"></i>
+                </span>
+                <span class="nav-link-title">
+                    @Model.Name
+                </span>
+            </a>
+            <div class="dropdown-menu @(isAnyChildActive ? "show" : "")" data-bs-popper="static">
+                <div class="dropdown-menu-columns">
+                    <div class="dropdown-menu-column">
+                        @foreach (var child in visibleChildren!)
+                        {
+                            var isChildActive = IsActiveUrl(child.Url);
+                            <a class="dropdown-item @(isChildActive ? "active" : "")" href="@child.Url">
+                                @if (!string.IsNullOrEmpty(child.Icon))
+                                {
+                                    <span class="dropdown-item-icon">
+                                        <i class="@child.Icon"></i>
+                                    </span>
+                                }
+                                <span class="dropdown-item-title">@child.Name</span>
+                            </a>
+                        }
+                    </div>
                 </div>
             </div>
-        </div>
-    </li>
-}
-else
-{
-    <li class="nav-item @(isParentActive ? "active" : "")">
-        <a class="nav-link" href="@(string.IsNullOrEmpty(Model.Url) ? "#" : Model.Url)">
-            <span class="nav-link-icon d-md-none d-lg-inline-block">
-                <i class="@(string.IsNullOrEmpty(Model.Icon) ? "ti ti-point" : Model.Icon)"></i>
-            </span>
-            <span class="nav-link-title">
-                @Model.Name
-            </span>
-            @if (!string.IsNullOrEmpty(Model.BadgeId))
-            {
-                <span id="@Model.BadgeId" class="badge ms-auto d-none"></span>
-            }
-        </a>
-    </li>
+        </li>
+    }
+    else
+    {
+        <li class="nav-item @(isParentActive ? "active" : "")">
+            <a class="nav-link @(isParentActive ? "active" : "")" href="@(string.IsNullOrEmpty(Model.Url) ? "#" : Model.Url)">
+                <span class="nav-link-icon d-md-none d-lg-inline-block">
+                    <i class="@(string.IsNullOrEmpty(Model.Icon) ? "ti ti-point" : Model.Icon)"></i>
+                </span>
+                <span class="nav-link-title">
+                    @Model.Name
+                </span>
+                @if (!string.IsNullOrEmpty(Model.BadgeId))
+                {
+                    <span id="@Model.BadgeId" class="badge ms-auto d-none"></span>
+                }
+            </a>
+        </li>
+    }
 }
