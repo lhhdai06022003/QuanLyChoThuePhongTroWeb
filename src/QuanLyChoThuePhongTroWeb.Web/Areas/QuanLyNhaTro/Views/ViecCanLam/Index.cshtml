@@ -1,0 +1,152 @@
+@using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Responses
+@using QuanLyChoThuePhongTroWeb.Application.Common.Formatting
+@model ViecCanLamPageViewModel
+@{
+    ViewData["Title"] = "Việc cần làm";
+    var khoi = Model.ViecCanLam;
+    var cacKhoi = new[]
+    {
+        (Muc: MucUuTienViec.Khan, Ten: "Khẩn", Mau: "red", Dem: khoi.SoKhan),
+        (Muc: MucUuTienViec.CanLam, Ten: "Cần làm", Mau: "orange", Dem: khoi.SoCanLam),
+        (Muc: MucUuTienViec.TheoDoi, Ten: "Theo dõi", Mau: "blue", Dem: khoi.SoTheoDoi)
+    };
+    var cacNhom = new[]
+    {
+        (Ma: "", Ten: "Tất cả"),
+        (Ma: "ChiSo", Ten: "Chỉ số"),
+        (Ma: "HoaDon", Ten: "Hóa đơn"),
+        (Ma: "ThuTien", Ten: "Thu tiền"),
+        (Ma: "KhachThueHopDong", Ten: "Khách thuê & HĐ")
+    };
+}
+
+<div class="page-body">
+    <div class="container-xl">
+        <div class="page-header d-print-none mb-3">
+            <div class="row g-2 align-items-center">
+                <div class="col-12 col-md">
+                    <h2 class="page-title">Việc cần làm (@khoi.TongSo)</h2>
+                </div>
+                <div class="col-12 col-md-auto">
+                    <form method="get" asp-area="QuanLyNhaTro" asp-controller="ViecCanLam" asp-action="Index" id="vclForm">
+                        <label for="vclChiNhanh" class="visually-hidden">Chi nhánh</label>
+                        <select id="vclChiNhanh" name="chiNhanhId" class="form-select" asp-items="Model.ChiNhanhs">
+                            <option value="">Tất cả chi nhánh</option>
+                        </select>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        @if (Model.ChiNhanhNgoaiPhamVi)
+        {
+            <div class="alert alert-warning">Chi nhánh đã chọn không thuộc phạm vi của bạn. Hãy chọn lại chi nhánh ở ô bên trên.</div>
+        }
+
+        @if (khoi.TongSo > 0)
+        {
+            <div class="btn-list mb-3" id="vclNhomFilter" role="group" aria-label="Lọc theo nhóm việc">
+                @foreach (var nhom in cacNhom)
+                {
+                    var chon = nhom.Ma == "";
+                    <button type="button" class="btn @(chon ? "btn-primary" : "btn-outline-secondary")" data-vcl-nhom="@nhom.Ma" aria-pressed="@(chon ? "true" : "false")">@nhom.Ten</button>
+                }
+            </div>
+            <div class="alert alert-info d-none" id="vclNhomRong">Không có việc trong nhóm này.</div>
+
+            @foreach (var k in cacKhoi)
+            {
+                var items = khoi.Items.Where(i => i.MucUuTien == k.Muc).ToList();
+                if (items.Count == 0) { continue; }
+                <div class="card mb-3 vcl-khoi">
+                    <div class="card-status-top bg-@k.Mau"></div>
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <span class="status-dot status-@k.Mau me-2" aria-hidden="true"></span>@k.Ten (<span class="vcl-khoi-dem">@k.Dem</span>)
+                        </h3>
+                    </div>
+                    <div class="list-group list-group-flush">
+                        @foreach (var item in items)
+                        {
+                            <div class="list-group-item vcl-item" data-nhom="@item.Nhom" data-so-luong="@item.SoLuong">
+                                <div class="row g-2 align-items-center">
+                                    <div class="col-auto">
+                                        <span class="status-dot status-@item.MauUuTien" aria-hidden="true"></span>
+                                        <span class="visually-hidden">@item.TenMucUuTien</span>
+                                    </div>
+                                    <div class="col">
+                                        <div class="fw-medium">@item.TieuDe<span class="badge bg-secondary-lt ms-1">@item.TenNhom</span></div>
+                                        <div class="small text-secondary">@item.MoTa</div>
+                                    </div>
+                                    <div class="col-auto fw-bold">@item.SoLuong</div>
+                                    <div class="col-auto">
+                                        <a class="btn btn-outline-primary" href="@item.Link">@item.NhanNut</a>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="empty">
+                        <div class="empty-icon"><i class="ti ti-circle-check text-success"></i></div>
+                        <p class="empty-title">Không có việc cần xử lý</p>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <div class="card" id="hoa-don-qua-han">
+            <div class="card-header">
+                <h3 class="card-title">Hóa đơn quá hạn (@Model.TongSoHoaDonQuaHan)</h3>
+            </div>
+            @if (Model.HoaDonQuaHan.Count == 0)
+            {
+                <div class="card-body text-secondary">Không có hóa đơn quá hạn.</div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table card-table table-vcenter">
+                        <thead>
+                            <tr>
+                                <th>Mã hóa đơn</th>
+                                <th>Phòng · Chi nhánh</th>
+                                <th>Khách thuê</th>
+                                <th class="text-end">Còn nợ</th>
+                                <th>Hạn thanh toán</th>
+                                <th class="text-end">Quá hạn</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var h in Model.HoaDonQuaHan)
+                            {
+                                <tr>
+                                    <td><a href="@h.Link">@h.MaHoaDon</a></td>
+                                    <td>@h.PhongChiNhanh</td>
+                                    <td>@h.KhachThue</td>
+                                    <td class="text-end text-nowrap">@h.SoConNoText</td>
+                                    <td class="text-nowrap">@h.HanThanhToanText</td>
+                                    <td class="text-end text-nowrap">@h.SoNgayQuaHan ngày</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            @if (Model.SoHoaDonQuaHanConLai > 0)
+            {
+                <div class="card-footer text-secondary">Còn @Model.SoHoaDonQuaHanConLai hóa đơn quá hạn khác</div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/viec-can-lam.js" asp-append-version="true"></script>
+}

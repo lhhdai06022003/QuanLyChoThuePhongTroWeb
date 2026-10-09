@@ -13,6 +13,7 @@ using QuanLyChoThuePhongTroWeb.Application.Features.LichSuThanhToans.Services;
 using QuanLyChoThuePhongTroWeb.Application.Features.YeuCauSuCos.Services;
 using QuanLyChoThuePhongTroWeb.Application.Features.ThongBaos.Services;
 using QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.Services;
+using QuanLyChoThuePhongTroWeb.Application.Features.ViecCanLam.Services;
 
 namespace QuanLyChoThuePhongTroWeb.Application
 {
@@ -54,6 +55,7 @@ namespace QuanLyChoThuePhongTroWeb.Application
             services.AddScoped<IYeuCauSuCoService, YeuCauSuCoService>();
             services.AddScoped<IThongBaoService, ThongBaoService>();
             services.AddScoped<IDashboardService, DashboardService>();
+            services.AddScoped<IViecCanLamService, ViecCanLamService>();
 
             // AI assistant
             services.AddScoped<Features.AiAssistants.Services.IAiAssistantService, Features.AiAssistants.Services.AiAssistantService>();

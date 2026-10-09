@@ -1,0 +1,76 @@
+/* Timeline hoạt động gần đây */
+.timeline {
+    position: relative;
+    padding-left: 1.5rem;
+    border-left: 2px solid var(--tblr-border-color, #e6e8eb);
+}
+.timeline-item {
+    position: relative;
+    margin-bottom: 1.5rem;
+}
+.timeline-item:last-child {
+    margin-bottom: 0;
+}
+.timeline-badge {
+    position: absolute;
+    left: -2.35rem;
+    top: 0.25rem;
+    width: 1.6rem;
+    height: 1.6rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    color: #fff;
+    border: 3px solid var(--tblr-card-bg, #fff);
+}
+
+/* Bố cục vùng chính của Dashboard */
+.dashboard-layout {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+        "chart"
+        "viec"
+        "phong"
+        "hoatdong";
+}
+.dashboard-chart { grid-area: chart; }
+.dashboard-phong { grid-area: phong; }
+.dashboard-hoatdong { grid-area: hoatdong; }
+.dashboard-viec { grid-area: viec; }
+
+@media (min-width: 768px) {
+    .dashboard-layout {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-areas:
+            "chart chart"
+            "viec viec"
+            "phong hoatdong";
+    }
+}
+
+@media (min-width: 992px) {
+    .dashboard-layout {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-areas:
+            "chart chart viec"
+            "phong hoatdong viec";
+    }
+}
+
+.dashboard-viec-text {
+    min-width: 0;
+}
+
+/* Số KPI co theo bề rộng thẻ để số tiền 10 chữ số không tràn khung; quá hẹp thì "đ" xuống dòng. */
+.dashboard-kpi .card-body {
+    container-type: inline-size;
+}
+.dashboard-kpi-value {
+    font-size: clamp(0.95rem, 12cqi, 1.25rem);
+    line-height: 1.3;
+    white-space: normal;
+}

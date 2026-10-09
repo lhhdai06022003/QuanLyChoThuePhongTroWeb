@@ -23,8 +23,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.DTOs
         public decimal TongTienChoThu { get; set; }
         public int SoPhongChuaThanhToan { get; set; }
         public double TyLeLapDay { get; set; }
-        public int SoHopDongSapHetHan { get; set; }
-        public int SoPhongChuaChotDienNuoc { get; set; }
+        public decimal TienQuaHan { get; set; }
+        public int SoHoaDonQuaHan { get; set; }
 
         // Chart data
         public List<string> ChartLabels { get; set; } = new();
@@ -35,8 +35,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.DTOs
         public List<string> RoomStatusLabels { get; set; } = new();
         public List<int> RoomStatusData { get; set; } = new();
 
-        // To-do items & recent activities
-        public List<DashboardToDoDto> ToDos { get; set; } = new();
+        // Recent activities
         public List<DashboardRecentActivityDto> RecentActivities { get; set; } = new();
     }
 
@@ -44,15 +43,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.DTOs
     {
         public int Id { get; set; }
         public string Ten { get; set; } = string.Empty;
-    }
-
-    public class DashboardToDoDto
-    {
-        public string Type { get; set; } = string.Empty;
-        public string Title { get; set; } = string.Empty;
-        public string Description { get; set; } = string.Empty;
-        public string Link { get; set; } = string.Empty;
-        public string Icon { get; set; } = string.Empty;
     }
 
     public class DashboardRecentActivityDto
@@ -67,34 +57,16 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.DTOs
     public class DashboardInvoiceStatDto
     {
         public int Thang { get; set; }
-        public QuanLyChoThuePhongTroWeb.Domain.Enums.TrangThaiHoaDon TrangThai { get; set; }
-        public decimal TongTien { get; set; }
-        // Tổng các khoản ghi nhận chưa xóa mềm của nhóm hóa đơn.
+        // Tổng các khoản ghi nhận chưa xóa mềm của mọi hóa đơn chưa xóa trong tháng.
         public decimal DaThu { get; set; }
+        // Tổng còn nợ của hóa đơn đã gửi khách, chưa thanh toán đủ trong tháng.
+        public decimal ChoThu { get; set; }
     }
 
-    public class DashboardContractUtilityCheckDto
+    public class DashboardOverdueSummaryDto
     {
-        public int PhongTroId { get; set; }
-        public System.DateTime ThoiDiemBatDau { get; set; }
-        public int ChiNhanhId { get; set; }
-        public string TenChiNhanh { get; set; } = string.Empty;
-    }
-
-    public class DashboardRecordedUtilityDto
-    {
-        public int PhongTroId { get; set; }
-        public int Thang { get; set; }
-        public int Nam { get; set; }
-    }
-
-    public class DashboardUnpaidGroupDto
-    {
-        public int Nam { get; set; }
-        public int Thang { get; set; }
-        public int ChiNhanhId { get; set; }
-        public string TenChiNhanh { get; set; } = string.Empty;
-        public int Count { get; set; }
+        public int SoHoaDon { get; set; }
+        public decimal TongConNo { get; set; }
     }
 
     public class DashboardRecentPaymentDto

@@ -69,6 +69,10 @@ else
             <span class="nav-link-title">
                 @Model.Name
             </span>
+            @if (!string.IsNullOrEmpty(Model.BadgeId))
+            {
+                <span id="@Model.BadgeId" class="badge ms-auto d-none"></span>
+            }
         </a>
     </li>
 }

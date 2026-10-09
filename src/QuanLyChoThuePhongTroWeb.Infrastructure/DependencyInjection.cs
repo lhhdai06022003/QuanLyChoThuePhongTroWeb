@@ -41,6 +41,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Persistence.IMeterImageQueryStore, Persistence.Features.MeterImageQueryStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.LichSuThanhToans.Persistence.ILichSuThanhToanStore, Persistence.Features.LichSuThanhToanStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.Persistence.IDashboardStore, Persistence.Features.DashboardStore>();
+            services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.ViecCanLam.Persistence.IViecCanLamStore, Persistence.Features.ViecCanLamStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.NhanViens.Persistence.IEmployeeBranchStore, Persistence.Features.EmployeeBranchStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.NhanViens.Persistence.IEmployeeBranchAssignmentStore, Persistence.Features.EmployeeBranchAssignmentStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.NguoiDungs.Persistence.IUserSessionStore, Persistence.Features.UserSessionStore>();
@@ -83,6 +84,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure
 
             // Typed settings records
             services.AddSingleton(configuration.GetSection("DashboardSettings").Get<QuanLyChoThuePhongTroWeb.Application.Common.Configurations.DashboardSettings>() ?? new QuanLyChoThuePhongTroWeb.Application.Common.Configurations.DashboardSettings());
+            services.AddSingleton(configuration.GetSection("ViecCanLamSettings").Get<QuanLyChoThuePhongTroWeb.Application.Common.Configurations.ViecCanLamSettings>() ?? new QuanLyChoThuePhongTroWeb.Application.Common.Configurations.ViecCanLamSettings());
             services.AddSingleton(configuration.GetSection("VietQRSettings").Get<QuanLyChoThuePhongTroWeb.Application.Common.Configurations.VietQrSettings>() ?? new QuanLyChoThuePhongTroWeb.Application.Common.Configurations.VietQrSettings());
             services.AddSingleton(configuration.GetSection("AutoReminderSettings").Get<QuanLyChoThuePhongTroWeb.Application.Common.Configurations.AutoReminderSettings>() ?? new QuanLyChoThuePhongTroWeb.Application.Common.Configurations.AutoReminderSettings());
             services.AddSingleton(configuration.GetSection("ContractAlertSettings").Get<QuanLyChoThuePhongTroWeb.Application.Common.Configurations.ContractAlertSettings>() ?? new QuanLyChoThuePhongTroWeb.Application.Common.Configurations.ContractAlertSettings());

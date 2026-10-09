@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Globalization;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Responses
@@ -25,8 +26,9 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Responses
         public decimal TongTienChoThu { get; set; }
         public int SoPhongChuaThanhToan { get; set; }
         public double TyLeLapDay { get; set; }
-        public int SoHopDongSapHetHan { get; set; }
-        public int SoPhongChuaChotDienNuoc { get; set; }
+        public string TyLeLapDayText { get; set; } = "";
+        public decimal TienQuaHan { get; set; }
+        public int SoHoaDonQuaHan { get; set; }
 
         // --- DỮ LIỆU BIỂU ĐỒ (12 Tháng của năm) ---
         public List<string> ChartLabels { get; set; } = new List<string>();
@@ -38,10 +40,10 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Responses
         public List<int> RoomStatusData { get; set; } = new List<int>();
 
         // --- VIỆC CẦN LÀM & HOẠT ĐỘNG GẦN ĐÂY ---
-        public List<ToDoItemViewModel> ToDos { get; set; } = new List<ToDoItemViewModel>();
+        public ViecCanLamKhoiViewModel ViecCanLam { get; set; } = new ViecCanLamKhoiViewModel();
         public List<RecentActivityViewModel> RecentActivities { get; set; } = new List<RecentActivityViewModel>();
 
-        public static DashboardViewModel FromDto(QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.DTOs.DashboardDataDto dto)
+        public static DashboardViewModel FromDto(QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.DTOs.DashboardDataDto dto, ViecCanLamTongHopDto viecCanLam)
         {
             return new DashboardViewModel
             {
@@ -65,21 +67,15 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Responses
                 TongTienChoThu = dto.TongTienChoThu,
                 SoPhongChuaThanhToan = dto.SoPhongChuaThanhToan,
                 TyLeLapDay = dto.TyLeLapDay,
-                SoHopDongSapHetHan = dto.SoHopDongSapHetHan,
-                SoPhongChuaChotDienNuoc = dto.SoPhongChuaChotDienNuoc,
+                TyLeLapDayText = dto.TyLeLapDay.ToString("0.#", CultureInfo.InvariantCulture).Replace('.', ',') + "%",
+                TienQuaHan = dto.TienQuaHan,
+                SoHoaDonQuaHan = dto.SoHoaDonQuaHan,
                 ChartLabels = dto.ChartLabels,
                 ChartData = dto.ChartData,
                 ChartDataChoThu = dto.ChartDataChoThu,
                 RoomStatusLabels = dto.RoomStatusLabels,
                 RoomStatusData = dto.RoomStatusData,
-                ToDos = dto.ToDos.Select(t => new ToDoItemViewModel
-                {
-                    Type = t.Type,
-                    Title = t.Title,
-                    Description = t.Description,
-                    Link = t.Link,
-                    Icon = t.Icon
-                }).ToList(),
+                ViecCanLam = ViecCanLamKhoiViewModel.FromDto(viecCanLam, 5),
                 RecentActivities = dto.RecentActivities.Select(r => new RecentActivityViewModel
                 {
                     Title = r.Title,
@@ -90,15 +86,6 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Responses
                 }).ToList()
             };
         }
-    }
-
-    public class ToDoItemViewModel
-    {
-        public string Type { get; set; } // "danger", "warning", "info"
-        public string Title { get; set; }
-        public string Description { get; set; }
-        public string Link { get; set; }
-        public string Icon { get; set; }
     }
 
     public class RecentActivityViewModel

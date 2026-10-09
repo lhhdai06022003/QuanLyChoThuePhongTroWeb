@@ -4,7 +4,7 @@ Tài liệu này liệt kê chức năng đã có trong mã nguồn hiện tại
 
 ## Theo dõi module
 
-Các README sau mô tả **công việc dự kiến và người sở hữu**, tách khỏi danh mục chức năng đang vận hành ở phần dưới. Mỗi thư mục có `README.md`, `spec/`, `plan/`, `review/`. Ba thư mục sau chỉ có `.gitkeep`; tài liệu được viết khi module bắt đầu thực thi. Bốn module đầu thuộc kế hoạch 60 ngày; module cuối thuộc lộ trình vận hành (bước 2).
+Các README sau mô tả **công việc dự kiến và người sở hữu**, tách khỏi danh mục chức năng đang vận hành ở phần dưới. Mỗi thư mục có `README.md`, `spec/`, `plan/`, `review/`. Ba thư mục sau chỉ có `.gitkeep`; tài liệu được viết khi module bắt đầu thực thi. Bốn module đầu thuộc kế hoạch 60 ngày; hai module cuối thuộc lộ trình vận hành (bước 2 và bước 3).
 
 | Module | Người phụ trách | Hiện trạng |
 | --- | --- | --- |
@@ -12,7 +12,8 @@ Các README sau mô tả **công việc dự kiến và người sở hữu**, t
 | [Thanh toán hóa đơn](thanh-toan-hoa-don/README.md) | A | VietQR và một phần Application Service đã có; Web chưa nối đủ |
 | [Phòng công khai và lịch xem](phong-cong-khai-lich-xem/README.md) | B | Có model/schema; chưa có luồng công khai/đặt lịch hoàn chỉnh |
 | [Khách vãng lai, giữ chỗ, cọc và hoàn tiền](khach-vang-lai-giu-cho/README.md) | B | Có model/schema; chưa có luồng Application/Web hoàn chỉnh |
-| [AI Assistant và Thông báo theo chi nhánh](ai-thong-bao-chi-nhanh/README.md) | — | Code xong, review đạt, thử tay đạt 06/10/2026; chưa merge |
+| [AI Assistant và Thông báo theo chi nhánh](ai-thong-bao-chi-nhanh/README.md) | — | Hoàn thành, đã merge vào `master` (commit `8295e36`) ngày 06/10/2026 |
+| [Trung tâm việc cần làm](viec-can-lam/README.md) | — | Code xong 2 đợt, review cuối ĐẠT 08/10/2026 ([review](viec-can-lam/review.md)); spec 1.2 đã xác nhận, người dùng thử tay đạt 09/10/2026; chưa commit |
 
 Quyền sở hữu file và lịch 60 ngày nằm trong [roadmap](../roadmap-60-ngay.md). Không đánh dấu hoàn thành chỉ vì đã có entity, migration hoặc thư mục tài liệu.
 

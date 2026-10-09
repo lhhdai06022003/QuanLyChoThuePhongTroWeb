@@ -102,27 +102,29 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 {
                     h.Thang,
                     h.TrangThaiHoaDon,
+                    h.TrangThaiPhatHanh,
                     h.TongTien,
                     DaThu = h.LichSuThanhToans.Where(l => !l.IsDeleted).Sum(l => l.SoTienThanhToan)
                 })
                 .ToListAsync(cancellationToken);
 
             return rows
-                .GroupBy(h => new { h.Thang, h.TrangThaiHoaDon })
+                .GroupBy(h => h.Thang)
                 .Select(g => new DashboardInvoiceStatDto
                 {
-                    Thang = g.Key.Thang,
-                    TrangThai = g.Key.TrangThaiHoaDon,
-                    TongTien = g.Sum(h => h.TongTien),
-                    DaThu = g.Sum(h => h.DaThu)
+                    Thang = g.Key,
+                    DaThu = g.Sum(h => h.DaThu),
+                    ChoThu = g
+                        .Where(h => h.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaGui
+                                    && h.TrangThaiHoaDon != TrangThaiHoaDon.DaThanhToan)
+                        .Sum(h => h.TongTien - h.DaThu)
                 })
                 .ToList();
         }
 
         public async Task<int> CountUnpaidRoomsAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds = null, CancellationToken cancellationToken = default)
         {
-            var query = _context.HoaDons
-                .Where(h => !h.IsDeleted && h.TrangThaiHoaDon != TrangThaiHoaDon.DaThanhToan);
+            var query = _context.HoaDons.DaGuiChuaThuDu();
 
             if (branchId.HasValue)
             {
@@ -140,72 +142,9 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 .CountAsync(cancellationToken);
         }
 
-        public async Task<IReadOnlyList<DashboardContractUtilityCheckDto>> GetActiveContractsForUtilityCheckAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds = null, CancellationToken cancellationToken = default)
+        public async Task<DashboardOverdueSummaryDto> GetOverdueSummaryAsync(int? branchId, DateTime nowUtc, IReadOnlyCollection<int>? allowedBranchIds = null, CancellationToken cancellationToken = default)
         {
-            var query = _context.HopDongs
-                .Where(h => !h.IsDeleted && h.TrangThaiHopDong == TrangThaiHopDong.DangHoatDong);
-
-            if (branchId.HasValue)
-            {
-                query = query.Where(h => h.PhongTro.ChiNhanhId == branchId.Value);
-            }
-
-            if (allowedBranchIds != null)
-            {
-                query = query.Where(h => allowedBranchIds.Contains(h.PhongTro.ChiNhanhId));
-            }
-
-            return await query
-                .Select(h => new DashboardContractUtilityCheckDto
-                {
-                    PhongTroId = h.PhongTroId,
-                    ThoiDiemBatDau = h.ThoiDiemBatDau,
-                    ChiNhanhId = h.PhongTro.ChiNhanhId,
-                    TenChiNhanh = h.PhongTro.ChiNhanh.TenChiNhanh
-                })
-                .ToListAsync(cancellationToken);
-        }
-
-        public async Task<IReadOnlyList<DashboardRecordedUtilityDto>> GetRecordedUtilitiesAsync(DateTime fromDate, CancellationToken cancellationToken = default)
-        {
-            return await _context.DichVuDienNuocCuaPhongs
-                .Where(d => !d.IsDeleted &&
-                       (d.Nam > fromDate.Year || (d.Nam == fromDate.Year && d.Thang >= fromDate.Month)))
-                .Select(d => new DashboardRecordedUtilityDto
-                {
-                    PhongTroId = d.PhongTroId,
-                    Thang = d.Thang,
-                    Nam = d.Nam
-                })
-                .ToListAsync(cancellationToken);
-        }
-
-        public async Task<int> CountExpiringContractsAsync(int? branchId, DateTime today, DateTime limitDate, IReadOnlyCollection<int>? allowedBranchIds = null, CancellationToken cancellationToken = default)
-        {
-            var query = _context.HopDongs
-                .Where(h => !h.IsDeleted &&
-                            h.TrangThaiHopDong == TrangThaiHopDong.DangHoatDong &&
-                            h.ThoiDiemKetThuc.HasValue &&
-                            h.ThoiDiemKetThuc.Value <= limitDate &&
-                            h.ThoiDiemKetThuc.Value >= today);
-
-            if (branchId.HasValue)
-            {
-                query = query.Where(h => h.PhongTro.ChiNhanhId == branchId.Value);
-            }
-
-            if (allowedBranchIds != null)
-            {
-                query = query.Where(h => allowedBranchIds.Contains(h.PhongTro.ChiNhanhId));
-            }
-
-            return await query.CountAsync(cancellationToken);
-        }
-
-        public async Task<IReadOnlyList<DashboardUnpaidGroupDto>> GetUnpaidInvoicesGroupedAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds = null, CancellationToken cancellationToken = default)
-        {
-            var query = _context.HoaDons
-                .Where(h => !h.IsDeleted && h.TrangThaiHoaDon != TrangThaiHoaDon.DaThanhToan);
+            var query = _context.HoaDons.QuaHan(nowUtc);
 
             if (branchId.HasValue)
             {
@@ -217,18 +156,19 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 query = query.Where(h => allowedBranchIds.Contains(h.HopDong.PhongTro.ChiNhanhId));
             }
 
-            return await query
-                .GroupBy(h => new { h.Nam, h.Thang, h.HopDong.PhongTro.ChiNhanhId, TenChiNhanh = h.HopDong.PhongTro.ChiNhanh.TenChiNhanh })
-                .Select(g => new DashboardUnpaidGroupDto
+            var rows = await query
+                .Select(h => new
                 {
-                    Nam = g.Key.Nam,
-                    Thang = g.Key.Thang,
-                    ChiNhanhId = g.Key.ChiNhanhId,
-                    TenChiNhanh = g.Key.TenChiNhanh,
-                    Count = g.Count()
+                    h.TongTien,
+                    DaThu = h.LichSuThanhToans.Where(l => !l.IsDeleted).Sum(l => l.SoTienThanhToan)
                 })
-                .OrderBy(g => g.Nam).ThenBy(g => g.Thang).ThenBy(g => g.TenChiNhanh)
                 .ToListAsync(cancellationToken);
+
+            return new DashboardOverdueSummaryDto
+            {
+                SoHoaDon = rows.Count,
+                TongConNo = rows.Sum(r => r.TongTien - r.DaThu)
+            };
         }
 
         public async Task<IReadOnlyList<DashboardRecentPaymentDto>> GetRecentPaymentsAsync(int? branchId, int count = 5, IReadOnlyCollection<int>? allowedBranchIds = null, CancellationToken cancellationToken = default)

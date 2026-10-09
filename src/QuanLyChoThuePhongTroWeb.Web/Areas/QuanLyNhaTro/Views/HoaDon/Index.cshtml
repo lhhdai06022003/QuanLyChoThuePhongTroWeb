@@ -412,6 +412,10 @@
             if (urlNam) $('#filterNam').val(urlNam);
             if (urlTrangThai) $('#filterTrangThai').val(urlTrangThai);
             if (urlChiNhanh) $('#filterChiNhanh').val(urlChiNhanh);
+            const urlPhatHanh = urlParams.get('trangThaiPhatHanh');
+            if (urlPhatHanh !== null && $('#filterPhatHanh option').filter(function () { return this.value === urlPhatHanh; }).length > 0) {
+                $('#filterPhatHanh').val(urlPhatHanh);
+            }
             const urlHoaDonId = parseInt(urlParams.get('hoaDonId') || '0');
 
             function formatVND(n) {

@@ -1,0 +1,65 @@
+<h2>Phần 3/4: Dashboard phương án B (bản sửa)</h2>
+<p class="subtitle">Số tiền hiển thị đầy đủ, có dấu chấm ngăn cách hàng nghìn, đơn vị "đ". Áp dụng cho thẻ KPI, trục và tooltip của biểu đồ, và trang Việc cần làm.</p>
+
+<style>
+  .kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:8px}
+  .kpi{border-radius:6px;padding:8px;color:#fff;font-size:11px;line-height:1.35}
+  .kpi b{display:block;font-size:14px;white-space:nowrap}
+  .kpi small{opacity:.85}
+  .k-ok{background:#2fb344}.k-warn{background:#f59f00}.k-red{background:#d63939}.k-dark{background:#a61e4d}.k-blue{background:#206bc4}.k-cyan{background:#17a2b8}
+  .blk{border:1px solid #d0d5dd;border-radius:6px;padding:8px;font-size:12px;background:rgba(127,127,127,.06)}
+  .blk h5{margin:0 0 6px;font-size:13px}
+  .grid{display:grid;gap:8px}
+  .todo{display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px dashed #d0d5dd}
+  .todo .t{line-height:1.25}
+  .todo .t small{display:block;color:#888}
+  .dot{width:8px;height:8px;border-radius:50%;flex:none}
+  .d-red{background:#d63939}.d-or{background:#f59f00}.d-bl{background:#206bc4}
+  .cnt{margin-left:auto;font-weight:700}
+  .chart{height:90px;display:flex;align-items:center;justify-content:center;color:#888}
+  .chips{display:flex;gap:4px;margin-bottom:6px;flex-wrap:wrap}
+  .chip{border-radius:10px;padding:1px 7px;font-size:10px;color:#fff}
+</style>
+
+<div class="mockup">
+  <div class="mockup-header">Dashboard: phương án B, bản 2</div>
+  <div class="mockup-body">
+    <div class="kpis">
+      <div class="kpi k-ok">Đã thu T10/2026<b>42.500.000 đ</b><small>theo sổ thanh toán</small></div>
+      <div class="kpi k-warn">Chờ thu<b>18.200.000 đ</b><small>hóa đơn đã gửi khách</small></div>
+      <div class="kpi k-red">Quá hạn<b>3.590.000 đ</b><small>4 hóa đơn</small></div>
+      <div class="kpi k-dark">Phòng đang nợ<b>9</b><small>từ trước tới nay</small></div>
+      <div class="kpi k-blue">Hợp đồng hoạt động<b>37</b><small>&nbsp;</small></div>
+      <div class="kpi k-cyan">Tỷ lệ lấp đầy<b>88,1%</b><small>37/42 phòng</small></div>
+    </div>
+    <div class="grid" style="grid-template-columns:2fr 1fr">
+      <div>
+        <div class="blk chart" style="margin-bottom:8px">Biểu đồ doanh thu 12 tháng (trục: 10.000.000 đ, 20.000.000 đ…)</div>
+        <div class="grid" style="grid-template-columns:1fr 1fr">
+          <div class="blk chart">Tình trạng phòng</div>
+          <div class="blk chart">Hoạt động gần đây<br>"Đã thu Phòng 101: 3.590.000 đ"</div>
+        </div>
+      </div>
+      <div class="blk">
+        <h5>Việc cần làm <span style="font-weight:400">(12)</span></h5>
+        <div class="chips"><span class="chip" style="background:#d63939">Khẩn 3</span><span class="chip" style="background:#f59f00">Cần làm 6</span><span class="chip" style="background:#206bc4">Theo dõi 3</span></div>
+        <div class="todo"><span class="dot d-red"></span><span class="t">Minh chứng chờ đối chiếu<small>Thu tiền</small></span><span class="cnt">2</span></div>
+        <div class="todo"><span class="dot d-red"></span><span class="t">Hóa đơn quá hạn<small>còn nợ 3.590.000 đ</small></span><span class="cnt">4</span></div>
+        <div class="todo"><span class="dot d-red"></span><span class="t">Sự cố chờ tiếp nhận quá 24 giờ<small>Chi nhánh Q.9</small></span><span class="cnt">1</span></div>
+        <div class="todo"><span class="dot d-or"></span><span class="t">Hóa đơn chờ Admin chốt<small>Hóa đơn</small></span><span class="cnt">5</span></div>
+        <div class="todo" style="border-bottom:0"><span class="dot d-or"></span><span class="t">Ảnh chỉ số chờ xác nhận T9/2026<small>Chỉ số</small></span><span class="cnt">3</span></div>
+        <div style="text-align:right;color:#206bc4;margin-top:6px">Xem tất cả 12 việc →</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top:12px">
+  <h3>Quy tắc của khối "Việc cần làm" (phương án B)</h3>
+  <ul>
+    <li>Hiện tối đa <b>5 dòng</b>, sắp theo Khẩn → Cần làm → Theo dõi, cùng mức thì số lượng lớn hơn lên trước.</li>
+    <li>Mỗi dòng có tên việc, một dòng phụ (nhóm, chi nhánh hoặc số tiền) và số lượng. Bấm vào dòng để mở màn xử lý.</li>
+    <li>Không có việc nào: hiện "Không có việc cần xử lý" kèm dấu tích xanh.</li>
+    <li>Màn hình hẹp (điện thoại hoặc máy tính bảng): cột việc xuống dưới biểu đồ, thẻ KPI xếp 2 cột.</li>
+  </ul>
+</div>

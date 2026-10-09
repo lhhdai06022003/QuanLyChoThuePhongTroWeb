@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Security;
-using QuanLyChoThuePhongTroWeb.Application.Common.Configurations;
+using QuanLyChoThuePhongTroWeb.Application.Common.Formatting;
 using QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.Persistence;
 using QuanLyChoThuePhongTroWeb.Domain.Enums;
@@ -13,14 +13,14 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.Services
     public class DashboardService : IDashboardService
     {
         private readonly IDashboardStore _store;
-        private readonly DashboardSettings _settings;
         private readonly IEmployeeAccessService _access;
+        private readonly TimeProvider _timeProvider;
 
-        public DashboardService(IDashboardStore store, DashboardSettings settings, IEmployeeAccessService access)
+        public DashboardService(IDashboardStore store, IEmployeeAccessService access, TimeProvider timeProvider)
         {
             _store = store;
-            _settings = settings;
             _access = access;
+            _timeProvider = timeProvider;
         }
 
         public async Task<DashboardDataDto> GetDashboardDataAsync(int actorId, int? branchId, int selectedYear, int selectedMonth)
@@ -33,7 +33,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.Services
                 ? Array.Empty<int>()
                 : scope.AllowedBranchIds;
 
-            var today = DateTime.UtcNow.AddHours(7);
+            var nowUtc = _timeProvider.GetUtcNow().UtcDateTime;
+            var today = nowUtc.AddHours(7);
             var model = new DashboardDataDto
             {
                 SelectedBranchId = branchId,
@@ -72,11 +73,16 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.Services
                 .Where(h => h.Thang == selectedMonth)
                 .Sum(h => h.DaThu);
 
+            // Chờ thu chỉ tính hóa đơn đã gửi khách (khớp màn Công nợ).
             model.TongTienChoThu = hoaDonStats
-                .Where(h => h.Thang == selectedMonth && h.TrangThai != TrangThaiHoaDon.DaThanhToan)
-                .Sum(h => h.TongTien - h.DaThu);
+                .Where(h => h.Thang == selectedMonth)
+                .Sum(h => h.ChoThu);
 
             model.SoPhongChuaThanhToan = await _store.CountUnpaidRoomsAsync(branchId, allowedBranchIds: allowed);
+
+            var quaHan = await _store.GetOverdueSummaryAsync(branchId, nowUtc, allowedBranchIds: allowed);
+            model.TienQuaHan = quaHan.TongConNo;
+            model.SoHoaDonQuaHan = quaHan.SoHoaDon;
 
             // --- 5. BIỂU ĐỒ DOANH THU 12 THÁNG (Theo năm được chọn) ---
             for (int month = 1; month <= 12; month++)
@@ -88,8 +94,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.Services
                     .Sum(h => h.DaThu);
 
                 var choThu = hoaDonStats
-                    .Where(h => h.Thang == month && h.TrangThai != TrangThaiHoaDon.DaThanhToan)
-                    .Sum(h => h.TongTien - h.DaThu);
+                    .Where(h => h.Thang == month)
+                    .Sum(h => h.ChoThu);
 
                 model.ChartData.Add(daThu);
                 model.ChartDataChoThu.Add(choThu);
@@ -103,116 +109,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.Services
             model.RoomStatusData.Add(model.SoPhongDaThue);
             model.RoomStatusData.Add(model.SoPhongBaoTri);
 
-            // --- 7. DANH SÁCH VIỆC CẦN LÀM (To-Dos) ---
-            int triggerDay = _settings.ChotDienNuocDay;
-
-            int targetMonth = today.Month;
-            int targetYear = today.Year;
-
-            if (today.Day < triggerDay) {
-                targetMonth -= 2;
-            } else {
-                targetMonth -= 1;
-            }
-
-            if (targetMonth < 1) {
-                targetMonth += 12;
-                targetYear -= 1;
-            }
-            if (targetMonth < 1) {
-                targetMonth += 12;
-                targetYear -= 1;
-            }
-
-            var checkStartDate = new DateTime(targetYear, targetMonth, 1).AddMonths(-5);
-
-            var activeContracts = await _store.GetActiveContractsForUtilityCheckAsync(branchId, allowedBranchIds: allowed);
-            var recordedUtilities = await _store.GetRecordedUtilitiesAsync(checkStartDate);
-
-            int totalMissing = 0;
-
-            var currentCheck = checkStartDate;
-            var targetDate = new DateTime(targetYear, targetMonth, 1);
-
-            while (currentCheck <= targetDate)
-            {
-                int m = currentCheck.Month;
-                int y = currentCheck.Year;
-
-                var validRoomsForThisMonth = activeContracts
-                    .Where(c => {
-                        var localStart = c.ThoiDiemBatDau.AddHours(7);
-                        return new DateTime(localStart.Year, localStart.Month, 1) <= new DateTime(y, m, 1);
-                    })
-                    .ToList();
-
-                var recordedRoomsThisMonth = recordedUtilities
-                    .Where(r => r.Thang == m && r.Nam == y)
-                    .Select(r => r.PhongTroId)
-                    .ToHashSet();
-
-                var missingRooms = validRoomsForThisMonth
-                    .Where(r => !recordedRoomsThisMonth.Contains(r.PhongTroId))
-                    .ToList();
-
-                if (missingRooms.Count > 0)
-                {
-                    totalMissing += missingRooms.Count;
-
-                    var branchGroups = missingRooms.GroupBy(r => r.TenChiNhanh)
-                        .Select(g => $"{g.Key}: {g.Count()} phòng")
-                        .ToList();
-                    var branchText = string.Join(", ", branchGroups);
-
-                    var targetBranchId = branchId ?? missingRooms.FirstOrDefault()?.ChiNhanhId;
-
-                    model.ToDos.Add(new DashboardToDoDto
-                    {
-                        Type = "warning",
-                        Title = $"Chưa chốt điện nước (T{m}/{y})",
-                        Description = $"Tháng {m}/{y} còn {missingRooms.Count} phòng chưa chốt ({branchText}).",
-                        Link = $"/QuanLyNhaTro/ChotDienNuoc?thang={m}&nam={y}{(targetBranchId.HasValue ? $"&chiNhanhId={targetBranchId.Value}" : "")}",
-                        Icon = "fas fa-bolt"
-                    });
-                }
-
-                currentCheck = currentCheck.AddMonths(1);
-            }
-
-            model.SoPhongChuaChotDienNuoc = totalMissing;
-
-            // 7b. Hợp đồng sắp hết hạn (trong vòng 30 ngày)
-            var limitDate = today.AddDays(30);
-            var sapHetHanCount = await _store.CountExpiringContractsAsync(branchId, today, limitDate, allowedBranchIds: allowed);
-            model.SoHopDongSapHetHan = sapHetHanCount;
-            if (sapHetHanCount > 0)
-            {
-                model.ToDos.Add(new DashboardToDoDto
-                {
-                    Type = "danger",
-                    Title = "Hợp đồng sắp hết hạn",
-                    Description = $"Có {sapHetHanCount} hợp đồng sắp hết hiệu lực trong 30 ngày tới.",
-                    Link = $"/QuanLyNhaTro/QuanLyHopDong{(branchId.HasValue ? $"?chiNhanhId={branchId.Value}" : "")}",
-                    Icon = "fas fa-file-contract"
-                });
-            }
-
-            // 7c. Hóa đơn chưa thanh toán
-            var unpaidGroupedByMonthBranch = await _store.GetUnpaidInvoicesGroupedAsync(branchId, allowedBranchIds: allowed);
-
-            foreach (var item in unpaidGroupedByMonthBranch)
-            {
-                model.ToDos.Add(new DashboardToDoDto
-                {
-                    Type = "danger",
-                    Title = $"Hóa đơn T{item.Thang}/{item.Nam} chưa thu ({item.TenChiNhanh})",
-                    Description = $"Có {item.Count} hóa đơn tháng {item.Thang}/{item.Nam} của {item.TenChiNhanh} chưa được thanh toán.",
-                    Link = $"/QuanLyNhaTro/QuanLyHoaDon?thang={item.Thang}&nam={item.Nam}&trangThai=0&chiNhanhId={item.ChiNhanhId}",
-                    Icon = "fas fa-file-invoice-dollar"
-                });
-            }
-
-            // --- 8. HOẠT ĐỘNG GẦN ĐÂY (Recent Activities) ---
+            // --- 7. HOẠT ĐỘNG GẦN ĐÂY (Recent Activities) ---
             var recentPayments = await _store.GetRecentPaymentsAsync(branchId, 5, allowedBranchIds: allowed);
             var recentContracts = await _store.GetRecentContractsAsync(branchId, 5, allowedBranchIds: allowed);
 
@@ -221,7 +118,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.Services
             {
                 activities.Add((p.NgayThanhToan,
                     $"Đã thu tiền Phòng {p.SoPhong}",
-                    $"Số tiền: {p.SoTienThanhToan:N0} ₫ - {(p.PhuongThuc == PhuongThucThanhToan.TienMat ? "TienMat" : "ChuyenKhoan")}",
+                    $"Số tiền: {TienTe.DinhDang(p.SoTienThanhToan)} - {(p.PhuongThuc == PhuongThucThanhToan.TienMat ? "Tiền mặt" : "Chuyển khoản")}",
                     "fas fa-check-circle",
                     "bg-success-lt"));
             }
@@ -229,7 +126,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.Services
             {
                 activities.Add((c.NgayTao,
                     $"Hợp đồng mới - Phòng {c.SoPhong}",
-                    $"Khách thuê: {c.HoVaTen} - Giá thuê: {c.TienThuePhong:N0} ₫",
+                    $"Khách thuê: {c.HoVaTen} - Giá thuê: {TienTe.DinhDang(c.TienThuePhong)}",
                     "fas fa-file-signature",
                     "bg-primary-lt"));
             }

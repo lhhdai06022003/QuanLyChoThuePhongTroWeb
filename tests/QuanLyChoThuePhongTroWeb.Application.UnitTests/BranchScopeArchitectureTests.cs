@@ -9,6 +9,7 @@ using QuanLyChoThuePhongTroWeb.Application.Features.NguoiThues.Services;
 using QuanLyChoThuePhongTroWeb.Application.Features.PhongTros.Services;
 using QuanLyChoThuePhongTroWeb.Application.Features.ThanhVienHopDongs.Services;
 using QuanLyChoThuePhongTroWeb.Application.Features.YeuCauSuCos.Services;
+using QuanLyChoThuePhongTroWeb.Application.Features.ViecCanLam.Services;
 using Xunit;
 
 namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
@@ -25,6 +26,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             typeof(INguoiThueService),
             typeof(IDichVuService),
             typeof(IDashboardService),
+            typeof(IViecCanLamService),
             typeof(IAiAssistantService),
             typeof(IYeuCauSuCoService)
         };

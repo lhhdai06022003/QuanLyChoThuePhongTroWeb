@@ -14,6 +14,7 @@ namespace QuanLyChoThuePhongTroWeb.Services
                     Icon = "ti ti-layout-dashboard",
                     Url = "/Home/Index"
                 },
+                new MenuItem { Name = "Việc cần làm", Icon = "ti ti-checklist", Url = "/QuanLyNhaTro/ViecCanLam", BadgeId = "badge-viec-can-lam" },
                 new MenuItem
                 {
                     Name = "Quản lý người dùng",

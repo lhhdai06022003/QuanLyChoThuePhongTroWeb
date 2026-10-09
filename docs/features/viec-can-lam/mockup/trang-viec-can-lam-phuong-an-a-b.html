@@ -1,0 +1,94 @@
+<h2>Phần 3/4: Trang "Việc cần làm", chọn A hay B?</h2>
+<p class="subtitle">Trang mở từ menu (có badge số việc) hoặc từ link "Xem tất cả" trên Dashboard. Cả hai phương án đều có bộ lọc chi nhánh và bảng hóa đơn quá hạn chi tiết. Khác nhau ở cách sắp xếp việc.</p>
+
+<style>
+  .bar{display:flex;gap:6px;align-items:center;margin-bottom:8px;font-size:12px;flex-wrap:wrap}
+  .sel{border:1px solid #c5cad3;border-radius:4px;padding:2px 8px;background:rgba(127,127,127,.08)}
+  .chip{border-radius:10px;padding:1px 8px;font-size:11px;color:#fff}
+  .chip.o{background:transparent;border:1px solid #9aa3b2;color:inherit}
+  .blk{border:1px solid #d0d5dd;border-radius:6px;padding:8px;font-size:12px;background:rgba(127,127,127,.06);margin-bottom:8px}
+  .blk h5{margin:0 0 6px;font-size:13px}
+  .it{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px dashed #d0d5dd}
+  .it:last-child{border-bottom:0}
+  .it .t small{display:block;color:#888}
+  .dot{width:8px;height:8px;border-radius:50%;flex:none}
+  .d-red{background:#d63939}.d-or{background:#f59f00}.d-bl{background:#206bc4}
+  .tag{font-size:10px;border:1px solid #9aa3b2;border-radius:3px;padding:0 4px;color:#888}
+  .cnt{margin-left:auto;font-weight:700}
+  .btn{border:1px solid #206bc4;color:#206bc4;border-radius:4px;padding:1px 8px;font-size:11px;white-space:nowrap}
+  .g2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  table.t{width:100%;border-collapse:collapse;font-size:11px}
+  table.t th,table.t td{border-bottom:1px solid #d0d5dd;padding:3px 4px;text-align:left}
+  table.t td.r,table.t th.r{text-align:right}
+</style>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Chia theo mức ưu tiên (khuyến nghị)</h3>
+      <p>Ba khối Khẩn, Cần làm, Theo dõi xếp từ trên xuống. Mỗi việc có nhãn nhóm. Các nút lọc nhóm giúp từng người chỉ xem phần việc của mình. Cách sắp này khớp với khối việc trên Dashboard.</p>
+      <div class="mockup">
+        <div class="mockup-header">/QuanLyNhaTro/ViecCanLam: phương án A</div>
+        <div class="mockup-body">
+          <div class="bar"><b style="font-size:14px">Việc cần làm (12)</b><span style="margin-left:auto" class="sel">Tất cả chi nhánh ▾</span></div>
+          <div class="bar"><span class="chip" style="background:#206bc4">Tất cả</span><span class="chip o">Chỉ số</span><span class="chip o">Hóa đơn</span><span class="chip o">Thu tiền</span><span class="chip o">Khách thuê &amp; HĐ</span></div>
+          <div class="blk"><h5 style="color:#d63939">● Khẩn (3)</h5>
+            <div class="it"><span class="dot d-red"></span><span class="t">Minh chứng chuyển khoản chờ đối chiếu <span class="tag">Thu tiền</span><small>CN Q.9: 1 · CN Thủ Đức: 1</small></span><span class="cnt">2</span><span class="btn">Xử lý</span></div>
+            <div class="it"><span class="dot d-red"></span><span class="t">Hóa đơn quá hạn thanh toán <span class="tag">Thu tiền</span><small>còn nợ 3.590.000 đ · xem bảng bên dưới</small></span><span class="cnt">4</span><span class="btn">Xem</span></div>
+            <div class="it"><span class="dot d-red"></span><span class="t">Sự cố chờ tiếp nhận quá 24 giờ <span class="tag">Khách thuê</span><small>CN Q.9: 1</small></span><span class="cnt">1</span><span class="btn">Xử lý</span></div>
+          </div>
+          <div class="blk"><h5 style="color:#f59f00">● Cần làm (6)</h5>
+            <div class="it"><span class="dot d-or"></span><span class="t">Hóa đơn chờ Admin chốt <span class="tag">Hóa đơn</span><small>CN Q.9: 3 · CN Thủ Đức: 2</small></span><span class="cnt">5</span><span class="btn">Xử lý</span></div>
+            <div class="it"><span class="dot d-or"></span><span class="t">Ảnh chỉ số chờ xác nhận T9/2026 <span class="tag">Chỉ số</span><small>CN Q.9: 3</small></span><span class="cnt">3</span><span class="btn">Xử lý</span></div>
+            <div class="it"><span class="dot d-or"></span><span class="t">… 4 việc khác</span></div>
+          </div>
+          <div class="blk"><h5 style="color:#206bc4">● Theo dõi (3)</h5>
+            <div class="it"><span class="dot d-bl"></span><span class="t">Hợp đồng sắp hết hạn trong 30 ngày <span class="tag">Hợp đồng</span><small>CN Thủ Đức: 2</small></span><span class="cnt">2</span><span class="btn">Xem</span></div>
+          </div>
+          <div class="blk"><h5>Hóa đơn quá hạn (4)</h5>
+            <table class="t"><tr><th>Mã HĐ</th><th>Phòng</th><th>Khách</th><th class="r">Còn nợ</th><th>Hạn</th><th class="r">Quá</th></tr>
+              <tr><td>HD-2609-101</td><td>101 · Q.9</td><td>Nguyễn Văn A</td><td class="r">1.590.000 đ</td><td>05/10</td><td class="r">1 ngày</td></tr>
+              <tr><td>HD-2609-205</td><td>205 · Thủ Đức</td><td>Trần Thị B</td><td class="r">2.000.000 đ</td><td>30/09</td><td class="r">6 ngày</td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Chia theo nhóm nghiệp vụ</h3>
+      <p>Bốn thẻ Chỉ số, Hóa đơn, Thu tiền, Khách thuê &amp; HĐ xếp lưới 2×2. Mỗi việc có chấm màu ưu tiên. Hợp với cách chia việc theo người phụ trách, nhưng phải nhìn cả 4 thẻ mới thấy việc khẩn.</p>
+      <div class="mockup">
+        <div class="mockup-header">/QuanLyNhaTro/ViecCanLam: phương án B</div>
+        <div class="mockup-body">
+          <div class="bar"><b style="font-size:14px">Việc cần làm (12)</b><span class="chip" style="background:#d63939">Khẩn 3</span><span class="chip" style="background:#f59f00">Cần làm 6</span><span class="chip" style="background:#206bc4">Theo dõi 3</span><span style="margin-left:auto" class="sel">Tất cả chi nhánh ▾</span></div>
+          <div class="g2">
+            <div class="blk"><h5>⚡ Chỉ số</h5>
+              <div class="it"><span class="dot d-or"></span><span class="t">Ảnh chờ xác nhận T9<small>CN Q.9: 3</small></span><span class="cnt">3</span></div>
+              <div class="it"><span class="dot d-or"></span><span class="t">Chưa chốt điện nước T9<small>Q.9: 4 · Thủ Đức: 2</small></span><span class="cnt">6</span></div>
+            </div>
+            <div class="blk"><h5>🧾 Hóa đơn</h5>
+              <div class="it"><span class="dot d-or"></span><span class="t">Chờ Admin chốt<small>Q.9: 3 · Thủ Đức: 2</small></span><span class="cnt">5</span></div>
+              <div class="it"><span class="dot d-or"></span><span class="t">Đã chốt chưa gửi<small>Q.9: 1</small></span><span class="cnt">1</span></div>
+            </div>
+            <div class="blk"><h5>💰 Thu tiền</h5>
+              <div class="it"><span class="dot d-red"></span><span class="t">Minh chứng chờ đối chiếu</span><span class="cnt">2</span></div>
+              <div class="it"><span class="dot d-red"></span><span class="t">Hóa đơn quá hạn<small>3.590.000 đ</small></span><span class="cnt">4</span></div>
+            </div>
+            <div class="blk"><h5>🏠 Khách thuê &amp; HĐ</h5>
+              <div class="it"><span class="dot d-red"></span><span class="t">Sự cố chờ &gt; 24 giờ</span><span class="cnt">1</span></div>
+              <div class="it"><span class="dot d-bl"></span><span class="t">HĐ sắp hết hạn</span><span class="cnt">2</span></div>
+            </div>
+          </div>
+          <div class="blk"><h5>Hóa đơn quá hạn (4)</h5><div style="color:#888">(bảng như phương án A)</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p class="subtitle" style="margin-top:12px">Chung cho cả hai phương án: không có việc nào thì hiện "Không có việc cần xử lý". Chi nhánh mặc định là "Tất cả chi nhánh" trong phạm vi được phân công. Bảng quá hạn hiện tối đa 50 dòng, hạn sớm nhất lên đầu. Nhân viên không thấy việc chỉ Admin làm (ví dụ "chờ Admin chốt").</p>

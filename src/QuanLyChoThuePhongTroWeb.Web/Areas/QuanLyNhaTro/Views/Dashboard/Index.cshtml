@@ -1,11 +1,12 @@
 @using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Responses
+@using QuanLyChoThuePhongTroWeb.Application.Common.Formatting
 @model DashboardViewModel
 @{
     ViewData["Title"] = "Bảng điều khiển hệ thống";
     Layout = "~/Views/Shared/_Layout.cshtml";
+    var viec = Model.ViecCanLam;
+    var viecRong = viec.TongSo == 0;
 }
-
-
 
 <div class="container-xl mt-3">
     <!-- Page Header -->
@@ -16,132 +17,177 @@
                     <i class="ti ti-chart-line me-2"></i> Bảng Điều Khiển Hệ Thống
                 </h2>
             </div>
-            <div class="col-auto ms-auto d-print-none">
-                <div class="d-flex gap-2 align-items-center">
-                    <select id="branchSelect" asp-items="Model.Branches" class="form-select" style="min-width: 180px;">
+            <div class="col-12 col-md-auto ms-md-auto mt-2 mt-md-0 d-print-none">
+                <div class="d-flex flex-wrap gap-2 align-items-center">
+                    <label class="visually-hidden" for="branchSelect">Chi nhánh</label>
+                    <select id="branchSelect" asp-items="Model.Branches" class="form-select w-auto">
                         <option value="">-- Tất cả chi nhánh --</option>
                     </select>
 
-                    <select id="monthSelect" asp-items="Model.Months" class="form-select" style="min-width: 110px;">
+                    <label class="visually-hidden" for="monthSelect">Tháng</label>
+                    <select id="monthSelect" asp-items="Model.Months" class="form-select w-auto">
                     </select>
 
-                    <select id="yearSelect" asp-items="Model.Years" class="form-select" style="min-width: 100px;">
+                    <label class="visually-hidden" for="yearSelect">Năm</label>
+                    <select id="yearSelect" asp-items="Model.Years" class="form-select w-auto">
                     </select>
+
+                    <span id="dashboardLoading" class="spinner-border spinner-border-sm text-secondary d-none" role="status" aria-label="Đang tải"></span>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Stat Cards Row -->
-    <div class="row row-cards mb-4">
-        <!-- Card 1: Doanh thu đã thu -->
-        <div class="col-sm-6 col-lg-3">
-            <div class="card shadow border-0 bg-success text-white" style="position: relative; overflow: hidden;">
-                <div class="card-body p-4">
-                    <div class="subheader text-white text-opacity-75 font-weight-bold mb-2 fs-4">DOANH THU ĐÃ THU</div>
-                    <div class="h1 mb-0 text-white font-weight-bold" id="statDoanhThu" style="font-size: 2rem;">@Model.DoanhThuThangNay.ToString("N0") ₫</div>
-                    <i class="ti ti-wallet fa-4x text-white text-opacity-25" style="position: absolute; right: 15px; top: 15px;"></i>
-                </div>
-            </div>
-        </div>
-
-        <!-- Card 2: Doanh thu chờ thu -->
-        <div class="col-sm-6 col-lg-3">
-            <div class="card shadow border-0 bg-warning text-white" style="position: relative; overflow: hidden;">
-                <div class="card-body p-4">
-                    <div class="subheader text-white text-opacity-75 font-weight-bold mb-2 fs-4">DOANH THU CHỜ THU</div>
-                    <div class="h1 mb-0 text-white font-weight-bold" id="statChoThu" style="font-size: 2rem;">@Model.TongTienChoThu.ToString("N0") ₫</div>
-                    <i class="ti ti-clock fa-4x text-white text-opacity-25" style="position: absolute; right: 15px; top: 15px;"></i>
-                </div>
-            </div>
-        </div>
-
-        <!-- Card 3: Phòng đang nợ tiền -->
-        <div class="col-sm-6 col-lg-3">
-            <div class="card shadow border-0 bg-danger text-white" style="position: relative; overflow: hidden;">
-                <div class="card-body p-4">
-                    <div class="subheader text-white text-opacity-75 font-weight-bold mb-2 fs-4">PHÒNG ĐANG NỢ TIỀN</div>
-                    <div class="h1 mb-0 text-white font-weight-bold d-flex align-items-end gap-2" style="font-size: 2rem;">
-                        <span id="statChuaThanhToan">@Model.SoPhongChuaThanhToan</span>
-                        <span class="text-white text-opacity-75 mb-1" style="font-size: 0.8rem; font-weight: normal;"><i class="ti ti-info-circle me-1"></i>Từ trước tới nay</span>
-                    </div>
-                    <i class="ti ti-home fa-4x text-white text-opacity-25" style="position: absolute; right: 15px; top: 15px;"></i>
-                </div>
-            </div>
-        </div>
-
-        <!-- Card 4: Tổng số hợp đồng -->
-        <div class="col-sm-6 col-lg-3">
-            <div class="card shadow border-0 bg-primary text-white" style="position: relative; overflow: hidden;">
-                <div class="card-body p-4">
-                    <div class="subheader text-white text-opacity-75 font-weight-bold mb-2 fs-4">HỢP ĐỒNG ĐANG HOẠT ĐỘNG</div>
-                    <div class="h1 mb-0 text-white font-weight-bold" id="statHopDong" style="font-size: 2rem;">@Model.TongSoHopDongHoatDong</div>
-                    <i class="ti ti-file-text fa-4x text-white text-opacity-25" style="position: absolute; right: 15px; top: 15px;"></i>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Charts Row -->
-    <div class="row row-cards mb-4">
-        <!-- Revenue Bar Chart -->
-        <div class="col-lg-8">
-            <div class="card shadow-sm border-0">
+    <!-- Hàng KPI -->
+    <div class="row row-cards mb-3 dashboard-kpi">
+        <div class="col-6 col-md-4 col-xxl-2">
+            <div class="card card-sm h-100 text-white bg-success">
                 <div class="card-body">
-                    <h3 class="card-title font-weight-bold mb-3"><i class="ti ti-chart-bar me-2 text-primary"></i>Xu hướng Doanh thu (Năm <span id="chartYearText">@Model.SelectedYear</span>)</h3>
-                    <div style="height: 320px; position: relative;">
-                        <canvas id="revenueBarChart"></canvas>
-                    </div>
+                    <div class="subheader text-white text-opacity-75" id="kpiDaThuTitle">Đã thu T@(Model.SelectedMonth)/@(Model.SelectedYear)</div>
+                    <div class="h2 mb-0 fw-bold dashboard-kpi-value" id="statDoanhThu">@TienTe.DinhDang(Model.DoanhThuThangNay)</div>
+                    <div class="small text-white text-opacity-75">theo sổ thanh toán</div>
                 </div>
             </div>
         </div>
 
-        <!-- Room Status doughnut chart -->
-        <div class="col-lg-4">
-            <div class="card shadow-sm border-0">
+        <div class="col-6 col-md-4 col-xxl-2">
+            <div class="card card-sm h-100 text-white bg-warning">
                 <div class="card-body">
-                    <h3 class="card-title font-weight-bold mb-3"><i class="ti ti-chart-pie me-2 text-primary"></i>Tỷ lệ tình trạng phòng</h3>
-                    <div class="d-flex justify-content-center align-items-center" style="height: 320px;">
-                        <canvas id="roomStatusChart" style="max-height: 260px; max-width: 260px;"></canvas>
-                    </div>
+                    <div class="subheader text-white text-opacity-75">Chờ thu</div>
+                    <div class="h2 mb-0 fw-bold dashboard-kpi-value" id="statChoThu">@TienTe.DinhDang(Model.TongTienChoThu)</div>
+                    <div class="small text-white text-opacity-75">hóa đơn đã gửi khách</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-md-4 col-xxl-2">
+            <div class="card card-sm h-100 text-white bg-danger">
+                <div class="card-body">
+                    <div class="subheader text-white text-opacity-75">Quá hạn</div>
+                    <div class="h2 mb-0 fw-bold dashboard-kpi-value" id="statQuaHan">@TienTe.DinhDang(Model.TienQuaHan)</div>
+                    <div class="small text-white text-opacity-75" id="statSoHoaDonQuaHan">@Model.SoHoaDonQuaHan hóa đơn</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-md-4 col-xxl-2">
+            <div class="card card-sm h-100 text-white bg-pink">
+                <div class="card-body">
+                    <div class="subheader text-white text-opacity-75">Phòng đang nợ</div>
+                    <div class="h2 mb-0 fw-bold dashboard-kpi-value" id="statChuaThanhToan">@Model.SoPhongChuaThanhToan</div>
+                    <div class="small text-white text-opacity-75">từ trước tới nay</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-md-4 col-xxl-2">
+            <div class="card card-sm h-100 text-white bg-primary">
+                <div class="card-body">
+                    <div class="subheader text-white text-opacity-75">Hợp đồng hoạt động</div>
+                    <div class="h2 mb-0 fw-bold dashboard-kpi-value" id="statHopDong">@Model.TongSoHopDongHoatDong</div>
+                    <div class="small text-white text-opacity-75">&nbsp;</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-md-4 col-xxl-2">
+            <div class="card card-sm h-100 text-white bg-cyan">
+                <div class="card-body">
+                    <div class="subheader text-white text-opacity-75">Tỷ lệ lấp đầy</div>
+                    <div class="h2 mb-0 fw-bold dashboard-kpi-value" id="statTyLeLapDay">@Model.TyLeLapDayText</div>
+                    <div class="small text-white text-opacity-75" id="statPhongLapDay">@Model.SoPhongDaThue/@Model.TongSoPhong phòng</div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Bottom Row: To-Do & Activities -->
-    <div class="row row-cards mb-5">
-        <!-- Việc cần làm / Cảnh báo vận hành -->
-        <div class="col-lg-6">
-            <div class="card shadow-sm border-0 h-100">
-                <div class="card-header border-0 bg-transparent py-3">
-                    <h3 class="card-title font-weight-bold mb-0"><i class="ti ti-checklist text-warning me-2"></i>Cảnh báo vận hành & Việc cần làm</h3>
+    <!-- Vùng chính -->
+    <div class="dashboard-layout mb-5">
+        <div class="card dashboard-chart">
+            <div class="card-body">
+                <h3 class="card-title mb-3"><i class="ti ti-chart-bar me-2 text-primary"></i>Xu hướng doanh thu (Năm <span id="chartYearText">@Model.SelectedYear</span>)</h3>
+                <div style="height: 320px; position: relative;">
+                    <canvas id="revenueBarChart"></canvas>
                 </div>
-                <div class="card-body pt-1" id="toDoContainer">
-                    @if (Model.ToDos.Count == 0)
+            </div>
+        </div>
+
+        <div class="card dashboard-phong">
+            <div class="card-body">
+                <h3 class="card-title mb-3"><i class="ti ti-chart-pie me-2 text-primary"></i>Tình trạng phòng</h3>
+                <div class="d-flex justify-content-center align-items-center" style="height: 260px; position: relative;">
+                    <canvas id="roomStatusChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="card dashboard-hoatdong">
+            <div class="card-header">
+                <h3 class="card-title mb-0"><i class="ti ti-history text-primary me-2"></i>Hoạt động gần đây</h3>
+            </div>
+            <div class="card-body" id="activitiesContainer">
+                @if (Model.RecentActivities.Count == 0)
+                {
+                    <div class="text-center text-secondary py-4">
+                        <i class="ti ti-info-circle fs-1 d-block mb-2"></i>
+                        <div>Chưa ghi nhận hoạt động vận hành nào gần đây.</div>
+                    </div>
+                }
+                else
+                {
+                    <div class="timeline">
+                        @foreach (var act in Model.RecentActivities)
+                        {
+                            <div class="timeline-item">
+                                <div class="timeline-badge @act.ColorClass">
+                                    <i class="@act.Icon"></i>
+                                </div>
+                                <div class="ms-2">
+                                    <div class="fw-bold fs-4">@act.Title</div>
+                                    <div class="text-secondary small">@act.Description</div>
+                                    <span class="badge bg-light-lt text-secondary mt-1">
+                                        <i class="ti ti-clock me-1"></i>@act.TimeText
+                                    </span>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="card dashboard-viec">
+            <div class="card-header">
+                <h3 class="card-title"><i class="ti ti-checklist me-2 text-primary"></i>Việc cần làm <span id="viecTongSo" class="text-secondary fw-normal ms-1">(@viec.TongSo)</span></h3>
+            </div>
+            <div class="card-body">
+                <div id="viecCanLamChips" class="d-flex flex-wrap gap-2 mb-2 @(viecRong ? "d-none" : "")">
+                    <span id="viecSoKhan" class="badge bg-red text-red-fg">Khẩn @viec.SoKhan</span>
+                    <span id="viecSoCanLam" class="badge bg-orange text-orange-fg">Cần làm @viec.SoCanLam</span>
+                    <span id="viecSoTheoDoi" class="badge bg-blue text-blue-fg">Theo dõi @viec.SoTheoDoi</span>
+                </div>
+                <div id="viecCanLamList">
+                    @if (viecRong)
                     {
-                        <div class="text-center text-muted py-4">
-                            <i class="ti ti-circle-check fa-2x text-success mb-2"></i>
-                            <div>Không có cảnh báo vận hành nào cần xử lý.</div>
+                        <div class="text-center text-secondary py-4">
+                            <i class="ti ti-circle-check text-success fs-1 d-block mb-2"></i>
+                            Không có việc cần xử lý
                         </div>
                     }
                     else
                     {
                         <div class="list-group list-group-flush">
-                            @foreach (var todo in Model.ToDos)
+                            @foreach (var item in viec.Items)
                             {
-                                <a href="@todo.Link" class="list-group-item list-group-item-action border-0 px-0 py-3">
-                                    <div class="row align-items-center">
-                                        <div class="col-auto">
-                                            <span class="avatar rounded bg-@todo.Type-lt text-@todo.Type"><i class="@todo.Icon"></i></span>
+                                <a href="@item.Link" class="list-group-item list-group-item-action px-0">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="status-dot status-@item.MauUuTien" aria-hidden="true"></span>
+                                        <span class="visually-hidden">@item.TenMucUuTien</span>
+                                        <div class="dashboard-viec-text flex-fill">
+                                            <div class="fw-medium">@item.TieuDe</div>
+                                            <div class="small text-secondary text-truncate" title="@item.MoTa">@item.MoTa</div>
                                         </div>
-                                        <div class="col">
-                                            <div class="font-weight-bold">@todo.Title</div>
-                                            <div class="text-muted small">@todo.Description</div>
-                                        </div>
-                                        <div class="col-auto">
-                                            <span class="btn btn-sm btn-outline-@todo.Type">Xử lý ngay</span>
-                                        </div>
+                                        <span class="fw-bold ms-2">@item.SoLuong</span>
                                     </div>
                                 </a>
                             }
@@ -149,287 +195,25 @@
                     }
                 </div>
             </div>
-        </div>
-
-        <!-- Hoạt động gần đây -->
-        <div class="col-lg-6">
-            <div class="card shadow-sm border-0 h-100">
-                <div class="card-header border-0 bg-transparent py-3">
-                    <h3 class="card-title font-weight-bold mb-0"><i class="ti ti-history text-primary me-2"></i>Hoạt động vận hành gần đây</h3>
-                </div>
-                <div class="card-body pt-1" id="activitiesContainer">
-                    @if (Model.RecentActivities.Count == 0)
-                    {
-                        <div class="text-center text-muted py-4">
-                            <i class="ti ti-info-circle fa-2x mb-2"></i>
-                            <div>Chưa ghi nhận hoạt động vận hành nào gần đây.</div>
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="timeline">
-                            @foreach (var act in Model.RecentActivities)
-                            {
-                                <div class="timeline-item">
-                                    <div class="timeline-badge @act.ColorClass">
-                                        <i class="@act.Icon"></i>
-                                    </div>
-                                    <div class="ms-2">
-                                        <div class="font-weight-bold fs-4">@act.Title</div>
-                                        <div class="text-muted small">@act.Description</div>
-                                        <span class="badge bg-light-lt text-muted px-2 py-0.5 mt-1 small" style="font-size: 0.75rem;">
-                                            <i class="ti ti-clock me-1"></i>@act.TimeText
-                                        </span>
-                                    </div>
-                                </div>
-                            }
-                        </div>
-                    }
-                </div>
+            <div id="viecCanLamFooter" class="card-footer text-end @(viecRong ? "d-none" : "")">
+                <a id="viecXemTatCa" href="@Url.Action("Index", "ViecCanLam", new { area = "QuanLyNhaTro", chiNhanhId = Model.SelectedBranchId })">Xem tất cả @viec.TongSo việc →</a>
             </div>
         </div>
     </div>
 </div>
 
 @section Scripts {
-    <script>
-        $(document).ready(function () {
-            function formatVND(n) {
-                if (n === null || n === undefined) return "0 ₫";
-                return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n);
-            }
-
-            // Khởi tạo các biểu đồ ban đầu
-            const initialLabels = @Html.Raw(Json.Serialize(Model.ChartLabels));
-            const initialData = @Html.Raw(Json.Serialize(Model.ChartData));
-            const initialDataChoThu = @Html.Raw(Json.Serialize(Model.ChartDataChoThu));
-
-            const initialRoomLabels = @Html.Raw(Json.Serialize(Model.RoomStatusLabels));
-            const initialRoomData = @Html.Raw(Json.Serialize(Model.RoomStatusData));
-
-            // 1. Biểu đồ Stacked Bar Chart
-            const ctxBar = document.getElementById('revenueBarChart').getContext('2d');
-            const revenueChart = new Chart(ctxBar, {
-                type: 'bar',
-                data: {
-                    labels: initialLabels,
-                    datasets: [
-                        {
-                            label: 'Đã thu tiền (VNĐ)',
-                            data: initialData,
-                            backgroundColor: '#2fb344', // success color
-                            borderRadius: 4
-                        },
-                        {
-                            label: 'Chờ thu tiền (VNĐ)',
-                            data: initialDataChoThu,
-                            backgroundColor: '#f59f00', // warning color
-                            borderRadius: 4
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: {
-                            stacked: true
-                        },
-                        y: {
-                            stacked: true,
-                            beginAtZero: true,
-                            ticks: {
-                                callback: function(value) {
-                                    return value.toLocaleString('vi-VN') + ' ₫';
-                                }
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            position: 'top'
-                        }
-                    }
-                }
-            });
-
-            // 2. Biểu đồ Doughnut Chart (Tình trạng phòng)
-            const ctxDoughnut = document.getElementById('roomStatusChart').getContext('2d');
-            const roomChart = new Chart(ctxDoughnut, {
-                type: 'doughnut',
-                data: {
-                    labels: initialRoomLabels,
-                    datasets: [{
-                        data: initialRoomData,
-                        backgroundColor: ['#206bc4', '#2fb344', '#f59f00'],
-                        borderWidth: 2,
-                        hoverOffset: 6
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom'
-                        }
-                    }
-                }
-            });
-
-            // Gọi AJAX cập nhật dữ liệu bảng điều khiển
-            function reloadDashboard() {
-                var branchId = $('#branchSelect').val();
-                var month = $('#monthSelect').val();
-                var year = $('#yearSelect').val();
-
-                // Cập nhật text năm trên tiêu đề chart
-                $('#chartYearText').text(year);
-
-                $.ajax({
-                    url: '/QuanLyNhaTro/Dashboard/GetAjaxData',
-                    type: 'GET',
-                    data: {
-                        branchId: branchId,
-                        month: month,
-                        year: year
-                    },
-                    success: function (res) {
-                        // 1. Cập nhật KPIs
-                        $('#statDoanhThu').text(formatVND(res.doanhThuThangNay));
-                        $('#statChoThu').text(formatVND(res.tongTienChoThu));
-                        $('#statChuaThanhToan').text(res.soPhongChuaThanhToan);
-                        $('#statHopDong').text(res.tongSoHopDongHoatDong);
-
-                        // 2. Cập nhật biểu đồ cột
-                        revenueChart.data.labels = res.chartLabels;
-                        revenueChart.data.datasets[0].data = res.chartData;
-                        revenueChart.data.datasets[1].data = res.chartDataChoThu;
-                        revenueChart.update();
-
-                        // 3. Cập nhật biểu đồ tròn
-                        roomChart.data.labels = res.roomStatusLabels;
-                        roomChart.data.datasets[0].data = res.roomStatusData;
-                        roomChart.update();
-
-                        // 4. Cập nhật danh sách Việc cần làm
-                        var todoHtml = '';
-                        if (res.toDos.length === 0) {
-                            todoHtml = `
-                                <div class="text-center text-muted py-4">
-                                    <i class="ti ti-circle-check fa-2x text-success mb-2"></i>
-                                    <div>Không có cảnh báo vận hành nào cần xử lý.</div>
-                                </div>`;
-                        } else {
-                            todoHtml = '<div class="list-group list-group-flush">';
-                            res.toDos.forEach(function (todo) {
-                                todoHtml += `
-                                    <a href="${todo.link}" class="list-group-item list-group-item-action border-0 px-0 py-3">
-                                        <div class="row align-items-center">
-                                            <div class="col-auto">
-                                                <span class="avatar rounded bg-${todo.type}-lt text-${todo.type}"><i class="${todo.icon}"></i></span>
-                                            </div>
-                                            <div class="col">
-                                                <div class="font-weight-bold">${todo.title}</div>
-                                                <div class="text-muted small">${todo.description}</div>
-                                            </div>
-                                            <div class="col-auto">
-                                                <span class="btn btn-sm btn-outline-${todo.type}">Xử lý ngay</span>
-                                            </div>
-                                        </div>
-                                    </a>`;
-                            });
-                            todoHtml += '</div>';
-                        }
-                        $('#toDoContainer').html(todoHtml);
-
-                        // 5. Cập nhật danh sách hoạt động gần đây
-                        var actHtml = '';
-                        if (res.recentActivities.length === 0) {
-                            actHtml = `
-                                <div class="text-center text-muted py-4">
-                                    <i class="ti ti-info-circle fa-2x mb-2"></i>
-                                    <div>Chưa ghi nhận hoạt động vận hành nào gần đây.</div>
-                                </div>`;
-                        } else {
-                            actHtml = '<div class="timeline">';
-                            res.recentActivities.forEach(function (act) {
-                                actHtml += `
-                                    <div class="timeline-item">
-                                        <div class="timeline-badge ${act.colorClass}">
-                                            <i class="${act.icon}"></i>
-                                        </div>
-                                        <div class="ms-2">
-                                            <div class="font-weight-bold fs-4">${act.title}</div>
-                                            <div class="text-muted small">${act.description}</div>
-                                            <span class="badge bg-light-lt text-muted px-2 py-0.5 mt-1 small" style="font-size: 0.75rem;">
-                                                <i class="ti ti-clock me-1"></i>${act.timeText}
-                                            </span>
-                                        </div>
-                                    </div>`;
-                            });
-                            actHtml += '</div>';
-                        }
-                        $('#activitiesContainer').html(actHtml);
-                    },
-                    error: function (xhr) {
-                        console.error('Không tải được dữ liệu dashboard:', xhr);
-                    }
-                });
-            }
-
-            // Lắng nghe thay đổi bộ lọc
-            $('#branchSelect, #monthSelect, #yearSelect').change(function () {
-                reloadDashboard();
-            });
-        });
-    </script>
+    <script>window.dashboardConfig = {
+        chartLabels: @Html.Raw(Json.Serialize(Model.ChartLabels)),
+        chartData: @Html.Raw(Json.Serialize(Model.ChartData)),
+        chartDataChoThu: @Html.Raw(Json.Serialize(Model.ChartDataChoThu)),
+        roomLabels: @Html.Raw(Json.Serialize(Model.RoomStatusLabels)),
+        roomData: @Html.Raw(Json.Serialize(Model.RoomStatusData)),
+        urlAjax: @Html.Raw(Json.Serialize(Url.Action("GetAjaxData", "Dashboard", new { area = "QuanLyNhaTro" }))),
+        urlViecCanLam: @Html.Raw(Json.Serialize(Url.Action("Index", "ViecCanLam", new { area = "QuanLyNhaTro" })))
+    };</script>
+    <script src="~/js/dashboard.js" asp-append-version="true"></script>
 }
 @section Styles {
-    <style>
-    /* Đồng bộ màu nền bộ lọc trong chế độ tối */
-    html[data-bs-theme="dark"] .bg-light,
-    [data-bs-theme="dark"] .bg-light {
-        background-color: var(--tblr-bg-surface-secondary, #1b2434) !important;
-        color: var(--tblr-body-color, #f4f6fa) !important;
-    }
-    html[data-bs-theme="dark"] .border-dashed,
-    [data-bs-theme="dark"] .border-dashed {
-        border-color: rgba(255, 255, 255, 0.15) !important;
-    }
-    
-    .avatar {
-        width: 2.5rem;
-        height: 2.5rem;
-        font-size: 1.25rem;
-    }
-
-    /* Styles cho timeline hoạt động */
-    .timeline {
-        position: relative;
-        padding-left: 1.5rem;
-        border-left: 2px solid var(--tblr-border-color, #e6e8eb);
-    }
-    .timeline-item {
-        position: relative;
-        margin-bottom: 1.5rem;
-    }
-    .timeline-item:last-child {
-        margin-bottom: 0;
-    }
-    .timeline-badge {
-        position: absolute;
-        left: -2.35rem;
-        top: 0.25rem;
-        width: 1.6rem;
-        height: 1.6rem;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.8rem;
-        color: #fff;
-        border: 3px solid var(--tblr-card-bg, #fff);
-    }
-</style>
+    <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" />
 }

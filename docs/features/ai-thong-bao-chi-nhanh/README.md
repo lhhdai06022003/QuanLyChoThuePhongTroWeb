@@ -2,7 +2,7 @@
 
 - **Mốc lộ trình vận hành:** bước 2, sau bước 1 "Phân quyền chi nhánh" (commit `818c949`).
 - **Nhánh Git:** `feature/ai-thong-bao-chi-nhanh`.
-- **Hiện trạng:** đặc tả 1.0 đã duyệt ngày 05/10/2026 ([spec.md](spec.md)). Code xong, test tự động PASS, người dùng thử tay đạt ngày 06/10/2026. Chưa commit.
+- **Hiện trạng:** đặc tả 1.0 đã duyệt ngày 05/10/2026 ([spec.md](spec.md)). Code xong, test tự động PASS, người dùng thử tay đạt ngày 06/10/2026. Đã commit `8295e36` và merge vào `master`.
 - **Schema:** không đổi.
 
 ## Tính năng cần hoàn thành

@@ -101,7 +101,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             TrangThaiHopDong = TrangThaiHopDong.DangHoatDong
         };
 
-        public static HttpClient NewClient(CustomWebApplicationFactory factory) =>
+        public static HttpClient NewClient(WebApplicationFactory<Program> factory) =>
             factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false, HandleCookies = true });
 
         public static string Token(string html)
@@ -112,7 +112,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
         }
 
         // Đăng nhập rồi lấy token antiforgery từ một trang quản lý đã xác thực.
-        public static async Task<(HttpClient Client, string Token)> LoginAsync(CustomWebApplicationFactory factory, string username, string page = "/PhongTros/QuanLyPhongTro")
+        public static async Task<(HttpClient Client, string Token)> LoginAsync(WebApplicationFactory<Program> factory, string username, string page = "/PhongTros/QuanLyPhongTro")
         {
             var client = NewClient(factory);
             var login = await client.GetAsync("/QuanLyNhaTro/DangNhap");
