@@ -2,7 +2,7 @@
 
 - **Mốc lộ trình vận hành:** bước 3, sau bước 2 "AI Assistant + Thông báo theo chi nhánh" (commit `8295e36`).
 - **Nhánh Git:** `feature/viec-can-lam`.
-- **Hiện trạng:** đặc tả đã duyệt ngày 06/10/2026 ([spec.md](spec.md), bản 1.1). Mockup đã duyệt trong [mockup/](mockup/). Triển khai bằng `/ship` 2 lượt: đợt A (backend) và đợt B (giao diện) xong ngày 08/10/2026, reviewer CHOT cả hai, full test PASS; review cuối của phiên chính (3 vòng, có chạy ứng dụng trên trình duyệt) ĐẠT ([review.md](review.md)); chưa commit. Spec 1.2 (CS1 tính theo kỳ `DaDuyet`) được người dùng xác nhận ngày 09/10/2026; người dùng đã thử bằng tài khoản nhân viên, chưa thấy lỗi.
+- **Hiện trạng:** đặc tả đã duyệt ngày 06/10/2026 ([spec.md](spec.md), bản 1.1). Mockup đã duyệt trong [mockup/](mockup/). Triển khai bằng `/ship` 2 lượt: đợt A (backend) và đợt B (giao diện) xong ngày 08/10/2026, reviewer CHOT cả hai, full test PASS; review cuối của phiên chính (3 vòng, có chạy ứng dụng trên trình duyệt) ĐẠT ([review.md](review.md)); đã commit `361575e` ngày 09/10/2026. Spec 1.2 (CS1 tính theo kỳ `DaDuyet`) được người dùng xác nhận ngày 09/10/2026; người dùng đã thử bằng tài khoản nhân viên, chưa thấy lỗi.
 - **Schema:** không đổi.
 
 ## Tính năng cần hoàn thành

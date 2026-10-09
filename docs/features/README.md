@@ -13,7 +13,7 @@ Các README sau mô tả **công việc dự kiến và người sở hữu**, t
 | [Phòng công khai và lịch xem](phong-cong-khai-lich-xem/README.md) | B | Có model/schema; chưa có luồng công khai/đặt lịch hoàn chỉnh |
 | [Khách vãng lai, giữ chỗ, cọc và hoàn tiền](khach-vang-lai-giu-cho/README.md) | B | Có model/schema; chưa có luồng Application/Web hoàn chỉnh |
 | [AI Assistant và Thông báo theo chi nhánh](ai-thong-bao-chi-nhanh/README.md) | — | Hoàn thành, đã merge vào `master` (commit `8295e36`) ngày 06/10/2026 |
-| [Trung tâm việc cần làm](viec-can-lam/README.md) | — | Code xong 2 đợt, review cuối ĐẠT 08/10/2026 ([review](viec-can-lam/review.md)); spec 1.2 đã xác nhận, người dùng thử tay đạt 09/10/2026; chưa commit |
+| [Trung tâm việc cần làm](viec-can-lam/README.md) | — | Code xong 2 đợt, review cuối ĐẠT 08/10/2026 ([review](viec-can-lam/review.md)); spec 1.2 đã xác nhận, người dùng thử tay đạt 09/10/2026; đã commit `361575e` |
 
 Quyền sở hữu file và lịch 60 ngày nằm trong [roadmap](../roadmap-60-ngay.md). Không đánh dấu hoàn thành chỉ vì đã có entity, migration hoặc thư mục tài liệu.
 

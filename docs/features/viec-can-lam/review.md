@@ -1,6 +1,6 @@
 # Review: Trung tâm việc cần làm (bước 3)
 
-- Ngày: 08/10/2026. Nhánh `feature/viec-can-lam`, chưa commit.
+- Ngày: 08/10/2026. Nhánh `feature/viec-can-lam`; code được commit ở `361575e` ngày 09/10/2026.
 - Nguồn đối chiếu: [spec.md](spec.md) (bản 1.2), [plan-dot-a.md](plan-dot-a.md), [plan-dot-b.md](plan-dot-b.md), mockup trong [mockup/](mockup/).
 - File này gộp ba lần đánh giá: reviewer `/ship` đợt A (backend), reviewer `/ship` đợt B (giao diện), và review cuối của phiên chính (3 vòng đọc code, chạy ứng dụng, sửa, chạy lại test).
 
