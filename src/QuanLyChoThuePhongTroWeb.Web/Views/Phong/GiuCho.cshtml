@@ -1,0 +1,48 @@
+@model QuanLyChoThuePhongTroWeb.ViewModels.PublicRooms.ReservationPageModel
+@{
+    Layout = "_PublicRoomLayout";
+    ViewData["Title"] = $"Đặt phòng {Model.Room.Room.SoPhong}";
+    var room = Model.Room.Room;
+    var cover = Model.Room.Images.FirstOrDefault();
+}
+
+<div class="guest-container guest-form-page">
+    <a class="guest-back" href="/phong/@room.PhongTroId">← Về thông tin phòng</a>
+    <div class="guest-form-grid">
+        <section>
+            <h1>Đặt phòng @room.SoPhong</h1>
+            <p class="guest-form-lead">Gửi yêu cầu giữ chỗ cho căn phòng bạn đã chọn. Nhân viên sẽ duyệt số tiền đặt cọc và thời hạn trước khi bạn chuyển khoản.</p>
+            <ol class="guest-booking-steps">
+                <li><strong>Gửi yêu cầu đặt phòng</strong><span>Đặt trực tiếp hoặc tiếp tục từ lịch xem của bạn.</span></li>
+                <li><strong>Nhân viên duyệt giữ chỗ</strong><span>Bạn nhận số tiền cần chuyển, hạn thanh toán và hạn ký hợp đồng.</span></li>
+                <li><strong>Chuyển khoản và gửi minh chứng</strong><span>Theo dõi xác nhận tiền trong mục Lịch xem và đặt phòng.</span></li>
+            </ol>
+        </section>
+        <section class="guest-booking-summary" aria-label="Xác nhận đặt phòng">
+            @if (cover is not null)
+            {
+                <img class="guest-booking-cover" src="@cover" alt="Phòng @room.SoPhong" />
+            }
+            <div class="guest-booking-content">
+                <h2>Phòng @room.SoPhong</h2>
+                <p>@room.TenChiNhanh · @room.DiaChi</p>
+                <p>@room.DienTich.ToString("0.#") m² · Tối đa @room.SoNguoiToiDa người</p>
+                <p class="guest-booking-price"><strong>@room.GiaThue.ToString("N0") ₫</strong> / tháng</p>
+                @if (Model.ViewingId.HasValue)
+                {
+                    <p>Đặt phòng từ lịch xem #@Model.ViewingId.Value.</p>
+                }
+                <div asp-validation-summary="All" class="text-danger" role="alert"></div>
+                <form method="post" action="/phong/@room.PhongTroId/giu-cho">
+                    @Html.AntiForgeryToken()
+                    @if (Model.ViewingId.HasValue)
+                    {
+                        <input type="hidden" name="viewingId" value="@Model.ViewingId.Value" />
+                    }
+                    <button class="guest-button guest-button-primary" type="submit">Gửi yêu cầu đặt phòng</button>
+                </form>
+                <p class="guest-field-hint">Chưa cần chuyển tiền ở bước này. Bạn có thể hủy yêu cầu trong tài khoản của mình.</p>
+            </div>
+        </section>
+    </div>
+</div>

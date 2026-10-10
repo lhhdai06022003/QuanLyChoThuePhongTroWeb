@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 namespace QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers
 {
     [Area("KhachThue")]
-    [Authorize]
+    [Authorize(Roles = "KhachThue")]
     public class SuCoController : Controller
     {
         private readonly IYeuCauSuCoService _yeuCauSuCoService;

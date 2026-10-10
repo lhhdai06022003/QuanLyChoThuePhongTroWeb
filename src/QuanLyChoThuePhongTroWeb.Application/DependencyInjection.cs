@@ -14,6 +14,13 @@ using QuanLyChoThuePhongTroWeb.Application.Features.YeuCauSuCos.Services;
 using QuanLyChoThuePhongTroWeb.Application.Features.ThongBaos.Services;
 using QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.Services;
 using QuanLyChoThuePhongTroWeb.Application.Features.ViecCanLam.Services;
+using QuanLyChoThuePhongTroWeb.Application.Features.PublicRooms;
+using QuanLyChoThuePhongTroWeb.Application.Features.GuestAccounts;
+using QuanLyChoThuePhongTroWeb.Application.Features.Viewings;
+using QuanLyChoThuePhongTroWeb.Application.Features.Reservations;
+using QuanLyChoThuePhongTroWeb.Application.Features.ReservationPayments;
+using QuanLyChoThuePhongTroWeb.Application.Features.ReservationSettlement;
+using QuanLyChoThuePhongTroWeb.Application.Features.RoomDepositedNotices;
 
 namespace QuanLyChoThuePhongTroWeb.Application
 {
@@ -28,6 +35,15 @@ namespace QuanLyChoThuePhongTroWeb.Application
 
             // Phase 6.2 services
             services.AddScoped<IPhongTroService, PhongTroService>();
+            services.AddScoped<IPublicRoomService, PublicRoomService>();
+            services.AddScoped<IGuestRegistrationService, GuestRegistrationService>();
+            services.AddScoped<IViewingRequestService, ViewingRequestService>();
+            services.AddScoped<IViewingSlotAdminService, ViewingSlotAdminService>();
+            services.AddScoped<IViewingAdminRequestService, ViewingAdminRequestService>();
+            services.AddScoped<IReservationService, ReservationService>();
+            services.AddScoped<IReservationPaymentService, ReservationPaymentService>();
+            services.AddScoped<IReservationSettlementService, ReservationSettlementService>();
+            services.AddScoped<IRoomNoticeService, RoomNoticeService>();
             services.AddScoped<INguoiThueService, NguoiThueService>();
             services.AddScoped<INguoiDungService, NguoiDungService>();
 

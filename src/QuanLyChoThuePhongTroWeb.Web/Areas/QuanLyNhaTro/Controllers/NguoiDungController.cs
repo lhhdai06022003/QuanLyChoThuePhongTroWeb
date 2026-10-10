@@ -30,9 +30,25 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         {
             if (User.Identity != null && User.Identity.IsAuthenticated)
             {
+                // Khách vãng lai bị từ chối ở cổng khách thuê sẽ về đây (AccessDeniedPath);
+                // không quay lại returnUrl đó để tránh vòng lặp chuyển hướng.
+                if (User.IsInRole("KhachVangLai") && IsTenantPortalUrl(returnUrl))
+                {
+                    return RedirectGuestFromTenantPortal();
+                }
+
+                if ((User.IsInRole("KhachThue") || User.IsInRole("KhachVangLai")) &&
+                    Url.IsLocalUrl(returnUrl) &&
+                    !returnUrl.Contains("/QuanLyNhaTro", StringComparison.OrdinalIgnoreCase))
+                    return Redirect(returnUrl);
+
                 if (User.IsInRole("KhachThue"))
                 {
                     return RedirectToAction("Index", "Dashboard", new { area = "KhachThue" });
+                }
+                if (User.IsInRole("KhachVangLai"))
+                {
+                    return Redirect("/tai-khoan/yeu-cau-phong");
                 }
                 return RedirectToAction("Index", "Dashboard", new { area = "QuanLyNhaTro" });
             }
@@ -94,12 +110,33 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
                 return RedirectToAction("Index", "Dashboard", new { area = "KhachThue" });
             }
 
+            if (user.Role == QuanLyChoThuePhongTroWeb.Application.Common.Enums.AppRole.KhachVangLai)
+            {
+                if (IsTenantPortalUrl(returnUrl))
+                    return RedirectGuestFromTenantPortal();
+
+                if (Url.IsLocalUrl(returnUrl) &&
+                    !returnUrl.Contains("/QuanLyNhaTro", StringComparison.OrdinalIgnoreCase))
+                    return Redirect(returnUrl);
+
+                return Redirect("/tai-khoan/yeu-cau-phong");
+            }
+
             if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
             {
                 return Redirect(returnUrl);
             }
 
             return RedirectToAction("Index", "Dashboard", new { area = "QuanLyNhaTro" });
+        }
+
+        private static bool IsTenantPortalUrl(string? returnUrl) =>
+            returnUrl != null && returnUrl.StartsWith("/KhachThue", StringComparison.OrdinalIgnoreCase);
+
+        private IActionResult RedirectGuestFromTenantPortal()
+        {
+            TempData["GuestReservationMessage"] = "Trang này dành cho khách thuê đã có hợp đồng. Bạn có thể theo dõi yêu cầu xem phòng và đặt cọc tại đây.";
+            return Redirect("/tai-khoan/yeu-cau-phong");
         }
 
         [AllowAnonymous]

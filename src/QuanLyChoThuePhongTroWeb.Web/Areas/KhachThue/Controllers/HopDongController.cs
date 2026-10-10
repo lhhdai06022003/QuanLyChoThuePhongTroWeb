@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 namespace QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers
 {
     [Area("KhachThue")]
-    [Authorize]
+    [Authorize(Roles = "KhachThue")]
     public class HopDongController : Controller
     {
         private readonly IHopDongService _hopDongService;

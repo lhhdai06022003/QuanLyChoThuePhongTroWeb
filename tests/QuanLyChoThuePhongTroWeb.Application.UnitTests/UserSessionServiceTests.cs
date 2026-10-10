@@ -65,6 +65,22 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.False(result);
         }
 
+        [Fact]
+        public async Task GuestAccount_MatchingGuestRole_ReturnsTrue()
+        {
+            const int guestId = 5;
+            _store.Snapshots[guestId] = new UserSessionSnapshotDto
+            {
+                NguoiDungId = guestId,
+                Role = Role.KhachVangLai,
+                IsActive = true
+            };
+
+            var result = await _service.IsSessionValidAsync(guestId, (AppRole)(int)Role.KhachVangLai);
+
+            Assert.True(result);
+        }
+
         [Theory]
         [InlineData(0)]
         [InlineData(-1)]

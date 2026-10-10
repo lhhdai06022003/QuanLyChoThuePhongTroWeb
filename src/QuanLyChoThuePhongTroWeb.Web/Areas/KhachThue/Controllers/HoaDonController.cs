@@ -7,7 +7,7 @@ using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services;
 namespace QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers
 {
     [Area("KhachThue")]
-    [Authorize]
+    [Authorize(Roles = "KhachThue")]
     public class HoaDonController : Controller
     {
         private readonly IHoaDonService _hoaDonService;

@@ -15,6 +15,48 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.Emails
 {
     public class MailKitEmailService : IEmailService
     {
+        public async Task<(bool IsSuccess, string ErrorMessage)> SendRoomDepositedNoticeAsync(
+            string toEmail, string recipientName, string roomNumber, string branchName)
+        {
+            var senderEmail = _configuration["EmailSettings:SenderEmail"];
+            var password = _configuration["EmailSettings:Password"];
+            if (string.IsNullOrWhiteSpace(senderEmail) || string.IsNullOrWhiteSpace(password))
+                return (false, "Chưa cấu hình tài khoản gửi email.");
+
+            try
+            {
+                var server = _configuration["EmailSettings:SmtpServer"] ?? "smtp.gmail.com";
+                var port = int.TryParse(_configuration["EmailSettings:Port"], out var parsed)
+                    ? parsed : 587;
+                var senderName = _configuration["EmailSettings:SenderName"] ??
+                    "Hệ thống Quản lý Nhà Trọ";
+                var message = new MimeMessage();
+                message.From.Add(new MailboxAddress(senderName, senderEmail));
+                message.To.Add(new MailboxAddress(recipientName, toEmail));
+                message.Subject = $"Thông báo phòng {roomNumber} đã có người đặt cọc";
+                message.Body = new TextPart("plain")
+                {
+                    Text = $"Xin chào {recipientName},\n\n" +
+                        $"Phòng {roomNumber} tại {branchName} đã có người đặt cọc. " +
+                        "Yêu cầu xem phòng hoặc giữ chỗ đang chờ của bạn có thể không tiếp tục được. " +
+                        "Vui lòng liên hệ nhân viên để được hỗ trợ hoặc xem phòng khác.\n\n" +
+                        "Trân trọng,\nBan quản lý nhà trọ"
+                };
+                using var client = new SmtpClient();
+                await client.ConnectAsync(server, port, SecureSocketOptions.StartTls);
+                await client.AuthenticateAsync(senderEmail, password);
+                await client.SendAsync(message);
+                await client.DisconnectAsync(true);
+                return (true, string.Empty);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Không gửi được email báo phòng {RoomNumber} tới {Email}",
+                    roomNumber, toEmail);
+                return (false, "Không gửi được email. Kiểm tra cấu hình SMTP và thử lại.");
+            }
+        }
+
         private readonly IConfiguration _configuration;
         private readonly ILogger<MailKitEmailService> _logger;
 

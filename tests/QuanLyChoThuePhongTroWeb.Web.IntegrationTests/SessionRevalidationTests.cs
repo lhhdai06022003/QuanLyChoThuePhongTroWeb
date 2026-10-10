@@ -25,28 +25,19 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
         }
 
         [Fact]
-        public void AppRole_DoesNotDefine_KhachVangLai()
+        public void AppRole_Defines_KhachVangLai()
         {
-            // Q1 (ĐÃ XÁC NHẬN 2026-09-28): AppRole không mở rộng thêm KhachVangLai (giá trị 3).
-            // OnValidatePrincipal trong Program.cs so khớp claim role theo TÊN (Enum.GetNames<AppRole>()),
-            // nên claim "KhachVangLai"/"3" không khớp tên nào và bị RejectPrincipal + SignOut ngay,
-            // không bao giờ tới UserSessionService.IsSessionValidAsync.
+            // Q1 (ĐỔI 2026-10-09, người dùng xác nhận khi gộp cổng khách vãng lai): AppRole thêm
+            // KhachVangLai = 3 để tài khoản khách vãng lai giữ được phiên đăng nhập. Quyết định cũ
+            // ngày 2026-09-28 (không mở rộng AppRole) không còn hiệu lực.
             var names = Enum.GetNames<AppRole>();
-
-            Assert.DoesNotContain("KhachVangLai", names, StringComparer.Ordinal);
-            Assert.Equal(new[] { "Admin", "NhanVien", "KhachThue" }, names);
+            Assert.Contains("KhachVangLai", names, StringComparer.Ordinal);
+            Assert.Equal(new[] { "Admin", "NhanVien", "KhachThue", "KhachVangLai" }, names);
         }
 
         [Fact]
-        public async Task KhachVangLaiAccount_LogsInSuccessfully_ButNextRequest_IsTreatedAsSignedOut()
+        public async Task KhachVangLaiAccount_LogsIn_AndCanOpenGuestRequests()
         {
-            // T1 (vòng bổ sung theo .bangiao/danh-gia.md): NguoiDungService.cs ép kiểu
-            // "Role = (AppRole)(int)user.Role" không chặn giá trị 3 (KhachVangLai), và
-            // NguoiDungController.cs tạo claim role bằng user.Role.ToString() = "3", nên
-            // đăng nhập bằng form thật VẪN THÀNH CÔNG (302 + cookie) cho tài khoản role 3.
-            // OnValidatePrincipal trong Program.cs mới là nơi chặn: claim "3" không khớp
-            // bất kỳ tên nào trong Enum.GetNames<AppRole>(), nên request kế tiếp bị SignOut
-            // và 302 về DangNhap. Test verify đúng hành vi quan sát được (không đoán).
             var username = $"khvangl_{Guid.NewGuid():N}".Substring(0, 20);
             const string password = "KhachVangLai123!";
 
@@ -87,19 +78,15 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
 
                 var loginResponse = await client.PostAsync("/QuanLyNhaTro/DangNhap", loginContent);
 
-                // Quan sát thực tế: đăng nhập vẫn thành công (claim role = "3" được tạo ra).
                 Assert.Equal(HttpStatusCode.Redirect, loginResponse.StatusCode);
                 Assert.True(
                     loginResponse.Headers.TryGetValues("Set-Cookie", out var cookies) &&
                     cookies.Any(c => c.Contains(".AspNetCore.Cookies")),
-                    "Đăng nhập tài khoản role 3 phải vẫn tạo cookie xác thực (theo code hiện tại, không bị chặn ở bước đăng nhập).");
+                    "Đăng nhập tài khoản khách vãng lai phải tạo cookie xác thực.");
+                Assert.Equal("/tai-khoan/yeu-cau-phong", loginResponse.Headers.Location?.ToString());
 
-                // Request kế tiếp bằng cookie vừa nhận: OnValidatePrincipal so khớp claim role
-                // "3" với Enum.GetNames<AppRole>() (không có "3"/"KhachVangLai") -> SignOut -> 302 DangNhap.
-                var afterLoginResponse = await client.GetAsync("/QuanLyNhaTro/Dashboard");
-                Assert.Equal(HttpStatusCode.Redirect, afterLoginResponse.StatusCode);
-                Assert.NotNull(afterLoginResponse.Headers.Location);
-                Assert.Contains("/QuanLyNhaTro/DangNhap", afterLoginResponse.Headers.Location!.ToString(), StringComparison.OrdinalIgnoreCase);
+                var afterLoginResponse = await client.GetAsync("/tai-khoan/yeu-cau-phong");
+                Assert.Equal(HttpStatusCode.OK, afterLoginResponse.StatusCode);
             }
             finally
             {

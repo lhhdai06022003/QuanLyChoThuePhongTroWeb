@@ -48,7 +48,14 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                     TangLau = p.TangLau,
                     GiaThue = p.GiaThue,
                     DienTich = p.DienTich,
-                    TrangThai = (int)p.TrangThai
+                    TrangThai = (int)p.TrangThai,
+                    DuocDangTin = p.DuocDangTin,
+                    ChiNhanhConHoatDong = !p.ChiNhanh.IsDeleted,
+                    SoAnhDangHoatDong = p.AnhPhongTros.Count(anh => anh.IsActive),
+                    AnhDaiDienUrl = p.AnhPhongTros.Where(anh => anh.IsActive)
+                        .OrderByDescending(anh => anh.LaAnhDaiDien)
+                        .ThenBy(anh => anh.ThuTuHienThi)
+                        .Select(anh => anh.Url).FirstOrDefault()
                 })
                 .OrderByDescending(p => p.PhongTroId)
                 .ToListAsync(cancellationToken);

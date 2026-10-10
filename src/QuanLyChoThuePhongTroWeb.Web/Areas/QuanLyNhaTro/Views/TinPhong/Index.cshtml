@@ -1,0 +1,109 @@
+@model QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.ListingPreviewPage
+@{
+    ViewData["Title"] = "Tin phòng công khai";
+}
+
+<div class="container-xl py-4 guest-admin">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+        <div>
+            <h1 class="page-title mb-2">Tin phòng công khai</h1>
+            <p class="text-secondary mb-0">Xem phòng có thể đăng, ảnh hiện có và cách tin xuất hiện với khách.</p>
+        </div>
+        <a class="btn btn-outline-primary" href="/phong" target="_blank" rel="noopener">Xem trang khách <i class="ti ti-external-link ms-1" aria-hidden="true"></i></a>
+    </div>
+
+    <div class="row row-cards mb-4">
+        <div class="col-sm-4"><div class="card card-body guest-admin-stat"><span>Phòng trong hệ thống</span><strong>@Model.Rooms.Count</strong></div></div>
+        <div class="col-sm-4"><div class="card card-body guest-admin-stat"><span>Phòng đang trống</span><strong>@Model.ReadyCount</strong></div></div>
+        <div class="col-sm-4"><div class="card card-body guest-admin-stat"><span>Tin đang hiển thị</span><strong>@Model.VisibleCount</strong></div></div>
+    </div>
+
+    <div class="card guest-admin-table">
+        <div class="card-header"><h2 class="card-title">Danh sách tin và ảnh phòng</h2></div>
+        <div class="table-responsive">
+            <table class="table table-vcenter card-table">
+                <thead><tr><th>Phòng</th><th>Giá thuê</th><th>Ảnh</th><th>Tình trạng phòng</th><th>Hiển thị công khai</th><th class="text-end">Thao tác</th></tr></thead>
+                <tbody>
+                @foreach (var room in Model.Rooms)
+                {
+                    var roomStatus = room.RoomStatus switch { 0 => "Trống", 1 => "Đã thuê", 2 => "Bảo trì", _ => "Không rõ" };
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center gap-3">
+                                @if (room.CoverUrl is string cover)
+                                {
+                                    <img class="guest-admin-cover" src="@cover" alt="Ảnh phòng @room.RoomNumber" loading="lazy" />
+                                }
+                                else
+                                {
+                                    <span class="guest-admin-cover guest-admin-cover-empty" aria-label="Chưa có ảnh"><i class="ti ti-photo" aria-hidden="true"></i></span>
+                                }
+                                <span><strong>Phòng @room.RoomNumber</strong><small class="d-block text-secondary">@room.BranchName · @room.Area.ToString("0.#") m²</small></span>
+                            </div>
+                        </td>
+                        <td class="text-nowrap"><strong>@room.MonthlyRent.ToString("N0") ₫</strong><small class="d-block text-secondary">mỗi tháng</small></td>
+                        <td>@room.ImageCount / 10 ảnh</td>
+                        <td><span class="badge @(room.RoomStatus == 0 ? "bg-green-lt" : "bg-secondary-lt")">@roomStatus</span></td>
+                        <td><span class="badge @(room.IsVisible ? "bg-blue-lt" : "bg-secondary-lt")">@(room.IsVisible ? "Đang hiển thị" : "Chưa hiển thị")</span></td>
+                        <td class="text-end">
+                            <div class="d-flex justify-content-end flex-wrap gap-2">
+                                @if (room.IsVisible)
+                                {
+                                    <a class="btn btn-outline-secondary btn-sm" href="/phong/@room.RoomId" target="_blank" rel="noopener">Xem tin</a>
+                                }
+                                <button class="btn btn-outline-primary btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#listingPreviewModal"
+                                        data-listing-open data-room="@room.RoomNumber" data-branch="@room.BranchName"
+                                        data-price="@room.MonthlyRent.ToString("N0")" data-images="@room.ImageCount"
+                                        data-ready="@(room.RoomStatus == 0 ? "true" : "false")"
+                                        data-visible="@(room.IsVisible ? "true" : "false")">Chỉnh sửa tin</button>
+                            </div>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+        @if (Model.Rooms.Count == 0)
+        {
+            <div class="card-body text-secondary">Chưa có phòng trọ. Hãy thêm phòng ở mục “Phòng trọ” trước khi chuẩn bị tin công khai.</div>
+        }
+    </div>
+</div>
+
+<div class="modal modal-blur fade" id="listingPreviewModal" tabindex="-1" aria-labelledby="listingPreviewTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content">
+        <div class="modal-header">
+            <h2 class="modal-title" id="listingPreviewTitle">Chỉnh sửa tin phòng</h2>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+        </div>
+        <div class="modal-body">
+            <p class="text-secondary" id="listingPreviewRoom"></p>
+            <div class="row g-3">
+                <div class="col-md-7">
+                    <label class="form-label" for="listingTitle">Tiêu đề tin</label>
+                    <input class="form-control" id="listingTitle" type="text" placeholder="Ví dụ: Phòng sáng thoáng gần trung tâm" />
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label" for="listingVisibility">Hiển thị tin</label>
+                    <select class="form-select" id="listingVisibility"><option value="true">Đăng công khai</option><option value="false">Ẩn tin</option></select>
+                </div>
+                <div class="col-12">
+                    <label class="form-label" for="listingDescription">Mô tả phòng</label>
+                    <textarea class="form-control" id="listingDescription" rows="3" placeholder="Điểm nổi bật, nội thất, tiện ích... "></textarea>
+                </div>
+                <div class="col-12">
+                    <label class="form-label" for="listingPhotos">Ảnh phòng</label>
+                    <input class="form-control" id="listingPhotos" type="file" accept="image/jpeg,image/png,image/webp" multiple />
+                    <div class="form-hint mt-1" id="listingPhotoHint">Chọn ảnh JPEG, PNG hoặc WebP.</div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button>
+            <button type="button" class="btn btn-primary" disabled>Lưu tin và ảnh</button>
+        </div>
+    </div></div>
+</div>
+
+@section Styles { <link rel="stylesheet" href="~/css/staff-guest-management.css" asp-append-version="true" /> }
+@section Scripts { <script src="~/js/staff-guest-management.js" asp-append-version="true" defer></script> }

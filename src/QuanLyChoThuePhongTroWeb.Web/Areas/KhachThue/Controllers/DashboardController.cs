@@ -9,7 +9,7 @@ using QuanLyChoThuePhongTroWeb.Models;
 namespace QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers
 {
     [Area("KhachThue")]
-    [Authorize]
+    [Authorize(Roles = "KhachThue")]
     public class DashboardController : Controller
     {
         private readonly INguoiThueService _nguoiThueService;

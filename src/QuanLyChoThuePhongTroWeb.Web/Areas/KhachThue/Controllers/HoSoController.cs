@@ -8,7 +8,7 @@ using System.Diagnostics;
 namespace QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers
 {
     [Area("KhachThue")]
-    [Authorize]
+    [Authorize(Roles = "KhachThue")]
     public class HoSoController : Controller
     {
         private readonly INguoiThueService _nguoiThueService;
