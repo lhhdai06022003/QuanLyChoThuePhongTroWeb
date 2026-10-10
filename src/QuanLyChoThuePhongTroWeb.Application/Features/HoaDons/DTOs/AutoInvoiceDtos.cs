@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using QuanLyChoThuePhongTroWeb.Application.Features.Emails.DTOs;
 
 namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs
 {
@@ -28,7 +29,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs
         ChiNhanhKhongCoNhanVien,
         NguoiThucHienThieuQuyen,
         NhieuHopDongTrongKy,
-        LoiKhiTao
+        LoiKhiTao,
+        ThieuDonGia
     }
 
     public enum AutoInvoiceOutcome
@@ -45,5 +47,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs
         public int? HoaDonId { get; init; }
         public int? NguoiThucHienId { get; init; }
         public DateTime? HanPhanHoiUtc { get; init; }
+        // Chỉ có khi RunForRoomAsync được gọi với hoanGuiEmail = true: email tạm tính chưa gửi, caller gửi nền.
+        public PendingProvisionalEmail? EmailChoGui { get; init; }
     }
 }

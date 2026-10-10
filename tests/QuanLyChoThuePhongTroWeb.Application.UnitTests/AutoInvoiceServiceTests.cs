@@ -397,6 +397,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
                 PhongTroId = ctx.PhongTroId, SoPhong = ctx.SoPhong, ChiNhanhId = ctx.ChiNhanhId, SoDienThoaiChiNhanh = "",
                 Thang = ctx.Thang, Nam = ctx.Nam, DichVuDienNuocCuaPhongId = ctx.DichVuDienNuocCuaPhongId,
                 TrangThaiGhiNhan = ctx.TrangThaiGhiNhan, ChiSoDienCu = ctx.ChiSoDienCu, ChiSoNuocCu = ctx.ChiSoNuocCu,
+                DonGiaDien = ctx.DonGiaDien, DonGiaNuoc = ctx.DonGiaNuoc,
                 Images = ctx.Images, HopDongHieuLuc = ctx.HopDongHieuLuc, NguoiDungKhachId = ctx.NguoiDungKhachId
             };
             var h = new Harness(noPhone);
@@ -717,6 +718,119 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             await h.Run();
 
             Assert.Equal(new AutoInvoiceOptions().SoKyTrungBinh, h.Store.LastSoKyTrungBinh);
+        }
+
+
+        // ---------- Đợt B: ThieuDonGia, đánh giá lại (L3), hoãn email (L2) ----------
+
+        [Fact]
+        public async Task ThieuDonGia_NotifiesStaffWithGuidance_NotCustomer_AndCreatesNothing()
+        {
+            var ctx = Ctx(status: TrangThaiGhiNhan.DaDuyet, dienMoi: 120, nuocMoi: 60, donGiaDien: 0, donGiaNuoc: 20000);
+            var h = new Harness(ctx);
+
+            var result = await h.Run();
+
+            Assert.Equal(AutoInvoiceOutcome.DungCoThongBao, result.Data!.Outcome);
+            Assert.Equal(new[] { AutoInvoiceReason.ThieuDonGia }, result.Data.LyDos);
+            var notice = Assert.Single(h.ThongBao.Sent);
+            Assert.Equal("Phong", notice.Kind);
+            Assert.Equal("/QuanLyNhaTro/ChotDienNuoc?thang=10&nam=2026", notice.Link);
+            Assert.Contains("chưa có đơn giá điện cho kỳ 10/2026", notice.NoiDung);
+            Assert.Contains("Đơn giá của kỳ được lưu lúc tạo kỳ; lập hóa đơn theo luồng tay và sửa dòng điện/nước ở bản nháp.", notice.NoiDung);
+            Assert.DoesNotContain(h.ThongBao.Sent, n => n.Kind == "Khach");
+            Assert.Empty(h.Workflow.ApprovedBatchRequests);
+            Assert.Empty(h.Issuance.CreateCalls);
+            Assert.Empty(h.Email.ProvisionalCalls);
+        }
+
+        [Fact]
+        public async Task OtherReasons_DoNotCarryThieuDonGiaGuidance()
+        {
+            var h = new Harness(Ctx(new[] { Img(1, LoaiDongHo.Dien, ai: 120m), Img(2, LoaiDongHo.Nuoc, ai: 60m) }, kyTruocChuaChot: true));
+
+            await h.Run();
+
+            Assert.DoesNotContain("Đơn giá của kỳ", Assert.Single(h.ThongBao.Sent).NoiDung);
+        }
+
+        [Fact]
+        public async Task ReevaluatesBeforeCreating_StopsWhenRoomNoLongerEligible_WithNotice()
+        {
+            var h = new Harness(Good());
+            h.Store.Contexts.Add(Good());
+            h.Store.Contexts.Add(Ctx(new[] { Img(1, LoaiDongHo.Dien, ai: 120m), Img(2, LoaiDongHo.Nuoc, ai: 60m) }, kyTruocChuaChot: true));
+
+            var result = await h.Run();
+
+            Assert.Equal(AutoInvoiceOutcome.DungCoThongBao, result.Data!.Outcome);
+            Assert.Equal(new[] { AutoInvoiceReason.KyTruocChuaChot }, result.Data.LyDos);
+            Assert.Empty(h.Issuance.CreateCalls);
+            Assert.Empty(h.Issuance.SubmitProvisionalCalls);
+            Assert.Equal("Phong", Assert.Single(h.ThongBao.Sent).Kind);
+        }
+
+        [Fact]
+        public async Task ReevaluatesBeforeCreating_StopsSilentlyWhenInvoiceAppeared()
+        {
+            var h = new Harness(Good());
+            h.Store.Contexts.Add(Good());
+            h.Store.Contexts.Add(Ctx(new[] { Img(1, LoaiDongHo.Dien, ai: 120m), Img(2, LoaiDongHo.Nuoc, ai: 60m) }, coHoaDon: true));
+
+            var result = await h.Run();
+
+            Assert.Equal(AutoInvoiceOutcome.DungImLang, result.Data!.Outcome);
+            Assert.Empty(h.Issuance.CreateCalls);
+            Assert.Empty(h.ThongBao.Sent);
+        }
+
+        [Fact]
+        public async Task ReevaluatesBeforeCreating_ProvisionalEmailUsesLatestReadings()
+        {
+            var h = new Harness(Good(email: "khach@example.com"));
+            h.Store.Contexts.Add(Good(email: "khach@example.com"));
+            h.Store.Contexts.Add(Good(email: "khach@example.com", images: new[]
+            {
+                Img(1, LoaiDongHo.Dien, ai: 125m, tinCay: 0.95),
+                Img(2, LoaiDongHo.Nuoc, ai: 62m, tinCay: 0.97)
+            }));
+
+            var result = await h.Run();
+
+            Assert.Equal(AutoInvoiceOutcome.DaGuiTamTinh, result.Data!.Outcome);
+            var mail = Assert.Single(h.Email.ProvisionalCalls);
+            Assert.Equal(125m, mail.Data.ChiSoDienMoi);
+            Assert.Equal(62m, mail.Data.ChiSoNuocMoi);
+        }
+
+        [Fact]
+        public async Task HoanGuiEmail_True_DoesNotSendEmail_AndReturnsPendingEmail()
+        {
+            var h = new Harness(Good(email: "khach@example.com"));
+
+            var result = await h.Service.RunForRoomAsync(Actor, AutoInvoiceTrigger.ChotKy, Phong, 10, 2026, hoanGuiEmail: true);
+
+            Assert.Equal(AutoInvoiceOutcome.DaGuiTamTinh, result.Data!.Outcome);
+            Assert.Empty(h.Email.ProvisionalCalls);
+            var pending = result.Data.EmailChoGui;
+            Assert.NotNull(pending);
+            Assert.Equal(500, pending!.HoaDonId);
+            Assert.Equal("khach@example.com", pending.ToEmail);
+            Assert.Equal("HD-500", pending.Data.MaHoaDon);
+            Assert.Equal(1_234_500m, pending.Data.TongTien);
+            Assert.Equal(Han, pending.Data.HanTuChotUtc);
+            Assert.Contains(h.ThongBao.Sent, n => n.Kind == "Khach");
+        }
+
+        [Fact]
+        public async Task HoanGuiEmail_False_SendsEmailImmediately_AndReturnsNoPendingEmail()
+        {
+            var h = new Harness(Good(email: "khach@example.com"));
+
+            var result = await h.Service.RunForRoomAsync(Actor, AutoInvoiceTrigger.ChotKy, Phong, 10, 2026);
+
+            Assert.Null(result.Data!.EmailChoGui);
+            Assert.Single(h.Email.ProvisionalCalls);
         }
     }
 }

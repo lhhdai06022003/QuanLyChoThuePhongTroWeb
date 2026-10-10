@@ -26,6 +26,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         private readonly IInvoiceViewService _invoiceViewService;
         private readonly IInvoiceLedgerService _ledgerService;
         private readonly IInvoicePaymentConfirmationService _paymentService;
+        private readonly IInvoiceAdjustmentService _adjustmentService;
 
         public HoaDonController(
             IHoaDonService hoaDonService,
@@ -38,8 +39,10 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             IInvoicePublicationService invoicePublicationService,
             IInvoiceViewService invoiceViewService,
             IInvoiceLedgerService ledgerService,
-            IInvoicePaymentConfirmationService paymentService)
+            IInvoicePaymentConfirmationService paymentService,
+            IInvoiceAdjustmentService adjustmentService)
         {
+            _adjustmentService = adjustmentService;
             _ledgerService = ledgerService;
             _paymentService = paymentService;
             _invoiceIssuanceService = invoiceIssuanceService;
@@ -567,6 +570,68 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             });
         }
 
+        [HttpGet("/HoaDon/DieuChinh/{id:int}")]
+        public async Task<IActionResult> DieuChinhThongTin(int id, CancellationToken ct)
+        {
+            if (!TryGetActorId(out var actorId))
+                return Unauthorized(new { success = false, message = "Người dùng chưa đăng nhập hoặc phiên làm việc đã hết hạn." });
+
+            var result = await _adjustmentService.GetAdjustmentInfoAsync(actorId, id, ct);
+            if (!result.Success) return this.ToErrorResult(result);
+
+            var info = result.Data!;
+            return Ok(new
+            {
+                hoaDonId = info.HoaDonId,
+                maHoaDon = info.MaHoaDon,
+                coTheDieuChinh = info.CoTheDieuChinh,
+                lyDoKhoa = info.LyDoKhoa,
+                chiSoDienCu = info.ChiSoDienCu,
+                chiSoDienMoi = info.ChiSoDienMoi,
+                chiSoNuocCu = info.ChiSoNuocCu,
+                chiSoNuocMoi = info.ChiSoNuocMoi,
+                hanTuChot = FormatVietnamTime(info.HanPhanHoiUtc)
+            });
+        }
+
+        // Cùng định dạng giờ Việt Nam cho GET và POST điều chỉnh.
+        private static string? FormatVietnamTime(DateTime? utc)
+            => utc?.AddHours(7).ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture);
+
+        [HttpPost("/HoaDon/DieuChinh/{id:int}")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DieuChinh(int id, [FromBody] DieuChinhHoaDonReq? req, CancellationToken ct)
+        {
+            if (id <= 0 || req == null)
+                return BadRequest(new { success = false, message = "Dữ liệu không hợp lệ." });
+
+            if (!TryGetActorId(out var actorId))
+                return Unauthorized(new { success = false, message = "Người dùng chưa đăng nhập hoặc phiên làm việc đã hết hạn." });
+
+            var result = await _adjustmentService.AdjustAsync(actorId, new AdjustInvoiceRequest
+            {
+                HoaDonId = id,
+                ChiSoDienMoi = req.ChiSoDienMoi,
+                ChiSoNuocMoi = req.ChiSoNuocMoi
+            }, ct);
+            if (!result.Success) return this.ToErrorResult(result);
+
+            var d = result.Data!;
+            return Ok(new
+            {
+                success = true,
+                message = result.Message,
+                data = new
+                {
+                    hoaDonId = d.HoaDonIdMoi,
+                    maHoaDon = d.MaHoaDonMoi,
+                    tongTien = d.TongTienMoi,
+                    hanTuChot = FormatVietnamTime(d.HanPhanHoiUtc),
+                    daTaoHoaDonThayThe = d.DaTaoHoaDonThayThe
+                }
+            });
+        }
+
         private bool TryGetActorId(out int actorId)
         {
             return int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out actorId) && actorId > 0;
@@ -576,6 +641,12 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
     public class RejectInvoiceReq
     {
         public string? LyDo { get; set; }
+    }
+
+    public class DieuChinhHoaDonReq
+    {
+        public decimal ChiSoDienMoi { get; set; }
+        public decimal ChiSoNuocMoi { get; set; }
     }
 
     public class PublishInvoicesReq

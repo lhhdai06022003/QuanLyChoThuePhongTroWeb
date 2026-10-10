@@ -30,7 +30,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             typeof(IViecCanLamService),
             typeof(IAiAssistantService),
             typeof(IYeuCauSuCoService),
-            typeof(IAutoInvoiceService)
+            typeof(IAutoInvoiceService),
+            typeof(IInvoiceAdjustmentService)
         };
 
         private static readonly HashSet<string> Exceptions = new()

@@ -133,7 +133,9 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests.Fixtures
                 e.Category.Contains("InvoiceReminderJob", StringComparison.OrdinalIgnoreCase) ||
                 e.Category.Contains("InvoiceReminderUseCase", StringComparison.OrdinalIgnoreCase) ||
                 e.Category.Contains("ContractExpiryAlertUseCase", StringComparison.OrdinalIgnoreCase) ||
-                e.Category.Contains("ContractAutoCloseUseCase", StringComparison.OrdinalIgnoreCase)
+                e.Category.Contains("ContractAutoCloseUseCase", StringComparison.OrdinalIgnoreCase) ||
+                e.Category.Contains("AutoInvoiceFinalizeJob", StringComparison.OrdinalIgnoreCase) ||
+                e.Category.Contains("AutoInvoiceFinalizeUseCase", StringComparison.OrdinalIgnoreCase)
             ).ToList();
 
             if (bgJobLogs.Count > 0)

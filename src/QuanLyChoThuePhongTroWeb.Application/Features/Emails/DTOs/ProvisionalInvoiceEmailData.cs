@@ -20,5 +20,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.Emails.DTOs
         public decimal ChiSoNuocCu { get; init; }
         public decimal ChiSoNuocMoi { get; init; }
         public DateTime HanTuChotUtc { get; init; }
+        public bool LaDieuChinh { get; init; }
     }
 }

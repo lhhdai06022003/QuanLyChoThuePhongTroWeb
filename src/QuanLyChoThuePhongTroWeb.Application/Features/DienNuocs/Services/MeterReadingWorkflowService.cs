@@ -1185,6 +1185,143 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
             }
         }
 
+        public async Task<ServiceResult<MeterAdjustmentResult>> AdjustReadingsInCurrentTransactionAsync(MeterAdjustmentRequest request, int actorUserId, CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (request == null)
+            {
+                return ServiceResult<MeterAdjustmentResult>.Fail("Yêu cầu không hợp lệ.");
+            }
+
+            if (request.DichVuDienNuocCuaPhongId <= 0)
+            {
+                return ServiceResult<MeterAdjustmentResult>.Fail("Kỳ chỉ số không hợp lệ.");
+            }
+
+            if (request.ChiSoDienMoi < 0 || request.ChiSoNuocMoi < 0)
+            {
+                return ServiceResult<MeterAdjustmentResult>.Fail("Chỉ số xác nhận không được âm.");
+            }
+
+            if (((decimal.GetBits(request.ChiSoDienMoi)[3] >> 16) & 0x7F) > 3 || ((decimal.GetBits(request.ChiSoNuocMoi)[3] >> 16) & 0x7F) > 3)
+            {
+                return ServiceResult<MeterAdjustmentResult>.Fail("Chỉ số mới không được có quá 3 chữ số thập phân.");
+            }
+
+            if (string.IsNullOrWhiteSpace(request.LyDo))
+            {
+                return ServiceResult<MeterAdjustmentResult>.Fail("Lý do sửa số không được để trống.");
+            }
+
+            var trimmedLyDo = request.LyDo.Trim();
+            if (trimmedLyDo.Length > 500)
+            {
+                return ServiceResult<MeterAdjustmentResult>.Fail("Lý do sửa số không được vượt quá 500 ký tự.");
+            }
+
+            var period = await _store.GetPeriodByIdForUpdateAsync(request.DichVuDienNuocCuaPhongId, cancellationToken);
+            if (period == null || period.IsDeleted)
+            {
+                return ServiceResult<MeterAdjustmentResult>.Fail("Không tìm thấy dữ liệu kỳ của hóa đơn.");
+            }
+
+            var branchId = await _store.GetBranchIdByRoomAsync(period.PhongTroId, cancellationToken);
+            if (branchId == null
+                || !await _employeeAccessService.CanPerformAsync(actorUserId, branchId.Value, EmployeeActionCodes.MeterReview, cancellationToken))
+            {
+                return ServiceResult<MeterAdjustmentResult>.Forbidden("Bạn không có quyền sửa chỉ số cho chi nhánh này.");
+            }
+
+            if (period.TrangThaiGhiNhan != TrangThaiGhiNhan.DaDuyet)
+            {
+                return ServiceResult<MeterAdjustmentResult>.Fail("Kỳ chỉ số điện nước liên kết chưa được chốt.");
+            }
+
+            if (await _store.HasSubsequentPeriodAsync(period.PhongTroId, period.Thang, period.Nam, cancellationToken))
+            {
+                return ServiceResult<MeterAdjustmentResult>.Fail("Kỳ sau đã được chốt hoặc đã có hóa đơn phát hành, không thể điều chỉnh.");
+            }
+
+            if (await _store.HasLockedInvoiceAsync(period.DichVuDienNuocCuaPhongId, cancellationToken))
+            {
+                return ServiceResult<MeterAdjustmentResult>.Fail("Kỳ này đã có hóa đơn không còn ở trạng thái nháp, không thể chỉnh sửa.");
+            }
+
+            if (request.ChiSoDienMoi < period.ChiSoDienCu)
+            {
+                return ServiceResult<MeterAdjustmentResult>.Fail("Chỉ số điện mới không được nhỏ hơn chỉ số điện cũ.");
+            }
+
+            if (request.ChiSoNuocMoi < period.ChiSoNuocCu)
+            {
+                return ServiceResult<MeterAdjustmentResult>.Fail("Chỉ số nước mới không được nhỏ hơn chỉ số nước cũ.");
+            }
+
+            var result = new MeterAdjustmentResult
+            {
+                ChiSoDienCu = period.ChiSoDienMoi,
+                ChiSoDienMoi = request.ChiSoDienMoi,
+                ChiSoNuocCu = period.ChiSoNuocMoi,
+                ChiSoNuocMoi = request.ChiSoNuocMoi
+            };
+
+            var currentNote = period.GhiChuDuyet ?? string.Empty;
+            var newNoteParts = new List<string>();
+            foreach (var (loai, soMoi, soHienTai, tenHienThi) in new[]
+            {
+                (LoaiDongHo.Dien, request.ChiSoDienMoi, period.ChiSoDienMoi, "Điện"),
+                (LoaiDongHo.Nuoc, request.ChiSoNuocMoi, period.ChiSoNuocMoi, "Nước")
+            })
+            {
+                if (soMoi == soHienTai)
+                {
+                    continue;
+                }
+
+                var images = await _store.GetImagesForUpdateAsync(period.DichVuDienNuocCuaPhongId, loai, cancellationToken);
+                var official = images.FirstOrDefault(a => a.DuocChonLamChiSoChinhThuc && !a.IsDeleted);
+                if (official != null)
+                {
+                    official.SuaGiaTriXacNhan(soMoi, actorUserId, trimmedLyDo);
+                    continue;
+                }
+
+                var part = $"[{tenHienThi} thủ công: {trimmedLyDo}]";
+                if (!currentNote.Contains(part, StringComparison.Ordinal))
+                {
+                    newNoteParts.Add(part);
+                }
+            }
+
+            string? fullNote;
+            if (newNoteParts.Count > 0)
+            {
+                fullNote = string.IsNullOrWhiteSpace(currentNote)
+                    ? string.Join("; ", newNoteParts)
+                    : $"{currentNote}; {string.Join("; ", newNoteParts)}";
+            }
+            else
+            {
+                fullNote = string.IsNullOrWhiteSpace(currentNote) ? null : currentNote;
+            }
+
+            period.CapNhatChiSo(request.ChiSoDienMoi, request.ChiSoNuocMoi);
+            period.DuyetLai(actorUserId, fullNote);
+
+            var linkedInvoices = await _hoaDonStore.GetInvoicesByMeterReadingIdsAsync(new[] { period.DichVuDienNuocCuaPhongId }, cancellationToken);
+            RecalculateDraftInvoices(period, linkedInvoices);
+
+            var cascadeError = await CascadeSubsequentPeriodsAsync(period, cancellationToken);
+            if (cascadeError != null)
+            {
+                return ServiceResult<MeterAdjustmentResult>.Fail(cascadeError);
+            }
+
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            return ServiceResult<MeterAdjustmentResult>.Ok(result);
+        }
+
         /// <summary>
         /// Sau khi chỉ số mới của <paramref name="period"/> thay đổi, cập nhật chỉ số cũ của các kỳ sau còn là bản nháp
         /// (kỳ sau đã duyệt hoặc có hóa đơn phát hành đã khóa kỳ này từ trước nên không tới đây).

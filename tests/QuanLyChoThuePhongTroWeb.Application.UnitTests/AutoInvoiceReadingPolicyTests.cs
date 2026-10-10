@@ -41,13 +41,17 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             decimal dienCu = 100,
             decimal dienMoi = 0,
             decimal nuocCu = 50,
-            decimal nuocMoi = 0)
+            decimal nuocMoi = 0,
+            decimal donGiaDien = 3500m,
+            decimal donGiaNuoc = 15000m,
+            string tenChiNhanh = "Chi nhánh A")
         {
             return new AutoInvoiceRoomContext
             {
                 PhongTroId = 101,
                 SoPhong = "101",
                 ChiNhanhId = 1,
+                TenChiNhanh = tenChiNhanh,
                 SoDienThoaiChiNhanh = "0900000000",
                 Thang = 10,
                 Nam = 2026,
@@ -57,6 +61,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
                 ChiSoDienMoi = dienMoi,
                 ChiSoNuocCu = nuocCu,
                 ChiSoNuocMoi = nuocMoi,
+                DonGiaDien = donGiaDien,
+                DonGiaNuoc = donGiaNuoc,
                 Images = images ?? Array.Empty<AutoInvoiceMeterImage>(),
                 TieuThuCacKyTruoc = truoc ?? Array.Empty<AutoInvoiceConsumption>(),
                 HopDongHieuLuc = contracts ?? new[] { new AutoInvoiceContractRef(10, 7) },
@@ -502,6 +508,73 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             var d = AutoInvoiceReadingPolicy.EvaluateRoom(GoodCtx(khachId: 5, email: null), Options);
 
             Assert.True(d.DuDieuKien);
+        }
+
+
+        // ---------- ThieuDonGia (L1) ----------
+
+        private static AutoInvoiceRoomContext Approved(decimal dienMoi, decimal nuocMoi, decimal donGiaDien, decimal donGiaNuoc,
+            bool kyTruocChuaChot = false, TrangThaiGhiNhan? status = TrangThaiGhiNhan.DaDuyet)
+            => Ctx(status: status, dienMoi: dienMoi, nuocMoi: nuocMoi, donGiaDien: donGiaDien, donGiaNuoc: donGiaNuoc, kyTruocChuaChot: kyTruocChuaChot);
+
+        [Fact]
+        public void Room_ConsumptionWithoutElectricityRate_IsThieuDonGia()
+        {
+            var d = AutoInvoiceReadingPolicy.EvaluateRoom(Approved(130, 50, donGiaDien: 0, donGiaNuoc: 0), Options);
+
+            Assert.False(d.DuDieuKien);
+            Assert.Equal(new[] { AutoInvoiceReason.ThieuDonGia }, d.LyDos);
+            var moTa = d.MoTaLyDos.Single();
+            Assert.Equal("Chi nhánh Chi nhánh A chưa có đơn giá điện cho kỳ 10/2026", moTa);
+        }
+
+        [Fact]
+        public void Room_ConsumptionWithoutWaterRate_IsThieuDonGia()
+        {
+            var d = AutoInvoiceReadingPolicy.EvaluateRoom(Approved(100, 60, donGiaDien: 0, donGiaNuoc: 0), Options);
+
+            Assert.Equal(new[] { AutoInvoiceReason.ThieuDonGia }, d.LyDos);
+            Assert.Equal("Chi nhánh Chi nhánh A chưa có đơn giá nước cho kỳ 10/2026", d.MoTaLyDos.Single());
+        }
+
+        [Fact]
+        public void Room_ConsumptionWithoutBothRates_IsSingleReasonMentioningBoth()
+        {
+            var d = AutoInvoiceReadingPolicy.EvaluateRoom(Approved(130, 60, donGiaDien: 0, donGiaNuoc: 0), Options);
+
+            Assert.Equal(new[] { AutoInvoiceReason.ThieuDonGia }, d.LyDos);
+            Assert.Equal("Chi nhánh Chi nhánh A chưa có đơn giá điện và nước cho kỳ 10/2026", d.MoTaLyDos.Single());
+        }
+
+        [Fact]
+        public void Room_NoConsumptionAndNoRate_IsEligible()
+        {
+            var d = AutoInvoiceReadingPolicy.EvaluateRoom(Approved(100, 50, donGiaDien: 0, donGiaNuoc: 0), Options);
+
+            Assert.True(d.DuDieuKien);
+        }
+
+        [Fact]
+        public void Room_ThieuChiSo_WinsOverThieuDonGia()
+        {
+            var d = AutoInvoiceReadingPolicy.EvaluateRoom(Ctx(status: TrangThaiGhiNhan.Nhap, donGiaDien: 0, donGiaNuoc: 0), Options);
+
+            Assert.Equal(AutoInvoiceReason.ThieuChiSo, Assert.Single(d.LyDos));
+        }
+
+        [Fact]
+        public void Room_ThieuDonGia_WinsOverKyTruocChuaChot()
+        {
+            var d = AutoInvoiceReadingPolicy.EvaluateRoom(Approved(130, 60, donGiaDien: 0, donGiaNuoc: 0, kyTruocChuaChot: true), Options);
+
+            Assert.Equal(new[] { AutoInvoiceReason.ThieuDonGia }, d.LyDos);
+        }
+
+        [Fact]
+        public void ThieuDonGia_IsNotSilent_AndNeverNotifiesCustomer()
+        {
+            Assert.False(AutoInvoiceReadingPolicy.IsSilent(AutoInvoiceReason.ThieuDonGia));
+            Assert.False(AutoInvoiceReadingPolicy.CanBaoKhach(AutoInvoiceReason.ThieuDonGia));
         }
     }
 }

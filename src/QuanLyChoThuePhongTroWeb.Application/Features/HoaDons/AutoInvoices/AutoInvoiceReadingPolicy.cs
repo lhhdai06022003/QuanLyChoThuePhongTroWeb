@@ -181,6 +181,16 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.AutoInvoices
                     dien, nuoc, null);
             }
 
+            var thieuDien = dien.ChiSoMoi.GetValueOrDefault() - dien.ChiSoCu.GetValueOrDefault() > 0m && ctx.DonGiaDien <= 0m;
+            var thieuNuoc = nuoc.ChiSoMoi.GetValueOrDefault() - nuoc.ChiSoCu.GetValueOrDefault() > 0m && ctx.DonGiaNuoc <= 0m;
+            if (thieuDien || thieuNuoc)
+            {
+                var loai = thieuDien && thieuNuoc ? "điện và nước" : thieuDien ? "điện" : "nước";
+                return new AutoInvoiceRoomDecision(false, new[] { AutoInvoiceReason.ThieuDonGia },
+                    new[] { $"Chi nhánh {ctx.TenChiNhanh} chưa có đơn giá {loai} cho kỳ {ctx.Thang:00}/{ctx.Nam}" },
+                    dien, nuoc, null);
+            }
+
             if (ctx.KyTruocChuaChot)
             {
                 var (thangTruoc, namTruoc) = ctx.Thang <= 1 ? (12, ctx.Nam - 1) : (ctx.Thang - 1, ctx.Nam);

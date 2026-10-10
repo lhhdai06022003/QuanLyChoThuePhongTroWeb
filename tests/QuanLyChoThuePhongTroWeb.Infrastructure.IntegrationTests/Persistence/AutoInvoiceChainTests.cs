@@ -208,10 +208,13 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             }
             await db.SaveChangesAsync();
 
-            return new Seed
+            var seed = new Seed
             {
                 Branch = branch, Room = room, Tenant = tenant, TenantAccount = account!, Staff = staff, Admin = admin, Contract = contract
             };
+            // Chuỗi tự tạo dừng với lý do ThieuDonGia khi kỳ có tiêu thụ mà chi nhánh chưa có đơn giá, nên mọi chi nhánh seed đều có đơn giá.
+            await SeedUtilityRatesAsync(seed);
+            return seed;
         }
 
         // Đơn giá điện 3.500 và nước 20.000 của chi nhánh, để kỳ mới sinh ra có tiền điện nước.
@@ -325,8 +328,6 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             using var host = new Host(_fixture.ConnectionString);
             var auto = await SeedAsync();
             var manual = await SeedAsync();
-            await SeedUtilityRatesAsync(auto);
-            await SeedUtilityRatesAsync(manual);
 
             await UploadAsync(host, auto, auto.TenantAccount.NguoiDungId, AppLoaiDongHo.Dien);
             await UploadAsync(host, auto, auto.TenantAccount.NguoiDungId, AppLoaiDongHo.Nuoc);

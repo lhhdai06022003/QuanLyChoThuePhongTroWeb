@@ -314,5 +314,77 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.False(result.IsSuccess);
             Assert.Empty(autoInvoice.Calls);
         }
+
+
+        private sealed class RecordingDispatcher : QuanLyChoThuePhongTroWeb.Application.Abstractions.Services.IProvisionalInvoiceEmailDispatcher
+        {
+            public List<IReadOnlyList<QuanLyChoThuePhongTroWeb.Application.Features.Emails.DTOs.PendingProvisionalEmail>> Batches { get; } = new();
+
+            public void Enqueue(IReadOnlyList<QuanLyChoThuePhongTroWeb.Application.Features.Emails.DTOs.PendingProvisionalEmail> emails) => Batches.Add(emails);
+        }
+
+        private static QuanLyChoThuePhongTroWeb.Application.Features.Emails.DTOs.PendingProvisionalEmail Pending(int hoaDonId, string email) =>
+            new(hoaDonId, email, new QuanLyChoThuePhongTroWeb.Application.Features.Emails.DTOs.ProvisionalInvoiceEmailData { MaHoaDon = $"HD-{hoaDonId}" });
+
+        [Fact]
+        public async Task SaveChotDienNuoc_WithDispatcher_DefersEmailsAndEnqueuesOnceInRoomOrder()
+        {
+            _dienNuocStore.RoomBranches[102] = 1;
+            var autoInvoice = new Fakes.FakeAutoInvoiceService();
+            autoInvoice.EmailChoGuiTheoPhong[101] = Pending(1, "a@x.vn");
+            autoInvoice.EmailChoGuiTheoPhong[102] = Pending(2, "b@x.vn");
+            var dispatcher = new RecordingDispatcher();
+            var service = new DienNuocService(_dienNuocStore, _accessService, _workflowService, autoInvoice, dispatcher);
+
+            var result = await service.SaveChotDienNuocAsync(TwoRoomsRequest(), actorId: 10);
+
+            Assert.True(result.IsSuccess);
+            Assert.Equal(new[] { true, true }, autoInvoice.HoanGuiEmailCalls.ToArray());
+            var batch = Assert.Single(dispatcher.Batches);
+            Assert.Equal(new[] { 1, 2 }, batch.Select(e => e.HoaDonId).ToArray());
+        }
+
+        [Fact]
+        public async Task SaveChotDienNuoc_WithDispatcher_NoPendingEmails_DoesNotEnqueue()
+        {
+            _dienNuocStore.RoomBranches[102] = 1;
+            var autoInvoice = new Fakes.FakeAutoInvoiceService();
+            var dispatcher = new RecordingDispatcher();
+            var service = new DienNuocService(_dienNuocStore, _accessService, _workflowService, autoInvoice, dispatcher);
+
+            var result = await service.SaveChotDienNuocAsync(TwoRoomsRequest(), actorId: 10);
+
+            Assert.True(result.IsSuccess);
+            Assert.Empty(dispatcher.Batches);
+        }
+
+        [Fact]
+        public async Task SaveChotDienNuoc_WithoutDispatcher_SendsEmailInline()
+        {
+            _dienNuocStore.RoomBranches[102] = 1;
+            var autoInvoice = new Fakes.FakeAutoInvoiceService();
+            var service = new DienNuocService(_dienNuocStore, _accessService, _workflowService, autoInvoice);
+
+            await service.SaveChotDienNuocAsync(TwoRoomsRequest(), actorId: 10);
+
+            Assert.Equal(new[] { false, false }, autoInvoice.HoanGuiEmailCalls.ToArray());
+        }
+
+        [Fact]
+        public async Task SaveChotDienNuoc_Failure_DoesNotEnqueueEmails()
+        {
+            _dienNuocStore.RoomBranches[102] = 1;
+            _workflowService.OnApproveBatch = (_, _) => ServiceResult<MeterPeriodsApprovalResult>.Fail("Không thể chốt kỳ.");
+            var autoInvoice = new Fakes.FakeAutoInvoiceService();
+            autoInvoice.EmailChoGuiTheoPhong[101] = Pending(1, "a@x.vn");
+            var dispatcher = new RecordingDispatcher();
+            var service = new DienNuocService(_dienNuocStore, _accessService, _workflowService, autoInvoice, dispatcher);
+
+            var result = await service.SaveChotDienNuocAsync(TwoRoomsRequest(), actorId: 10);
+
+            Assert.False(result.IsSuccess);
+            Assert.Empty(dispatcher.Batches);
+            Assert.Empty(autoInvoice.Calls);
+        }
     }
 }

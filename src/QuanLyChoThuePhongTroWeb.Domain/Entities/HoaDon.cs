@@ -45,11 +45,16 @@ namespace QuanLyChoThuePhongTroWeb.Domain.Entities
         public ICollection<LichSuTrangThaiHoaDon> LichSuTrangThaiHoaDons { get; set; } = new List<LichSuTrangThaiHoaDon>();
         public ICollection<YeuCauThanhToanHoaDon> YeuCauThanhToanHoaDons { get; set; } = new List<YeuCauThanhToanHoaDon>();
 
-        public void KhoiTaoNhap(int nguoiTaoId)
+        public void KhoiTaoNhap(int nguoiTaoId, string lyDo = "Tạo hóa đơn nháp")
         {
             if (nguoiTaoId <= 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(nguoiTaoId), "Người tạo hóa đơn không hợp lệ.");
+            }
+
+            if (string.IsNullOrWhiteSpace(lyDo))
+            {
+                throw new ArgumentException("Lý do khởi tạo hóa đơn không được để trống.", nameof(lyDo));
             }
 
             if (TrangThaiPhatHanh != TrangThaiPhatHanhHoaDon.Nhap)
@@ -71,7 +76,7 @@ namespace QuanLyChoThuePhongTroWeb.Domain.Entities
                 TrangThaiThanhToanMoi = TrangThaiHoaDon,
                 NguoiThucHienId = nguoiTaoId,
                 NgayThucHien = DateTime.UtcNow,
-                LyDo = "Tạo hóa đơn nháp"
+                LyDo = lyDo
             });
         }
 
@@ -89,6 +94,7 @@ namespace QuanLyChoThuePhongTroWeb.Domain.Entities
 
             var trangThaiCu = TrangThaiPhatHanh;
             TrangThaiPhatHanh = TrangThaiPhatHanhHoaDon.ChoDuyet;
+            HanPhanHoi = null;
             NgayCapNhat = DateTime.UtcNow;
 
             LichSuTrangThaiHoaDons.Add(new LichSuTrangThaiHoaDon
@@ -151,6 +157,45 @@ namespace QuanLyChoThuePhongTroWeb.Domain.Entities
                 HoaDonId = HoaDonId,
                 TrangThaiPhatHanhCu = trangThaiCu,
                 TrangThaiPhatHanhMoi = TrangThaiPhatHanhHoaDon.ChoDuyet,
+                TrangThaiThanhToanCu = TrangThaiHoaDon,
+                TrangThaiThanhToanMoi = TrangThaiHoaDon,
+                NguoiThucHienId = nguoiThucHienId,
+                NgayThucHien = nowUtc,
+                LyDo = lyDo
+            });
+        }
+
+        public void MoLaiDeDieuChinh(int nguoiThucHienId, DateTime nowUtc, string lyDo)
+        {
+            if (nguoiThucHienId <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(nguoiThucHienId), "Người điều chỉnh hóa đơn không hợp lệ.");
+            }
+
+            if (nowUtc.Kind != DateTimeKind.Utc)
+            {
+                throw new ArgumentOutOfRangeException(nameof(nowUtc), "Thời điểm điều chỉnh hóa đơn phải là UTC.");
+            }
+
+            if (string.IsNullOrWhiteSpace(lyDo))
+            {
+                throw new ArgumentException("Lý do điều chỉnh hóa đơn không được để trống.", nameof(lyDo));
+            }
+
+            if (TrangThaiPhatHanh != TrangThaiPhatHanhHoaDon.ChoDuyet || HanPhanHoi == null)
+            {
+                throw new InvalidOperationException("Chỉ hóa đơn tạm tính mới có thể mở lại để điều chỉnh.");
+            }
+
+            var trangThaiCu = TrangThaiPhatHanh;
+            TrangThaiPhatHanh = TrangThaiPhatHanhHoaDon.Nhap;
+            NgayCapNhat = nowUtc;
+
+            LichSuTrangThaiHoaDons.Add(new LichSuTrangThaiHoaDon
+            {
+                HoaDonId = HoaDonId,
+                TrangThaiPhatHanhCu = trangThaiCu,
+                TrangThaiPhatHanhMoi = TrangThaiPhatHanhHoaDon.Nhap,
                 TrangThaiThanhToanCu = TrangThaiHoaDon,
                 TrangThaiThanhToanMoi = TrangThaiHoaDon,
                 NguoiThucHienId = nguoiThucHienId,

@@ -1,7 +1,8 @@
 # Review: Hóa đơn tự động
 
 - Nhánh `feature/hoa-don-tu-dong`, tách từ `master` = `dc391e3`; spec commit ở `e444f37`. Code đợt A commit trên nhánh này ngày 10/10/2026.
-- Nguồn đối chiếu: [spec.md](spec.md) v7, [plan-dot-a.md](plan-dot-a.md).
+- Code đợt B chưa commit (10/10/2026), nằm trên đợt A (`39b3d81`).
+- Nguồn đối chiếu: [spec.md](spec.md) v7, [plan-dot-a.md](plan-dot-a.md), [plan-dot-b.md](plan-dot-b.md).
 - File này gộp các lần đánh giá theo đợt. Mỗi đợt gồm: coder, tester, reviewer `/ship`, và phần sửa/kiểm chứng của phiên chính.
 
 ## Đợt A: chuỗi tự động và dữ liệu (spec mục 3, 4, 5.1, 5.2, 7.1 phần dữ liệu, 7.2 tạm tính, 8, 9, 10)
@@ -66,3 +67,60 @@ Reviewer đối chiếu: không có thay đổi schema hay tiền ngoài S1–S5
 
 - **L1:** dừng chuỗi với lý do mới `ThieuDonGia`. Khi kỳ có tiêu thụ điện (hoặc nước) > 0 mà đơn giá điện (hoặc nước) đã chụp vào kỳ bằng 0, không tạo hóa đơn tạm tính. Gửi thông báo cho nhân viên phụ trách phòng và Admin, nêu chi nhánh và loại đơn giá còn thiếu, kèm link trang chốt điện nước. Không báo khách. Đây là thay đổi điều kiện tiền T2, nên kế hoạch đợt B vẫn phải ghi vào mục CẦN NGƯỜI DÙNG XÁC NHẬN để đối chiếu.
 - **L2:** chọn hướng (a). Trong `SaveChotDienNuocAsync`, gom email hóa đơn tạm tính lại và gửi sau vòng lặp, chạy nền, để request trả về ngay. Không thêm bảng hàng đợi, không đổi schema. Lỗi gửi email chỉ ghi log Warning, không hoàn tác dữ liệu.
+
+## Đợt B: job tự chốt, điều chỉnh và gửi lại, chặn chốt/trả lại tay (spec mục 5.3, 6, 7.3 phần server, 8, 9, 10, 11, 12, 14)
+
+### Phán quyết: ĐẠT
+
+Reviewer `/ship` cho phán quyết **CHOT**, không có lỗi chặn. Phiên chính đã sửa 3 điểm "nên sửa" trước khi commit (mục "Đã sửa sau review") và chạy lại test: PASS.
+
+### Kiểm chứng
+
+| Lệnh hoặc thao tác | Kết quả | Ghi chú |
+| --- | --- | --- |
+| `dotnet ef migrations has-pending-model-changes` | PASS | Coder chạy trước và sau khi sửa; phiên chính chạy lại sau khi sửa 3 điểm |
+| `dotnet build QuanLyChoThuePhongTroWeb.sln` | PASS | 0 lỗi; chạy lại sau khi sửa 3 điểm |
+| `dotnet test` Domain.UnitTests | PASS 138/138 | Coder, tester. Không chạy lại sau khi sửa (không đụng Domain) |
+| `dotnet test` Application.UnitTests | PASS 1051/1051 | Coder, tester, chạy lại sau khi sửa |
+| `dotnet test` Infrastructure.IntegrationTests (DB `quanlyphongtro_test`) | PASS 397/397 | Tester chạy 4 lần liên tiếp đều xanh; chạy lại sau khi sửa |
+| `dotnet test` Web.IntegrationTests (cùng DB, chạy tuần tự) | PASS 273/273 | Chạy lại sau khi sửa. Tester gặp một lượt FAIL 257/528 (tổng gần gấp đôi, FAIL giả do chồng lượt), chạy lại một mình PASS, không tái hiện |
+| Test tranh chấp job tự chốt và điều chỉnh | PASS 6/6 lần | Reviewer kiểm thứ tự khóa: cả hai cùng khóa kỳ trước, không có vòng khóa |
+| `git diff --check`, `git diff -w` (so lõi tạo nháp) | PASS | Lõi `CreateDraftsAsync` tách ra không đổi logic |
+| Thử tay trên trình duyệt | CHƯA CHẠY | Chưa có giao diện đợt C |
+| Gửi email qua SMTP thật | CHƯA CHẠY | Test dùng email giả |
+| Job nền chạy trong ứng dụng thật | CHƯA CHẠY | Test gọi use case trực tiếp; job chỉ đăng ký khi `BackgroundJobs:Enabled` |
+
+### Cổng xác nhận
+
+Người dùng xác nhận ngày 10/10/2026 21:39 (ghi trong [plan-dot-b.md](plan-dot-b.md)):
+- Schema: không đổi. Không migration, không sửa `Configurations/`, `ApplicationDbContext`; `HoaDon` chỉ thêm method.
+- Tiền T9–T19: `ThieuDonGia` (L1), job tự chốt và công bố (ngoại lệ của "chỉ Admin chốt"), điều chỉnh 6.2 và 6.3 (hóa đơn thay thế `-R{n}` tính lại mọi dòng), tách lõi tạo nháp, chặn chốt/trả lại tay hóa đơn tạm tính, `GuiDuyet` xóa hạn, lõi đổi chỉ số, L3, L2, thông báo sau điều chỉnh và sau tự chốt.
+- Câu hỏi 1–4 theo đề xuất: có 2 endpoint JSON; job báo lỗi một lần cho mỗi cặp (hóa đơn, lý do); không kiểm `ThieuDonGia` ở điều chỉnh và job; thông báo `ThieuDonGia` có thêm câu hướng dẫn lập hóa đơn theo luồng tay.
+
+Reviewer đối chiếu: mọi thay đổi tiền nằm trong T9–T19, không có thay đổi schema.
+
+### Đã đạt (reviewer)
+
+1. **Tiền:** lõi tạo nháp giữ nguyên từng dòng (so bằng `git diff -w`), có test so từng dòng giữa hai đường gọi. Hóa đơn thay thế giữ sự cố và dịch vụ cố định mới (test biên của tester).
+2. **Nguyên tử:** chốt và gửi nằm trong một transaction; điều chỉnh lỗi thì rollback toàn bộ (test trên DB thật kiểm hóa đơn, hạn, tổng tiền, lịch sử, chỉ số, ảnh, thông báo, email).
+3. **Phân quyền:** fail closed, kiểm trước và kiểm lại sau khi khóa; `DaGui` cần thêm `InvoiceCancel`; nhân viên chi nhánh khác nhận 403 ở GET và POST; POST có antiforgery.
+4. **Email nền (L2):** dispatcher singleton tự tạo scope riêng, chỉ dùng `IEmailService`, không đụng DbContext của request; lỗi chỉ ghi Warning.
+5. **Job:** chỉ đăng ký khi bật `BackgroundJobs`; log Error chỉ khi có exception ngoài dự kiến.
+
+### Đã sửa sau review
+
+| # | Vấn đề | Sửa | Kiểm chứng |
+| --- | --- | --- | --- |
+| B1 | Khối `/// <summary>` của `CascadeSubsequentPeriodsAsync` nằm nhầm trên `AdjustReadingsInCurrentTransactionAsync` | `MeterReadingWorkflowService.cs`: chuyển khối comment về đúng method | Build PASS |
+| B2 | GET `/HoaDon/DieuChinh/{id}` trả `hanPhanHoiUtc` UTC thô, POST trả `hanTuChot` giờ VN | `HoaDonController.cs`: GET trả `hanTuChot` giờ VN cùng định dạng `dd/MM/yyyy HH:mm` với POST (dùng chung `FormatVietnamTime`); các trường khác giữ nguyên tên | `AutoInvoiceAdjustmentEndpointTests` thêm assert `hanTuChot` ở cả GET và POST; Web 273/273 PASS |
+| B3 | Nhánh 6.3: không tạo được hóa đơn thay thế thì luôn báo "phòng có nhiều hợp đồng trong kỳ" | `InvoiceAdjustmentService.cs`: tách hai câu, "phòng có hợp đồng khác cần lập hóa đơn trong kỳ" và "hợp đồng của hóa đơn cũ không còn được lập hóa đơn trong kỳ" (cả hai kèm "xử lý theo luồng tay"); dữ liệu vẫn rollback | Application 1051/1051, Infrastructure 397/397 PASS |
+
+### Lưu ý mang sang đợt C và sau
+
+| # | Nội dung | Mức | Xử lý |
+| --- | --- | --- | --- |
+| M1 | Đơn giá được chụp vào kỳ lúc tạo kỳ, không chỗ nào cập nhật lại; khai đơn giá chi nhánh sau đó thì kỳ đang dở vẫn bằng 0, phòng phải lập hóa đơn tay | Trung bình | Thông báo `ThieuDonGia` đã có câu hướng dẫn. Sửa tận gốc (cập nhật đơn giá cho kỳ chưa có hóa đơn) là việc riêng, đổi luồng chỉ số |
+| M2 | Dispatcher dùng `Task.Run`, không gắn vòng đời host: email đang gửi lúc tắt máy có thể mất, chỉ ghi Warning | Thấp, đã chấp nhận theo L2 | Không làm |
+| M3 | `DeadlineHarness.IsolateJobAsync` đặt `HanPhanHoi = null` cho hóa đơn tạm tính của dữ liệu khác trong DB test | Thấp | Chỉ an toàn khi không chạy Infrastructure song song với Web (đúng quy tắc AGENTS.md) |
+| M4 | `StaffClosingTwoRooms_SendsProvisionalEmailsInBackground` vẫn PASS nếu email gửi đồng bộ; tính bất đồng bộ phủ ở test Application và test dispatcher | Thấp | Có thể bổ sung khi làm đợt C |
+| M5 | Còn từ đợt A: L6 (validate `SoGioPhanHoiHoaDon` 1–168 ở service khi sửa màn chi nhánh), L4 phần giao diện (nhãn trạng thái, ẩn nút thanh toán của hóa đơn tạm tính), L8 (chứng chỉ SMTP) | | L6 và L4 ở đợt C; L8 đợt riêng |

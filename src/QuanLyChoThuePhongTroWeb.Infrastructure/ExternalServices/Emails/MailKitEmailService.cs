@@ -78,7 +78,9 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.Emails
                 var message = new MimeMessage();
                 message.From.Add(new MailboxAddress(senderName, senderEmail));
                 message.To.Add(new MailboxAddress(data.TenNguoiThue, toEmail));
-                message.Subject = $"[HÓA ĐƠN TẠM TÍNH] - Phòng {data.TenPhong} - Kỳ tháng {data.Thang}/{data.Nam}";
+                message.Subject = data.LaDieuChinh
+                    ? $"[HÓA ĐƠN ĐÃ ĐIỀU CHỈNH] - Phòng {data.TenPhong} - Kỳ tháng {data.Thang}/{data.Nam}"
+                    : $"[HÓA ĐƠN TẠM TÍNH] - Phòng {data.TenPhong} - Kỳ tháng {data.Thang}/{data.Nam}";
 
                 string FormatVND(decimal amount) => string.Format("{0:#,##0}", amount);
                 string Enc(string? value) => WebUtility.HtmlEncode(value ?? string.Empty);
@@ -97,6 +99,10 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.Emails
                         </tr>");
                 }
 
+                var tieuDeHtml = data.LaDieuChinh ? "Hóa đơn tạm tính đã được điều chỉnh" : "Hóa đơn tạm tính tiền phòng";
+                var moDauHtml = data.LaDieuChinh
+                    ? ". Hóa đơn tạm tính của bạn đã được điều chỉnh. Hóa đơn chưa phải bản chính thức và chưa cần thanh toán."
+                    : ", đây là hóa đơn <strong>tạm tính</strong> để bạn kiểm tra. Hóa đơn chưa phải bản chính thức và chưa cần thanh toán.";
                 var hanTuChot = data.HanTuChotUtc.AddHours(7).ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture);
                 var builder = new BodyBuilder();
                 builder.HtmlBody = $@"
@@ -105,9 +111,9 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.Emails
 <head><meta charset='utf-8' /></head>
 <body style='font-family: Segoe UI, Tahoma, Geneva, Verdana, sans-serif; color: #333333; line-height: 1.6;'>
     <div style='max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e1e4e8; border-radius: 8px;'>
-        <h2 style='color: #0056b3; text-align: center;'>Hóa đơn tạm tính tiền phòng</h2>
+        <h2 style='color: #0056b3; text-align: center;'>{tieuDeHtml}</h2>
         <p style='text-align: center; color: #666666;'>{Enc(data.TenChiNhanh)}</p>
-        <p>Xin chào {Enc(data.TenNguoiThue)}, đây là hóa đơn <strong>tạm tính</strong> để bạn kiểm tra. Hóa đơn chưa phải bản chính thức và chưa cần thanh toán.</p>
+        <p>Xin chào {Enc(data.TenNguoiThue)}{moDauHtml}</p>
         <table style='width: 100%; border-collapse: collapse;'>
             <tr><td><strong>Mã hóa đơn:</strong></td><td>{Enc(data.MaHoaDon)}</td></tr>
             <tr><td><strong>Phòng:</strong></td><td>{Enc(data.TenPhong)}</td></tr>

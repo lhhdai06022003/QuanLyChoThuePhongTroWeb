@@ -29,6 +29,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                     p.PhongTroId,
                     p.SoPhong,
                     p.ChiNhanhId,
+                    p.ChiNhanh.TenChiNhanh,
                     SoDienThoai = p.ChiNhanh.SoDienThoai
                 })
                 .FirstOrDefaultAsync(ct);
@@ -47,7 +48,9 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                     p.ChiSoDienCu,
                     p.ChiSoDienMoi,
                     p.ChiSoNuocCu,
-                    p.ChiSoNuocMoi
+                    p.ChiSoNuocMoi,
+                    p.DonGiaDien,
+                    p.DonGiaNuoc
                 })
                 .FirstOrDefaultAsync(ct);
 
@@ -157,6 +160,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 PhongTroId = room.PhongTroId,
                 SoPhong = room.SoPhong,
                 ChiNhanhId = room.ChiNhanhId,
+                TenChiNhanh = room.TenChiNhanh ?? string.Empty,
                 SoDienThoaiChiNhanh = room.SoDienThoai ?? string.Empty,
                 Thang = thang,
                 Nam = nam,
@@ -166,6 +170,8 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 ChiSoDienMoi = period?.ChiSoDienMoi ?? 0m,
                 ChiSoNuocCu = period?.ChiSoNuocCu ?? 0m,
                 ChiSoNuocMoi = period?.ChiSoNuocMoi ?? 0m,
+                DonGiaDien = period?.DonGiaDien ?? 0m,
+                DonGiaNuoc = period?.DonGiaNuoc ?? 0m,
                 Images = images,
                 TieuThuCacKyTruoc = consumptions,
                 HopDongHieuLuc = contracts,
@@ -189,6 +195,59 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 .OrderBy(n => n.NgayPhanCong)
                 .ThenBy(n => n.NhanVienChiNhanhId)
                 .Select(n => (int?)n.NguoiDungId)
+                .FirstOrDefaultAsync(ct);
+        }
+
+        public async Task<IReadOnlyList<AutoInvoiceDueItem>> GetDueProvisionalInvoicesAsync(DateTime nowUtc, CancellationToken ct = default)
+        {
+            return await _context.HoaDons
+                .AsNoTracking()
+                .Where(h => h.HanPhanHoi != null
+                            && !h.IsDeleted
+                            && h.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.ChoDuyet
+                            && h.HanPhanHoi <= nowUtc)
+                .OrderBy(h => h.HanPhanHoi)
+                .ThenBy(h => h.HoaDonId)
+                .Select(h => new AutoInvoiceDueItem(h.HoaDonId, h.MaHoaDon, h.HopDong.PhongTroId, h.HanPhanHoi!.Value))
+                .ToListAsync(ct);
+        }
+
+        public async Task<int?> GetLastProvisionalSubmitterIdAsync(int hoaDonId, CancellationToken ct = default)
+        {
+            return await _context.LichSuTrangThaiHoaDons
+                .AsNoTracking()
+                .Where(l => l.HoaDonId == hoaDonId
+                            && l.TrangThaiPhatHanhMoi == TrangThaiPhatHanhHoaDon.ChoDuyet
+                            && l.TrangThaiPhatHanhCu != TrangThaiPhatHanhHoaDon.ChoDuyet)
+                .OrderByDescending(l => l.NgayThucHien)
+                .ThenByDescending(l => l.LichSuTrangThaiHoaDonId)
+                .Select(l => l.NguoiThucHienId)
+                .FirstOrDefaultAsync(ct);
+        }
+
+        public async Task<AutoInvoiceAdjustmentSnapshot?> GetAdjustmentSnapshotAsync(int hoaDonId, CancellationToken ct = default)
+        {
+            return await _context.HoaDons
+                .AsNoTracking()
+                .Where(h => h.HoaDonId == hoaDonId && !h.IsDeleted)
+                .Select(h => new AutoInvoiceAdjustmentSnapshot
+                {
+                    HoaDonId = h.HoaDonId,
+                    MaHoaDon = h.MaHoaDon,
+                    HopDongId = h.HopDongId,
+                    ChiNhanhId = h.HopDong.PhongTro.ChiNhanhId,
+                    PhongTroId = h.HopDong.PhongTroId,
+                    Thang = h.Thang,
+                    Nam = h.Nam,
+                    TrangThaiPhatHanh = h.TrangThaiPhatHanh,
+                    TrangThaiHoaDon = h.TrangThaiHoaDon,
+                    HanPhanHoi = h.HanPhanHoi,
+                    DichVuDienNuocCuaPhongId = h.DichVuDienNuocCuaPhongId,
+                    ChiSoDienCu = h.DichVuDienNuocCuaPhong != null ? h.DichVuDienNuocCuaPhong.ChiSoDienCu : 0m,
+                    ChiSoDienMoi = h.DichVuDienNuocCuaPhong != null ? h.DichVuDienNuocCuaPhong.ChiSoDienMoi : 0m,
+                    ChiSoNuocCu = h.DichVuDienNuocCuaPhong != null ? h.DichVuDienNuocCuaPhong.ChiSoNuocCu : 0m,
+                    ChiSoNuocMoi = h.DichVuDienNuocCuaPhong != null ? h.DichVuDienNuocCuaPhong.ChiSoNuocMoi : 0m
+                })
                 .FirstOrDefaultAsync(ct);
         }
 

@@ -46,6 +46,21 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
             }));
         }
 
+        public List<(CreateInvoiceDraftsRequest Request, int ActorId, string? LyDoKhoiTao)> CreateInCurrentTransactionCalls { get; } = new();
+        public Func<CreateInvoiceDraftsRequest, int, ServiceResult<InvoiceDraftBatchResult>>? OnCreateDraftsInCurrentTransaction { get; set; }
+
+        public Task<ServiceResult<InvoiceDraftBatchResult>> CreateDraftsInCurrentTransactionAsync(CreateInvoiceDraftsRequest request, int actorId, string? lyDoKhoiTao = null, CancellationToken ct = default)
+        {
+            CreateInCurrentTransactionCalls.Add((request, actorId, lyDoKhoiTao));
+            Log?.Add("CreateDraftsInCurrentTransaction");
+            if (OnCreateDraftsInCurrentTransaction != null)
+            {
+                return Task.FromResult(OnCreateDraftsInCurrentTransaction(request, actorId));
+            }
+
+            return CreateDraftsAsync(request, actorId, ct);
+        }
+
         public Task<ServiceResult<InvoiceTransitionResult>> SubmitProvisionalAsync(int hoaDonId, int actorId, CancellationToken ct = default)
         {
             SubmitProvisionalCalls.Add((hoaDonId, actorId));

@@ -68,6 +68,20 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         }
 
 
+        public List<(MeterAdjustmentRequest Request, int ActorUserId)> AdjustCalls { get; } = new();
+        public Func<MeterAdjustmentRequest, int, ServiceResult<MeterAdjustmentResult>>? OnAdjustReadings { get; set; }
+
+        public Task<ServiceResult<MeterAdjustmentResult>> AdjustReadingsInCurrentTransactionAsync(MeterAdjustmentRequest request, int actorUserId, CancellationToken cancellationToken = default)
+        {
+            AdjustCalls.Add((request, actorUserId));
+            if (OnAdjustReadings != null) return Task.FromResult(OnAdjustReadings(request, actorUserId));
+            return Task.FromResult(ServiceResult<MeterAdjustmentResult>.Ok(new MeterAdjustmentResult
+            {
+                ChiSoDienMoi = request.ChiSoDienMoi,
+                ChiSoNuocMoi = request.ChiSoNuocMoi
+            }));
+        }
+
         public async Task<ServiceResult<MeterPeriodsApprovalResult>> ApprovePeriodsAsync(ApproveMeterPeriodsRequest request, int actorUserId, CancellationToken cancellationToken = default)
         {
             ApprovedBatchRequests.Add(request);

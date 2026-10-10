@@ -25,6 +25,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence
         public int PhongTroId { get; init; }
         public string SoPhong { get; init; } = string.Empty;
         public int ChiNhanhId { get; init; }
+        public string TenChiNhanh { get; init; } = string.Empty;
         public string SoDienThoaiChiNhanh { get; init; } = string.Empty;
         public int Thang { get; init; }
         public int Nam { get; init; }
@@ -35,6 +36,9 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence
         public decimal ChiSoDienMoi { get; init; }
         public decimal ChiSoNuocCu { get; init; }
         public decimal ChiSoNuocMoi { get; init; }
+        // Đơn giá của kỳ (chụp lúc tạo kỳ); 0 khi chưa có kỳ.
+        public decimal DonGiaDien { get; init; }
+        public decimal DonGiaNuoc { get; init; }
         // Ảnh chưa xóa của kỳ, NgayGui giảm dần rồi Id giảm dần.
         public IReadOnlyList<AutoInvoiceMeterImage> Images { get; init; } = Array.Empty<AutoInvoiceMeterImage>();
         // Tối đa soKyTrungBinh kỳ DaDuyet trước kỳ này, mới đến cũ.
@@ -47,6 +51,27 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence
         public string? EmailKhach { get; init; }
     }
 
+    public sealed record AutoInvoiceDueItem(int HoaDonId, string MaHoaDon, int PhongTroId, DateTime HanPhanHoiUtc);
+
+    public sealed class AutoInvoiceAdjustmentSnapshot
+    {
+        public int HoaDonId { get; init; }
+        public string MaHoaDon { get; init; } = string.Empty;
+        public int HopDongId { get; init; }
+        public int ChiNhanhId { get; init; }
+        public int PhongTroId { get; init; }
+        public int Thang { get; init; }
+        public int Nam { get; init; }
+        public TrangThaiPhatHanhHoaDon TrangThaiPhatHanh { get; init; }
+        public TrangThaiHoaDon TrangThaiHoaDon { get; init; }
+        public DateTime? HanPhanHoi { get; init; }
+        public int? DichVuDienNuocCuaPhongId { get; init; }
+        public decimal ChiSoDienCu { get; init; }
+        public decimal ChiSoDienMoi { get; init; }
+        public decimal ChiSoNuocCu { get; init; }
+        public decimal ChiSoNuocMoi { get; init; }
+    }
+
     public interface IAutoInvoiceStore
     {
         // AsNoTracking toàn bộ. Phòng không tồn tại hoặc IsDeleted thì trả null.
@@ -54,6 +79,15 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence
 
         // Nhân viên đang được phân công (chưa thu hồi) của chi nhánh, phân công sớm nhất trước; null nếu không có.
         Task<int?> FindFallbackActorAsync(int chiNhanhId, CancellationToken ct = default);
+
+        // AsNoTracking. ChoDuyet, !IsDeleted, HanPhanHoi != null && HanPhanHoi <= nowUtc; sắp HanPhanHoi rồi HoaDonId tăng dần.
+        Task<IReadOnlyList<AutoInvoiceDueItem>> GetDueProvisionalInvoicesAsync(DateTime nowUtc, CancellationToken ct = default);
+
+        // NguoiThucHienId của dòng lịch sử mới nhất (NgayThucHien rồi LichSuTrangThaiHoaDonId giảm dần) có TrangThaiPhatHanhMoi == ChoDuyet && TrangThaiPhatHanhCu != ChoDuyet; null nếu không có.
+        Task<int?> GetLastProvisionalSubmitterIdAsync(int hoaDonId, CancellationToken ct = default);
+
+        // AsNoTracking, hóa đơn !IsDeleted; chỉ số lấy từ kỳ liên kết (0 nếu không có kỳ); null nếu không có hóa đơn.
+        Task<AutoInvoiceAdjustmentSnapshot?> GetAdjustmentSnapshotAsync(int hoaDonId, CancellationToken ct = default);
 
         // Bỏ mọi thay đổi chưa lưu trong DbContext dùng chung; chỉ gọi khi không còn thay đổi cần giữ.
         void DiscardPendingChanges();

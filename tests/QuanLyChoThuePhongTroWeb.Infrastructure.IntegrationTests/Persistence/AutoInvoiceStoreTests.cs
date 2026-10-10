@@ -133,6 +133,9 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             Assert.Equal(branch.ChiNhanhId, ctx.ChiNhanhId);
             Assert.Equal(room.SoPhong, ctx.SoPhong);
             Assert.Equal("0900000001", ctx.SoDienThoaiChiNhanh);
+            Assert.Equal(branch.TenChiNhanh, ctx.TenChiNhanh);
+            Assert.Equal(0m, ctx.DonGiaDien);
+            Assert.Equal(0m, ctx.DonGiaNuoc);
 
             await tx.RollbackAsync();
         }
@@ -160,6 +163,8 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             Assert.Equal(130m, ctx.ChiSoDienMoi);
             Assert.Equal(50m, ctx.ChiSoNuocCu);
             Assert.Equal(60m, ctx.ChiSoNuocMoi);
+            Assert.Equal(3500m, ctx.DonGiaDien);
+            Assert.Equal(20000m, ctx.DonGiaNuoc);
             Assert.Equal(
                 new[] { sameTimeHigherId.AnhChiSoDongHoId, newest.AnhChiSoDongHoId, old.AnhChiSoDongHoId },
                 ctx.Images.Select(i => i.AnhChiSoDongHoId).ToArray());
@@ -526,6 +531,139 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             await db.SaveChangesAsync();
             Assert.False(await db.ChiNhanhs.AnyAsync(c => c.MaChiNhanh == tracked.MaChiNhanh));
             Assert.NotEqual("Đã sửa nhưng chưa lưu", (await db.ChiNhanhs.AsNoTracking().SingleAsync(c => c.ChiNhanhId == branch.ChiNhanhId)).TenChiNhanh);
+
+            await tx.RollbackAsync();
+        }
+
+
+        // ---------- Đợt B: truy vấn tự chốt và điều chỉnh ----------
+
+        private static async Task<HoaDon> ProvisionalAsync(
+            ApplicationDbContext db, DebtTestSeeder seeder, HopDong contract, DateTime? han,
+            TrangThaiPhatHanhHoaDon issue = TrangThaiPhatHanhHoaDon.ChoDuyet, bool deleted = false)
+        {
+            var inv = await seeder.InvoiceAsync(contract, issue, TrangThaiHoaDon.ChuaThanhToan, 1_000_000m, null, deleted: deleted);
+            inv.HanPhanHoi = han;
+            await db.SaveChangesAsync();
+            return inv;
+        }
+
+        [Fact]
+        public async Task GetDueProvisionalInvoices_ReturnsOnlyDueChoDuyetWithDeadline_InDeadlineOrder()
+        {
+            await using var db = _fixture.CreateDbContext();
+            await using var tx = await db.Database.BeginTransactionAsync();
+            var seeder = new DebtTestSeeder(db);
+            var branch = await seeder.BranchAsync("Q");
+            var room = await seeder.RoomAsync(branch, "Q");
+            var tenant = await seeder.TenantAsync("Q");
+            var contract = await seeder.ContractAsync(room, tenant);
+            var now = Utc(2026, 10, 20, 3);
+
+            var later = await ProvisionalAsync(db, seeder, contract, now.AddHours(-1));
+            var exactly = await ProvisionalAsync(db, seeder, contract, now);
+            var earlier = await ProvisionalAsync(db, seeder, contract, now.AddHours(-5));
+            var notDue = await ProvisionalAsync(db, seeder, contract, now.AddSeconds(1));
+            var manual = await ProvisionalAsync(db, seeder, contract, null);
+            var deleted = await ProvisionalAsync(db, seeder, contract, now.AddHours(-2), deleted: true);
+            var sent = await ProvisionalAsync(db, seeder, contract, now.AddHours(-3), TrangThaiPhatHanhHoaDon.DaGui);
+            var store = new AutoInvoiceStore(db);
+
+            var due = await store.GetDueProvisionalInvoicesAsync(now);
+
+            var mine = new[] { later, exactly, earlier, notDue, manual, deleted, sent }.Select(i => i.HoaDonId).ToHashSet();
+            var result = due.Where(d => mine.Contains(d.HoaDonId)).ToList();
+            Assert.Equal(new[] { earlier.HoaDonId, later.HoaDonId, exactly.HoaDonId }, result.Select(d => d.HoaDonId).ToArray());
+            var first = result[0];
+            Assert.Equal(earlier.MaHoaDon, first.MaHoaDon);
+            Assert.Equal(room.PhongTroId, first.PhongTroId);
+            Assert.Equal(now.AddHours(-5), first.HanPhanHoiUtc);
+
+            await tx.RollbackAsync();
+        }
+
+        [Fact]
+        public async Task GetLastProvisionalSubmitterId_ReturnsLatestTransitionIntoChoDuyet()
+        {
+            await using var db = _fixture.CreateDbContext();
+            await using var tx = await db.Database.BeginTransactionAsync();
+            var seeder = new DebtTestSeeder(db);
+            var branch = await seeder.BranchAsync("S");
+            var room = await seeder.RoomAsync(branch, "S");
+            var tenant = await seeder.TenantAsync("S");
+            var contract = await seeder.ContractAsync(room, tenant);
+            var first = await UserAsync(db, "first");
+            var second = await UserAsync(db, "second");
+            var other = await UserAsync(db, "other");
+            var inv = await ProvisionalAsync(db, seeder, contract, Utc(2026, 10, 20, 3));
+            var withoutHistory = await ProvisionalAsync(db, seeder, contract, Utc(2026, 10, 20, 3));
+
+            LichSuTrangThaiHoaDon Row(TrangThaiPhatHanhHoaDon? from, TrangThaiPhatHanhHoaDon to, int who, DateTime at) => new()
+            {
+                HoaDonId = inv.HoaDonId,
+                TrangThaiPhatHanhCu = from,
+                TrangThaiPhatHanhMoi = to,
+                TrangThaiThanhToanCu = TrangThaiHoaDon.ChuaThanhToan,
+                TrangThaiThanhToanMoi = TrangThaiHoaDon.ChuaThanhToan,
+                NguoiThucHienId = who,
+                NgayThucHien = at,
+                LyDo = "x"
+            };
+
+            db.LichSuTrangThaiHoaDons.AddRange(
+                Row(null, TrangThaiPhatHanhHoaDon.Nhap, other.NguoiDungId, Utc(2026, 10, 18, 1)),
+                Row(TrangThaiPhatHanhHoaDon.Nhap, TrangThaiPhatHanhHoaDon.ChoDuyet, first.NguoiDungId, Utc(2026, 10, 18, 2)),
+                Row(TrangThaiPhatHanhHoaDon.ChoDuyet, TrangThaiPhatHanhHoaDon.Nhap, other.NguoiDungId, Utc(2026, 10, 18, 3)),
+                Row(TrangThaiPhatHanhHoaDon.Nhap, TrangThaiPhatHanhHoaDon.ChoDuyet, second.NguoiDungId, Utc(2026, 10, 18, 4)));
+            await db.SaveChangesAsync();
+            var store = new AutoInvoiceStore(db);
+
+            Assert.Equal(second.NguoiDungId, await store.GetLastProvisionalSubmitterIdAsync(inv.HoaDonId));
+            Assert.Null(await store.GetLastProvisionalSubmitterIdAsync(withoutHistory.HoaDonId));
+
+            await tx.RollbackAsync();
+        }
+
+        [Fact]
+        public async Task GetAdjustmentSnapshot_ReturnsInvoiceBranchRoomAndMeterReadings_AndNullForDeletedOrMissing()
+        {
+            await using var db = _fixture.CreateDbContext();
+            await using var tx = await db.Database.BeginTransactionAsync();
+            var seeder = new DebtTestSeeder(db);
+            var branch = await seeder.BranchAsync("A");
+            var room = await seeder.RoomAsync(branch, "A");
+            var tenant = await seeder.TenantAsync("A");
+            var contract = await seeder.ContractAsync(room, tenant);
+            var period = await PeriodAsync(db, room, Thang, Nam, TrangThaiGhiNhan.DaDuyet, 100, 130, 50, 60);
+            var han = Utc(2026, 10, 20, 3);
+            var inv = await ProvisionalAsync(db, seeder, contract, han);
+            inv.DichVuDienNuocCuaPhongId = period.DichVuDienNuocCuaPhongId;
+            var noPeriod = await ProvisionalAsync(db, seeder, contract, han);
+            var deleted = await ProvisionalAsync(db, seeder, contract, han, deleted: true);
+            await db.SaveChangesAsync();
+            var store = new AutoInvoiceStore(db);
+
+            var snap = await store.GetAdjustmentSnapshotAsync(inv.HoaDonId);
+
+            Assert.NotNull(snap);
+            Assert.Equal(inv.MaHoaDon, snap!.MaHoaDon);
+            Assert.Equal(contract.HopDongId, snap.HopDongId);
+            Assert.Equal(branch.ChiNhanhId, snap.ChiNhanhId);
+            Assert.Equal(room.PhongTroId, snap.PhongTroId);
+            Assert.Equal(inv.Thang, snap.Thang);
+            Assert.Equal(inv.Nam, snap.Nam);
+            Assert.Equal(TrangThaiPhatHanhHoaDon.ChoDuyet, snap.TrangThaiPhatHanh);
+            Assert.Equal(TrangThaiHoaDon.ChuaThanhToan, snap.TrangThaiHoaDon);
+            Assert.Equal(han, snap.HanPhanHoi);
+            Assert.Equal(period.DichVuDienNuocCuaPhongId, snap.DichVuDienNuocCuaPhongId);
+            Assert.Equal((100m, 130m, 50m, 60m), (snap.ChiSoDienCu, snap.ChiSoDienMoi, snap.ChiSoNuocCu, snap.ChiSoNuocMoi));
+
+            var withoutPeriod = await store.GetAdjustmentSnapshotAsync(noPeriod.HoaDonId);
+            Assert.Null(withoutPeriod!.DichVuDienNuocCuaPhongId);
+            Assert.Equal((0m, 0m, 0m, 0m), (withoutPeriod.ChiSoDienCu, withoutPeriod.ChiSoDienMoi, withoutPeriod.ChiSoNuocCu, withoutPeriod.ChiSoNuocMoi));
+
+            Assert.Null(await store.GetAdjustmentSnapshotAsync(deleted.HoaDonId));
+            Assert.Null(await store.GetAdjustmentSnapshotAsync(int.MaxValue));
 
             await tx.RollbackAsync();
         }

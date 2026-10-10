@@ -24,6 +24,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
     public class AutoInvoiceService : IAutoInvoiceService
     {
         private static readonly CultureInfo ViVn = CultureInfo.GetCultureInfo("vi-VN");
+        private const string HuongDanThieuDonGia = "Đơn giá của kỳ được lưu lúc tạo kỳ; lập hóa đơn theo luồng tay và sửa dòng điện/nước ở bản nháp.";
 
         private readonly IAutoInvoiceStore _store;
         private readonly IMeterReadingWorkflowService _workflowService;
@@ -57,7 +58,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        public async Task<ServiceResult<AutoInvoiceRunResult>> RunForRoomAsync(int actorId, AutoInvoiceTrigger trigger, int phongTroId, int thang, int nam)
+        public async Task<ServiceResult<AutoInvoiceRunResult>> RunForRoomAsync(int actorId, AutoInvoiceTrigger trigger, int phongTroId, int thang, int nam, bool hoanGuiEmail = false)
         {
             AutoInvoiceRoomContext? ctx = null;
             try
@@ -193,10 +194,34 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                     }
                 }
 
+                // Đánh giá lại ngay trước khi tạo hóa đơn: dữ liệu có thể đã đổi từ lúc đánh giá đầu chuỗi.
+                var latest = await ReloadAsync(phongTroId, thang, nam);
+                if (latest == null)
+                {
+                    _logger.LogInformation("Hóa đơn tự động dừng: không còn tìm thấy phòng {PhongTroId} trước bước tạo hóa đơn.", phongTroId);
+                    return Done(AutoInvoiceOutcome.DungImLang, new[] { AutoInvoiceReason.DaCoHoaDon });
+                }
+
+                var latestDecision = AutoInvoiceReadingPolicy.EvaluateRoom(latest, _options);
+                if (!latestDecision.DuDieuKien)
+                {
+                    if (latestDecision.LyDos.All(AutoInvoiceReadingPolicy.IsSilent))
+                    {
+                        _logger.LogInformation("Hóa đơn tự động dừng im lặng khi đánh giá lại (phòng {PhongTroId}, kỳ {Thang}/{Nam}, trigger {Trigger}): {LyDos}",
+                            phongTroId, thang, nam, trigger, string.Join(", ", latestDecision.LyDos));
+                        return Done(AutoInvoiceOutcome.DungImLang, latestDecision.LyDos);
+                    }
+
+                    _logger.LogWarning("Hóa đơn tự động dừng khi đánh giá lại (phòng {PhongTroId}, kỳ {Thang}/{Nam}, trigger {Trigger}): {MoTa}",
+                        phongTroId, thang, nam, trigger, string.Join("; ", latestDecision.MoTaLyDos));
+                    await BaoDungAsync(latest, latestDecision.LyDos, latestDecision.MoTaLyDos, latestDecision);
+                    return Done(AutoInvoiceOutcome.DungCoThongBao, latestDecision.LyDos);
+                }
+
                 // Bước 3: tạo hóa đơn nháp (cách tính tiền giữ nguyên của luồng tay).
                 var drafts = await _issuanceService.CreateDraftsAsync(new CreateInvoiceDraftsRequest
                 {
-                    ChiNhanhId = ctx.ChiNhanhId,
+                    ChiNhanhId = latest.ChiNhanhId,
                     Thang = thang,
                     Nam = nam,
                     PhongTroIds = new[] { phongTroId }
@@ -205,10 +230,10 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
 
                 if (!drafts.Success)
                 {
-                    return await DungCoThongBaoAsync(ctx, AutoInvoiceReason.LoiKhiTao, drafts.Message);
+                    return await DungCoThongBaoAsync(latest, AutoInvoiceReason.LoiKhiTao, drafts.Message);
                 }
 
-                var hopDongId = decision.HopDong!.HopDongId;
+                var hopDongId = latestDecision.HopDong!.HopDongId;
                 var items = drafts.Data?.Items ?? Array.Empty<InvoiceDraftItemResult>();
                 var created = items.FirstOrDefault(i => i.Status == InvoiceDraftItemStatus.Created && i.HopDongId == hopDongId);
                 if (created == null || created.HoaDonId == null || created.HoaDonId <= 0)
@@ -221,7 +246,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                     }
 
                     var moTa = forContract?.Message;
-                    return await DungCoThongBaoAsync(ctx, AutoInvoiceReason.LoiKhiTao,
+                    return await DungCoThongBaoAsync(latest, AutoInvoiceReason.LoiKhiTao,
                         string.IsNullOrWhiteSpace(moTa) ? "Không tạo được hóa đơn nháp" : moTa);
                 }
 
@@ -231,14 +256,14 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                 _store.DiscardPendingChanges();
                 if (!submit.Success || submit.Data == null)
                 {
-                    return await DungCoThongBaoAsync(ctx, AutoInvoiceReason.LoiKhiTao,
+                    return await DungCoThongBaoAsync(latest, AutoInvoiceReason.LoiKhiTao,
                         $"Đã tạo hóa đơn nháp {created.MaHoaDon} nhưng chưa gửi được bản tạm tính: {submit.Message}. Vui lòng xử lý theo luồng tay.");
                 }
 
                 var han = submit.Data.HanPhanHoiUtc ?? DateTime.UtcNow;
 
                 // Bước 5: báo khách số tiền tạm tính.
-                await BaoKhachTamTinhAsync(ctx, decision, hoaDonId, han);
+                var emailChoGui = await BaoKhachTamTinhAsync(latest, latestDecision, hoaDonId, han, hoanGuiEmail);
 
                 _logger.LogInformation("Đã gửi hóa đơn tạm tính {HoaDonId} (phòng {PhongTroId}, kỳ {Thang}/{Nam}, trigger {Trigger}), hạn phản hồi {Han:O}.",
                     hoaDonId, phongTroId, thang, nam, trigger, han);
@@ -247,7 +272,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                     Outcome = AutoInvoiceOutcome.DaGuiTamTinh,
                     HoaDonId = hoaDonId,
                     NguoiThucHienId = nguoiThucHien,
-                    HanPhanHoiUtc = han
+                    HanPhanHoiUtc = han,
+                    EmailChoGui = emailChoGui
                 });
             }
             catch (Exception ex)
@@ -306,7 +332,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
             await TryNotifyAsync("nhân viên", () => _thongBaoService.GuiChoNguoiPhuTrachPhongAsync(
                 ctx.PhongTroId,
                 $"Phòng {ctx.SoPhong} kỳ {ctx.Thang:00}/{ctx.Nam}: chưa tạo được hóa đơn tạm tính",
-                "Lý do: " + string.Join("; ", moTas),
+                "Lý do: " + string.Join("; ", moTas) + (lyDos.Contains(AutoInvoiceReason.ThieuDonGia) ? " " + HuongDanThieuDonGia : string.Empty),
                 "HoaDon",
                 $"/QuanLyNhaTro/ChotDienNuoc?thang={ctx.Thang}&nam={ctx.Nam}"));
 
@@ -363,7 +389,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
             }
         }
 
-        private async Task BaoKhachTamTinhAsync(AutoInvoiceRoomContext ctx, AutoInvoiceRoomDecision decision, int hoaDonId, DateTime hanUtc)
+        private async Task<PendingProvisionalEmail?> BaoKhachTamTinhAsync(AutoInvoiceRoomContext ctx, AutoInvoiceRoomDecision decision, int hoaDonId, DateTime hanUtc, bool hoanGuiEmail)
         {
             HoaDonChiTietRes? detail = null;
             try
@@ -378,7 +404,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
             if (detail == null)
             {
                 _logger.LogWarning("Không tìm thấy hóa đơn {HoaDonId} để báo khách tạm tính.", hoaDonId);
-                return;
+                return null;
             }
 
             var hanText = hanUtc.AddHours(7).ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture);
@@ -416,6 +442,11 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                         ChiSoNuocMoi = decision.Nuoc?.ChiSoMoi ?? 0m,
                         HanTuChotUtc = hanUtc
                     };
+                    if (hoanGuiEmail)
+                    {
+                        return new PendingProvisionalEmail(hoaDonId, ctx.EmailKhach!, data);
+                    }
+
                     var result = await _emailService.SendProvisionalInvoiceEmailAsync(ctx.EmailKhach!, data);
                     if (!result.IsSuccess)
                     {
@@ -427,6 +458,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                     _logger.LogWarning(ex, "Lỗi khi gửi email tạm tính hóa đơn {HoaDonId}.", hoaDonId);
                 }
             }
+
+            return null;
         }
 
         private static string FormatSo(decimal? value) => value.HasValue ? value.Value.ToString("0.###", ViVn) : string.Empty;

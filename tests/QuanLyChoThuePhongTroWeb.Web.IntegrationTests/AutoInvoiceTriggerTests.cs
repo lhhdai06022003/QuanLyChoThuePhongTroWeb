@@ -87,6 +87,16 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             db.ChiNhanhs.Add(branch);
             await db.SaveChangesAsync();
 
+            // Chuỗi tự tạo dừng với lý do ThieuDonGia khi chi nhánh chưa có đơn giá điện/nước cho kỳ có tiêu thụ.
+            var dien = new DichVu { TenDichVu = $"Dien {suffix}", DonVi = "kWh", LoaiDichVu = LoaiDichVu.Dien };
+            var nuoc = new DichVu { TenDichVu = $"Nuoc {suffix}", DonVi = "m3", LoaiDichVu = LoaiDichVu.Nuoc };
+            db.DichVus.AddRange(dien, nuoc);
+            await db.SaveChangesAsync();
+            db.DichVuChiNhanhs.AddRange(
+                new DichVuChiNhanh { ChiNhanhId = branch.ChiNhanhId, DichVuId = dien.DichVuId, GiaDichVu = 3500m },
+                new DichVuChiNhanh { ChiNhanhId = branch.ChiNhanhId, DichVuId = nuoc.DichVuId, GiaDichVu = 20000m });
+            await db.SaveChangesAsync();
+
             var room = new PhongTro { ChiNhanhId = branch.ChiNhanhId, SoPhong = $"AI_{suffix}", GiaThue = 3_000_000m, DienTich = 20, MoTa = "M" };
             var tenant = new NguoiThue { HoVaTen = $"Khach AI {suffix}", SoDienThoai = "0911111111", CCCD = $"0793{suffix[..4]}", Email = $"ai_{suffix}@test.com" };
             db.AddRange(room, tenant);

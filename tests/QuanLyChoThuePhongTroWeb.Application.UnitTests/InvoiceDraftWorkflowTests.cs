@@ -35,11 +35,21 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         private class FakeUnitOfWork : IUnitOfWork
         {
             public bool ShouldThrowOnSave { get; set; }
+            public int BeginCalls { get; private set; }
+            public int SaveCalls { get; private set; }
+            public List<FakeApplicationTransaction> Transactions { get; } = new();
+
             public Task<IApplicationTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default)
-                => Task.FromResult<IApplicationTransaction>(new FakeApplicationTransaction());
+            {
+                BeginCalls++;
+                var tx = new FakeApplicationTransaction();
+                Transactions.Add(tx);
+                return Task.FromResult<IApplicationTransaction>(tx);
+            }
 
             public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
             {
+                SaveCalls++;
                 if (ShouldThrowOnSave)
                     throw new InvalidOperationException("DB Failure: deadlock detected");
                 return Task.FromResult(1);
@@ -1153,6 +1163,134 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.True(result.Success);
             Assert.Null(inv.HanPhanHoi);
             Assert.Null(result.Data!.HanPhanHoiUtc);
+        }
+
+
+        // ---------- Đợt B: hóa đơn tạm tính (HanPhanHoi) và lõi tạo nháp dùng chung ----------
+
+        [Fact]
+        public async Task Finalize_Rejects_ProvisionalInvoiceWithHanPhanHoi_WithoutChangingState()
+        {
+            var (service, issuanceStore, _, accessService, _, uow) = CreateService();
+            var inv = CreateSampleInvoice(1, TrangThaiPhatHanhHoaDon.ChoDuyet);
+            inv.HanPhanHoi = new DateTime(2026, 10, 11, 3, 0, 0, DateTimeKind.Utc);
+            issuanceStore.AddedInvoices.Add(inv);
+            accessService.Permissions.Add((1, 1, EmployeeActionCodes.InvoiceFinalize));
+
+            var result = await service.FinalizeAsync(inv.HoaDonId, actorId: 1);
+
+            Assert.False(result.Success);
+            Assert.Equal("Hóa đơn đang tự chốt theo hạn, dùng Điều chỉnh và gửi lại.", result.Message);
+            Assert.Equal(TrangThaiPhatHanhHoaDon.ChoDuyet, inv.TrangThaiPhatHanh);
+            var tx = Assert.Single(uow.Transactions);
+            Assert.True(tx.RolledBack);
+            Assert.False(tx.Committed);
+            Assert.Equal(0, uow.SaveCalls);
+        }
+
+        [Fact]
+        public async Task Reject_Rejects_ProvisionalInvoiceWithHanPhanHoi_WithoutChangingState()
+        {
+            var (service, issuanceStore, _, accessService, _, uow) = CreateService();
+            var inv = CreateSampleInvoice(1, TrangThaiPhatHanhHoaDon.ChoDuyet);
+            inv.HanPhanHoi = new DateTime(2026, 10, 11, 3, 0, 0, DateTimeKind.Utc);
+            issuanceStore.AddedInvoices.Add(inv);
+            accessService.Permissions.Add((1, 1, EmployeeActionCodes.InvoiceReject));
+
+            var result = await service.RejectAsync(inv.HoaDonId, "Lý do", actorId: 1);
+
+            Assert.False(result.Success);
+            Assert.Equal("Hóa đơn đang tự chốt theo hạn, dùng Điều chỉnh và gửi lại.", result.Message);
+            Assert.Equal(TrangThaiPhatHanhHoaDon.ChoDuyet, inv.TrangThaiPhatHanh);
+            Assert.False(Assert.Single(uow.Transactions).Committed);
+        }
+
+        [Fact]
+        public async Task Finalize_And_Reject_StillWork_ForManualChoDuyetWithoutHanPhanHoi()
+        {
+            var (service, issuanceStore, _, accessService, _, _) = CreateService();
+            var toFinalize = CreateSampleInvoice(1, TrangThaiPhatHanhHoaDon.ChoDuyet);
+            var toReject = CreateSampleInvoice(2, TrangThaiPhatHanhHoaDon.ChoDuyet);
+            issuanceStore.AddedInvoices.Add(toFinalize);
+            issuanceStore.AddedInvoices.Add(toReject);
+            accessService.Permissions.Add((1, 1, EmployeeActionCodes.InvoiceFinalize));
+            accessService.Permissions.Add((1, 1, EmployeeActionCodes.InvoiceReject));
+
+            Assert.True((await service.FinalizeAsync(1, actorId: 1)).Success);
+            Assert.True((await service.RejectAsync(2, "Lý do", actorId: 1)).Success);
+            Assert.Equal(TrangThaiPhatHanhHoaDon.DaChot, toFinalize.TrangThaiPhatHanh);
+            Assert.Equal(TrangThaiPhatHanhHoaDon.Nhap, toReject.TrangThaiPhatHanh);
+        }
+
+        [Fact]
+        public async Task CreateDraftsInCurrentTransaction_DoesNotManageTransaction_SavesAndUsesGivenReason()
+        {
+            var (service, issuanceStore, hoaDonStore, access, _, uow) = CreateService();
+            SetupValidBranchAndRoom(hoaDonStore, access);
+            var req = new CreateInvoiceDraftsRequest { ChiNhanhId = 1, Thang = 9, Nam = 2026, PhongTroIds = new[] { 101 } };
+
+            var result = await service.CreateDraftsInCurrentTransactionAsync(req, actorId: 1, lyDoKhoiTao: "[DIEU_CHINH] Tạo hóa đơn thay thế sau điều chỉnh");
+
+            Assert.True(result.Success);
+            Assert.Equal(1, result.Data!.CreatedCount);
+            Assert.Equal(0, uow.BeginCalls);
+            Assert.True(uow.SaveCalls >= 1);
+            var invoice = Assert.Single(issuanceStore.AddedInvoices);
+            Assert.Equal("[DIEU_CHINH] Tạo hóa đơn thay thế sau điều chỉnh", Assert.Single(invoice.LichSuTrangThaiHoaDons).LyDo);
+        }
+
+        [Fact]
+        public async Task CreateDraftsInCurrentTransaction_DefaultReason_AndSameMoneyAsCreateDrafts()
+        {
+            var (serviceA, storeA, hoaDonStoreA, accessA, _, _) = CreateService();
+            SetupValidBranchAndRoom(hoaDonStoreA, accessA);
+            var (serviceB, storeB, hoaDonStoreB, accessB, _, _) = CreateService();
+            SetupValidBranchAndRoom(hoaDonStoreB, accessB);
+            var req = new CreateInvoiceDraftsRequest { ChiNhanhId = 1, Thang = 9, Nam = 2026, PhongTroIds = new[] { 101 } };
+
+            await serviceA.CreateDraftsAsync(req, actorId: 1);
+            await serviceB.CreateDraftsInCurrentTransactionAsync(req, actorId: 1);
+
+            var a = storeA.AddedInvoices.Single();
+            var b = storeB.AddedInvoices.Single();
+            Assert.Equal(a.TongTien, b.TongTien);
+            Assert.Equal(a.MaHoaDon, b.MaHoaDon);
+            Assert.Equal(
+                a.ChiTietHoaDonDichVus.Select(c => (c.TenDichVu, c.DonGia, c.SoLuong, c.TongTien)).ToList(),
+                b.ChiTietHoaDonDichVus.Select(c => (c.TenDichVu, c.DonGia, c.SoLuong, c.TongTien)).ToList());
+            Assert.Equal("Tạo hóa đơn nháp", Assert.Single(b.LichSuTrangThaiHoaDons).LyDo);
+        }
+
+        [Fact]
+        public async Task CreateDraftsInCurrentTransaction_WithoutDraftPermission_Fails()
+        {
+            var (service, issuanceStore, hoaDonStore, access, _, uow) = CreateService();
+            SetupValidBranchAndRoom(hoaDonStore, access);
+            access.Permissions.Clear();
+            var req = new CreateInvoiceDraftsRequest { ChiNhanhId = 1, Thang = 9, Nam = 2026, PhongTroIds = new[] { 101 } };
+
+            var result = await service.CreateDraftsInCurrentTransactionAsync(req, actorId: 1);
+
+            Assert.False(result.Success);
+            Assert.Empty(issuanceStore.AddedInvoices);
+            Assert.Equal(0, uow.BeginCalls);
+        }
+
+        [Fact]
+        public async Task CreateDrafts_WhenSaveThrows_RollsBackAndKeepsGenericMessage()
+        {
+            var (service, issuanceStore, hoaDonStore, access, _, uow) = CreateService();
+            SetupValidBranchAndRoom(hoaDonStore, access);
+            uow.ShouldThrowOnSave = true;
+            var req = new CreateInvoiceDraftsRequest { ChiNhanhId = 1, Thang = 9, Nam = 2026, PhongTroIds = new[] { 101 } };
+
+            var result = await service.CreateDraftsAsync(req, actorId: 1);
+
+            Assert.False(result.Success);
+            Assert.Equal("Không thể tạo hóa đơn nháp. Vui lòng thử lại.", result.Message);
+            var tx = Assert.Single(uow.Transactions);
+            Assert.True(tx.RolledBack);
+            Assert.False(tx.Committed);
         }
     }
 }

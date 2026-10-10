@@ -12,6 +12,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using QuanLyChoThuePhongTroWeb.Application;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.BackgroundJobs;
+using QuanLyChoThuePhongTroWeb.Application.Abstractions.Notifications;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Persistence;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Services;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence;
@@ -32,6 +33,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.BackgroundJob
             var autoCloseQueried = NewSignal();
             var expiryAlertQueried = NewSignal();
             var invoiceReminderQueried = NewSignal();
+            var autoInvoiceFinalizeQueried = NewSignal();
             var logSink = new InMemoryLogSink();
             var emailService = new RejectingEmailService();
 
@@ -46,6 +48,13 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.BackgroundJob
             {
                 nameof(IHoaDonStore.GetOverdueInvoicesAsync) => SignalEmptyAsync<HoaDon>(invoiceReminderQueried),
                 _ => throw new InvalidOperationException($"Unexpected IHoaDonStore call: {method.Name}")
+            });
+
+            var autoInvoiceStore = CreateProxy<IAutoInvoiceStore>((method, _) => method.Name switch
+            {
+                nameof(IAutoInvoiceStore.GetDueProvisionalInvoicesAsync) => SignalEmptyAsync<AutoInvoiceDueItem>(autoInvoiceFinalizeQueried),
+                nameof(IAutoInvoiceStore.DiscardPendingChanges) => null,
+                _ => throw new InvalidOperationException($"Unexpected IAutoInvoiceStore call: {method.Name}")
             });
 
             var unitOfWork = CreateProxy<IUnitOfWork>((method, _) =>
@@ -73,6 +82,10 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.BackgroundJob
                     services.AddSingleton(hopDongStore);
                     services.RemoveAll<IHoaDonStore>();
                     services.AddSingleton(hoaDonStore);
+                    services.RemoveAll<IAutoInvoiceStore>();
+                    services.AddSingleton(autoInvoiceStore);
+                    // Notifier thật nằm ở Web (SignalR); use case tự chốt cần ThongBaoService nên cấp bản không làm gì.
+                    services.AddScoped<IThongBaoNotifier, NoopNotifier>();
                     services.RemoveAll<IUnitOfWork>();
                     services.AddSingleton(unitOfWork);
                     services.RemoveAll<IInvoiceReminderStateStore>();
@@ -97,6 +110,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.BackgroundJob
                 Assert.IsType<ContractAutoCloseUseCase>(scope.ServiceProvider.GetRequiredService<IContractAutoCloseUseCase>());
                 Assert.IsType<ContractExpiryAlertUseCase>(scope.ServiceProvider.GetRequiredService<IContractExpiryAlertUseCase>());
                 Assert.IsType<InvoiceReminderUseCase>(scope.ServiceProvider.GetRequiredService<IInvoiceReminderUseCase>());
+                Assert.IsType<AutoInvoiceFinalizeUseCase>(scope.ServiceProvider.GetRequiredService<IAutoInvoiceFinalizeUseCase>());
             }
 
             await host.StartAsync();
@@ -105,7 +119,8 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.BackgroundJob
             await Task.WhenAll(
                 autoCloseQueried.Task.WaitAsync(timeout.Token),
                 expiryAlertQueried.Task.WaitAsync(timeout.Token),
-                invoiceReminderQueried.Task.WaitAsync(timeout.Token));
+                invoiceReminderQueried.Task.WaitAsync(timeout.Token),
+                autoInvoiceFinalizeQueried.Task.WaitAsync(timeout.Token));
 
             await host.StopAsync(timeout.Token);
 
@@ -114,6 +129,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.BackgroundJob
             AssertStartupLogFor<ContractAutoCloseJob>(logSink);
             AssertStartupLogFor<ContractExpiryAlertJob>(logSink);
             AssertStartupLogFor<InvoiceReminderJob>(logSink);
+            AssertStartupLogFor<AutoInvoiceFinalizeJob>(logSink);
         }
 
         private static TaskCompletionSource<bool> NewSignal() =>
@@ -179,6 +195,12 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.BackgroundJob
 
             public Task MarkAsSentAsync(string alertKey, CancellationToken cancellationToken = default) =>
                 throw new InvalidOperationException("No alert should be marked in an empty-cycle composition test.");
+        }
+
+        private sealed class NoopNotifier : IThongBaoNotifier
+        {
+            public Task SendToUserAsync(int nguoiDungId, object payload, CancellationToken cancellationToken = default) => Task.CompletedTask;
+            public Task SendToRoleGroupAsync(string roleName, object payload, CancellationToken cancellationToken = default) => Task.CompletedTask;
         }
 
         private sealed class RejectingEmailService : IEmailService
