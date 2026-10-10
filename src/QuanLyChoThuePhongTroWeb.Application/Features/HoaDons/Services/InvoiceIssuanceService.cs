@@ -8,6 +8,7 @@ using QuanLyChoThuePhongTroWeb.Application.Abstractions.Persistence;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Security;
 using QuanLyChoThuePhongTroWeb.Application.Common.Models;
 using QuanLyChoThuePhongTroWeb.Application.Common.Security;
+using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.AutoInvoices;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence;
 using QuanLyChoThuePhongTroWeb.Domain.Entities;
@@ -23,6 +24,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
         private readonly IEmployeeAccessService _employeeAccessService;
         private readonly IHoaDonCalculatorService _calculatorService;
         private readonly ILogger<InvoiceIssuanceService> _logger;
+        private readonly TimeProvider _time;
 
         public InvoiceIssuanceService(
             IInvoiceIssuanceStore issuanceStore,
@@ -30,7 +32,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
             IUnitOfWork unitOfWork,
             IEmployeeAccessService employeeAccessService,
             IHoaDonCalculatorService calculatorService,
-            ILogger<InvoiceIssuanceService> logger)
+            ILogger<InvoiceIssuanceService> logger,
+            TimeProvider? timeProvider = null)
         {
             _issuanceStore = issuanceStore;
             _hoaDonStore = hoaDonStore;
@@ -38,6 +41,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
             _employeeAccessService = employeeAccessService;
             _calculatorService = calculatorService;
             _logger = logger;
+            _time = timeProvider ?? TimeProvider.System;
         }
 
         public async Task<ServiceResult<InvoiceDraftBatchResult>> CreateDraftsAsync(CreateInvoiceDraftsRequest request, int actorId, CancellationToken ct = default)
@@ -124,6 +128,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
 
                 var items = new List<InvoiceDraftItemResult>();
                 var createdCount = 0;
+                var createdInvoices = new List<(int Index, HoaDon HoaDon)>();
 
                 foreach (var hd in hopDongs.OrderBy(x => x.HopDongId))
                 {
@@ -330,12 +335,30 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                         MaHoaDon = hoaDon.MaHoaDon,
                         Message = $"Phòng {baseRoomName} (HĐ: {hd.MaHopDong}): Đã tạo hóa đơn nháp."
                     });
+                    createdInvoices.Add((items.Count - 1, hoaDon));
                     createdCount++;
                 }
 
                 if (createdCount > 0)
                 {
                     await _unitOfWork.SaveChangesAsync(ct);
+
+                    // Khóa chính chỉ có sau SaveChanges nên gán lại HoaDonId cho các dòng vừa tạo.
+                    foreach (var (index, created) in createdInvoices)
+                    {
+                        var item = items[index];
+                        items[index] = new InvoiceDraftItemResult
+                        {
+                            PhongTroId = item.PhongTroId,
+                            SoPhong = item.SoPhong,
+                            HopDongId = item.HopDongId,
+                            MaHopDong = item.MaHopDong,
+                            Status = item.Status,
+                            HoaDonId = created.HoaDonId,
+                            MaHoaDon = item.MaHoaDon,
+                            Message = item.Message
+                        };
+                    }
                 }
 
                 await tx.CommitAsync(ct);
@@ -416,6 +439,88 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                 await tx.RollbackAsync(ct);
                 _logger.LogError(ex, "Lỗi khi gửi duyệt hóa đơn {HoaDonId}", hoaDonId);
                 return ServiceResult<InvoiceTransitionResult>.Fail("Không thể gửi duyệt hóa đơn. Vui lòng thử lại.");
+            }
+        }
+
+        public async Task<ServiceResult<InvoiceTransitionResult>> SubmitProvisionalAsync(int hoaDonId, int actorId, CancellationToken ct = default)
+        {
+            if (actorId <= 0) return ServiceResult<InvoiceTransitionResult>.Fail("Người thực hiện không hợp lệ.");
+
+            var lockTargets = await _issuanceStore.GetInvoiceLockTargetsAsync(hoaDonId, ct);
+            if (lockTargets == null) return ServiceResult<InvoiceTransitionResult>.Fail("Không tìm thấy hóa đơn.");
+
+            var (meterPeriodId, branchId) = lockTargets.Value;
+            var canSubmit = await _employeeAccessService.CanPerformAsync(actorId, branchId, EmployeeActionCodes.InvoiceSubmit, ct);
+            if (!canSubmit) return ServiceResult<InvoiceTransitionResult>.Fail("Bạn không có quyền gửi duyệt hóa đơn tại chi nhánh này.");
+
+            await using var tx = await _unitOfWork.BeginTransactionAsync(ct);
+            try
+            {
+                TrangThaiGhiNhan? periodStatus = null;
+                if (meterPeriodId.HasValue)
+                {
+                    periodStatus = await _issuanceStore.LockMeterPeriodAsync(meterPeriodId.Value, ct);
+                }
+
+                if (!meterPeriodId.HasValue || periodStatus != TrangThaiGhiNhan.DaDuyet)
+                {
+                    await tx.RollbackAsync(ct);
+                    return ServiceResult<InvoiceTransitionResult>.Fail("Kỳ chỉ số điện nước liên kết chưa được chốt.");
+                }
+
+                var hoaDon = await _issuanceStore.GetInvoiceForUpdateAsync(hoaDonId, ct);
+                if (hoaDon == null)
+                {
+                    await tx.RollbackAsync(ct);
+                    return ServiceResult<InvoiceTransitionResult>.Fail("Không tìm thấy hóa đơn hoặc hóa đơn đã bị hủy.");
+                }
+
+                if (hoaDon.TrangThaiPhatHanh != TrangThaiPhatHanhHoaDon.Nhap)
+                {
+                    await tx.RollbackAsync(ct);
+                    return ServiceResult<InvoiceTransitionResult>.Fail($"Chỉ hóa đơn ở trạng thái Nháp mới có thể gửi duyệt.");
+                }
+
+                var activeDetails = hoaDon.ChiTietHoaDonDichVus.Where(x => !x.IsDeleted).ToList();
+                if (!activeDetails.Any())
+                {
+                    await tx.RollbackAsync(ct);
+                    return ServiceResult<InvoiceTransitionResult>.Fail("Hóa đơn không có chi tiết dịch vụ nào.");
+                }
+
+                var detailTotal = activeDetails.Sum(x => x.TongTien);
+                if (hoaDon.TongTien <= 0 || hoaDon.TongTien != detailTotal)
+                {
+                    await tx.RollbackAsync(ct);
+                    return ServiceResult<InvoiceTransitionResult>.Fail("Tổng tiền hóa đơn không khớp với tổng chi tiết dịch vụ.");
+                }
+
+                var chiNhanh = await _hoaDonStore.GetChiNhanhByIdAsync(branchId, ct);
+                if (chiNhanh == null || chiNhanh.SoGioPhanHoiHoaDon < 1 || chiNhanh.SoGioPhanHoiHoaDon > 168)
+                {
+                    await tx.RollbackAsync(ct);
+                    return ServiceResult<InvoiceTransitionResult>.Fail("Chi nhánh không tồn tại hoặc số giờ phản hồi hóa đơn không hợp lệ.");
+                }
+
+                var now = _time.GetUtcNow().UtcDateTime;
+                var han = now.AddHours(chiNhanh.SoGioPhanHoiHoaDon);
+                hoaDon.GuiTamTinh(actorId, now, han, AutoInvoiceHistoryTags.TaoLyDo(AutoInvoiceHistoryTags.TuDong, "Gửi khách hóa đơn tạm tính"));
+                await _unitOfWork.SaveChangesAsync(ct);
+                await tx.CommitAsync(ct);
+
+                return ServiceResult<InvoiceTransitionResult>.Ok(new InvoiceTransitionResult
+                {
+                    HoaDonId = hoaDon.HoaDonId,
+                    MaHoaDon = hoaDon.MaHoaDon,
+                    TrangThaiPhatHanh = hoaDon.TrangThaiPhatHanh,
+                    HanPhanHoiUtc = han
+                });
+            }
+            catch (Exception ex)
+            {
+                await tx.RollbackAsync(ct);
+                _logger.LogError(ex, "Lỗi khi gửi tạm tính hóa đơn {HoaDonId}", hoaDonId);
+                return ServiceResult<InvoiceTransitionResult>.Fail("Không thể gửi hóa đơn tạm tính. Vui lòng thử lại.");
             }
         }
 

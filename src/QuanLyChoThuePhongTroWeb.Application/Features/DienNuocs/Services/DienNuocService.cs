@@ -12,6 +12,7 @@ using QuanLyChoThuePhongTroWeb.Application.Features.NhanViens.Services;
 using QuanLyChoThuePhongTroWeb.Domain.Entities;
 using QuanLyChoThuePhongTroWeb.Domain.Enums;
 
+using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services;
 
@@ -22,15 +23,18 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
         private readonly IDienNuocStore _store;
         private readonly IEmployeeAccessService _employeeAccessService;
         private readonly IMeterReadingWorkflowService _workflowService;
+        private readonly IAutoInvoiceService? _autoInvoiceService;
 
         public DienNuocService(
             IDienNuocStore store,
             IEmployeeAccessService employeeAccessService,
-            IMeterReadingWorkflowService workflowService)
+            IMeterReadingWorkflowService workflowService,
+            IAutoInvoiceService? autoInvoiceService = null)
         {
             _store = store ?? throw new ArgumentNullException(nameof(store));
             _employeeAccessService = employeeAccessService ?? throw new ArgumentNullException(nameof(employeeAccessService));
             _workflowService = workflowService ?? throw new ArgumentNullException(nameof(workflowService));
+            _autoInvoiceService = autoInvoiceService;
         }
 
         public async Task<List<DienNuocPhongRes>> GetDanhSachDienNuocAsync(int chiNhanhId, int thang, int nam, int actorId)
@@ -227,6 +231,14 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
             if (!batchResult.Success)
             {
                 return (false, batchResult.Message);
+            }
+
+            if (_autoInvoiceService != null)
+            {
+                foreach (var phongTroId in phongTroIds.OrderBy(x => x))
+                {
+                    await _autoInvoiceService.RunForRoomAsync(actorId, AutoInvoiceTrigger.ChotKy, phongTroId, input.Thang, input.Nam);
+                }
             }
 
             return (true, string.Empty);

@@ -43,6 +43,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence.IHoaDonStore, Persistence.Features.HoaDonStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence.IInvoicePaymentStore, Persistence.Features.InvoicePaymentStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence.IInvoiceIssuanceStore, Persistence.Features.InvoiceIssuanceStore>();
+            services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence.IAutoInvoiceStore, Persistence.Features.AutoInvoiceStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence.IInvoicePublicationStore, Persistence.Features.InvoicePublicationStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence.IInvoiceViewStore, Persistence.Features.InvoiceViewStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Persistence.IDienNuocStore, Persistence.Features.DienNuocStore>();
@@ -71,6 +72,10 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure
             var invoiceIssuanceOptions = configuration.GetSection(QuanLyChoThuePhongTroWeb.Application.Common.Configurations.InvoiceIssuanceOptions.SectionName).Get<QuanLyChoThuePhongTroWeb.Application.Common.Configurations.InvoiceIssuanceOptions>() ?? new QuanLyChoThuePhongTroWeb.Application.Common.Configurations.InvoiceIssuanceOptions();
             invoiceIssuanceOptions.Validate();
             services.AddSingleton(invoiceIssuanceOptions);
+
+            var autoInvoiceOptions = configuration.GetSection(QuanLyChoThuePhongTroWeb.Application.Common.Configurations.AutoInvoiceOptions.SectionName).Get<QuanLyChoThuePhongTroWeb.Application.Common.Configurations.AutoInvoiceOptions>() ?? new QuanLyChoThuePhongTroWeb.Application.Common.Configurations.AutoInvoiceOptions();
+            autoInvoiceOptions.Validate();
+            services.AddSingleton(autoInvoiceOptions);
 
             var invoicePaymentOptions = configuration.GetSection(QuanLyChoThuePhongTroWeb.Application.Common.Configurations.InvoicePaymentOptions.SectionName).Get<QuanLyChoThuePhongTroWeb.Application.Common.Configurations.InvoicePaymentOptions>() ?? new QuanLyChoThuePhongTroWeb.Application.Common.Configurations.InvoicePaymentOptions();
             invoicePaymentOptions.Validate();

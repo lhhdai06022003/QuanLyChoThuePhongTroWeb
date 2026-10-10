@@ -1036,5 +1036,123 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             // 2.000.000 (phòng) + 175.000 (điện: 50*3500) + 200.000 (sự cố) = 2.375.000
             Assert.Equal(2375000m, item.TongTienDuKien);
         }
+
+        private (InvoiceIssuanceService service, FakeInvoiceIssuanceStore issuanceStore, FakeEmployeeAccessService accessService, FakeHoaDonStore hoaDonStore) CreateProvisionalService(DateTimeOffset now, int soGio = 24)
+        {
+            var issuanceStore = new FakeInvoiceIssuanceStore();
+            var hoaDonStore = new FakeHoaDonStore();
+            hoaDonStore.Branches[1] = new ChiNhanh { ChiNhanhId = 1, MaChiNhanh = "CN1", SoGioPhanHoiHoaDon = soGio };
+            var accessService = new FakeEmployeeAccessService();
+            accessService.Permissions.Add((10, 1, EmployeeActionCodes.InvoiceSubmit));
+            var service = new InvoiceIssuanceService(
+                issuanceStore,
+                hoaDonStore,
+                new FakeUnitOfWork(),
+                accessService,
+                new FakeCalculatorService(),
+                NullLogger<InvoiceIssuanceService>.Instance,
+                new Fakes.FixedTimeProvider(now));
+            return (service, issuanceStore, accessService, hoaDonStore);
+        }
+
+        [Theory]
+        [InlineData(24)]
+        [InlineData(48)]
+        public async Task SubmitProvisional_SetsHanPhanHoi_FromBranchHours_AndTagsHistory(int soGio)
+        {
+            var now = new DateTimeOffset(2026, 10, 10, 3, 0, 0, TimeSpan.Zero);
+            var (service, issuanceStore, _, _) = CreateProvisionalService(now, soGio);
+            var inv = CreateSampleInvoice();
+            issuanceStore.AddedInvoices.Add(inv);
+
+            var result = await service.SubmitProvisionalAsync(inv.HoaDonId, actorId: 10);
+
+            Assert.True(result.Success);
+            var expected = now.UtcDateTime.AddHours(soGio);
+            Assert.Equal(expected, inv.HanPhanHoi);
+            Assert.Equal(expected, result.Data!.HanPhanHoiUtc);
+            Assert.Equal(TrangThaiPhatHanhHoaDon.ChoDuyet, inv.TrangThaiPhatHanh);
+            var history = Assert.Single(inv.LichSuTrangThaiHoaDons);
+            Assert.StartsWith("[TU_DONG]", history.LyDo);
+            Assert.Equal(10, history.NguoiThucHienId);
+        }
+
+        [Fact]
+        public async Task SubmitProvisional_Fails_WhenNotNhap()
+        {
+            var (service, issuanceStore, _, _) = CreateProvisionalService(DateTimeOffset.UtcNow);
+            var inv = CreateSampleInvoice(1, TrangThaiPhatHanhHoaDon.ChoDuyet);
+            issuanceStore.AddedInvoices.Add(inv);
+
+            var result = await service.SubmitProvisionalAsync(1, 10);
+
+            Assert.False(result.Success);
+            Assert.Null(inv.HanPhanHoi);
+        }
+
+        [Fact]
+        public async Task SubmitProvisional_Fails_WhenMissingSubmitPermission()
+        {
+            var (service, issuanceStore, accessService, _) = CreateProvisionalService(DateTimeOffset.UtcNow);
+            accessService.Permissions.Clear();
+            var inv = CreateSampleInvoice();
+            issuanceStore.AddedInvoices.Add(inv);
+
+            var result = await service.SubmitProvisionalAsync(inv.HoaDonId, 10);
+
+            Assert.False(result.Success);
+            Assert.Equal(TrangThaiPhatHanhHoaDon.Nhap, inv.TrangThaiPhatHanh);
+            Assert.Null(inv.HanPhanHoi);
+        }
+
+        [Theory]
+        [InlineData(TrangThaiGhiNhan.ChoDuyet)]
+        [InlineData(TrangThaiGhiNhan.Nhap)]
+        [InlineData(TrangThaiGhiNhan.TuChoi)]
+        public async Task SubmitProvisional_Fails_WhenMeterPeriodNotDaDuyet(TrangThaiGhiNhan status)
+        {
+            var (service, issuanceStore, _, _) = CreateProvisionalService(DateTimeOffset.UtcNow);
+            issuanceStore.PeriodStatus = status;
+            var inv = CreateSampleInvoice();
+            issuanceStore.AddedInvoices.Add(inv);
+
+            var result = await service.SubmitProvisionalAsync(inv.HoaDonId, 10);
+
+            Assert.False(result.Success);
+            Assert.Equal(TrangThaiPhatHanhHoaDon.Nhap, inv.TrangThaiPhatHanh);
+            Assert.Null(inv.HanPhanHoi);
+        }
+
+        [Fact]
+        public async Task SubmitProvisional_Fails_WhenTotalMismatch_OrNoDetails()
+        {
+            var (service, issuanceStore, _, _) = CreateProvisionalService(DateTimeOffset.UtcNow);
+            var mismatch = CreateSampleInvoice(1, TrangThaiPhatHanhHoaDon.Nhap, total: 3000000m);
+            mismatch.ChiTietHoaDonDichVus.First().TongTien = 2000000m;
+            issuanceStore.AddedInvoices.Add(mismatch);
+            var empty = CreateSampleInvoice(2, TrangThaiPhatHanhHoaDon.Nhap);
+            empty.ChiTietHoaDonDichVus.Clear();
+            issuanceStore.AddedInvoices.Add(empty);
+
+            Assert.False((await service.SubmitProvisionalAsync(1, 10)).Success);
+            Assert.False((await service.SubmitProvisionalAsync(2, 10)).Success);
+            Assert.Null(mismatch.HanPhanHoi);
+            Assert.Null(empty.HanPhanHoi);
+        }
+
+        [Fact]
+        public async Task Submit_Manual_DoesNotSetHanPhanHoi()
+        {
+            var (service, issuanceStore, _, accessService, _, _) = CreateService();
+            var inv = CreateSampleInvoice();
+            issuanceStore.AddedInvoices.Add(inv);
+            accessService.Permissions.Add((10, 1, EmployeeActionCodes.InvoiceSubmit));
+
+            var result = await service.SubmitAsync(inv.HoaDonId, actorId: 10);
+
+            Assert.True(result.Success);
+            Assert.Null(inv.HanPhanHoi);
+            Assert.Null(result.Data!.HanPhanHoiUtc);
+        }
     }
 }

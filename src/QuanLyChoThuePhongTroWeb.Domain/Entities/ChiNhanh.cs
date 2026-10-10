@@ -16,6 +16,7 @@ namespace QuanLyChoThuePhongTroWeb.Domain.Entities
         public string DiaChi { get; set; }
         public string MoTa { get; set; }
         public string SoDienThoai { get; set; }
+        public int SoGioPhanHoiHoaDon { get; set; } = 24;
         public DateTime NgayTao { get; set; } = DateTime.UtcNow;
         public DateTime? NgayCapNhat { get; set; }
         public bool IsDeleted { get; set; } = false;

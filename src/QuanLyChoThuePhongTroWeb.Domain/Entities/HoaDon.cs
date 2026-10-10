@@ -25,6 +25,7 @@ namespace QuanLyChoThuePhongTroWeb.Domain.Entities
         public bool ChoPhepThanhToanMotPhan { get; set; } = false;
         public decimal? SoTienThanhToanToiThieu { get; set; }
         public DateTime? HanThanhToan { get; set; }
+        public DateTime? HanPhanHoi { get; set; }
 
         public int? NguoiChotId { get; set; }
         public DateTime? NgayChot { get; set; }
@@ -99,6 +100,61 @@ namespace QuanLyChoThuePhongTroWeb.Domain.Entities
                 TrangThaiThanhToanMoi = TrangThaiHoaDon,
                 NguoiThucHienId = nguoiThucHienId,
                 NgayThucHien = DateTime.UtcNow,
+                LyDo = lyDo
+            });
+        }
+
+        public void GuiTamTinh(int nguoiThucHienId, DateTime nowUtc, DateTime hanPhanHoiUtc, string lyDo)
+        {
+            if (nguoiThucHienId <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(nguoiThucHienId), "Người gửi hóa đơn tạm tính không hợp lệ.");
+            }
+
+            if (nowUtc.Kind != DateTimeKind.Utc)
+            {
+                throw new ArgumentOutOfRangeException(nameof(nowUtc), "Thời điểm gửi hóa đơn tạm tính phải là UTC.");
+            }
+
+            if (hanPhanHoiUtc.Kind != DateTimeKind.Utc)
+            {
+                throw new ArgumentOutOfRangeException(nameof(hanPhanHoiUtc), "Hạn phản hồi phải là UTC.");
+            }
+
+            if (hanPhanHoiUtc <= nowUtc)
+            {
+                throw new ArgumentOutOfRangeException(nameof(hanPhanHoiUtc), "Hạn phản hồi phải sau thời điểm gửi.");
+            }
+
+            if (string.IsNullOrWhiteSpace(lyDo))
+            {
+                throw new ArgumentException("Lý do gửi hóa đơn tạm tính không được để trống.", nameof(lyDo));
+            }
+
+            if (TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaHuy)
+            {
+                throw new InvalidOperationException("Không thể gửi hóa đơn đã hủy.");
+            }
+
+            if (TrangThaiPhatHanh != TrangThaiPhatHanhHoaDon.Nhap)
+            {
+                throw new InvalidOperationException($"Chỉ hóa đơn ở trạng thái {TrangThaiPhatHanhHoaDon.Nhap} mới có thể gửi tạm tính.");
+            }
+
+            var trangThaiCu = TrangThaiPhatHanh;
+            TrangThaiPhatHanh = TrangThaiPhatHanhHoaDon.ChoDuyet;
+            HanPhanHoi = hanPhanHoiUtc;
+            NgayCapNhat = nowUtc;
+
+            LichSuTrangThaiHoaDons.Add(new LichSuTrangThaiHoaDon
+            {
+                HoaDonId = HoaDonId,
+                TrangThaiPhatHanhCu = trangThaiCu,
+                TrangThaiPhatHanhMoi = TrangThaiPhatHanhHoaDon.ChoDuyet,
+                TrangThaiThanhToanCu = TrangThaiHoaDon,
+                TrangThaiThanhToanMoi = TrangThaiHoaDon,
+                NguoiThucHienId = nguoiThucHienId,
+                NgayThucHien = nowUtc,
                 LyDo = lyDo
             });
         }

@@ -8,6 +8,7 @@ using QuanLyChoThuePhongTroWeb.Application.Common.Security;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services;
 using QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes;
+using QuanLyChoThuePhongTroWeb.Domain.Enums;
 using Xunit;
 
 namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
@@ -285,6 +286,47 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             var bytes = await service.ExportTenantPdfAsync(hoaDonId, tenantId);
 
             Assert.Null(bytes);
+        }
+
+        [Fact]
+        public async Task ExportTenantPdf_ProvisionalChoDuyet_ReturnsNull()
+        {
+            var service = CreateService();
+            const int hoaDonId = 110;
+            const int tenantId = 5;
+            _hoaDonStore.OwnedInvoices.Add((hoaDonId, tenantId));
+            _viewStore.Details[hoaDonId] = new HoaDonChiTietRes
+            {
+                HoaDonId = hoaDonId,
+                TongTien = 1_000_000m,
+                ConLai = 1_000_000m,
+                TrangThaiPhatHanhValue = (int)TrangThaiPhatHanhHoaDon.ChoDuyet
+            };
+
+            var bytes = await service.ExportTenantPdfAsync(hoaDonId, tenantId);
+
+            Assert.Null(bytes);
+            Assert.Null(_exporter.LastHoaDon);
+        }
+
+        [Fact]
+        public async Task ExportTenantPdf_DaGui_StillReturnsPdf()
+        {
+            var service = CreateService();
+            const int hoaDonId = 111;
+            const int tenantId = 5;
+            _hoaDonStore.OwnedInvoices.Add((hoaDonId, tenantId));
+            _viewStore.Details[hoaDonId] = new HoaDonChiTietRes
+            {
+                HoaDonId = hoaDonId,
+                TongTien = 1_000_000m,
+                ConLai = 1_000_000m,
+                TrangThaiPhatHanhValue = (int)TrangThaiPhatHanhHoaDon.DaGui
+            };
+
+            var bytes = await service.ExportTenantPdfAsync(hoaDonId, tenantId);
+
+            Assert.NotNull(bytes);
         }
     }
 }

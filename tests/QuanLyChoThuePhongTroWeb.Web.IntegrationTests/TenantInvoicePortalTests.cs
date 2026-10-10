@@ -482,5 +482,158 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             var res = await PostTaoLuotAsync(client, data.InvoiceCancelled.HoaDonId);
             Assert.Equal(HttpStatusCode.BadRequest, res.StatusCode);
         }
+
+        private async Task<(HoaDon Provisional, HoaDon ManualReview)> AddProvisionalInvoicesAsync(HoaDon baseInvoice)
+        {
+            using var scope = _factory.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var suffix = Guid.NewGuid().ToString("N")[..8];
+
+            HoaDon Make(string tag, int month, decimal total, DateTime? han) => new()
+            {
+                HopDongId = baseInvoice.HopDongId,
+                MaHoaDon = $"HD_{tag}_{suffix}",
+                Thang = month,
+                Nam = 2026,
+                TongTien = total,
+                TrangThaiHoaDon = TrangThaiHoaDon.ChuaThanhToan,
+                TrangThaiPhatHanh = TrangThaiPhatHanhHoaDon.ChoDuyet,
+                HanPhanHoi = han,
+                NgayTao = DateTime.UtcNow.AddDays(-1),
+                ChiTietHoaDonDichVus = new List<ChiTietHoaDon>
+                {
+                    new() { TenDichVu = "Tiền phòng", SoLuong = 1, DonGia = total, TongTien = total }
+                }
+            };
+
+            var provisional = Make("TAMTINH", 5, 1_234_567m, DateTime.UtcNow.AddHours(24));
+            var manual = Make("CHODUYET", 6, 7_654_321m, null);
+            db.HoaDons.AddRange(provisional, manual);
+            await db.SaveChangesAsync();
+            return (provisional, manual);
+        }
+
+        [Fact]
+        public async Task GetDanhSach_IncludesProvisionalInvoice_ButNotManualChoDuyet()
+        {
+            var data = await SeedTestDataAsync("GDS_TT");
+            var (provisional, manual) = await AddProvisionalInvoicesAsync(data.InvoiceDaGui);
+            var client = CreateHttpClient();
+            await LoginTenantAsync(client, data.TenantAUsername, data.TenantAPassword);
+
+            var res = await client.GetAsync("/KhachThue/HoaDon/GetDanhSach");
+            Assert.Equal(HttpStatusCode.OK, res.StatusCode);
+
+            using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+            var items = doc.RootElement.EnumerateArray().ToList();
+
+            var item = items.FirstOrDefault(x => x.GetProperty("hoaDonId").GetInt32() == provisional.HoaDonId);
+            Assert.True(item.ValueKind != JsonValueKind.Undefined, "Provisional invoice should be listed");
+            Assert.Equal(1_234_567m, item.GetProperty("tongTien").GetDecimal());
+            Assert.Equal((int)TrangThaiPhatHanhHoaDon.ChoDuyet, item.GetProperty("trangThaiPhatHanh").GetInt32());
+            Assert.DoesNotContain(items, x => x.GetProperty("hoaDonId").GetInt32() == manual.HoaDonId);
+        }
+
+        [Fact]
+        public async Task XemChiTiet_Provisional_200_ManualChoDuyet_404()
+        {
+            var data = await SeedTestDataAsync("XCT_TT");
+            var (provisional, manual) = await AddProvisionalInvoicesAsync(data.InvoiceDaGui);
+            var client = CreateHttpClient();
+            await LoginTenantAsync(client, data.TenantAUsername, data.TenantAPassword);
+
+            var ok = await client.GetAsync($"/KhachThue/HoaDon/XemChiTiet?id={provisional.HoaDonId}");
+            Assert.Equal(HttpStatusCode.OK, ok.StatusCode);
+            using var doc = JsonDocument.Parse(await ok.Content.ReadAsStringAsync());
+            Assert.Equal(1_234_567m, doc.RootElement.GetProperty("tongTien").GetDecimal());
+
+            var notFound = await client.GetAsync($"/KhachThue/HoaDon/XemChiTiet?id={manual.HoaDonId}");
+            Assert.Equal(HttpStatusCode.NotFound, notFound.StatusCode);
+        }
+
+        [Fact]
+        public async Task XemChiTiet_Provisional_OtherTenant_404()
+        {
+            var data = await SeedTestDataAsync("XCT_TT_Oth");
+            var (provisional, _) = await AddProvisionalInvoicesAsync(data.InvoiceDaGui);
+            var client = CreateHttpClient();
+            await LoginTenantAsync(client, data.TenantBUsername, data.TenantBPassword);
+
+            var res = await client.GetAsync($"/KhachThue/HoaDon/XemChiTiet?id={provisional.HoaDonId}");
+            Assert.Equal(HttpStatusCode.NotFound, res.StatusCode);
+        }
+
+        [Fact]
+        public async Task TaiPdf_Provisional_404()
+        {
+            var data = await SeedTestDataAsync("TPdf_TT");
+            var (provisional, _) = await AddProvisionalInvoicesAsync(data.InvoiceDaGui);
+            var client = CreateHttpClient();
+            await LoginTenantAsync(client, data.TenantAUsername, data.TenantAPassword);
+
+            var res = await client.GetAsync($"/KhachThue/HoaDon/TaiPdf/{provisional.HoaDonId}");
+
+            Assert.Equal(HttpStatusCode.NotFound, res.StatusCode);
+        }
+
+        [Fact]
+        public async Task CreatePaymentRequest_Provisional_Rejected_AndNoRequestCreated()
+        {
+            var data = await SeedTestDataAsync("VQR_TT");
+            var (provisional, _) = await AddProvisionalInvoicesAsync(data.InvoiceDaGui);
+            var client = CreateHttpClient();
+            await LoginTenantAsync(client, data.TenantAUsername, data.TenantAPassword);
+
+            var res = await PostTaoLuotAsync(client, provisional.HoaDonId);
+
+            Assert.Equal(HttpStatusCode.NotFound, res.StatusCode);
+            using var scope = _factory.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            Assert.False(db.YeuCauThanhToanHoaDons.Any(y => y.HoaDonId == provisional.HoaDonId));
+        }
+
+        [Fact]
+        public async Task PaymentPanel_Provisional_404_AndPartialPaymentRequestRejected()
+        {
+            var data = await SeedTestDataAsync("PNL_TT");
+            var (provisional, _) = await AddProvisionalInvoicesAsync(data.InvoiceDaGui);
+            var client = CreateHttpClient();
+            await LoginTenantAsync(client, data.TenantAUsername, data.TenantAPassword);
+
+            var panel = await client.GetAsync($"/KhachThue/HoaDon/ThanhToan/{provisional.HoaDonId}");
+            Assert.Equal(HttpStatusCode.NotFound, panel.StatusCode);
+
+            var page = await client.GetAsync("/KhachThue/HoaDon");
+            var token = ExtractAntiForgeryToken(await page.Content.ReadAsStringAsync());
+            var req = new HttpRequestMessage(HttpMethod.Post, "/KhachThue/HoaDon/ThanhToan/Tao")
+            {
+                Content = new StringContent(JsonSerializer.Serialize(new { hoaDonId = provisional.HoaDonId, soTien = 1000m }), System.Text.Encoding.UTF8, "application/json")
+            };
+            req.Headers.Add("RequestVerificationToken", token);
+            var partial = await client.SendAsync(req);
+            Assert.Equal(HttpStatusCode.NotFound, partial.StatusCode);
+
+            using var scope = _factory.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            Assert.False(db.YeuCauThanhToanHoaDons.Any(y => y.HoaDonId == provisional.HoaDonId));
+        }
+
+        [Fact]
+        public async Task Dashboard_TotalDebt_DoesNotIncludeProvisionalInvoice()
+        {
+            var data = await SeedTestDataAsync("DSH_TT");
+            await AddProvisionalInvoicesAsync(data.InvoiceDaGui);
+            var client = CreateHttpClient();
+            await LoginTenantAsync(client, data.TenantAUsername, data.TenantAPassword);
+
+            var res = await client.GetAsync("/KhachThue/Dashboard");
+            Assert.Equal(HttpStatusCode.OK, res.StatusCode);
+
+            var html = await res.Content.ReadAsStringAsync();
+            // 3.000.000 (hóa đơn đã gửi) + 1.234.567 (tạm tính) = 4.234.567 không được xuất hiện ở bất kỳ định dạng nào.
+            Assert.DoesNotContain("234.567", html);
+            Assert.DoesNotContain("234,567", html);
+            Assert.DoesNotContain("4234567", html);
+        }
     }
 }

@@ -258,5 +258,61 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.Equal("Đồng hồ kẹt kim", approvedItem.LyDoDienThuCong);
             Assert.Equal("Đồng hồ mờ số", approvedItem.LyDoNuocThuCong);
         }
+
+        private static ChotDienNuocReq TwoRoomsRequest() => new()
+        {
+            ChiNhanhId = 1,
+            Thang = 9,
+            Nam = 2026,
+            DanhSachPhong = new List<DienNuocPhongReq>
+            {
+                new() { PhongTroId = 102, ChiSoDienCu = 100, ChiSoDienMoi = 150, ChiSoNuocCu = 50, ChiSoNuocMoi = 60, LyDoNhapThuCongDien = "Lý do", LyDoNhapThuCongNuoc = "Lý do" },
+                new() { PhongTroId = 101, ChiSoDienCu = 100, ChiSoDienMoi = 150, ChiSoNuocCu = 50, ChiSoNuocMoi = 60, LyDoNhapThuCongDien = "Lý do", LyDoNhapThuCongNuoc = "Lý do" },
+                new() { PhongTroId = 101, ChiSoDienCu = 100, ChiSoDienMoi = 150, ChiSoNuocCu = 50, ChiSoNuocMoi = 60, LyDoNhapThuCongDien = "Lý do", LyDoNhapThuCongNuoc = "Lý do" }
+            }
+        };
+
+        [Fact]
+        public async Task SaveChotDienNuoc_Success_TriggersAutoInvoicePerDistinctRoom_InAscendingOrder()
+        {
+            _dienNuocStore.RoomBranches[102] = 1;
+            var autoInvoice = new Fakes.FakeAutoInvoiceService();
+            var service = new DienNuocService(_dienNuocStore, _accessService, _workflowService, autoInvoice);
+
+            var result = await service.SaveChotDienNuocAsync(TwoRoomsRequest(), actorId: 10);
+
+            Assert.True(result.IsSuccess);
+            Assert.Equal(string.Empty, result.ErrorMessage);
+            Assert.Equal(
+                new[] { (10, AutoInvoiceTrigger.ChotKy, 101, 9, 2026), (10, AutoInvoiceTrigger.ChotKy, 102, 9, 2026) },
+                autoInvoice.Calls.ToArray());
+        }
+
+        [Fact]
+        public async Task SaveChotDienNuoc_Failure_DoesNotTriggerAutoInvoice()
+        {
+            _dienNuocStore.RoomBranches[102] = 1;
+            _workflowService.OnApproveBatch = (_, _) => ServiceResult<MeterPeriodsApprovalResult>.Fail("Không thể chốt kỳ.");
+            var autoInvoice = new Fakes.FakeAutoInvoiceService();
+            var service = new DienNuocService(_dienNuocStore, _accessService, _workflowService, autoInvoice);
+
+            var result = await service.SaveChotDienNuocAsync(TwoRoomsRequest(), actorId: 10);
+
+            Assert.False(result.IsSuccess);
+            Assert.Empty(autoInvoice.Calls);
+        }
+
+        [Fact]
+        public async Task SaveChotDienNuoc_NoPermission_DoesNotTriggerAutoInvoice()
+        {
+            _dienNuocStore.RoomBranches[102] = 1;
+            var autoInvoice = new Fakes.FakeAutoInvoiceService();
+            var service = new DienNuocService(_dienNuocStore, _accessService, _workflowService, autoInvoice);
+
+            var result = await service.SaveChotDienNuocAsync(TwoRoomsRequest(), actorId: 99);
+
+            Assert.False(result.IsSuccess);
+            Assert.Empty(autoInvoice.Calls);
+        }
     }
 }

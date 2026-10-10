@@ -10,6 +10,16 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Configurations
         {
             builder.HasIndex(c => c.MaChiNhanh)
                 .IsUnique();
+
+            builder.Property(c => c.SoGioPhanHoiHoaDon)
+                .HasDefaultValue(24);
+
+            builder.ToTable(table =>
+            {
+                table.HasCheckConstraint(
+                    "CK_ChiNhanh_SoGioPhanHoiHoaDon",
+                    "\"SoGioPhanHoiHoaDon\" BETWEEN 1 AND 168");
+            });
         }
     }
 }

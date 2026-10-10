@@ -10,6 +10,8 @@ using QuanLyChoThuePhongTroWeb.Application.Common.Models;
 using QuanLyChoThuePhongTroWeb.Application.Common.Security;
 using QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Persistence;
+using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs;
+using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services;
 using QuanLyChoThuePhongTroWeb.Domain.Enums;
 
 namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
@@ -22,6 +24,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
         private readonly IEmployeeAccessService _employeeAccessService;
         private readonly MeterImageOptions _options;
         private readonly TimeProvider _time;
+        private readonly IAutoInvoiceService? _autoInvoiceService;
 
         public MeterImagePortalService(
             IMeterImageQueryStore queryStore,
@@ -29,7 +32,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
             IMeterReadingWorkflowService workflowService,
             IEmployeeAccessService employeeAccessService,
             MeterImageOptions options,
-            TimeProvider? timeProvider = null)
+            TimeProvider? timeProvider = null,
+            IAutoInvoiceService? autoInvoiceService = null)
         {
             _queryStore = queryStore ?? throw new ArgumentNullException(nameof(queryStore));
             _meterImageStore = meterImageStore ?? throw new ArgumentNullException(nameof(meterImageStore));
@@ -37,6 +41,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
             _employeeAccessService = employeeAccessService ?? throw new ArgumentNullException(nameof(employeeAccessService));
             _options = options ?? throw new ArgumentNullException(nameof(options));
             _time = timeProvider ?? TimeProvider.System;
+            _autoInvoiceService = autoInvoiceService;
         }
 
         public async Task<ServiceResult<IReadOnlyList<MeterRoomOptionRes>>> GetTenantRoomsAsync(int actorUserId, int thang, int nam, CancellationToken ct = default)
@@ -271,6 +276,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
             var isStaff = branchId.HasValue && await _employeeAccessService.CanPerformAsync(actorUserId, branchId.Value, EmployeeActionCodes.MeterUpload, ct);
 
             var resItem = isStaff ? MapWorkflowResultToStaffItem(wfRes.Data!) : MapWorkflowResultToTenantItem(wfRes.Data!);
+            await TriggerAutoInvoiceAsync(actorUserId, isStaff ? AutoInvoiceTrigger.NhanVienTaiAnh : AutoInvoiceTrigger.KhachTaiAnh,
+                command.PhongTroId, command.Thang, command.Nam);
             return ServiceResult<MeterImageItemRes>.Ok(resItem, wfRes.Message);
         }
 
@@ -295,6 +302,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
             }
 
             var resItem = MapWorkflowResultToStaffItem(wfRes.Data!);
+            await TriggerAutoInvoiceAsync(actorUserId, AutoInvoiceTrigger.XacNhanAnh, wfRes.Data!.PhongTroId, wfRes.Data!.Thang, wfRes.Data!.Nam);
             return ServiceResult<MeterImageItemRes>.Ok(resItem, wfRes.Message);
         }
 
@@ -307,7 +315,19 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
             }
 
             var resItem = MapWorkflowResultToStaffItem(wfRes.Data!);
+            await TriggerAutoInvoiceAsync(actorUserId, AutoInvoiceTrigger.SuaSoDaXacNhan, wfRes.Data!.PhongTroId, wfRes.Data!.Thang, wfRes.Data!.Nam);
             return ServiceResult<MeterImageItemRes>.Ok(resItem, wfRes.Message);
+        }
+
+        // Kết quả của hóa đơn tự động không ảnh hưởng thao tác gốc; RunForRoomAsync tự ghi log và không ném lỗi.
+        private async Task TriggerAutoInvoiceAsync(int actorUserId, AutoInvoiceTrigger trigger, int phongTroId, int thang, int nam)
+        {
+            if (_autoInvoiceService == null)
+            {
+                return;
+            }
+
+            await _autoInvoiceService.RunForRoomAsync(actorUserId, trigger, phongTroId, thang, nam);
         }
 
         private static MeterImageItemRes MapToTenantImageItem(MeterImageSnapshot img)

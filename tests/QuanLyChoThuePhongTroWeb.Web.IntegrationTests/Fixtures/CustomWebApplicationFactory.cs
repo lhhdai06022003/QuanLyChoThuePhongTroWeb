@@ -180,6 +180,16 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests.Fixtures
 
             public ConcurrentQueue<InvoiceEmailCall> InvoiceEmailCalls { get; } = new();
 
+            public record ProvisionalEmailCall(string ToEmail, string MaHoaDon, decimal TongTien);
+
+            public ConcurrentQueue<ProvisionalEmailCall> ProvisionalEmailCalls { get; } = new();
+
+            public Task<(bool IsSuccess, string ErrorMessage)> SendProvisionalInvoiceEmailAsync(string toEmail, ProvisionalInvoiceEmailData data)
+            {
+                ProvisionalEmailCalls.Enqueue(new ProvisionalEmailCall(toEmail, data.MaHoaDon, data.TongTien));
+                return Task.FromResult((true, string.Empty));
+            }
+
             /// <summary>
             /// Cấu hình kết quả theo địa chỉ email cụ thể: true = thành công, false = trả lỗi an toàn.
             /// Không có trong dictionary => mặc định thành công.

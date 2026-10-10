@@ -260,7 +260,8 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 .Include(x => x.HopDong).ThenInclude(h => h.PhongTro)
                 .Where(x => contractIds.Contains(x.HopDongId) &&
                             ((x.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaGui && !x.IsDeleted) ||
-                             (x.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaHuy && x.NgayGui != null)))
+                             (x.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaHuy && x.NgayGui != null) ||
+                             (x.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.ChoDuyet && x.HanPhanHoi != null && !x.IsDeleted)))
                 .OrderByDescending(x => x.NgayTao)
                 .Select(x => new
                 {
@@ -305,7 +306,8 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 .AnyAsync(h => h.HoaDonId == hoaDonId &&
                                h.HopDong.NguoiThueId == nguoiThueId &&
                                ((h.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaGui && !h.IsDeleted) ||
-                                (h.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaHuy && h.NgayGui != null)),
+                                (h.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaHuy && h.NgayGui != null) ||
+                                (h.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.ChoDuyet && h.HanPhanHoi != null && !h.IsDeleted)),
                           cancellationToken);
         }
 
