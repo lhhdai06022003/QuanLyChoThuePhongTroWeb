@@ -105,12 +105,12 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             public FixedTimeProvider Time { get; } = new(new DateTimeOffset(Now));
             public AutoInvoiceFinalizeUseCase UseCase { get; }
 
-            public Harness()
+            public Harness(TimeProvider? clock = null)
             {
                 Publication.Recipients[10] = new InvoiceRecipientInfo { NguoiThueId = 9, HoVaTen = "A", Email = "khach@example.com", NguoiDungId = 3 };
                 UseCase = new AutoInvoiceFinalizeUseCase(
                     Auto, Issuance, Publication, HoaDonStore, Uow, ThongBao, Email, new Exporter(), new QrService(),
-                    new VietQrSettings(), new InvoiceIssuanceOptions { SoNgayHanThanhToan = 7 }, Guard, Logger, Time);
+                    new VietQrSettings(), new InvoiceIssuanceOptions { SoNgayHanThanhToan = 7 }, Guard, Logger, clock ?? Time);
             }
 
             public HoaDon AddInvoice(int id, DateTime han, int periodId = 0, decimal total = 1_000_000m, int phong = 101, int? submitter = Staff)
@@ -176,6 +176,21 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.Equal("/KhachThue/HoaDon?hoaDonId=1", notice.Link);
             Assert.Contains("1,000,000", notice.NoiDung);
             Assert.Equal(new[] { "HD-1" }, h.Email.Sent);
+        }
+
+        [Fact]
+        public async Task WithRealClock_PublishedAtIsNeverBeforeFinalizedAt_AndHistoryIsInOrder()
+        {
+            var h = new Harness(TimeProvider.System);
+            var invoice = h.AddInvoice(1, DateTime.UtcNow.AddMinutes(-1));
+
+            Assert.Equal(1, await h.UseCase.ExecuteAsync());
+
+            Assert.True(invoice.NgayGui >= invoice.NgayChot, "Mốc gửi không được sớm hơn mốc chốt.");
+            var history = invoice.LichSuTrangThaiHoaDons.ToList();
+            Assert.Equal(TrangThaiPhatHanhHoaDon.DaChot, history[0].TrangThaiPhatHanhMoi);
+            Assert.Equal(TrangThaiPhatHanhHoaDon.DaGui, history[1].TrangThaiPhatHanhMoi);
+            Assert.True(history[1].NgayThucHien >= history[0].NgayThucHien, "Lịch sử Gửi không được sớm hơn lịch sử Chốt.");
         }
 
         [Fact]

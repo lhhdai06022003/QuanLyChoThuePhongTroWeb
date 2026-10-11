@@ -22,7 +22,7 @@ Reviewer `/ship` cho đợt A **CẦN SỬA** (một link 404, đã sửa), đ�
 | `git diff --check` | PASS | Chỉ cảnh báo LF/CRLF |
 | Thử tay trên preview (DB test) | PASS | Mục 4, gồm đợt D |
 | Gửi email qua SMTP thật | KHÔNG KIỂM hộp thư | Test dùng email giả; các lần thử tay gửi email tới địa chỉ mẫu `preview_a@example.test` (tên miền dành riêng), không kiểm hộp thư. Lần thử T30, log nền ghi "Đã gửi nền 1/1" (SMTP nhận thư) |
-| Job tự chốt chạy trong ứng dụng thật | CHƯA CHẠY | Test gọi use case và job (smoke) trực tiếp; preview tắt `BackgroundJobs` |
+| Job tự chốt chạy trong ứng dụng thật | PASS | 11/10/2026, DB test, `BackgroundJobs` bật, SMTP giả cục bộ (mục 4, "Chạy job tự chốt thật"); phát hiện và sửa D9 |
 
 ### Lịch sử theo đợt
 
@@ -33,6 +33,7 @@ Reviewer `/ship` cho đợt A **CẦN SỬA** (một link 404, đã sửa), đ�
 | C | 138 | 1065 | 403 | 288 | Một lượt Infrastructure 1 FAIL `DbUpdateException` và ba lượt Web FAIL 271–272/558, đều do N6 |
 | D | 138 | 1111 | 414 | 304 | Một lượt tập con Infrastructure FAIL `AutoInvoiceChainTests.StaffManualClose_...` (xem D5), đã sửa; các lượt sau PASS. Thêm T30 (D6): email điều chỉnh gửi nền |
 | Dọn code | 138 | 1115 | 414 | 305 | Kiểm ngược N4 (bỏ sửa thì test FAIL) |
+| Chạy job thật | 138 | 1116 | 414 | 305 | Thêm 1 test cho D9 (kiểm ngược: trả về cách cũ thì FAIL) |
 
 ## 3. Cổng xác nhận
 
@@ -85,6 +86,24 @@ Thử tay đợt D (dữ liệu mẫu thêm PV103–PV105, tài khoản admin th
 | T29, hóa đơn Đã gửi của PV105 | Hộp xác nhận thêm câu "Hóa đơn đã công bố sẽ bị hủy và thay bằng hóa đơn mới". Sửa tay đơn giá điện 3.600, đổi chỉ số nước 5 → 8 (dòng điện sửa tay giữ nguyên, dòng nước tính lại), xóa "Phí rác": hóa đơn cũ `DaHuy`, bản `-R1` có đúng 3 dòng đã chốt, tổng 2.300.000, tạm tính, lịch sử "(sửa 2 dòng, xóa 1 dòng)" |
 | T30, email điều chỉnh gửi nền | Hóa đơn tạm tính HD-PV101-09-2026: đổi số lượng "Phí giữ xe" 2 → 3, bấm Điều chỉnh. Request `POST /HoaDon/DieuChinh/69901` mất khoảng 0,5 giây (đo bằng `performance` của trình duyệt; lần thử đợt D trước khi sửa khoảng 10 giây). Hộp thông báo thành công tổng mới 3.570.000 đ; DB có 4 dòng, hạn mới, lịch sử "(sửa 1 dòng)"; log nền "Đã gửi nền 1/1 email hóa đơn tạm tính"; không lỗi server |
 
+### Chạy job tự chốt thật (11/10/2026)
+
+Chạy ứng dụng thật (`dotnet run`, tác vụ nền bật) nối DB `quanlyphongtro_test`, `AutoInvoiceOptions__ChuKyJobPhut=1`, email đi tới một máy chủ SMTP giả cục bộ (STARTTLS, lưu thư ra file; không gửi thư thật), tắt nhắc nợ và cảnh báo hợp đồng. Dữ liệu: chi nhánh `FJOB` với 50 hóa đơn tạm tính, mỗi phòng một tình huống. Ba job nền khác (đóng hợp đồng hết hạn, cảnh báo, nhắc nợ) cũng chạy, không lỗi.
+
+| Tình huống | Kết quả |
+| --- | --- |
+| Vòng đầu khi chưa có hóa đơn nào đến hạn | Không đụng dữ liệu |
+| 10 hóa đơn đến hạn cùng lúc (khách có email, không email, không tài khoản cổng; 3 hóa đơn lỗi dữ liệu) | 7 hóa đơn chốt và công bố (Đã gửi, hạn thanh toán +7 ngày hết ngày 23:59 giờ VN); email có PDF và VietQR; thông báo cổng cho khách có tài khoản. Khách không có email thì không gửi thư; khách không tài khoản thì email vẫn đi, thông báo cổng ghi Warning |
+| Ba hóa đơn lỗi (kỳ chưa chốt, tổng tiền lệch chi tiết, không rõ người gửi) | Vẫn Chờ duyệt, ghi Warning đúng lý do, thông báo cho nhân viên phụ trách và Admin, không gửi lặp ở các vòng sau; sửa nguyên nhân thì vòng kế tiếp tự chốt đủ 3 |
+| Đối chứng: còn hạn, đã xóa mềm, không có hạn, đã Đã gửi | Không bị đụng |
+| Hai bản ứng dụng chạy song song, 16 hóa đơn đến hạn cùng lúc | Cả hai cùng thấy 16; mỗi hóa đơn chỉ một bản chốt (9 + 7), bản kia bỏ qua; mỗi hóa đơn đúng 1 dòng lịch sử Chốt + 1 dòng Gửi; 16 email và 16 thông báo, không trùng |
+| SMTP chết đúng lúc chốt | Hóa đơn vẫn chốt và công bố, lỗi chỉ ghi Warning, job không dừng; email không gửi lại (xem M2, M5) |
+| Tắt cứng cả hai bản giữa đợt chốt (17 hóa đơn) | Không hóa đơn nào kẹt ở trạng thái lửng; 2 hóa đơn đã công bố, 15 còn tạm tính; khởi động lại thì tự chốt nốt 15, không email trùng; hóa đơn đang gửi dở mất email, khách vẫn có thông báo cổng (M2) |
+| Cổng khách thuê | Khách thấy hóa đơn vừa công bố (đúng tổng, đủ dòng, PDF tải được); xem hóa đơn của khách khác trả 404 |
+| Màn quản lý hóa đơn | Hóa đơn tự chốt hiện "Đã gửi"; hóa đơn tạm tính còn hạn hiện "Tạm tính, tự chốt lúc ..." |
+
+Không có lỗi (`fail:`/`crit:`) trong log của cả năm lượt chạy. Một lỗi nhỏ phát hiện qua dữ liệu: D9 (mục 5). Dữ liệu `FJOB` và tài khoản `fj_*` vẫn nằm trong DB test.
+
 ## 5. Lỗi đã sửa
 
 | # | Vấn đề | Sửa | Kiểm chứng |
@@ -108,6 +127,7 @@ Thử tay đợt D (dữ liệu mẫu thêm PV103–PV105, tài khoản admin th
 | E1 | Ba kiểu định dạng số trong thông báo và email; email in số lượng lưu trong DB thành "1.000" (dễ đọc thành một nghìn), cả email hóa đơn chính thức mà job tự chốt gửi | `ChiSo.DinhDang` cho chỉ số và số lượng; độ tin cậy in không phụ thuộc culture | `AutoInvoiceReadingPolicyTests` (thông báo "1.234,5 kWh", "99,5", "0,50 < 0,90"); test cũ về "0,93" vẫn PASS |
 | E2–E3 | Code thừa và đoạn lặp (plan mục 2.5) | Bỏ `HoaDonIdCu`, `TieuThuDien`/`TieuThuNuoc`, `GiongNhau`; gộp xử lý dừng của chuỗi, bước đổi chỉ số của điều chỉnh | Toàn bộ test cũ PASS; thêm 2 test so sánh dòng (đổi thứ tự vẫn là không đổi, id lặp là dòng thêm) |
 | N4 | Modal điều chỉnh của hóa đơn Đã gửi ghi "Hạn tự chốt hiện tại" là mốc đã qua | Thông tin điều chỉnh chỉ trả hạn khi hóa đơn còn Chờ duyệt | `InvoiceAdjustmentServiceTests`, `AutoInvoiceAdjustmentEndpointTests` (JSON `hanTuChot` null); bỏ sửa thì test FAIL |
+| D9 | Chạy job thật: lịch sử và `NgayGui` của hóa đơn tự chốt sớm hơn `NgayChot` vài chục mili giây (mốc gửi lấy từ đồng hồ đọc đầu lượt, mốc chốt do domain ghi sau) | Đọc lại đồng hồ sau khi chốt rồi mới gửi (`AutoInvoiceFinalizeUseCase`) | `AutoInvoiceFinalizeUseCaseTests.WithRealClock_PublishedAtIsNeverBeforeFinalizedAt_AndHistoryIsInOrder`; trả về cách cũ thì FAIL; chạy lại ứng dụng thật: Chốt 22:46:32.062987, Gửi 22:46:32.063241 |
 | N6 | Seed test sinh mã chi nhánh 1 ký tự + 4–6 hex (~1 triệu mã) trên DB test ~23.000 chi nhánh, trùng unique `IX_chi_nhanh_MaChiNhanh`; một test lỗi ghi log Error làm `CustomWebApplicationFactory` đánh rớt cả collection, tổng test Web gần gấp đôi | `TestCodes.MaChiNhanh(prefix)` ở hai project integration test (tiền tố cũ + hex cho đủ 10 ký tự của cột), thay 105 chỗ trong 34 file | Infrastructure rồi Web liên tiếp hai vòng PASS 403/403 và 288/288 |
 
 ## 6. Lưu ý còn mở
@@ -116,7 +136,9 @@ Thử tay đợt D (dữ liệu mẫu thêm PV103–PV105, tài khoản admin th
 | --- | --- | --- | --- |
 | N6 (tiếp) | Dọn DB test bị bộ phân loại auto mode chặn (lệnh `dotnet ef database drop`). DB vẫn ~23.000 chi nhánh; mã mới 10 ký tự gần như không thể trùng nên không còn chặn test | Thấp | Người dùng tự drop `quanlyphongtro_test` nếu muốn DB sạch (fixture tự tạo lại). Sửa ghi chú "FAIL giả do chạy chồng" trong `AGENTS.md` và skill `chay-test-tich-hop`: còn nguyên nhân trùng dữ liệu seed |
 | M1 | Đơn giá chụp vào kỳ lúc tạo kỳ, không cập nhật lại; khai giá chi nhánh sau đó thì kỳ đang dở vẫn 0, phòng phải lập hóa đơn tay | Trung bình | Thông báo `ThieuDonGia` đã hướng dẫn; sửa tận gốc là việc riêng, đổi luồng chỉ số |
-| M2 | Email nền (chốt kỳ và, từ T30, điều chỉnh) dùng `Task.Run`, tắt máy đúng lúc gửi có thể mất email (chỉ Warning) | Thấp | Đã chấp nhận theo L2 |
+| M2 | Email nền (chốt kỳ và, từ T30, điều chỉnh) dùng `Task.Run`, tắt máy đúng lúc gửi có thể mất email (chỉ Warning). Job tự chốt gửi email ngay sau khi commit nên tắt cứng đúng lúc đó cũng mất email (đã thấy khi thử), khách vẫn có thông báo cổng | Thấp | Đã chấp nhận theo L2 |
+| M5 | Job tự chốt: email gửi lỗi (SMTP chết) chỉ ghi Warning, không báo nhân viên và không thử lại; khách vẫn có hóa đơn trên cổng và thông báo cổng | Thấp | Nhân viên có thể gửi lại email từ màn hóa đơn; muốn tự thử lại thì cần lưu trạng thái gửi (đổi schema), làm việc riêng |
+| M6 | Thông báo "chưa tự chốt được" gửi cho mọi Admin đang hoạt động cùng nhân viên chi nhánh; bộ chống gửi lặp nằm trong bộ nhớ nên khởi động lại ứng dụng hoặc chạy nhiều bản sẽ báo thêm một lần mỗi bản (trên DB test có ~13.000 Admin nên mỗi hóa đơn lỗi sinh ~13.000 thông báo; môi trường thật chỉ vài Admin) | Thấp | Theo thiết kế; không đổi |
 | M3 | `AutoInvoiceDeadlineHarness.IsolateJobAsync` đặt `HanPhanHoi = null` cho hóa đơn tạm tính khác trong DB test (kể cả dữ liệu mẫu `PREVIEW`) | Thấp | Chỉ an toàn khi không chạy Infrastructure song song với Web; muốn thử tay lại thì seed lại |
 | L8 | `MailKitEmailService` bỏ kiểm chứng chứng chỉ SMTP (`ServerCertificateValidationCallback` trả `true`), lỗi cũ của file | Bảo mật | Sửa chung cho cả file trong một việc riêng |
 | N2 | Cổng khách ở 375px: bảng danh sách hóa đơn và bảng khoản phí tràn ngang (không `table-responsive`) | Thấp | Việc giao diện riêng |

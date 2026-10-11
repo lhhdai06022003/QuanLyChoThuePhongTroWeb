@@ -15,7 +15,8 @@ Có chỉ số điện nước đáng tin cậy thì hệ thống tự tạo hó
 - [x] **Đợt D** (`14ce43a`): Việc cần làm không còn đếm ảnh của kỳ đã chốt (T27); mục mới HD5 cho phòng bị dừng chưa tạo được hóa đơn (T28); "Điều chỉnh và gửi lại" sửa được toàn bộ khoản phí (T29); email "đã điều chỉnh" gửi nền như email chốt kỳ (T30).
 - [x] Commit đợt D (`14ce43a`).
 - [x] **Dọn code sau đợt D** (mục 2.5): bỏ code thừa, gộp đoạn lặp, thống nhất định dạng số, sửa N4.
-- [x] Commit lượt dọn code (commit kế tiếp `14ce43a`, cùng lúc tick các mục này).
+- [x] Commit lượt dọn code (`0360af1`).
+- [x] Chạy job tự chốt thật trên DB test (11/10/2026): nhiều tình huống, hai bản song song, SMTP chết, tắt cứng; sửa D9 (thứ tự mốc chốt và gửi). Chưa commit.
 - [ ] Gộp `master` (chờ người dùng quyết định) và cập nhật mục Hiện trạng trong `AGENTS.md` sau khi gộp.
 - [ ] Không chặn việc gộp: dọn DB test (bị bộ phân loại auto mode chặn, người dùng tự làm); bổ sung nguyên nhân trùng seed vào ghi chú FAIL giả (review mục 6, N6).
 

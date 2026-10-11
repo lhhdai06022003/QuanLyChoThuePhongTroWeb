@@ -189,10 +189,12 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.UseCases
 
                 hoaDon = locked!;
                 hoaDon.ChotHoaDon(actor!.Value, AutoInvoiceHistoryTags.TaoLyDo(AutoInvoiceHistoryTags.TuDong, "Tự chốt khi hết hạn phản hồi"));
+                // Domain ghi mốc chốt bằng đồng hồ của nó; đọc lại đồng hồ ở đây để mốc gửi (và hạn thanh toán) không sớm hơn mốc chốt.
+                var guiLuc = _time.GetUtcNow().UtcDateTime;
                 hoaDon.GuiHoaDon(
                     actor.Value,
-                    now,
-                    InvoiceDueDateCalculator.Compute(now, _issuanceOptions.SoNgayHanThanhToan),
+                    guiLuc,
+                    InvoiceDueDateCalculator.Compute(guiLuc, _issuanceOptions.SoNgayHanThanhToan),
                     AutoInvoiceHistoryTags.TaoLyDo(AutoInvoiceHistoryTags.TuDong, "Tự công bố hóa đơn lên cổng khách thuê"));
                 await _unitOfWork.SaveChangesAsync(ct);
                 await tx.CommitAsync(ct);
