@@ -227,6 +227,30 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
         }
 
         [Fact]
+        public async Task Info_OfSentInvoice_HasNoCurrentDeadline()
+        {
+            var seed = await SeedAsync();
+            using (var scope = _factory.Services.CreateScope())
+            {
+                // Hóa đơn tạm tính đã tự chốt và công bố: hạn phản hồi cũ còn lưu nhưng đã qua.
+                var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                var entity = await db.HoaDons.SingleAsync(h => h.HoaDonId == seed.Invoice!.HoaDonId);
+                entity.TrangThaiPhatHanh = TrangThaiPhatHanhHoaDon.DaGui;
+                entity.HanPhanHoi = DateTime.UtcNow.AddHours(-30);
+                await db.SaveChangesAsync();
+            }
+
+            var (client, _) = await LoginAsync(seed.StaffUsername);
+
+            var response = await client.GetAsync($"/HoaDon/DieuChinh/{seed.Invoice!.HoaDonId}");
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+            Assert.True(json.RootElement.GetProperty("coTheDieuChinh").GetBoolean());
+            Assert.Equal(JsonValueKind.Null, json.RootElement.GetProperty("hanTuChot").ValueKind);
+        }
+
+        [Fact]
         public async Task StaffOfAnotherBranch_GetsForbiddenOnInfoAndAdjust_AndDatabaseIsUnchanged()
         {
             var seed = await SeedAsync();
@@ -421,7 +445,6 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             Assert.Equal((3_500m, 30m, 105_000m), (dien.GetProperty("donGia").GetDecimal(), dien.GetProperty("soLuong").GetDecimal(), dien.GetProperty("tongTien").GetDecimal()));
             var nuoc = json.RootElement.GetProperty("nuoc");
             Assert.Equal((20_000m, 20m, 400_000m), (nuoc.GetProperty("donGia").GetDecimal(), nuoc.GetProperty("soLuong").GetDecimal(), nuoc.GetProperty("tongTien").GetDecimal()));
-            Assert.Equal(30m, json.RootElement.GetProperty("tieuThuDien").GetDecimal());
 
             var after = await ReloadInvoiceAsync(seed.Invoice.HoaDonId);
             Assert.Equal(seed.Invoice.TongTien, after.TongTien);

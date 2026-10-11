@@ -1,6 +1,6 @@
 # Spec: Hóa đơn tự động từ chỉ số điện nước
 
-- **Trạng thái:** v7, bản giao thực thi (10/10/2026). Người dùng đã duyệt nghiệp vụ và schema. Chưa có code.
+- **Trạng thái:** v7, bản giao thực thi (10/10/2026). Người dùng đã duyệt nghiệp vụ và schema. Đã code đủ (đợt A–D và lượt dọn code, xem [plan.md](plan.md)), review ĐẠT ([review.md](review.md)); chưa gộp `master`.
 - **Nhánh:** `feature/hoa-don-tu-dong` (tách từ `master` = `dc391e3`).
 - **Phạm vi:** cổng quản lý + cổng khách thuê. Không đụng cổng khách vãng lai.
 - **Ngoài phạm vi:** đối soát chuyển khoản tự động, Zalo/Web Push, IoT, hoàn tiền (xem [huong-mo-rong.md](huong-mo-rong.md)).

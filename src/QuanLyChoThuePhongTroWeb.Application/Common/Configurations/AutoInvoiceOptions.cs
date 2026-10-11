@@ -9,7 +9,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Common.Configurations
         public int SoKyTrungBinh { get; set; } = 3;
         public decimal TranDienKwh { get; set; } = 500m;
         public decimal TranNuocM3 { get; set; } = 30m;
-        // Chu kỳ job tự chốt (đợt B); đợt A chỉ khai báo và kiểm hợp lệ.
+        // Chu kỳ chạy job tự chốt hóa đơn tạm tính (phút).
         public int ChuKyJobPhut { get; set; } = 5;
 
         public void Validate()

@@ -1,14 +1,14 @@
 # Review: Hóa đơn tự động
 
 - Đối chiếu: [spec.md](spec.md) v7, [plan.md](plan.md) (gộp kế hoạch ba đợt A, B, C và đợt D sửa sau thử tay).
-- Nhánh `feature/hoa-don-tu-dong`, tách từ `master` = `dc391e3`. Spec `e444f37`, đợt A `39b3d81`, đợt B `0736f4d`, đợt C (gồm N1, N6) `a161feb`; đợt D chưa commit (11/10/2026).
+- Nhánh `feature/hoa-don-tu-dong`, tách từ `master` = `dc391e3`. Spec `e444f37`, đợt A `39b3d81`, đợt B `0736f4d`, đợt C (gồm N1, N6) `a161feb`; đợt D `14ce43a`; lượt dọn code sau đợt D commit ngay sau `14ce43a` (11/10/2026).
 - Mỗi đợt chạy dây chuyền `/ship` (planner, coder, tester, reviewer); phiên chính sửa các điểm review nêu và kiểm chứng lại.
 
 ## 1. Phán quyết: ĐẠT
 
-Reviewer `/ship` cho đợt A **CẦN SỬA** (một link 404, đã sửa), đợt B và đợt C **CHOT**. Mọi điểm "nên sửa" đã xử lý; không có thay đổi schema hay tiền nằm ngoài phạm vi người dùng đã xác nhận. Đợt D (ba vấn đề người dùng báo khi thử tay và email điều chỉnh gửi nền, mục 4 và 5) đã sửa và kiểm chứng trên giao diện thật. Trước khi gộp `master` còn: commit đợt D, dọn DB test, cập nhật mục Hiện trạng trong `AGENTS.md` và ghi chú FAIL giả (mục 6, N6).
+Reviewer `/ship` cho đợt A **CẦN SỬA** (một link 404, đã sửa), đợt B và đợt C **CHOT**. Mọi điểm "nên sửa" đã xử lý; không có thay đổi schema hay tiền nằm ngoài phạm vi người dùng đã xác nhận. Đợt D (ba vấn đề người dùng báo khi thử tay và email điều chỉnh gửi nền, mục 4 và 5) đã sửa và kiểm chứng trên giao diện thật. Lượt dọn code sau đợt D (plan mục 2.5) giữ nguyên quy trình, kiểm chứng lại đủ bốn project test. Toàn bộ đợt A–D và lượt dọn code đã commit trên nhánh; còn lại là gộp `master` (người dùng quyết định) rồi cập nhật mục Hiện trạng trong `AGENTS.md`. Dọn DB test và ghi chú FAIL giả (mục 6, N6) không chặn việc gộp.
 
-## 2. Kiểm chứng mới nhất (11/10/2026, sau đợt D)
+## 2. Kiểm chứng mới nhất (11/10/2026, sau lượt dọn code)
 
 | Lệnh hoặc thao tác | Kết quả | Ghi chú |
 | --- | --- | --- |
@@ -16,9 +16,9 @@ Reviewer `/ship` cho đợt A **CẦN SỬA** (một link 404, đã sửa), đ�
 | `dotnet ef migrations has-pending-model-changes` | PASS | Chỉ có migration của đợt A |
 | `kiem-tra-moi-truong.js` | PASS | DB `quanlyphongtro_test` |
 | `dotnet test` Domain.UnitTests | PASS 138/138 | |
-| `dotnet test` Application.UnitTests | PASS 1111/1111 | Thêm 40: HD5, sửa khoản phí, xem trước chỉ số, email điều chỉnh gửi nền (T30) |
+| `dotnet test` Application.UnitTests | PASS 1115/1115 | Thêm 44: HD5, sửa khoản phí, xem trước chỉ số, email điều chỉnh gửi nền (T30), dọn code (định dạng số, so sánh dòng, N4) |
 | `dotnet test` Infrastructure.IntegrationTests | PASS 414/414 | Thêm 11: CS2, HD5 trên DB thật, sửa dòng ở cả hai nhánh điều chỉnh; T30 không thêm test mới, 5 test điều chỉnh có sẵn chuyển sang chờ email nền |
-| `dotnet test` Web.IntegrationTests | PASS 304/304 | Thêm 16: endpoint điều chỉnh có dòng, xem trước, CS2 và HD5 qua HTTP, email điều chỉnh gửi nền (T30) |
+| `dotnet test` Web.IntegrationTests | PASS 305/305 | Thêm 17: endpoint điều chỉnh có dòng, xem trước, CS2 và HD5 qua HTTP, email điều chỉnh gửi nền (T30), N4 |
 | `git diff --check` | PASS | Chỉ cảnh báo LF/CRLF |
 | Thử tay trên preview (DB test) | PASS | Mục 4, gồm đợt D |
 | Gửi email qua SMTP thật | KHÔNG KIỂM hộp thư | Test dùng email giả; các lần thử tay gửi email tới địa chỉ mẫu `preview_a@example.test` (tên miền dành riêng), không kiểm hộp thư. Lần thử T30, log nền ghi "Đã gửi nền 1/1" (SMTP nhận thư) |
@@ -32,6 +32,7 @@ Reviewer `/ship` cho đợt A **CẦN SỬA** (một link 404, đã sửa), đ�
 | B | 138 | 1051 | 397 | 273 | Infrastructure chạy 4 lần đều xanh; test tranh chấp job và điều chỉnh PASS 6/6 lần; một lượt Web FAIL 257/528 (cùng dạng N6, chưa xác định nguyên nhân lúc đó) |
 | C | 138 | 1065 | 403 | 288 | Một lượt Infrastructure 1 FAIL `DbUpdateException` và ba lượt Web FAIL 271–272/558, đều do N6 |
 | D | 138 | 1111 | 414 | 304 | Một lượt tập con Infrastructure FAIL `AutoInvoiceChainTests.StaffManualClose_...` (xem D5), đã sửa; các lượt sau PASS. Thêm T30 (D6): email điều chỉnh gửi nền |
+| Dọn code | 138 | 1115 | 414 | 305 | Kiểm ngược N4 (bỏ sửa thì test FAIL) |
 
 ## 3. Cổng xác nhận
 
@@ -45,6 +46,7 @@ Reviewer `/ship` cho đợt A **CẦN SỬA** (một link 404, đã sửa), đ�
 | 11/10/2026 (sau thử tay) | Sửa N1 (định dạng chỉ số); N6 phương án (c): mở rộng mã seed test và dọn DB test |
 | 11/10/2026 (sau commit đợt C) | Đợt D: người dùng nêu ba vấn đề trên giao diện (ảnh chờ xác nhận của kỳ đã chốt; phòng bị dừng vì điện nước bất thường chỉ có thông báo; "Điều chỉnh và gửi lại" chỉ sửa được hai chỉ số) và yêu cầu sửa đủ. Quyết định T27, T28, T29 ghi ở [plan.md](plan.md) mục 2.4; ô lý do vẫn không có (spec 6, T22) |
 | 11/10/2026 (trước commit đợt D) | Người dùng yêu cầu xử lý D6 (email điều chỉnh gửi nền, T30) trước khi commit, và xem lại trạng thái migration trên DB phát triển (đã tự áp `20261010101505_AddAutoInvoiceReviewWindow` khi chạy ứng dụng) |
+| 11/10/2026 (sau commit đợt D `14ce43a`) | Người dùng yêu cầu rà lại toàn bộ luồng, bỏ code thừa, giữ quy trình. Chọn: thống nhất định dạng số cả email hóa đơn chính thức; sửa N4 luôn ([plan.md](plan.md) mục 2.5) |
 
 Nội dung từng điểm: [plan.md](plan.md) mục 2. Reviewer các đợt đối chiếu diff với từng điểm: không có migration nào ngoài `20261010101505_AddAutoInvoiceReviewWindow` (2 cột, 1 CHECK, 1 index lọc, `Down` gỡ đủ); không sửa migration cũ, `ApplicationDbContext`, `Program.cs`, `.csproj`, `appsettings.json`; fixture chỉ thêm (`ProvisionalEmailCalls`, category job mới, `ProvisionalGate`); test kiến trúc chỉ siết thêm.
 
@@ -103,6 +105,9 @@ Thử tay đợt D (dữ liệu mẫu thêm PV103–PV105, tài khoản admin th
 | D4 | Phát hiện khi thử tay: đổi chỉ số điện cũng ghi đè dòng nước (đổi tên dòng, mất chỗ sửa tay) | Modal chỉ tính lại dòng của đồng hồ vừa đổi chỉ số | Thử tay lại (dòng điện sửa tay giữ nguyên khi đổi chỉ số nước) |
 | D5 | Phát hiện khi chạy test: email "đã điều chỉnh" lấy chỉ số từ kỳ đã bị lõi chỉ số tách khỏi bộ theo dõi (hiện số cũ); test `AutoInvoiceChainTests.StaffManualClose_...` kiểm email gửi nền ngay sau request nên chập chờn | Email dùng chỉ số đã chốt trong phép điều chỉnh; test chờ có hạn tới 5 giây | `InvoiceAdjustmentTests` bắt được lỗi trước khi sửa; chạy lại PASS |
 | D6 | Điều chỉnh gửi email ngay trong request: khi SMTP chậm, nút "Đang gửi..." treo khoảng 10 giây (lỗi cũ từ đợt B, người dùng báo lại khi thử tay) | T30: `InvoiceAdjustmentService` xếp email vào `IProvisionalInvoiceEmailDispatcher` (bộ gửi nền của L2); thông báo cổng vẫn gửi ngay; không có dispatcher thì gửi ngay như cũ | 5 test `InvoiceAdjustmentServiceTests`; 5 test `InvoiceAdjustmentTests` chờ email nền trên DB thật; test Web có cổng chờ `ProvisionalGate` (FAIL khi tạm đổi sang gửi ngay, PASS khi trả về như cũ); thử tay: 0,5 giây |
+| E1 | Ba kiểu định dạng số trong thông báo và email; email in số lượng lưu trong DB thành "1.000" (dễ đọc thành một nghìn), cả email hóa đơn chính thức mà job tự chốt gửi | `ChiSo.DinhDang` cho chỉ số và số lượng; độ tin cậy in không phụ thuộc culture | `AutoInvoiceReadingPolicyTests` (thông báo "1.234,5 kWh", "99,5", "0,50 < 0,90"); test cũ về "0,93" vẫn PASS |
+| E2–E3 | Code thừa và đoạn lặp (plan mục 2.5) | Bỏ `HoaDonIdCu`, `TieuThuDien`/`TieuThuNuoc`, `GiongNhau`; gộp xử lý dừng của chuỗi, bước đổi chỉ số của điều chỉnh | Toàn bộ test cũ PASS; thêm 2 test so sánh dòng (đổi thứ tự vẫn là không đổi, id lặp là dòng thêm) |
+| N4 | Modal điều chỉnh của hóa đơn Đã gửi ghi "Hạn tự chốt hiện tại" là mốc đã qua | Thông tin điều chỉnh chỉ trả hạn khi hóa đơn còn Chờ duyệt | `InvoiceAdjustmentServiceTests`, `AutoInvoiceAdjustmentEndpointTests` (JSON `hanTuChot` null); bỏ sửa thì test FAIL |
 | N6 | Seed test sinh mã chi nhánh 1 ký tự + 4–6 hex (~1 triệu mã) trên DB test ~23.000 chi nhánh, trùng unique `IX_chi_nhanh_MaChiNhanh`; một test lỗi ghi log Error làm `CustomWebApplicationFactory` đánh rớt cả collection, tổng test Web gần gấp đôi | `TestCodes.MaChiNhanh(prefix)` ở hai project integration test (tiền tố cũ + hex cho đủ 10 ký tự của cột), thay 105 chỗ trong 34 file | Infrastructure rồi Web liên tiếp hai vòng PASS 403/403 và 288/288 |
 
 ## 6. Lưu ý còn mở
@@ -116,7 +121,6 @@ Thử tay đợt D (dữ liệu mẫu thêm PV103–PV105, tài khoản admin th
 | L8 | `MailKitEmailService` bỏ kiểm chứng chứng chỉ SMTP (`ServerCertificateValidationCallback` trả `true`), lỗi cũ của file | Bảo mật | Sửa chung cho cả file trong một việc riêng |
 | N2 | Cổng khách ở 375px: bảng danh sách hóa đơn và bảng khoản phí tràn ngang (không `table-responsive`) | Thấp | Việc giao diện riêng |
 | N3 | Nút đổi theme ẩn ở mobile (`_Header.cshtml`: `d-none d-md-flex`) | Thấp | Tùy người dùng |
-| N4 | Modal điều chỉnh của hóa đơn Đã gửi vẫn ghi "Hạn tự chốt hiện tại" là mốc đã qua | Thấp | Ẩn dòng khi hóa đơn không còn Chờ duyệt |
 | D7 | HD5 chỉ xét kỳ `DaDuyet` chưa có hóa đơn; phòng đủ điều kiện nhưng chưa có hóa đơn vì lỗi lúc tạo (`LoiKhiTao`, không có nhân viên phụ trách, thiếu quyền) không hiện, vì các lý do này không suy ra được từ dữ liệu | Thấp | Chấp nhận; vẫn có thông báo. Muốn hiện cả trường hợp này thì phải lưu trạng thái dừng (đổi schema) |
 | D8 | CS2 vẫn đếm ảnh chưa xác nhận khi đồng hồ đó đã có ảnh chính thức ở kỳ chưa chốt (tới khi chốt kỳ) | Thấp | Theo định nghĩa đã duyệt của module việc cần làm |
 

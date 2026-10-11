@@ -1,7 +1,7 @@
 # Plan: Hóa đơn tự động
 
 - Nguồn: [spec.md](spec.md) v7. Kiểm chứng và đánh giá: [review.md](review.md). Hướng mở rộng: [huong-mo-rong.md](huong-mo-rong.md).
-- Nhánh `feature/hoa-don-tu-dong`, tách từ `master` = `dc391e3`. Spec `e444f37`, đợt A `39b3d81`, đợt B `0736f4d`, đợt C `a161feb`; đợt D (sửa sau khi thử tay, mục 2.4) chưa commit (11/10/2026).
+- Nhánh `feature/hoa-don-tu-dong`, tách từ `master` = `dc391e3`. Spec `e444f37`, đợt A `39b3d81`, đợt B `0736f4d`, đợt C `a161feb`; đợt D `14ce43a` (mục 2.4); dọn code sau đợt D (mục 2.5) commit ngay sau `14ce43a` (11/10/2026).
 - Plan này gộp ba bản kế hoạch `/ship` đã qua cổng xác nhận (đợt A 10/10/2026 17:13, đợt B 10/10/2026 21:39, đợt C 11/10/2026 09:45 và 11:54, giờ Asia/Bangkok). Ký hiệu S (schema), T (tiền, hiển thị tiền), F (fixture test) và số câu hỏi giữ như lúc xác nhận để đối chiếu với review.
 
 ## 1. Mục tiêu và tiến độ
@@ -12,8 +12,12 @@ Có chỉ số điện nước đáng tin cậy thì hệ thống tự tạo hó
 - [x] **Đợt B** (`0736f4d`): job tự chốt, điều chỉnh và gửi lại, chặn chốt/trả lại tay, `ThieuDonGia` (L1), email nền khi chốt nhiều phòng (L2), đánh giá lại phòng trước khi tạo hóa đơn (L3) (spec 5.3, 6, 7.3 phần server).
 - [x] **Đợt C** (`a161feb`): giao diện cổng khách, màn hóa đơn quản lý, màn chi nhánh, Việc cần làm (spec 7, 11); bổ sung sau review T25, T26 (công nợ ở Quản lý phòng trọ) và N1 (định dạng chỉ số).
 - [x] Sửa dữ liệu seed test chống trùng mã chi nhánh (N6, `a161feb`).
-- [x] **Đợt D** (chưa commit): Việc cần làm không còn đếm ảnh của kỳ đã chốt (T27); mục mới HD5 cho phòng bị dừng chưa tạo được hóa đơn (T28); "Điều chỉnh và gửi lại" sửa được toàn bộ khoản phí (T29); email "đã điều chỉnh" gửi nền như email chốt kỳ (T30).
-- [ ] Commit đợt D; dọn DB test (bị bộ phân loại auto mode chặn, người dùng tự làm); gộp `master` và cập nhật mục Hiện trạng trong `AGENTS.md`.
+- [x] **Đợt D** (`14ce43a`): Việc cần làm không còn đếm ảnh của kỳ đã chốt (T27); mục mới HD5 cho phòng bị dừng chưa tạo được hóa đơn (T28); "Điều chỉnh và gửi lại" sửa được toàn bộ khoản phí (T29); email "đã điều chỉnh" gửi nền như email chốt kỳ (T30).
+- [x] Commit đợt D (`14ce43a`).
+- [x] **Dọn code sau đợt D** (mục 2.5): bỏ code thừa, gộp đoạn lặp, thống nhất định dạng số, sửa N4.
+- [x] Commit lượt dọn code (commit kế tiếp `14ce43a`, cùng lúc tick các mục này).
+- [ ] Gộp `master` (chờ người dùng quyết định) và cập nhật mục Hiện trạng trong `AGENTS.md` sau khi gộp.
+- [ ] Không chặn việc gộp: dọn DB test (bị bộ phân loại auto mode chặn, người dùng tự làm); bổ sung nguyên nhân trùng seed vào ghi chú FAIL giả (review mục 6, N6).
 
 ## 2. Quyết định đã xác nhận
 
@@ -100,6 +104,19 @@ Chi tiết T29:
 - Cần thêm quyền `Invoice.Draft` (cùng `Meter.Review`, `Invoice.Submit`, và `Invoice.Cancel` khi `DaGui`).
 - Không gửi chỉ số và không đổi dòng thì báo "Không có thay đổi". Không gửi `chiTiets` thì chạy như trước (chỉ đổi chỉ số), nên thân yêu cầu cũ vẫn dùng được.
 - Email "đã điều chỉnh" hiển thị chỉ số của kỳ (cũ → mới), thay cho cặp "giá trị trước → sau điều chỉnh" dễ hiểu nhầm.
+
+### 2.5 Dọn code sau đợt D (11/10/2026)
+
+Rà lại toàn bộ luồng (kích hoạt, chính sách chỉ số, tạo và gửi tạm tính, tự chốt, điều chỉnh, Việc cần làm) hai lượt: quét tự động thành viên và thuộc tính không còn được đọc, rồi đọc từng file. Không đổi schema, không đổi quy trình.
+
+| # | Nội dung |
+| --- | --- |
+| E1 | **Định dạng số thống nhất** (người dùng chọn, gồm cả email hóa đơn chính thức): thông báo của chuỗi tự tạo, email tạm tính và email hóa đơn chính thức dùng `ChiSo.DinhDang` cho chỉ số và số lượng ("1.234,5", số lượng lưu "1.000" in thành "1"); độ tin cậy in "0,93" không phụ thuộc culture. Bỏ ba chỗ dùng `CultureInfo("vi-VN")` |
+| E2 | **Bỏ code thừa:** `InvoiceAdjustmentResult.HoaDonIdCu` (gán nhưng không ai đọc); `TieuThuDien`/`TieuThuNuoc` của xem trước điều chỉnh và hai trường JSON tương ứng (màn điều chỉnh không dùng); `InvoiceLineEditing.GiongNhau` (trùng nghĩa với `TomTat(...) == null`) |
+| E3 | **Gộp đoạn lặp:** xử lý "phòng không đủ điều kiện" của chuỗi tự tạo (đánh giá đầu chuỗi và đánh giá lại) thành `DungKhongDuDieuKienAsync`; bước đổi chỉ số của hai nhánh điều chỉnh thành hàm cục bộ `DoiChiSoAsync`; email điều chỉnh dùng record riêng `ChiSoKy` thay vì mượn `MeterAdjustmentResult` (khác nghĩa "trước → sau"); mốc tháng trong `AutoInvoiceStore` dùng `MeterPeriodPolicy.MonthRangeUtc`; kiểm số chữ số thập phân bằng `decimal.Scale` ở code của nhánh |
+| E4 | **N4:** thông tin điều chỉnh chỉ trả hạn tự chốt khi hóa đơn còn Chờ duyệt, nên modal của hóa đơn Đã gửi không còn hiện mốc đã qua |
+
+Giữ nguyên có chủ đích: các trường `AutoInvoiceRunResult` chỉ test đọc (kết quả của chuỗi, dùng kiểm hành vi), `AutoInvoiceDueItem.HanPhanHoiUtc` (fake store và test store kiểm thứ tự đến hạn), dữ liệu trả về của `AdjustReadingsInCurrentTransactionAsync` (hợp đồng của lõi chỉ số có test riêng). HD5 đánh giá lại tối đa 60 kỳ-phòng mỗi lần tải (mỗi kỳ-phòng vài truy vấn); thường rất ít ứng viên vì chuỗi tự tạo đã lập hóa đơn cho phòng bình thường, nên chưa gom truy vấn.
 
 ## 3. Thiết kế
 
@@ -200,6 +217,6 @@ git diff --check
 - Cập nhật lại đơn giá cho kỳ đang dở khi chi nhánh khai giá sau (M1).
 - Gắn email nền với vòng đời host (M2, đã chấp nhận mất email khi tắt máy; áp cho cả email "đã điều chỉnh" từ T30).
 - Kiểm chứng chỉ SMTP (L8).
-- Giao diện cổng khách ở mobile: bảng tràn ngang, nút đổi theme ẩn (N2, N3); dòng "Hạn tự chốt hiện tại" ở modal điều chỉnh của hóa đơn Đã gửi (N4).
+- Giao diện cổng khách ở mobile: bảng tràn ngang, nút đổi theme ẩn (N2, N3).
 - Ảnh chưa xác nhận còn sót khi chính đồng hồ đó đã có ảnh chính thức ở kỳ chưa chốt vẫn được CS2 đếm tới khi chốt kỳ.
 - Đối soát chuyển khoản tự động, Zalo, công tơ IoT: [huong-mo-rong.md](huong-mo-rong.md).

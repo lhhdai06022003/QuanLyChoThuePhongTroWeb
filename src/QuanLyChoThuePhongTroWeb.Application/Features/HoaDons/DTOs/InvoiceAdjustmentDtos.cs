@@ -55,13 +55,10 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs
     {
         public InvoiceAdjustmentLine? Dien { get; init; }
         public InvoiceAdjustmentLine? Nuoc { get; init; }
-        public decimal TieuThuDien { get; init; }
-        public decimal TieuThuNuoc { get; init; }
     }
 
     public sealed class InvoiceAdjustmentResult
     {
-        public int HoaDonIdCu { get; init; }
         public int HoaDonIdMoi { get; init; }
         public string MaHoaDonMoi { get; init; } = string.Empty;
         public decimal TongTienMoi { get; init; }

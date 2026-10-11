@@ -1205,7 +1205,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
                 return ServiceResult<MeterAdjustmentResult>.Fail("Chỉ số xác nhận không được âm.");
             }
 
-            if (((decimal.GetBits(request.ChiSoDienMoi)[3] >> 16) & 0x7F) > 3 || ((decimal.GetBits(request.ChiSoNuocMoi)[3] >> 16) & 0x7F) > 3)
+            if (request.ChiSoDienMoi.Scale > 3 || request.ChiSoNuocMoi.Scale > 3)
             {
                 return ServiceResult<MeterAdjustmentResult>.Fail("Chỉ số mới không được có quá 3 chữ số thập phân.");
             }

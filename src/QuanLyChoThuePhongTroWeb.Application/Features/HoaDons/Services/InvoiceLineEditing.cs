@@ -61,7 +61,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                     return $"Tên khoản phí không được vượt quá {MaxNameLength} ký tự.";
                 }
 
-                if (((decimal.GetBits(r.SoLuong)[3] >> 16) & 0x7F) > 3)
+                if (r.SoLuong.Scale > 3)
                 {
                     return "Số lượng không được có quá 3 chữ số thập phân.";
                 }
@@ -76,34 +76,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
             return null;
         }
 
-        // Danh sách gửi lên có giống hệt các dòng đang lưu (cùng dòng, tên, đơn giá, số lượng) hay không.
-        public static bool GiongNhau(IReadOnlyList<InvoiceLineInput> lines, IReadOnlyDictionary<int, InvoiceLineBaseline> baseline)
-        {
-            if (lines.Count != baseline.Count)
-            {
-                return false;
-            }
-
-            var daGap = new HashSet<int>();
-            foreach (var r in lines)
-            {
-                if (r.ChiTietHoaDonId is not int id || id <= 0 || !daGap.Add(id) || !baseline.TryGetValue(id, out var cu))
-                {
-                    return false;
-                }
-
-                if (!string.Equals(cu.TenDichVu.Trim(), (r.TenDichVu ?? string.Empty).Trim(), StringComparison.Ordinal)
-                    || cu.DonGia != r.DonGia
-                    || cu.SoLuong != r.SoLuong)
-                {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
-        // Mô tả ngắn thay đổi dòng để ghi vào lịch sử hóa đơn, ví dụ "sửa 2 dòng, thêm 1 dòng, xóa 1 dòng"; null nếu không đổi.
+        // Mô tả ngắn thay đổi dòng để ghi vào lịch sử hóa đơn, ví dụ "sửa 2 dòng, thêm 1 dòng, xóa 1 dòng"; null nếu danh sách
+        // gửi lên giống hệt các dòng đang lưu (cùng dòng, tên, đơn giá, số lượng). Id lạ hoặc lặp lại tính là dòng thêm.
         public static string? TomTat(IReadOnlyList<InvoiceLineInput> lines, IReadOnlyDictionary<int, InvoiceLineBaseline> baseline)
         {
             var conLai = new Dictionary<int, InvoiceLineBaseline>(baseline);

@@ -613,9 +613,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             return Ok(new
             {
                 dien = preview.Dien == null ? null : ToLineJson(preview.Dien),
-                nuoc = preview.Nuoc == null ? null : ToLineJson(preview.Nuoc),
-                tieuThuDien = preview.TieuThuDien,
-                tieuThuNuoc = preview.TieuThuNuoc
+                nuoc = preview.Nuoc == null ? null : ToLineJson(preview.Nuoc)
             });
         }
 

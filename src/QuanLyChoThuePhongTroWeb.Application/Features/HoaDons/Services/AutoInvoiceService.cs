@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Security;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Services;
 using QuanLyChoThuePhongTroWeb.Application.Common.Configurations;
+using QuanLyChoThuePhongTroWeb.Application.Common.Formatting;
 using QuanLyChoThuePhongTroWeb.Application.Common.Models;
 using QuanLyChoThuePhongTroWeb.Application.Common.Security;
 using QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.DTOs;
@@ -23,7 +24,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
 {
     public class AutoInvoiceService : IAutoInvoiceService
     {
-        private static readonly CultureInfo ViVn = CultureInfo.GetCultureInfo("vi-VN");
         private const string HuongDanThieuDonGia = "Đơn giá của kỳ được lưu lúc tạo kỳ; lập hóa đơn theo luồng tay và sửa dòng điện/nước ở bản nháp.";
 
         private readonly IAutoInvoiceStore _store;
@@ -80,17 +80,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                 var decision = AutoInvoiceReadingPolicy.EvaluateRoom(ctx, _options);
                 if (!decision.DuDieuKien)
                 {
-                    if (decision.LyDos.All(AutoInvoiceReadingPolicy.IsSilent))
-                    {
-                        _logger.LogInformation("Hóa đơn tự động dừng im lặng (phòng {PhongTroId}, kỳ {Thang}/{Nam}, trigger {Trigger}): {LyDos}",
-                            phongTroId, thang, nam, trigger, string.Join(", ", decision.LyDos));
-                        return Done(AutoInvoiceOutcome.DungImLang, decision.LyDos);
-                    }
-
-                    _logger.LogWarning("Hóa đơn tự động dừng (phòng {PhongTroId}, kỳ {Thang}/{Nam}, trigger {Trigger}): {MoTa}",
-                        phongTroId, thang, nam, trigger, string.Join("; ", decision.MoTaLyDos));
-                    await BaoDungAsync(ctx, decision.LyDos, decision.MoTaLyDos, decision);
-                    return Done(AutoInvoiceOutcome.DungCoThongBao, decision.LyDos);
+                    return await DungKhongDuDieuKienAsync(ctx, decision, trigger, string.Empty);
                 }
 
                 // Người thực hiện (spec mục 8): khách tải ảnh thì dùng nhân viên dự phòng của chi nhánh.
@@ -205,17 +195,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                 var latestDecision = AutoInvoiceReadingPolicy.EvaluateRoom(latest, _options);
                 if (!latestDecision.DuDieuKien)
                 {
-                    if (latestDecision.LyDos.All(AutoInvoiceReadingPolicy.IsSilent))
-                    {
-                        _logger.LogInformation("Hóa đơn tự động dừng im lặng khi đánh giá lại (phòng {PhongTroId}, kỳ {Thang}/{Nam}, trigger {Trigger}): {LyDos}",
-                            phongTroId, thang, nam, trigger, string.Join(", ", latestDecision.LyDos));
-                        return Done(AutoInvoiceOutcome.DungImLang, latestDecision.LyDos);
-                    }
-
-                    _logger.LogWarning("Hóa đơn tự động dừng khi đánh giá lại (phòng {PhongTroId}, kỳ {Thang}/{Nam}, trigger {Trigger}): {MoTa}",
-                        phongTroId, thang, nam, trigger, string.Join("; ", latestDecision.MoTaLyDos));
-                    await BaoDungAsync(latest, latestDecision.LyDos, latestDecision.MoTaLyDos, latestDecision);
-                    return Done(AutoInvoiceOutcome.DungCoThongBao, latestDecision.LyDos);
+                    return await DungKhongDuDieuKienAsync(latest, latestDecision, trigger, " khi đánh giá lại");
                 }
 
                 // Bước 3: tạo hóa đơn nháp (cách tính tiền giữ nguyên của luồng tay).
@@ -310,6 +290,23 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
         {
             _store.DiscardPendingChanges();
             return await _store.GetRoomContextAsync(phongTroId, thang, nam, _options.SoKyTrungBinh, CancellationToken.None);
+        }
+
+        // Phòng không đủ điều kiện: lý do im lặng chỉ ghi log; lý do khác báo nhân viên (và khách nếu lý do cho phép).
+        private async Task<ServiceResult<AutoInvoiceRunResult>> DungKhongDuDieuKienAsync(
+            AutoInvoiceRoomContext ctx, AutoInvoiceRoomDecision decision, AutoInvoiceTrigger trigger, string giaiDoan)
+        {
+            if (decision.LyDos.All(AutoInvoiceReadingPolicy.IsSilent))
+            {
+                _logger.LogInformation("Hóa đơn tự động dừng im lặng{GiaiDoan} (phòng {PhongTroId}, kỳ {Thang}/{Nam}, trigger {Trigger}): {LyDos}",
+                    giaiDoan, ctx.PhongTroId, ctx.Thang, ctx.Nam, trigger, string.Join(", ", decision.LyDos));
+                return Done(AutoInvoiceOutcome.DungImLang, decision.LyDos);
+            }
+
+            _logger.LogWarning("Hóa đơn tự động dừng{GiaiDoan} (phòng {PhongTroId}, kỳ {Thang}/{Nam}, trigger {Trigger}): {MoTa}",
+                giaiDoan, ctx.PhongTroId, ctx.Thang, ctx.Nam, trigger, string.Join("; ", decision.MoTaLyDos));
+            await BaoDungAsync(ctx, decision.LyDos, decision.MoTaLyDos, decision);
+            return Done(AutoInvoiceOutcome.DungCoThongBao, decision.LyDos);
         }
 
         private async Task<ServiceResult<AutoInvoiceRunResult>> DungCoThongBaoAsync(
@@ -462,6 +459,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
             return null;
         }
 
-        private static string FormatSo(decimal? value) => value.HasValue ? value.Value.ToString("0.###", ViVn) : string.Empty;
+        private static string FormatSo(decimal? value) => value.HasValue ? ChiSo.DinhDang(value.Value) : string.Empty;
     }
 }

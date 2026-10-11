@@ -641,6 +641,17 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.Equal("Bạn không có quyền điều chỉnh hóa đơn tại chi nhánh này.", (await noPermission.Service.GetAdjustmentInfoAsync(Actor, HoaDonId)).Data!.LyDoKhoa);
         }
 
+        [Fact]
+        public async Task Info_SentInvoice_HasNoCurrentDeadline_BecauseItsOldDeadlineHasPassed()
+        {
+            var h = new Harness(TrangThaiPhatHanhHoaDon.DaGui, han: Now.AddHours(-30));
+
+            var result = await h.Service.GetAdjustmentInfoAsync(Actor, HoaDonId);
+
+            Assert.True(result.Data!.CoTheDieuChinh);
+            Assert.Null(result.Data.HanPhanHoiUtc);
+        }
+
         private static AutoInvoiceAdjustmentSnapshot Snap(Harness h, DateTime? han) => new()
         {
             HoaDonId = HoaDonId, MaHoaDon = "HD-500", HopDongId = HopDong, ChiNhanhId = Chi, PhongTroId = Phong, Thang = 10, Nam = 2026,
@@ -748,6 +759,34 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.Single(h.Meter.AdjustCalls);
             Assert.Equal(1_070_000m, h.Invoice.TongTien);
             Assert.DoesNotContain("(sửa", h.Invoice.LichSuTrangThaiHoaDons.Last().LyDo);
+        }
+
+        [Fact]
+        public async Task Adjust_SameLinesInAnotherOrder_IsStillNoChange()
+        {
+            var h = new Harness();
+            h.SetLines(BaseLines());
+            var dongs = BaseDongs().Reverse().ToArray();
+
+            var result = await h.AdjustLines(dongs);
+
+            Assert.Equal("Không có thay đổi", result.Message);
+            Assert.True(Assert.Single(h.Uow.Transactions).RolledBack);
+        }
+
+        [Fact]
+        public async Task Adjust_SameLineIdSentTwice_SecondCopyIsANewLine()
+        {
+            var h = new Harness();
+            h.SetLines(BaseLines());
+            var dongs = BaseDongs().Append(Dong(3, "Rác", 50_000m, 2m)).ToArray();
+
+            var result = await h.AdjustLines(dongs);
+
+            Assert.True(result.Success, result.Message);
+            Assert.Equal(2, h.Invoice.ChiTietHoaDonDichVus.Count(l => l.TenDichVu == "Rác"));
+            Assert.Equal(1_770_000m, h.Invoice.TongTien);
+            Assert.Contains("(thêm 1 dòng)", h.Invoice.LichSuTrangThaiHoaDons.Last().LyDo);
         }
 
         [Fact]
@@ -997,7 +1036,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             var nuoc = result.Data.Nuoc!;
             Assert.Equal("Tiền nước (50 → 70)", nuoc.TenDichVu);
             Assert.Equal((15_000m, 20m, 300_000m, "nuoc", "m³"), (nuoc.DonGia, nuoc.SoLuong, nuoc.TongTien, nuoc.Loai, nuoc.DonVi));
-            Assert.Equal((30m, 20m), (result.Data.TieuThuDien, result.Data.TieuThuNuoc));
             Assert.Empty(h.Uow.Transactions);
             Assert.Empty(h.Meter.AdjustCalls);
             Assert.True(h.Auto.DiscardCalls >= 1);
@@ -1038,7 +1076,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.True(result.Success, result.Message);
             Assert.Null(result.Data!.Dien);
             Assert.Null(result.Data.Nuoc);
-            Assert.Equal((0m, 0m), (result.Data.TieuThuDien, result.Data.TieuThuNuoc));
         }
 
         [Fact]

@@ -91,11 +91,9 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 .ToListAsync(ct);
             var consumptions = consumptionRows.Select(x => new AutoInvoiceConsumption(x.Dien, x.Nuoc)).ToList();
 
-            // Mốc tháng tính đúng như InvoiceIssuanceService.CreateDraftsAsync (giờ Việt Nam đổi sang UTC).
-            var startOfMonthVn = new DateTime(nam, thang, 1, 0, 0, 0, DateTimeKind.Unspecified);
-            var endOfMonthVn = startOfMonthVn.AddMonths(1).AddDays(-1).AddHours(23).AddMinutes(59).AddSeconds(59);
-            var startOfMonthUtc = DateTime.SpecifyKind(startOfMonthVn.AddHours(-7), DateTimeKind.Utc);
-            var endOfMonthUtc = DateTime.SpecifyKind(endOfMonthVn.AddHours(-7), DateTimeKind.Utc);
+            // Mốc tháng giờ Việt Nam đổi sang UTC, khớp InvoiceIssuanceService.CreateDraftsAsync (cuối tháng = 23:59:59 ngày cuối).
+            var (startOfMonthUtc, nextMonthStartUtc) = MeterPeriodPolicy.MonthRangeUtc(new MeterPeriod(thang, nam));
+            var endOfMonthUtc = nextMonthStartUtc.AddSeconds(-1);
             var minEndUtc = startOfMonthUtc.AddDays(1);
 
             var contracts = await _context.HopDongs

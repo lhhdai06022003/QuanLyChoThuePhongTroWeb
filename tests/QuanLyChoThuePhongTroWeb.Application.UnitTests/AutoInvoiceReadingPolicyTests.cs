@@ -252,6 +252,18 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         }
 
         [Fact]
+        public void Meter_Messages_FormatNumbersTheVietnameseWayWithoutCulture()
+        {
+            var tieuThu = AutoInvoiceReadingPolicy.EvaluateMeter(LoaiDongHo.Dien, Ctx(new[] { Img(1, LoaiDongHo.Dien, ai: 1_334.5m) }), Options);
+            var giam = AutoInvoiceReadingPolicy.EvaluateMeter(LoaiDongHo.Dien, Ctx(new[] { Img(1, LoaiDongHo.Dien, ai: 99.5m) }), Options);
+            var tinCay = AutoInvoiceReadingPolicy.EvaluateMeter(LoaiDongHo.Dien, Ctx(new[] { Img(1, LoaiDongHo.Dien, ai: 120m, tinCay: 0.5) }), Options);
+
+            Assert.Equal("Điện: tiêu thụ bất thường (1.234,5 kWh, giới hạn 500 kWh)", tieuThu.MoTa);
+            Assert.Equal("Điện: chỉ số mới (99,5) nhỏ hơn chỉ số cũ (100)", giam.MoTa);
+            Assert.Equal("Điện: độ tin cậy nhận diện thấp (0,50 < 0,90)", tinCay.MoTa);
+        }
+
+        [Fact]
         public void Meter_NoPreviousPeriod_ElectricityCapIs500()
         {
             var ok = Ctx(new[] { Img(1, LoaiDongHo.Dien, ai: 600m) });

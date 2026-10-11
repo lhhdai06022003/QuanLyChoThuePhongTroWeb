@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using QuanLyChoThuePhongTroWeb.Application.Common.Configurations;
+using QuanLyChoThuePhongTroWeb.Application.Common.Formatting;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence;
 using QuanLyChoThuePhongTroWeb.Domain.Enums;
@@ -29,8 +30,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.AutoInvoices
     // Quyết định thuần (không I/O) có tự tạo hóa đơn tạm tính hay không.
     public static class AutoInvoiceReadingPolicy
     {
-        private static readonly CultureInfo ViVn = CultureInfo.GetCultureInfo("vi-VN");
-
         public static bool IsSilent(AutoInvoiceReason reason) =>
             reason is AutoInvoiceReason.ThieuChiSo or AutoInvoiceReason.DaCoHoaDon or AutoInvoiceReason.KhongCoHopDong;
 
@@ -39,7 +38,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.AutoInvoices
             reason is AutoInvoiceReason.DoTinCayThap or AutoInvoiceReason.KhongDocDuoc or AutoInvoiceReason.ChiSoGiam;
 
         public static string GhiChuTuXacNhan(double doTinCay) =>
-            $"Tự xác nhận, độ tin cậy {doTinCay.ToString("0.00", ViVn)}";
+            $"Tự xác nhận, độ tin cậy {DoTinCay(doTinCay)}";
 
         public static AutoInvoiceMeterDecision EvaluateMeter(LoaiDongHo loai, AutoInvoiceRoomContext ctx, AutoInvoiceOptions o)
         {
@@ -91,9 +90,9 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.AutoInvoices
 
                     if (ungVien.DoTinCay == null || ungVien.DoTinCay.Value < o.NguongDoTinCay)
                     {
-                        var thuc = ungVien.DoTinCay.HasValue ? ungVien.DoTinCay.Value.ToString("0.00", ViVn) : "không có";
+                        var thuc = ungVien.DoTinCay.HasValue ? DoTinCay(ungVien.DoTinCay.Value) : "không có";
                         return new AutoInvoiceMeterDecision(loai, AutoInvoiceReason.DoTinCayThap,
-                            $"{ten}: độ tin cậy nhận diện thấp ({thuc} < {o.NguongDoTinCay.ToString("0.00", ViVn)})", cu, null, null, ungVien.DoTinCay);
+                            $"{ten}: độ tin cậy nhận diện thấp ({thuc} < {DoTinCay(o.NguongDoTinCay)})", cu, null, null, ungVien.DoTinCay);
                     }
 
                     if (ungVien.GiaTriAIGoiY == null)
@@ -110,7 +109,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.AutoInvoices
             if (moi < cu)
             {
                 return new AutoInvoiceMeterDecision(loai, AutoInvoiceReason.ChiSoGiam,
-                    $"{ten}: chỉ số mới ({moi.ToString("0.###", ViVn)}) nhỏ hơn chỉ số cũ ({cu.ToString("0.###", ViVn)})", cu, moi, anhTuXacNhanId, doTinCay);
+                    $"{ten}: chỉ số mới ({ChiSo.DinhDang(moi)}) nhỏ hơn chỉ số cũ ({ChiSo.DinhDang(cu)})", cu, moi, anhTuXacNhanId, doTinCay);
             }
 
             var tieuThu = moi - cu;
@@ -133,7 +132,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.AutoInvoices
             if (tieuThu > gioiHan)
             {
                 return new AutoInvoiceMeterDecision(loai, AutoInvoiceReason.TieuThuBatThuong,
-                    $"{ten}: tiêu thụ bất thường ({tieuThu.ToString("0.###", ViVn)} {donVi}, giới hạn {gioiHan.ToString("0.###", ViVn)} {donVi})", cu, moi, anhTuXacNhanId, doTinCay);
+                    $"{ten}: tiêu thụ bất thường ({ChiSo.DinhDang(tieuThu)} {donVi}, giới hạn {ChiSo.DinhDang(gioiHan)} {donVi})", cu, moi, anhTuXacNhanId, doTinCay);
             }
 
             return new AutoInvoiceMeterDecision(loai, null, null, cu, moi, anhTuXacNhanId, doTinCay);
@@ -206,6 +205,9 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.AutoInvoices
 
             return new AutoInvoiceRoomDecision(true, Array.Empty<AutoInvoiceReason>(), Array.Empty<string>(), dien, nuoc, ctx.HopDongHieuLuc[0]);
         }
+
+        // Độ tin cậy OCR kiểu Việt Nam ("0,93"), không phụ thuộc culture như ChiSo.DinhDang.
+        private static string DoTinCay(double giaTri) => giaTri.ToString("0.00", CultureInfo.InvariantCulture).Replace('.', ',');
 
         private static AutoInvoiceRoomDecision Stop(AutoInvoiceReason reason, string moTa) =>
             new(false, new[] { reason }, new[] { moTa }, null, null, null);

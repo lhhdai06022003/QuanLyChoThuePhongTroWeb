@@ -10,6 +10,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using MimeKit;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Services;
+using QuanLyChoThuePhongTroWeb.Application.Common.Formatting;
 using QuanLyChoThuePhongTroWeb.Application.Features.Emails.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs;
 
@@ -94,7 +95,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.Emails
                             <td style='text-align: center; border: 1px solid #dcdfe6; padding: 10px;'>{stt++}</td>
                             <td style='border: 1px solid #dcdfe6; padding: 10px;'>{Enc(ct.TenDichVu)}</td>
                             <td style='text-align: right; border: 1px solid #dcdfe6; padding: 10px;'>{FormatVND(ct.DonGia)}</td>
-                            <td style='text-align: center; border: 1px solid #dcdfe6; padding: 10px;'>{ct.SoLuong}</td>
+                            <td style='text-align: center; border: 1px solid #dcdfe6; padding: 10px;'>{ChiSo.DinhDang(ct.SoLuong)}</td>
                             <td style='text-align: right; border: 1px solid #dcdfe6; padding: 10px; font-weight: bold;'>{FormatVND(ct.TongTien)}</td>
                         </tr>");
                 }
@@ -119,8 +120,8 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.Emails
             <tr><td><strong>Phòng:</strong></td><td>{Enc(data.TenPhong)}</td></tr>
             <tr><td><strong>Người thuê:</strong></td><td>{Enc(data.TenNguoiThue)}</td></tr>
             <tr><td><strong>Kỳ:</strong></td><td>Tháng {data.Thang}/{data.Nam}</td></tr>
-            <tr><td><strong>Chỉ số điện:</strong></td><td>{data.ChiSoDienCu:0.###} → {data.ChiSoDienMoi:0.###}</td></tr>
-            <tr><td><strong>Chỉ số nước:</strong></td><td>{data.ChiSoNuocCu:0.###} → {data.ChiSoNuocMoi:0.###}</td></tr>
+            <tr><td><strong>Chỉ số điện:</strong></td><td>{ChiSo.DinhDang(data.ChiSoDienCu)} → {ChiSo.DinhDang(data.ChiSoDienMoi)}</td></tr>
+            <tr><td><strong>Chỉ số nước:</strong></td><td>{ChiSo.DinhDang(data.ChiSoNuocCu)} → {ChiSo.DinhDang(data.ChiSoNuocMoi)}</td></tr>
         </table>
         <table style='width: 100%; border-collapse: collapse; margin-top: 20px;'>
             <thead>
@@ -225,7 +226,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.Emails
                             <td style='text-align: center; border: 1px solid #dcdfe6; padding: 10px;'>{stt++}</td>
                             <td style='border: 1px solid #dcdfe6; padding: 10px;'>{ct.TenDichVu}</td>
                             <td style='text-align: right; border: 1px solid #dcdfe6; padding: 10px;'>{FormatVND(ct.DonGia)}</td>
-                            <td style='text-align: center; border: 1px solid #dcdfe6; padding: 10px;'>{ct.SoLuong}</td>
+                            <td style='text-align: center; border: 1px solid #dcdfe6; padding: 10px;'>{ChiSo.DinhDang(ct.SoLuong)}</td>
                             <td style='text-align: center; border: 1px solid #dcdfe6; padding: 10px;'>{donViText}</td>
                             <td style='text-align: right; border: 1px solid #dcdfe6; padding: 10px; font-weight: bold;'>{FormatVND(ct.TongTien)}</td>
                         </tr>");
