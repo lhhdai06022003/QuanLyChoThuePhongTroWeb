@@ -75,12 +75,26 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
 
         public async Task<IReadOnlyList<DemTheoKyRow>> DemAnhChiSoChoXacNhanAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, CancellationToken ct = default)
         {
+            // Chỉ đếm ảnh mà nhân viên còn xác nhận được. Kỳ đã chốt (DaDuyet) thì chỉ số đã được quyết định, ảnh chưa xác nhận
+            // còn sót lại (ví dụ kỳ chốt bằng nhập tay) không còn là việc phải làm. Kỳ bị khóa bởi kỳ sau (kỳ sau đã chốt hoặc
+            // đã có hóa đơn phát hành, cùng quy tắc HasSubsequentPeriodAsync) cũng không xác nhận được nữa.
             var query = _context.AnhChiSoDongHos.AsNoTracking()
                 .Where(a => !a.IsDeleted
                             && (a.TrangThaiXuLy == TrangThaiXuLyAnhChiSo.DocDuoc
                                 || a.TrangThaiXuLy == TrangThaiXuLyAnhChiSo.KhongDocDuoc
                                 || a.TrangThaiXuLy == TrangThaiXuLyAnhChiSo.Loi)
-                            && !a.DichVuDienNuocCuaPhong.IsDeleted);
+                            && !a.DichVuDienNuocCuaPhong.IsDeleted
+                            && a.DichVuDienNuocCuaPhong.TrangThaiGhiNhan != TrangThaiGhiNhan.DaDuyet
+                            && !_context.DichVuDienNuocCuaPhongs.Any(k =>
+                                k.PhongTroId == a.DichVuDienNuocCuaPhong.PhongTroId
+                                && !k.IsDeleted
+                                && (k.Nam > a.DichVuDienNuocCuaPhong.Nam
+                                    || (k.Nam == a.DichVuDienNuocCuaPhong.Nam && k.Thang > a.DichVuDienNuocCuaPhong.Thang))
+                                && (k.TrangThaiGhiNhan == TrangThaiGhiNhan.DaDuyet
+                                    || _context.HoaDons.IgnoreQueryFilters().Any(h =>
+                                        h.DichVuDienNuocCuaPhongId == k.DichVuDienNuocCuaPhongId
+                                        && h.TrangThaiPhatHanh != TrangThaiPhatHanhHoaDon.Nhap
+                                        && h.TrangThaiPhatHanh != TrangThaiPhatHanhHoaDon.DaHuy))));
 
             if (branchId.HasValue)
             {
@@ -158,6 +172,47 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                     ChiNhanhId = g.Key.ChiNhanhId,
                     TenChiNhanh = g.Key.TenChiNhanh,
                     SoLuong = g.Count()
+                })
+                .ToListAsync(ct);
+        }
+
+        public async Task<IReadOnlyList<KyDaChotChuaCoHoaDonRow>> GetKyDaChotChuaCoHoaDonAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, int tuThang, int tuNam, int denThang, int denNam, int gioiHan, CancellationToken ct = default)
+        {
+            // Phòng không có hóa đơn chưa xóa nào của kỳ (tính theo mọi hợp đồng của phòng), khớp điều kiện DaCoHoaDon của chuỗi tự tạo.
+            var query = _context.DichVuDienNuocCuaPhongs.AsNoTracking()
+                .Where(d => !d.IsDeleted
+                            && d.TrangThaiGhiNhan == TrangThaiGhiNhan.DaDuyet
+                            && !d.PhongTro.IsDeleted
+                            && (d.Nam > tuNam || (d.Nam == tuNam && d.Thang >= tuThang))
+                            && (d.Nam < denNam || (d.Nam == denNam && d.Thang <= denThang))
+                            && !_context.HoaDons.Any(h => !h.IsDeleted
+                                                          && h.Thang == d.Thang
+                                                          && h.Nam == d.Nam
+                                                          && h.HopDong.PhongTroId == d.PhongTroId));
+
+            if (branchId.HasValue)
+            {
+                query = query.Where(d => d.PhongTro.ChiNhanhId == branchId.Value);
+            }
+
+            if (allowedBranchIds != null)
+            {
+                query = query.Where(d => allowedBranchIds.Contains(d.PhongTro.ChiNhanhId));
+            }
+
+            return await query
+                .OrderByDescending(d => d.Nam)
+                .ThenByDescending(d => d.Thang)
+                .ThenBy(d => d.PhongTroId)
+                .Take(Math.Max(0, gioiHan))
+                .Select(d => new KyDaChotChuaCoHoaDonRow
+                {
+                    PhongTroId = d.PhongTroId,
+                    SoPhong = d.PhongTro.SoPhong,
+                    ChiNhanhId = d.PhongTro.ChiNhanhId,
+                    TenChiNhanh = d.PhongTro.ChiNhanh.TenChiNhanh,
+                    Thang = d.Thang,
+                    Nam = d.Nam
                 })
                 .ToListAsync(ct);
         }

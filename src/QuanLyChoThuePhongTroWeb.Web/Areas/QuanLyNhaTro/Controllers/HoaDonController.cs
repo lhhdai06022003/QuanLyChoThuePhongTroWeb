@@ -590,9 +590,45 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
                 chiSoDienMoi = info.ChiSoDienMoi,
                 chiSoNuocCu = info.ChiSoNuocCu,
                 chiSoNuocMoi = info.ChiSoNuocMoi,
-                hanTuChot = FormatVietnamTime(info.HanPhanHoiUtc)
+                hanTuChot = FormatVietnamTime(info.HanPhanHoiUtc),
+                tongTien = info.TongTien,
+                chiTiets = info.ChiTiets.Select(ToLineJson).ToList()
             });
         }
+
+        // Xem trước dòng điện/nước theo chỉ số mới (chưa lưu), để màn điều chỉnh cập nhật các dòng tương ứng.
+        [HttpGet("/HoaDon/DieuChinh/{id:int}/TinhLai")]
+        public async Task<IActionResult> DieuChinhTinhLai(int id, [FromQuery] decimal chiSoDienMoi, [FromQuery] decimal chiSoNuocMoi, CancellationToken ct)
+        {
+            if (id <= 0)
+                return BadRequest(new { success = false, message = "Dữ liệu không hợp lệ." });
+
+            if (!TryGetActorId(out var actorId))
+                return Unauthorized(new { success = false, message = "Người dùng chưa đăng nhập hoặc phiên làm việc đã hết hạn." });
+
+            var result = await _adjustmentService.PreviewMeterLinesAsync(actorId, id, chiSoDienMoi, chiSoNuocMoi, ct);
+            if (!result.Success) return this.ToErrorResult(result);
+
+            var preview = result.Data!;
+            return Ok(new
+            {
+                dien = preview.Dien == null ? null : ToLineJson(preview.Dien),
+                nuoc = preview.Nuoc == null ? null : ToLineJson(preview.Nuoc),
+                tieuThuDien = preview.TieuThuDien,
+                tieuThuNuoc = preview.TieuThuNuoc
+            });
+        }
+
+        private static object ToLineJson(InvoiceAdjustmentLine l) => new
+        {
+            chiTietHoaDonId = l.ChiTietHoaDonId,
+            tenDichVu = l.TenDichVu,
+            donGia = l.DonGia,
+            soLuong = l.SoLuong,
+            tongTien = l.TongTien,
+            loai = l.Loai,
+            donVi = l.DonVi
+        };
 
         // Cùng định dạng giờ Việt Nam cho GET và POST điều chỉnh.
         private static string? FormatVietnamTime(DateTime? utc)
@@ -612,7 +648,16 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             {
                 HoaDonId = id,
                 ChiSoDienMoi = req.ChiSoDienMoi,
-                ChiSoNuocMoi = req.ChiSoNuocMoi
+                ChiSoNuocMoi = req.ChiSoNuocMoi,
+                ChiTiets = req.ChiTiets?
+                    .Select(l => new AdjustInvoiceLine
+                    {
+                        ChiTietHoaDonId = l.ChiTietHoaDonId,
+                        TenDichVu = l.TenDichVu,
+                        DonGia = l.DonGia,
+                        SoLuong = l.SoLuong
+                    })
+                    .ToList()
             }, ct);
             if (!result.Success) return this.ToErrorResult(result);
 
@@ -645,8 +690,19 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
 
     public class DieuChinhHoaDonReq
     {
-        public decimal ChiSoDienMoi { get; set; }
-        public decimal ChiSoNuocMoi { get; set; }
+        // Không gửi = giữ chỉ số hiện tại của kỳ.
+        public decimal? ChiSoDienMoi { get; set; }
+        public decimal? ChiSoNuocMoi { get; set; }
+        // Không gửi = không sửa khoản phí; có gửi = danh sách dòng cuối cùng của hóa đơn.
+        public List<DieuChinhDongReq>? ChiTiets { get; set; }
+    }
+
+    public class DieuChinhDongReq
+    {
+        public int? ChiTietHoaDonId { get; set; }
+        public string? TenDichVu { get; set; }
+        public decimal DonGia { get; set; }
+        public decimal SoLuong { get; set; }
     }
 
     public class PublishInvoicesReq

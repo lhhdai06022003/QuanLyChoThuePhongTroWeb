@@ -1,7 +1,7 @@
 # Plan: Hóa đơn tự động
 
 - Nguồn: [spec.md](spec.md) v7. Kiểm chứng và đánh giá: [review.md](review.md). Hướng mở rộng: [huong-mo-rong.md](huong-mo-rong.md).
-- Nhánh `feature/hoa-don-tu-dong`, tách từ `master` = `dc391e3`. Spec `e444f37`, đợt A `39b3d81`, đợt B `0736f4d`; đợt C và các sửa sau review chưa commit (11/10/2026).
+- Nhánh `feature/hoa-don-tu-dong`, tách từ `master` = `dc391e3`. Spec `e444f37`, đợt A `39b3d81`, đợt B `0736f4d`, đợt C `a161feb`; đợt D (sửa sau khi thử tay, mục 2.4) chưa commit (11/10/2026).
 - Plan này gộp ba bản kế hoạch `/ship` đã qua cổng xác nhận (đợt A 10/10/2026 17:13, đợt B 10/10/2026 21:39, đợt C 11/10/2026 09:45 và 11:54, giờ Asia/Bangkok). Ký hiệu S (schema), T (tiền, hiển thị tiền), F (fixture test) và số câu hỏi giữ như lúc xác nhận để đối chiếu với review.
 
 ## 1. Mục tiêu và tiến độ
@@ -10,9 +10,10 @@ Có chỉ số điện nước đáng tin cậy thì hệ thống tự tạo hó
 
 - [x] **Đợt A** (`39b3d81`): schema, chuỗi tự tạo và gửi hóa đơn tạm tính, khách xem bản tạm tính (spec 3, 4, 5.1, 5.2, 7.1 phần dữ liệu, 7.2, 8, 9, 10).
 - [x] **Đợt B** (`0736f4d`): job tự chốt, điều chỉnh và gửi lại, chặn chốt/trả lại tay, `ThieuDonGia` (L1), email nền khi chốt nhiều phòng (L2), đánh giá lại phòng trước khi tạo hóa đơn (L3) (spec 5.3, 6, 7.3 phần server).
-- [x] **Đợt C** (chưa commit): giao diện cổng khách, màn hóa đơn quản lý, màn chi nhánh, Việc cần làm (spec 7, 11); bổ sung sau review T25, T26 (công nợ ở Quản lý phòng trọ) và N1 (định dạng chỉ số).
-- [x] Sửa dữ liệu seed test chống trùng mã chi nhánh (N6, chưa commit).
-- [ ] Commit đợt C; dọn DB test (bị bộ phân loại auto mode chặn, người dùng tự làm); gộp `master` và cập nhật mục Hiện trạng trong `AGENTS.md`.
+- [x] **Đợt C** (`a161feb`): giao diện cổng khách, màn hóa đơn quản lý, màn chi nhánh, Việc cần làm (spec 7, 11); bổ sung sau review T25, T26 (công nợ ở Quản lý phòng trọ) và N1 (định dạng chỉ số).
+- [x] Sửa dữ liệu seed test chống trùng mã chi nhánh (N6, `a161feb`).
+- [x] **Đợt D** (chưa commit): Việc cần làm không còn đếm ảnh của kỳ đã chốt (T27); mục mới HD5 cho phòng bị dừng chưa tạo được hóa đơn (T28); "Điều chỉnh và gửi lại" sửa được toàn bộ khoản phí (T29); email "đã điều chỉnh" gửi nền như email chốt kỳ (T30).
+- [ ] Commit đợt D; dọn DB test (bị bộ phân loại auto mode chặn, người dùng tự làm); gộp `master` và cập nhật mục Hiện trạng trong `AGENTS.md`.
 
 ## 2. Quyết định đã xác nhận
 
@@ -82,6 +83,24 @@ Có chỉ số điện nước đáng tin cậy thì hệ thống tự tạo hó
 
 Quyết định cho lưu ý của review đợt A: L1 dừng chuỗi `ThieuDonGia`; L2 gửi email sau vòng lặp, chạy nền, không thêm bảng hàng đợi.
 
+### 2.4 Đợt D: sửa sau khi người dùng thử tay (11/10/2026)
+
+Người dùng báo ba vấn đề khi thử trên giao diện (T27–T29); T30 là lưu ý D6 của review, người dùng yêu cầu làm trước khi commit đợt D. Không đổi schema.
+
+| # | Nội dung |
+| --- | --- |
+| T27 | **CS2 "Ảnh chỉ số chờ xác nhận":** chỉ đếm ảnh mà nhân viên còn xác nhận được. Kỳ đã chốt (`DaDuyet`) thì không đếm, vì chốt bằng nhập tay làm ảnh `DocDuoc`/`KhongDocDuoc`/`Loi` còn sót vĩnh viễn (báo cáo: T8/2026 đã chốt, hóa đơn thu đủ mà vẫn báo 3 ảnh). Kỳ bị khóa bởi kỳ sau (kỳ sau `DaDuyet` hoặc đã có hóa đơn phát hành, cùng quy tắc `HasSubsequentPeriodAsync`) cũng không đếm vì `ConfirmImageAsync` từ chối |
+| T28 | **HD5 "Chưa tạo được hóa đơn tạm tính T{m}/{y}"** (Hóa đơn, Cần làm, quyền `Invoice.Draft`, link `ChotDienNuoc?thang&nam&chiNhanhId`): ngoài thông báo, các phòng chuỗi tự tạo đã dừng có thông báo cũng hiện ở Việc cần làm. Không lưu trạng thái dừng (không đổi schema): mỗi lần tải, store lấy các kỳ `DaDuyet` trong khoảng quét (`SoKyQuetChiSo` kỳ tính đến kỳ mục tiêu, tới hết tháng hiện tại) mà phòng chưa có hóa đơn chưa xóa của kỳ đó, rồi `ViecCanLamService` đánh giá lại bằng đúng `AutoInvoiceReadingPolicy.EvaluateRoom`; chỉ giữ phòng có lý do dừng không im lặng. Việc tự biến mất khi nhân viên lập hóa đơn (tay hoặc tự động) hoặc sửa số hết bất thường. Mô tả liệt kê tối đa 3 phòng kèm lý do ngắn ("PV103: tiêu thụ điện nước bất thường"). Giới hạn `ViecCanLamSettings.SoKyPhongDanhGiaHoaDonTuDong` = 60 kỳ-phòng mỗi lần tải |
+| T29 | **Điều chỉnh và gửi lại sửa toàn bộ khoản phí** (đổi quyết định "chỉ nhập chỉ số" của spec 6): modal có bảng khoản phí như màn "Chỉnh sửa Chi tiết Hóa đơn" (tên, đơn giá, số lượng, thêm, xóa) cùng ô chỉ số điện nước. Danh sách dòng gửi lên là danh sách cuối cùng của hóa đơn; đổi chỉ số thì modal hỏi server tính lại đúng dòng điện/nước của đồng hồ vừa đổi (`GET /HoaDon/DieuChinh/{id}/TinhLai`), dòng còn lại không bị ghi đè. Vẫn **không có ô lý do** (T22): lịch sử ghi lý do mặc định kèm tóm tắt "(sửa n dòng, thêm n dòng, xóa n dòng)" |
+| T30 | **Email "đã điều chỉnh" gửi nền** (D6): `InvoiceAdjustmentService` xếp email vào `IProvisionalInvoiceEmailDispatcher` (cùng bộ gửi nền của email chốt kỳ, T18) thay vì gọi SMTP trong request, nên nút "Đang gửi..." không còn chờ SMTP (đo trên preview: khoảng 0,5 giây, trước đó khoảng 10 giây). Thông báo trong cổng khách vẫn gửi ngay. Dispatcher là tham số tùy chọn như ở `DienNuocService`: không có thì gửi ngay như cũ (host không đăng ký dispatcher). Không đổi schema, không đổi nội dung email |
+
+Chi tiết T29:
+
+- Quy tắc kiểm tra và giữ thành tiền dùng chung với màn sửa hóa đơn nháp (`InvoiceLineEditing`): dòng cũ không đổi đơn giá và số lượng giữ thành tiền đã lưu (tiền phòng tính theo ngày ở); id lạ hoặc lặp coi là dòng mới; đơn giá nguyên đồng; thêm giới hạn tối đa 50 dòng, tên 500 ký tự, số lượng 3 chữ số thập phân, một dòng tối đa 999.999.999.999 đ.
+- Cần thêm quyền `Invoice.Draft` (cùng `Meter.Review`, `Invoice.Submit`, và `Invoice.Cancel` khi `DaGui`).
+- Không gửi chỉ số và không đổi dòng thì báo "Không có thay đổi". Không gửi `chiTiets` thì chạy như trước (chỉ đổi chỉ số), nên thân yêu cầu cũ vẫn dùng được.
+- Email "đã điều chỉnh" hiển thị chỉ số của kỳ (cũ → mới), thay cho cặp "giá trị trước → sau điều chỉnh" dễ hiểu nhầm.
+
 ## 3. Thiết kế
 
 ### 3.1 Chuỗi tự tạo hóa đơn tạm tính (`AutoInvoiceService.RunForRoomAsync`)
@@ -103,20 +122,22 @@ Quyết định cho lưu ý của review đợt A: L1 dừng chuỗi `ThieuDonGi
 
 ### 3.3 Điều chỉnh và gửi lại (`InvoiceAdjustmentService`)
 
-- **Lý do khóa** (theo thứ tự): không phải hóa đơn tự động; trạng thái khác `ChoDuyet`/`DaGui`; thiếu quyền (`Meter.Review`, `Invoice.Submit`, thêm `Invoice.Cancel` khi `DaGui`); không gắn kỳ; kỳ sau đã chốt; `DaGui` đã có khoản thu; khách đã nộp minh chứng đang đối chiếu.
+- **Lý do khóa** (theo thứ tự): không phải hóa đơn tự động; trạng thái khác `ChoDuyet`/`DaGui`; thiếu quyền (`Meter.Review`, `Invoice.Draft`, `Invoice.Submit`, thêm `Invoice.Cancel` khi `DaGui`); không gắn kỳ; kỳ sau đã chốt; `DaGui` đã có khoản thu; khách đã nộp minh chứng đang đối chiếu.
 - **Khóa:** kỳ → hợp đồng → hóa đơn (job: kỳ → hóa đơn), cùng chiều với luồng thanh toán nên không có vòng khóa.
-- **6.2 (`ChoDuyet`):** `MoLaiDeDieuChinh` → lưu → `AdjustReadingsInCurrentTransactionAsync` → kiểm tổng tiền → `GuiTamTinh` với hạn mới.
-- **6.3 (`DaGui`):** hết hạn và hủy lượt `ChoThanhToan`, `HuyHoaDon` → lưu → đổi chỉ số → `CreateDraftsInCurrentTransactionAsync` (phải ra đúng 1 hóa đơn của hợp đồng cũ, nếu không báo rõ lý do) → gửi tạm tính bản `-R{n}`.
-- Mọi thất bại rollback và `DiscardPendingChanges()` trước khi trả; sau commit báo khách (cổng + email "đã điều chỉnh").
-- **Web:** `GET /HoaDon/DieuChinh/{id}` (kiểm `Invoice.Read` trước) và `POST` có antiforgery; cả hai trả `hanTuChot` giờ Việt Nam `dd/MM/yyyy HH:mm`.
+- **Yêu cầu** (`AdjustInvoiceRequest`): chỉ số điện/nước mới (có thể bỏ trống = giữ), danh sách dòng khoản phí (có thể bỏ trống = không sửa dòng). Chụp các dòng đang lưu trước mọi thay đổi để so sánh và giữ thành tiền dòng không đổi; chỉ số không đổi và dòng giống hệt thì báo "Không có thay đổi".
+- **6.2 (`ChoDuyet`):** `MoLaiDeDieuChinh` → lưu → (nếu đổi chỉ số) `AdjustReadingsInCurrentTransactionAsync` → (nếu đổi dòng) thay toàn bộ dòng bằng danh sách gửi lên → kiểm tổng tiền → `GuiTamTinh` với hạn mới.
+- **6.3 (`DaGui`):** hết hạn và hủy lượt `ChoThanhToan`, `HuyHoaDon` → lưu → (nếu đổi chỉ số) đổi chỉ số → `CreateDraftsInCurrentTransactionAsync` (phải ra đúng 1 hóa đơn của hợp đồng cũ, nếu không báo rõ lý do) → (nếu đổi dòng) bản `-R{n}` nhận đúng danh sách dòng người dùng chốt, thành tiền không đổi lấy từ dòng của hóa đơn cũ → gửi tạm tính.
+- **Xem trước:** `PreviewMeterLinesAsync` tính lại dòng điện/nước theo chỉ số mới bằng `HoaDonCalculatorService` (cùng công thức và số ngày ở như lúc tạo hóa đơn), không ghi dữ liệu, cần `Invoice.Read`; trả không có dòng khi thành tiền bằng 0.
+- Mọi thất bại rollback và `DiscardPendingChanges()` trước khi trả; sau commit báo khách: thông báo cổng gửi ngay, email "đã điều chỉnh" xếp vào `IProvisionalInvoiceEmailDispatcher` để gửi nền (T30). Lỗi xếp hàng hay lỗi SMTP chỉ ghi Warning, không làm hỏng điều chỉnh đã commit.
+- **Web:** `GET /HoaDon/DieuChinh/{id}` (kiểm `Invoice.Read` trước; trả thêm `tongTien` và `chiTiets` có `loai` = `dien`/`nuoc`/`khac`), `GET /HoaDon/DieuChinh/{id}/TinhLai?chiSoDienMoi&chiSoNuocMoi` và `POST /HoaDon/DieuChinh/{id}` có antiforgery; GET info và POST trả `hanTuChot` giờ Việt Nam `dd/MM/yyyy HH:mm`.
 
 ### 3.4 Giao diện (đợt C)
 
 - **Quy tắc tạm tính duy nhất:** `ChoDuyet && HanPhanHoi != null && !IsDeleted`, tính ở `InvoiceDetailProjection.LaTamTinh`; giờ VN đổi ở projection, JS không cộng múi giờ.
 - **Cổng khách** (`KhachThue/HoaDon`): nhãn tạm tính ở danh sách và chi tiết; khung thông báo có SĐT chi nhánh (`tel:`); bảng chỉ số cũ/mới/tiêu thụ; không "Tải PDF", không khung thanh toán. JSON khách không thêm `hanThanhToan`, `lichSuTrangThais`.
-- **Màn hóa đơn quản lý:** nhãn ở cột Phát hành và modal chi tiết; menu ẩn Chốt/Trả lại khi tạm tính, có "Điều chỉnh và gửi lại" cho hóa đơn tự động ở Chờ duyệt hoặc Đã gửi; modal `hoadon-dieuchinh.js` (cảnh báo client, hộp xác nhận, chống bấm đúp, escape mọi chuỗi server, `Swal.fire` dạng `text`). QR chỉ khi `DaChot`/`DaGui` (câu C2).
+- **Màn hóa đơn quản lý:** nhãn ở cột Phát hành và modal chi tiết; menu ẩn Chốt/Trả lại khi tạm tính, có "Điều chỉnh và gửi lại" cho hóa đơn tự động ở Chờ duyệt hoặc Đã gửi; modal `hoadon-dieuchinh.js` (bảng khoản phí sửa được, ô chỉ số tự tính lại dòng điện/nước sau 400 ms, cảnh báo client, hộp xác nhận, chống bấm đúp, escape mọi chuỗi server, `Swal.fire` dạng `text`; chờ bản tính lại đang chạy xong rồi mới gửi). QR chỉ khi `DaChot`/`DaGui` (câu C2).
 - **Màn chi nhánh:** ô số giờ 1–168; tạo mới không gửi thì 24, cập nhật không gửi thì giữ giá trị cũ; controller chặn giá trị không bind được.
-- **Việc cần làm:** `HD2` chỉ hóa đơn chờ duyệt tay; `HD4` hóa đơn tạm tính, theo phạm vi chi nhánh.
+- **Việc cần làm:** `HD2` chỉ hóa đơn chờ duyệt tay; `HD4` hóa đơn tạm tính, theo phạm vi chi nhánh; `HD5` phòng đã chốt kỳ nhưng chuỗi tự tạo dừng (T28); `CS2` chỉ ảnh của kỳ chưa chốt, chưa bị khóa (T27).
 - **Quản lý phòng trọ:** "Thu tiền" và cờ nợ chỉ dựa trên hóa đơn `DaGui` (T25, T26).
 - **Định dạng chỉ số (N1):** `Common/Formatting/ChiSo.DinhDang` ("100", "1.234,5", không phụ thuộc culture) cho diễn giải dòng điện/nước và thông báo lỗi chỉ số; áp cho cả luồng tay; dòng cũ trong DB giữ nguyên.
 
@@ -125,7 +146,7 @@ Quyết định cho lưu ý của review đợt A: L1 dừng chuỗi `ThieuDonGi
 | Tầng | File |
 | --- | --- |
 | Domain | `Entities/ChiNhanh.cs` (S1), `Entities/HoaDon.cs` (`HanPhanHoi`, `GuiTamTinh`, `MoLaiDeDieuChinh`, `GuiDuyet` xóa hạn, `KhoiTaoNhap` có lý do) |
-| Application | `Common/Configurations/AutoInvoiceOptions.cs`; `Common/Formatting/ChiSo.cs`; `Features/HoaDons/AutoInvoices/` (`AutoInvoiceReadingPolicy`, `AutoInvoiceHistoryTags`, `AutoInvoiceFinalizeNotifyGuard`); `Features/HoaDons/Services/` (`AutoInvoiceService`, `InvoiceAdjustmentService`, `InvoiceIssuanceService`, `InvoiceViewService`, `HoaDonCalculatorService`); `Features/HoaDons/UseCases/AutoInvoiceFinalizeUseCase.cs`; `Features/HoaDons/Persistence/IAutoInvoiceStore.cs`; DTO (`AutoInvoiceDtos`, `InvoiceAdjustmentDtos`, `HoaDonDTOs`, `ProvisionalInvoiceEmailData`, `PendingProvisionalEmail`, `MeterAdjustmentDtos`); `Features/DienNuocs/Services/` (`MeterImagePortalService`, `DienNuocService`, `MeterReadingWorkflowService`); `Features/ChiNhanhs/` (DTO, service); `Features/ViecCanLam/`; `Abstractions/Services/IEmailService.cs`, `IProvisionalInvoiceEmailDispatcher.cs`; `DependencyInjection.cs` |
+| Application | `Common/Configurations/AutoInvoiceOptions.cs`; `Common/Formatting/ChiSo.cs`; `Features/HoaDons/AutoInvoices/` (`AutoInvoiceReadingPolicy`, `AutoInvoiceHistoryTags`, `AutoInvoiceFinalizeNotifyGuard`); `Features/HoaDons/Services/` (`AutoInvoiceService`, `InvoiceAdjustmentService`, `InvoiceLineEditing`, `InvoiceMeterLine`, `InvoiceIssuanceService`, `InvoiceViewService`, `HoaDonCalculatorService`); `Features/HoaDons/UseCases/AutoInvoiceFinalizeUseCase.cs`; `Features/HoaDons/Persistence/IAutoInvoiceStore.cs`; DTO (`AutoInvoiceDtos`, `InvoiceAdjustmentDtos`, `HoaDonDTOs`, `ProvisionalInvoiceEmailData`, `PendingProvisionalEmail`, `MeterAdjustmentDtos`); `Features/DienNuocs/Services/` (`MeterImagePortalService`, `DienNuocService`, `MeterReadingWorkflowService`); `Features/ChiNhanhs/` (DTO, service); `Features/ViecCanLam/` (`ViecCanLamService` thêm HD5, `IViecCanLamStore.GetKyDaChotChuaCoHoaDonAsync`, `ViecCanLamSettings`); `Abstractions/Services/IEmailService.cs`, `IProvisionalInvoiceEmailDispatcher.cs`; `DependencyInjection.cs` |
 | Infrastructure | Migration `20261010101505_AddAutoInvoiceReviewWindow` + snapshot; `Configurations/ChiNhanhConfiguration.cs`, `HoaDonConfiguration.cs`; `Persistence/Features/` (`AutoInvoiceStore`, `HoaDonStore`, `InvoiceDetailProjection`, `InvoiceViewStore`, `ViecCanLamStore`, `PhongTroStore`); `ExternalServices/Emails/` (`MailKitEmailService`, `BackgroundProvisionalInvoiceEmailDispatcher`); `BackgroundJobs/AutoInvoiceFinalizeJob.cs`; `DependencyInjection.cs` |
 | Web | `Areas/QuanLyNhaTro/Controllers/HoaDonController.cs` (endpoint điều chỉnh), `ChiNhanhsController.cs`; `Areas/QuanLyNhaTro/Views/HoaDon/Index.cshtml`, `ChiNhanhs/QuanLyChiNhanh.cshtml`; `Areas/KhachThue/Controllers/HoaDonController.cs`, `Views/HoaDon/Index.cshtml`; `wwwroot/js/hoadon-dieuchinh.js`; `appsettings.example.json` (khối `AutoInvoiceOptions`) |
 
@@ -146,9 +167,13 @@ Không đổi `Program.cs`, `.csproj`, `appsettings.json`, `ApplicationDbContext
 | Project | Test chính |
 | --- | --- |
 | Domain.UnitTests | `InvoiceWorkflowTests` (`GuiTamTinh`, `MoLaiDeDieuChinh`, `GuiDuyet`, `KhoiTaoNhap`) |
-| Application.UnitTests | `AutoInvoiceOptionsTests`, `AutoInvoiceReadingPolicyTests`, `AutoInvoiceServiceTests`, `MeterImagePortalAutoInvoiceTriggerTests`, `SaveChotDienNuocWorkflowTests`, `InvoiceDraftWorkflowTests`, `InvoiceViewServiceTests`, `InvoiceAdjustmentServiceTests`, `AutoInvoiceFinalizeUseCaseTests`, `ChiNhanhServiceTests`, `ViecCanLamServiceTests`, `HoaDonCalculatorServiceTests` (N1), `BranchScopeArchitectureTests` |
+| Application.UnitTests | `AutoInvoiceOptionsTests`, `AutoInvoiceReadingPolicyTests`, `AutoInvoiceServiceTests`, `MeterImagePortalAutoInvoiceTriggerTests`, `SaveChotDienNuocWorkflowTests`, `InvoiceDraftWorkflowTests`, `InvoiceViewServiceTests`, `InvoiceAdjustmentServiceTests`, `AutoInvoiceFinalizeUseCaseTests`, `ChiNhanhServiceTests`, `ViecCanLamServiceTests` (HD5), `HoaDonCalculatorServiceTests` (N1), `InvoiceCancellationTests` (sửa hóa đơn nháp dùng chung `InvoiceLineEditing`), `BranchScopeArchitectureTests` |
 | Infrastructure.IntegrationTests | `AutoInvoiceSchemaTests`, `AutoInvoiceStoreTests`, `TenantInvoiceVisibilityTests`, `AutoInvoiceChainTests`, `InvoiceAdjustmentTests`, `InvoiceAdjustmentEdgeCaseTests`, `AutoInvoiceFinalizeTests`, `MeterAdjustmentCoreTests`, `BackgroundProvisionalInvoiceEmailDispatcherTests`, `ProvisionalInvoiceProjectionTests`, `ViecCanLamStoreTests`, `PhongTroDebtScopeTests`, test job nền (smoke, composition) |
 | Web.IntegrationTests | `AutoInvoiceTriggerTests`, `AutoInvoiceAdjustmentEndpointTests`, `AutoInvoiceUiEndpointTests`, `AutoInvoiceUiStaticGuardTests`, `TenantInvoicePortalTests`, `StartupTests` |
+
+Test đợt D: `ViecCanLamStoreTests` (CS2 bỏ kỳ đã chốt và kỳ bị khóa, HD5 theo khoảng kỳ, hóa đơn, chi nhánh, giới hạn), `ViecCanLamServiceTests` (HD5 các lý do, gom theo kỳ, khoảng quét), `InvoiceAdjustmentServiceTests` và `InvoiceAdjustmentTests` (sửa dòng ở cả hai nhánh, xem trước khớp kết quả thật, quyền `Invoice.Draft`), `AutoInvoiceAdjustmentEndpointTests`, `ViecCanLamEndpointTests`, `AutoInvoiceUiStaticGuardTests`.
+
+Test T30: `InvoiceAdjustmentServiceTests` (5 test với `RecordingProvisionalEmailDispatcher`: xếp email thay vì gửi ngay, không xếp khi lưu lỗi hay điều chỉnh bị từ chối, người nhận không có email, lỗi xếp hàng vẫn thành công); `InvoiceAdjustmentTests` chờ email nền qua `DeadlineEmail.WaitForProvisionalAsync`; `AutoInvoiceAdjustmentEndpointTests.StaffAdjustingInvoice_DoesNotWaitForSmtp_...` (cổng `ProvisionalGate` giữ email, request vẫn trả về trong 15 giây; chạy thử với email gửi ngay thì FAIL).
 
 Quy ước: test Web tải ảnh phải đặt giá trị OCR giả rõ ràng và `Reset()` trong `finally` (L5); mã chi nhánh trong dữ liệu seed lấy từ `TestCodes.MaChiNhanh(prefix)` (N6).
 
@@ -168,12 +193,13 @@ git diff --check
 
 ## 7. Cấu hình
 
-`AutoInvoiceOptions` (thiếu khối thì dùng mặc định, `Validate()` khi khởi động): `NguongDoTinCay` 0,90; `HeSoBatThuong` 3; `SoKyTrungBinh` 3; `TranDienKwh` 500; `TranNuocM3` 30; `ChuKyJobPhut` 5. Số giờ xem xét theo chi nhánh (`SoGioPhanHoiHoaDon`, 1–168, mặc định 24).
+`AutoInvoiceOptions` (thiếu khối thì dùng mặc định, `Validate()` khi khởi động): `NguongDoTinCay` 0,90; `HeSoBatThuong` 3; `SoKyTrungBinh` 3; `TranDienKwh` 500; `TranNuocM3` 30; `ChuKyJobPhut` 5. Số giờ xem xét theo chi nhánh (`SoGioPhanHoiHoaDon`, 1–168, mặc định 24). `ViecCanLamSettings.SoKyPhongDanhGiaHoaDonTuDong` (60): số kỳ-phòng tối đa được đánh giá lại cho HD5 mỗi lần tải.
 
 ## 8. Ngoài phạm vi
 
 - Cập nhật lại đơn giá cho kỳ đang dở khi chi nhánh khai giá sau (M1).
-- Gắn email nền với vòng đời host (M2, đã chấp nhận mất email khi tắt máy).
+- Gắn email nền với vòng đời host (M2, đã chấp nhận mất email khi tắt máy; áp cho cả email "đã điều chỉnh" từ T30).
 - Kiểm chứng chỉ SMTP (L8).
 - Giao diện cổng khách ở mobile: bảng tràn ngang, nút đổi theme ẩn (N2, N3); dòng "Hạn tự chốt hiện tại" ở modal điều chỉnh của hóa đơn Đã gửi (N4).
+- Ảnh chưa xác nhận còn sót khi chính đồng hồ đó đã có ảnh chính thức ở kỳ chưa chốt vẫn được CS2 đếm tới khi chốt kỳ.
 - Đối soát chuyển khoản tự động, Zalo, công tơ IoT: [huong-mo-rong.md](huong-mo-rong.md).

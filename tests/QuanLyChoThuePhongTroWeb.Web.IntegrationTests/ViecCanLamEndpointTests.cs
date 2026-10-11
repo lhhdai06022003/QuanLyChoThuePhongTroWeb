@@ -414,5 +414,160 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
 
             public override DateTimeOffset GetUtcNow() => _now;
         }
+
+        // ---------- CS2 (ảnh chờ xác nhận) và HD5 (chưa tạo được hóa đơn tạm tính) qua HTTP ----------
+
+        // Kỳ liền trước tháng hiện tại (giờ VN) luôn nằm trong khoảng quét của việc cần làm, bất kể ngày chạy test.
+        private static (int Thang, int Nam) KyTruoc(int soThangLui)
+        {
+            var ky = DateTime.UtcNow.AddHours(7).AddMonths(-soThangLui);
+            return (ky.Month, ky.Year);
+        }
+
+        private async Task<string> RoomNumberAsync(int roomId)
+        {
+            using var scope = _factory.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            return (await db.PhongTros.AsNoTracking().SingleAsync(p => p.PhongTroId == roomId)).SoPhong;
+        }
+
+        private async Task<int> AddPeriodAsync(int roomId, (int Thang, int Nam) ky, TrangThaiGhiNhan trangThai, decimal dienMoi = 100m, decimal donGiaDien = 3500m)
+        {
+            using var scope = _factory.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var period = new DichVuDienNuocCuaPhong
+            {
+                PhongTroId = roomId, Thang = ky.Thang, Nam = ky.Nam,
+                ChiSoDienCu = 0, ChiSoDienMoi = dienMoi, DonGiaDien = donGiaDien,
+                ChiSoNuocCu = 0, ChiSoNuocMoi = 5, DonGiaNuoc = 15000,
+                TrangThaiGhiNhan = trangThai
+            };
+            db.DichVuDienNuocCuaPhongs.Add(period);
+            await db.SaveChangesAsync();
+            return period.DichVuDienNuocCuaPhongId;
+        }
+
+        private async Task AddImageAsync(int periodId, TrangThaiXuLyAnhChiSo trangThai)
+        {
+            using var scope = _factory.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            db.AnhChiSoDongHos.Add(new AnhChiSoDongHo
+            {
+                DichVuDienNuocCuaPhongId = periodId, LoaiDongHo = LoaiDongHo.Dien, Url = "http://x/img.jpg", TrangThaiXuLy = trangThai
+            });
+            await db.SaveChangesAsync();
+        }
+
+        private async Task<string> ViecCanLamHtmlAsync(System.Net.Http.HttpClient client, int branchId)
+        {
+            var response = await client.GetAsync($"/QuanLyNhaTro/ViecCanLam?chiNhanhId={branchId}");
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            // Razor mã hóa ký tự tiếng Việt thành thực thể HTML, nên giải mã trước khi so sánh.
+            return WebUtility.HtmlDecode(await response.Content.ReadAsStringAsync());
+        }
+
+        [Fact]
+        public async Task Hd5_ClosedPeriodWithAbnormalConsumptionAndNoInvoice_IsListedForStaff()
+        {
+            var w = await SeedAsync(_factory);
+            var ky = KyTruoc(1);
+            await AddPeriodAsync(w.RoomA, ky, TrangThaiGhiNhan.DaDuyet, dienMoi: 5000m);
+            var phong = await RoomNumberAsync(w.RoomA);
+            var (staff, _) = await LoginAsync(_factory, w.Staff);
+
+            var html = await ViecCanLamHtmlAsync(staff, w.BranchA);
+
+            Assert.Contains($"Chưa tạo được hóa đơn tạm tính T{ky.Thang}/{ky.Nam}", html);
+            Assert.Contains($"{phong}: tiêu thụ điện nước bất thường", html);
+            Assert.Contains($"/QuanLyNhaTro/ChotDienNuoc?thang={ky.Thang}&nam={ky.Nam}&chiNhanhId={w.BranchA}", html);
+        }
+
+        [Fact]
+        public async Task Hd5_DisappearsOnceAnInvoiceExistsForThatRoomAndPeriod()
+        {
+            var w = await SeedAsync(_factory);
+            var ky = KyTruoc(1);
+            await AddPeriodAsync(w.RoomA, ky, TrangThaiGhiNhan.DaDuyet, dienMoi: 5000m);
+            var (staff, _) = await LoginAsync(_factory, w.Staff);
+            Assert.Contains("Chưa tạo được hóa đơn tạm tính", await ViecCanLamHtmlAsync(staff, w.BranchA));
+
+            using (var scope = _factory.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                db.HoaDons.Add(new HoaDon
+                {
+                    MaHoaDon = $"H5{Guid.NewGuid():N}"[..14], HopDongId = w.ContractA, Thang = ky.Thang, Nam = ky.Nam, TongTien = 1_000_000m,
+                    TrangThaiPhatHanh = TrangThaiPhatHanhHoaDon.Nhap
+                });
+                await db.SaveChangesAsync();
+            }
+
+            Assert.DoesNotContain("Chưa tạo được hóa đơn tạm tính", await ViecCanLamHtmlAsync(staff, w.BranchA));
+        }
+
+        [Fact]
+        public async Task Hd5_NormalConsumption_IsNotListed_EvenWithoutInvoice()
+        {
+            var w = await SeedAsync(_factory);
+            // Chuỗi tự tạo lập được hóa đơn cho kỳ bình thường nên không có lý do dừng để báo.
+            await AddPeriodAsync(w.RoomA, KyTruoc(2), TrangThaiGhiNhan.DaDuyet, dienMoi: 100m);
+            await AddPeriodAsync(w.RoomA, KyTruoc(1), TrangThaiGhiNhan.DaDuyet, dienMoi: 120m);
+            var (staff, _) = await LoginAsync(_factory, w.Staff);
+
+            var html = await ViecCanLamHtmlAsync(staff, w.BranchA);
+
+            Assert.DoesNotContain("Chưa tạo được hóa đơn tạm tính", html);
+        }
+
+        [Fact]
+        public async Task Hd5_OpenPeriodWithAbnormalReading_IsNotListed()
+        {
+            var w = await SeedAsync(_factory);
+            // Kỳ chưa chốt do mục "chưa chốt điện nước" và "ảnh chờ xác nhận" lo.
+            await AddPeriodAsync(w.RoomA, KyTruoc(1), TrangThaiGhiNhan.Nhap, dienMoi: 5000m);
+            var (staff, _) = await LoginAsync(_factory, w.Staff);
+
+            var html = await ViecCanLamHtmlAsync(staff, w.BranchA);
+
+            Assert.DoesNotContain("Chưa tạo được hóa đơn tạm tính", html);
+        }
+
+        [Fact]
+        public async Task Hd5_OfBranchB_IsNotVisibleToStaffOfBranchA_ButVisibleToAdmin()
+        {
+            var w = await SeedAsync(_factory);
+            var ky = KyTruoc(1);
+            await AddPeriodAsync(w.RoomB, ky, TrangThaiGhiNhan.DaDuyet, dienMoi: 5000m);
+            var (staff, _) = await LoginAsync(_factory, w.Staff);
+            var (admin, _) = await LoginAsync(_factory, w.Admin);
+
+            var staffHtml = await ViecCanLamHtmlAsync(staff, w.BranchB);
+            var staffAllHtml = WebUtility.HtmlDecode(await (await staff.GetAsync("/QuanLyNhaTro/ViecCanLam")).Content.ReadAsStringAsync());
+            var adminHtml = await ViecCanLamHtmlAsync(admin, w.BranchB);
+
+            Assert.DoesNotContain("Chưa tạo được hóa đơn tạm tính", staffHtml);
+            Assert.DoesNotContain(w.RoomNumberB, staffAllHtml);
+            Assert.Contains($"Chưa tạo được hóa đơn tạm tính T{ky.Thang}/{ky.Nam}", adminHtml);
+            Assert.Contains($"{w.RoomNumberB}: tiêu thụ điện nước bất thường", adminHtml);
+        }
+
+        [Fact]
+        public async Task Cs2_UnconfirmedImagesOfClosedPeriod_AreNotListed_ButOpenPeriodIs()
+        {
+            var w = await SeedAsync(_factory);
+            var kyDong = KyTruoc(2);
+            var kyMo = KyTruoc(1);
+            var dong = await AddPeriodAsync(w.RoomA, kyDong, TrangThaiGhiNhan.DaDuyet);
+            var mo = await AddPeriodAsync(w.RoomA, kyMo, TrangThaiGhiNhan.Nhap);
+            await AddImageAsync(dong, TrangThaiXuLyAnhChiSo.DocDuoc);
+            await AddImageAsync(dong, TrangThaiXuLyAnhChiSo.Loi);
+            await AddImageAsync(mo, TrangThaiXuLyAnhChiSo.DocDuoc);
+            var (staff, _) = await LoginAsync(_factory, w.Staff);
+
+            var html = await ViecCanLamHtmlAsync(staff, w.BranchA);
+
+            Assert.Contains($"Ảnh chỉ số chờ xác nhận T{kyMo.Thang}/{kyMo.Nam}", html);
+            Assert.DoesNotContain($"Ảnh chỉ số chờ xác nhận T{kyDong.Thang}/{kyDong.Nam}", html);
+        }
     }
 }

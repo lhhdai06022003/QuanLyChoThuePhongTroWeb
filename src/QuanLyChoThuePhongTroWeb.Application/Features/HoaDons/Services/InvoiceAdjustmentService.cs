@@ -23,9 +23,11 @@ using QuanLyChoThuePhongTroWeb.Domain.Enums;
 
 namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
 {
-    // "Điều chỉnh và gửi lại" hóa đơn tự động theo yêu cầu khách: đổi chỉ số kỳ, tính lại và gửi lại bản tạm tính với hạn mới.
+    // "Điều chỉnh và gửi lại" hóa đơn tự động theo yêu cầu khách thuê: sửa chỉ số điện nước và/hoặc các khoản phí của hóa đơn,
+    // tính lại tổng tiền rồi gửi lại bản tạm tính với hạn mới.
     public class InvoiceAdjustmentService : IInvoiceAdjustmentService
     {
+        // Spec: màn điều chỉnh không có ô lý do; lịch sử luôn ghi lý do này (kèm tóm tắt các dòng đã sửa khi gửi lại).
         private const string LyDoDieuChinh = "Điều chỉnh hóa đơn theo yêu cầu khách thuê";
         private const string KhongPhaiTuDong = "Chỉ hóa đơn tự động mới dùng được Điều chỉnh và gửi lại.";
         private const string TrangThaiKhongHopLe = "Hóa đơn không ở trạng thái điều chỉnh được.";
@@ -35,6 +37,9 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
         private const string DaCoKhoanThu = "Hóa đơn đã có khoản thu, không thể điều chỉnh.";
         private const string DangDoiChieu = "Khách đã nộp minh chứng, cần đối chiếu trước khi điều chỉnh.";
         private const string TongTienLech = "Tổng tiền hóa đơn không khớp với tổng chi tiết dịch vụ.";
+        private const string KhongCoThayDoi = "Không có thay đổi";
+        private const string CanItNhatMotDong = "Hóa đơn phải có ít nhất một khoản phí.";
+        private const string TongTienPhaiDuong = "Tổng tiền hóa đơn phải lớn hơn 0.";
 
         private readonly IAutoInvoiceStore _autoStore;
         private readonly IInvoiceIssuanceStore _issuanceStore;
@@ -48,8 +53,10 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
         private readonly IEmployeeAccessService _employeeAccessService;
         private readonly IThongBaoService _thongBaoService;
         private readonly IEmailService _emailService;
+        private readonly IHoaDonCalculatorService _calculator;
         private readonly ILogger<InvoiceAdjustmentService> _logger;
         private readonly TimeProvider _time;
+        private readonly IProvisionalInvoiceEmailDispatcher? _emailDispatcher;
 
         public InvoiceAdjustmentService(
             IAutoInvoiceStore autoStore,
@@ -64,8 +71,10 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
             IEmployeeAccessService employeeAccessService,
             IThongBaoService thongBaoService,
             IEmailService emailService,
+            IHoaDonCalculatorService calculator,
             ILogger<InvoiceAdjustmentService> logger,
-            TimeProvider? timeProvider = null)
+            TimeProvider? timeProvider = null,
+            IProvisionalInvoiceEmailDispatcher? emailDispatcher = null)
         {
             _autoStore = autoStore ?? throw new ArgumentNullException(nameof(autoStore));
             _issuanceStore = issuanceStore ?? throw new ArgumentNullException(nameof(issuanceStore));
@@ -79,8 +88,10 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
             _employeeAccessService = employeeAccessService ?? throw new ArgumentNullException(nameof(employeeAccessService));
             _thongBaoService = thongBaoService ?? throw new ArgumentNullException(nameof(thongBaoService));
             _emailService = emailService ?? throw new ArgumentNullException(nameof(emailService));
+            _calculator = calculator ?? throw new ArgumentNullException(nameof(calculator));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _time = timeProvider ?? TimeProvider.System;
+            _emailDispatcher = emailDispatcher;
         }
 
         public async Task<ServiceResult<InvoiceAdjustmentInfo>> GetAdjustmentInfoAsync(int actorId, int hoaDonId, CancellationToken ct = default)
@@ -115,7 +126,70 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                     ChiSoDienMoi = snap.ChiSoDienMoi,
                     ChiSoNuocCu = snap.ChiSoNuocCu,
                     ChiSoNuocMoi = snap.ChiSoNuocMoi,
-                    HanPhanHoiUtc = snap.HanPhanHoi
+                    HanPhanHoiUtc = snap.HanPhanHoi,
+                    TongTien = snap.TongTien,
+                    ChiTiets = snap.ChiTiets.Select(ToLine).ToList()
+                });
+            }
+            finally
+            {
+                _autoStore.DiscardPendingChanges();
+            }
+        }
+
+        public async Task<ServiceResult<InvoiceMeterLinesPreview>> PreviewMeterLinesAsync(int actorId, int hoaDonId, decimal chiSoDienMoi, decimal chiSoNuocMoi, CancellationToken ct = default)
+        {
+            if (actorId <= 0 || hoaDonId <= 0)
+            {
+                return ServiceResult<InvoiceMeterLinesPreview>.Fail("Dữ liệu không hợp lệ.");
+            }
+
+            var loiChiSo = KiemTraChiSoMoi(chiSoDienMoi, chiSoNuocMoi);
+            if (loiChiSo != null)
+            {
+                return ServiceResult<InvoiceMeterLinesPreview>.Fail(loiChiSo);
+            }
+
+            try
+            {
+                var snap = await _autoStore.GetAdjustmentSnapshotAsync(hoaDonId, ct);
+                if (snap == null)
+                {
+                    return ServiceResult<InvoiceMeterLinesPreview>.NotFound("Không tìm thấy hóa đơn.");
+                }
+
+                if (!await _employeeAccessService.CanPerformAsync(actorId, snap.ChiNhanhId, EmployeeActionCodes.InvoiceRead, ct))
+                {
+                    return ServiceResult<InvoiceMeterLinesPreview>.Forbidden("Bạn không có quyền xem hóa đơn tại chi nhánh này.");
+                }
+
+                if (snap.DichVuDienNuocCuaPhongId == null)
+                {
+                    return ServiceResult<InvoiceMeterLinesPreview>.Fail(KhongCoKy);
+                }
+
+                if (chiSoDienMoi < snap.ChiSoDienCu)
+                {
+                    return ServiceResult<InvoiceMeterLinesPreview>.Fail("Chỉ số điện mới không được nhỏ hơn chỉ số điện cũ.");
+                }
+
+                if (chiSoNuocMoi < snap.ChiSoNuocCu)
+                {
+                    return ServiceResult<InvoiceMeterLinesPreview>.Fail("Chỉ số nước mới không được nhỏ hơn chỉ số nước cũ.");
+                }
+
+                // Cùng cách tính như lúc tạo hóa đơn và lúc tính lại hóa đơn nháp: tiền điện nước theo tỷ lệ số ngày ở của hợp đồng trong tháng.
+                var tienPhong = _calculator.TinhTienPhong(snap.TienThuePhong, snap.HopDongBatDau, snap.HopDongKetThuc, snap.Thang, snap.Nam);
+                var ngayTrongThang = DateTime.DaysInMonth(snap.Nam, snap.Thang);
+                var dien = _calculator.TinhTienDienNuoc(chiSoDienMoi, snap.ChiSoDienCu, snap.DonGiaDien, "Tiền điện", tienPhong.SoNgayO, ngayTrongThang);
+                var nuoc = _calculator.TinhTienDienNuoc(chiSoNuocMoi, snap.ChiSoNuocCu, snap.DonGiaNuoc, "Tiền nước", tienPhong.SoNgayO, ngayTrongThang);
+
+                return ServiceResult<InvoiceMeterLinesPreview>.Ok(new InvoiceMeterLinesPreview
+                {
+                    Dien = dien.SoTien > 0 ? MeterPreviewLine(dien, snap.DonGiaDien, "dien", "kWh") : null,
+                    Nuoc = nuoc.SoTien > 0 ? MeterPreviewLine(nuoc, snap.DonGiaNuoc, "nuoc", "m³") : null,
+                    TieuThuDien = chiSoDienMoi - snap.ChiSoDienCu,
+                    TieuThuNuoc = chiSoNuocMoi - snap.ChiSoNuocCu
                 });
             }
             finally
@@ -131,14 +205,29 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                 return ServiceResult<InvoiceAdjustmentResult>.Fail("Dữ liệu không hợp lệ.");
             }
 
-            if (request.ChiSoDienMoi < 0 || request.ChiSoNuocMoi < 0)
+            var loiChiSo = KiemTraChiSoMoi(request.ChiSoDienMoi, request.ChiSoNuocMoi);
+            if (loiChiSo != null)
             {
-                return ServiceResult<InvoiceAdjustmentResult>.Fail("Chỉ số mới không được âm.");
+                return ServiceResult<InvoiceAdjustmentResult>.Fail(loiChiSo);
             }
 
-            if (((decimal.GetBits(request.ChiSoDienMoi)[3] >> 16) & 0x7F) > 3 || ((decimal.GetBits(request.ChiSoNuocMoi)[3] >> 16) & 0x7F) > 3)
+            // Danh sách dòng gửi lên (nếu có) là danh sách cuối cùng của hóa đơn, nên kiểm tra sớm để không mở giao dịch vô ích.
+            List<InvoiceLineInput>? dongMoi = null;
+            if (request.ChiTiets != null)
             {
-                return ServiceResult<InvoiceAdjustmentResult>.Fail("Chỉ số mới không được có quá 3 chữ số thập phân.");
+                dongMoi = request.ChiTiets
+                    .Select(l => new InvoiceLineInput(l.ChiTietHoaDonId, l.TenDichVu, l.DonGia, l.SoLuong))
+                    .ToList();
+                if (dongMoi.Count == 0)
+                {
+                    return ServiceResult<InvoiceAdjustmentResult>.Fail(CanItNhatMotDong);
+                }
+
+                var loiDong = InvoiceLineEditing.Validate(dongMoi);
+                if (loiDong != null)
+                {
+                    return ServiceResult<InvoiceAdjustmentResult>.Fail(loiDong);
+                }
             }
 
             var snap = await _autoStore.GetAdjustmentSnapshotAsync(request.HoaDonId, ct);
@@ -148,8 +237,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                 return ServiceResult<InvoiceAdjustmentResult>.NotFound("Không tìm thấy hóa đơn.");
             }
 
-            if (!await _employeeAccessService.CanPerformAsync(actorId, snap.ChiNhanhId, EmployeeActionCodes.MeterReview, ct)
-                || !await _employeeAccessService.CanPerformAsync(actorId, snap.ChiNhanhId, EmployeeActionCodes.InvoiceSubmit, ct))
+            if (!await CoDuQuyenDieuChinhAsync(actorId, snap.ChiNhanhId, ct))
             {
                 return ServiceResult<InvoiceAdjustmentResult>.Forbidden(ThieuQuyen);
             }
@@ -218,43 +306,58 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                     return await AbortAsync(ServiceResult<InvoiceAdjustmentResult>.Fail(KhongCoKy));
                 }
 
-                if (request.ChiSoDienMoi < period.ChiSoDienCu)
+                var chiSoDienMoi = request.ChiSoDienMoi ?? period.ChiSoDienMoi;
+                var chiSoNuocMoi = request.ChiSoNuocMoi ?? period.ChiSoNuocMoi;
+                if (chiSoDienMoi < period.ChiSoDienCu)
                 {
                     return await AbortAsync(ServiceResult<InvoiceAdjustmentResult>.Fail("Chỉ số điện mới không được nhỏ hơn chỉ số điện cũ."));
                 }
 
-                if (request.ChiSoNuocMoi < period.ChiSoNuocCu)
+                if (chiSoNuocMoi < period.ChiSoNuocCu)
                 {
                     return await AbortAsync(ServiceResult<InvoiceAdjustmentResult>.Fail("Chỉ số nước mới không được nhỏ hơn chỉ số nước cũ."));
                 }
 
-                if (request.ChiSoDienMoi == period.ChiSoDienMoi && request.ChiSoNuocMoi == period.ChiSoNuocMoi)
+                // Chụp các dòng đang lưu trước mọi thay đổi: để so sánh với danh sách gửi lên và giữ thành tiền dòng không đổi.
+                var dongCu = InvoiceLineEditing.Baseline(hoaDon.ChiTietHoaDonDichVus);
+                var doiChiSo = chiSoDienMoi != period.ChiSoDienMoi || chiSoNuocMoi != period.ChiSoNuocMoi;
+                var doiDong = dongMoi != null && !InvoiceLineEditing.GiongNhau(dongMoi, dongCu);
+                if (!doiChiSo && !doiDong)
                 {
-                    return await AbortAsync(ServiceResult<InvoiceAdjustmentResult>.Fail("Không có thay đổi"));
+                    return await AbortAsync(ServiceResult<InvoiceAdjustmentResult>.Fail(KhongCoThayDoi));
                 }
+
+                var tomTatDong = doiDong ? InvoiceLineEditing.TomTat(dongMoi!, dongCu) : null;
 
                 var meterRequest = new MeterAdjustmentRequest
                 {
                     DichVuDienNuocCuaPhongId = periodId,
-                    ChiSoDienMoi = request.ChiSoDienMoi,
-                    ChiSoNuocMoi = request.ChiSoNuocMoi,
+                    ChiSoDienMoi = chiSoDienMoi,
+                    ChiSoNuocMoi = chiSoNuocMoi,
                     LyDo = LyDoDieuChinh
                 };
 
                 if (hoaDon.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.ChoDuyet)
                 {
-                    // Nhánh ChoDuyet: mở lại bản tạm tính, tính lại tại chỗ rồi gửi lại với hạn mới.
+                    // Nhánh ChoDuyet: mở lại bản tạm tính, sửa tại chỗ rồi gửi lại với hạn mới.
                     thayThe = false;
                     hoaDon.MoLaiDeDieuChinh(actorId, now, lyDoTag);
                     await _unitOfWork.SaveChangesAsync(ct);
 
-                    var adjusted = await _meterWorkflow.AdjustReadingsInCurrentTransactionAsync(meterRequest, actorId, ct);
-                    if (!adjusted.Success || adjusted.Data == null)
+                    if (doiChiSo)
                     {
-                        return await AbortAsync(ServiceResult<InvoiceAdjustmentResult>.FailFrom(adjusted));
+                        var adjusted = await _meterWorkflow.AdjustReadingsInCurrentTransactionAsync(meterRequest, actorId, ct);
+                        if (!adjusted.Success || adjusted.Data == null)
+                        {
+                            return await AbortAsync(ServiceResult<InvoiceAdjustmentResult>.FailFrom(adjusted));
+                        }
                     }
 
-                    meter = adjusted.Data;
+                    if (doiDong)
+                    {
+                        ApDungDong(hoaDon, dongMoi!, dongCu, now);
+                    }
+
                     hoaDonGui = hoaDon;
                 }
                 else
@@ -275,13 +378,14 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                     hoaDon.HuyHoaDon(actorId, lyDoTag, now);
                     await _unitOfWork.SaveChangesAsync(ct);
 
-                    var adjusted = await _meterWorkflow.AdjustReadingsInCurrentTransactionAsync(meterRequest, actorId, ct);
-                    if (!adjusted.Success || adjusted.Data == null)
+                    if (doiChiSo)
                     {
-                        return await AbortAsync(ServiceResult<InvoiceAdjustmentResult>.FailFrom(adjusted));
+                        var adjusted = await _meterWorkflow.AdjustReadingsInCurrentTransactionAsync(meterRequest, actorId, ct);
+                        if (!adjusted.Success || adjusted.Data == null)
+                        {
+                            return await AbortAsync(ServiceResult<InvoiceAdjustmentResult>.FailFrom(adjusted));
+                        }
                     }
-
-                    meter = adjusted.Data;
 
                     var drafts = await _issuanceService.CreateDraftsInCurrentTransactionAsync(new CreateInvoiceDraftsRequest
                     {
@@ -312,10 +416,21 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                         return await AbortAsync(ServiceResult<InvoiceAdjustmentResult>.Fail("Không tạo được hóa đơn thay thế: không đọc lại được hóa đơn mới."));
                     }
 
+                    if (doiDong)
+                    {
+                        // Dòng gửi lên tham chiếu các dòng của hóa đơn cũ; bản thay thế nhận đúng danh sách người dùng đã chốt.
+                        ApDungDong(replacement, dongMoi!, dongCu, now);
+                    }
+
                     hoaDonGui = replacement;
                 }
 
                 var activeDetails = hoaDonGui.ChiTietHoaDonDichVus.Where(x => !x.IsDeleted).ToList();
+                if (doiDong && hoaDonGui.TongTien <= 0)
+                {
+                    return await AbortAsync(ServiceResult<InvoiceAdjustmentResult>.Fail(TongTienPhaiDuong));
+                }
+
                 if (activeDetails.Count == 0 || hoaDonGui.TongTien <= 0 || hoaDonGui.TongTien != activeDetails.Sum(x => x.TongTien))
                 {
                     return await AbortAsync(ServiceResult<InvoiceAdjustmentResult>.Fail(TongTienLech));
@@ -327,8 +442,20 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                     return await AbortAsync(ServiceResult<InvoiceAdjustmentResult>.Fail("Chi nhánh không tồn tại hoặc số giờ phản hồi hóa đơn không hợp lệ."));
                 }
 
+                // Chỉ số hiển thị cho khách là chỉ số của kỳ sau khi điều chỉnh (cũ → mới), khớp các dòng điện/nước trên hóa đơn.
+                // Dùng giá trị đã chốt ở trên thay vì đọc lại từ "period": lõi chỉ số tách kỳ ra khỏi bộ theo dõi rồi nạp lại bản mới,
+                // nên biến "period" này có thể là bản cũ (chỉ số cũ của kỳ không đổi khi điều chỉnh).
+                meter = new MeterAdjustmentResult
+                {
+                    ChiSoDienCu = period.ChiSoDienCu,
+                    ChiSoDienMoi = chiSoDienMoi,
+                    ChiSoNuocCu = period.ChiSoNuocCu,
+                    ChiSoNuocMoi = chiSoNuocMoi
+                };
+
                 han = now.AddHours(chiNhanh.SoGioPhanHoiHoaDon);
-                hoaDonGui.GuiTamTinh(actorId, now, han, AutoInvoiceHistoryTags.TaoLyDo(AutoInvoiceHistoryTags.DieuChinh, "Gửi lại hóa đơn tạm tính sau điều chỉnh"));
+                var lyDoGui = "Gửi lại hóa đơn tạm tính sau điều chỉnh" + (tomTatDong != null ? $" ({tomTatDong})" : string.Empty);
+                hoaDonGui.GuiTamTinh(actorId, now, han, AutoInvoiceHistoryTags.TaoLyDo(AutoInvoiceHistoryTags.DieuChinh, lyDoGui));
                 await _unitOfWork.SaveChangesAsync(ct);
                 await tx.CommitAsync(ct);
             }
@@ -370,6 +497,32 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
             return ServiceResult<InvoiceAdjustmentResult>.Ok(result, "Đã điều chỉnh và gửi lại hóa đơn tạm tính.");
         }
 
+        // Thay toàn bộ dòng khoản phí của hóa đơn (đang ở trạng thái nháp trong giao dịch) bằng danh sách người dùng đã chốt.
+        private void ApDungDong(HoaDon hoaDon, IReadOnlyList<InvoiceLineInput> dongMoi, IReadOnlyDictionary<int, InvoiceLineBaseline> dongCu, DateTime now)
+        {
+            var dongs = InvoiceLineEditing.Build(hoaDon.HoaDonId, dongMoi, dongCu, dichVuIdTheoYeuCau: false);
+
+            // Hóa đơn đang được theo dõi nên chỉ xóa dòng cũ và thêm dòng mới vào đúng tập hợp đó (không gọi Update, tránh đánh dấu sửa
+            // cả hợp đồng, phòng, khách thuê đang nạp kèm). Tập hợp phải chỉ còn dòng mới để phép kiểm tổng bên dưới đúng.
+            _hoaDonStore.RemoveChiTietHoaDons(hoaDon.ChiTietHoaDonDichVus.ToList());
+            hoaDon.ChiTietHoaDonDichVus.Clear();
+            foreach (var dong in dongs)
+            {
+                hoaDon.ChiTietHoaDonDichVus.Add(dong);
+            }
+
+            hoaDon.TongTien = dongs.Sum(x => x.TongTien);
+            hoaDon.NgayCapNhat = now;
+        }
+
+        private async Task<bool> CoDuQuyenDieuChinhAsync(int actorId, int chiNhanhId, CancellationToken ct)
+        {
+            // Điều chỉnh gồm sửa chỉ số (duyệt chỉ số), sửa khoản phí (soạn hóa đơn) và gửi lại cho khách (gửi duyệt).
+            return await _employeeAccessService.CanPerformAsync(actorId, chiNhanhId, EmployeeActionCodes.MeterReview, ct)
+                && await _employeeAccessService.CanPerformAsync(actorId, chiNhanhId, EmployeeActionCodes.InvoiceDraft, ct)
+                && await _employeeAccessService.CanPerformAsync(actorId, chiNhanhId, EmployeeActionCodes.InvoiceSubmit, ct);
+        }
+
         // Trả (lý do khóa, có phải lỗi quyền). Xét theo thứ tự, trả lý do đầu tiên.
         private async Task<(string? Reason, bool Forbidden)> GetLockReasonAsync(int actorId, AutoInvoiceAdjustmentSnapshot s, DateTime now, CancellationToken ct)
         {
@@ -384,8 +537,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                 return (TrangThaiKhongHopLe, false);
             }
 
-            var duQuyen = await _employeeAccessService.CanPerformAsync(actorId, s.ChiNhanhId, EmployeeActionCodes.MeterReview, ct)
-                && await _employeeAccessService.CanPerformAsync(actorId, s.ChiNhanhId, EmployeeActionCodes.InvoiceSubmit, ct)
+            var duQuyen = await CoDuQuyenDieuChinhAsync(actorId, s.ChiNhanhId, ct)
                 && (!daGui || await _employeeAccessService.CanPerformAsync(actorId, s.ChiNhanhId, EmployeeActionCodes.InvoiceCancel, ct));
             if (!duQuyen)
             {
@@ -419,6 +571,60 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
 
             return (null, false);
         }
+
+        // Chỉ số mới nếu có phải không âm và tối đa 3 chữ số thập phân (cột decimal(18,3)).
+        private static string? KiemTraChiSoMoi(params decimal?[] chiSos)
+        {
+            if (chiSos.Any(c => c < 0))
+            {
+                return "Chỉ số mới không được âm.";
+            }
+
+            if (chiSos.Any(c => c.HasValue && ((decimal.GetBits(c.Value)[3] >> 16) & 0x7F) > 3))
+            {
+                return "Chỉ số mới không được có quá 3 chữ số thập phân.";
+            }
+
+            return null;
+        }
+
+        private static InvoiceAdjustmentLine ToLine(AutoInvoiceInvoiceLine l)
+        {
+            var kind = InvoiceMeterLine.Classify(l.LoaiDichVu, l.TenDichVu);
+            return new InvoiceAdjustmentLine
+            {
+                ChiTietHoaDonId = l.ChiTietHoaDonId,
+                TenDichVu = l.TenDichVu,
+                DonGia = l.DonGia,
+                SoLuong = l.SoLuong,
+                TongTien = l.TongTien,
+                Loai = kind switch
+                {
+                    InvoiceLineKind.Dien => "dien",
+                    InvoiceLineKind.Nuoc => "nuoc",
+                    _ => "khac"
+                },
+                DonVi = !string.IsNullOrWhiteSpace(l.DonVi)
+                    ? l.DonVi!
+                    : kind switch
+                    {
+                        InvoiceLineKind.Dien => "kWh",
+                        InvoiceLineKind.Nuoc => "m³",
+                        _ => string.Empty
+                    }
+            };
+        }
+
+        private static InvoiceAdjustmentLine MeterPreviewLine((decimal SoLuong, decimal SoTien, string DienGiai) data, decimal donGia, string loai, string donVi) => new()
+        {
+            ChiTietHoaDonId = 0,
+            TenDichVu = data.DienGiai,
+            DonGia = donGia,
+            SoLuong = decimal.Round(data.SoLuong, 3, MidpointRounding.AwayFromZero),
+            TongTien = data.SoTien,
+            Loai = loai,
+            DonVi = donVi
+        };
 
         private async Task NotifyCustomerAsync(InvoiceAdjustmentResult result, int hopDongId, MeterAdjustmentResult meter)
         {
@@ -488,10 +694,19 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                     HanTuChotUtc = result.HanPhanHoiUtc,
                     LaDieuChinh = true
                 };
-                var email = await _emailService.SendProvisionalInvoiceEmailAsync(recipient.Email, data);
-                if (!email.IsSuccess)
+
+                // Gửi nền như email tạm tính khi chốt kỳ: màn điều chỉnh không phải chờ SMTP. Không có bộ gửi nền thì gửi ngay.
+                if (_emailDispatcher != null)
                 {
-                    _logger.LogWarning("Không gửi được email hóa đơn đã điều chỉnh {HoaDonId}: {Error}", result.HoaDonIdMoi, email.ErrorMessage);
+                    _emailDispatcher.Enqueue(new[] { new PendingProvisionalEmail(result.HoaDonIdMoi, recipient.Email, data) });
+                }
+                else
+                {
+                    var email = await _emailService.SendProvisionalInvoiceEmailAsync(recipient.Email, data);
+                    if (!email.IsSuccess)
+                    {
+                        _logger.LogWarning("Không gửi được email hóa đơn đã điều chỉnh {HoaDonId}: {Error}", result.HoaDonIdMoi, email.ErrorMessage);
+                    }
                 }
             }
             catch (Exception ex)

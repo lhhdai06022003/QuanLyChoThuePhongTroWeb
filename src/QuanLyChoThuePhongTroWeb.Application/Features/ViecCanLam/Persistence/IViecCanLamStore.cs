@@ -17,7 +17,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.ViecCanLam.Persistence
         // CS1: kỳ chỉ số đã chốt (DaDuyet, khớp IsDaChot của màn Chốt điện nước), chưa xóa, từ (tuThang, tuNam) trở đi.
         Task<IReadOnlyList<KyChiSoDaChotRow>> GetKyChiSoDaChotAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, int tuThang, int tuNam, CancellationToken ct = default);
 
-        // CS2: ảnh chỉ số chưa xóa, trạng thái DocDuoc/KhongDocDuoc/Loi, kỳ chỉ số chưa xóa; gom theo kỳ.
+        // CS2: ảnh chỉ số chưa xóa, trạng thái DocDuoc/KhongDocDuoc/Loi, kỳ chỉ số chưa xóa và chưa chốt (khác DaDuyet),
+        // kỳ không bị khóa bởi kỳ sau (kỳ sau DaDuyet hoặc đã có hóa đơn phát hành); gom theo kỳ.
         Task<IReadOnlyList<DemTheoKyRow>> DemAnhChiSoChoXacNhanAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, CancellationToken ct = default);
 
         // HD1: hóa đơn chưa xóa, TrangThaiPhatHanh = Nhap.
@@ -31,6 +32,10 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.ViecCanLam.Persistence
 
         // HD4: hóa đơn chưa xóa, TrangThaiPhatHanh = ChoDuyet, HanPhanHoi != null (tạm tính chờ tự chốt).
         Task<IReadOnlyList<DemHoaDonRow>> DemHoaDonTamTinhAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, CancellationToken ct = default);
+
+        // HD5: kỳ chỉ số chưa xóa, DaDuyet, thuộc phòng chưa xóa, từ (tuThang, tuNam) đến (denThang, denNam), mà phòng không có
+        // hóa đơn chưa xóa nào của kỳ đó. Kỳ mới nhất trước rồi PhongTroId tăng dần; lấy tối đa gioiHan dòng.
+        Task<IReadOnlyList<KyDaChotChuaCoHoaDonRow>> GetKyDaChotChuaCoHoaDonAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, int tuThang, int tuNam, int denThang, int denNam, int gioiHan, CancellationToken ct = default);
 
         // TT1: minh chứng ChoXacNhan, chưa xóa; yêu cầu thanh toán và hóa đơn của nó chưa xóa.
         Task<IReadOnlyList<DemChiNhanhRow>> DemMinhChungChoDoiChieuAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, CancellationToken ct = default);

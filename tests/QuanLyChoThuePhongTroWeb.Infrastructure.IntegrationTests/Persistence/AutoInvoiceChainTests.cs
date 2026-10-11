@@ -621,6 +621,13 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             var invoice = Assert.Single(await InvoicesAsync(seed));
             Assert.Equal(TrangThaiPhatHanhHoaDon.ChoDuyet, invoice.TrangThaiPhatHanh);
             Assert.NotNull(invoice.HanPhanHoi);
+
+            // Chốt kỳ gửi email tạm tính ở nền (Task.Run) sau khi request trả về, nên chờ có hạn rồi mới kiểm.
+            for (var i = 0; i < 100 && host.Email.Provisional.IsEmpty; i++)
+            {
+                await Task.Delay(50);
+            }
+
             Assert.Single(host.Email.Provisional);
         }
     }

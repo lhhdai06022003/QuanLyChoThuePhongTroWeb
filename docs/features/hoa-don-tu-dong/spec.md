@@ -102,13 +102,15 @@ Job không kiểm quyền nhân viên (`Invoice.Finalize` vẫn chỉ Admin vớ
 
 ## 6. Nhân viên "Điều chỉnh và gửi lại"
 
-Một thao tác trên màn hóa đơn quản lý, dùng cho hóa đơn tự động ở `ChoDuyet`, hoặc `DaGui` chưa có khoản thu. Nhập chỉ số điện và nước mới (điền sẵn số hiện tại). **Không có ô lý do.**
+Một thao tác trên màn hóa đơn quản lý, dùng cho hóa đơn tự động ở `ChoDuyet`, hoặc `DaGui` chưa có khoản thu. Nhập chỉ số điện và nước mới (điền sẵn số hiện tại) **và/hoặc sửa các khoản phí** của hóa đơn (tên, đơn giá, số lượng, thêm, xóa dòng), như màn "Chỉnh sửa Chi tiết Hóa đơn" của luồng tay. **Không có ô lý do.**
+
+> **Cập nhật 11/10/2026 theo yêu cầu người dùng** (kế hoạch: [plan.md](plan.md) mục 2.4, T29): bản v7 chỉ cho nhập chỉ số. Danh sách dòng gửi lên là danh sách cuối cùng của hóa đơn; đổi chỉ số thì dòng điện/nước của đồng hồ đó được tính lại cùng công thức lúc tạo hóa đơn rồi vẫn sửa tay được. Cần thêm quyền `Invoice.Draft`.
 
 Chặn chung cho 6.2 và 6.3 (giữ nguyên dữ liệu, báo lý do): kỳ sau đã chốt hoặc đã có hóa đơn phát hành (`HasSubsequentPeriodAsync`); chỉ số mới nhỏ hơn chỉ số cũ của kỳ.
 
 ### 6.1 Quyền
 
-Admin, hoặc nhân viên có `Meter.Review` và `Invoice.Submit` tại chi nhánh của phòng (thêm `Invoice.Cancel` cho trường hợp 6.3). Kiểm qua `IEmployeeAccessService`, fail closed. Method nhận `actorId` đầu tiên (theo `BranchScopeArchitectureTests`).
+Admin, hoặc nhân viên có `Meter.Review`, `Invoice.Draft` và `Invoice.Submit` tại chi nhánh của phòng (thêm `Invoice.Cancel` cho trường hợp 6.3). Kiểm qua `IEmployeeAccessService`, fail closed. Method nhận `actorId` đầu tiên (theo `BranchScopeArchitectureTests`).
 
 ### 6.2 Hóa đơn đang tạm tính (`ChoDuyet`)
 
@@ -119,7 +121,8 @@ Lưu ý code hiện có:
 - Có ảnh chính thức thì sửa số ảnh; không có (kỳ nhập tay) thì cập nhật như nhập tay ở `ApprovePeriodsAsync`.
 - Hai chỗ đó bắt lý do (`LyDo`, `LyDoDienThuCong`, `LyDoNuocThuCong`): luồng này tự điền `"Điều chỉnh hóa đơn theo yêu cầu khách thuê"`. Khi dùng ở màn khác, hai chức năng vẫn bắt lý do như cũ.
 - Bỏ qua điều kiện 4.1 mục 3 (bất thường): nhân viên đã chịu trách nhiệm số mới.
-- Chỉ số mới trùng chỉ số hiện tại ở cả hai đồng hồ: báo "Không có thay đổi", không gửi lại.
+- Chỉ số mới trùng chỉ số hiện tại ở cả hai đồng hồ và các dòng khoản phí không đổi: báo "Không có thay đổi", không gửi lại.
+- Có sửa dòng: thay toàn bộ dòng của hóa đơn trong cùng transaction (6.3: bản thay thế `-R{n}` nhận đúng danh sách dòng đã chốt). Dòng cũ không đổi đơn giá và số lượng giữ thành tiền đã lưu; tổng tiền phải lớn hơn 0.
 
 ### 6.3 Hóa đơn đã công bố (`DaGui`)
 
@@ -163,6 +166,8 @@ Không có email thì chỉ gửi thông báo cổng; không có tài khoản c�
 - **Việc cần làm** (`ViecCanLamService`):
   - `HD2` "Hóa đơn chờ Admin chốt": loại hóa đơn có `HanPhanHoi != null`.
   - Thêm `HD4` "Hóa đơn tạm tính chờ tự chốt": hóa đơn tự động ở `ChoDuyet`, mức Theo dõi, quyền `Invoice.Read`, cùng cách lọc chi nhánh như các việc khác.
+  - Thêm `HD5` "Chưa tạo được hóa đơn tạm tính T{m}/{y}" (cập nhật 11/10/2026, [plan.md](plan.md) T28): phòng có kỳ đã chốt, chưa có hóa đơn nào của kỳ đó, mà chuỗi tự tạo (mục 4) sẽ dừng có thông báo (ví dụ tiêu thụ bất thường, thiếu đơn giá). Mức Cần làm, quyền `Invoice.Draft`, link `ChotDienNuoc?thang&nam`. Tính từ dữ liệu hiện tại, nên tự hết khi có hóa đơn hoặc hết bất thường.
+  - `CS2` "Ảnh chỉ số chờ xác nhận" chỉ đếm ảnh của kỳ chưa chốt và chưa bị khóa bởi kỳ sau (cập nhật 11/10/2026, T27).
 
 ## 8. Người thực hiện
 

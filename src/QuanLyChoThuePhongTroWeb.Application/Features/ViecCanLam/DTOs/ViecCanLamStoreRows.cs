@@ -45,6 +45,17 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.ViecCanLam.DTOs
         public int Nam { get; init; }
     }
 
+    // HD5: kỳ chỉ số đã chốt mà phòng chưa có hóa đơn nào trong kỳ; ứng viên để đánh giá lại chuỗi tự tạo hóa đơn.
+    public sealed class KyDaChotChuaCoHoaDonRow
+    {
+        public int PhongTroId { get; init; }
+        public string SoPhong { get; init; } = string.Empty;
+        public int ChiNhanhId { get; init; }
+        public string TenChiNhanh { get; init; } = string.Empty;
+        public int Thang { get; init; }
+        public int Nam { get; init; }
+    }
+
     public sealed class HoaDonQuaHanRow
     {
         public int HoaDonId { get; init; }

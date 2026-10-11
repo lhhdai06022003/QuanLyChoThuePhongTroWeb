@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using QuanLyChoThuePhongTroWeb.Application.Common.Configurations;
 using QuanLyChoThuePhongTroWeb.Application.Common.Security;
+using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence;
 using QuanLyChoThuePhongTroWeb.Application.Features.ViecCanLam.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.ViecCanLam.Services;
 using QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes;
@@ -28,14 +29,24 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         private static (ViecCanLamService Service, FakeViecCanLamStore Store) Create(
             EmployeeAccessScope? scope, DateTime? nowUtc = null, DashboardSettings? dashboard = null, ViecCanLamSettings? settings = null)
         {
+            var (service, store, _) = CreateWithAuto(scope, nowUtc, dashboard, settings);
+            return (service, store);
+        }
+
+        private static (ViecCanLamService Service, FakeViecCanLamStore Store, FakeAutoInvoiceStore AutoStore) CreateWithAuto(
+            EmployeeAccessScope? scope, DateTime? nowUtc = null, DashboardSettings? dashboard = null, ViecCanLamSettings? settings = null, AutoInvoiceOptions? autoOptions = null)
+        {
             var store = new FakeViecCanLamStore();
+            var autoStore = new FakeAutoInvoiceStore();
             var service = new ViecCanLamService(
                 store,
                 new FakeEmployeeAccessService { ScopeToReturn = scope },
                 dashboard ?? new DashboardSettings(),
                 settings ?? new ViecCanLamSettings(),
-                new FixedTimeProvider(new DateTimeOffset(DateTime.SpecifyKind(nowUtc ?? Now, DateTimeKind.Utc))));
-            return (service, store);
+                new FixedTimeProvider(new DateTimeOffset(DateTime.SpecifyKind(nowUtc ?? Now, DateTimeKind.Utc))),
+                autoStore,
+                autoOptions ?? new AutoInvoiceOptions());
+            return (service, store, autoStore);
         }
 
         private static DemHoaDonRow HoaDon(int branchId, string ten, int soLuong, int nam = 2026, decimal conNo = 0)
@@ -603,6 +614,211 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             var tongHop = await service.GetTongHopAsync(Admin, null);
 
             Assert.DoesNotContain(tongHop.Items, i => i.MaViec == "HD1");
+        }
+
+        // HD5: chuỗi tự tạo hóa đơn tạm tính dừng có thông báo (đánh giá lại từ dữ liệu hiện tại)
+
+        private static KyDaChotChuaCoHoaDonRow Ky(int phongId, string soPhong, int thang = 12, int nam = 2026, int branchId = BranchA, string ten = "A")
+            => new() { PhongTroId = phongId, SoPhong = soPhong, ChiNhanhId = branchId, TenChiNhanh = ten, Thang = thang, Nam = nam };
+
+        // Kỳ đã chốt, một hợp đồng, khách có tài khoản, đơn giá đủ; ba kỳ trước tiêu thụ điện 100 và nước 5 (giới hạn bất thường điện 300, nước 15).
+        private static AutoInvoiceRoomContext KyCtx(
+            int phongId, string soPhong, decimal dienMoi = 120m, decimal nuocMoi = 5m, int thang = 12, int nam = 2026, int branchId = BranchA, string ten = "A",
+            bool coHoaDon = false, bool coHopDong = true, decimal donGiaDien = 3500m, bool kyTruocChuaChot = false, int soHopDong = 1, bool coKenhNhan = true)
+            => new()
+            {
+                PhongTroId = phongId,
+                SoPhong = soPhong,
+                ChiNhanhId = branchId,
+                TenChiNhanh = ten,
+                Thang = thang,
+                Nam = nam,
+                DichVuDienNuocCuaPhongId = 1000 + phongId,
+                TrangThaiGhiNhan = Domain.Enums.TrangThaiGhiNhan.DaDuyet,
+                ChiSoDienCu = 0m,
+                ChiSoDienMoi = dienMoi,
+                ChiSoNuocCu = 0m,
+                ChiSoNuocMoi = nuocMoi,
+                DonGiaDien = donGiaDien,
+                DonGiaNuoc = 15000m,
+                TieuThuCacKyTruoc = new[] { new AutoInvoiceConsumption(100m, 5m), new AutoInvoiceConsumption(100m, 5m), new AutoInvoiceConsumption(100m, 5m) },
+                HopDongHieuLuc = coHopDong
+                    ? Enumerable.Range(1, soHopDong).Select(i => new AutoInvoiceContractRef(phongId * 10 + i, phongId * 10 + i)).ToList()
+                    : Array.Empty<AutoInvoiceContractRef>(),
+                CoHoaDonHoatDong = coHoaDon,
+                KyTruocChuaChot = kyTruocChuaChot,
+                NguoiDungKhachId = coKenhNhan ? 5 : null,
+                EmailKhach = null
+            };
+
+        [Fact]
+        public async Task Hd5_AbnormalConsumption_ProducesCanLamItem_WithRoomReasonAndLink()
+        {
+            var (service, store, auto) = CreateWithAuto(StaffOfA());
+            store.KyDaChotChuaCoHoaDon.Add(Ky(11, "P.101"));
+            auto.ContextsByKey[(11, 12, 2026)] = KyCtx(11, "P.101", dienMoi: 5000m);
+
+            var tongHop = await service.GetTongHopAsync(Staff, BranchA);
+
+            var item = Item(tongHop, "HD5");
+            Assert.Equal(NhomViec.HoaDon, item.Nhom);
+            Assert.Equal(MucUuTienViec.CanLam, item.MucUuTien);
+            Assert.Equal(1, item.SoLuong);
+            Assert.Equal("Chưa tạo được hóa đơn tạm tính T12/2026", item.TieuDe);
+            Assert.Equal(12, item.Thang);
+            Assert.Equal(2026, item.Nam);
+            Assert.Contains("A: 1", item.MoTa);
+            Assert.Contains("P.101: tiêu thụ điện nước bất thường", item.MoTa);
+            Assert.Equal("/QuanLyNhaTro/ChotDienNuoc?thang=12&nam=2026&chiNhanhId=1", item.Link);
+        }
+
+        [Fact]
+        public async Task Hd5_EligibleRoom_AndSilentStops_ProduceNoItem()
+        {
+            var (service, store, auto) = CreateWithAuto(AdminScope());
+            store.KyDaChotChuaCoHoaDon.Add(Ky(11, "P.101"));   // đủ điều kiện: chuỗi tự tạo sẽ lập được hóa đơn
+            store.KyDaChotChuaCoHoaDon.Add(Ky(12, "P.102"));   // đã có hóa đơn: dừng im lặng
+            store.KyDaChotChuaCoHoaDon.Add(Ky(13, "P.103"));   // không có hợp đồng trong kỳ: dừng im lặng
+            auto.ContextsByKey[(11, 12, 2026)] = KyCtx(11, "P.101");
+            auto.ContextsByKey[(12, 12, 2026)] = KyCtx(12, "P.102", dienMoi: 5000m, coHoaDon: true);
+            auto.ContextsByKey[(13, 12, 2026)] = KyCtx(13, "P.103", dienMoi: 5000m, coHopDong: false);
+
+            var tongHop = await service.GetTongHopAsync(Admin, null);
+
+            Assert.DoesNotContain(tongHop.Items, i => i.MaViec == "HD5");
+            Assert.Equal(3, auto.RequestedKeys.Count);
+        }
+
+        [Fact]
+        public async Task Hd5_RoomContextNotFound_IsSkipped()
+        {
+            var (service, store, _) = CreateWithAuto(AdminScope());
+            store.KyDaChotChuaCoHoaDon.Add(Ky(11, "P.101"));
+
+            var tongHop = await service.GetTongHopAsync(Admin, null);
+
+            Assert.DoesNotContain(tongHop.Items, i => i.MaViec == "HD5");
+        }
+
+        [Fact]
+        public async Task Hd5_OtherStopReasons_ShowVietnameseLabels()
+        {
+            var (service, store, auto) = CreateWithAuto(AdminScope());
+            store.KyDaChotChuaCoHoaDon.Add(Ky(11, "P.101"));
+            store.KyDaChotChuaCoHoaDon.Add(Ky(12, "P.102"));
+            store.KyDaChotChuaCoHoaDon.Add(Ky(13, "P.103"));
+            auto.ContextsByKey[(11, 12, 2026)] = KyCtx(11, "P.101", donGiaDien: 0m);
+            auto.ContextsByKey[(12, 12, 2026)] = KyCtx(12, "P.102", soHopDong: 2);
+            auto.ContextsByKey[(13, 12, 2026)] = KyCtx(13, "P.103", kyTruocChuaChot: true);
+
+            var tongHop = await service.GetTongHopAsync(Admin, null);
+
+            var item = Item(tongHop, "HD5");
+            Assert.Equal(3, item.SoLuong);
+            Assert.Contains("P.101: thiếu đơn giá", item.MoTa);
+            Assert.Contains("P.102: nhiều hợp đồng trong kỳ", item.MoTa);
+            Assert.Contains("P.103: kỳ trước chưa chốt", item.MoTa);
+        }
+
+        [Fact]
+        public async Task Hd5_RoomWithoutAccountOrEmail_IsReported()
+        {
+            var (service, store, auto) = CreateWithAuto(AdminScope());
+            store.KyDaChotChuaCoHoaDon.Add(Ky(14, "P.104"));
+            auto.ContextsByKey[(14, 12, 2026)] = KyCtx(14, "P.104", coKenhNhan: false);
+
+            var tongHop = await service.GetTongHopAsync(Admin, null);
+
+            Assert.Contains("P.104: khách không có tài khoản hoặc email", Item(tongHop, "HD5").MoTa);
+        }
+
+        [Fact]
+        public async Task Hd5_GroupsByPeriod_AndByBranchWithinPeriod_LargerCountFirst()
+        {
+            var (service, store, auto) = CreateWithAuto(AdminScope());
+            store.KyDaChotChuaCoHoaDon.Add(Ky(11, "P.101", thang: 11));
+            store.KyDaChotChuaCoHoaDon.Add(Ky(12, "P.102", thang: 11, branchId: BranchB, ten: "B"));
+            store.KyDaChotChuaCoHoaDon.Add(Ky(13, "P.103", thang: 12));
+            auto.ContextsByKey[(11, 11, 2026)] = KyCtx(11, "P.101", dienMoi: 5000m, thang: 11);
+            auto.ContextsByKey[(12, 11, 2026)] = KyCtx(12, "P.102", dienMoi: 5000m, thang: 11, branchId: BranchB, ten: "B");
+            auto.ContextsByKey[(13, 12, 2026)] = KyCtx(13, "P.103", dienMoi: 5000m);
+
+            var tongHop = await service.GetTongHopAsync(Admin, null);
+
+            var hd5 = tongHop.Items.Where(i => i.MaViec == "HD5").ToList();
+            Assert.Equal(new[] { (11, 2), (12, 1) }, hd5.Select(i => (i.Thang!.Value, i.SoLuong)).ToArray());
+            Assert.Contains("A: 1", hd5[0].MoTa);
+            Assert.Contains("B: 1", hd5[0].MoTa);
+            // Nhiều chi nhánh nên link không gắn chiNhanhId.
+            Assert.Equal("/QuanLyNhaTro/ChotDienNuoc?thang=11&nam=2026", hd5[0].Link);
+        }
+
+        [Fact]
+        public async Task Hd5_MoreThanThreeRooms_ListsThreeAndTheRemainder()
+        {
+            var (service, store, auto) = CreateWithAuto(AdminScope());
+            for (var i = 1; i <= 5; i++)
+            {
+                store.KyDaChotChuaCoHoaDon.Add(Ky(i, $"P.10{i}"));
+                auto.ContextsByKey[(i, 12, 2026)] = KyCtx(i, $"P.10{i}", dienMoi: 5000m);
+            }
+
+            var tongHop = await service.GetTongHopAsync(Admin, null);
+
+            var item = Item(tongHop, "HD5");
+            Assert.Equal(5, item.SoLuong);
+            Assert.Contains("P.101: tiêu thụ điện nước bất thường", item.MoTa);
+            Assert.Contains("P.103: tiêu thụ điện nước bất thường", item.MoTa);
+            Assert.DoesNotContain("P.104", item.MoTa);
+            Assert.EndsWith("và 2 phòng khác", item.MoTa);
+        }
+
+        [Fact]
+        public async Task Hd5_PassesScanWindowLimitAndOptionsToStores()
+        {
+            var (service, store, auto) = CreateWithAuto(StaffOfA(), settings: new ViecCanLamSettings { SoKyPhongDanhGiaHoaDonTuDong = 7 },
+                autoOptions: new AutoInvoiceOptions { SoKyTrungBinh = 4 });
+            store.KyDaChotChuaCoHoaDon.Add(Ky(11, "P.101"));
+            auto.ContextsByKey[(11, 12, 2026)] = KyCtx(11, "P.101");
+
+            await service.GetTongHopAsync(Staff, BranchA);
+
+            // Hôm nay 10/01/2027, ngày chốt mặc định 5: kỳ mục tiêu 12/2026, quét 6 kỳ (07/2026 .. 12/2026) và tới tháng hiện tại 01/2027.
+            var call = store.Single(nameof(store.GetKyDaChotChuaCoHoaDonAsync));
+            Assert.Equal(new object?[] { 7, 2026, 1, 2027, 7 }, call.Args.ToArray());
+            Assert.Equal(BranchA, call.BranchId);
+            Assert.Equal(new[] { BranchA }, call.Allowed!.ToArray());
+            Assert.Equal(4, auto.LastSoKyTrungBinh);
+        }
+
+        [Fact]
+        public async Task Hd5_OnlyCandidatesInsideScanWindow_AreEvaluated()
+        {
+            var (service, store, auto) = CreateWithAuto(AdminScope());
+            store.KyDaChotChuaCoHoaDon.Add(Ky(11, "P.101", thang: 6));                // trước kỳ đầu (07/2026)
+            store.KyDaChotChuaCoHoaDon.Add(Ky(12, "P.102", thang: 2, nam: 2027));     // sau tháng hiện tại
+            store.KyDaChotChuaCoHoaDon.Add(Ky(13, "P.103", thang: 7));                // đúng kỳ đầu
+            auto.ContextsByKey[(11, 6, 2026)] = KyCtx(11, "P.101", dienMoi: 5000m, thang: 6);
+            auto.ContextsByKey[(12, 2, 2027)] = KyCtx(12, "P.102", dienMoi: 5000m, thang: 2, nam: 2027);
+            auto.ContextsByKey[(13, 7, 2026)] = KyCtx(13, "P.103", dienMoi: 5000m, thang: 7);
+
+            var tongHop = await service.GetTongHopAsync(Admin, null);
+
+            var item = Item(tongHop, "HD5");
+            Assert.Equal(7, item.Thang);
+            Assert.Equal(new[] { (13, 7, 2026) }, auto.RequestedKeys.ToArray());
+        }
+
+        [Fact]
+        public async Task Hd5_ScopeNull_DoesNotCallEitherStore()
+        {
+            var (service, store, auto) = CreateWithAuto(null);
+            store.KyDaChotChuaCoHoaDon.Add(Ky(11, "P.101"));
+
+            await service.GetTongHopAsync(Staff, null);
+
+            Assert.False(store.WasCalled(nameof(store.GetKyDaChotChuaCoHoaDonAsync)));
+            Assert.Equal(0, auto.GetContextCalls);
         }
     }
 }

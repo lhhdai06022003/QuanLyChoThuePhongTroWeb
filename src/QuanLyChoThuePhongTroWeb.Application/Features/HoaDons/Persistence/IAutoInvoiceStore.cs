@@ -53,6 +53,17 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence
 
     public sealed record AutoInvoiceDueItem(int HoaDonId, string MaHoaDon, int PhongTroId, DateTime HanPhanHoiUtc);
 
+    // Dòng chi tiết chưa xóa mềm của hóa đơn; LoaiDichVu và DonVi chỉ có khi dòng gắn dịch vụ.
+    public sealed record AutoInvoiceInvoiceLine(
+        int ChiTietHoaDonId,
+        string TenDichVu,
+        decimal DonGia,
+        decimal SoLuong,
+        decimal TongTien,
+        int? DichVuId,
+        LoaiDichVu? LoaiDichVu,
+        string? DonVi);
+
     public sealed class AutoInvoiceAdjustmentSnapshot
     {
         public int HoaDonId { get; init; }
@@ -70,6 +81,15 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence
         public decimal ChiSoDienMoi { get; init; }
         public decimal ChiSoNuocCu { get; init; }
         public decimal ChiSoNuocMoi { get; init; }
+        public decimal TongTien { get; init; }
+        // Đơn giá của kỳ (chụp lúc tạo kỳ) và dữ liệu hợp đồng để tính lại tiền điện nước theo số ngày ở.
+        public decimal DonGiaDien { get; init; }
+        public decimal DonGiaNuoc { get; init; }
+        public decimal TienThuePhong { get; init; }
+        public DateTime HopDongBatDau { get; init; }
+        public DateTime? HopDongKetThuc { get; init; }
+        // Dòng chưa xóa mềm, theo ChiTietHoaDonId tăng dần.
+        public IReadOnlyList<AutoInvoiceInvoiceLine> ChiTiets { get; init; } = Array.Empty<AutoInvoiceInvoiceLine>();
     }
 
     public interface IAutoInvoiceStore
@@ -86,7 +106,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence
         // NguoiThucHienId của dòng lịch sử mới nhất (NgayThucHien rồi LichSuTrangThaiHoaDonId giảm dần) có TrangThaiPhatHanhMoi == ChoDuyet && TrangThaiPhatHanhCu != ChoDuyet; null nếu không có.
         Task<int?> GetLastProvisionalSubmitterIdAsync(int hoaDonId, CancellationToken ct = default);
 
-        // AsNoTracking, hóa đơn !IsDeleted; chỉ số lấy từ kỳ liên kết (0 nếu không có kỳ); null nếu không có hóa đơn.
+        // AsNoTracking, hóa đơn !IsDeleted; chỉ số và đơn giá lấy từ kỳ liên kết (0 nếu không có kỳ); kèm các dòng chi tiết chưa xóa
+        // và dữ liệu hợp đồng (tiền thuê, ngày bắt đầu/kết thúc); null nếu không có hóa đơn.
         Task<AutoInvoiceAdjustmentSnapshot?> GetAdjustmentSnapshotAsync(int hoaDonId, CancellationToken ct = default);
 
         // Bỏ mọi thay đổi chưa lưu trong DbContext dùng chung; chỉ gọi khi không còn thay đổi cần giữ.

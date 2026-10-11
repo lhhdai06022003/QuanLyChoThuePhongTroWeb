@@ -46,6 +46,18 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             return Task.FromResult((true, string.Empty));
         }
 
+        // Email tạm tính khi chốt kỳ và khi điều chỉnh gửi nền sau khi request trả về: chờ có hạn cho tới khi đủ số email mong đợi.
+        public async Task<List<(string To, ProvisionalInvoiceEmailData Data)>> WaitForProvisionalAsync(int expectedCount, int timeoutMs = 5000)
+        {
+            var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);
+            while (Provisional.Count < expectedCount && DateTime.UtcNow < deadline)
+            {
+                await Task.Delay(50);
+            }
+
+            return Provisional.ToList();
+        }
+
         public Task<(bool IsSuccess, string ErrorMessage)> SendInvoiceEmailAsync(string toEmail, HoaDonChiTietRes hoaDon, byte[] pdfBytes)
         {
             if (FailInvoiceEmail)

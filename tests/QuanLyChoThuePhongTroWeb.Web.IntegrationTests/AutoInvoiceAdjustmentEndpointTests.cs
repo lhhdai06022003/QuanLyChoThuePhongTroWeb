@@ -338,5 +338,213 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
                 fakeEmail.ProvisionalGate = null;
             }
         }
+
+        [Fact]
+        public async Task StaffAdjustingInvoice_DoesNotWaitForSmtp_AndSendsTheEmailInBackground()
+        {
+            var seed = await SeedAsync();
+            var (client, csrf) = await LoginAsync(seed.StaffUsername);
+            var email = seed.Rooms[0].Tenant.Email!;
+            var fakeEmail = _factory.FakeEmailServiceInstance;
+            // Cổng chặn email: request chỉ trả về được nếu email điều chỉnh gửi nền thật sự (không chờ SMTP).
+            var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            fakeEmail.ProvisionalGate = gate;
+            try
+            {
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+                var response = await client.SendAsync(
+                    Post($"/HoaDon/DieuChinh/{seed.Invoice!.HoaDonId}", csrf, new { chiSoDienMoi = 130m, chiSoNuocMoi = 60m }), cts.Token);
+
+                Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+                // Hóa đơn đã điều chỉnh và gửi lại ngay; email vẫn đang bị chặn ở nền.
+                Assert.Equal(3_305_000m, (await ReloadInvoiceAsync(seed.Invoice.HoaDonId)).TongTien);
+                Assert.DoesNotContain(fakeEmail.ProvisionalEmailCalls, c => c.ToEmail == email);
+
+                gate.TrySetResult();
+                var deadline = DateTime.UtcNow.AddSeconds(10);
+                while (DateTime.UtcNow < deadline && !fakeEmail.ProvisionalEmailCalls.Any(c => c.ToEmail == email))
+                {
+                    await Task.Delay(100);
+                }
+
+                var sent = Assert.Single(fakeEmail.ProvisionalEmailCalls, c => c.ToEmail == email);
+                Assert.Equal(seed.Invoice.MaHoaDon, sent.MaHoaDon);
+                Assert.Equal(3_305_000m, sent.TongTien);
+            }
+            finally
+            {
+                gate.TrySetResult();
+                fakeEmail.ProvisionalGate = null;
+            }
+        }
+
+        // ---------- Sửa các khoản phí khi điều chỉnh ----------
+
+        private async Task<List<ChiTietHoaDon>> ReloadLinesAsync(int id)
+        {
+            using var scope = _factory.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            return await db.ChiTietHoaDons.AsNoTracking().Where(c => c.HoaDonId == id && !c.IsDeleted).OrderBy(c => c.ChiTietHoaDonId).ToListAsync();
+        }
+
+        [Fact]
+        public async Task Info_ReturnsInvoiceLinesWithKindAndTotal()
+        {
+            var seed = await SeedAsync();
+            var (client, _) = await LoginAsync(seed.StaffUsername);
+
+            var response = await client.GetAsync($"/HoaDon/DieuChinh/{seed.Invoice!.HoaDonId}");
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+            Assert.Equal(3_270_000m, json.RootElement.GetProperty("tongTien").GetDecimal());
+            var lines = json.RootElement.GetProperty("chiTiets").EnumerateArray().ToList();
+            Assert.Equal(3, lines.Count);
+            Assert.Equal(new[] { "khac", "dien", "nuoc" }, lines.Select(l => l.GetProperty("loai").GetString()).ToArray());
+            Assert.Equal(new[] { "", "kWh", "m³" }, lines.Select(l => l.GetProperty("donVi").GetString()).ToArray());
+            Assert.Equal(new[] { 3_000_000m, 70_000m, 200_000m }, lines.Select(l => l.GetProperty("tongTien").GetDecimal()).ToArray());
+            Assert.All(lines, l => Assert.True(l.GetProperty("chiTietHoaDonId").GetInt32() > 0));
+        }
+
+        [Fact]
+        public async Task Preview_ReturnsRecalculatedMeterLines_AndWritesNothing()
+        {
+            var seed = await SeedAsync();
+            var (client, _) = await LoginAsync(seed.StaffUsername);
+
+            var response = await client.GetAsync($"/HoaDon/DieuChinh/{seed.Invoice!.HoaDonId}/TinhLai?chiSoDienMoi=130&chiSoNuocMoi=70");
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+            var dien = json.RootElement.GetProperty("dien");
+            Assert.Equal("Tiền điện (100 → 130)", dien.GetProperty("tenDichVu").GetString());
+            Assert.Equal((3_500m, 30m, 105_000m), (dien.GetProperty("donGia").GetDecimal(), dien.GetProperty("soLuong").GetDecimal(), dien.GetProperty("tongTien").GetDecimal()));
+            var nuoc = json.RootElement.GetProperty("nuoc");
+            Assert.Equal((20_000m, 20m, 400_000m), (nuoc.GetProperty("donGia").GetDecimal(), nuoc.GetProperty("soLuong").GetDecimal(), nuoc.GetProperty("tongTien").GetDecimal()));
+            Assert.Equal(30m, json.RootElement.GetProperty("tieuThuDien").GetDecimal());
+
+            var after = await ReloadInvoiceAsync(seed.Invoice.HoaDonId);
+            Assert.Equal(seed.Invoice.TongTien, after.TongTien);
+            Assert.Empty(after.LichSuTrangThaiHoaDons);
+        }
+
+        [Fact]
+        public async Task Preview_ReadingBelowOldValue_Returns400WithMessage()
+        {
+            var seed = await SeedAsync();
+            var (client, _) = await LoginAsync(seed.StaffUsername);
+
+            var response = await client.GetAsync($"/HoaDon/DieuChinh/{seed.Invoice!.HoaDonId}/TinhLai?chiSoDienMoi=99&chiSoNuocMoi=60");
+
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Contains("Chỉ số điện mới không được nhỏ hơn chỉ số điện cũ.", await response.Content.ReadAsStringAsync());
+        }
+
+        [Fact]
+        public async Task Preview_StaffOfAnotherBranch_IsForbidden_AndAnonymousIsRedirected()
+        {
+            var seed = await SeedAsync();
+            var other = await SeedAsync(withProvisionalInvoice: false);
+            var (client, _) = await LoginAsync(other.StaffUsername);
+            var anonymous = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false, HandleCookies = true });
+
+            var forbidden = await client.GetAsync($"/HoaDon/DieuChinh/{seed.Invoice!.HoaDonId}/TinhLai?chiSoDienMoi=130&chiSoNuocMoi=60");
+            var redirected = await anonymous.GetAsync($"/HoaDon/DieuChinh/{seed.Invoice.HoaDonId}/TinhLai?chiSoDienMoi=130&chiSoNuocMoi=60");
+
+            Assert.Equal(HttpStatusCode.Forbidden, forbidden.StatusCode);
+            Assert.True(redirected.StatusCode is HttpStatusCode.Redirect or HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden);
+        }
+
+        [Fact]
+        public async Task Adjust_WithEditedLines_ReplacesLinesAndReturnsNewTotal()
+        {
+            var seed = await SeedAsync();
+            var (client, csrf) = await LoginAsync(seed.StaffUsername);
+            var before = await ReloadLinesAsync(seed.Invoice!.HoaDonId);
+            var phong = before.Single(l => l.TenDichVu == "Tiền phòng");
+            var dien = before.Single(l => l.TenDichVu == "Tiền điện");
+
+            var response = await client.SendAsync(Post($"/HoaDon/DieuChinh/{seed.Invoice.HoaDonId}", csrf, new
+            {
+                chiTiets = new object[]
+                {
+                    new { chiTietHoaDonId = phong.ChiTietHoaDonId, tenDichVu = "Tiền phòng (giảm giá)", donGia = 2_800_000m, soLuong = 1m },
+                    new { chiTietHoaDonId = dien.ChiTietHoaDonId, tenDichVu = "Tiền điện", donGia = 3_500m, soLuong = 20m },
+                    new { tenDichVu = "Phí giữ xe", donGia = 100_000m, soLuong = 2m }
+                }
+            }));
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+            var data = json.RootElement.GetProperty("data");
+            Assert.Equal(2_800_000m + 70_000m + 200_000m, data.GetProperty("tongTien").GetDecimal());
+            Assert.False(data.GetProperty("daTaoHoaDonThayThe").GetBoolean());
+
+            var after = await ReloadInvoiceAsync(seed.Invoice.HoaDonId);
+            Assert.Equal(3_070_000m, after.TongTien);
+            Assert.Equal(TrangThaiPhatHanhHoaDon.ChoDuyet, after.TrangThaiPhatHanh);
+            Assert.InRange(after.HanPhanHoi!.Value, DateTime.UtcNow.AddHours(23), DateTime.UtcNow.AddHours(25));
+            var lines = await ReloadLinesAsync(seed.Invoice.HoaDonId);
+            Assert.Equal(new[] { "Tiền phòng (giảm giá)", "Tiền điện", "Phí giữ xe" }, lines.Select(l => l.TenDichVu).ToArray());
+            Assert.Equal(new[] { 2_800_000m, 70_000m, 200_000m }, lines.Select(l => l.TongTien).ToArray());
+            Assert.Contains(after.LichSuTrangThaiHoaDons, h => h.LyDo != null && h.LyDo.Contains("Điều chỉnh hóa đơn theo yêu cầu khách thuê"));
+            Assert.Contains(after.LichSuTrangThaiHoaDons, h => h.LyDo != null && h.LyDo.Contains("(sửa 1 dòng, thêm 1 dòng, xóa 1 dòng)"));
+        }
+
+        [Fact]
+        public async Task Adjust_WithInvalidLines_Returns400AndKeepsInvoice()
+        {
+            var seed = await SeedAsync();
+            var (client, csrf) = await LoginAsync(seed.StaffUsername);
+
+            var blankName = await client.SendAsync(Post($"/HoaDon/DieuChinh/{seed.Invoice!.HoaDonId}", csrf,
+                new { chiTiets = new[] { new { tenDichVu = "  ", donGia = 1_000m, soLuong = 1m } } }));
+            var emptyList = await client.SendAsync(Post($"/HoaDon/DieuChinh/{seed.Invoice.HoaDonId}", csrf, new { chiTiets = Array.Empty<object>() }));
+            var fractionalPrice = await client.SendAsync(Post($"/HoaDon/DieuChinh/{seed.Invoice.HoaDonId}", csrf,
+                new { chiTiets = new[] { new { tenDichVu = "Phí", donGia = 10.5m, soLuong = 1m } } }));
+
+            Assert.Equal(HttpStatusCode.BadRequest, blankName.StatusCode);
+            Assert.Contains("Tên dịch vụ không được để trống.", await blankName.Content.ReadAsStringAsync());
+            Assert.Equal(HttpStatusCode.BadRequest, emptyList.StatusCode);
+            Assert.Contains("Hóa đơn phải có ít nhất một khoản phí.", await emptyList.Content.ReadAsStringAsync());
+            Assert.Equal(HttpStatusCode.BadRequest, fractionalPrice.StatusCode);
+            Assert.Contains("Đơn giá phải là số nguyên VND.", await fractionalPrice.Content.ReadAsStringAsync());
+
+            var after = await ReloadInvoiceAsync(seed.Invoice.HoaDonId);
+            Assert.Equal(seed.Invoice.TongTien, after.TongTien);
+            Assert.Equal(3, (await ReloadLinesAsync(seed.Invoice.HoaDonId)).Count);
+        }
+
+        [Fact]
+        public async Task Adjust_ReadingsOnlyBody_StillWorks_AsBefore()
+        {
+            var seed = await SeedAsync();
+            var (client, csrf) = await LoginAsync(seed.StaffUsername);
+
+            // Thân yêu cầu cũ chỉ có hai chỉ số, không có danh sách dòng.
+            var response = await client.SendAsync(Post($"/HoaDon/DieuChinh/{seed.Invoice!.HoaDonId}", csrf, new { chiSoDienMoi = 130m, chiSoNuocMoi = 60m }));
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Equal(3_305_000m, (await ReloadInvoiceAsync(seed.Invoice.HoaDonId)).TongTien);
+        }
+
+        [Fact]
+        public async Task Adjust_WithNothingChanged_Returns400NoChange()
+        {
+            var seed = await SeedAsync();
+            var (client, csrf) = await LoginAsync(seed.StaffUsername);
+            var lines = await ReloadLinesAsync(seed.Invoice!.HoaDonId);
+
+            var response = await client.SendAsync(Post($"/HoaDon/DieuChinh/{seed.Invoice.HoaDonId}", csrf, new
+            {
+                chiSoDienMoi = 120m,
+                chiSoNuocMoi = 60m,
+                chiTiets = lines.Select(l => new { chiTietHoaDonId = l.ChiTietHoaDonId, tenDichVu = l.TenDichVu, donGia = l.DonGia, soLuong = l.SoLuong }).ToArray()
+            }));
+
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Contains("Không có thay đổi", await response.Content.ReadAsStringAsync());
+            Assert.Equal(seed.Invoice.TongTien, (await ReloadInvoiceAsync(seed.Invoice.HoaDonId)).TongTien);
+        }
     }
 }

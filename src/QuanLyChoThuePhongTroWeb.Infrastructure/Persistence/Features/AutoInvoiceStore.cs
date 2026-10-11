@@ -232,6 +232,25 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 .Where(h => h.HoaDonId == hoaDonId && !h.IsDeleted)
                 .Select(h => new AutoInvoiceAdjustmentSnapshot
                 {
+                    TongTien = h.TongTien,
+                    DonGiaDien = h.DichVuDienNuocCuaPhong != null ? h.DichVuDienNuocCuaPhong.DonGiaDien : 0m,
+                    DonGiaNuoc = h.DichVuDienNuocCuaPhong != null ? h.DichVuDienNuocCuaPhong.DonGiaNuoc : 0m,
+                    TienThuePhong = h.HopDong.TienThuePhong,
+                    HopDongBatDau = h.HopDong.ThoiDiemBatDau,
+                    HopDongKetThuc = h.HopDong.ThoiDiemKetThuc,
+                    ChiTiets = h.ChiTietHoaDonDichVus
+                        .Where(c => !c.IsDeleted)
+                        .OrderBy(c => c.ChiTietHoaDonId)
+                        .Select(c => new AutoInvoiceInvoiceLine(
+                            c.ChiTietHoaDonId,
+                            c.TenDichVu,
+                            c.DonGia,
+                            c.SoLuong,
+                            c.TongTien,
+                            c.DichVuId,
+                            c.DichVu != null ? (LoaiDichVu?)c.DichVu.LoaiDichVu : null,
+                            c.DichVu != null ? c.DichVu.DonVi : null))
+                        .ToList(),
                     HoaDonId = h.HoaDonId,
                     MaHoaDon = h.MaHoaDon,
                     HopDongId = h.HopDongId,

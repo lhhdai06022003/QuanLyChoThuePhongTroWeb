@@ -7,6 +7,9 @@ using QuanLyChoThuePhongTroWeb.Application.Abstractions.Security;
 using QuanLyChoThuePhongTroWeb.Application.Common.Configurations;
 using QuanLyChoThuePhongTroWeb.Application.Common.Formatting;
 using QuanLyChoThuePhongTroWeb.Application.Common.Security;
+using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.AutoInvoices;
+using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs;
+using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence;
 using QuanLyChoThuePhongTroWeb.Application.Features.ViecCanLam.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.ViecCanLam.Persistence;
 
@@ -19,19 +22,25 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.ViecCanLam.Services
         private readonly DashboardSettings _dashboardSettings;
         private readonly ViecCanLamSettings _settings;
         private readonly TimeProvider _timeProvider;
+        private readonly IAutoInvoiceStore _autoInvoiceStore;
+        private readonly AutoInvoiceOptions _autoInvoiceOptions;
 
         public ViecCanLamService(
             IViecCanLamStore store,
             IEmployeeAccessService access,
             DashboardSettings dashboardSettings,
             ViecCanLamSettings settings,
-            TimeProvider timeProvider)
+            TimeProvider timeProvider,
+            IAutoInvoiceStore autoInvoiceStore,
+            AutoInvoiceOptions autoInvoiceOptions)
         {
             _store = store;
             _access = access;
             _dashboardSettings = dashboardSettings;
             _settings = settings;
             _timeProvider = timeProvider;
+            _autoInvoiceStore = autoInvoiceStore;
+            _autoInvoiceOptions = autoInvoiceOptions;
         }
 
         // Một dòng dữ liệu theo chi nhánh, dùng chung cho mọi loại việc.
@@ -106,6 +115,12 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.ViecCanLam.Services
                 var dongs = TuHoaDon(rows);
                 ThemViec(items, "HD4", NhomViec.HoaDon, MucUuTienViec.TheoDoi, "Hóa đơn tạm tính chờ tự chốt", dongs, branchId,
                     $"/QuanLyNhaTro/QuanLyHoaDon?thang=0&nam={NamCuNhat(dongs)}&trangThaiPhatHanh=1");
+            }
+
+            // HD5: chuỗi tự tạo hóa đơn tạm tính đã dừng (và đã báo nhân viên) nên phải xử lý tay
+            if (DuocPhep(scope, EmployeeActionCodes.InvoiceDraft))
+            {
+                await ThemViecHoaDonTuDongBiDungAsync(items, branchId, allowed, nowVn, ct);
             }
 
             // TT1
@@ -283,6 +298,79 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.ViecCanLam.Services
                     $"/QuanLyNhaTro/ChotDienNuoc?thang={m}&nam={y}", thang: m, nam: y);
             }
         }
+
+        // HD5: kỳ đã chốt mà phòng chưa có hóa đơn. Đánh giá lại bằng đúng quy tắc của chuỗi tự tạo (AutoInvoiceReadingPolicy),
+        // chỉ giữ phòng mà chuỗi sẽ dừng có thông báo (ví dụ tiêu thụ bất thường, thiếu đơn giá). Lý do dừng im lặng (chưa đủ
+        // chỉ số, đã có hóa đơn, không có hợp đồng) và phòng đủ điều kiện không phải việc của mục này. Việc được tính từ dữ liệu
+        // hiện tại nên tự biến mất khi nhân viên lập hóa đơn (tay hoặc tự động) hoặc sửa chỉ số cho hết bất thường.
+        private async Task ThemViecHoaDonTuDongBiDungAsync(List<ViecCanLamDto> items, int? branchId, IReadOnlyCollection<int>? allowed, DateTime nowVn, CancellationToken ct)
+        {
+            var (thangMucTieu, namMucTieu) = TinhKyMucTieu(nowVn, _dashboardSettings.ChotDienNuocDay);
+            var soKy = Math.Max(1, _settings.SoKyQuetChiSo);
+            var kyDau = new DateTime(namMucTieu, thangMucTieu, 1).AddMonths(-(soKy - 1));
+            // Tháng hiện tại cũng được chốt sớm (MeterPeriodPolicy chỉ chặn kỳ chưa tới) nên là kỳ cuối của khoảng quét.
+            var kyCuoi = new DateTime(nowVn.Year, nowVn.Month, 1);
+
+            var ungViens = await _store.GetKyDaChotChuaCoHoaDonAsync(
+                branchId, allowed, kyDau.Month, kyDau.Year, kyCuoi.Month, kyCuoi.Year,
+                Math.Max(1, _settings.SoKyPhongDanhGiaHoaDonTuDong), ct);
+
+            var biDung = new List<(KyDaChotChuaCoHoaDonRow Ky, IReadOnlyList<AutoInvoiceReason> LyDos)>();
+            foreach (var ky in ungViens)
+            {
+                var ctx = await _autoInvoiceStore.GetRoomContextAsync(ky.PhongTroId, ky.Thang, ky.Nam, _autoInvoiceOptions.SoKyTrungBinh, ct);
+                if (ctx == null)
+                {
+                    continue;
+                }
+
+                var quyetDinh = AutoInvoiceReadingPolicy.EvaluateRoom(ctx, _autoInvoiceOptions);
+                if (quyetDinh.DuDieuKien || quyetDinh.LyDos.All(AutoInvoiceReadingPolicy.IsSilent))
+                {
+                    continue;
+                }
+
+                biDung.Add((ky, quyetDinh.LyDos.Distinct().ToList()));
+            }
+
+            foreach (var kyGroup in biDung.GroupBy(b => new { b.Ky.Nam, b.Ky.Thang }).OrderBy(g => g.Key.Nam).ThenBy(g => g.Key.Thang))
+            {
+                var dongs = kyGroup
+                    .GroupBy(b => new { b.Ky.ChiNhanhId, b.Ky.TenChiNhanh })
+                    .Select(g => new DongChiNhanh(g.Key.ChiNhanhId, g.Key.TenChiNhanh, g.Count()))
+                    .ToList();
+
+                var phongs = kyGroup
+                    .OrderBy(b => b.Ky.SoPhong, StringComparer.Ordinal)
+                    .ThenBy(b => b.Ky.PhongTroId)
+                    .ToList();
+                var ghiChu = string.Join("; ", phongs.Take(3).Select(b => $"{b.Ky.SoPhong}: {string.Join(", ", b.LyDos.Select(NhanLyDoDung))}"));
+                if (phongs.Count > 3)
+                {
+                    ghiChu += $"; và {phongs.Count - 3} phòng khác";
+                }
+
+                ThemViec(items, "HD5", NhomViec.HoaDon, MucUuTienViec.CanLam,
+                    $"Chưa tạo được hóa đơn tạm tính T{kyGroup.Key.Thang}/{kyGroup.Key.Nam}", dongs, branchId,
+                    $"/QuanLyNhaTro/ChotDienNuoc?thang={kyGroup.Key.Thang}&nam={kyGroup.Key.Nam}",
+                    thang: kyGroup.Key.Thang, nam: kyGroup.Key.Nam, ghiChuThem: ghiChu);
+            }
+        }
+
+        private static string NhanLyDoDung(AutoInvoiceReason lyDo) => lyDo switch
+        {
+            AutoInvoiceReason.TieuThuBatThuong => "tiêu thụ điện nước bất thường",
+            AutoInvoiceReason.ChiSoGiam => "chỉ số nhỏ hơn kỳ trước",
+            AutoInvoiceReason.DoTinCayThap => "ảnh độ tin cậy thấp",
+            AutoInvoiceReason.KhongDocDuoc => "ảnh không đọc được",
+            AutoInvoiceReason.ThieuDonGia => "thiếu đơn giá",
+            AutoInvoiceReason.KyTruocChuaChot => "kỳ trước chưa chốt",
+            AutoInvoiceReason.KhachKhongCoKenhNhan => "khách không có tài khoản hoặc email",
+            AutoInvoiceReason.NhieuHopDongTrongKy => "nhiều hợp đồng trong kỳ",
+            AutoInvoiceReason.ChiNhanhKhongCoNhanVien => "chi nhánh chưa có nhân viên phụ trách",
+            AutoInvoiceReason.NguoiThucHienThieuQuyen => "người thực hiện thiếu quyền",
+            _ => "lỗi khi tạo hóa đơn"
+        };
 
         // Kỳ mục tiêu: lùi 2 tháng nếu chưa tới ngày chốt, ngược lại lùi 1 tháng (theo giờ VN).
         internal static (int Thang, int Nam) TinhKyMucTieu(DateTime nowVn, int chotDienNuocDay)

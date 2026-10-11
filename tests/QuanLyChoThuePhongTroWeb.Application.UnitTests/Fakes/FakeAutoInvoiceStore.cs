@@ -11,6 +11,9 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
     {
         // Lần đọc thứ n trả Contexts[n - 1]; hết danh sách thì trả phần tử cuối.
         public List<AutoInvoiceRoomContext?> Contexts { get; } = new();
+        // Có khóa (phòng, tháng, năm) thì ưu tiên trả theo khóa, bất kể thứ tự gọi.
+        public Dictionary<(int PhongTroId, int Thang, int Nam), AutoInvoiceRoomContext?> ContextsByKey { get; } = new();
+        public List<(int PhongTroId, int Thang, int Nam)> RequestedKeys { get; } = new();
         public int? FallbackActorId { get; set; }
         public Exception? ThrowOnGetContext { get; set; }
         public int GetContextCalls { get; private set; }
@@ -26,6 +29,12 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
             if (ThrowOnGetContext != null)
             {
                 throw ThrowOnGetContext;
+            }
+
+            RequestedKeys.Add((phongTroId, thang, nam));
+            if (ContextsByKey.TryGetValue((phongTroId, thang, nam), out var byKey))
+            {
+                return Task.FromResult(byKey);
             }
 
             if (Contexts.Count == 0)

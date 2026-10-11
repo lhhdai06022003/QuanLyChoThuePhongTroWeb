@@ -33,6 +33,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
         public List<DemHoaDonRow> HoaDonChuaToiHan { get; } = new();
         public List<DemChiNhanhRow> SuCoXuLyQuaLau { get; } = new();
         public List<HoaDonQuaHanRow> BangQuaHan { get; } = new();
+        public List<KyDaChotChuaCoHoaDonRow> KyDaChotChuaCoHoaDon { get; } = new();
 
         public bool WasCalled(string method) => Calls.Any(c => c.Method == method);
         public Call Single(string method) => Calls.Single(c => c.Method == method);
@@ -81,6 +82,19 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
         {
             Record(nameof(DemHoaDonTamTinhAsync), branchId, allowedBranchIds);
             return Task.FromResult<IReadOnlyList<DemHoaDonRow>>(HoaDonTamTinh.ToList());
+        }
+
+        // HD5: áp khoảng kỳ và giới hạn như store thật (mới nhất trước); phạm vi chi nhánh do test tự cấu hình qua row.
+        public Task<IReadOnlyList<KyDaChotChuaCoHoaDonRow>> GetKyDaChotChuaCoHoaDonAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, int tuThang, int tuNam, int denThang, int denNam, int gioiHan, CancellationToken ct = default)
+        {
+            Record(nameof(GetKyDaChotChuaCoHoaDonAsync), branchId, allowedBranchIds, tuThang, tuNam, denThang, denNam, gioiHan);
+            var rows = KyDaChotChuaCoHoaDon
+                .Where(k => (k.Nam > tuNam || (k.Nam == tuNam && k.Thang >= tuThang))
+                            && (k.Nam < denNam || (k.Nam == denNam && k.Thang <= denThang)))
+                .OrderByDescending(k => k.Nam).ThenByDescending(k => k.Thang).ThenBy(k => k.PhongTroId)
+                .Take(gioiHan)
+                .ToList();
+            return Task.FromResult<IReadOnlyList<KyDaChotChuaCoHoaDonRow>>(rows);
         }
 
         public Task<IReadOnlyList<DemChiNhanhRow>> DemMinhChungChoDoiChieuAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, CancellationToken ct = default)
