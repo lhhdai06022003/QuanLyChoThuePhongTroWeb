@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using QuanLyChoThuePhongTroWeb.Models;
 using Microsoft.AspNetCore.Authorization;
 
@@ -41,6 +42,9 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         [HttpPost]
         public async Task<IActionResult> ThemChiNhanhMoi(QuanLyChoThuePhongTroWeb.Application.Features.ChiNhanhs.DTOs.ChiNhanhReq model)
         {
+            if (ModelState.GetFieldValidationState(nameof(QuanLyChoThuePhongTroWeb.Application.Features.ChiNhanhs.DTOs.ChiNhanhReq.SoGioPhanHoiHoaDon)) == ModelValidationState.Invalid)
+                return Json(new { success = false, message = "Số giờ xem xét hóa đơn phải là số nguyên từ 1 đến 168." });
+
             // Controller CHỈ NHẬN MODEL VÀ GỌI SERVICE
             var result = await _chiNhanhService.ThemChiNhanhMoi(model);
 
@@ -50,6 +54,9 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         [HttpPost]
         public async Task<JsonResult> CapNhatChiNhanh(QuanLyChoThuePhongTroWeb.Application.Features.ChiNhanhs.DTOs.ChiNhanhReq model)
         {
+            if (ModelState.GetFieldValidationState(nameof(QuanLyChoThuePhongTroWeb.Application.Features.ChiNhanhs.DTOs.ChiNhanhReq.SoGioPhanHoiHoaDon)) == ModelValidationState.Invalid)
+                return Json(new { success = false, message = "Số giờ xem xét hóa đơn phải là số nguyên từ 1 đến 168." });
+
             // Controller CHỈ NHẬN MODEL VÀ GỌI SERVICE
             var result = await _chiNhanhService.ThemChiNhanhMoi(model);
 

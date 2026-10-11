@@ -63,6 +63,29 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         }
 
         [Fact]
+        public void TinhTienDienNuoc_DbScaleReadings_DescriptionHasNoTrailingZeros()
+        {
+            // Chỉ số đọc từ DB có scale 3 (100.000m); diễn giải không được in "100.000" (dễ đọc thành một trăm nghìn).
+            var (_, _, dienGiai) = _calculator.TinhTienDienNuoc(190m, 100.000m, 3500m, "Tiền điện", 30, 30);
+            Assert.Equal("Tiền điện (100 → 190)", dienGiai);
+
+            var (_, _, tyLe) = _calculator.TinhTienDienNuoc(1250.500m, 1234.000m, 3500m, "Tiền điện", 15, 30);
+            Assert.Equal("Tiền điện (tỷ lệ 15/30 ngày, 1.234 → 1.250,5)", tyLe);
+        }
+
+        [Theory]
+        [InlineData("100.000", "100")]
+        [InlineData("0", "0")]
+        [InlineData("1234.5", "1.234,5")]
+        [InlineData("1234567.125", "1.234.567,125")]
+        [InlineData("18.200", "18,2")]
+        public void ChiSo_DinhDang_VietnameseStyleWithoutTrailingZeros(string input, string expected)
+        {
+            var value = decimal.Parse(input, System.Globalization.CultureInfo.InvariantCulture);
+            Assert.Equal(expected, QuanLyChoThuePhongTroWeb.Application.Common.Formatting.ChiSo.DinhDang(value));
+        }
+
+        [Fact]
         public void TinhTienDienNuoc_InvalidNewIndex_ThrowsInvalidOperationException()
         {
             // Arrange

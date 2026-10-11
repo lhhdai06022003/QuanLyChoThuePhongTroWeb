@@ -159,7 +159,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             var nguoiDungService = scope.ServiceProvider.GetRequiredService<INguoiDungService>();
 
-            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = $"C{suffix}", DiaChi = "A", SoDienThoai = "0900000001", MoTa = "M" };
+            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = TestCodes.MaChiNhanh("C"), DiaChi = "A", SoDienThoai = "0900000001", MoTa = "M" };
             db.ChiNhanhs.Add(branch);
             await db.SaveChangesAsync();
 
@@ -236,7 +236,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             var nguoiDungService = scope.ServiceProvider.GetRequiredService<INguoiDungService>();
 
-            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = $"C{suffix}", DiaChi = "A", SoDienThoai = "0900000001", MoTa = "M" };
+            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = TestCodes.MaChiNhanh("C"), DiaChi = "A", SoDienThoai = "0900000001", MoTa = "M" };
             db.ChiNhanhs.Add(branch);
             await db.SaveChangesAsync();
 
@@ -277,7 +277,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             var nguoiDungService = scope.ServiceProvider.GetRequiredService<INguoiDungService>();
 
-            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = $"C{suffix}", DiaChi = "A", SoDienThoai = "0900000001", MoTa = "M" };
+            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = TestCodes.MaChiNhanh("C"), DiaChi = "A", SoDienThoai = "0900000001", MoTa = "M" };
             db.ChiNhanhs.Add(branch);
             await db.SaveChangesAsync();
 
@@ -349,7 +349,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             var nguoiDungService = scope.ServiceProvider.GetRequiredService<INguoiDungService>();
 
-            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = $"C{suffix}", DiaChi = "A", SoDienThoai = "0900000001", MoTa = "M" };
+            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = TestCodes.MaChiNhanh("C"), DiaChi = "A", SoDienThoai = "0900000001", MoTa = "M" };
             db.ChiNhanhs.Add(branch);
             await db.SaveChangesAsync();
 
@@ -444,7 +444,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             var nguoiDungService = scope.ServiceProvider.GetRequiredService<INguoiDungService>();
 
-            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = $"C{suffix}", DiaChi = "A", SoDienThoai = "0900000001", MoTa = "M" };
+            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = TestCodes.MaChiNhanh("C"), DiaChi = "A", SoDienThoai = "0900000001", MoTa = "M" };
             db.ChiNhanhs.Add(branch);
             await db.SaveChangesAsync();
 
@@ -577,7 +577,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             var nguoiDungService = scope.ServiceProvider.GetRequiredService<INguoiDungService>();
 
-            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = $"C{suffix}", DiaChi = "A", SoDienThoai = "0900000001", MoTa = "M" };
+            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = TestCodes.MaChiNhanh("C"), DiaChi = "A", SoDienThoai = "0900000001", MoTa = "M" };
             db.ChiNhanhs.Add(branch);
             await db.SaveChangesAsync();
 
@@ -665,7 +665,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             var nguoiDungService = scope.ServiceProvider.GetRequiredService<INguoiDungService>();
 
-            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = $"C{suffix}", DiaChi = "A", SoDienThoai = "0900000001", MoTa = "M" };
+            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = TestCodes.MaChiNhanh("C"), DiaChi = "A", SoDienThoai = "0900000001", MoTa = "M" };
             db.ChiNhanhs.Add(branch);
             await db.SaveChangesAsync();
 
@@ -723,7 +723,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             var nguoiDungService = scope.ServiceProvider.GetRequiredService<INguoiDungService>();
 
-            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = $"C{suffix}", DiaChi = "A", SoDienThoai = "0900000001", MoTa = "M" };
+            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = TestCodes.MaChiNhanh("C"), DiaChi = "A", SoDienThoai = "0900000001", MoTa = "M" };
             db.ChiNhanhs.Add(branch);
             await db.SaveChangesAsync();
 
@@ -802,7 +802,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             var nguoiDungService = scope.ServiceProvider.GetRequiredService<INguoiDungService>();
 
-            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = $"C{suffix}", DiaChi = "A", SoDienThoai = "0900000001", MoTa = "M" };
+            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = TestCodes.MaChiNhanh("C"), DiaChi = "A", SoDienThoai = "0900000001", MoTa = "M" };
             db.ChiNhanhs.Add(branch);
             await db.SaveChangesAsync();
 
@@ -893,7 +893,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             var nguoiDungService = scope.ServiceProvider.GetRequiredService<INguoiDungService>();
 
-            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = $"C{suffix}", DiaChi = "A", SoDienThoai = "0900000001", MoTa = "M" };
+            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = TestCodes.MaChiNhanh("C"), DiaChi = "A", SoDienThoai = "0900000001", MoTa = "M" };
             db.ChiNhanhs.Add(branch);
             await db.SaveChangesAsync();
 
@@ -989,7 +989,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             var nguoiDungService = scope.ServiceProvider.GetRequiredService<INguoiDungService>();
 
-            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = $"C{suffix}", DiaChi = "A", SoDienThoai = "0900000001", MoTa = "M" };
+            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = TestCodes.MaChiNhanh("C"), DiaChi = "A", SoDienThoai = "0900000001", MoTa = "M" };
             db.ChiNhanhs.Add(branch);
             await db.SaveChangesAsync();
 
@@ -1067,7 +1067,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             var nguoiDungService = scope.ServiceProvider.GetRequiredService<INguoiDungService>();
 
-            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = $"C{suffix}", DiaChi = "A", SoDienThoai = "0900000001", MoTa = "M" };
+            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = TestCodes.MaChiNhanh("C"), DiaChi = "A", SoDienThoai = "0900000001", MoTa = "M" };
             db.ChiNhanhs.Add(branch);
             await db.SaveChangesAsync();
 

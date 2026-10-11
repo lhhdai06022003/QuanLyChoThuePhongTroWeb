@@ -276,6 +276,8 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                     DaThu = x.LichSuThanhToans.Where(l => !l.IsDeleted).Sum(l => l.SoTienThanhToan),
                     x.TrangThaiPhatHanh,
                     x.TrangThaiHoaDon,
+                    x.HanPhanHoi,
+                    x.IsDeleted,
                     x.NgayTao
                 })
                 .ToListAsync(cancellationToken);
@@ -295,6 +297,9 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 TrangThaiHoaDon = InvoiceStatusLabels.HienThi(x.TrangThaiPhatHanh, x.TrangThaiHoaDon),
                 TrangThaiHoaDonValue = (int)x.TrangThaiHoaDon,
                 TrangThaiPhatHanhValue = (int)x.TrangThaiPhatHanh,
+                LaHoaDonTuDong = x.HanPhanHoi != null,
+                LaTamTinh = InvoiceDetailProjection.LaTamTinh(x.TrangThaiPhatHanh, x.HanPhanHoi, x.IsDeleted),
+                HanTuChot = InvoiceDetailProjection.HanTuChotText(x.TrangThaiPhatHanh, x.HanPhanHoi, x.IsDeleted),
                 NgayTao = x.NgayTao.AddHours(7).ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture)
             }).ToList();
         }

@@ -83,7 +83,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             var suffix = Guid.NewGuid().ToString("N")[..8];
             const string password = "Password123!";
 
-            var branch = new ChiNhanh { TenChiNhanh = $"CN_AI_{suffix}", MaChiNhanh = $"A{suffix}", DiaChi = "A", SoDienThoai = "0900000077", MoTa = "M" };
+            var branch = new ChiNhanh { TenChiNhanh = $"CN_AI_{suffix}", MaChiNhanh = TestCodes.MaChiNhanh("A"), DiaChi = "A", SoDienThoai = "0900000077", MoTa = "M" };
             db.ChiNhanhs.Add(branch);
             await db.SaveChangesAsync();
 

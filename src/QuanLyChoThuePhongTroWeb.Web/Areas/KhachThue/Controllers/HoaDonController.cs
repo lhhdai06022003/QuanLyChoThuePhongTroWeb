@@ -53,6 +53,8 @@ namespace QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers
                 TrangThaiHoaDon = h.TrangThaiHoaDonValue,
                 trangThai = h.TrangThaiHoaDon,
                 trangThaiPhatHanh = h.TrangThaiPhatHanhValue,
+                laTamTinh = h.LaTamTinh,
+                hanTuChot = h.HanTuChot,
                 NgayTao = h.NgayTao
             });
 
@@ -85,7 +87,14 @@ namespace QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers
                 chiTietHoaDons = data.ChiTietHoaDons,
                 lichSuThanhToans = data.LichSuThanhToans,
                 daHuy = data.DaHuy,
-                lyDoHuy = data.LyDoHuy
+                lyDoHuy = data.LyDoHuy,
+                laTamTinh = data.LaTamTinh,
+                hanTuChot = data.HanTuChot,
+                soDienThoaiChiNhanh = data.SoDienThoaiChiNhanh,
+                chiSoDienCu = data.ChiSoDienCu,
+                chiSoDienMoi = data.ChiSoDienMoi,
+                chiSoNuocCu = data.ChiSoNuocCu,
+                chiSoNuocMoi = data.ChiSoNuocMoi
             });
         }
 

@@ -121,6 +121,60 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.True(store.WasCalled(nameof(store.DemHoaDonChoDuyetAsync)));
         }
 
+        // 4b. HD4: hóa đơn tạm tính chờ tự chốt
+
+        [Fact]
+        public async Task Staff_GetsHd4_AsTheoDoi_WithTitleAndLinkWithBranch()
+        {
+            var (service, store) = Create(StaffOfA());
+            store.HoaDonTamTinh.Add(HoaDon(BranchA, "A", 2, nam: 2025));
+
+            var tongHop = await service.GetTongHopAsync(Staff, BranchA);
+
+            var item = Item(tongHop, "HD4");
+            Assert.Equal(2, item.SoLuong);
+            Assert.Equal(MucUuTienViec.TheoDoi, item.MucUuTien);
+            Assert.Equal("Hóa đơn tạm tính chờ tự chốt", item.TieuDe);
+            Assert.Equal("/QuanLyNhaTro/QuanLyHoaDon?thang=0&nam=2025&trangThaiPhatHanh=1&chiNhanhId=1", item.Link);
+            Assert.DoesNotContain(tongHop.Items, i => i.MaViec == "HD2");
+        }
+
+        [Fact]
+        public async Task Admin_GetsHd4AndHd2AsSeparateItems()
+        {
+            var (service, store) = Create(AdminScope());
+            store.HoaDonChoDuyet.Add(HoaDon(BranchA, "A", 3));
+            store.HoaDonTamTinh.Add(HoaDon(BranchA, "A", 1));
+
+            var tongHop = await service.GetTongHopAsync(Admin, null);
+
+            Assert.Equal(3, Item(tongHop, "HD2").SoLuong);
+            Assert.Equal(1, Item(tongHop, "HD4").SoLuong);
+        }
+
+        [Fact]
+        public async Task Hd4_WithoutData_HasNoItem()
+        {
+            var (service, store) = Create(AdminScope());
+            store.HoaDonTamTinh.Add(HoaDon(BranchA, "A", 0));
+
+            var tongHop = await service.GetTongHopAsync(Admin, null);
+
+            Assert.DoesNotContain(tongHop.Items, i => i.MaViec == "HD4");
+        }
+
+        [Fact]
+        public async Task Hd4_BranchOutsideScope_DoesNotCallStore()
+        {
+            var (service, store) = Create(StaffOfA());
+            store.HoaDonTamTinh.Add(HoaDon(BranchB, "B", 4));
+
+            var tongHop = await service.GetTongHopAsync(Staff, BranchB);
+
+            Assert.Empty(tongHop.Items);
+            Assert.False(store.WasCalled(nameof(store.DemHoaDonTamTinhAsync)));
+        }
+
         // 5. Truyền phạm vi xuống store
 
         [Fact]

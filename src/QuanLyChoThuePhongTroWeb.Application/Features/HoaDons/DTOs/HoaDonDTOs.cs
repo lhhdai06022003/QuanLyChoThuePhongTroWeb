@@ -30,6 +30,12 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs
         public string TrangThaiHoaDon { get; set; } = string.Empty;
         public int TrangThaiHoaDonValue { get; set; }
         public int TrangThaiPhatHanhValue { get; set; }
+        // HanPhanHoi != null: hóa đơn từng đi luồng tự động.
+        public bool LaHoaDonTuDong { get; set; }
+        // ChoDuyet && HanPhanHoi != null && !IsDeleted.
+        public bool LaTamTinh { get; set; }
+        // Giờ Việt Nam "dd/MM/yyyy HH:mm" khi LaTamTinh; ngược lại chuỗi rỗng.
+        public string HanTuChot { get; set; } = string.Empty;
         public string NgayTao { get; set; } = string.Empty;
         public string SoDienThoai { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
@@ -59,6 +65,17 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs
         public string Email { get; set; } = string.Empty;
         public int TrangThaiPhatHanhValue { get; set; }
         public string TrangThaiPhatHanh { get; set; } = string.Empty;
+        // HanPhanHoi != null: hóa đơn từng đi luồng tự động.
+        public bool LaHoaDonTuDong { get; set; }
+        // ChoDuyet && HanPhanHoi != null && !IsDeleted.
+        public bool LaTamTinh { get; set; }
+        // Giờ Việt Nam "dd/MM/yyyy HH:mm" khi LaTamTinh; ngược lại chuỗi rỗng.
+        public string HanTuChot { get; set; } = string.Empty;
+        // Chỉ số của kỳ điện nước liên kết (chưa xóa mềm); null khi không có kỳ hoặc nguồn dữ liệu không nạp kỳ.
+        public decimal? ChiSoDienCu { get; set; }
+        public decimal? ChiSoDienMoi { get; set; }
+        public decimal? ChiSoNuocCu { get; set; }
+        public decimal? ChiSoNuocMoi { get; set; }
         public bool DaHuy { get; set; }
         public string LyDoHuy { get; set; } = string.Empty;
         public List<InvoiceStatusHistoryRes> LichSuTrangThais { get; set; } = new();

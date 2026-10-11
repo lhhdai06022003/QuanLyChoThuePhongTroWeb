@@ -117,7 +117,11 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
 
         public Task<IReadOnlyList<DemHoaDonRow>> DemHoaDonChoDuyetAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, CancellationToken ct = default)
             => DemHoaDonTheoPhatHanhAsync(branchId, allowedBranchIds,
-                _context.HoaDons.Where(h => !h.IsDeleted && h.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.ChoDuyet), ct);
+                _context.HoaDons.Where(h => !h.IsDeleted && h.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.ChoDuyet && h.HanPhanHoi == null), ct);
+
+        public Task<IReadOnlyList<DemHoaDonRow>> DemHoaDonTamTinhAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, CancellationToken ct = default)
+            => DemHoaDonTheoPhatHanhAsync(branchId, allowedBranchIds,
+                _context.HoaDons.Where(h => !h.IsDeleted && h.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.ChoDuyet && h.HanPhanHoi != null), ct);
 
         public Task<IReadOnlyList<DemHoaDonRow>> DemHoaDonDaChotChuaGuiAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, CancellationToken ct = default)
             => DemHoaDonTheoPhatHanhAsync(branchId, allowedBranchIds,
@@ -281,7 +285,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
             return query;
         }
 
-        // HD1-HD3: đếm theo chi nhánh, không cần số tiền.
+        // HD1-HD4: đếm theo chi nhánh, không cần số tiền.
         private async Task<IReadOnlyList<DemHoaDonRow>> DemHoaDonTheoPhatHanhAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, IQueryable<HoaDon> goc, CancellationToken ct)
         {
             var query = LocHoaDon(goc.AsNoTracking(), branchId, allowedBranchIds);

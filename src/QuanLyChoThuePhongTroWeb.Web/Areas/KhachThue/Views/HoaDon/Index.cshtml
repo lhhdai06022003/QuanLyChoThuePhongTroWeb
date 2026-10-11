@@ -110,6 +110,9 @@
                             if (row.trangThaiPhatHanh === 4) {
                                 return '<span class="badge bg-secondary-lt">Đã hủy</span>';
                             }
+                            if (row.laTamTinh) {
+                                return '<span class="badge bg-azure-lt text-wrap">Tạm tính, tự chốt lúc ' + escapeHtml(row.hanTuChot) + '</span>';
+                            }
                             if (row.trangThaiHoaDon === 1) {
                                 return '<span class="badge bg-success-lt">Đã thanh toán</span>';
                             } else if (row.trangThaiHoaDon === 2) {
@@ -166,7 +169,9 @@
 
             $.get(`/KhachThue/HoaDon/XemChiTiet?id=${hoaDonId}`, function(res) {
                 // Configure PDF button in footer
-                $('#btnDownloadPdf').attr('href', `/KhachThue/HoaDon/TaiPdf/${res.hoaDonId}`).removeClass('d-none');
+                if (!res.laTamTinh) {
+                    $('#btnDownloadPdf').attr('href', `/KhachThue/HoaDon/TaiPdf/${res.hoaDonId}`).removeClass('d-none');
+                }
 
                 let cancelBanner = '';
                 if (res.daHuy) {
@@ -178,9 +183,24 @@
                     `;
                 }
 
+                let provisionalBanner = '';
+                if (res.laTamTinh) {
+                    const lienHe = res.soDienThoaiChiNhanh
+                        ? `<a href="tel:${escapeHtml(res.soDienThoaiChiNhanh)}">${escapeHtml(res.soDienThoaiChiNhanh)}</a>`
+                        : 'quản lý chi nhánh';
+                    provisionalBanner = `
+                        <div class="alert alert-info py-2 mb-3">
+                            <div><i class="ti ti-clock-hour-4 me-2"></i><strong>Hóa đơn tạm tính</strong>, tự chốt lúc ${escapeHtml(res.hanTuChot)}. Hóa đơn chưa cần thanh toán.</div>
+                            <div class="mt-1">Nếu có sai sót, vui lòng liên hệ ${lienHe}</div>
+                        </div>
+                    `;
+                }
+
                 let ttBadge = '';
                 if (res.daHuy) {
                     ttBadge = '<span class="badge bg-secondary-lt px-2 py-1">Đã hủy</span>';
+                } else if (res.laTamTinh) {
+                    ttBadge = '<span class="badge bg-azure-lt text-wrap px-2 py-1">Tạm tính, tự chốt lúc ' + escapeHtml(res.hanTuChot) + '</span>';
                 } else if (res.trangThaiThanhToanValue === 1) {
                     ttBadge = '<span class="badge bg-success-lt px-2 py-1">Đã thanh toán</span>';
                 } else if (res.trangThaiThanhToanValue === 2) {
@@ -191,6 +211,7 @@
 
                 let html = `
                     ${cancelBanner}
+                    ${provisionalBanner}
                     <div class="row mb-3 fs-3">
                         <div class="col-md-6 mb-2"><strong>Mã HĐ:</strong> <span class="text-primary font-weight-bold">${escapeHtml(res.maHoaDon)}</span></div>
                         <div class="col-md-6 mb-2"><strong>Ngày tạo:</strong> ${escapeHtml(res.ngayTao)}</div>
@@ -236,6 +257,23 @@
                     </table>
                     </div>`;
 
+                // Chỉ số điện nước của kỳ (chỉ hóa đơn tạm tính).
+                if (res.laTamTinh && res.chiSoDienMoi !== null && res.chiSoDienMoi !== undefined) {
+                    const soVN = n => Number(n).toLocaleString('vi-VN');
+                    const dongChiSo = (ten, cu, moi) =>
+                        `<tr><td>${ten}</td><td class="text-end">${soVN(cu)}</td><td class="text-end">${soVN(moi)}</td><td class="text-end">${soVN(moi - cu)}</td></tr>`;
+                    html += `<h4 class="font-weight-bold border-bottom pb-2 mt-4"><i class="ti ti-bolt me-1"></i> Chỉ số điện nước</h4>
+                        <div class="table-responsive mb-3">
+                        <table class="table card-table table-vcenter table-sm">
+                            <thead><tr><th>Loại</th><th class="text-end">Chỉ số cũ</th><th class="text-end">Chỉ số mới</th><th class="text-end">Tiêu thụ</th></tr></thead>
+                            <tbody>
+                                ${dongChiSo('Điện', res.chiSoDienCu, res.chiSoDienMoi)}
+                                ${dongChiSo('Nước', res.chiSoNuocCu, res.chiSoNuocMoi)}
+                            </tbody>
+                        </table>
+                        </div>`;
+                }
+
                 // Lịch sử thanh toán
                 if (res.lichSuThanhToans && res.lichSuThanhToans.length > 0) {
                     html += `<h4 class="font-weight-bold border-bottom pb-2 mt-4"><i class="ti ti-history me-1"></i> Lịch sử thanh toán</h4>
@@ -251,12 +289,12 @@
                 }
 
                 // Khung "Thanh toán": lượt thanh toán, QR theo lượt và nộp minh chứng.
-                if (!res.daHuy) {
+                if (!res.daHuy && !res.laTamTinh) {
                     html += '<div id="ktPaymentPanel" class="mt-4 pt-3 border-top"></div>';
                 }
 
                 $('#chiTietBody').html(html);
-                if (!res.daHuy) {
+                if (!res.daHuy && !res.laTamTinh) {
                     KtThanhToan.load(res.hoaDonId, '#ktPaymentPanel', function () {
                         $('#hoaDonTable').DataTable().ajax.reload(null, false);
                     });

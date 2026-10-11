@@ -23,11 +23,14 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.ViecCanLam.Persistence
         // HD1: hóa đơn chưa xóa, TrangThaiPhatHanh = Nhap.
         Task<IReadOnlyList<DemHoaDonRow>> DemHoaDonNhapAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, CancellationToken ct = default);
 
-        // HD2: hóa đơn chưa xóa, TrangThaiPhatHanh = ChoDuyet.
+        // HD2: hóa đơn chưa xóa, TrangThaiPhatHanh = ChoDuyet, HanPhanHoi = null (luồng tay).
         Task<IReadOnlyList<DemHoaDonRow>> DemHoaDonChoDuyetAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, CancellationToken ct = default);
 
         // HD3: hóa đơn chưa xóa, TrangThaiPhatHanh = DaChot, TrangThaiHoaDon khác DaThanhToan.
         Task<IReadOnlyList<DemHoaDonRow>> DemHoaDonDaChotChuaGuiAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, CancellationToken ct = default);
+
+        // HD4: hóa đơn chưa xóa, TrangThaiPhatHanh = ChoDuyet, HanPhanHoi != null (tạm tính chờ tự chốt).
+        Task<IReadOnlyList<DemHoaDonRow>> DemHoaDonTamTinhAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, CancellationToken ct = default);
 
         // TT1: minh chứng ChoXacNhan, chưa xóa; yêu cầu thanh toán và hóa đơn của nó chưa xóa.
         Task<IReadOnlyList<DemChiNhanhRow>> DemMinhChungChoDoiChieuAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, CancellationToken ct = default);

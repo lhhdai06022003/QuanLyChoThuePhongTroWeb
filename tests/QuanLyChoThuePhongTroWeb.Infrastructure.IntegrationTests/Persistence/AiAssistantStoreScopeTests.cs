@@ -46,8 +46,8 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             var w = new World { Suffix = Guid.NewGuid().ToString("N")[..8] };
             var s = w.Suffix;
             w.Shared = $"T{s[..6]}";
-            w.A = new ChiNhanh { TenChiNhanh = $"ScA {s}", MaChiNhanh = $"SA{s[..5]}", DiaChi = "A", SoDienThoai = "0900000001", MoTa = "A" };
-            w.B = new ChiNhanh { TenChiNhanh = $"ScB {s}", MaChiNhanh = $"SB{s[..5]}", DiaChi = "B", SoDienThoai = "0900000002", MoTa = "B" };
+            w.A = new ChiNhanh { TenChiNhanh = $"ScA {s}", MaChiNhanh = TestCodes.MaChiNhanh("SA"), DiaChi = "A", SoDienThoai = "0900000001", MoTa = "A" };
+            w.B = new ChiNhanh { TenChiNhanh = $"ScB {s}", MaChiNhanh = TestCodes.MaChiNhanh("SB"), DiaChi = "B", SoDienThoai = "0900000002", MoTa = "B" };
             db.ChiNhanhs.AddRange(w.A, w.B);
             await db.SaveChangesAsync();
 

@@ -101,6 +101,8 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                     DaThu = h.LichSuThanhToans.Where(l => !l.IsDeleted).Sum(l => l.SoTienThanhToan),
                     h.TrangThaiHoaDon,
                     h.TrangThaiPhatHanh,
+                    h.HanPhanHoi,
+                    h.IsDeleted,
                     h.NgayTao,
                     SoDienThoai = h.HopDong.NguoiThue.SoDienThoai,
                     Email = h.HopDong.NguoiThue.Email ?? ""
@@ -124,6 +126,9 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 TrangThaiHoaDon = InvoiceStatusLabels.HienThi(h.TrangThaiPhatHanh, h.TrangThaiHoaDon),
                 TrangThaiHoaDonValue = (int)h.TrangThaiHoaDon,
                 TrangThaiPhatHanhValue = (int)h.TrangThaiPhatHanh,
+                LaHoaDonTuDong = h.HanPhanHoi != null,
+                LaTamTinh = InvoiceDetailProjection.LaTamTinh(h.TrangThaiPhatHanh, h.HanPhanHoi, h.IsDeleted),
+                HanTuChot = InvoiceDetailProjection.HanTuChotText(h.TrangThaiPhatHanh, h.HanPhanHoi, h.IsDeleted),
                 NgayTao = h.NgayTao.AddHours(7).ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture),
                 SoDienThoai = h.SoDienThoai,
                 Email = h.Email
@@ -153,6 +158,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 .Include(h => h.HopDong).ThenInclude(hd => hd.NguoiThue)
                 .Include(h => h.ChiTietHoaDonDichVus).ThenInclude(ct => ct.DichVu)
                 .Include(h => h.LichSuThanhToans).ThenInclude(l => l.NguoiXacNhan)
+                .Include(h => h.DichVuDienNuocCuaPhong)
                 .FirstOrDefaultAsync(h => h.HoaDonId == hoaDonId && (!h.IsDeleted || h.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaHuy), ct);
 
             if (hd == null) return null;

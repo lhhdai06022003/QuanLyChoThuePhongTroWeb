@@ -47,7 +47,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             var branch1 = new ChiNhanh
             {
                 TenChiNhanh = $"CN1_{suffix}",
-                MaChiNhanh = $"C1{suffix}",
+                MaChiNhanh = TestCodes.MaChiNhanh("C1"),
                 DiaChi = "Dia chi 1",
                 SoDienThoai = "0900000001",
                 MoTa = "Mo ta CN 1"
@@ -55,7 +55,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             var branch2 = new ChiNhanh
             {
                 TenChiNhanh = $"CN2_{suffix}",
-                MaChiNhanh = $"C2{suffix}",
+                MaChiNhanh = TestCodes.MaChiNhanh("C2"),
                 DiaChi = "Dia chi 2",
                 SoDienThoai = "0900000002",
                 MoTa = "Mo ta CN 2"

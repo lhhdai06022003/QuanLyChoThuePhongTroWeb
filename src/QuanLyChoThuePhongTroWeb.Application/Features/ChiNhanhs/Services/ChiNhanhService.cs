@@ -12,6 +12,11 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.ChiNhanhs.Services
 {
     public class ChiNhanhService : IChiNhanhService
     {
+        private const int SoGioPhanHoiToiThieu = 1;
+        private const int SoGioPhanHoiToiDa = 168;
+        private const int SoGioPhanHoiMacDinh = 24;
+        private const string LoiSoGio = "Số giờ xem xét hóa đơn phải là số nguyên từ 1 đến 168.";
+
         private readonly IChiNhanhStore _store;
         private readonly IUnitOfWork _unitOfWork;
         private readonly ILogger<ChiNhanhService> _logger;
@@ -36,7 +41,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.ChiNhanhs.Services
                 DiaChi = entity.DiaChi,
                 MoTa = entity.MoTa,
                 SoDienThoai = entity.SoDienThoai,
-                NgayTao = entity.NgayTao
+                NgayTao = entity.NgayTao,
+                SoGioPhanHoiHoaDon = entity.SoGioPhanHoiHoaDon
             };
         }
 
@@ -54,6 +60,12 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.ChiNhanhs.Services
 
         public async Task<(bool IsSuccess, string Message)> ThemChiNhanhMoi(ChiNhanhReq req)
         {
+            if (req.SoGioPhanHoiHoaDon.HasValue
+                && (req.SoGioPhanHoiHoaDon.Value < SoGioPhanHoiToiThieu || req.SoGioPhanHoiHoaDon.Value > SoGioPhanHoiToiDa))
+            {
+                return (false, LoiSoGio);
+            }
+
             try
             {
                 string normMa = (req.MaChiNhanh ?? string.Empty).Trim().ToUpper();
@@ -72,6 +84,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.ChiNhanhs.Services
                         DiaChi = req.DiaChi,
                         SoDienThoai = req.SoDienThoai,
                         MoTa = req.MoTa,
+                        SoGioPhanHoiHoaDon = req.SoGioPhanHoiHoaDon ?? SoGioPhanHoiMacDinh,
                         NgayTao = DateTime.UtcNow,
                         IsDeleted = false
                     };
@@ -92,6 +105,10 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.ChiNhanhs.Services
                     existing.DiaChi = req.DiaChi;
                     existing.SoDienThoai = req.SoDienThoai;
                     existing.MoTa = req.MoTa;
+                    if (req.SoGioPhanHoiHoaDon.HasValue)
+                    {
+                        existing.SoGioPhanHoiHoaDon = req.SoGioPhanHoiHoaDon.Value;
+                    }
                     existing.NgayCapNhat = DateTime.UtcNow;
 
                     _store.Update(existing);

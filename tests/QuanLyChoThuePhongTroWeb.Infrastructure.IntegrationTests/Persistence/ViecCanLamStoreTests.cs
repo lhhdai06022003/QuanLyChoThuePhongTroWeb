@@ -93,6 +93,12 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             await Inv("cd1", TrangThaiPhatHanhHoaDon.ChoDuyet, Chua, 100_000m);
             await Inv("cd2", TrangThaiPhatHanhHoaDon.ChoDuyet, Chua, 100_000m);
             await Inv("cdDel", TrangThaiPhatHanhHoaDon.ChoDuyet, Chua, 100_000m, deleted: true);
+            // Hóa đơn tạm tính (ChoDuyet có HanPhanHoi): HD4 đếm, HD2 không đếm. Kỳ riêng để không trùng hóa đơn khác.
+            var tamTinhA = await Inv("tamTinhA", TrangThaiPhatHanhHoaDon.ChoDuyet, Chua, 100_000m, month: 1, year: 1998);
+            tamTinhA.HanPhanHoi = Now.AddHours(24);
+            var tamTinhDel = await Inv("tamTinhDel", TrangThaiPhatHanhHoaDon.ChoDuyet, Chua, 100_000m, deleted: true, month: 2, year: 1998);
+            tamTinhDel.HanPhanHoi = Now.AddHours(24);
+            await db.SaveChangesAsync();
             await Inv("dc1", TrangThaiPhatHanhHoaDon.DaChot, Chua, 100_000m);
             await Inv("dc2", TrangThaiPhatHanhHoaDon.DaChot, TrangThaiHoaDon.ThanhToanMotPhan, 100_000m);
             await Inv("dcPaid", TrangThaiPhatHanhHoaDon.DaChot, TrangThaiHoaDon.DaThanhToan, 100_000m);
@@ -182,6 +188,9 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             // Chi nhánh B: mỗi loại việc một bản ghi.
             await seed.InvoiceAsync(ctrB, TrangThaiPhatHanhHoaDon.Nhap, Chua, 1m, null);
             await seed.InvoiceAsync(ctrB, TrangThaiPhatHanhHoaDon.ChoDuyet, Chua, 1m, null);
+            var tamTinhB = await seed.InvoiceAsync(ctrB, TrangThaiPhatHanhHoaDon.ChoDuyet, Chua, 1m, null, month: 1, year: 1998);
+            tamTinhB.HanPhanHoi = Now.AddHours(24);
+            await db.SaveChangesAsync();
             await seed.InvoiceAsync(ctrB, TrangThaiPhatHanhHoaDon.DaChot, Chua, 1m, null);
             await seed.InvoiceAsync(ctrB, TrangThaiPhatHanhHoaDon.DaGui, Chua, 7_000_000m, Now.AddDays(-4));
             await seed.InvoiceAsync(ctrB, TrangThaiPhatHanhHoaDon.DaGui, Chua, 1_000m, Now.AddDays(4));
@@ -343,6 +352,20 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             var row = Assert.Single(await Store(db).DemHoaDonChoDuyetAsync(w.A.ChiNhanhId, null));
 
             Assert.Equal(3, row.SoLuong); // cd1, cd2, overCd; cdDel xóa mềm
+            await tx.RollbackAsync();
+        }
+
+        [Fact]
+        public async Task HoaDonTamTinh_CountsProvisionalNotDeleted()
+        {
+            await using var db = _fixture.CreateDbContext();
+            await using var tx = await db.Database.BeginTransactionAsync();
+            var w = await SeedAsync(db);
+
+            var row = Assert.Single(await Store(db).DemHoaDonTamTinhAsync(w.A.ChiNhanhId, null));
+
+            Assert.Equal(1, row.SoLuong); // tamTinhA; tamTinhDel xóa mềm; hóa đơn tay không có HanPhanHoi
+            Assert.Equal(1998, row.NamCuNhat);
             await tx.RollbackAsync();
         }
 
@@ -509,6 +532,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             Add("CS2", (await s.DemAnhChiSoChoXacNhanAsync(branchId, allowed)).Select(r => r.ChiNhanhId));
             Add("HD1", (await s.DemHoaDonNhapAsync(branchId, allowed)).Select(r => r.ChiNhanhId));
             Add("HD2", (await s.DemHoaDonChoDuyetAsync(branchId, allowed)).Select(r => r.ChiNhanhId));
+            Add("HD4", (await s.DemHoaDonTamTinhAsync(branchId, allowed)).Select(r => r.ChiNhanhId));
             Add("HD3", (await s.DemHoaDonDaChotChuaGuiAsync(branchId, allowed)).Select(r => r.ChiNhanhId));
             Add("TT1", (await s.DemMinhChungChoDoiChieuAsync(branchId, allowed)).Select(r => r.ChiNhanhId));
             Add("TT2", (await s.DemHoaDonQuaHanAsync(branchId, allowed, Now)).Select(r => r.ChiNhanhId));

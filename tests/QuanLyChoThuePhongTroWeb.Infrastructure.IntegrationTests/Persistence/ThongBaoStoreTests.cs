@@ -38,8 +38,8 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             var staffInactive = User("staffInactive", Role.NhanVien, active: false);
             context.NguoiDungs.AddRange(admin, inactiveAdmin, staffA, staffB, staffRevoked, staffInactive);
 
-            var branchA = new ChiNhanh { TenChiNhanh = $"TbA {s}", MaChiNhanh = $"TA{s[..5]}", DiaChi = "A", SoDienThoai = "0900000001", MoTa = "A" };
-            var branchB = new ChiNhanh { TenChiNhanh = $"TbB {s}", MaChiNhanh = $"TB{s[..5]}", DiaChi = "B", SoDienThoai = "0900000002", MoTa = "B" };
+            var branchA = new ChiNhanh { TenChiNhanh = $"TbA {s}", MaChiNhanh = TestCodes.MaChiNhanh("TA"), DiaChi = "A", SoDienThoai = "0900000001", MoTa = "A" };
+            var branchB = new ChiNhanh { TenChiNhanh = $"TbB {s}", MaChiNhanh = TestCodes.MaChiNhanh("TB"), DiaChi = "B", SoDienThoai = "0900000002", MoTa = "B" };
             context.ChiNhanhs.AddRange(branchA, branchB);
             await context.SaveChangesAsync();
 

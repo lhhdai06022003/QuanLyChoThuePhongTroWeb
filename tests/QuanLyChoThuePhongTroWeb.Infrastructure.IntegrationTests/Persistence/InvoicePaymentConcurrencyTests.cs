@@ -93,7 +93,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             await using var context = _fixture.CreateDbContext();
             var suffix = Guid.NewGuid().ToString("N")[..6];
 
-            var branch = new ChiNhanh { TenChiNhanh = $"CN_{prefix}_{suffix}", MaChiNhanh = $"C{suffix}", DiaChi = "123 Duong Test", SoDienThoai = "0912345678", MoTa = "test" };
+            var branch = new ChiNhanh { TenChiNhanh = $"CN_{prefix}_{suffix}", MaChiNhanh = TestCodes.MaChiNhanh("C"), DiaChi = "123 Duong Test", SoDienThoai = "0912345678", MoTa = "test" };
             context.ChiNhanhs.Add(branch);
             await context.SaveChangesAsync();
 

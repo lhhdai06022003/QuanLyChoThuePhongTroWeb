@@ -61,8 +61,8 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             var s = w.Suffix;
             w.SharedRoomNumber = $"S{s[..6]}";
 
-            w.BranchA = new ChiNhanh { TenChiNhanh = $"AiA {s}", MaChiNhanh = $"AA{s[..5]}", DiaChi = "A", SoDienThoai = "0900000001", MoTa = "A" };
-            w.BranchB = new ChiNhanh { TenChiNhanh = $"AiB {s}", MaChiNhanh = $"AB{s[..5]}", DiaChi = "B", SoDienThoai = "0900000002", MoTa = "B" };
+            w.BranchA = new ChiNhanh { TenChiNhanh = $"AiA {s}", MaChiNhanh = TestCodes.MaChiNhanh("AA"), DiaChi = "A", SoDienThoai = "0900000001", MoTa = "A" };
+            w.BranchB = new ChiNhanh { TenChiNhanh = $"AiB {s}", MaChiNhanh = TestCodes.MaChiNhanh("AB"), DiaChi = "B", SoDienThoai = "0900000002", MoTa = "B" };
             db.ChiNhanhs.AddRange(w.BranchA, w.BranchB);
             await db.SaveChangesAsync();
 

@@ -27,6 +27,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
         public List<DemHoaDonRow> HoaDonNhap { get; } = new();
         public List<DemHoaDonRow> HoaDonChoDuyet { get; } = new();
         public List<DemHoaDonRow> HoaDonDaChot { get; } = new();
+        public List<DemHoaDonRow> HoaDonTamTinh { get; } = new();
         public List<DemChiNhanhRow> MinhChung { get; } = new();
         public List<DemHoaDonRow> HoaDonQuaHan { get; } = new();
         public List<DemHoaDonRow> HoaDonChuaToiHan { get; } = new();
@@ -74,6 +75,12 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
         {
             Record(nameof(DemHoaDonDaChotChuaGuiAsync), branchId, allowedBranchIds);
             return Task.FromResult<IReadOnlyList<DemHoaDonRow>>(HoaDonDaChot.ToList());
+        }
+
+        public Task<IReadOnlyList<DemHoaDonRow>> DemHoaDonTamTinhAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, CancellationToken ct = default)
+        {
+            Record(nameof(DemHoaDonTamTinhAsync), branchId, allowedBranchIds);
+            return Task.FromResult<IReadOnlyList<DemHoaDonRow>>(HoaDonTamTinh.ToList());
         }
 
         public Task<IReadOnlyList<DemChiNhanhRow>> DemMinhChungChoDoiChieuAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, CancellationToken ct = default)

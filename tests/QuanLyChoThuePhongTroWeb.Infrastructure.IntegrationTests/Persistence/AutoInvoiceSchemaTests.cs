@@ -22,7 +22,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
         private static ChiNhanh NewBranch(string suffix, int soGio) => new()
         {
             TenChiNhanh = $"AI {suffix}",
-            MaChiNhanh = $"A{suffix}",
+            MaChiNhanh = TestCodes.MaChiNhanh("A"),
             DiaChi = "Dia chi",
             SoDienThoai = "0900000001",
             MoTa = "Mo ta",

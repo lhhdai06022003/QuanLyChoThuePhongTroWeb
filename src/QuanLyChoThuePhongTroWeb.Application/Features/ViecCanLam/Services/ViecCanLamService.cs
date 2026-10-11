@@ -99,6 +99,15 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.ViecCanLam.Services
                     $"/QuanLyNhaTro/QuanLyHoaDon?thang=0&nam={NamCuNhat(dongs)}&trangThaiPhatHanh=2");
             }
 
+            // HD4
+            if (DuocPhep(scope, EmployeeActionCodes.InvoiceRead))
+            {
+                var rows = await _store.DemHoaDonTamTinhAsync(branchId, allowed, ct);
+                var dongs = TuHoaDon(rows);
+                ThemViec(items, "HD4", NhomViec.HoaDon, MucUuTienViec.TheoDoi, "Hóa đơn tạm tính chờ tự chốt", dongs, branchId,
+                    $"/QuanLyNhaTro/QuanLyHoaDon?thang=0&nam={NamCuNhat(dongs)}&trangThaiPhatHanh=1");
+            }
+
             // TT1
             if (DuocPhep(scope, EmployeeActionCodes.PaymentReview))
             {

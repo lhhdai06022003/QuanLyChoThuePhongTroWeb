@@ -46,7 +46,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             var branch1 = new ChiNhanh
             {
                 TenChiNhanh = $"CN1_{prefix}_{suffix}",
-                MaChiNhanh = $"C1{suffix}",
+                MaChiNhanh = TestCodes.MaChiNhanh("C1"),
                 DiaChi = "123 Duong 1",
                 SoDienThoai = "0911111111",
                 MoTa = "Branch 1"
@@ -54,7 +54,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             var branch2 = new ChiNhanh
             {
                 TenChiNhanh = $"CN2_{prefix}_{suffix}",
-                MaChiNhanh = $"C2{suffix}",
+                MaChiNhanh = TestCodes.MaChiNhanh("C2"),
                 DiaChi = "456 Duong 2",
                 SoDienThoai = "0922222222",
                 MoTa = "Branch 2"

@@ -6,6 +6,7 @@ using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -53,7 +54,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
 
             var branch = new ChiNhanh
             {
-                TenChiNhanh = $"CN_ADJ_{suffix}", MaChiNhanh = $"J{suffix}", DiaChi = "A", SoDienThoai = "0900000066", MoTa = "M",
+                TenChiNhanh = $"CN_ADJ_{suffix}", MaChiNhanh = TestCodes.MaChiNhanh("J"), DiaChi = "A", SoDienThoai = "0900000066", MoTa = "M",
                 SoGioPhanHoiHoaDon = 24
             };
             db.ChiNhanhs.Add(branch);
@@ -305,20 +306,36 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
                 }).ToList()
             };
 
-            var response = await client.SendAsync(Post("/DienNuoc/SaveChotDienNuoc", csrf, request));
-
-            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             var emails = seed.Rooms.Select(r => r.Tenant.Email!).ToList();
-            var deadline = DateTime.UtcNow.AddSeconds(10);
-            while (DateTime.UtcNow < deadline
-                   && emails.Any(e => !_factory.FakeEmailServiceInstance.ProvisionalEmailCalls.Any(c => c.ToEmail == e)))
+            var fakeEmail = _factory.FakeEmailServiceInstance;
+            // Cổng chặn email: request chỉ trả về được nếu email gửi nền thật sự (không chờ email).
+            var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            fakeEmail.ProvisionalGate = gate;
+            try
             {
-                await Task.Delay(100);
-            }
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+                var response = await client.SendAsync(Post("/DienNuoc/SaveChotDienNuoc", csrf, request), cts.Token);
 
-            foreach (var email in emails)
+                Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+                Assert.DoesNotContain(fakeEmail.ProvisionalEmailCalls, c => emails.Contains(c.ToEmail));
+
+                gate.TrySetResult();
+                var deadline = DateTime.UtcNow.AddSeconds(10);
+                while (DateTime.UtcNow < deadline
+                       && emails.Any(e => !fakeEmail.ProvisionalEmailCalls.Any(c => c.ToEmail == e)))
+                {
+                    await Task.Delay(100);
+                }
+
+                foreach (var email in emails)
+                {
+                    Assert.Contains(fakeEmail.ProvisionalEmailCalls, c => c.ToEmail == email);
+                }
+            }
+            finally
             {
-                Assert.Contains(_factory.FakeEmailServiceInstance.ProvisionalEmailCalls, c => c.ToEmail == email);
+                gate.TrySetResult();
+                fakeEmail.ProvisionalGate = null;
             }
         }
     }

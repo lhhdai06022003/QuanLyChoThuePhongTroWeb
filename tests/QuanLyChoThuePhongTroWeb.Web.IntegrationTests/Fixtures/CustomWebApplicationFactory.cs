@@ -186,10 +186,19 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests.Fixtures
 
             public ConcurrentQueue<ProvisionalEmailCall> ProvisionalEmailCalls { get; } = new();
 
-            public Task<(bool IsSuccess, string ErrorMessage)> SendProvisionalInvoiceEmailAsync(string toEmail, ProvisionalInvoiceEmailData data)
+            // Cổng chờ tùy chọn: khác null thì email tạm tính bị chặn tới khi test mở cổng (null = ghi nhận ngay).
+            public TaskCompletionSource? ProvisionalGate { get; set; }
+
+            public async Task<(bool IsSuccess, string ErrorMessage)> SendProvisionalInvoiceEmailAsync(string toEmail, ProvisionalInvoiceEmailData data)
             {
+                var gate = ProvisionalGate;
+                if (gate != null)
+                {
+                    await gate.Task.WaitAsync(TimeSpan.FromSeconds(30));
+                }
+
                 ProvisionalEmailCalls.Enqueue(new ProvisionalEmailCall(toEmail, data.MaHoaDon, data.TongTien));
-                return Task.FromResult((true, string.Empty));
+                return (true, string.Empty);
             }
 
             /// <summary>

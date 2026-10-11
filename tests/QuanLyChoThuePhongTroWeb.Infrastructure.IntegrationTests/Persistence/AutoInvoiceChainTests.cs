@@ -149,7 +149,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             var branch = new ChiNhanh
             {
                 TenChiNhanh = $"Chain {suffix}",
-                MaChiNhanh = $"H{suffix}",
+                MaChiNhanh = TestCodes.MaChiNhanh("H"),
                 DiaChi = "Dia chi",
                 SoDienThoai = "0900000099",
                 MoTa = "x",

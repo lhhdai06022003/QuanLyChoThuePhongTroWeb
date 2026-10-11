@@ -20,7 +20,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.ViecCanLam.DTOs
         public int SoLuong { get; init; }
     }
 
-    // TongConNo chỉ dùng cho TT2, TT3; HD1-HD3 để 0.
+    // TongConNo chỉ dùng cho TT2, TT3; HD1-HD4 để 0.
     public sealed class DemHoaDonRow
     {
         public int ChiNhanhId { get; init; }

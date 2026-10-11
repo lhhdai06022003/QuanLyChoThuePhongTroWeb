@@ -83,6 +83,14 @@
                 </div>
 
                 <div class="form-group row mb-3">
+                    <label for="SoGioPhanHoiHoaDon" class="col-sm-3 col-form-label">Số giờ xem xét hóa đơn <span class="text-danger">*</span></label>
+                    <div class="col-sm-9">
+                        <input type="number" class="form-control" id="SoGioPhanHoiHoaDon" name="SoGioPhanHoiHoaDon" min="1" max="168" step="1" value="24" required>
+                        <div class="form-text">Hóa đơn tạm tính tự chốt sau số giờ này (1–168). Đổi số giờ không làm dời hạn của hóa đơn đã gửi.</div>
+                    </div>
+                </div>
+
+                <div class="form-group row mb-3">
                     <label for="DiaChi" class="col-sm-3 col-form-label">Địa Chỉ <span class="text-danger">*</span></label>
                     <div class="col-sm-9">
                         <input type="text" class="form-control" id="DiaChi" name="DiaChi" required placeholder="Nhập địa chỉ đầy đủ...">
@@ -184,6 +192,8 @@
                 let sdt = $('#SoDienThoai').val() || "";
                 let diaChi = $('#DiaChi').val() || "";
                 let moTa = $('#MoTa').val() || "";
+                let soGioRaw = ($('#SoGioPhanHoiHoaDon').val() || "").toString().trim();
+                let soGio = Number(soGioRaw);
 
                 if (ma.trim() === "") {
                     showWarning('Vui lòng nhập mã chi nhánh!');
@@ -195,6 +205,10 @@
                 }
                 if (diaChi.trim() === "") {
                     showWarning('Vui lòng nhập địa chỉ!');
+                    return;
+                }
+                if (soGioRaw === "" || !Number.isInteger(soGio) || soGio < 1 || soGio > 168) {
+                    showWarning('Số giờ xem xét hóa đơn phải là số nguyên từ 1 đến 168.');
                     return;
                 }
 
@@ -222,7 +236,8 @@
                                 TenChiNhanh: ten,
                                 SoDienThoai: sdt,
                                 DiaChi: diaChi,
-                                MoTa: moTa
+                                MoTa: moTa,
+                                SoGioPhanHoiHoaDon: soGio
                             },
                             success: function (res) {
                                 if (res.success) {
@@ -259,6 +274,7 @@
                             $('#SoDienThoai').val(res.data.soDienThoai);
                             $('#DiaChi').val(res.data.diaChi);
                             $('#MoTa').val(res.data.moTa);
+                            $('#SoGioPhanHoiHoaDon').val(res.data.soGioPhanHoiHoaDon);
 
                             $('#modalTitle').text('Cập nhật Chi Nhánh');
                             $('#btnSaveData').removeClass('btn-primary').addClass('btn-success').addClass('font-weight-bold').addClass('shadow-sm').html('<i class="ti ti-device-floppy me-1"></i> Lưu dữ liệu');
@@ -326,6 +342,7 @@
                 $('#SoDienThoai').val('');
                 $('#DiaChi').val('');
                 $('#MoTa').val('');
+                $('#SoGioPhanHoiHoaDon').val(24);
 
                 $('#modalTitle').text('Thêm Chi Nhánh Mới');
                 $('#btnSaveData').removeClass('btn-success').addClass('btn-primary').addClass('font-weight-bold').addClass('shadow-sm').html('<i class="ti ti-plus me-1"></i> Thêm dữ liệu');
@@ -334,4 +351,3 @@
         });
     </script>
 }
-No newline at end of file

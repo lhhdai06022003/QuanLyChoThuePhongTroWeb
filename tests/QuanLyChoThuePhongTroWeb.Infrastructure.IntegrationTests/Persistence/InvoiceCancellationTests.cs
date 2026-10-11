@@ -29,7 +29,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             var branch = new ChiNhanh
             {
                 TenChiNhanh = $"CN {suffix}",
-                MaChiNhanh = $"U{suffix}",
+                MaChiNhanh = TestCodes.MaChiNhanh("U"),
                 DiaChi = "123 Street",
                 SoDienThoai = "0900000002",
                 MoTa = "Mo ta CN"
@@ -108,7 +108,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
 
             var suffix = Guid.NewGuid().ToString("N")[..6];
 
-            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = $"C{suffix}", DiaChi = "D", SoDienThoai = "0900000001", MoTa = "M" };
+            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = TestCodes.MaChiNhanh("C"), DiaChi = "D", SoDienThoai = "0900000001", MoTa = "M" };
             context.ChiNhanhs.Add(branch);
             await context.SaveChangesAsync();
 
@@ -171,7 +171,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             await using var tx = await context.Database.BeginTransactionAsync();
 
             var suffix = Guid.NewGuid().ToString("N")[..6];
-            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = $"C{suffix}", DiaChi = "D", SoDienThoai = "0900000001", MoTa = "M" };
+            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = TestCodes.MaChiNhanh("C"), DiaChi = "D", SoDienThoai = "0900000001", MoTa = "M" };
             context.ChiNhanhs.Add(branch);
             await context.SaveChangesAsync();
 

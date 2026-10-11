@@ -83,7 +83,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             var branch = new ChiNhanh
             {
                 TenChiNhanh = $"CN_{prefix}_{suffix}",
-                MaChiNhanh = $"C{suffix[..5]}",
+                MaChiNhanh = TestCodes.MaChiNhanh("C"),
                 DiaChi = "123 Duong",
                 SoDienThoai = "0900000001",
                 MoTa = "Mo ta"
@@ -616,6 +616,104 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             using var scope = _factory.Services.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             Assert.False(db.YeuCauThanhToanHoaDons.Any(y => y.HoaDonId == provisional.HoaDonId));
+        }
+
+        private static string VnText(DateTime utc)
+            => utc.AddHours(7).ToString("dd/MM/yyyy HH:mm", System.Globalization.CultureInfo.InvariantCulture);
+
+        private async Task AttachMeterPeriodAsync(HoaDon invoice)
+        {
+            using var scope = _factory.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var contract = await db.HopDongs.FindAsync(invoice.HopDongId);
+            var period = new DichVuDienNuocCuaPhong
+            {
+                PhongTroId = contract!.PhongTroId, Thang = invoice.Thang, Nam = invoice.Nam,
+                ChiSoDienCu = 100, ChiSoDienMoi = 120, ChiSoNuocCu = 50, ChiSoNuocMoi = 60,
+                DonGiaDien = 3500, DonGiaNuoc = 20000, TrangThaiGhiNhan = TrangThaiGhiNhan.DaDuyet
+            };
+            db.DichVuDienNuocCuaPhongs.Add(period);
+            await db.SaveChangesAsync();
+            var tracked = await db.HoaDons.FindAsync(invoice.HoaDonId);
+            tracked!.DichVuDienNuocCuaPhongId = period.DichVuDienNuocCuaPhongId;
+            await db.SaveChangesAsync();
+        }
+
+        [Fact]
+        public async Task GetDanhSach_Provisional_HasFlagAndVietnamDeadline_SentHasNone()
+        {
+            var data = await SeedTestDataAsync("GDS_Flag");
+            var (provisional, _) = await AddProvisionalInvoicesAsync(data.InvoiceDaGui);
+            var client = CreateHttpClient();
+            await LoginTenantAsync(client, data.TenantAUsername, data.TenantAPassword);
+
+            var res = await client.GetAsync("/KhachThue/HoaDon/GetDanhSach");
+            Assert.Equal(HttpStatusCode.OK, res.StatusCode);
+
+            using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+            var items = doc.RootElement.EnumerateArray().ToList();
+            var tamTinh = items.Single(x => x.GetProperty("hoaDonId").GetInt32() == provisional.HoaDonId);
+            Assert.True(tamTinh.GetProperty("laTamTinh").GetBoolean());
+            Assert.Equal(VnText(provisional.HanPhanHoi!.Value), tamTinh.GetProperty("hanTuChot").GetString());
+
+            var daGui = items.Single(x => x.GetProperty("hoaDonId").GetInt32() == data.InvoiceDaGui.HoaDonId);
+            Assert.False(daGui.GetProperty("laTamTinh").GetBoolean());
+            Assert.Equal(string.Empty, daGui.GetProperty("hanTuChot").GetString());
+        }
+
+        [Fact]
+        public async Task XemChiTiet_Provisional_ReturnsFlagBranchPhoneAndMeterReadings()
+        {
+            var data = await SeedTestDataAsync("XCT_Flag");
+            var (provisional, _) = await AddProvisionalInvoicesAsync(data.InvoiceDaGui);
+            await AttachMeterPeriodAsync(provisional);
+            var client = CreateHttpClient();
+            await LoginTenantAsync(client, data.TenantAUsername, data.TenantAPassword);
+
+            var res = await client.GetAsync($"/KhachThue/HoaDon/XemChiTiet?id={provisional.HoaDonId}");
+            Assert.Equal(HttpStatusCode.OK, res.StatusCode);
+
+            using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+            var root = doc.RootElement;
+            Assert.True(root.GetProperty("laTamTinh").GetBoolean());
+            Assert.Equal(VnText(provisional.HanPhanHoi!.Value), root.GetProperty("hanTuChot").GetString());
+            Assert.Equal("0900000001", root.GetProperty("soDienThoaiChiNhanh").GetString());
+            Assert.Equal(100m, root.GetProperty("chiSoDienCu").GetDecimal());
+            Assert.Equal(120m, root.GetProperty("chiSoDienMoi").GetDecimal());
+            Assert.Equal(50m, root.GetProperty("chiSoNuocCu").GetDecimal());
+            Assert.Equal(60m, root.GetProperty("chiSoNuocMoi").GetDecimal());
+            Assert.False(root.TryGetProperty("hanThanhToan", out _));
+            Assert.False(root.TryGetProperty("lichSuTrangThais", out _));
+        }
+
+        [Fact]
+        public async Task XemChiTiet_Sent_IsNotProvisional()
+        {
+            var data = await SeedTestDataAsync("XCT_NotFlag");
+            var client = CreateHttpClient();
+            await LoginTenantAsync(client, data.TenantAUsername, data.TenantAPassword);
+
+            var res = await client.GetAsync($"/KhachThue/HoaDon/XemChiTiet?id={data.InvoiceDaGui.HoaDonId}");
+            Assert.Equal(HttpStatusCode.OK, res.StatusCode);
+
+            using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+            Assert.False(doc.RootElement.GetProperty("laTamTinh").GetBoolean());
+            Assert.Equal(string.Empty, doc.RootElement.GetProperty("hanTuChot").GetString());
+        }
+
+        [Fact]
+        public async Task IndexPage_ShowsProvisionalLabelAndContactLine()
+        {
+            var data = await SeedTestDataAsync("IDX_TT");
+            var client = CreateHttpClient();
+            await LoginTenantAsync(client, data.TenantAUsername, data.TenantAPassword);
+
+            var res = await client.GetAsync("/KhachThue/HoaDon");
+            Assert.Equal(HttpStatusCode.OK, res.StatusCode);
+
+            var html = await res.Content.ReadAsStringAsync();
+            Assert.Contains("Tạm tính, tự chốt lúc", html);
+            Assert.Contains("Nếu có sai sót, vui lòng liên hệ", html);
         }
 
         [Fact]

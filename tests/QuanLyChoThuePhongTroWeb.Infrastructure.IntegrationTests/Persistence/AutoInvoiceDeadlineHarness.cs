@@ -155,7 +155,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             var branch = new ChiNhanh
             {
                 TenChiNhanh = $"Deadline {suffix}",
-                MaChiNhanh = $"D{suffix}",
+                MaChiNhanh = TestCodes.MaChiNhanh("D"),
                 DiaChi = "Dia chi",
                 SoDienThoai = "0900000088",
                 MoTa = "x",

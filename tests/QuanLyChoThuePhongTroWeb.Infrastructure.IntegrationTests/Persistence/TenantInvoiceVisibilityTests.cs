@@ -57,6 +57,11 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             Assert.DoesNotContain(draft.HoaDonId, ids);
             Assert.DoesNotContain(finalized.HoaDonId, ids);
 
+            Assert.True(list.Single(x => x.HoaDonId == provisional.HoaDonId).LaTamTinh);
+            var sentRow = list.Single(x => x.HoaDonId == sent.HoaDonId);
+            Assert.False(sentRow.LaTamTinh);
+            Assert.Equal(string.Empty, sentRow.HanTuChot);
+
             Assert.True(await store.CheckHoaDonOwnershipAsync(provisional.HoaDonId, tenant.NguoiThueId));
             Assert.True(await store.CheckHoaDonOwnershipAsync(sent.HoaDonId, tenant.NguoiThueId));
             Assert.True(await store.CheckHoaDonOwnershipAsync(cancelledSent.HoaDonId, tenant.NguoiThueId));
@@ -91,6 +96,8 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             var item = Assert.Single(list);
             Assert.Equal(987_000m, item.TongTien);
             Assert.Equal((int)TrangThaiPhatHanhHoaDon.ChoDuyet, item.TrangThaiPhatHanhValue);
+            Assert.True(item.LaTamTinh);
+            Assert.Equal("12/10/2026 10:00", item.HanTuChot);
 
             await tx.RollbackAsync();
         }

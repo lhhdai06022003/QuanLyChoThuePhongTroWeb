@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Persistence;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Security;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Services;
+using QuanLyChoThuePhongTroWeb.Application.Common.Formatting;
 using QuanLyChoThuePhongTroWeb.Application.Common.Models;
 using QuanLyChoThuePhongTroWeb.Application.Common.Security;
 using QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.DTOs;
@@ -1353,7 +1354,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
                     var placeholder = next.ChiSoDienMoi == next.ChiSoDienCu;
                     if (!placeholder && next.ChiSoDienMoi < dien)
                     {
-                        return $"Kỳ {next.Thang:00}/{next.Nam} đang có chỉ số điện mới ({next.ChiSoDienMoi}) nhỏ hơn chỉ số điện này ({dien}). Hãy sửa kỳ {next.Thang:00}/{next.Nam} trước.";
+                        return $"Kỳ {next.Thang:00}/{next.Nam} đang có chỉ số điện mới ({ChiSo.DinhDang(next.ChiSoDienMoi)}) nhỏ hơn chỉ số điện này ({ChiSo.DinhDang(dien)}). Hãy sửa kỳ {next.Thang:00}/{next.Nam} trước.";
                     }
 
                     next.ChiSoDienCu = dien;
@@ -1366,7 +1367,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
                     var placeholder = next.ChiSoNuocMoi == next.ChiSoNuocCu;
                     if (!placeholder && next.ChiSoNuocMoi < nuoc)
                     {
-                        return $"Kỳ {next.Thang:00}/{next.Nam} đang có chỉ số nước mới ({next.ChiSoNuocMoi}) nhỏ hơn chỉ số nước này ({nuoc}). Hãy sửa kỳ {next.Thang:00}/{next.Nam} trước.";
+                        return $"Kỳ {next.Thang:00}/{next.Nam} đang có chỉ số nước mới ({ChiSo.DinhDang(next.ChiSoNuocMoi)}) nhỏ hơn chỉ số nước này ({ChiSo.DinhDang(nuoc)}). Hãy sửa kỳ {next.Thang:00}/{next.Nam} trước.";
                     }
 
                     next.ChiSoNuocCu = nuoc;
