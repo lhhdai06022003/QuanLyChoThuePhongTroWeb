@@ -258,5 +258,133 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.Equal("Đồng hồ kẹt kim", approvedItem.LyDoDienThuCong);
             Assert.Equal("Đồng hồ mờ số", approvedItem.LyDoNuocThuCong);
         }
+
+        private static ChotDienNuocReq TwoRoomsRequest() => new()
+        {
+            ChiNhanhId = 1,
+            Thang = 9,
+            Nam = 2026,
+            DanhSachPhong = new List<DienNuocPhongReq>
+            {
+                new() { PhongTroId = 102, ChiSoDienCu = 100, ChiSoDienMoi = 150, ChiSoNuocCu = 50, ChiSoNuocMoi = 60, LyDoNhapThuCongDien = "Lý do", LyDoNhapThuCongNuoc = "Lý do" },
+                new() { PhongTroId = 101, ChiSoDienCu = 100, ChiSoDienMoi = 150, ChiSoNuocCu = 50, ChiSoNuocMoi = 60, LyDoNhapThuCongDien = "Lý do", LyDoNhapThuCongNuoc = "Lý do" },
+                new() { PhongTroId = 101, ChiSoDienCu = 100, ChiSoDienMoi = 150, ChiSoNuocCu = 50, ChiSoNuocMoi = 60, LyDoNhapThuCongDien = "Lý do", LyDoNhapThuCongNuoc = "Lý do" }
+            }
+        };
+
+        [Fact]
+        public async Task SaveChotDienNuoc_Success_TriggersAutoInvoicePerDistinctRoom_InAscendingOrder()
+        {
+            _dienNuocStore.RoomBranches[102] = 1;
+            var autoInvoice = new Fakes.FakeAutoInvoiceService();
+            var service = new DienNuocService(_dienNuocStore, _accessService, _workflowService, autoInvoice);
+
+            var result = await service.SaveChotDienNuocAsync(TwoRoomsRequest(), actorId: 10);
+
+            Assert.True(result.IsSuccess);
+            Assert.Equal(string.Empty, result.ErrorMessage);
+            Assert.Equal(
+                new[] { (10, AutoInvoiceTrigger.ChotKy, 101, 9, 2026), (10, AutoInvoiceTrigger.ChotKy, 102, 9, 2026) },
+                autoInvoice.Calls.ToArray());
+        }
+
+        [Fact]
+        public async Task SaveChotDienNuoc_Failure_DoesNotTriggerAutoInvoice()
+        {
+            _dienNuocStore.RoomBranches[102] = 1;
+            _workflowService.OnApproveBatch = (_, _) => ServiceResult<MeterPeriodsApprovalResult>.Fail("Không thể chốt kỳ.");
+            var autoInvoice = new Fakes.FakeAutoInvoiceService();
+            var service = new DienNuocService(_dienNuocStore, _accessService, _workflowService, autoInvoice);
+
+            var result = await service.SaveChotDienNuocAsync(TwoRoomsRequest(), actorId: 10);
+
+            Assert.False(result.IsSuccess);
+            Assert.Empty(autoInvoice.Calls);
+        }
+
+        [Fact]
+        public async Task SaveChotDienNuoc_NoPermission_DoesNotTriggerAutoInvoice()
+        {
+            _dienNuocStore.RoomBranches[102] = 1;
+            var autoInvoice = new Fakes.FakeAutoInvoiceService();
+            var service = new DienNuocService(_dienNuocStore, _accessService, _workflowService, autoInvoice);
+
+            var result = await service.SaveChotDienNuocAsync(TwoRoomsRequest(), actorId: 99);
+
+            Assert.False(result.IsSuccess);
+            Assert.Empty(autoInvoice.Calls);
+        }
+
+
+        private sealed class RecordingDispatcher : QuanLyChoThuePhongTroWeb.Application.Abstractions.Services.IProvisionalInvoiceEmailDispatcher
+        {
+            public List<IReadOnlyList<QuanLyChoThuePhongTroWeb.Application.Features.Emails.DTOs.PendingProvisionalEmail>> Batches { get; } = new();
+
+            public void Enqueue(IReadOnlyList<QuanLyChoThuePhongTroWeb.Application.Features.Emails.DTOs.PendingProvisionalEmail> emails) => Batches.Add(emails);
+        }
+
+        private static QuanLyChoThuePhongTroWeb.Application.Features.Emails.DTOs.PendingProvisionalEmail Pending(int hoaDonId, string email) =>
+            new(hoaDonId, email, new QuanLyChoThuePhongTroWeb.Application.Features.Emails.DTOs.ProvisionalInvoiceEmailData { MaHoaDon = $"HD-{hoaDonId}" });
+
+        [Fact]
+        public async Task SaveChotDienNuoc_WithDispatcher_DefersEmailsAndEnqueuesOnceInRoomOrder()
+        {
+            _dienNuocStore.RoomBranches[102] = 1;
+            var autoInvoice = new Fakes.FakeAutoInvoiceService();
+            autoInvoice.EmailChoGuiTheoPhong[101] = Pending(1, "a@x.vn");
+            autoInvoice.EmailChoGuiTheoPhong[102] = Pending(2, "b@x.vn");
+            var dispatcher = new RecordingDispatcher();
+            var service = new DienNuocService(_dienNuocStore, _accessService, _workflowService, autoInvoice, dispatcher);
+
+            var result = await service.SaveChotDienNuocAsync(TwoRoomsRequest(), actorId: 10);
+
+            Assert.True(result.IsSuccess);
+            Assert.Equal(new[] { true, true }, autoInvoice.HoanGuiEmailCalls.ToArray());
+            var batch = Assert.Single(dispatcher.Batches);
+            Assert.Equal(new[] { 1, 2 }, batch.Select(e => e.HoaDonId).ToArray());
+        }
+
+        [Fact]
+        public async Task SaveChotDienNuoc_WithDispatcher_NoPendingEmails_DoesNotEnqueue()
+        {
+            _dienNuocStore.RoomBranches[102] = 1;
+            var autoInvoice = new Fakes.FakeAutoInvoiceService();
+            var dispatcher = new RecordingDispatcher();
+            var service = new DienNuocService(_dienNuocStore, _accessService, _workflowService, autoInvoice, dispatcher);
+
+            var result = await service.SaveChotDienNuocAsync(TwoRoomsRequest(), actorId: 10);
+
+            Assert.True(result.IsSuccess);
+            Assert.Empty(dispatcher.Batches);
+        }
+
+        [Fact]
+        public async Task SaveChotDienNuoc_WithoutDispatcher_SendsEmailInline()
+        {
+            _dienNuocStore.RoomBranches[102] = 1;
+            var autoInvoice = new Fakes.FakeAutoInvoiceService();
+            var service = new DienNuocService(_dienNuocStore, _accessService, _workflowService, autoInvoice);
+
+            await service.SaveChotDienNuocAsync(TwoRoomsRequest(), actorId: 10);
+
+            Assert.Equal(new[] { false, false }, autoInvoice.HoanGuiEmailCalls.ToArray());
+        }
+
+        [Fact]
+        public async Task SaveChotDienNuoc_Failure_DoesNotEnqueueEmails()
+        {
+            _dienNuocStore.RoomBranches[102] = 1;
+            _workflowService.OnApproveBatch = (_, _) => ServiceResult<MeterPeriodsApprovalResult>.Fail("Không thể chốt kỳ.");
+            var autoInvoice = new Fakes.FakeAutoInvoiceService();
+            autoInvoice.EmailChoGuiTheoPhong[101] = Pending(1, "a@x.vn");
+            var dispatcher = new RecordingDispatcher();
+            var service = new DienNuocService(_dienNuocStore, _accessService, _workflowService, autoInvoice, dispatcher);
+
+            var result = await service.SaveChotDienNuocAsync(TwoRoomsRequest(), actorId: 10);
+
+            Assert.False(result.IsSuccess);
+            Assert.Empty(dispatcher.Batches);
+            Assert.Empty(autoInvoice.Calls);
+        }
     }
 }

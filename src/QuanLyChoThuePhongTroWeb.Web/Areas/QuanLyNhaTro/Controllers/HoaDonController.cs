@@ -26,6 +26,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         private readonly IInvoiceViewService _invoiceViewService;
         private readonly IInvoiceLedgerService _ledgerService;
         private readonly IInvoicePaymentConfirmationService _paymentService;
+        private readonly IInvoiceAdjustmentService _adjustmentService;
 
         public HoaDonController(
             IHoaDonService hoaDonService,
@@ -38,8 +39,10 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             IInvoicePublicationService invoicePublicationService,
             IInvoiceViewService invoiceViewService,
             IInvoiceLedgerService ledgerService,
-            IInvoicePaymentConfirmationService paymentService)
+            IInvoicePaymentConfirmationService paymentService,
+            IInvoiceAdjustmentService adjustmentService)
         {
+            _adjustmentService = adjustmentService;
             _ledgerService = ledgerService;
             _paymentService = paymentService;
             _invoiceIssuanceService = invoiceIssuanceService;
@@ -567,6 +570,111 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             });
         }
 
+        [HttpGet("/HoaDon/DieuChinh/{id:int}")]
+        public async Task<IActionResult> DieuChinhThongTin(int id, CancellationToken ct)
+        {
+            if (!TryGetActorId(out var actorId))
+                return Unauthorized(new { success = false, message = "Người dùng chưa đăng nhập hoặc phiên làm việc đã hết hạn." });
+
+            var result = await _adjustmentService.GetAdjustmentInfoAsync(actorId, id, ct);
+            if (!result.Success) return this.ToErrorResult(result);
+
+            var info = result.Data!;
+            return Ok(new
+            {
+                hoaDonId = info.HoaDonId,
+                maHoaDon = info.MaHoaDon,
+                coTheDieuChinh = info.CoTheDieuChinh,
+                lyDoKhoa = info.LyDoKhoa,
+                chiSoDienCu = info.ChiSoDienCu,
+                chiSoDienMoi = info.ChiSoDienMoi,
+                chiSoNuocCu = info.ChiSoNuocCu,
+                chiSoNuocMoi = info.ChiSoNuocMoi,
+                hanTuChot = FormatVietnamTime(info.HanPhanHoiUtc),
+                tongTien = info.TongTien,
+                chiTiets = info.ChiTiets.Select(ToLineJson).ToList()
+            });
+        }
+
+        // Xem trước dòng điện/nước theo chỉ số mới (chưa lưu), để màn điều chỉnh cập nhật các dòng tương ứng.
+        [HttpGet("/HoaDon/DieuChinh/{id:int}/TinhLai")]
+        public async Task<IActionResult> DieuChinhTinhLai(int id, [FromQuery] decimal chiSoDienMoi, [FromQuery] decimal chiSoNuocMoi, CancellationToken ct)
+        {
+            if (id <= 0)
+                return BadRequest(new { success = false, message = "Dữ liệu không hợp lệ." });
+
+            if (!TryGetActorId(out var actorId))
+                return Unauthorized(new { success = false, message = "Người dùng chưa đăng nhập hoặc phiên làm việc đã hết hạn." });
+
+            var result = await _adjustmentService.PreviewMeterLinesAsync(actorId, id, chiSoDienMoi, chiSoNuocMoi, ct);
+            if (!result.Success) return this.ToErrorResult(result);
+
+            var preview = result.Data!;
+            return Ok(new
+            {
+                dien = preview.Dien == null ? null : ToLineJson(preview.Dien),
+                nuoc = preview.Nuoc == null ? null : ToLineJson(preview.Nuoc)
+            });
+        }
+
+        private static object ToLineJson(InvoiceAdjustmentLine l) => new
+        {
+            chiTietHoaDonId = l.ChiTietHoaDonId,
+            tenDichVu = l.TenDichVu,
+            donGia = l.DonGia,
+            soLuong = l.SoLuong,
+            tongTien = l.TongTien,
+            loai = l.Loai,
+            donVi = l.DonVi
+        };
+
+        // Cùng định dạng giờ Việt Nam cho GET và POST điều chỉnh.
+        private static string? FormatVietnamTime(DateTime? utc)
+            => utc?.AddHours(7).ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture);
+
+        [HttpPost("/HoaDon/DieuChinh/{id:int}")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DieuChinh(int id, [FromBody] DieuChinhHoaDonReq? req, CancellationToken ct)
+        {
+            if (id <= 0 || req == null)
+                return BadRequest(new { success = false, message = "Dữ liệu không hợp lệ." });
+
+            if (!TryGetActorId(out var actorId))
+                return Unauthorized(new { success = false, message = "Người dùng chưa đăng nhập hoặc phiên làm việc đã hết hạn." });
+
+            var result = await _adjustmentService.AdjustAsync(actorId, new AdjustInvoiceRequest
+            {
+                HoaDonId = id,
+                ChiSoDienMoi = req.ChiSoDienMoi,
+                ChiSoNuocMoi = req.ChiSoNuocMoi,
+                ChiTiets = req.ChiTiets?
+                    .Select(l => new AdjustInvoiceLine
+                    {
+                        ChiTietHoaDonId = l.ChiTietHoaDonId,
+                        TenDichVu = l.TenDichVu,
+                        DonGia = l.DonGia,
+                        SoLuong = l.SoLuong
+                    })
+                    .ToList()
+            }, ct);
+            if (!result.Success) return this.ToErrorResult(result);
+
+            var d = result.Data!;
+            return Ok(new
+            {
+                success = true,
+                message = result.Message,
+                data = new
+                {
+                    hoaDonId = d.HoaDonIdMoi,
+                    maHoaDon = d.MaHoaDonMoi,
+                    tongTien = d.TongTienMoi,
+                    hanTuChot = FormatVietnamTime(d.HanPhanHoiUtc),
+                    daTaoHoaDonThayThe = d.DaTaoHoaDonThayThe
+                }
+            });
+        }
+
         private bool TryGetActorId(out int actorId)
         {
             return int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out actorId) && actorId > 0;
@@ -576,6 +684,23 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
     public class RejectInvoiceReq
     {
         public string? LyDo { get; set; }
+    }
+
+    public class DieuChinhHoaDonReq
+    {
+        // Không gửi = giữ chỉ số hiện tại của kỳ.
+        public decimal? ChiSoDienMoi { get; set; }
+        public decimal? ChiSoNuocMoi { get; set; }
+        // Không gửi = không sửa khoản phí; có gửi = danh sách dòng cuối cùng của hóa đơn.
+        public List<DieuChinhDongReq>? ChiTiets { get; set; }
+    }
+
+    public class DieuChinhDongReq
+    {
+        public int? ChiTietHoaDonId { get; set; }
+        public string? TenDichVu { get; set; }
+        public decimal DonGia { get; set; }
+        public decimal SoLuong { get; set; }
     }
 
     public class PublishInvoicesReq

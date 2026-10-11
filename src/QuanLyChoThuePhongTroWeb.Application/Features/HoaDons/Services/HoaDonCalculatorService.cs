@@ -1,4 +1,5 @@
 using System;
+using QuanLyChoThuePhongTroWeb.Application.Common.Formatting;
 
 namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
 {
@@ -35,7 +36,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
         {
             if (chiSoMoi < chiSoCu)
             {
-                throw new InvalidOperationException($"Chỉ số {tenDichVu} mới ({chiSoMoi}) nhỏ hơn chỉ số cũ ({chiSoCu}).");
+                throw new InvalidOperationException($"Chỉ số {tenDichVu} mới ({ChiSo.DinhDang(chiSoMoi)}) nhỏ hơn chỉ số cũ ({ChiSo.DinhDang(chiSoCu)}).");
             }
 
             decimal tongTieuThu = chiSoMoi - chiSoCu;
@@ -46,11 +47,11 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
             string dienGiai = tenDichVu;
             if (soNgayO < tongNgayTrongThang)
             {
-                dienGiai = $"{tenDichVu} (tỷ lệ {soNgayO}/{tongNgayTrongThang} ngày, {chiSoCu} → {chiSoMoi})";
+                dienGiai = $"{tenDichVu} (tỷ lệ {soNgayO}/{tongNgayTrongThang} ngày, {ChiSo.DinhDang(chiSoCu)} → {ChiSo.DinhDang(chiSoMoi)})";
             }
             else
             {
-                dienGiai = $"{tenDichVu} ({chiSoCu} → {chiSoMoi})";
+                dienGiai = $"{tenDichVu} ({ChiSo.DinhDang(chiSoCu)} → {ChiSo.DinhDang(chiSoMoi)})";
             }
 
             return (soLuongTyLe, soTien, dienGiai);

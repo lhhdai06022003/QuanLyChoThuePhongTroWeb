@@ -37,7 +37,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             var branch = new ChiNhanh
             {
                 TenChiNhanh = $"CN {suffix}",
-                MaChiNhanh = $"C{suffix}",
+                MaChiNhanh = TestCodes.MaChiNhanh("C"),
                 DiaChi = "123 Street",
                 SoDienThoai = "0900000001",
                 MoTa = "Mo ta CN"
@@ -143,7 +143,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             };
             var branch = new ChiNhanh
             {
-                TenChiNhanh = $"CN {suffix}", MaChiNhanh = $"L{suffix}", DiaChi = "123 Street",
+                TenChiNhanh = $"CN {suffix}", MaChiNhanh = TestCodes.MaChiNhanh("L"), DiaChi = "123 Street",
                 SoDienThoai = "0900000001", MoTa = "Mo ta CN"
             };
             context.AddRange(staff, branch);
@@ -276,7 +276,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             await using var context = _fixture.CreateDbContext();
 
             var suffix = Guid.NewGuid().ToString("N").Substring(0, 6);
-            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = $"C_{suffix}", DiaChi = "123", SoDienThoai = "0900", MoTa = "Mo ta" };
+            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = TestCodes.MaChiNhanh("C_"), DiaChi = "123", SoDienThoai = "0900", MoTa = "Mo ta" };
             context.ChiNhanhs.Add(branch);
             await context.SaveChangesAsync();
 
@@ -372,7 +372,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             await using var context = _fixture.CreateDbContext();
 
             var suffix = Guid.NewGuid().ToString("N").Substring(0, 6);
-            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = $"C_{suffix}", DiaChi = "123", SoDienThoai = "0900", MoTa = "Mo ta" };
+            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = TestCodes.MaChiNhanh("C_"), DiaChi = "123", SoDienThoai = "0900", MoTa = "Mo ta" };
             context.ChiNhanhs.Add(branch);
             await context.SaveChangesAsync();
 

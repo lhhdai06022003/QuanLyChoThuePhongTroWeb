@@ -57,7 +57,7 @@ Mức ưu tiên: **Khẩn** (đỏ), **Cần làm** (cam), **Theo dõi** (xanh).
 | Mã | Nhóm | Việc | Điều kiện | Mã hành động | Ưu tiên | Một dòng cho |
 |---|---|---|---|---|---|---|
 | CS1 | Chỉ số | Phòng chưa chốt điện nước | Giữ cách quét kỳ hiện tại: kỳ mục tiêu theo `DashboardSettings.ChotDienNuocDay`, quét 6 kỳ tính đến kỳ mục tiêu. Phòng có hợp đồng đang hoạt động bắt đầu từ kỳ đó trở về trước, chưa có kỳ chỉ số **đã chốt** (chưa xóa, `TrangThaiGhiNhan = DaDuyet`, khớp `IsDaChot` của màn Chốt điện nước; phát sinh hóa đơn cũng chỉ nhận kỳ `DaDuyet`) | `Meter.Upload` | Kỳ mục tiêu: Cần làm. Kỳ cũ hơn: Khẩn | Mỗi kỳ |
-| CS2 | Chỉ số | Ảnh chỉ số chờ xác nhận | Ảnh chưa xóa, trạng thái `DocDuoc`, `KhongDocDuoc` hoặc `Loi`; kỳ chỉ số chưa xóa | `Meter.Review` | Cần làm | Mỗi kỳ |
+| CS2 | Chỉ số | Ảnh chỉ số chờ xác nhận | Ảnh chưa xóa, trạng thái `DocDuoc`, `KhongDocDuoc` hoặc `Loi`; kỳ chỉ số chưa xóa, **chưa chốt** (khác `DaDuyet`) và **không bị khóa bởi kỳ sau** (kỳ sau `DaDuyet` hoặc đã có hóa đơn phát hành). Kỳ đã chốt hoặc đã bị khóa thì không còn xác nhận được ảnh nên không phải việc cần làm (sửa 11/10/2026 theo báo cáo T8/2026) | `Meter.Review` | Cần làm | Mỗi kỳ |
 | HD1 | Hóa đơn | Hóa đơn nháp chưa gửi duyệt | Chưa xóa, `TrangThaiPhatHanh = Nhap` | `Invoice.Submit` | Cần làm | Cả nhóm |
 | HD2 | Hóa đơn | Hóa đơn chờ Admin chốt | Chưa xóa, `ChoDuyet` | `Invoice.Finalize` (chỉ Admin) | Cần làm | Cả nhóm |
 | HD3 | Hóa đơn | Hóa đơn đã chốt, chưa gửi khách | Chưa xóa, `DaChot`, `TrangThaiHoaDon ≠ DaThanhToan` | `Invoice.Send` | Cần làm | Cả nhóm |
@@ -67,6 +67,8 @@ Mức ưu tiên: **Khẩn** (đỏ), **Cần làm** (cam), **Theo dõi** (xanh).
 | KH1 | Khách thuê & HĐ | Sự cố chờ tiếp nhận | Chưa xóa, `ChoTiepNhan` | — | Khẩn nếu có sự cố gửi quá 24 giờ, còn lại Cần làm | Cả nhóm |
 | KH2 | Khách thuê & HĐ | Sự cố xử lý quá lâu | Chưa xóa, `DangXuLy`, `NgayGui` cách hiện tại hơn 7 ngày | — | Cần làm | Cả nhóm |
 | KH3 | Khách thuê & HĐ | Hợp đồng sắp hết hạn | Chưa xóa, `DangHoatDong`, ngày kết thúc từ hôm nay đến hôm nay + 30 ngày | — | Cần làm nếu có hợp đồng còn ≤ 7 ngày, còn lại Theo dõi | Cả nhóm |
+
+`HD4` và `HD5` do module hóa đơn tự động thêm: xem [spec](../hoa-don-tu-dong/spec.md) mục 7.3 và [plan](../hoa-don-tu-dong/plan.md) mục 2.4.
 
 **Quy tắc chung:**
 

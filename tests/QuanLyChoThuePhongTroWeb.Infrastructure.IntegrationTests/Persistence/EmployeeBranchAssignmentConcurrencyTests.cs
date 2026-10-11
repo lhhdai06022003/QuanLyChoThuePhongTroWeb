@@ -55,7 +55,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             var branch = new ChiNhanh
             {
                 TenChiNhanh = $"CN_{prefix}_{suffix}",
-                MaChiNhanh = $"C{suffix}",
+                MaChiNhanh = TestCodes.MaChiNhanh("C"),
                 DiaChi = "Dia chi test",
                 SoDienThoai = "0911111111",
                 MoTa = "Chi nhanh test"
@@ -214,7 +214,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             await using var ctx = _fixture.CreateDbContext();
             var suffix = Guid.NewGuid().ToString("N")[..6];
 
-            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = $"C{suffix}", DiaChi = "d", SoDienThoai = "0900000000", MoTa = "m" };
+            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = TestCodes.MaChiNhanh("C"), DiaChi = "d", SoDienThoai = "0900000000", MoTa = "m" };
             ctx.ChiNhanhs.Add(branch);
             await ctx.SaveChangesAsync();
 

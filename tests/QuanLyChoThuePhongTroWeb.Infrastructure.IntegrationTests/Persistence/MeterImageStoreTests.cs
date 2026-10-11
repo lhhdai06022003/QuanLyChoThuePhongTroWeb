@@ -43,7 +43,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             var branch = new ChiNhanh
             {
                 TenChiNhanh = $"CN_{suffix}",
-                MaChiNhanh = $"C_{suffix}",
+                MaChiNhanh = TestCodes.MaChiNhanh("C_"),
                 DiaChi = "123 Street",
                 SoDienThoai = "0900000000",
                 MoTa = "Mo ta chi nhanh"
@@ -106,7 +106,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             await using var tx = await context.Database.BeginTransactionAsync();
 
             var suffix = Guid.NewGuid().ToString("N").Substring(0, 6);
-            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = $"C_{suffix}", DiaChi = "123", SoDienThoai = "0900", MoTa = "Mo ta" };
+            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = TestCodes.MaChiNhanh("C_"), DiaChi = "123", SoDienThoai = "0900", MoTa = "Mo ta" };
             context.ChiNhanhs.Add(branch);
             await context.SaveChangesAsync();
 
@@ -130,7 +130,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             await using var tx = await context.Database.BeginTransactionAsync();
 
             var suffix = Guid.NewGuid().ToString("N").Substring(0, 6);
-            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = $"C_{suffix}", DiaChi = "123", SoDienThoai = "0900", MoTa = "Mo ta" };
+            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = TestCodes.MaChiNhanh("C_"), DiaChi = "123", SoDienThoai = "0900", MoTa = "Mo ta" };
             context.ChiNhanhs.Add(branch);
             await context.SaveChangesAsync();
 
@@ -178,7 +178,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             await using var tx = await context.Database.BeginTransactionAsync();
 
             var suffix = Guid.NewGuid().ToString("N").Substring(0, 6);
-            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = $"C_{suffix}", DiaChi = "123", SoDienThoai = "0900", MoTa = "Mo ta" };
+            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = TestCodes.MaChiNhanh("C_"), DiaChi = "123", SoDienThoai = "0900", MoTa = "Mo ta" };
             context.ChiNhanhs.Add(branch);
             await context.SaveChangesAsync();
 
@@ -228,7 +228,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             await using var tx = await context.Database.BeginTransactionAsync();
 
             var suffix = Guid.NewGuid().ToString("N").Substring(0, 6);
-            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = $"C_{suffix}", DiaChi = "123", SoDienThoai = "0900", MoTa = "Mo ta" };
+            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = TestCodes.MaChiNhanh("C_"), DiaChi = "123", SoDienThoai = "0900", MoTa = "Mo ta" };
             context.ChiNhanhs.Add(branch);
             await context.SaveChangesAsync();
 
@@ -290,7 +290,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             await using var tx = await context.Database.BeginTransactionAsync();
 
             var suffix = Guid.NewGuid().ToString("N").Substring(0, 6);
-            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = $"C_{suffix}", DiaChi = "123", SoDienThoai = "0900", MoTa = "Mo ta" };
+            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = TestCodes.MaChiNhanh("C_"), DiaChi = "123", SoDienThoai = "0900", MoTa = "Mo ta" };
             context.ChiNhanhs.Add(branch);
             await context.SaveChangesAsync();
 
@@ -355,7 +355,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             await using var tx = await context.Database.BeginTransactionAsync();
 
             var suffix = Guid.NewGuid().ToString("N").Substring(0, 6);
-            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = $"C_{suffix}", DiaChi = "123", SoDienThoai = "0900", MoTa = "Mo ta" };
+            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = TestCodes.MaChiNhanh("C_"), DiaChi = "123", SoDienThoai = "0900", MoTa = "Mo ta" };
             context.ChiNhanhs.Add(branch);
             await context.SaveChangesAsync();
 
@@ -390,7 +390,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             await using var tx = await context.Database.BeginTransactionAsync();
 
             var suffix = Guid.NewGuid().ToString("N").Substring(0, 6);
-            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = $"C_{suffix}", DiaChi = "123", SoDienThoai = "0900", MoTa = "Mo ta" };
+            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = TestCodes.MaChiNhanh("C_"), DiaChi = "123", SoDienThoai = "0900", MoTa = "Mo ta" };
             context.ChiNhanhs.Add(branch);
             await context.SaveChangesAsync();
 
@@ -449,7 +449,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             await using var tx = await context.Database.BeginTransactionAsync();
 
             var suffix = Guid.NewGuid().ToString("N").Substring(0, 6);
-            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = $"C_{suffix}", DiaChi = "123", SoDienThoai = "0900", MoTa = "Mo ta" };
+            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = TestCodes.MaChiNhanh("C_"), DiaChi = "123", SoDienThoai = "0900", MoTa = "Mo ta" };
             context.ChiNhanhs.Add(branch);
             await context.SaveChangesAsync();
 
@@ -480,7 +480,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             await using var tx = await context.Database.BeginTransactionAsync();
 
             var suffix = Guid.NewGuid().ToString("N").Substring(0, 6);
-            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = $"C_{suffix}", DiaChi = "123", SoDienThoai = "0900", MoTa = "Mo ta" };
+            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = TestCodes.MaChiNhanh("C_"), DiaChi = "123", SoDienThoai = "0900", MoTa = "Mo ta" };
             context.ChiNhanhs.Add(branch);
             await context.SaveChangesAsync();
 
@@ -583,7 +583,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
 
             await using (var seedCtx = _fixture.CreateDbContext())
             {
-                var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = $"C_{suffix}", DiaChi = "123", SoDienThoai = "0900", MoTa = "Mo ta" };
+                var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = TestCodes.MaChiNhanh("C_"), DiaChi = "123", SoDienThoai = "0900", MoTa = "Mo ta" };
                 seedCtx.ChiNhanhs.Add(branch);
                 await seedCtx.SaveChangesAsync();
 
@@ -688,7 +688,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
 
             await using (var seedCtx = _fixture.CreateDbContext())
             {
-                var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = $"C_{suffix}", DiaChi = "123", SoDienThoai = "0900", MoTa = "Mo ta" };
+                var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = TestCodes.MaChiNhanh("C_"), DiaChi = "123", SoDienThoai = "0900", MoTa = "Mo ta" };
                 seedCtx.ChiNhanhs.Add(branch);
                 await seedCtx.SaveChangesAsync();
 
@@ -783,7 +783,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             await using var tx = await context.Database.BeginTransactionAsync();
 
             var suffix = Guid.NewGuid().ToString("N").Substring(0, 6);
-            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = $"C_{suffix}", DiaChi = "123", SoDienThoai = "0900", MoTa = "Mo ta" };
+            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = TestCodes.MaChiNhanh("C_"), DiaChi = "123", SoDienThoai = "0900", MoTa = "Mo ta" };
             context.ChiNhanhs.Add(branch);
             await context.SaveChangesAsync();
 
@@ -868,7 +868,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
 
             await using (var seedCtx = _fixture.CreateDbContext())
             {
-                var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = $"C_{suffix}", DiaChi = "123", SoDienThoai = "0900", MoTa = "Mo ta" };
+                var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = TestCodes.MaChiNhanh("C_"), DiaChi = "123", SoDienThoai = "0900", MoTa = "Mo ta" };
                 seedCtx.ChiNhanhs.Add(branch);
                 await seedCtx.SaveChangesAsync();
 
@@ -977,7 +977,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
 
             await using (var seedCtx = _fixture.CreateDbContext())
             {
-                var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = $"C_{suffix}", DiaChi = "123", SoDienThoai = "0900", MoTa = "Mo ta" };
+                var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = TestCodes.MaChiNhanh("C_"), DiaChi = "123", SoDienThoai = "0900", MoTa = "Mo ta" };
                 seedCtx.ChiNhanhs.Add(branch);
                 await seedCtx.SaveChangesAsync();
 
@@ -1124,7 +1124,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
 
             await using (var seedCtx = _fixture.CreateDbContext())
             {
-                var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = $"C_{suffix}", DiaChi = "123", SoDienThoai = "0900", MoTa = "Mo ta" };
+                var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = TestCodes.MaChiNhanh("C_"), DiaChi = "123", SoDienThoai = "0900", MoTa = "Mo ta" };
                 seedCtx.ChiNhanhs.Add(branch);
                 await seedCtx.SaveChangesAsync();
 
@@ -1178,7 +1178,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
 
             await using (var seedCtx = _fixture.CreateDbContext())
             {
-                var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = $"C_{suffix}", DiaChi = "123", SoDienThoai = "0900", MoTa = "Mo ta" };
+                var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = TestCodes.MaChiNhanh("C_"), DiaChi = "123", SoDienThoai = "0900", MoTa = "Mo ta" };
                 seedCtx.ChiNhanhs.Add(branch);
                 await seedCtx.SaveChangesAsync();
 
@@ -1271,7 +1271,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
 
             await using (var seedCtx = _fixture.CreateDbContext())
             {
-                var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = $"C_{suffix}", DiaChi = "123", SoDienThoai = "0900", MoTa = "Mo ta" };
+                var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = TestCodes.MaChiNhanh("C_"), DiaChi = "123", SoDienThoai = "0900", MoTa = "Mo ta" };
                 seedCtx.ChiNhanhs.Add(branch);
                 await seedCtx.SaveChangesAsync();
 
@@ -1366,7 +1366,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
 
             await using (var seedCtx = _fixture.CreateDbContext())
             {
-                var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = $"C_{suffix}", DiaChi = "123", SoDienThoai = "0900", MoTa = "Mo ta" };
+                var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = TestCodes.MaChiNhanh("C_"), DiaChi = "123", SoDienThoai = "0900", MoTa = "Mo ta" };
                 seedCtx.ChiNhanhs.Add(branch);
                 await seedCtx.SaveChangesAsync();
 
@@ -1457,7 +1457,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
 
             await using (var seedCtx = _fixture.CreateDbContext())
             {
-                var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = $"C_{suffix}", DiaChi = "123", SoDienThoai = "0900", MoTa = "Mo ta" };
+                var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = TestCodes.MaChiNhanh("C_"), DiaChi = "123", SoDienThoai = "0900", MoTa = "Mo ta" };
                 seedCtx.ChiNhanhs.Add(branch);
                 await seedCtx.SaveChangesAsync();
 
@@ -1532,7 +1532,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
 
             await using (var seedCtx = _fixture.CreateDbContext())
             {
-                var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = $"C_{suffix}", DiaChi = "123", SoDienThoai = "0900", MoTa = "Mo ta" };
+                var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = TestCodes.MaChiNhanh("C_"), DiaChi = "123", SoDienThoai = "0900", MoTa = "Mo ta" };
                 seedCtx.ChiNhanhs.Add(branch);
                 await seedCtx.SaveChangesAsync();
 
@@ -1592,7 +1592,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
 
             await using (var seedCtx = _fixture.CreateDbContext())
             {
-                var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = $"C_{suffix}", DiaChi = "123", SoDienThoai = "0900", MoTa = "Mo ta" };
+                var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = TestCodes.MaChiNhanh("C_"), DiaChi = "123", SoDienThoai = "0900", MoTa = "Mo ta" };
                 seedCtx.ChiNhanhs.Add(branch);
                 await seedCtx.SaveChangesAsync();
 
@@ -1699,7 +1699,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
 
             await using (var seedCtx = _fixture.CreateDbContext())
             {
-                var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = $"C_{suffix}", DiaChi = "123", SoDienThoai = "0900", MoTa = "Mo ta" };
+                var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = TestCodes.MaChiNhanh("C_"), DiaChi = "123", SoDienThoai = "0900", MoTa = "Mo ta" };
                 seedCtx.ChiNhanhs.Add(branch);
                 await seedCtx.SaveChangesAsync();
 

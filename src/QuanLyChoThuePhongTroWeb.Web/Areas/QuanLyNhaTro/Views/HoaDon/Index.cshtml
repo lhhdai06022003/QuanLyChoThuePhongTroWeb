@@ -386,6 +386,7 @@
 
 @section Scripts {
     <script src="~/js/hoadon-thanhtoan-quanly.js" asp-append-version="true"></script>
+    <script src="~/js/hoadon-dieuchinh.js" asp-append-version="true"></script>
     <script>
         function escapeHtml(unsafe) {
             return (unsafe || "").toString()
@@ -542,7 +543,13 @@
                     { "data": "tongTien", "className": "text-end align-middle hd-num", "render": (d) => formatVND(d) },
                     {
                         "data": "trangThaiPhatHanhValue", "className": "align-middle", "orderable": false,
-                        "render": function(d) { return renderPublishStage(d); }
+                        "render": function(d, type, row) {
+                            let html = renderPublishStage(d);
+                            if (row.laTamTinh) {
+                                html += `<div class="small text-azure mt-1"><i class="ti ti-clock-hour-4 me-1"></i>Tạm tính, tự chốt lúc ${escapeHtml(row.hanTuChot)}</div>`;
+                            }
+                            return html;
+                        }
                     },
                     {
                         "data": "trangThaiHoaDonValue", "className": "align-middle", "orderable": false,
@@ -576,12 +583,17 @@
                                                     <i class="ti ti-edit me-2"></i> Chỉnh sửa
                                                 </button>
                                             ` : ''}
-                                            ${row.trangThaiPhatHanhValue === 1 && isAdmin ? `
+                                            ${row.trangThaiPhatHanhValue === 1 && isAdmin && !row.laTamTinh ? `
                                                 <button class="dropdown-item btn-chot py-2" data-id="${data}">
                                                     <i class="ti ti-check me-2"></i> Chốt hóa đơn
                                                 </button>
                                                 <button class="dropdown-item btn-tralai py-2" data-id="${data}">
                                                     <i class="ti ti-arrow-back me-2"></i> Trả lại
+                                                </button>
+                                            ` : ''}
+                                            ${row.laHoaDonTuDong && (row.trangThaiPhatHanhValue === 1 || row.trangThaiPhatHanhValue === 3) ? `
+                                                <button class="dropdown-item btn-dieuchinh py-2" data-id="${data}" data-ma="${maAttr}" data-dagui="${row.trangThaiPhatHanhValue === 3}">
+                                                    <i class="ti ti-adjustments me-2"></i> Điều chỉnh và gửi lại
                                                 </button>
                                             ` : ''}
                                             ${row.trangThaiHoaDonValue !== 1 && row.trangThaiPhatHanhValue === 3 ? `
@@ -982,6 +994,16 @@
                         `;
                     }
 
+                    let provisionalBanner = '';
+                    if (res.laTamTinh) {
+                        provisionalBanner = `
+                            <div class="alert alert-info py-2 mb-3">
+                                <i class="ti ti-clock-hour-4 me-2"></i>
+                                <strong>Hóa đơn tạm tính</strong>, tự chốt lúc ${escapeHtml(res.hanTuChot)}. Khách đã xem được bản này; cần sửa chỉ số hoặc các khoản phí thì dùng "Điều chỉnh và gửi lại".
+                            </div>
+                        `;
+                    }
+
                     let paymentStatusHtml = '';
                     if (res.daHuy) {
                         paymentStatusHtml = '<span class="text-secondary">—</span>';
@@ -995,6 +1017,7 @@
 
                     let html = `
                         ${cancelBanner}
+                        ${provisionalBanner}
                         <div class="datagrid mb-3">
                             <div class="datagrid-item">
                                 <div class="datagrid-title">Mã hóa đơn</div>
@@ -1089,8 +1112,11 @@
                         html += '<div id="hdPaymentSummary"></div>';
                     }
 
-                    // QR ngoài luồng theo số còn lại; tiền chuyển qua QR này cần thu thủ công khi đối chiếu
-                    if (!res.daHuy && res.conLai > 0) {
+                    // QR ngoài luồng theo số còn lại; tiền chuyển qua QR này cần thu thủ công khi đối chiếu.
+                    // Chỉ hiện khi hóa đơn đã chốt (2) hoặc đã gửi (3); Nháp, Chờ duyệt, Đã hủy không có QR.
+                    const hienQrChuyenKhoan = !res.daHuy && res.conLai > 0
+                        && (res.trangThaiPhatHanhValue === 2 || res.trangThaiPhatHanhValue === 3);
+                    if (hienQrChuyenKhoan) {
                         html += `
                         <div class="row mt-4 pt-3 border-top justify-content-center">
                             <div class="col-md-7 text-center">
@@ -1482,6 +1508,16 @@
                             }
                         });
                     }
+                });
+            });
+
+            // ========== Điều chỉnh và gửi lại (hóa đơn tự động) ==========
+            $('#hoaDonTable').on('click', '.btn-dieuchinh', function() {
+                HdDieuChinh.open({
+                    hoaDonId: $(this).data('id'),
+                    maHoaDon: $(this).data('ma'),
+                    daGui: $(this).data('dagui') === true,
+                    onDone: function() { table.ajax.reload(null, false); }
                 });
             });
 

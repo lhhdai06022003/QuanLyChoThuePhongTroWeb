@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Persistence;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Security;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Services;
+using QuanLyChoThuePhongTroWeb.Application.Common.Formatting;
 using QuanLyChoThuePhongTroWeb.Application.Common.Models;
 using QuanLyChoThuePhongTroWeb.Application.Common.Security;
 using QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.DTOs;
@@ -1185,6 +1186,143 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
             }
         }
 
+        public async Task<ServiceResult<MeterAdjustmentResult>> AdjustReadingsInCurrentTransactionAsync(MeterAdjustmentRequest request, int actorUserId, CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (request == null)
+            {
+                return ServiceResult<MeterAdjustmentResult>.Fail("Yêu cầu không hợp lệ.");
+            }
+
+            if (request.DichVuDienNuocCuaPhongId <= 0)
+            {
+                return ServiceResult<MeterAdjustmentResult>.Fail("Kỳ chỉ số không hợp lệ.");
+            }
+
+            if (request.ChiSoDienMoi < 0 || request.ChiSoNuocMoi < 0)
+            {
+                return ServiceResult<MeterAdjustmentResult>.Fail("Chỉ số xác nhận không được âm.");
+            }
+
+            if (request.ChiSoDienMoi.Scale > 3 || request.ChiSoNuocMoi.Scale > 3)
+            {
+                return ServiceResult<MeterAdjustmentResult>.Fail("Chỉ số mới không được có quá 3 chữ số thập phân.");
+            }
+
+            if (string.IsNullOrWhiteSpace(request.LyDo))
+            {
+                return ServiceResult<MeterAdjustmentResult>.Fail("Lý do sửa số không được để trống.");
+            }
+
+            var trimmedLyDo = request.LyDo.Trim();
+            if (trimmedLyDo.Length > 500)
+            {
+                return ServiceResult<MeterAdjustmentResult>.Fail("Lý do sửa số không được vượt quá 500 ký tự.");
+            }
+
+            var period = await _store.GetPeriodByIdForUpdateAsync(request.DichVuDienNuocCuaPhongId, cancellationToken);
+            if (period == null || period.IsDeleted)
+            {
+                return ServiceResult<MeterAdjustmentResult>.Fail("Không tìm thấy dữ liệu kỳ của hóa đơn.");
+            }
+
+            var branchId = await _store.GetBranchIdByRoomAsync(period.PhongTroId, cancellationToken);
+            if (branchId == null
+                || !await _employeeAccessService.CanPerformAsync(actorUserId, branchId.Value, EmployeeActionCodes.MeterReview, cancellationToken))
+            {
+                return ServiceResult<MeterAdjustmentResult>.Forbidden("Bạn không có quyền sửa chỉ số cho chi nhánh này.");
+            }
+
+            if (period.TrangThaiGhiNhan != TrangThaiGhiNhan.DaDuyet)
+            {
+                return ServiceResult<MeterAdjustmentResult>.Fail("Kỳ chỉ số điện nước liên kết chưa được chốt.");
+            }
+
+            if (await _store.HasSubsequentPeriodAsync(period.PhongTroId, period.Thang, period.Nam, cancellationToken))
+            {
+                return ServiceResult<MeterAdjustmentResult>.Fail("Kỳ sau đã được chốt hoặc đã có hóa đơn phát hành, không thể điều chỉnh.");
+            }
+
+            if (await _store.HasLockedInvoiceAsync(period.DichVuDienNuocCuaPhongId, cancellationToken))
+            {
+                return ServiceResult<MeterAdjustmentResult>.Fail("Kỳ này đã có hóa đơn không còn ở trạng thái nháp, không thể chỉnh sửa.");
+            }
+
+            if (request.ChiSoDienMoi < period.ChiSoDienCu)
+            {
+                return ServiceResult<MeterAdjustmentResult>.Fail("Chỉ số điện mới không được nhỏ hơn chỉ số điện cũ.");
+            }
+
+            if (request.ChiSoNuocMoi < period.ChiSoNuocCu)
+            {
+                return ServiceResult<MeterAdjustmentResult>.Fail("Chỉ số nước mới không được nhỏ hơn chỉ số nước cũ.");
+            }
+
+            var result = new MeterAdjustmentResult
+            {
+                ChiSoDienCu = period.ChiSoDienMoi,
+                ChiSoDienMoi = request.ChiSoDienMoi,
+                ChiSoNuocCu = period.ChiSoNuocMoi,
+                ChiSoNuocMoi = request.ChiSoNuocMoi
+            };
+
+            var currentNote = period.GhiChuDuyet ?? string.Empty;
+            var newNoteParts = new List<string>();
+            foreach (var (loai, soMoi, soHienTai, tenHienThi) in new[]
+            {
+                (LoaiDongHo.Dien, request.ChiSoDienMoi, period.ChiSoDienMoi, "Điện"),
+                (LoaiDongHo.Nuoc, request.ChiSoNuocMoi, period.ChiSoNuocMoi, "Nước")
+            })
+            {
+                if (soMoi == soHienTai)
+                {
+                    continue;
+                }
+
+                var images = await _store.GetImagesForUpdateAsync(period.DichVuDienNuocCuaPhongId, loai, cancellationToken);
+                var official = images.FirstOrDefault(a => a.DuocChonLamChiSoChinhThuc && !a.IsDeleted);
+                if (official != null)
+                {
+                    official.SuaGiaTriXacNhan(soMoi, actorUserId, trimmedLyDo);
+                    continue;
+                }
+
+                var part = $"[{tenHienThi} thủ công: {trimmedLyDo}]";
+                if (!currentNote.Contains(part, StringComparison.Ordinal))
+                {
+                    newNoteParts.Add(part);
+                }
+            }
+
+            string? fullNote;
+            if (newNoteParts.Count > 0)
+            {
+                fullNote = string.IsNullOrWhiteSpace(currentNote)
+                    ? string.Join("; ", newNoteParts)
+                    : $"{currentNote}; {string.Join("; ", newNoteParts)}";
+            }
+            else
+            {
+                fullNote = string.IsNullOrWhiteSpace(currentNote) ? null : currentNote;
+            }
+
+            period.CapNhatChiSo(request.ChiSoDienMoi, request.ChiSoNuocMoi);
+            period.DuyetLai(actorUserId, fullNote);
+
+            var linkedInvoices = await _hoaDonStore.GetInvoicesByMeterReadingIdsAsync(new[] { period.DichVuDienNuocCuaPhongId }, cancellationToken);
+            RecalculateDraftInvoices(period, linkedInvoices);
+
+            var cascadeError = await CascadeSubsequentPeriodsAsync(period, cancellationToken);
+            if (cascadeError != null)
+            {
+                return ServiceResult<MeterAdjustmentResult>.Fail(cascadeError);
+            }
+
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            return ServiceResult<MeterAdjustmentResult>.Ok(result);
+        }
+
         /// <summary>
         /// Sau khi chỉ số mới của <paramref name="period"/> thay đổi, cập nhật chỉ số cũ của các kỳ sau còn là bản nháp
         /// (kỳ sau đã duyệt hoặc có hóa đơn phát hành đã khóa kỳ này từ trước nên không tới đây).
@@ -1216,7 +1354,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
                     var placeholder = next.ChiSoDienMoi == next.ChiSoDienCu;
                     if (!placeholder && next.ChiSoDienMoi < dien)
                     {
-                        return $"Kỳ {next.Thang:00}/{next.Nam} đang có chỉ số điện mới ({next.ChiSoDienMoi}) nhỏ hơn chỉ số điện này ({dien}). Hãy sửa kỳ {next.Thang:00}/{next.Nam} trước.";
+                        return $"Kỳ {next.Thang:00}/{next.Nam} đang có chỉ số điện mới ({ChiSo.DinhDang(next.ChiSoDienMoi)}) nhỏ hơn chỉ số điện này ({ChiSo.DinhDang(dien)}). Hãy sửa kỳ {next.Thang:00}/{next.Nam} trước.";
                     }
 
                     next.ChiSoDienCu = dien;
@@ -1229,7 +1367,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
                     var placeholder = next.ChiSoNuocMoi == next.ChiSoNuocCu;
                     if (!placeholder && next.ChiSoNuocMoi < nuoc)
                     {
-                        return $"Kỳ {next.Thang:00}/{next.Nam} đang có chỉ số nước mới ({next.ChiSoNuocMoi}) nhỏ hơn chỉ số nước này ({nuoc}). Hãy sửa kỳ {next.Thang:00}/{next.Nam} trước.";
+                        return $"Kỳ {next.Thang:00}/{next.Nam} đang có chỉ số nước mới ({ChiSo.DinhDang(next.ChiSoNuocMoi)}) nhỏ hơn chỉ số nước này ({ChiSo.DinhDang(nuoc)}). Hãy sửa kỳ {next.Thang:00}/{next.Nam} trước.";
                     }
 
                     next.ChiSoNuocCu = nuoc;
@@ -1260,25 +1398,11 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
             return null;
         }
 
-        /// <summary>
-        /// Dòng điện/nước do hệ thống sinh ra không gắn DichVuId (tiền điện nước tính theo chỉ số của phòng), nên nhận diện theo
-        /// loại dịch vụ nếu có, còn lại theo tên bắt đầu bằng "điện"/"nước" hoặc "tiền điện"/"tiền nước". Nhận cả tên đã bị nhân viên
-        /// sửa khi chỉnh nháp ("Điện tháng 9 (…)") để lần tính lại cập nhật đúng dòng đó thay vì thêm dòng thứ hai gây tính tiền trùng.
-        /// </summary>
-        private static readonly string[] NonMeterNamePrefixes = { "điện thoại", "nước uống", "nước lọc", "nước giải khát" };
-
+        // Nhận diện dòng điện/nước: quy tắc dùng chung với màn "Điều chỉnh và gửi lại" nên nằm ở InvoiceMeterLine.
         private static bool IsMeterInvoiceLine(ChiTietHoaDon line, LoaiDichVu loai, string keyword)
         {
             if (line.IsDeleted) return false;
-            if (line.DichVu != null) return line.DichVu.LoaiDichVu == loai;
-
-            var name = (line.TenDichVu ?? string.Empty).Trim();
-            if (name.StartsWith("Tiền ", StringComparison.OrdinalIgnoreCase)) name = name.Substring(5).TrimStart();
-            if (!name.StartsWith(keyword, StringComparison.OrdinalIgnoreCase)) return false;
-
-            // Sau từ khóa phải là hết tên hoặc ký tự không phải chữ, và loại các dịch vụ thường gặp chỉ tình cờ bắt đầu bằng từ khóa.
-            if (name.Length > keyword.Length && char.IsLetter(name[keyword.Length])) return false;
-            return !NonMeterNamePrefixes.Any(p => name.StartsWith(p, StringComparison.OrdinalIgnoreCase));
+            return InvoiceMeterLine.IsMeterLine(line.DichVu?.LoaiDichVu, line.TenDichVu, loai, keyword);
         }
 
         private void RecalculateDraftInvoices(DichVuDienNuocCuaPhong period, IReadOnlyList<HoaDon> invoices)

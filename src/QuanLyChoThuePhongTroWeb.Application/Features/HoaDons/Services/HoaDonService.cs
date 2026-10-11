@@ -242,48 +242,22 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                 return (false, "Không thể chỉnh sửa hóa đơn đã được thanh toán.");
             }
 
-            // Dòng cũ không đổi đơn giá và số lượng giữ nguyên thành tiền đã lưu: tiền phòng và dịch vụ
-            // cố định có thể đã tính theo số ngày ở (SoLuong = 1, TongTien < DonGia), tính lại sẽ mất phần đó.
-            var dongCu = hd.ChiTietHoaDonDichVus
-                .Where(x => !x.IsDeleted)
-                .ToDictionary(x => x.ChiTietHoaDonId, x => (x.DonGia, x.SoLuong, x.TongTien));
+            // Quy tắc kiểm tra và giữ thành tiền dòng cũ không đổi dùng chung với "Điều chỉnh và gửi lại" (InvoiceLineEditing).
+            var dongCu = InvoiceLineEditing.Baseline(hd.ChiTietHoaDonDichVus);
+            var dongMoi = req.ChiTiets
+                .Select(r => new InvoiceLineInput(r.ChiTietHoaDonId, r.TenDichVu, r.DonGia, r.SoLuong, r.DichVuId))
+                .ToList();
+
+            var loiDong = InvoiceLineEditing.Validate(dongMoi);
+            if (loiDong != null)
+            {
+                await tx.RollbackAsync();
+                return (false, loiDong);
+            }
 
             _store.RemoveChiTietHoaDons(hd.ChiTietHoaDonDichVus);
 
-            var newChiTiets = new List<ChiTietHoaDon>();
-            foreach (var r in req.ChiTiets)
-            {
-                if (string.IsNullOrWhiteSpace(r.TenDichVu))
-                {
-                    await tx.RollbackAsync();
-                    return (false, "Tên dịch vụ không được để trống.");
-                }
-                if (r.DonGia < 0 || r.SoLuong < 0)
-                {
-                    await tx.RollbackAsync();
-                    return (false, "Đơn giá và số lượng phải lớn hơn hoặc bằng 0.");
-                }
-                if (!InvoiceMoney.IsWholeVnd(r.DonGia))
-                {
-                    await tx.RollbackAsync();
-                    return (false, "Đơn giá phải là số nguyên VND.");
-                }
-
-                var tongTien = r.ChiTietHoaDonId is int ctId && ctId > 0 &&
-                               dongCu.Remove(ctId, out var cu) && cu.DonGia == r.DonGia && cu.SoLuong == r.SoLuong
-                    ? InvoiceMoney.RoundVnd(cu.TongTien)
-                    : InvoiceMoney.RoundVnd(r.DonGia * r.SoLuong);
-
-                newChiTiets.Add(new ChiTietHoaDon
-                {
-                    HoaDonId = hoaDonId,
-                    TenDichVu = r.TenDichVu,
-                    DonGia = r.DonGia,
-                    SoLuong = r.SoLuong,
-                    TongTien = tongTien,
-                    DichVuId = r.DichVuId > 0 ? r.DichVuId : null
-                });
-            }
+            var newChiTiets = InvoiceLineEditing.Build(hoaDonId, dongMoi, dongCu, dichVuIdTheoYeuCau: true);
 
             hd.ChiTietHoaDonDichVus = newChiTiets;
             hd.TongTien = newChiTiets.Sum(x => x.TongTien);

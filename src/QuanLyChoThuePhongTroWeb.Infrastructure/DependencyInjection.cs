@@ -43,6 +43,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence.IHoaDonStore, Persistence.Features.HoaDonStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence.IInvoicePaymentStore, Persistence.Features.InvoicePaymentStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence.IInvoiceIssuanceStore, Persistence.Features.InvoiceIssuanceStore>();
+            services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence.IAutoInvoiceStore, Persistence.Features.AutoInvoiceStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence.IInvoicePublicationStore, Persistence.Features.InvoicePublicationStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence.IInvoiceViewStore, Persistence.Features.InvoiceViewStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Persistence.IDienNuocStore, Persistence.Features.DienNuocStore>();
@@ -62,6 +63,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure
 
             // External services: Email, Storage, AI
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Abstractions.Services.IEmailService, ExternalServices.Emails.MailKitEmailService>();
+            services.AddSingleton<QuanLyChoThuePhongTroWeb.Application.Abstractions.Services.IProvisionalInvoiceEmailDispatcher, ExternalServices.Emails.BackgroundProvisionalInvoiceEmailDispatcher>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Abstractions.Services.IImageStorageService, ExternalServices.Storage.CloudinaryStorageService>();
 
             var meterOptions = configuration.GetSection("MeterImageOptions").Get<QuanLyChoThuePhongTroWeb.Application.Common.Configurations.MeterImageOptions>() ?? new QuanLyChoThuePhongTroWeb.Application.Common.Configurations.MeterImageOptions();
@@ -71,6 +73,10 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure
             var invoiceIssuanceOptions = configuration.GetSection(QuanLyChoThuePhongTroWeb.Application.Common.Configurations.InvoiceIssuanceOptions.SectionName).Get<QuanLyChoThuePhongTroWeb.Application.Common.Configurations.InvoiceIssuanceOptions>() ?? new QuanLyChoThuePhongTroWeb.Application.Common.Configurations.InvoiceIssuanceOptions();
             invoiceIssuanceOptions.Validate();
             services.AddSingleton(invoiceIssuanceOptions);
+
+            var autoInvoiceOptions = configuration.GetSection(QuanLyChoThuePhongTroWeb.Application.Common.Configurations.AutoInvoiceOptions.SectionName).Get<QuanLyChoThuePhongTroWeb.Application.Common.Configurations.AutoInvoiceOptions>() ?? new QuanLyChoThuePhongTroWeb.Application.Common.Configurations.AutoInvoiceOptions();
+            autoInvoiceOptions.Validate();
+            services.AddSingleton(autoInvoiceOptions);
 
             var invoicePaymentOptions = configuration.GetSection(QuanLyChoThuePhongTroWeb.Application.Common.Configurations.InvoicePaymentOptions.SectionName).Get<QuanLyChoThuePhongTroWeb.Application.Common.Configurations.InvoicePaymentOptions>() ?? new QuanLyChoThuePhongTroWeb.Application.Common.Configurations.InvoicePaymentOptions();
             invoicePaymentOptions.Validate();
@@ -109,6 +115,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure
                 services.AddHostedService<BackgroundJobs.ContractAutoCloseJob>();
                 services.AddHostedService<BackgroundJobs.ContractExpiryAlertJob>();
                 services.AddHostedService<BackgroundJobs.InvoiceReminderJob>();
+                services.AddHostedService<BackgroundJobs.AutoInvoiceFinalizeJob>();
             }
 
             return services;

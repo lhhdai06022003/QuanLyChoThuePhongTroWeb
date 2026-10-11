@@ -4,6 +4,7 @@ using System.Linq;
 using QuanLyChoThuePhongTroWeb.Application.Features.AiAssistants.Services;
 using QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.Services;
 using QuanLyChoThuePhongTroWeb.Application.Features.DichVus.Services;
+using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services;
 using QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.Services;
 using QuanLyChoThuePhongTroWeb.Application.Features.NguoiThues.Services;
 using QuanLyChoThuePhongTroWeb.Application.Features.PhongTros.Services;
@@ -28,7 +29,9 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             typeof(IDashboardService),
             typeof(IViecCanLamService),
             typeof(IAiAssistantService),
-            typeof(IYeuCauSuCoService)
+            typeof(IYeuCauSuCoService),
+            typeof(IAutoInvoiceService),
+            typeof(IInvoiceAdjustmentService)
         };
 
         private static readonly HashSet<string> Exceptions = new()

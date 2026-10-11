@@ -25,7 +25,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             var b = new ChiNhanh
             {
                 TenChiNhanh = $"Vc{tag} {Suffix}",
-                MaChiNhanh = $"V{tag}{Suffix[..5]}",
+                MaChiNhanh = TestCodes.MaChiNhanh("V"),
                 DiaChi = tag,
                 SoDienThoai = "0900000001",
                 MoTa = tag

@@ -40,8 +40,8 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             var users = scope.ServiceProvider.GetRequiredService<INguoiDungService>();
             var s = Guid.NewGuid().ToString("N")[..8];
 
-            var branchA = new ChiNhanh { TenChiNhanh = $"CN_A_{s}", MaChiNhanh = $"A{s[..5]}", DiaChi = "A", SoDienThoai = "0900000001", MoTa = "A" };
-            var branchB = new ChiNhanh { TenChiNhanh = $"CN_B_{s}", MaChiNhanh = $"B{s[..5]}", DiaChi = "B", SoDienThoai = "0900000002", MoTa = "B" };
+            var branchA = new ChiNhanh { TenChiNhanh = $"CN_A_{s}", MaChiNhanh = TestCodes.MaChiNhanh("A"), DiaChi = "A", SoDienThoai = "0900000001", MoTa = "A" };
+            var branchB = new ChiNhanh { TenChiNhanh = $"CN_B_{s}", MaChiNhanh = TestCodes.MaChiNhanh("B"), DiaChi = "B", SoDienThoai = "0900000002", MoTa = "B" };
             db.ChiNhanhs.AddRange(branchA, branchB);
             await db.SaveChangesAsync();
 

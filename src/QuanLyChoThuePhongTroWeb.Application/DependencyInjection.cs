@@ -58,7 +58,9 @@ namespace QuanLyChoThuePhongTroWeb.Application
             services.AddScoped<IHoaDonCalculatorService, HoaDonCalculatorService>();
             services.AddScoped<IHoaDonService, HoaDonService>();
             services.AddScoped<IInvoiceIssuanceService, InvoiceIssuanceService>();
+            services.AddScoped<IAutoInvoiceService, AutoInvoiceService>();
             services.AddScoped<IInvoicePublicationService, InvoicePublicationService>();
+            services.AddScoped<IInvoiceAdjustmentService, InvoiceAdjustmentService>();
             services.AddScoped<IInvoiceViewService, InvoiceViewService>();
             services.AddScoped<IInvoicePaymentConfirmationService, InvoicePaymentConfirmationService>();
             services.AddScoped<IInvoicePaymentRequestService, InvoicePaymentRequestService>();
@@ -81,6 +83,8 @@ namespace QuanLyChoThuePhongTroWeb.Application
             services.AddScoped<Features.HopDongs.UseCases.IContractAutoCloseUseCase, Features.HopDongs.UseCases.ContractAutoCloseUseCase>();
             services.AddScoped<Features.HopDongs.UseCases.IContractExpiryAlertUseCase, Features.HopDongs.UseCases.ContractExpiryAlertUseCase>();
             services.AddScoped<Features.HoaDons.UseCases.IInvoiceReminderUseCase, Features.HoaDons.UseCases.InvoiceReminderUseCase>();
+            services.AddScoped<Features.HoaDons.UseCases.IAutoInvoiceFinalizeUseCase, Features.HoaDons.UseCases.AutoInvoiceFinalizeUseCase>();
+            services.AddSingleton<Features.HoaDons.AutoInvoices.AutoInvoiceFinalizeNotifyGuard>();
 
             // Security & Employee Access Services
             services.AddScoped<Abstractions.Security.IEmployeeAccessService, Features.NhanViens.Services.EmployeeAccessService>();

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -11,6 +12,15 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
 {
     public static class InvoiceDetailProjection
     {
+        public static bool LaTamTinh(TrangThaiPhatHanhHoaDon trangThai, DateTime? hanPhanHoi, bool isDeleted)
+            => trangThai == TrangThaiPhatHanhHoaDon.ChoDuyet && hanPhanHoi != null && !isDeleted;
+
+        // Giờ Việt Nam khi tạm tính, ngược lại chuỗi rỗng.
+        public static string HanTuChotText(TrangThaiPhatHanhHoaDon trangThai, DateTime? hanPhanHoi, bool isDeleted)
+            => LaTamTinh(trangThai, hanPhanHoi, isDeleted)
+                ? hanPhanHoi!.Value.AddHours(7).ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture)
+                : string.Empty;
+
         public static HoaDonChiTietRes ProjectToRes(
             HoaDon hd,
             string donViDien,
@@ -19,6 +29,8 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
             string? lyDoHuy = null)
         {
             var daThu = hd.LichSuThanhToans.Where(x => !x.IsDeleted).Sum(x => x.SoTienThanhToan);
+            var ky = hd.DichVuDienNuocCuaPhong;
+            var coKy = ky != null && !ky.IsDeleted;
             return new HoaDonChiTietRes
             {
                 HoaDonId = hd.HoaDonId,
@@ -39,6 +51,13 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 SoTienThanhToanToiThieu = hd.SoTienThanhToanToiThieu,
                 TrangThaiPhatHanhValue = (int)hd.TrangThaiPhatHanh,
                 TrangThaiPhatHanh = InvoiceStatusLabels.PhatHanh(hd.TrangThaiPhatHanh),
+                LaHoaDonTuDong = hd.HanPhanHoi != null,
+                LaTamTinh = LaTamTinh(hd.TrangThaiPhatHanh, hd.HanPhanHoi, hd.IsDeleted),
+                HanTuChot = HanTuChotText(hd.TrangThaiPhatHanh, hd.HanPhanHoi, hd.IsDeleted),
+                ChiSoDienCu = coKy ? ky!.ChiSoDienCu : null,
+                ChiSoDienMoi = coKy ? ky!.ChiSoDienMoi : null,
+                ChiSoNuocCu = coKy ? ky!.ChiSoNuocCu : null,
+                ChiSoNuocMoi = coKy ? ky!.ChiSoNuocMoi : null,
                 DaHuy = hd.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaHuy,
                 LyDoHuy = lyDoHuy ?? string.Empty,
                 LichSuTrangThais = lichSuTrangThais ?? new List<InvoiceStatusHistoryRes>(),

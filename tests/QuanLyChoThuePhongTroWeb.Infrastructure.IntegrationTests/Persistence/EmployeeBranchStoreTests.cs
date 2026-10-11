@@ -42,7 +42,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             var branch1 = new ChiNhanh
             {
                 TenChiNhanh = $"CN 1 {uniqueSuffix}",
-                MaChiNhanh = $"C1{uniqueSuffix.Substring(0, 4)}",
+                MaChiNhanh = TestCodes.MaChiNhanh("C1"),
                 DiaChi = "123 Street 1",
                 SoDienThoai = "0900000001",
                 MoTa = "Mo ta CN 1"
@@ -50,7 +50,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             var branch2 = new ChiNhanh
             {
                 TenChiNhanh = $"CN 2 {uniqueSuffix}",
-                MaChiNhanh = $"C2{uniqueSuffix.Substring(0, 4)}",
+                MaChiNhanh = TestCodes.MaChiNhanh("C2"),
                 DiaChi = "456 Street 2",
                 SoDienThoai = "0900000002",
                 MoTa = "Mo ta CN 2"

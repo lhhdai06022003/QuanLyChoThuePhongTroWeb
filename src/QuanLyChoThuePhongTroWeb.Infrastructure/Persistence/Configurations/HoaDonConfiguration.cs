@@ -18,6 +18,10 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Configurations
                 .IsUnique()
                 .HasFilter("\"IsDeleted\" = false");
 
+            builder.HasIndex(h => new { h.TrangThaiPhatHanh, h.HanPhanHoi })
+                .HasDatabaseName("IX_hoa_don_TrangThaiPhatHanh_HanPhanHoi")
+                .HasFilter("\"HanPhanHoi\" IS NOT NULL AND \"IsDeleted\" = false");
+
             builder.HasOne(h => h.DichVuDienNuocCuaPhong)
                 .WithMany(d => d.HoaDons)
                 .HasForeignKey(h => h.DichVuDienNuocCuaPhongId)

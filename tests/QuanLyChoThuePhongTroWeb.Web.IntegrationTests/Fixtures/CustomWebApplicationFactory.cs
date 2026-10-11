@@ -133,7 +133,9 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests.Fixtures
                 e.Category.Contains("InvoiceReminderJob", StringComparison.OrdinalIgnoreCase) ||
                 e.Category.Contains("InvoiceReminderUseCase", StringComparison.OrdinalIgnoreCase) ||
                 e.Category.Contains("ContractExpiryAlertUseCase", StringComparison.OrdinalIgnoreCase) ||
-                e.Category.Contains("ContractAutoCloseUseCase", StringComparison.OrdinalIgnoreCase)
+                e.Category.Contains("ContractAutoCloseUseCase", StringComparison.OrdinalIgnoreCase) ||
+                e.Category.Contains("AutoInvoiceFinalizeJob", StringComparison.OrdinalIgnoreCase) ||
+                e.Category.Contains("AutoInvoiceFinalizeUseCase", StringComparison.OrdinalIgnoreCase)
             ).ToList();
 
             if (bgJobLogs.Count > 0)
@@ -179,6 +181,25 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests.Fixtures
             public record InvoiceEmailCall(string ToEmail, string MaHoaDon, string HanThanhToan);
 
             public ConcurrentQueue<InvoiceEmailCall> InvoiceEmailCalls { get; } = new();
+
+            public record ProvisionalEmailCall(string ToEmail, string MaHoaDon, decimal TongTien);
+
+            public ConcurrentQueue<ProvisionalEmailCall> ProvisionalEmailCalls { get; } = new();
+
+            // Cổng chờ tùy chọn: khác null thì email tạm tính bị chặn tới khi test mở cổng (null = ghi nhận ngay).
+            public TaskCompletionSource? ProvisionalGate { get; set; }
+
+            public async Task<(bool IsSuccess, string ErrorMessage)> SendProvisionalInvoiceEmailAsync(string toEmail, ProvisionalInvoiceEmailData data)
+            {
+                var gate = ProvisionalGate;
+                if (gate != null)
+                {
+                    await gate.Task.WaitAsync(TimeSpan.FromSeconds(30));
+                }
+
+                ProvisionalEmailCalls.Enqueue(new ProvisionalEmailCall(toEmail, data.MaHoaDon, data.TongTien));
+                return (true, string.Empty);
+            }
 
             /// <summary>
             /// Cấu hình kết quả theo địa chỉ email cụ thể: true = thành công, false = trả lỗi an toàn.

@@ -9,6 +9,7 @@ using QuanLyChoThuePhongTroWeb.Application.Common.Models;
 using QuanLyChoThuePhongTroWeb.Application.Common.Security;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence;
+using QuanLyChoThuePhongTroWeb.Domain.Enums;
 
 namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
 {
@@ -162,6 +163,12 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
         {
             var detail = await GetTenantDetailAsync(hoaDonId, nguoiThueId, ct);
             if (detail == null)
+            {
+                return null;
+            }
+
+            // Hóa đơn tạm tính (chờ duyệt) chưa phải bản chính thức nên khách không được tải PDF.
+            if (detail.TrangThaiPhatHanhValue == (int)TrangThaiPhatHanhHoaDon.ChoDuyet)
             {
                 return null;
             }

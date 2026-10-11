@@ -141,8 +141,10 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
 
             var hopDongIds = hopDongs.Select(h => h.HopDongId).ToList();
             // Số còn nợ (tổng trừ các khoản đã ghi nhận) của hóa đơn chưa trả đủ, kể cả trả một phần.
+            // Chỉ tính hóa đơn đã công bố (DaGui): nháp, chờ duyệt, tạm tính chưa phải công nợ.
             var unpaidRows = await _context.HoaDons
                 .Where(hd => hopDongIds.Contains(hd.HopDongId) &&
+                             hd.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaGui &&
                              hd.TrangThaiHoaDon != TrangThaiHoaDon.DaThanhToan &&
                              !hd.IsDeleted)
                 .Select(hd => new
@@ -269,7 +271,11 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 .Include(i => i.HopDong)
                     .ThenInclude(h => h.NguoiThue)
                 .Include(i => i.LichSuThanhToans)
-                .Where(i => i.HopDong.PhongTroId == phongTroId && i.TrangThaiHoaDon != TrangThaiHoaDon.DaThanhToan && !i.IsDeleted)
+                // Chỉ hóa đơn đã công bố mới thu tiền được (không lấy bản tạm tính hay chờ duyệt).
+                .Where(i => i.HopDong.PhongTroId == phongTroId &&
+                            i.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaGui &&
+                            i.TrangThaiHoaDon != TrangThaiHoaDon.DaThanhToan &&
+                            !i.IsDeleted)
                 .OrderByDescending(i => i.NgayTao)
                 .FirstOrDefaultAsync(cancellationToken);
 

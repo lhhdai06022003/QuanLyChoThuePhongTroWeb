@@ -20,7 +20,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.ViecCanLam.DTOs
         public int SoLuong { get; init; }
     }
 
-    // TongConNo chỉ dùng cho TT2, TT3; HD1-HD3 để 0.
+    // TongConNo chỉ dùng cho TT2, TT3; HD1-HD4 để 0.
     public sealed class DemHoaDonRow
     {
         public int ChiNhanhId { get; init; }
@@ -41,6 +41,17 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.ViecCanLam.DTOs
     public sealed class KyChiSoDaChotRow
     {
         public int PhongTroId { get; init; }
+        public int Thang { get; init; }
+        public int Nam { get; init; }
+    }
+
+    // HD5: kỳ chỉ số đã chốt mà phòng chưa có hóa đơn nào trong kỳ; ứng viên để đánh giá lại chuỗi tự tạo hóa đơn.
+    public sealed class KyDaChotChuaCoHoaDonRow
+    {
+        public int PhongTroId { get; init; }
+        public string SoPhong { get; init; } = string.Empty;
+        public int ChiNhanhId { get; init; }
+        public string TenChiNhanh { get; init; } = string.Empty;
         public int Thang { get; init; }
         public int Nam { get; init; }
     }

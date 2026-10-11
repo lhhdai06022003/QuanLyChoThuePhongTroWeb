@@ -29,8 +29,8 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
         private static async Task<World> SeedAsync(ApplicationDbContext db)
         {
             var s = Guid.NewGuid().ToString("N")[..8];
-            var a = new ChiNhanh { TenChiNhanh = $"A{s}", MaChiNhanh = $"A{s[..5]}", DiaChi = "A", SoDienThoai = "0900000001", MoTa = "A" };
-            var b = new ChiNhanh { TenChiNhanh = $"B{s}", MaChiNhanh = $"B{s[..5]}", DiaChi = "B", SoDienThoai = "0900000002", MoTa = "B" };
+            var a = new ChiNhanh { TenChiNhanh = $"A{s}", MaChiNhanh = TestCodes.MaChiNhanh("A"), DiaChi = "A", SoDienThoai = "0900000001", MoTa = "A" };
+            var b = new ChiNhanh { TenChiNhanh = $"B{s}", MaChiNhanh = TestCodes.MaChiNhanh("B"), DiaChi = "B", SoDienThoai = "0900000002", MoTa = "B" };
             db.ChiNhanhs.AddRange(a, b);
             await db.SaveChangesAsync();
 

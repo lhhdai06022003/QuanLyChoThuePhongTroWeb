@@ -78,7 +78,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             var branch = new ChiNhanh
             {
                 TenChiNhanh = $"CN_SC_{suffix}",
-                MaChiNhanh = $"C{suffix[..5]}",
+                MaChiNhanh = TestCodes.MaChiNhanh("C"),
                 DiaChi = "123 Duong",
                 SoDienThoai = "0900000001",
                 MoTa = "Mo ta chi nhanh"

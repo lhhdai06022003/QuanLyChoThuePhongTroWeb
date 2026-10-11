@@ -240,6 +240,11 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<int>("SoGioPhanHoiHoaDon")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(24);
+
                     b.Property<string>("TenChiNhanh")
                         .IsRequired()
                         .HasColumnType("text");
@@ -249,7 +254,10 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Migrations
                     b.HasIndex("MaChiNhanh")
                         .IsUnique();
 
-                    b.ToTable("chi_nhanh");
+                    b.ToTable("chi_nhanh", t =>
+                        {
+                            t.HasCheckConstraint("CK_ChiNhanh_SoGioPhanHoiHoaDon", "\"SoGioPhanHoiHoaDon\" BETWEEN 1 AND 168");
+                        });
                 });
 
             modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.ChiTietHoaDon", b =>
@@ -661,6 +669,9 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Migrations
                     b.Property<int?>("DichVuDienNuocCuaPhongId")
                         .HasColumnType("integer");
 
+                    b.Property<DateTime?>("HanPhanHoi")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateTime?>("HanThanhToan")
                         .HasColumnType("timestamp with time zone");
 
@@ -712,6 +723,10 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Migrations
                     b.HasKey("HoaDonId");
 
                     b.HasIndex("DichVuDienNuocCuaPhongId");
+
+                    b.HasIndex("TrangThaiPhatHanh", "HanPhanHoi")
+                        .HasDatabaseName("IX_hoa_don_TrangThaiPhatHanh_HanPhanHoi")
+                        .HasFilter("\"HanPhanHoi\" IS NOT NULL AND \"IsDeleted\" = false");
 
                     b.HasIndex("HopDongId", "Thang", "Nam")
                         .IsUnique()
