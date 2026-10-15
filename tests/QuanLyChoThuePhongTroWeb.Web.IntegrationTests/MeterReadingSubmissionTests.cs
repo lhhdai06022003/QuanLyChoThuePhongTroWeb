@@ -461,7 +461,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
         }
 
         [Fact]
-        public async Task GetChotDienNuocPage_DoesNotContainDefaultManualReason_AndContainsReasonInputElements()
+        public async Task GetChotDienNuocPage_DoesNotContainDefaultManualReason_AndAsksReasonInConfirmDialog()
         {
             var (client, token) = await CreateClientWithAntiforgeryAsync();
             var loginRes = await client.PostAsync("/QuanLyNhaTro/DangNhap", new FormUrlEncodedContent(new[]
@@ -480,8 +480,10 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             Assert.DoesNotContain("value=\"${item.lyDoNhapThuCong", html);
             Assert.DoesNotContain("lyDoNhapThuCongDien ||", html);
             Assert.DoesNotContain("lyDoNhapThuCongNuoc ||", html);
-            Assert.Contains("in-lydo-dien", html);
-            Assert.Contains("in-lydo-nuoc", html);
+            // Lý do nhập tay hỏi trong hộp xác nhận khi chốt (chip chọn nhanh), không còn ô nhập trên bảng.
+            Assert.DoesNotContain("in-lydo-dien", html);
+            Assert.DoesNotContain("in-lydo-nuoc", html);
+            Assert.Contains("chip-reason", html);
         }
 
         [Fact]

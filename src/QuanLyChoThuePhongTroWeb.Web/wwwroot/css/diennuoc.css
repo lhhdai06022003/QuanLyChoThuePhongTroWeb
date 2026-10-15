@@ -496,3 +496,17 @@ html[data-bs-theme="dark"] .dn-savebar {
 .kt-page .kt-meter .card-title {
     white-space: nowrap;
 }
+
+/* Chips chọn lý do nhập tay trong modal xác nhận chốt */
+.chip-reason {
+    border-radius: 50rem !important;
+    font-size: 0.8125rem !important;
+    padding: 0.3rem 0.75rem !important;
+    transition: all 0.15s ease-in-out !important;
+}
+
+.chip-reason.active {
+    background-color: var(--tblr-primary, #0f6b63) !important;
+    border-color: var(--tblr-primary, #0f6b63) !important;
+    color: #fff !important;
+}

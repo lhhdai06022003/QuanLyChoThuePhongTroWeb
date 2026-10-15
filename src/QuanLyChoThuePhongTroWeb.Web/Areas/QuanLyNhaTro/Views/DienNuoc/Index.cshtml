@@ -356,9 +356,6 @@
                             <div class="dn-delta">${deltaText(item.chiSoDienCu, defaultDienMoi, 'kWh')}</div>
                             <div class="dn-anomaly dn-anomaly-dien text-warning small" style="display: none;"></div>
                             <div class="invalid-feedback text-center small" style="display: none;">Mới phải ≥ cũ</div>
-                            <div class="wrap-lydo-dien mt-1" style="${isOfficialDien ? 'display: none;' : ''}">
-                                <input type="text" class="form-control form-control-sm in-lydo-dien" name="lyDoDien" placeholder="Lý do nhập tay" value="" ${disabledAttr}>
-                            </div>
                         </td>
                         <td class="text-center align-middle diennuoc-input-td">
                             <input type="number" class="form-control text-center dn-old in-nuoc-cu" tabindex="-1" value="${item.chiSoNuocCu}" readonly>
@@ -368,9 +365,6 @@
                             <div class="dn-delta">${deltaText(item.chiSoNuocCu, defaultNuocMoi, 'm³')}</div>
                             <div class="dn-anomaly dn-anomaly-nuoc text-warning small" style="display: none;"></div>
                             <div class="invalid-feedback text-center small" style="display: none;">Mới phải ≥ cũ</div>
-                            <div class="wrap-lydo-nuoc mt-1" style="${isOfficialNuoc ? 'display: none;' : ''}">
-                                <input type="text" class="form-control form-control-sm in-lydo-nuoc" name="lyDoNuoc" placeholder="Lý do nhập tay" value="" ${disabledAttr}>
-                            </div>
                         </td>
                         <td class="text-center align-middle">${anhBtn}</td>
                         <td class="text-center align-middle">${statusBadge}</td>
@@ -421,11 +415,9 @@
                 }
             }
 
-            // Real-time validation viền đỏ khi nhập sai chỉ số điện mới và toggle lý do nhập tay
+            // Real-time validation viền đỏ khi nhập sai chỉ số điện mới
             $('#tbodyDienNuoc').on('input change', '.in-dien-moi', function () {
                 let tr = $(this).closest('tr');
-                let index = tr.data('index');
-                let rowData = currentData ? currentData[index] : null;
                 let cu = parseFloat(tr.find('.in-dien-cu').val()) || 0;
                 let moi = parseFloat($(this).val()) || 0;
 
@@ -436,23 +428,11 @@
                     $(this).removeClass('is-invalid');
                     tr.find('.in-dien-moi').siblings('.invalid-feedback').hide();
                 }
-
-                if (rowData) {
-                    let isOfficial = rowData.coAnhDienChinhThuc && (rowData.giaTriDienXacNhanTuAnh != null ? moi === rowData.giaTriDienXacNhanTuAnh : moi === cu);
-                    if (isOfficial) {
-                        tr.find('.wrap-lydo-dien').hide();
-                        tr.find('.in-lydo-dien').removeClass('is-invalid');
-                    } else {
-                        tr.find('.wrap-lydo-dien').show();
-                    }
-                }
             });
 
-            // Real-time validation viền đỏ khi nhập sai chỉ số nước mới và toggle lý do nhập tay
+            // Real-time validation viền đỏ khi nhập sai chỉ số nước mới
             $('#tbodyDienNuoc').on('input change', '.in-nuoc-moi', function () {
                 let tr = $(this).closest('tr');
-                let index = tr.data('index');
-                let rowData = currentData ? currentData[index] : null;
                 let cu = parseFloat(tr.find('.in-nuoc-cu').val()) || 0;
                 let moi = parseFloat($(this).val()) || 0;
 
@@ -463,16 +443,6 @@
                     $(this).removeClass('is-invalid');
                     tr.find('.in-nuoc-moi').siblings('.invalid-feedback').hide();
                 }
-
-                if (rowData) {
-                    let isOfficial = rowData.coAnhNuocChinhThuc && (rowData.giaTriNuocXacNhanTuAnh != null ? moi === rowData.giaTriNuocXacNhanTuAnh : moi === cu);
-                    if (isOfficial) {
-                        tr.find('.wrap-lydo-nuoc').hide();
-                        tr.find('.in-lydo-nuoc').removeClass('is-invalid');
-                    } else {
-                        tr.find('.wrap-lydo-nuoc').show();
-                    }
-                }
             });
 
             $('#tbodyDienNuoc').on('input change', '.in-dien-moi, .in-nuoc-moi', function () {
@@ -480,12 +450,6 @@
                 const tr = $(this).closest('tr');
                 const cu = tr.find(isDien ? '.in-dien-cu' : '.in-nuoc-cu').val();
                 $(this).siblings('.dn-delta').text(deltaText(cu, $(this).val(), isDien ? 'kWh' : 'm³'));
-            });
-
-            $('#tbodyDienNuoc').on('input change', '.in-lydo-dien, .in-lydo-nuoc', function () {
-                if ($(this).val().trim()) {
-                    $(this).removeClass('is-invalid');
-                }
             });
 
             // ===== Chọn phòng, đếm thay đổi và thanh thao tác =====
@@ -725,22 +689,6 @@
 
                     const isOfficialDien = rowData.coAnhDienChinhThuc && (rowData.giaTriDienXacNhanTuAnh != null ? dienMoi === rowData.giaTriDienXacNhanTuAnh : dienMoi === dienCu);
                     const isOfficialNuoc = rowData.coAnhNuocChinhThuc && (rowData.giaTriNuocXacNhanTuAnh != null ? nuocMoi === rowData.giaTriNuocXacNhanTuAnh : nuocMoi === nuocCu);
-                    const lyDoDien = $tr.find('.in-lydo-dien').val()?.trim() || null;
-                    const lyDoNuoc = $tr.find('.in-lydo-nuoc').val()?.trim() || null;
-
-                    if (!isOfficialDien && !lyDoDien) {
-                        Swal.fire({ icon: 'warning', title: 'Thiếu lý do nhập tay điện', text: `Phòng ${rowData.tenPhong}: Vui lòng nhập lý do điều chỉnh chỉ số điện thủ công.` });
-                        $tr.find('.in-lydo-dien').addClass('is-invalid').focus();
-                        ok = false;
-                        return false;
-                    }
-
-                    if (!isOfficialNuoc && !lyDoNuoc) {
-                        Swal.fire({ icon: 'warning', title: 'Thiếu lý do nhập tay nước', text: `Phòng ${rowData.tenPhong}: Vui lòng nhập lý do điều chỉnh chỉ số nước thủ công.` });
-                        $tr.find('.in-lydo-nuoc').addClass('is-invalid').focus();
-                        ok = false;
-                        return false;
-                    }
 
                     danhSachPhong.push({
                         dichVuDienNuocCuaPhongId: rowData.dichVuDienNuocCuaPhongId,
@@ -751,8 +699,9 @@
                         chiSoDienMoi: dienMoi,
                         chiSoNuocCu: nuocCu,
                         chiSoNuocMoi: nuocMoi,
-                        lyDoNhapThuCongDien: isOfficialDien ? null : lyDoDien,
-                        lyDoNhapThuCongNuoc: isOfficialNuoc ? null : lyDoNuoc
+                        isOfficialDien: isOfficialDien,
+                        isOfficialNuoc: isOfficialNuoc,
+                        tenPhong: rowData.tenPhong
                     });
                 });
 
@@ -782,17 +731,108 @@
                 const names = roomNames($rows);
                 const single = items.length === 1;
 
-                Swal.fire({
+                const roomsNeedingReason = items.filter(i => !i.isOfficialDien || !i.isOfficialNuoc);
+                const hasManual = roomsNeedingReason.length > 0;
+
+                let title = single ? `Chốt phòng ${escapeHtml(names[0])}?` : `Chốt ${items.length} phòng?`;
+                let confirmText = single ? 'Chốt phòng' : 'Chốt nhóm';
+
+                let swalConfig = {
                     icon: 'question',
-                    title: single ? `Chốt phòng ${names[0]}?` : `Chốt ${items.length} phòng?`,
-                    text: single
-                        ? `Chốt chỉ số điện và nước tháng ${thang}/${nam} của phòng ${names[0]}. Các phòng khác không bị ảnh hưởng.`
-                        : `Chốt chỉ số tháng ${thang}/${nam} cho: ${names.join(', ')}. Nếu một phòng không hợp lệ, cả nhóm sẽ không được chốt.`,
+                    title: title,
                     showCancelButton: true,
-                    confirmButtonText: single ? 'Chốt phòng' : 'Chốt nhóm',
-                    cancelButtonText: 'Xem lại'
-                }).then((result) => {
+                    confirmButtonText: confirmText,
+                    cancelButtonText: 'Xem lại',
+                    focusConfirm: false
+                };
+
+                if (!hasManual) {
+                    swalConfig.text = single
+                        ? `Chốt chỉ số điện và nước tháng ${thang}/${nam} của phòng ${names[0]}. Các phòng khác không bị ảnh hưởng.`
+                        : `Chốt chỉ số tháng ${thang}/${nam} cho: ${names.join(', ')}. Nếu một phòng không hợp lệ, cả nhóm sẽ không được chốt.`;
+                } else {
+                    const defaultReason = 'Nhân viên ghi số trực tiếp tại phòng';
+                    const manualRoomNames = roomsNeedingReason.map(r => r.tenPhong).join(', ');
+                    const hintHtml = single
+                        ? `Phòng <strong>${escapeHtml(names[0])}</strong> có chỉ số điều chỉnh nhập tay.`
+                        : `Có <strong>${roomsNeedingReason.length}/${items.length}</strong> phòng có chỉ số nhập tay (${escapeHtml(manualRoomNames)}).`;
+
+                    swalConfig.html = `
+                        <div class="text-secondary mb-3 small">
+                            ${hintHtml} Vui lòng xác nhận lý do ghi nhận:
+                        </div>
+                        <div class="text-start">
+                            <label class="form-label fw-bold mb-2">Lý do nhập tay:</label>
+                            <div class="d-flex flex-wrap gap-1 mb-2" id="swalReasonChips">
+                                <button type="button" class="btn btn-sm btn-outline-primary active chip-reason" data-val="Nhân viên ghi số trực tiếp tại phòng">Ghi trực tiếp</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary chip-reason" data-val="Khách thuê chưa gửi ảnh đồng hồ">Khách chưa gửi ảnh</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary chip-reason" data-val="Ảnh đồng hồ mờ / khó nhận diện">Ảnh mờ / khó đọc</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary chip-reason" data-val="Đồng hồ mới thay / điều chỉnh công tơ">Thay đồng hồ</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary chip-reason" data-val="">Khác</button>
+                            </div>
+                            <input type="text" id="swalReasonInput" class="form-control" placeholder="Nhập lý do điều chỉnh..." value="${defaultReason}" maxlength="250">
+                        </div>
+                    `;
+
+                    swalConfig.didOpen = () => {
+                        const $chips = $('#swalReasonChips .chip-reason');
+                        const $input = $('#swalReasonInput');
+
+                        $chips.on('click', function () {
+                            $chips.removeClass('btn-outline-primary active').addClass('btn-outline-secondary');
+                            $(this).removeClass('btn-outline-secondary').addClass('btn-outline-primary active');
+
+                            const val = $(this).data('val');
+                            $input.val(val);
+                            if (!val) {
+                                $input.focus().select();
+                            }
+                        });
+
+                        $input.on('input', function () {
+                            const currentVal = $(this).val();
+                            let matched = false;
+                            $chips.each(function () {
+                                if ($(this).data('val') === currentVal) {
+                                    $chips.removeClass('btn-outline-primary active').addClass('btn-outline-secondary');
+                                    $(this).removeClass('btn-outline-secondary').addClass('btn-outline-primary active');
+                                    matched = true;
+                                    return false;
+                                }
+                            });
+                            if (!matched) {
+                                $chips.removeClass('btn-outline-primary active').addClass('btn-outline-secondary');
+                                $chips.filter('[data-val=""]').removeClass('btn-outline-secondary').addClass('btn-outline-primary active');
+                            }
+                        });
+                    };
+
+                    swalConfig.preConfirm = () => {
+                        const reason = $('#swalReasonInput').val().trim();
+                        if (!reason) {
+                            Swal.showValidationMessage('Vui lòng nhập lý do nhập tay cho chỉ số.');
+                            return false;
+                        }
+                        return reason;
+                    };
+                }
+
+                Swal.fire(swalConfig).then((result) => {
                     if (!result.isConfirmed) return;
+
+                    const reason = result.value || 'Nhân viên ghi số trực tiếp tại phòng';
+                    const payloadItems = items.map(item => ({
+                        dichVuDienNuocCuaPhongId: item.dichVuDienNuocCuaPhongId,
+                        phongTroId: item.phongTroId,
+                        dienMode: item.dienMode,
+                        nuocMode: item.nuocMode,
+                        chiSoDienCu: item.chiSoDienCu,
+                        chiSoDienMoi: item.chiSoDienMoi,
+                        chiSoNuocCu: item.chiSoNuocCu,
+                        chiSoNuocMoi: item.chiSoNuocMoi,
+                        lyDoNhapThuCongDien: item.isOfficialDien ? null : reason,
+                        lyDoNhapThuCongNuoc: item.isOfficialNuoc ? null : reason
+                    }));
 
                     setChotBusy(true);
                     $.ajax({
@@ -803,7 +843,7 @@
                             chiNhanhId: parseInt($('#filterChiNhanh').val()),
                             thang: thang,
                             nam: nam,
-                            danhSachPhong: items
+                            danhSachPhong: payloadItems
                         }),
                         success: function (res) {
                             showSuccess(res.message);
