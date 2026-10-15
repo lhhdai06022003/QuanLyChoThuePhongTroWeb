@@ -30,7 +30,10 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs
         NguoiThucHienThieuQuyen,
         NhieuHopDongTrongKy,
         LoiKhiTao,
-        ThieuDonGia
+        ThieuDonGia,
+        // Thêm ở cuối để giữ số cũ.
+        NghiSaiChuSo,
+        TieuThuThapBatThuong
     }
 
     public enum AutoInvoiceOutcome

@@ -54,6 +54,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
         private readonly IThongBaoService _thongBaoService;
         private readonly IEmailService _emailService;
         private readonly IHoaDonCalculatorService _calculator;
+        private readonly IMeterConsumptionHistoryStore _historyStore;
+        private readonly QuanLyChoThuePhongTroWeb.Application.Common.Configurations.AutoInvoiceOptions _autoOptions;
         private readonly ILogger<InvoiceAdjustmentService> _logger;
         private readonly TimeProvider _time;
         private readonly IProvisionalInvoiceEmailDispatcher? _emailDispatcher;
@@ -72,6 +74,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
             IThongBaoService thongBaoService,
             IEmailService emailService,
             IHoaDonCalculatorService calculator,
+            IMeterConsumptionHistoryStore historyStore,
+            QuanLyChoThuePhongTroWeb.Application.Common.Configurations.AutoInvoiceOptions autoOptions,
             ILogger<InvoiceAdjustmentService> logger,
             TimeProvider? timeProvider = null,
             IProvisionalInvoiceEmailDispatcher? emailDispatcher = null)
@@ -89,6 +93,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
             _thongBaoService = thongBaoService ?? throw new ArgumentNullException(nameof(thongBaoService));
             _emailService = emailService ?? throw new ArgumentNullException(nameof(emailService));
             _calculator = calculator ?? throw new ArgumentNullException(nameof(calculator));
+            _historyStore = historyStore ?? throw new ArgumentNullException(nameof(historyStore));
+            _autoOptions = autoOptions ?? throw new ArgumentNullException(nameof(autoOptions));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _time = timeProvider ?? TimeProvider.System;
             _emailDispatcher = emailDispatcher;
@@ -185,10 +191,19 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                 var dien = _calculator.TinhTienDienNuoc(chiSoDienMoi, snap.ChiSoDienCu, snap.DonGiaDien, "Tiền điện", tienPhong.SoNgayO, ngayTrongThang);
                 var nuoc = _calculator.TinhTienDienNuoc(chiSoNuocMoi, snap.ChiSoNuocCu, snap.DonGiaNuoc, "Tiền nước", tienPhong.SoNgayO, ngayTrongThang);
 
+                // Cảnh báo bất thường theo lịch sử hợp đồng; không chặn.
+                var lichSu = await _historyStore.GetAsync(snap.PhongTroId, snap.Thang, snap.Nam, _autoOptions.SoKyLichSuToiDa, ct);
+                var canhBaos = new List<string>();
+                var canhBaoDien = MeterAnomalyPolicy.Evaluate(LoaiDongHo.Dien, snap.ChiSoDienCu, chiSoDienMoi, lichSu, _autoOptions);
+                if (canhBaoDien != null) canhBaos.Add(canhBaoDien.MoTa);
+                var canhBaoNuoc = MeterAnomalyPolicy.Evaluate(LoaiDongHo.Nuoc, snap.ChiSoNuocCu, chiSoNuocMoi, lichSu, _autoOptions);
+                if (canhBaoNuoc != null) canhBaos.Add(canhBaoNuoc.MoTa);
+
                 return ServiceResult<InvoiceMeterLinesPreview>.Ok(new InvoiceMeterLinesPreview
                 {
                     Dien = dien.SoTien > 0 ? MeterPreviewLine(dien, snap.DonGiaDien, "dien", "kWh") : null,
-                    Nuoc = nuoc.SoTien > 0 ? MeterPreviewLine(nuoc, snap.DonGiaNuoc, "nuoc", "m³") : null
+                    Nuoc = nuoc.SoTien > 0 ? MeterPreviewLine(nuoc, snap.DonGiaNuoc, "nuoc", "m³") : null,
+                    CanhBaos = canhBaos
                 });
             }
             finally

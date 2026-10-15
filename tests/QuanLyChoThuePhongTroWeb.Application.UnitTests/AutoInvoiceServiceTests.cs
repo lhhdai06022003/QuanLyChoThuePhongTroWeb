@@ -7,6 +7,7 @@ using QuanLyChoThuePhongTroWeb.Application.Common.Configurations;
 using QuanLyChoThuePhongTroWeb.Application.Common.Models;
 using QuanLyChoThuePhongTroWeb.Application.Common.Security;
 using QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.DTOs;
+using QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Persistence;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services;
@@ -391,22 +392,65 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         public async Task ChiSoGiam_WithoutBranchPhone_OmitsContactClause()
         {
             var images = new[] { Img(1, LoaiDongHo.Dien, ai: 95m), Img(2, LoaiDongHo.Nuoc, ai: 60m) };
-            var ctx = Good(images: images);
-            var noPhone = new AutoInvoiceRoomContext
-            {
-                PhongTroId = ctx.PhongTroId, SoPhong = ctx.SoPhong, ChiNhanhId = ctx.ChiNhanhId, SoDienThoaiChiNhanh = "",
-                Thang = ctx.Thang, Nam = ctx.Nam, DichVuDienNuocCuaPhongId = ctx.DichVuDienNuocCuaPhongId,
-                TrangThaiGhiNhan = ctx.TrangThaiGhiNhan, ChiSoDienCu = ctx.ChiSoDienCu, ChiSoNuocCu = ctx.ChiSoNuocCu,
-                DonGiaDien = ctx.DonGiaDien, DonGiaNuoc = ctx.DonGiaNuoc,
-                Images = ctx.Images, HopDongHieuLuc = ctx.HopDongHieuLuc, NguoiDungKhachId = ctx.NguoiDungKhachId
-            };
-            var h = new Harness(noPhone);
+            var h = new Harness(KhongSoDienThoai(Good(images: images)));
 
             await h.Run();
 
             var customer = Assert.Single(h.ThongBao.Sent, n => n.Kind == "Khach");
             Assert.DoesNotContain("liên hệ", customer.NoiDung);
             Assert.EndsWith(".", customer.NoiDung);
+        }
+
+        private static AutoInvoiceRoomContext KhongSoDienThoai(AutoInvoiceRoomContext ctx) => new()
+        {
+            PhongTroId = ctx.PhongTroId, SoPhong = ctx.SoPhong, ChiNhanhId = ctx.ChiNhanhId, SoDienThoaiChiNhanh = "",
+            Thang = ctx.Thang, Nam = ctx.Nam, DichVuDienNuocCuaPhongId = ctx.DichVuDienNuocCuaPhongId,
+            TrangThaiGhiNhan = ctx.TrangThaiGhiNhan, ChiSoDienCu = ctx.ChiSoDienCu, ChiSoNuocCu = ctx.ChiSoNuocCu,
+            DonGiaDien = ctx.DonGiaDien, DonGiaNuoc = ctx.DonGiaNuoc, LichSu = ctx.LichSu,
+            Images = ctx.Images, HopDongHieuLuc = ctx.HopDongHieuLuc, NguoiDungKhachId = ctx.NguoiDungKhachId
+        };
+
+        [Fact]
+        public async Task NghiSaiChuSo_NotifiesCustomerAndStaff_WithExactText()
+        {
+            // Chỉ số điện cũ 100, đọc được 1000: nghi đọc thừa một chữ số.
+            var images = new[] { Img(1, LoaiDongHo.Dien, ai: 1000m), Img(2, LoaiDongHo.Nuoc, ai: 60m) };
+            var h = new Harness(Good(images: images));
+
+            var result = await h.Run();
+
+            Assert.Equal(AutoInvoiceOutcome.DungCoThongBao, result.Data!.Outcome);
+            Assert.Equal(new[] { AutoInvoiceReason.NghiSaiChuSo }, result.Data.LyDos);
+            Assert.Empty(h.Issuance.CreateCalls);
+            var customer = Assert.Single(h.ThongBao.Sent, n => n.Kind == "Khach");
+            Assert.Equal(7, customer.TargetId);
+            Assert.Equal("Chỉ số đồng hồ có thể chưa đúng", customer.TieuDe);
+            Assert.Equal("Chỉ số điện kỳ 10/2026 của phòng 101 đọc được là 1.000, chênh lệch nhiều so với các tháng trước. "
+                + "Vui lòng chụp lại rõ mặt đồng hồ hoặc liên hệ 0900000000.", customer.NoiDung);
+            Assert.Equal("DienNuoc", customer.LinhVuc);
+            Assert.Equal("/KhachThue/ChiSoDienNuoc", customer.Link);
+            var staff = Assert.Single(h.ThongBao.Sent, n => n.Kind == "Phong");
+            Assert.Contains("đọc thừa một chữ số", staff.NoiDung);
+        }
+
+        [Fact]
+        public async Task TieuThuThap_NotifiesCustomer_WithoutBranchPhone_EndsWithPeriod()
+        {
+            // Lịch sử hợp đồng: điện 40, nước 10 mỗi kỳ; kỳ này điện chỉ 5 kWh (< 40 × 0,3), nước 10 bình thường.
+            var lichSu = new MeterConsumptionHistory(
+                new[] { new MeterConsumption(40m, 10m), new MeterConsumption(40m, 10m), new MeterConsumption(40m, 10m) }, 31, 31, 10);
+            var ctx = Ctx(new[] { Img(1, LoaiDongHo.Dien, ai: 105m), Img(2, LoaiDongHo.Nuoc, ai: 60m) }, lichSu: lichSu);
+            var h = new Harness(KhongSoDienThoai(ctx));
+
+            var result = await h.Run();
+
+            Assert.Equal(new[] { AutoInvoiceReason.TieuThuThapBatThuong }, result.Data!.LyDos);
+            var customer = Assert.Single(h.ThongBao.Sent, n => n.Kind == "Khach");
+            Assert.Equal("Chỉ số đồng hồ có thể chưa đúng", customer.TieuDe);
+            Assert.Equal("Chỉ số điện kỳ 10/2026 của phòng 101 đọc được là 105, chênh lệch nhiều so với các tháng trước. "
+                + "Vui lòng chụp lại rõ mặt đồng hồ.", customer.NoiDung);
+            var staff = Assert.Single(h.ThongBao.Sent, n => n.Kind == "Phong");
+            Assert.Contains("trung vị 3 kỳ của hợp đồng 40 kWh", staff.NoiDung);
         }
 
         [Fact]
@@ -717,7 +761,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
 
             await h.Run();
 
-            Assert.Equal(new AutoInvoiceOptions().SoKyTrungBinh, h.Store.LastSoKyTrungBinh);
+            Assert.Equal(new AutoInvoiceOptions().SoKyLichSuToiDa, h.Store.LastSoKyLichSuToiDa);
         }
 
 

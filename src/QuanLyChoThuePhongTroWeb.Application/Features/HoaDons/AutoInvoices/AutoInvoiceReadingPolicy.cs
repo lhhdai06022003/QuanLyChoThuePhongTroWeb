@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using QuanLyChoThuePhongTroWeb.Application.Common.Configurations;
-using QuanLyChoThuePhongTroWeb.Application.Common.Formatting;
+using QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence;
 using QuanLyChoThuePhongTroWeb.Domain.Enums;
@@ -33,9 +33,10 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.AutoInvoices
         public static bool IsSilent(AutoInvoiceReason reason) =>
             reason is AutoInvoiceReason.ThieuChiSo or AutoInvoiceReason.DaCoHoaDon or AutoInvoiceReason.KhongCoHopDong;
 
-        // Lý do gửi cho khách thuê (người dùng quyết định ngày 10/10/2026: gồm cả số giảm).
+        // Lý do gửi cho khách thuê (người dùng quyết định ngày 10/10/2026: gồm cả số giảm; spec v4 thêm nghi sai chữ số, tiêu thụ thấp).
         public static bool CanBaoKhach(AutoInvoiceReason reason) =>
-            reason is AutoInvoiceReason.DoTinCayThap or AutoInvoiceReason.KhongDocDuoc or AutoInvoiceReason.ChiSoGiam;
+            reason is AutoInvoiceReason.DoTinCayThap or AutoInvoiceReason.KhongDocDuoc or AutoInvoiceReason.ChiSoGiam
+                or AutoInvoiceReason.NghiSaiChuSo or AutoInvoiceReason.TieuThuThapBatThuong;
 
         public static string GhiChuTuXacNhan(double doTinCay) =>
             $"Tự xác nhận, độ tin cậy {DoTinCay(doTinCay)}";
@@ -43,9 +44,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.AutoInvoices
         public static AutoInvoiceMeterDecision EvaluateMeter(LoaiDongHo loai, AutoInvoiceRoomContext ctx, AutoInvoiceOptions o)
         {
             var ten = loai == LoaiDongHo.Dien ? "Điện" : "Nước";
-            var donVi = loai == LoaiDongHo.Dien ? "kWh" : "m³";
             var cu = loai == LoaiDongHo.Dien ? ctx.ChiSoDienCu : ctx.ChiSoNuocCu;
-            var tran = loai == LoaiDongHo.Dien ? o.TranDienKwh : o.TranNuocM3;
 
             decimal moi;
             int? anhTuXacNhanId = null;
@@ -106,37 +105,23 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.AutoInvoices
                 }
             }
 
-            if (moi < cu)
+            var batThuong = MeterAnomalyPolicy.Evaluate(loai, cu, moi, ctx.LichSu, o);
+            if (batThuong != null)
             {
-                return new AutoInvoiceMeterDecision(loai, AutoInvoiceReason.ChiSoGiam,
-                    $"{ten}: chỉ số mới ({ChiSo.DinhDang(moi)}) nhỏ hơn chỉ số cũ ({ChiSo.DinhDang(cu)})", cu, moi, anhTuXacNhanId, doTinCay);
-            }
-
-            var tieuThu = moi - cu;
-            var cacKy = ctx.TieuThuCacKyTruoc
-                .Take(o.SoKyTrungBinh)
-                .Select(k => loai == LoaiDongHo.Dien ? k.Dien : k.Nuoc)
-                .ToList();
-            var trungBinh = cacKy.Count == 0 ? 0m : cacKy.Average();
-
-            decimal gioiHan;
-            if (cacKy.Count == 0 || trungBinh == 0m)
-            {
-                gioiHan = tran;
-            }
-            else
-            {
-                gioiHan = o.HeSoBatThuong * trungBinh;
-            }
-
-            if (tieuThu > gioiHan)
-            {
-                return new AutoInvoiceMeterDecision(loai, AutoInvoiceReason.TieuThuBatThuong,
-                    $"{ten}: tiêu thụ bất thường ({ChiSo.DinhDang(tieuThu)} {donVi}, giới hạn {ChiSo.DinhDang(gioiHan)} {donVi})", cu, moi, anhTuXacNhanId, doTinCay);
+                return new AutoInvoiceMeterDecision(loai, MapLyDo(batThuong.LyDo), batThuong.MoTa, cu, moi, anhTuXacNhanId, doTinCay);
             }
 
             return new AutoInvoiceMeterDecision(loai, null, null, cu, moi, anhTuXacNhanId, doTinCay);
         }
+
+        private static AutoInvoiceReason MapLyDo(MeterAnomalyReason lyDo) => lyDo switch
+        {
+            MeterAnomalyReason.ChiSoGiam => AutoInvoiceReason.ChiSoGiam,
+            MeterAnomalyReason.NghiSaiChuSo => AutoInvoiceReason.NghiSaiChuSo,
+            MeterAnomalyReason.TieuThuBatThuong => AutoInvoiceReason.TieuThuBatThuong,
+            MeterAnomalyReason.TieuThuThapBatThuong => AutoInvoiceReason.TieuThuThapBatThuong,
+            _ => throw new ArgumentOutOfRangeException(nameof(lyDo), lyDo, null)
+        };
 
         public static AutoInvoiceRoomDecision EvaluateRoom(AutoInvoiceRoomContext ctx, AutoInvoiceOptions o)
         {

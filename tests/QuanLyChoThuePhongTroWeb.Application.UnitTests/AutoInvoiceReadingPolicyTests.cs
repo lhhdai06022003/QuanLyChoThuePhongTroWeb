@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using QuanLyChoThuePhongTroWeb.Application.Common.Configurations;
+using QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Persistence;
+using QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.AutoInvoices;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence;
@@ -31,7 +33,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         internal static AutoInvoiceRoomContext Ctx(
             IReadOnlyList<AutoInvoiceMeterImage>? images = null,
             TrangThaiGhiNhan? status = TrangThaiGhiNhan.Nhap,
-            IReadOnlyList<AutoInvoiceConsumption>? truoc = null,
+            MeterConsumptionHistory? lichSu = null,
             IReadOnlyList<AutoInvoiceContractRef>? contracts = null,
             bool coHoaDon = false,
             bool kyTruocChuaChot = false,
@@ -64,7 +66,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
                 DonGiaDien = donGiaDien,
                 DonGiaNuoc = donGiaNuoc,
                 Images = images ?? Array.Empty<AutoInvoiceMeterImage>(),
-                TieuThuCacKyTruoc = truoc ?? Array.Empty<AutoInvoiceConsumption>(),
+                LichSu = lichSu ?? new MeterConsumptionHistory(Array.Empty<MeterConsumption>(), 30, 30, null),
                 HopDongHieuLuc = contracts ?? new[] { new AutoInvoiceContractRef(10, 7) },
                 CoHoaDonHoatDong = coHoaDon,
                 KyTruocChuaChot = kyTruocChuaChot,
@@ -233,20 +235,23 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.Null(d.LyDo);
         }
 
+        // Lịch sử kỳ trọn tháng của hợp đồng (mới → cũ) cho điện; nước 0.
+        private static MeterConsumptionHistory LichSuDien(params decimal[] cacKy) =>
+            new(cacKy.Select(k => new MeterConsumption(k, 0m)).ToList(), 31, 31, 10);
+
         [Fact]
-        public void Meter_ExactlyThreeTimesAverage_IsAccepted()
+        public void Meter_ExactlyTwiceMedian_IsAccepted()
         {
-            var truoc = new[] { new AutoInvoiceConsumption(10, 5), new AutoInvoiceConsumption(10, 5), new AutoInvoiceConsumption(10, 5) };
-            var ctx = Ctx(new[] { Img(1, LoaiDongHo.Dien, ai: 130m) }, truoc: truoc);
+            // Trung vị 100: giới hạn trên max(200, 150) = 200.
+            var ctx = Ctx(new[] { Img(1, LoaiDongHo.Dien, ai: 300m) }, lichSu: LichSuDien(100, 100, 100));
 
             Assert.Null(AutoInvoiceReadingPolicy.EvaluateMeter(LoaiDongHo.Dien, ctx, Options).LyDo);
         }
 
         [Fact]
-        public void Meter_SmallestUnitAboveThreeTimesAverage_IsRejected()
+        public void Meter_SmallestUnitAboveTwiceMedian_IsRejected()
         {
-            var truoc = new[] { new AutoInvoiceConsumption(10, 5), new AutoInvoiceConsumption(10, 5), new AutoInvoiceConsumption(10, 5) };
-            var ctx = Ctx(new[] { Img(1, LoaiDongHo.Dien, ai: 130.001m) }, truoc: truoc);
+            var ctx = Ctx(new[] { Img(1, LoaiDongHo.Dien, ai: 300.001m) }, lichSu: LichSuDien(100, 100, 100));
 
             Assert.Equal(AutoInvoiceReason.TieuThuBatThuong, AutoInvoiceReadingPolicy.EvaluateMeter(LoaiDongHo.Dien, ctx, Options).LyDo);
         }
@@ -254,11 +259,11 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         [Fact]
         public void Meter_Messages_FormatNumbersTheVietnameseWayWithoutCulture()
         {
-            var tieuThu = AutoInvoiceReadingPolicy.EvaluateMeter(LoaiDongHo.Dien, Ctx(new[] { Img(1, LoaiDongHo.Dien, ai: 1_334.5m) }), Options);
+            var tieuThu = AutoInvoiceReadingPolicy.EvaluateMeter(LoaiDongHo.Dien, Ctx(new[] { Img(1, LoaiDongHo.Dien, ai: 1_284.5m) }, dienCu: 50), Options);
             var giam = AutoInvoiceReadingPolicy.EvaluateMeter(LoaiDongHo.Dien, Ctx(new[] { Img(1, LoaiDongHo.Dien, ai: 99.5m) }), Options);
             var tinCay = AutoInvoiceReadingPolicy.EvaluateMeter(LoaiDongHo.Dien, Ctx(new[] { Img(1, LoaiDongHo.Dien, ai: 120m, tinCay: 0.5) }), Options);
 
-            Assert.Equal("Điện: tiêu thụ bất thường (1.234,5 kWh, giới hạn 500 kWh)", tieuThu.MoTa);
+            Assert.Equal("Điện: tiêu thụ 1.234,5 kWh, hợp đồng mới chưa đủ lịch sử, so với trần chung 500 kWh", tieuThu.MoTa);
             Assert.Equal("Điện: chỉ số mới (99,5) nhỏ hơn chỉ số cũ (100)", giam.MoTa);
             Assert.Equal("Điện: độ tin cậy nhận diện thấp (0,50 < 0,90)", tinCay.MoTa);
         }
@@ -284,11 +289,21 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         }
 
         [Fact]
-        public void Meter_ZeroAverage_UsesCapInsteadOfZeroLimit()
+        public void Meter_OnePreviousPeriod_IsNotEnoughHistory_UsesCap()
         {
-            var truoc = new[] { new AutoInvoiceConsumption(0, 0), new AutoInvoiceConsumption(0, 0) };
-            var ok = Ctx(new[] { Img(1, LoaiDongHo.Dien, ai: 150m) }, truoc: truoc);
-            var bad = Ctx(new[] { Img(1, LoaiDongHo.Dien, ai: 601m) }, truoc: truoc);
+            // Một kỳ (10 kWh) chưa đủ SoKyToiThieu = 2: so với trần 500, không so với 2 × 10.
+            var ctx = Ctx(new[] { Img(1, LoaiDongHo.Dien, ai: 400m) }, lichSu: LichSuDien(10));
+
+            Assert.Null(AutoInvoiceReadingPolicy.EvaluateMeter(LoaiDongHo.Dien, ctx, Options).LyDo);
+        }
+
+        [Fact]
+        public void Meter_ZeroMedian_UsesIncreaseFloor()
+        {
+            // Trung vị 0: giới hạn trên = sàn tăng 50 kWh.
+            var lichSu = LichSuDien(0, 0);
+            var ok = Ctx(new[] { Img(1, LoaiDongHo.Dien, ai: 150m) }, lichSu: lichSu);
+            var bad = Ctx(new[] { Img(1, LoaiDongHo.Dien, ai: 150.001m) }, lichSu: lichSu);
 
             Assert.Null(AutoInvoiceReadingPolicy.EvaluateMeter(LoaiDongHo.Dien, ok, Options).LyDo);
             Assert.Equal(AutoInvoiceReason.TieuThuBatThuong, AutoInvoiceReadingPolicy.EvaluateMeter(LoaiDongHo.Dien, bad, Options).LyDo);
@@ -297,23 +312,20 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         [Fact]
         public void Meter_UsesAtMostConfiguredNumberOfPreviousPeriods()
         {
-            // Kỳ thứ 4 (1000) bị bỏ qua: trung bình 3 kỳ đầu = 10, giới hạn 30.
-            var truoc = new[]
-            {
-                new AutoInvoiceConsumption(10, 0), new AutoInvoiceConsumption(10, 0),
-                new AutoInvoiceConsumption(10, 0), new AutoInvoiceConsumption(1000, 0)
-            };
-            var ctx = Ctx(new[] { Img(1, LoaiDongHo.Dien, ai: 131m) }, truoc: truoc);
+            // Chỉ lấy 2 kỳ đầu (trung vị 100, giới hạn 200); lấy cả 4 kỳ thì trung vị 550 và 201 là bình thường.
+            var lichSu = LichSuDien(100, 100, 1000, 1000);
+            var ctx = Ctx(new[] { Img(1, LoaiDongHo.Dien, ai: 301m) }, lichSu: lichSu);
 
-            Assert.Equal(AutoInvoiceReason.TieuThuBatThuong, AutoInvoiceReadingPolicy.EvaluateMeter(LoaiDongHo.Dien, ctx, Options).LyDo);
+            Assert.Equal(AutoInvoiceReason.TieuThuBatThuong,
+                AutoInvoiceReadingPolicy.EvaluateMeter(LoaiDongHo.Dien, ctx, new AutoInvoiceOptions { SoKyLichSuToiDa = 2 }).LyDo);
         }
 
         [Fact]
         public void Meter_ApprovedPeriodValue_StillChecksAbnormalConsumption_AndNeverAutoConfirms()
         {
-            var truoc = new[] { new AutoInvoiceConsumption(10, 0) };
-            var bad = Ctx(status: TrangThaiGhiNhan.DaDuyet, truoc: truoc, dienMoi: 140);
-            var ok = Ctx(status: TrangThaiGhiNhan.DaDuyet, truoc: truoc, dienMoi: 130);
+            var lichSu = LichSuDien(100, 100);
+            var bad = Ctx(status: TrangThaiGhiNhan.DaDuyet, lichSu: lichSu, dienMoi: 301);
+            var ok = Ctx(status: TrangThaiGhiNhan.DaDuyet, lichSu: lichSu, dienMoi: 300);
 
             var dBad = AutoInvoiceReadingPolicy.EvaluateMeter(LoaiDongHo.Dien, bad, Options);
             var dOk = AutoInvoiceReadingPolicy.EvaluateMeter(LoaiDongHo.Dien, ok, Options);
@@ -326,17 +338,69 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         [Fact]
         public void Meter_OfficialImage_UsesConfirmedValue_WithoutAutoConfirm_ButChecksConsumption()
         {
-            var truoc = new[] { new AutoInvoiceConsumption(10, 0) };
-            var imgOk = Img(1, LoaiDongHo.Dien, TrangThaiXuLyAnhChiSo.DaXacNhan, ai: 999m, tinCay: 0.1, xacNhan: 130m, official: true);
-            var imgBad = Img(1, LoaiDongHo.Dien, TrangThaiXuLyAnhChiSo.DaXacNhan, ai: 999m, tinCay: 0.1, xacNhan: 131m, official: true);
+            var lichSu = LichSuDien(100, 100);
+            var imgOk = Img(1, LoaiDongHo.Dien, TrangThaiXuLyAnhChiSo.DaXacNhan, ai: 999m, tinCay: 0.1, xacNhan: 300m, official: true);
+            var imgBad = Img(1, LoaiDongHo.Dien, TrangThaiXuLyAnhChiSo.DaXacNhan, ai: 999m, tinCay: 0.1, xacNhan: 301m, official: true);
 
-            var ok = AutoInvoiceReadingPolicy.EvaluateMeter(LoaiDongHo.Dien, Ctx(new[] { imgOk }, truoc: truoc), Options);
-            var bad = AutoInvoiceReadingPolicy.EvaluateMeter(LoaiDongHo.Dien, Ctx(new[] { imgBad }, truoc: truoc), Options);
+            var ok = AutoInvoiceReadingPolicy.EvaluateMeter(LoaiDongHo.Dien, Ctx(new[] { imgOk }, lichSu: lichSu), Options);
+            var bad = AutoInvoiceReadingPolicy.EvaluateMeter(LoaiDongHo.Dien, Ctx(new[] { imgBad }, lichSu: lichSu), Options);
 
             Assert.Null(ok.LyDo);
             Assert.Null(ok.AnhTuXacNhanId);
-            Assert.Equal(130m, ok.ChiSoMoi);
+            Assert.Equal(300m, ok.ChiSoMoi);
             Assert.Equal(AutoInvoiceReason.TieuThuBatThuong, bad.LyDo);
+        }
+
+        [Fact]
+        public void TieuThuThap_DungVaBaoKhach()
+        {
+            // Trung vị M = 40, tiêu thụ t = 5 < 40 × 0,3.
+            var lichSu = LichSuDien(40, 40, 40);
+            var ctx = Ctx(new[] { Img(1, LoaiDongHo.Dien, ai: 105m) }, lichSu: lichSu);
+
+            var d = AutoInvoiceReadingPolicy.EvaluateMeter(LoaiDongHo.Dien, ctx, Options);
+
+            Assert.Equal(AutoInvoiceReason.TieuThuThapBatThuong, d.LyDo);
+            Assert.True(AutoInvoiceReadingPolicy.CanBaoKhach(d.LyDo!.Value));
+            Assert.Equal(105m, d.ChiSoMoi);
+            Assert.Equal(100m, d.ChiSoCu);
+            Assert.Equal(1, d.AnhTuXacNhanId);
+            Assert.Equal(MeterAnomalyPolicy.Evaluate(LoaiDongHo.Dien, 100m, 105m, lichSu, Options)!.MoTa, d.MoTa);
+
+            // Lịch sử nước 0 nên kỳ này nước cũng 0 (chỉ số cũ 50) để chỉ còn lý do của điện.
+            var room = AutoInvoiceReadingPolicy.EvaluateRoom(
+                Ctx(new[] { Img(1, LoaiDongHo.Dien, ai: 105m), Img(2, LoaiDongHo.Nuoc, ai: 50m) }, lichSu: lichSu), Options);
+            Assert.False(room.DuDieuKien);
+            Assert.Equal(new[] { AutoInvoiceReason.TieuThuThapBatThuong }, room.LyDos);
+        }
+
+        [Fact]
+        public void NghiSaiChuSo_Dung()
+        {
+            // Chỉ số cũ 100, đọc được 1000 (gấp 10 lần): nghi đọc thừa một chữ số.
+            var ctx = Ctx(new[] { Img(1, LoaiDongHo.Dien, ai: 1000m) }, lichSu: LichSuDien(40, 40, 40));
+
+            var d = AutoInvoiceReadingPolicy.EvaluateMeter(LoaiDongHo.Dien, ctx, Options);
+
+            Assert.Equal(AutoInvoiceReason.NghiSaiChuSo, d.LyDo);
+            Assert.True(AutoInvoiceReadingPolicy.CanBaoKhach(d.LyDo!.Value));
+            Assert.Equal(1000m, d.ChiSoMoi);
+            Assert.Contains("đọc thừa một chữ số", d.MoTa);
+        }
+
+        [Fact]
+        public void HopDongMoi_TranTheoNgay()
+        {
+            // Hợp đồng phủ 12/31 ngày: trần 500 × 12 / 31 ≈ 193,5 kWh.
+            var lichSu = new MeterConsumptionHistory(Array.Empty<MeterConsumption>(), 12, 31, 10);
+            var bad = Ctx(new[] { Img(1, LoaiDongHo.Dien, ai: 300m) }, lichSu: lichSu);
+            var ok = Ctx(new[] { Img(1, LoaiDongHo.Dien, ai: 290m) }, lichSu: lichSu);
+
+            var dBad = AutoInvoiceReadingPolicy.EvaluateMeter(LoaiDongHo.Dien, bad, Options);
+
+            Assert.Equal(AutoInvoiceReason.TieuThuBatThuong, dBad.LyDo);
+            Assert.Equal("Điện: tiêu thụ 200 kWh, hợp đồng mới chưa đủ lịch sử, so với trần chung 193,5 kWh", dBad.MoTa);
+            Assert.Null(AutoInvoiceReadingPolicy.EvaluateMeter(LoaiDongHo.Dien, ok, Options).LyDo);
         }
 
         [Fact]
@@ -386,6 +450,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         [InlineData(AutoInvoiceReason.DoTinCayThap, true)]
         [InlineData(AutoInvoiceReason.KhongDocDuoc, true)]
         [InlineData(AutoInvoiceReason.ChiSoGiam, true)]
+        [InlineData(AutoInvoiceReason.NghiSaiChuSo, true)]
+        [InlineData(AutoInvoiceReason.TieuThuThapBatThuong, true)]
         [InlineData(AutoInvoiceReason.TieuThuBatThuong, false)]
         [InlineData(AutoInvoiceReason.KyTruocChuaChot, false)]
         [InlineData(AutoInvoiceReason.KhachKhongCoKenhNhan, false)]

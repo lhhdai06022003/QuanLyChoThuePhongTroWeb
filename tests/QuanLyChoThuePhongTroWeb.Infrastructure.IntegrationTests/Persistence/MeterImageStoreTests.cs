@@ -569,6 +569,8 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
                 calculator ?? new HoaDonCalculatorService(),
                 NullLogger<MeterReadingWorkflowService>.Instance,
                 options ?? new MeterImageOptions(),
+                new MeterConsumptionHistoryStore(context),
+                new AutoInvoiceOptions(),
                 timeProvider ?? new FixedTimeProvider(new DateTimeOffset(2026, 10, 15, 3, 0, 0, TimeSpan.Zero)));
         }
 
@@ -760,7 +762,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
                 return await svc2.ConfirmImageAsync(new ConfirmMeterImageRequest
                 {
                     AnhChiSoDongHoId = nuocImgId,
-                    GiaTriXacNhan = 90
+                    GiaTriXacNhan = 70
                 }, adminId);
             });
 
@@ -773,7 +775,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             var finalPeriod = await verifyCtx.DichVuDienNuocCuaPhongs.FindAsync(periodId);
             Assert.NotNull(finalPeriod);
             Assert.Equal(180, finalPeriod.ChiSoDienMoi);
-            Assert.Equal(90, finalPeriod.ChiSoNuocMoi);
+            Assert.Equal(70, finalPeriod.ChiSoNuocMoi);
         }
 
         [Fact]

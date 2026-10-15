@@ -55,6 +55,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs
     {
         public InvoiceAdjustmentLine? Dien { get; init; }
         public InvoiceAdjustmentLine? Nuoc { get; init; }
+        public IReadOnlyList<string> CanhBaos { get; init; } = Array.Empty<string>();
     }
 
     public sealed class InvoiceAdjustmentResult

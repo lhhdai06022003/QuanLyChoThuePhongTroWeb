@@ -103,7 +103,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             var seeder = new DebtTestSeeder(db);
             var branch = await seeder.BranchAsync("D");
             var room = await seeder.RoomAsync(branch, "D");
-            var store = new AutoInvoiceStore(db);
+            var store = new AutoInvoiceStore(db, new MeterConsumptionHistoryStore(db));
 
             Assert.Null(await store.GetRoomContextAsync(int.MaxValue, Thang, Nam, 3));
 
@@ -122,7 +122,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             var seeder = new DebtTestSeeder(db);
             var branch = await seeder.BranchAsync("P");
             var room = await seeder.RoomAsync(branch, "P");
-            var store = new AutoInvoiceStore(db);
+            var store = new AutoInvoiceStore(db, new MeterConsumptionHistoryStore(db));
 
             var ctx = await store.GetRoomContextAsync(room.PhongTroId, Thang, Nam, 3);
 
@@ -153,7 +153,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             var newest = await ImageAsync(db, period, LoaiDongHo.Dien, Utc(2026, 10, 2, 1));
             var sameTimeHigherId = await ImageAsync(db, period, LoaiDongHo.Nuoc, Utc(2026, 10, 2, 1));
             await ImageAsync(db, period, LoaiDongHo.Dien, Utc(2026, 10, 3, 1), deleted: true);
-            var store = new AutoInvoiceStore(db);
+            var store = new AutoInvoiceStore(db, new MeterConsumptionHistoryStore(db));
 
             var ctx = await store.GetRoomContextAsync(room.PhongTroId, Thang, Nam, 3);
 
@@ -181,7 +181,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             var branch = await seeder.BranchAsync("E");
             var room = await seeder.RoomAsync(branch, "E");
             await PeriodAsync(db, room, Thang, Nam, deleted: true);
-            var store = new AutoInvoiceStore(db);
+            var store = new AutoInvoiceStore(db, new MeterConsumptionHistoryStore(db));
 
             var ctx = await store.GetRoomContextAsync(room.PhongTroId, Thang, Nam, 3);
 
@@ -191,52 +191,52 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
         }
 
         [Fact]
-        public async Task GetRoomContext_Consumption_OnlyApprovedPreviousPeriods_NewestFirst_LimitedAndSkippingDeleted()
+        public async Task GetRoomContext_LichSu_ComesFromSingleContractHistory_LimitedBySoKyLichSuToiDa()
         {
             await using var db = _fixture.CreateDbContext();
             await using var tx = await db.Database.BeginTransactionAsync();
             var seeder = new DebtTestSeeder(db);
             var branch = await seeder.BranchAsync("C");
             var room = await seeder.RoomAsync(branch, "C");
-            await PeriodAsync(db, room, 6, 2026, TrangThaiGhiNhan.DaDuyet, 0, 10, 0, 1);      // quá cũ so với Take(3)
+            var tenant = await seeder.TenantAsync("C");
+            // 01/07/2026 00:00 giờ VN: các kỳ 07, 08, 09 trọn tháng trong hợp đồng.
+            var contract = await seeder.ContractAsync(room, tenant, Utc(2026, 6, 30, 17), null);
             await PeriodAsync(db, room, 7, 2026, TrangThaiGhiNhan.DaDuyet, 10, 30, 1, 3);     // 20 / 2
             await PeriodAsync(db, room, 8, 2026, TrangThaiGhiNhan.DaDuyet, 30, 60, 3, 6);     // 30 / 3
             await PeriodAsync(db, room, 9, 2026, TrangThaiGhiNhan.DaDuyet, 60, 100, 6, 10);   // 40 / 4
-            await PeriodAsync(db, room, 5, 2026, TrangThaiGhiNhan.ChoDuyet, 0, 999, 0, 99);   // chưa duyệt
-            await PeriodAsync(db, room, 4, 2026, TrangThaiGhiNhan.DaDuyet, 0, 888, 0, 88, deleted: true);
-            await PeriodAsync(db, room, 11, 2026, TrangThaiGhiNhan.DaDuyet, 0, 777, 0, 77);   // kỳ sau
             await PeriodAsync(db, room, Thang, Nam, TrangThaiGhiNhan.DaDuyet, 100, 777, 10, 77); // chính kỳ đang xét
-            var store = new AutoInvoiceStore(db);
+            var store = new AutoInvoiceStore(db, new MeterConsumptionHistoryStore(db));
 
             var ctx = await store.GetRoomContextAsync(room.PhongTroId, Thang, Nam, 3);
 
-            Assert.Equal(3, ctx!.TieuThuCacKyTruoc.Count);
-            Assert.Equal(40m, ctx.TieuThuCacKyTruoc[0].Dien);
-            Assert.Equal(4m, ctx.TieuThuCacKyTruoc[0].Nuoc);
-            Assert.Equal(30m, ctx.TieuThuCacKyTruoc[1].Dien);
-            Assert.Equal(20m, ctx.TieuThuCacKyTruoc[2].Dien);
+            Assert.Equal(contract.HopDongId, ctx!.LichSu.HopDongId);
+            Assert.Equal(31, ctx.LichSu.SoNgayPhu);
+            Assert.Equal(31, ctx.LichSu.SoNgayCuaThang);
+            Assert.Equal(new[] { 40m, 30m, 20m }, ctx.LichSu.CacKyTronThang.Select(c => c.Dien).ToArray());
+            Assert.Equal(4m, ctx.LichSu.CacKyTronThang[0].Nuoc);
 
             var two = await store.GetRoomContextAsync(room.PhongTroId, Thang, Nam, 2);
-            Assert.Equal(2, two!.TieuThuCacKyTruoc.Count);
+            Assert.Equal(new[] { 40m, 30m }, two!.LichSu.CacKyTronThang.Select(c => c.Dien).ToArray());
 
             await tx.RollbackAsync();
         }
 
         [Fact]
-        public async Task GetRoomContext_Consumption_CrossesYearBoundary()
+        public async Task GetRoomContext_LichSu_NoContract_IsEmptyWithoutContractId()
         {
             await using var db = _fixture.CreateDbContext();
             await using var tx = await db.Database.BeginTransactionAsync();
             var seeder = new DebtTestSeeder(db);
             var branch = await seeder.BranchAsync("Y");
             var room = await seeder.RoomAsync(branch, "Y");
-            await PeriodAsync(db, room, 12, 2025, TrangThaiGhiNhan.DaDuyet, 0, 15, 0, 1);
-            await PeriodAsync(db, room, 11, 2025, TrangThaiGhiNhan.DaDuyet, 0, 5, 0, 1);
-            var store = new AutoInvoiceStore(db);
+            await PeriodAsync(db, room, 9, 2026, TrangThaiGhiNhan.DaDuyet, 0, 15, 0, 1);
+            var store = new AutoInvoiceStore(db, new MeterConsumptionHistoryStore(db));
 
-            var ctx = await store.GetRoomContextAsync(room.PhongTroId, 1, 2026, 3);
+            var ctx = await store.GetRoomContextAsync(room.PhongTroId, Thang, Nam, 3);
 
-            Assert.Equal(new[] { 15m, 5m }, ctx!.TieuThuCacKyTruoc.Select(c => c.Dien).ToArray());
+            Assert.NotNull(ctx!.LichSu);
+            Assert.Null(ctx.LichSu.HopDongId);
+            Assert.Empty(ctx.LichSu.CacKyTronThang);
 
             await tx.RollbackAsync();
         }
@@ -260,7 +260,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             await seeder.ContractAsync(room, t3, Utc(2026, 1, 1), Utc(2026, 12, 31), deleted: true);
             await seeder.ContractAsync(room, t4, Utc(2026, 1, 1), Utc(2026, 9, 20));      // hết hạn trước tháng
             await seeder.ContractAsync(room, t5, Utc(2026, 11, 5), null);                 // bắt đầu sau tháng
-            var store = new AutoInvoiceStore(db);
+            var store = new AutoInvoiceStore(db, new MeterConsumptionHistoryStore(db));
 
             var ctx = await store.GetRoomContextAsync(room.PhongTroId, Thang, Nam, 3);
 
@@ -285,7 +285,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             await seeder.ContractAsync(room, t1, Utc(2026, 10, 31, 17), null);
             // 2026-10-31 16:30 UTC = 31/10/2026 23:30 giờ VN: còn thuộc tháng 10.
             var inMonth = await seeder.ContractAsync(room, t2, new DateTime(2026, 10, 31, 16, 30, 0, DateTimeKind.Utc), null);
-            var store = new AutoInvoiceStore(db);
+            var store = new AutoInvoiceStore(db, new MeterConsumptionHistoryStore(db));
 
             var ctx = await store.GetRoomContextAsync(room.PhongTroId, Thang, Nam, 3);
 
@@ -306,7 +306,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             var contract = await seeder.ContractAsync(room, tenant);
             await seeder.InvoiceAsync(contract, TrangThaiPhatHanhHoaDon.DaHuy, TrangThaiHoaDon.ChuaThanhToan, 1m, null, deleted: true, month: Thang, year: Nam);
             await seeder.InvoiceAsync(contract, TrangThaiPhatHanhHoaDon.Nhap, TrangThaiHoaDon.ChuaThanhToan, 1m, null, month: 9, year: Nam);
-            var store = new AutoInvoiceStore(db);
+            var store = new AutoInvoiceStore(db, new MeterConsumptionHistoryStore(db));
 
             Assert.False((await store.GetRoomContextAsync(room.PhongTroId, Thang, Nam, 3))!.CoHoaDonHoatDong);
 
@@ -324,7 +324,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             var seeder = new DebtTestSeeder(db);
             var branch = await seeder.BranchAsync("K");
             var tenant = await seeder.TenantAsync("K");
-            var store = new AutoInvoiceStore(db);
+            var store = new AutoInvoiceStore(db, new MeterConsumptionHistoryStore(db));
 
             // Có hợp đồng tháng trước, chưa có bản ghi kỳ trước: chưa chốt.
             var roomA = await seeder.RoomAsync(branch, "KA");
@@ -376,7 +376,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             await seeder.ContractAsync(room, tenant);
             // nguoi_dung.NguoiThueId là duy nhất nên mỗi khách tối đa một tài khoản.
             var account = await UserAsync(db, "ok1", Role.KhachThue, nguoiThueId: tenant.NguoiThueId);
-            var store = new AutoInvoiceStore(db);
+            var store = new AutoInvoiceStore(db, new MeterConsumptionHistoryStore(db));
 
             var ctx = await store.GetRoomContextAsync(room.PhongTroId, Thang, Nam, 3);
 
@@ -399,7 +399,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             var tenant = await seeder.TenantAsync("Q");
             await seeder.ContractAsync(room, tenant);
             await UserAsync(db, "bad", Role.KhachThue, active: !inactive, deleted: deleted, nguoiThueId: tenant.NguoiThueId);
-            var store = new AutoInvoiceStore(db);
+            var store = new AutoInvoiceStore(db, new MeterConsumptionHistoryStore(db));
 
             var ctx = await store.GetRoomContextAsync(room.PhongTroId, Thang, Nam, 3);
 
@@ -421,7 +421,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             tenant.Email = "   ";
             await db.SaveChangesAsync();
             await seeder.ContractAsync(room, tenant);
-            var store = new AutoInvoiceStore(db);
+            var store = new AutoInvoiceStore(db, new MeterConsumptionHistoryStore(db));
 
             var ctx = await store.GetRoomContextAsync(room.PhongTroId, Thang, Nam, 3);
 
@@ -444,7 +444,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             await seeder.ContractAsync(room, t1, Utc(2026, 1, 1), Utc(2026, 10, 14));
             await seeder.ContractAsync(room, t2, Utc(2026, 10, 15), null);
             await UserAsync(db, "m1", Role.KhachThue, nguoiThueId: t1.NguoiThueId);
-            var store = new AutoInvoiceStore(db);
+            var store = new AutoInvoiceStore(db, new MeterConsumptionHistoryStore(db));
 
             var ctx = await store.GetRoomContextAsync(room.PhongTroId, Thang, Nam, 3);
 
@@ -463,7 +463,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             var seeder = new DebtTestSeeder(db);
             var branch = await seeder.BranchAsync("A");
             var otherBranch = await seeder.BranchAsync("O");
-            var store = new AutoInvoiceStore(db);
+            var store = new AutoInvoiceStore(db, new MeterConsumptionHistoryStore(db));
             var admin = await UserAsync(db, "adm", Role.Admin);
 
             Assert.Null(await store.FindFallbackActorAsync(branch.ChiNhanhId));
@@ -518,7 +518,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             await using var tx = await db.Database.BeginTransactionAsync();
             var seeder = new DebtTestSeeder(db);
             var branch = await seeder.BranchAsync("X");
-            var store = new AutoInvoiceStore(db);
+            var store = new AutoInvoiceStore(db, new MeterConsumptionHistoryStore(db));
 
             var tracked = new ChiNhanh { TenChiNhanh = "x", MaChiNhanh = "X" + Guid.NewGuid().ToString("N")[..8], DiaChi = "x", MoTa = "x", SoDienThoai = "1" };
             db.ChiNhanhs.Add(tracked);
@@ -567,7 +567,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             var manual = await ProvisionalAsync(db, seeder, contract, null);
             var deleted = await ProvisionalAsync(db, seeder, contract, now.AddHours(-2), deleted: true);
             var sent = await ProvisionalAsync(db, seeder, contract, now.AddHours(-3), TrangThaiPhatHanhHoaDon.DaGui);
-            var store = new AutoInvoiceStore(db);
+            var store = new AutoInvoiceStore(db, new MeterConsumptionHistoryStore(db));
 
             var due = await store.GetDueProvisionalInvoicesAsync(now);
 
@@ -616,7 +616,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
                 Row(TrangThaiPhatHanhHoaDon.ChoDuyet, TrangThaiPhatHanhHoaDon.Nhap, other.NguoiDungId, Utc(2026, 10, 18, 3)),
                 Row(TrangThaiPhatHanhHoaDon.Nhap, TrangThaiPhatHanhHoaDon.ChoDuyet, second.NguoiDungId, Utc(2026, 10, 18, 4)));
             await db.SaveChangesAsync();
-            var store = new AutoInvoiceStore(db);
+            var store = new AutoInvoiceStore(db, new MeterConsumptionHistoryStore(db));
 
             Assert.Equal(second.NguoiDungId, await store.GetLastProvisionalSubmitterIdAsync(inv.HoaDonId));
             Assert.Null(await store.GetLastProvisionalSubmitterIdAsync(withoutHistory.HoaDonId));
@@ -641,7 +641,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             var noPeriod = await ProvisionalAsync(db, seeder, contract, han);
             var deleted = await ProvisionalAsync(db, seeder, contract, han, deleted: true);
             await db.SaveChangesAsync();
-            var store = new AutoInvoiceStore(db);
+            var store = new AutoInvoiceStore(db, new MeterConsumptionHistoryStore(db));
 
             var snap = await store.GetAdjustmentSnapshotAsync(inv.HoaDonId);
 

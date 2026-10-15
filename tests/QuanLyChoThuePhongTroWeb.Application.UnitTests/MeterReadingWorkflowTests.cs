@@ -140,6 +140,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         private readonly QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services.HoaDonCalculatorService _calculator;
         private readonly Fakes.FixedTimeProvider _timeProvider;
         private readonly MeterReadingWorkflowService _service;
+        private readonly Fakes.FakeMeterConsumptionHistoryStore _historyStore = new();
 
         public MeterReadingWorkflowTests()
         {
@@ -162,6 +163,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
                 _calculator,
                 Microsoft.Extensions.Logging.Abstractions.NullLogger<MeterReadingWorkflowService>.Instance,
                 new QuanLyChoThuePhongTroWeb.Application.Common.Configurations.MeterImageOptions(),
+                _historyStore,
+                new QuanLyChoThuePhongTroWeb.Application.Common.Configurations.AutoInvoiceOptions(),
                 _timeProvider);
         }
 
@@ -388,6 +391,59 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.True(newImage.DuocChonLamChiSoChinhThuc);     // Ảnh mới được chọn
             Assert.Equal(150m, period.ChiSoDienMoi);             // Số kỳ được cập nhật
             Assert.True(_uow.CurrentTransaction.Committed);
+        }
+
+        private void SeedAnomalyConfirm(out AnhChiSoDongHo img)
+        {
+            // Lịch sử điện 6 kỳ trung vị 40 kWh: tiêu thụ 91 kWh là bất thường (ngưỡng 90).
+            _historyStore.History = new MeterConsumptionHistory(new[] { 38m, 40m, 40m, 42m, 45m, 39m }.Select(k => new MeterConsumption(k, 0m)).ToList(), 31, 31, 10);
+            _store.Periods[1] = new DichVuDienNuocCuaPhong { DichVuDienNuocCuaPhongId = 1, PhongTroId = 1, Thang = 10, Nam = 2026, ChiSoDienCu = 1000 };
+            _store.RoomBranches[1] = 10;
+            img = new AnhChiSoDongHo
+            {
+                AnhChiSoDongHoId = 100,
+                DichVuDienNuocCuaPhongId = 1,
+                LoaiDongHo = LoaiDongHo.Dien,
+                Url = "http://test",
+                TrangThaiXuLy = TrangThaiXuLyAnhChiSo.DocDuoc
+            };
+            _store.Images[100] = img;
+            _access.Permissions.Add((2, 10, EmployeeActionCodes.MeterReview));
+        }
+
+        [Fact]
+        public async Task XacNhanSoBatThuong_KhongGhiChu_BiTuChoi()
+        {
+            SeedAnomalyConfirm(out var img);
+
+            var result = await _service.ConfirmImageAsync(new ConfirmMeterImageRequest { AnhChiSoDongHoId = 100, GiaTriXacNhan = 1091m }, 2);
+
+            Assert.False(result.Success);
+            Assert.StartsWith("Chỉ số bất thường so với lịch sử, cần ghi chú lý do. ", result.Message);
+            Assert.Contains("Điện", result.Message);
+            Assert.Equal(TrangThaiXuLyAnhChiSo.DocDuoc, img.TrangThaiXuLy);
+        }
+
+        [Fact]
+        public async Task XacNhanSoBatThuong_CoGhiChu_ThanhCong()
+        {
+            SeedAnomalyConfirm(out var img);
+
+            var result = await _service.ConfirmImageAsync(new ConfirmMeterImageRequest { AnhChiSoDongHoId = 100, GiaTriXacNhan = 1091m, GhiChu = "Khách dùng máy nóng lạnh mới" }, 2);
+
+            Assert.True(result.Success, result.Message);
+            Assert.Equal(TrangThaiXuLyAnhChiSo.DaXacNhan, img.TrangThaiXuLy);
+        }
+
+        [Fact]
+        public async Task XacNhanSoBinhThuong_KhongCanGhiChu()
+        {
+            SeedAnomalyConfirm(out var img);
+
+            var result = await _service.ConfirmImageAsync(new ConfirmMeterImageRequest { AnhChiSoDongHoId = 100, GiaTriXacNhan = 1090m }, 2);
+
+            Assert.True(result.Success, result.Message);
+            Assert.Equal(TrangThaiXuLyAnhChiSo.DaXacNhan, img.TrangThaiXuLy);
         }
 
         [Theory]
@@ -1317,6 +1373,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         [InlineData(6)]
         [InlineData(7)]
         [InlineData(8)]
+        [InlineData(9)]
+        [InlineData(10)]
         public void MeterReadingWorkflowService_Constructor_ThrowsArgumentNullException_WhenAnyDependencyIsNull(int nullIndex)
         {
             var fakeHoaDonStore = new Fakes.FakeHoaDonStore();
@@ -1335,7 +1393,9 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
                     nullIndex == 5 ? null! : fakeHoaDonStore,
                     nullIndex == 6 ? null! : calculator,
                     nullIndex == 7 ? null! : logger,
-                    nullIndex == 8 ? null! : options
+                    nullIndex == 8 ? null! : options,
+                    nullIndex == 9 ? null! : new Fakes.FakeMeterConsumptionHistoryStore(),
+                    nullIndex == 10 ? null! : new QuanLyChoThuePhongTroWeb.Application.Common.Configurations.AutoInvoiceOptions()
                 );
             });
         }

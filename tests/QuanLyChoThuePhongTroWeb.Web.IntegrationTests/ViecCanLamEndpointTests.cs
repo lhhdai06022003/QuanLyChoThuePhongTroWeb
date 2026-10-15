@@ -431,7 +431,8 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             return (await db.PhongTros.AsNoTracking().SingleAsync(p => p.PhongTroId == roomId)).SoPhong;
         }
 
-        private async Task<int> AddPeriodAsync(int roomId, (int Thang, int Nam) ky, TrangThaiGhiNhan trangThai, decimal dienMoi = 100m, decimal donGiaDien = 3500m)
+        private async Task<int> AddPeriodAsync(int roomId, (int Thang, int Nam) ky, TrangThaiGhiNhan trangThai, decimal dienMoi = 100m, decimal donGiaDien = 3500m,
+            decimal nuocMoi = 5m)
         {
             using var scope = _factory.Services.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -439,7 +440,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             {
                 PhongTroId = roomId, Thang = ky.Thang, Nam = ky.Nam,
                 ChiSoDienCu = 0, ChiSoDienMoi = dienMoi, DonGiaDien = donGiaDien,
-                ChiSoNuocCu = 0, ChiSoNuocMoi = 5, DonGiaNuoc = 15000,
+                ChiSoNuocCu = 0, ChiSoNuocMoi = nuocMoi, DonGiaNuoc = 15000,
                 TrangThaiGhiNhan = trangThai
             };
             db.DichVuDienNuocCuaPhongs.Add(period);
@@ -510,7 +511,9 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
         {
             var w = await SeedAsync(_factory);
             // Chuỗi tự tạo lập được hóa đơn cho kỳ bình thường nên không có lý do dừng để báo.
-            await AddPeriodAsync(w.RoomA, KyTruoc(2), TrangThaiGhiNhan.DaDuyet, dienMoi: 100m);
+            // Hợp đồng bắt đầu giữa tháng KyTruoc(2) nên trần tiêu thụ kỳ đó co theo số ngày phủ (có thể chỉ vài ngày):
+            // để tiêu thụ 0 cho kết quả không phụ thuộc ngày chạy test.
+            await AddPeriodAsync(w.RoomA, KyTruoc(2), TrangThaiGhiNhan.DaDuyet, dienMoi: 0m, nuocMoi: 0m);
             await AddPeriodAsync(w.RoomA, KyTruoc(1), TrangThaiGhiNhan.DaDuyet, dienMoi: 120m);
             var (staff, _) = await LoginAsync(_factory, w.Staff);
 

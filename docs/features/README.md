@@ -14,7 +14,8 @@ Các README sau mô tả **công việc dự kiến và người sở hữu**, t
 | [Khách vãng lai, giữ chỗ, cọc và hoàn tiền](khach-vang-lai-giu-cho/README.md) | B | Có model/schema; chưa có luồng Application/Web hoàn chỉnh |
 | [AI Assistant và Thông báo theo chi nhánh](ai-thong-bao-chi-nhanh/README.md) | — | Hoàn thành, đã merge vào `master` (commit `8295e36`) ngày 06/10/2026 |
 | [Trung tâm việc cần làm](viec-can-lam/README.md) | — | Code xong 2 đợt, review cuối ĐẠT 08/10/2026 ([review](viec-can-lam/review.md)); spec 1.2 đã xác nhận, người dùng thử tay đạt 09/10/2026; đã commit `361575e` |
-| [Hóa đơn tự động](hoa-don-tu-dong/plan.md) | — | Code xong đợt A–D và lượt dọn code trên nhánh `feature/hoa-don-tu-dong`, review ĐẠT 11/10/2026 ([review](hoa-don-tu-dong/review.md)); chưa gộp `master` |
+| [Hóa đơn tự động](hoa-don-tu-dong/plan.md) | — | Code xong đợt A–D và lượt dọn code, review ĐẠT 11/10/2026 ([review](hoa-don-tu-dong/review.md)); đã gộp `master` (commit `c11946c`) |
+| [Kiểm tra chỉ số theo hợp đồng và duyệt hóa đơn trước khi gửi](duyet-hoa-don-tu-dong/README.md) | — | Spec v4 chờ duyệt 12/10/2026, nhánh `feature/duyet-hoa-don-tu-dong` |
 
 Quyền sở hữu file và lịch 60 ngày nằm trong [roadmap](../roadmap-60-ngay.md). Không đánh dấu hoàn thành chỉ vì đã có entity, migration hoặc thư mục tài liệu.
 

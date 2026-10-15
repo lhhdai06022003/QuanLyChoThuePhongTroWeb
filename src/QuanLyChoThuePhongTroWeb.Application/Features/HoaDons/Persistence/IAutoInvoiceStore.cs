@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Persistence;
 using QuanLyChoThuePhongTroWeb.Domain.Enums;
 
 namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence
@@ -15,8 +16,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence
         decimal? GiaTriXacNhan,
         bool DuocChonLamChiSoChinhThuc,
         DateTime NgayGui);
-
-    public sealed record AutoInvoiceConsumption(decimal Dien, decimal Nuoc);
 
     public sealed record AutoInvoiceContractRef(int HopDongId, int NguoiThueId);
 
@@ -41,8 +40,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence
         public decimal DonGiaNuoc { get; init; }
         // Ảnh chưa xóa của kỳ, NgayGui giảm dần rồi Id giảm dần.
         public IReadOnlyList<AutoInvoiceMeterImage> Images { get; init; } = Array.Empty<AutoInvoiceMeterImage>();
-        // Tối đa soKyTrungBinh kỳ DaDuyet trước kỳ này, mới đến cũ.
-        public IReadOnlyList<AutoInvoiceConsumption> TieuThuCacKyTruoc { get; init; } = Array.Empty<AutoInvoiceConsumption>();
+        // Lịch sử tiêu thụ theo hợp đồng hiệu lực (tối đa soKyLichSuToiDa kỳ trọn tháng); không null.
+        public MeterConsumptionHistory LichSu { get; init; } = new(Array.Empty<MeterConsumption>(), 30, 30, null);
         public IReadOnlyList<AutoInvoiceContractRef> HopDongHieuLuc { get; init; } = Array.Empty<AutoInvoiceContractRef>();
         public bool CoHoaDonHoatDong { get; init; }
         public bool KyTruocChuaChot { get; init; }
@@ -95,7 +94,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence
     public interface IAutoInvoiceStore
     {
         // AsNoTracking toàn bộ. Phòng không tồn tại hoặc IsDeleted thì trả null.
-        Task<AutoInvoiceRoomContext?> GetRoomContextAsync(int phongTroId, int thang, int nam, int soKyTrungBinh, CancellationToken ct = default);
+        Task<AutoInvoiceRoomContext?> GetRoomContextAsync(int phongTroId, int thang, int nam, int soKyLichSuToiDa, CancellationToken ct = default);
 
         // Nhân viên đang được phân công (chưa thu hồi) của chi nhánh, phân công sớm nhất trước; null nếu không có.
         Task<int?> FindFallbackActorAsync(int chiNhanhId, CancellationToken ct = default);

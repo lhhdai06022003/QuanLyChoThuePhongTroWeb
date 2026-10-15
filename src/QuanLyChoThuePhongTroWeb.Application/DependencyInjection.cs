@@ -53,6 +53,7 @@ namespace QuanLyChoThuePhongTroWeb.Application
             services.AddScoped<IDienNuocService, DienNuocService>();
             services.AddScoped<IMeterReadingWorkflowService, MeterReadingWorkflowService>();
             services.AddScoped<IMeterImagePortalService, MeterImagePortalService>();
+            services.AddScoped<IMeterAnomalyCheckService, MeterAnomalyCheckService>();
 
             // Phase 6.4 services
             services.AddScoped<IHoaDonCalculatorService, HoaDonCalculatorService>();

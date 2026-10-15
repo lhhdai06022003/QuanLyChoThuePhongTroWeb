@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Persistence;
 using QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence;
 using QuanLyChoThuePhongTroWeb.Domain.Enums;
@@ -13,13 +14,15 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
     public class AutoInvoiceStore : IAutoInvoiceStore
     {
         private readonly ApplicationDbContext _context;
+        private readonly IMeterConsumptionHistoryStore _lichSuStore;
 
-        public AutoInvoiceStore(ApplicationDbContext context)
+        public AutoInvoiceStore(ApplicationDbContext context, IMeterConsumptionHistoryStore lichSuStore)
         {
             _context = context;
+            _lichSuStore = lichSuStore;
         }
 
-        public async Task<AutoInvoiceRoomContext?> GetRoomContextAsync(int phongTroId, int thang, int nam, int soKyTrungBinh, CancellationToken ct = default)
+        public async Task<AutoInvoiceRoomContext?> GetRoomContextAsync(int phongTroId, int thang, int nam, int soKyLichSuToiDa, CancellationToken ct = default)
         {
             var room = await _context.PhongTros
                 .AsNoTracking()
@@ -74,22 +77,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                     .ToListAsync(ct);
             }
 
-            var consumptionRows = await _context.DichVuDienNuocCuaPhongs
-                .AsNoTracking()
-                .Where(p => p.PhongTroId == phongTroId
-                            && !p.IsDeleted
-                            && p.TrangThaiGhiNhan == TrangThaiGhiNhan.DaDuyet
-                            && (p.Nam < nam || (p.Nam == nam && p.Thang < thang)))
-                .OrderByDescending(p => p.Nam)
-                .ThenByDescending(p => p.Thang)
-                .Take(Math.Max(soKyTrungBinh, 0))
-                .Select(p => new
-                {
-                    Dien = p.ChiSoDienMoi - p.ChiSoDienCu,
-                    Nuoc = p.ChiSoNuocMoi - p.ChiSoNuocCu
-                })
-                .ToListAsync(ct);
-            var consumptions = consumptionRows.Select(x => new AutoInvoiceConsumption(x.Dien, x.Nuoc)).ToList();
+            var lichSu = await _lichSuStore.GetAsync(phongTroId, thang, nam, soKyLichSuToiDa, ct);
 
             // Mốc tháng giờ Việt Nam đổi sang UTC, khớp InvoiceIssuanceService.CreateDraftsAsync (cuối tháng = 23:59:59 ngày cuối).
             var (startOfMonthUtc, nextMonthStartUtc) = MeterPeriodPolicy.MonthRangeUtc(new MeterPeriod(thang, nam));
@@ -171,7 +159,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 DonGiaDien = period?.DonGiaDien ?? 0m,
                 DonGiaNuoc = period?.DonGiaNuoc ?? 0m,
                 Images = images,
-                TieuThuCacKyTruoc = consumptions,
+                LichSu = lichSu,
                 HopDongHieuLuc = contracts,
                 CoHoaDonHoatDong = hasActiveInvoice,
                 KyTruocChuaChot = previousChuaChot,

@@ -77,6 +77,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             public FakeThongBaoService ThongBao { get; } = new();
             public RecordingEmailService Email { get; } = new();
             public CapturingLogger<InvoiceAdjustmentService> Logger { get; } = new();
+            public FakeMeterConsumptionHistoryStore HistoryStore { get; } = new();
             public InvoiceAdjustmentService Service { get; }
             public HoaDon Invoice { get; }
 
@@ -136,7 +137,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
 
                 Service = new InvoiceAdjustmentService(
                     Auto, Issuance, IssuanceService, Meter, MeterStore, Payments, Publication, HoaDonStore, Uow, Access, ThongBao, Email,
-                    new HoaDonCalculatorService(), Logger,
+                    new HoaDonCalculatorService(), HistoryStore, new QuanLyChoThuePhongTroWeb.Application.Common.Configurations.AutoInvoiceOptions(), Logger,
                     new FixedTimeProvider(new DateTimeOffset(Now)),
                     dispatcher);
             }
@@ -1064,6 +1065,22 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.Equal("Tiền điện (tỷ lệ 16/31 ngày, 100 → 130)", dien.TenDichVu);
             Assert.Equal(15.484m, dien.SoLuong);
             Assert.Equal(54_194m, dien.TongTien);
+        }
+
+        [Fact]
+        public async Task PreviewDieuChinh_CoCanhBao()
+        {
+            var h = new Harness();
+            h.HistoryStore.History = new QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Persistence.MeterConsumptionHistory(new[] { 38m, 40m, 40m, 42m, 45m, 39m }.Select(k => new QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Persistence.MeterConsumption(k, 0m)).ToList(), 31, 31, 10);
+
+            var batThuong = await h.Service.PreviewMeterLinesAsync(Actor, HoaDonId, 191m, 50m);
+            var binhThuong = await h.Service.PreviewMeterLinesAsync(Actor, HoaDonId, 190m, 50m);
+
+            Assert.True(batThuong.Success, batThuong.Message);
+            var canhBao = Assert.Single(batThuong.Data!.CanhBaos);
+            Assert.Contains("Điện", canhBao);
+            Assert.NotNull(batThuong.Data.Dien);
+            Assert.Empty(binhThuong.Data!.CanhBaos);
         }
 
         [Fact]

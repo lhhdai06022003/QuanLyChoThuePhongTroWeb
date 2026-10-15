@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using QuanLyChoThuePhongTroWeb.Application.Common.Configurations;
 using QuanLyChoThuePhongTroWeb.Application.Common.Security;
+using QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Persistence;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence;
 using QuanLyChoThuePhongTroWeb.Application.Features.ViecCanLam.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.ViecCanLam.Services;
@@ -621,10 +622,12 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         private static KyDaChotChuaCoHoaDonRow Ky(int phongId, string soPhong, int thang = 12, int nam = 2026, int branchId = BranchA, string ten = "A")
             => new() { PhongTroId = phongId, SoPhong = soPhong, ChiNhanhId = branchId, TenChiNhanh = ten, Thang = thang, Nam = nam };
 
-        // Kỳ đã chốt, một hợp đồng, khách có tài khoản, đơn giá đủ; ba kỳ trước tiêu thụ điện 100 và nước 5 (giới hạn bất thường điện 300, nước 15).
+        // Kỳ đã chốt, một hợp đồng, khách có tài khoản, đơn giá đủ; lịch sử hợp đồng ba kỳ tiêu thụ điện 100 và nước 5
+        // (điện bình thường trong 30–200, nước trong 1,5–10).
         private static AutoInvoiceRoomContext KyCtx(
             int phongId, string soPhong, decimal dienMoi = 120m, decimal nuocMoi = 5m, int thang = 12, int nam = 2026, int branchId = BranchA, string ten = "A",
-            bool coHoaDon = false, bool coHopDong = true, decimal donGiaDien = 3500m, bool kyTruocChuaChot = false, int soHopDong = 1, bool coKenhNhan = true)
+            bool coHoaDon = false, bool coHopDong = true, decimal donGiaDien = 3500m, bool kyTruocChuaChot = false, int soHopDong = 1, bool coKenhNhan = true,
+            decimal dienCu = 0m)
             => new()
             {
                 PhongTroId = phongId,
@@ -635,13 +638,15 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
                 Nam = nam,
                 DichVuDienNuocCuaPhongId = 1000 + phongId,
                 TrangThaiGhiNhan = Domain.Enums.TrangThaiGhiNhan.DaDuyet,
-                ChiSoDienCu = 0m,
+                ChiSoDienCu = dienCu,
                 ChiSoDienMoi = dienMoi,
                 ChiSoNuocCu = 0m,
                 ChiSoNuocMoi = nuocMoi,
                 DonGiaDien = donGiaDien,
                 DonGiaNuoc = 15000m,
-                TieuThuCacKyTruoc = new[] { new AutoInvoiceConsumption(100m, 5m), new AutoInvoiceConsumption(100m, 5m), new AutoInvoiceConsumption(100m, 5m) },
+                LichSu = new MeterConsumptionHistory(
+                    new[] { new MeterConsumption(100m, 5m), new MeterConsumption(100m, 5m), new MeterConsumption(100m, 5m) },
+                    31, 31, coHopDong && soHopDong == 1 ? phongId * 10 + 1 : null),
                 HopDongHieuLuc = coHopDong
                     ? Enumerable.Range(1, soHopDong).Select(i => new AutoInvoiceContractRef(phongId * 10 + i, phongId * 10 + i)).ToList()
                     : Array.Empty<AutoInvoiceContractRef>(),
@@ -721,6 +726,25 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         }
 
         [Fact]
+        public async Task Hd5_NewAnomalyReasons_ShowVietnameseLabels()
+        {
+            var (service, store, auto) = CreateWithAuto(AdminScope());
+            store.KyDaChotChuaCoHoaDon.Add(Ky(11, "P.101"));
+            store.KyDaChotChuaCoHoaDon.Add(Ky(12, "P.102"));
+            // Chỉ số cũ 1000, mới 10000 (gấp 10 lần): nghi đọc sai chữ số.
+            auto.ContextsByKey[(11, 12, 2026)] = KyCtx(11, "P.101", dienCu: 1000m, dienMoi: 10000m);
+            // Tiêu thụ điện 10 < 100 × 0,3: thấp bất thường.
+            auto.ContextsByKey[(12, 12, 2026)] = KyCtx(12, "P.102", dienMoi: 10m);
+
+            var tongHop = await service.GetTongHopAsync(Admin, null);
+
+            var item = Item(tongHop, "HD5");
+            Assert.Equal(2, item.SoLuong);
+            Assert.Contains("P.101: nghi đọc sai chữ số", item.MoTa);
+            Assert.Contains("P.102: tiêu thụ thấp bất thường", item.MoTa);
+        }
+
+        [Fact]
         public async Task Hd5_RoomWithoutAccountOrEmail_IsReported()
         {
             var (service, store, auto) = CreateWithAuto(AdminScope());
@@ -777,7 +801,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         public async Task Hd5_PassesScanWindowLimitAndOptionsToStores()
         {
             var (service, store, auto) = CreateWithAuto(StaffOfA(), settings: new ViecCanLamSettings { SoKyPhongDanhGiaHoaDonTuDong = 7 },
-                autoOptions: new AutoInvoiceOptions { SoKyTrungBinh = 4 });
+                autoOptions: new AutoInvoiceOptions { SoKyLichSuToiDa = 4 });
             store.KyDaChotChuaCoHoaDon.Add(Ky(11, "P.101"));
             auto.ContextsByKey[(11, 12, 2026)] = KyCtx(11, "P.101");
 
@@ -788,7 +812,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.Equal(new object?[] { 7, 2026, 1, 2027, 7 }, call.Args.ToArray());
             Assert.Equal(BranchA, call.BranchId);
             Assert.Equal(new[] { BranchA }, call.Allowed!.ToArray());
-            Assert.Equal(4, auto.LastSoKyTrungBinh);
+            Assert.Equal(4, auto.LastSoKyLichSuToiDa);
         }
 
         [Fact]

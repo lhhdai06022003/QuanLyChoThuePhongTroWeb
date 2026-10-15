@@ -30,6 +30,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IHoaDonStore _hoaDonStore;
         private readonly IHoaDonCalculatorService _calculatorService;
+        private readonly IMeterConsumptionHistoryStore _historyStore;
+        private readonly QuanLyChoThuePhongTroWeb.Application.Common.Configurations.AutoInvoiceOptions _autoOptions;
         private readonly ILogger<MeterReadingWorkflowService> _logger;
         private readonly QuanLyChoThuePhongTroWeb.Application.Common.Configurations.MeterImageOptions _options;
         private readonly TimeProvider _time;
@@ -44,6 +46,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
             IHoaDonCalculatorService calculatorService,
             ILogger<MeterReadingWorkflowService> logger,
             QuanLyChoThuePhongTroWeb.Application.Common.Configurations.MeterImageOptions options,
+            IMeterConsumptionHistoryStore historyStore,
+            QuanLyChoThuePhongTroWeb.Application.Common.Configurations.AutoInvoiceOptions autoOptions,
             TimeProvider? timeProvider = null)
         {
             _store = store ?? throw new ArgumentNullException(nameof(store));
@@ -55,6 +59,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
             _calculatorService = calculatorService ?? throw new ArgumentNullException(nameof(calculatorService));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _options = options ?? throw new ArgumentNullException(nameof(options));
+            _historyStore = historyStore ?? throw new ArgumentNullException(nameof(historyStore));
+            _autoOptions = autoOptions ?? throw new ArgumentNullException(nameof(autoOptions));
             _time = timeProvider ?? TimeProvider.System;
         }
 
@@ -586,6 +592,18 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
                 if (period.ChiSoDienMoi < period.ChiSoDienCu)
                 {
                     return ServiceResult<MeterImageWorkflowResult>.Fail("Chỉ số điện hiện tại không hợp lệ (nhỏ hơn chỉ số điện cũ).");
+                }
+            }
+
+            // Số bất thường so với lịch sử (ChiSoGiam đã bị chặn ở trên) thì bắt buộc có ghi chú lý do.
+            if (string.IsNullOrWhiteSpace(request.GhiChu))
+            {
+                var cu = image.LoaiDongHo == LoaiDongHo.Dien ? period.ChiSoDienCu : period.ChiSoNuocCu;
+                var lichSu = await _historyStore.GetAsync(period.PhongTroId, period.Thang, period.Nam, _autoOptions.SoKyLichSuToiDa, cancellationToken);
+                var batThuong = MeterAnomalyPolicy.Evaluate(image.LoaiDongHo, cu, request.GiaTriXacNhan, lichSu, _autoOptions);
+                if (batThuong != null && batThuong.LyDo != MeterAnomalyReason.ChiSoGiam)
+                {
+                    return ServiceResult<MeterImageWorkflowResult>.Fail("Chỉ số bất thường so với lịch sử, cần ghi chú lý do. " + batThuong.MoTa);
                 }
             }
 

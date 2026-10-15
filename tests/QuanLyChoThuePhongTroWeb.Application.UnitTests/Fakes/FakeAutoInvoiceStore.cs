@@ -18,13 +18,13 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
         public Exception? ThrowOnGetContext { get; set; }
         public int GetContextCalls { get; private set; }
         public int DiscardCalls { get; private set; }
-        public int? LastSoKyTrungBinh { get; private set; }
+        public int? LastSoKyLichSuToiDa { get; private set; }
         public List<string>? Log { get; set; }
 
-        public Task<AutoInvoiceRoomContext?> GetRoomContextAsync(int phongTroId, int thang, int nam, int soKyTrungBinh, CancellationToken ct = default)
+        public Task<AutoInvoiceRoomContext?> GetRoomContextAsync(int phongTroId, int thang, int nam, int soKyLichSuToiDa, CancellationToken ct = default)
         {
             GetContextCalls++;
-            LastSoKyTrungBinh = soKyTrungBinh;
+            LastSoKyLichSuToiDa = soKyLichSuToiDa;
             Log?.Add("GetContext");
             if (ThrowOnGetContext != null)
             {

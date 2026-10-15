@@ -70,7 +70,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                 }
 
                 _store.DiscardPendingChanges();
-                ctx = await _store.GetRoomContextAsync(phongTroId, thang, nam, _options.SoKyTrungBinh, CancellationToken.None);
+                ctx = await _store.GetRoomContextAsync(phongTroId, thang, nam, _options.SoKyLichSuToiDa, CancellationToken.None);
                 if (ctx == null)
                 {
                     _logger.LogInformation("Hóa đơn tự động bỏ qua: không tìm thấy phòng {PhongTroId}.", phongTroId);
@@ -289,7 +289,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
         private async Task<AutoInvoiceRoomContext?> ReloadAsync(int phongTroId, int thang, int nam)
         {
             _store.DiscardPendingChanges();
-            return await _store.GetRoomContextAsync(phongTroId, thang, nam, _options.SoKyTrungBinh, CancellationToken.None);
+            return await _store.GetRoomContextAsync(phongTroId, thang, nam, _options.SoKyLichSuToiDa, CancellationToken.None);
         }
 
         // Phòng không đủ điều kiện: lý do im lặng chỉ ghi log; lý do khác báo nhân viên (và khách nếu lý do cho phép).
@@ -353,6 +353,14 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                 {
                     tieuDe = "Chỉ số đồng hồ thấp hơn kỳ trước";
                     noiDung = $"Chỉ số {tenDongHo} kỳ {ctx.Thang:00}/{ctx.Nam} của phòng {ctx.SoPhong} đọc được là {FormatSo(meter.ChiSoMoi)} nhỏ hơn chỉ số cũ {FormatSo(meter.ChiSoCu)}. Vui lòng chụp lại rõ mặt đồng hồ";
+                    noiDung += string.IsNullOrWhiteSpace(ctx.SoDienThoaiChiNhanh)
+                        ? "."
+                        : $" hoặc liên hệ {ctx.SoDienThoaiChiNhanh}.";
+                }
+                else if (meter.LyDo is AutoInvoiceReason.NghiSaiChuSo or AutoInvoiceReason.TieuThuThapBatThuong)
+                {
+                    tieuDe = "Chỉ số đồng hồ có thể chưa đúng";
+                    noiDung = $"Chỉ số {tenDongHo} kỳ {ctx.Thang:00}/{ctx.Nam} của phòng {ctx.SoPhong} đọc được là {FormatSo(meter.ChiSoMoi)}, chênh lệch nhiều so với các tháng trước. Vui lòng chụp lại rõ mặt đồng hồ";
                     noiDung += string.IsNullOrWhiteSpace(ctx.SoDienThoaiChiNhanh)
                         ? "."
                         : $" hoặc liên hệ {ctx.SoDienThoaiChiNhanh}.";

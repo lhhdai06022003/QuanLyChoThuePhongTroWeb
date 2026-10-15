@@ -14,8 +14,14 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             options.Validate();
 
             Assert.Equal(0.90, options.NguongDoTinCay);
-            Assert.Equal(3m, options.HeSoBatThuong);
-            Assert.Equal(3, options.SoKyTrungBinh);
+            Assert.Equal(6, options.SoKyLichSuToiDa);
+            Assert.Equal(2, options.SoKyToiThieu);
+            Assert.Equal(2m, options.HeSoTang);
+            Assert.Equal(50m, options.SanTangDienKwh);
+            Assert.Equal(5m, options.SanTangNuocM3);
+            Assert.Equal(0.3m, options.HeSoThap);
+            Assert.Equal(20m, options.NguongXetThapDienKwh);
+            Assert.Equal(2m, options.NguongXetThapNuocM3);
             Assert.Equal(500m, options.TranDienKwh);
             Assert.Equal(30m, options.TranNuocM3);
             Assert.Equal(5, options.ChuKyJobPhut);
@@ -39,17 +45,90 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         }
 
         [Fact]
-        public void HeSoBatThuong_Zero_Throws()
+        public void SoKyLichSuToiDa_Zero_Throws()
         {
-            var ex = Assert.Throws<InvalidOperationException>(() => new AutoInvoiceOptions { HeSoBatThuong = 0 }.Validate());
-            Assert.Contains("HeSoBatThuong", ex.Message);
+            var ex = Assert.Throws<InvalidOperationException>(() => new AutoInvoiceOptions { SoKyLichSuToiDa = 0, SoKyToiThieu = 0 }.Validate());
+            Assert.Contains("SoKyLichSuToiDa", ex.Message);
+        }
+
+        [Theory]
+        [InlineData(0, 6)]
+        [InlineData(7, 6)]
+        [InlineData(3, 2)]
+        public void SoKyToiThieu_OutOfRange_Throws(int soKyToiThieu, int soKyLichSuToiDa)
+        {
+            var ex = Assert.Throws<InvalidOperationException>(() =>
+                new AutoInvoiceOptions { SoKyToiThieu = soKyToiThieu, SoKyLichSuToiDa = soKyLichSuToiDa }.Validate());
+            Assert.Contains("SoKyToiThieu", ex.Message);
+        }
+
+        [Theory]
+        [InlineData(1, 1)]
+        [InlineData(6, 6)]
+        public void SoKyToiThieu_Boundaries_AreValid(int soKyToiThieu, int soKyLichSuToiDa)
+        {
+            new AutoInvoiceOptions { SoKyToiThieu = soKyToiThieu, SoKyLichSuToiDa = soKyLichSuToiDa }.Validate();
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(0.5)]
+        [InlineData(0)]
+        public void HeSoTang_NotAboveOne_Throws(double value)
+        {
+            var ex = Assert.Throws<InvalidOperationException>(() => new AutoInvoiceOptions { HeSoTang = (decimal)value }.Validate());
+            Assert.Contains("HeSoTang", ex.Message);
         }
 
         [Fact]
-        public void SoKyTrungBinh_Zero_Throws()
+        public void HeSoTang_JustAboveOne_IsValid()
         {
-            var ex = Assert.Throws<InvalidOperationException>(() => new AutoInvoiceOptions { SoKyTrungBinh = 0 }.Validate());
-            Assert.Contains("SoKyTrungBinh", ex.Message);
+            new AutoInvoiceOptions { HeSoTang = 1.01m }.Validate();
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(1)]
+        [InlineData(-0.1)]
+        [InlineData(1.5)]
+        public void HeSoThap_OutOfRange_Throws(double value)
+        {
+            var ex = Assert.Throws<InvalidOperationException>(() => new AutoInvoiceOptions { HeSoThap = (decimal)value }.Validate());
+            Assert.Contains("HeSoThap", ex.Message);
+        }
+
+        [Fact]
+        public void SanVaNguongXetThap_Zero_IsValid()
+        {
+            new AutoInvoiceOptions { SanTangDienKwh = 0, SanTangNuocM3 = 0, NguongXetThapDienKwh = 0, NguongXetThapNuocM3 = 0 }.Validate();
+        }
+
+        [Fact]
+        public void SanTangDienKwh_Negative_Throws()
+        {
+            var ex = Assert.Throws<InvalidOperationException>(() => new AutoInvoiceOptions { SanTangDienKwh = -1 }.Validate());
+            Assert.Contains("SanTangDienKwh", ex.Message);
+        }
+
+        [Fact]
+        public void SanTangNuocM3_Negative_Throws()
+        {
+            var ex = Assert.Throws<InvalidOperationException>(() => new AutoInvoiceOptions { SanTangNuocM3 = -1 }.Validate());
+            Assert.Contains("SanTangNuocM3", ex.Message);
+        }
+
+        [Fact]
+        public void NguongXetThapDienKwh_Negative_Throws()
+        {
+            var ex = Assert.Throws<InvalidOperationException>(() => new AutoInvoiceOptions { NguongXetThapDienKwh = -1 }.Validate());
+            Assert.Contains("NguongXetThapDienKwh", ex.Message);
+        }
+
+        [Fact]
+        public void NguongXetThapNuocM3_Negative_Throws()
+        {
+            var ex = Assert.Throws<InvalidOperationException>(() => new AutoInvoiceOptions { NguongXetThapNuocM3 = -1 }.Validate());
+            Assert.Contains("NguongXetThapNuocM3", ex.Message);
         }
 
         [Fact]

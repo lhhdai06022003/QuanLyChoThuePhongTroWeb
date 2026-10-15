@@ -318,7 +318,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.ViecCanLam.Services
             var biDung = new List<(KyDaChotChuaCoHoaDonRow Ky, IReadOnlyList<AutoInvoiceReason> LyDos)>();
             foreach (var ky in ungViens)
             {
-                var ctx = await _autoInvoiceStore.GetRoomContextAsync(ky.PhongTroId, ky.Thang, ky.Nam, _autoInvoiceOptions.SoKyTrungBinh, ct);
+                var ctx = await _autoInvoiceStore.GetRoomContextAsync(ky.PhongTroId, ky.Thang, ky.Nam, _autoInvoiceOptions.SoKyLichSuToiDa, ct);
                 if (ctx == null)
                 {
                     continue;
@@ -361,6 +361,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.ViecCanLam.Services
         {
             AutoInvoiceReason.TieuThuBatThuong => "tiêu thụ điện nước bất thường",
             AutoInvoiceReason.ChiSoGiam => "chỉ số nhỏ hơn kỳ trước",
+            AutoInvoiceReason.NghiSaiChuSo => "nghi đọc sai chữ số",
+            AutoInvoiceReason.TieuThuThapBatThuong => "tiêu thụ thấp bất thường",
             AutoInvoiceReason.DoTinCayThap => "ảnh độ tin cậy thấp",
             AutoInvoiceReason.KhongDocDuoc => "ảnh không đọc được",
             AutoInvoiceReason.ThieuDonGia => "thiếu đơn giá",
