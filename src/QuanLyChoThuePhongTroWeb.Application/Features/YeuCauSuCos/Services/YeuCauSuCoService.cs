@@ -106,7 +106,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.YeuCauSuCos.Services
             return MapToRes(entity);
         }
 
-        public async Task<bool> CreateAsync(CreateYeuCauSuCoReq req)
+        public async Task<int?> CreateAsync(CreateYeuCauSuCoReq req)
         {
             var entity = new YeuCauSuCo
             {
@@ -120,7 +120,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.YeuCauSuCos.Services
                 IsDeleted = false
             };
             _store.Add(entity);
-            return await _unitOfWork.SaveChangesAsync() > 0;
+            return await _unitOfWork.SaveChangesAsync() > 0 ? entity.Id : null;
         }
 
         public async Task<ServiceResult> UpdateStatusAsync(

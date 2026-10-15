@@ -11,7 +11,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.YeuCauSuCos.Services
         Task<List<YeuCauSuCoRes>> GetAllAsync(int actorId, int? chiNhanhId, AppTrangThaiSuCo? trangThai, int? soThang = 6);
         Task<List<YeuCauSuCoRes>> GetByNguoiThueAsync(int nguoiThueId);
         Task<YeuCauSuCoRes?> GetByIdAsync(int actorId, int id);
-        Task<bool> CreateAsync(CreateYeuCauSuCoReq req);
+        // Trả id yêu cầu vừa tạo, null khi không lưu được.
+        Task<int?> CreateAsync(CreateYeuCauSuCoReq req);
         Task<ServiceResult> UpdateStatusAsync(int actorId, int id, AppTrangThaiSuCo trangThai, decimal chiPhi, bool congVaoHoaDon, string? lyDoTuChoi, string? ghiChuAdmin, CancellationToken ct = default);
         Task<ServiceResult> SoftDeleteAsync(int actorId, int id, CancellationToken ct = default);
     }

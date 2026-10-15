@@ -153,7 +153,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                     await scope.NotifyAdminsAsync(
                         "Ghi nhận thanh toán có tiền thừa",
                         $"Hóa đơn {hoaDon.MaHoaDon}: tiền thừa {Vnd(decision.ChenhLech)}đ cần xử lý ngoài hệ thống.",
-                        "/QuanLyNhaTro/LichSuThanhToan");
+                        $"/QuanLyNhaTro/QuanLyHoaDon?hoaDonId={hoaDon.HoaDonId}");
                 }
 
                 return ServiceResult<ManualCollectionResult>.Ok(new ManualCollectionResult

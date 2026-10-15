@@ -70,7 +70,7 @@
                         <tbody>
                             @foreach (var item in Model)
                             {
-                                <tr>
+                                <tr data-suco-id="@item.Id">
                                     <td>@item.NgayGui.AddHours(7).ToString("dd/MM/yyyy HH:mm")</td>
                                     <td>
                                         <strong>@item.PhongTro.SoPhong</strong><br />
@@ -216,13 +216,20 @@
     <script>
         $(document).ready(function() {
             // Khởi tạo DataTable
-            $('#suCoTable').DataTable({
+            var suCoTable = $('#suCoTable').DataTable({
                 "language": { "url": "https://cdn.datatables.net/plug-ins/1.13.6/i18n/vi.json" },
                 "order": [], // Không tự động sort, giữ nguyên thứ tự Backend trả về
                 "columnDefs": [
                     { "orderable": false, "targets": [6] } // Cột thao tác không cho sort
                 ]
             });
+
+            // Mở từ thông báo: cuộn tới và làm nổi bật đúng sự cố (chuyển trang nếu bảng đang phân trang).
+            var focusSuCoId = new URLSearchParams(window.location.search).get('suCoId');
+            if (focusSuCoId) {
+                var focusRow = suCoTable.$('tr[data-suco-id]').filter(function () { return String($(this).data('suco-id')) === focusSuCoId; })[0];
+                window.TroFocus.row(focusRow, suCoTable);
+            }
 
             $('#selTrangThai').change(function() {
                 if ($(this).val() == '3') {

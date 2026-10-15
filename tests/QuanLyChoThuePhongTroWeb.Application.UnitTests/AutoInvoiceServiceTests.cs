@@ -140,7 +140,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.Equal("Phòng 101 kỳ 10/2026: có hóa đơn tự động chờ gửi duyệt", notice.TieuDe);
             Assert.Equal("Hóa đơn HD-500 đã được tạo ở trạng thái nháp. Kiểm tra rồi bấm Gửi duyệt.", notice.NoiDung);
             Assert.Equal("HoaDon", notice.LinhVuc);
-            Assert.Equal("/QuanLyNhaTro/QuanLyHoaDon", notice.Link);
+            Assert.Equal("/QuanLyNhaTro/QuanLyHoaDon?chiNhanhId=1&thang=10&nam=2026&hoaDonId=500", notice.Link);
             Assert.DoesNotContain(h.ThongBao.Sent, n => n.Kind == "Khach");
         }
 
@@ -324,7 +324,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
 
             var staff = Assert.Single(h.ThongBao.Sent, n => n.Kind == "Phong");
             Assert.Equal(Phong, staff.TargetId);
-            Assert.Equal("/QuanLyNhaTro/ChotDienNuoc?thang=10&nam=2026", staff.Link);
+            Assert.Equal("/QuanLyNhaTro/ChotDienNuoc?chiNhanhId=1&thang=10&nam=2026&phongTroId=101", staff.Link);
             Assert.Contains("Phòng 101 kỳ 10/2026", staff.TieuDe);
             Assert.Contains("0,85 < 0,90", staff.NoiDung);
 
@@ -751,7 +751,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.Equal(new[] { AutoInvoiceReason.ThieuDonGia }, result.Data.LyDos);
             var notice = Assert.Single(h.ThongBao.Sent);
             Assert.Equal("Phong", notice.Kind);
-            Assert.Equal("/QuanLyNhaTro/ChotDienNuoc?thang=10&nam=2026", notice.Link);
+            Assert.Equal("/QuanLyNhaTro/ChotDienNuoc?chiNhanhId=1&thang=10&nam=2026&phongTroId=101", notice.Link);
             Assert.Contains("chưa có đơn giá điện cho kỳ 10/2026", notice.NoiDung);
             Assert.Contains("Đơn giá của kỳ được lưu lúc tạo kỳ; lập hóa đơn theo luồng tay và sửa dòng điện/nước ở bản nháp.", notice.NoiDung);
             Assert.DoesNotContain(h.ThongBao.Sent, n => n.Kind == "Khach");

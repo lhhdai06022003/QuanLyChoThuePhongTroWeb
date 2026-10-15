@@ -199,7 +199,8 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
                         .Where(t => t.NguoiDungId == seed.Staff.NguoiDungId).ToListAsync();
                     var notice = Assert.Single(staffNotices, t => t.TieuDe.Contains("có hóa đơn tự động chờ gửi duyệt"));
                     Assert.Equal($"Phòng {seed.Room.SoPhong} kỳ {seed.Thang:00}/{seed.Nam}: có hóa đơn tự động chờ gửi duyệt", notice.TieuDe);
-                    Assert.Equal("/QuanLyNhaTro/QuanLyHoaDon", notice.LinkDieuHuong);
+                    var linkHoaDon = $"/QuanLyNhaTro/QuanLyHoaDon?chiNhanhId={seed.Room.ChiNhanhId}&thang={seed.Thang}&nam={seed.Nam}&hoaDonId={invoice.HoaDonId}";
+                    Assert.Equal(linkHoaDon, notice.LinkDieuHuong);
                     Assert.Empty(await db.ThongBaos.AsNoTracking()
                         .Where(t => t.NguoiDung!.NguoiThueId == seed.Contract.NguoiThueId).ToListAsync());
                 }
@@ -212,7 +213,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
 
                 // Link trong thông báo gửi nhân viên mở được trang quản lý hóa đơn.
                 var (staffClient, _) = await LoginAsync(seed.Staff.TenDangNhap, seed.Password);
-                var page = await staffClient.GetAsync("/QuanLyNhaTro/QuanLyHoaDon");
+                var page = await staffClient.GetAsync($"/QuanLyNhaTro/QuanLyHoaDon?chiNhanhId={seed.Room.ChiNhanhId}&thang={seed.Thang}&nam={seed.Nam}&hoaDonId={invoice.HoaDonId}");
                 Assert.Equal(HttpStatusCode.OK, page.StatusCode);
             }
             finally
@@ -248,7 +249,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
                         .Select(t => t.LinkDieuHuong)
                         .FirstOrDefaultAsync();
                 }
-                Assert.Equal($"/QuanLyNhaTro/ChotDienNuoc?thang={seed.Thang}&nam={seed.Nam}", link);
+                Assert.Equal($"/QuanLyNhaTro/ChotDienNuoc?chiNhanhId={seed.Room.ChiNhanhId}&thang={seed.Thang}&nam={seed.Nam}&phongTroId={seed.Room.PhongTroId}", link);
 
                 var (staffClient, _) = await LoginAsync(seed.Staff.TenDangNhap, seed.Password);
                 var page = await staffClient.GetAsync(link);

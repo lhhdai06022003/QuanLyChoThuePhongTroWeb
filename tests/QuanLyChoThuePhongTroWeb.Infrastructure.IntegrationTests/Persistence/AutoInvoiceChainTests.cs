@@ -321,7 +321,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             Assert.Equal(tieuDe, staffNotice.TieuDe);
             Assert.Equal($"Hóa đơn {invoice.MaHoaDon} đã được tạo ở trạng thái nháp. Kiểm tra rồi bấm Gửi duyệt.", staffNotice.NoiDung);
             Assert.Equal("HoaDon", staffNotice.LinhVuc);
-            Assert.Equal("/QuanLyNhaTro/QuanLyHoaDon", staffNotice.LinkDieuHuong);
+            Assert.Equal($"/QuanLyNhaTro/QuanLyHoaDon?chiNhanhId={seed.Branch.ChiNhanhId}&thang={Thang}&nam={Nam}&hoaDonId={invoice.HoaDonId}", staffNotice.LinkDieuHuong);
             Assert.Contains(await db.ThongBaos.AsNoTracking().Where(t => t.NguoiDungId == seed.Admin.NguoiDungId).ToListAsync(),
                 t => t.TieuDe == tieuDe);
 

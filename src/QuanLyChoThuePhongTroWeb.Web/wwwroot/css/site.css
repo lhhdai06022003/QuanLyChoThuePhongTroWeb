@@ -292,3 +292,36 @@ html[data-bs-theme="dark"] .text-dark,
 [data-bs-theme="dark"] .text-dark {
   color: var(--tblr-body-color, #f4f6fa) !important;
 }
+/* Popup thông báo (chuông) */
+.tb-notif-menu {
+  width: 360px;
+  max-width: calc(100vw - 1.5rem);
+}
+
+.tb-notif-list {
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.tb-notif-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  white-space: normal;
+  font-size: 0.85rem;
+}
+
+/* Làm nổi bật dòng được mở từ thông báo (TroFocus.row) */
+.tb-focus-row > td:first-child {
+  box-shadow: inset 3px 0 0 var(--tblr-primary);
+}
+
+.tb-focus-row-flash > td {
+  animation: tb-focus-flash 2.5s ease-out;
+}
+
+@keyframes tb-focus-flash {
+  0%, 40% { background-color: rgba(var(--tblr-primary-rgb), 0.28); }
+  100% { background-color: transparent; }
+}

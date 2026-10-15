@@ -40,7 +40,12 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             public Task<YeuCauSuCo?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
                 => Task.FromResult(Incidents.TryGetValue(id, out var x) ? x : null);
 
-            public void Add(YeuCauSuCo model) => Incidents[model.Id] = model;
+            public void Add(YeuCauSuCo model)
+            {
+                // Giả lập khóa tự tăng của DB cho bản ghi mới.
+                if (model.Id == 0) model.Id = Incidents.Keys.DefaultIfEmpty(0).Max() + 1;
+                Incidents[model.Id] = model;
+            }
             public void Update(YeuCauSuCo model) => Incidents[model.Id] = model;
         }
 
@@ -70,6 +75,23 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         };
 
         private static EmployeeAccessScope StaffOfA() => new(Staff, false, new[] { BranchA });
+
+        [Fact]
+        public async Task Create_ReturnsIdOfNewIncident_ForNotificationLink()
+        {
+            var (service, store) = Create(StaffOfA());
+
+            var id = await service.CreateAsync(new QuanLyChoThuePhongTroWeb.Application.Features.YeuCauSuCos.DTOs.CreateYeuCauSuCoReq
+            {
+                PhongTroId = 10,
+                NguoiThueId = 100,
+                TieuDe = "Hỏng vòi nước"
+            });
+
+            Assert.NotNull(id);
+            Assert.Equal(21, id);
+            Assert.Equal("Hỏng vòi nước", store.Incidents[id!.Value].TieuDe);
+        }
 
         [Fact]
         public async Task GetAll_Staff_PassesAssignedBranchesToStore()

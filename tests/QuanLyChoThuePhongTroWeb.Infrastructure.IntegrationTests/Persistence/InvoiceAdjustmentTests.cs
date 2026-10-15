@@ -278,7 +278,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             var notice = notices.Last();
             Assert.Equal("Hóa đơn tháng 10/2026 đã được điều chỉnh", notice.TieuDe);
             Assert.Equal($"Hóa đơn {sent.MaHoaDon} đã được hủy để điều chỉnh, hóa đơn mới sẽ được gửi sau khi duyệt.", notice.NoiDung);
-            Assert.Equal("/KhachThue/HoaDon", notice.LinkDieuHuong);
+            Assert.Equal($"/KhachThue/HoaDon?hoaDonId={sent.HoaDonId}", notice.LinkDieuHuong);
             // Chỉ báo qua cổng: không gửi lại email hóa đơn.
             Assert.Equal(invoiceEmailsBefore, host.Email.Invoice.Count);
         }

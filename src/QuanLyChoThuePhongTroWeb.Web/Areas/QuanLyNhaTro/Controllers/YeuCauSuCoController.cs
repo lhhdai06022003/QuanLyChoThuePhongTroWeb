@@ -85,7 +85,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
                     };
                     
                     string msg = $"Sự cố '{suco.TieuDe}' của bạn đã chuyển sang trạng thái: '{statusName}'";
-                    await _thongBaoService.GuiChoKhachThueAsync(suco.NguoiThueId, "Cập nhật sự cố", msg, "SuCo", "/KhachThue/SuCo");
+                    await _thongBaoService.GuiChoKhachThueAsync(suco.NguoiThueId, "Cập nhật sự cố", msg, "SuCo", $"/KhachThue/SuCo?suCoId={suco.Id}");
                     
                     return Json(new { success = true, message = "Cập nhật trạng thái thành công." });
                 }

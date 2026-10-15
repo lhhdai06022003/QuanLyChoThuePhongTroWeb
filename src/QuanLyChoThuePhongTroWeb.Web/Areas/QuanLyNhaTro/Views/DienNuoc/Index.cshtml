@@ -139,6 +139,8 @@
             // Đọc query params (nếu có, VD click từ Dashboard qua)
             const urlParams = new URLSearchParams(window.location.search);
             let hasQueryParams = false;
+            // Phòng cần làm nổi bật khi mở từ thông báo; chỉ dùng cho lần vẽ bảng đầu tiên.
+            let focusPhongTroId = urlParams.get('phongTroId');
             
             if (urlParams.has('chiNhanhId')) {
                 $('#filterChiNhanh').val(urlParams.get('chiNhanhId'));
@@ -341,7 +343,7 @@
                        </button>`;
 
                 return `
-                    <tr data-index="${index}" class="${rowClass}">
+                    <tr data-index="${index}" data-phong-tro-id="${item.phongTroId}" class="${rowClass}">
                         <td class="text-center align-middle dn-col-check">
                             <input type="checkbox" class="form-check-input m-0 dn-select" aria-label="Chọn phòng ${escapeHtml(item.tenPhong)}" ${disabledAttr}>
                         </td>
@@ -412,6 +414,17 @@
                             table.columns.adjust().draw();
                         }
                     }, 50);
+                }
+
+                if (focusPhongTroId) {
+                    const phongTroId = focusPhongTroId;
+                    focusPhongTroId = null;
+                    setTimeout(function () {
+                        const rowEl = table && data.length > 0
+                            ? table.rows().nodes().to$().filter(function () { return String($(this).data('phong-tro-id')) === phongTroId; })[0]
+                            : null;
+                        window.TroFocus.row(rowEl, table);
+                    }, 100);
                 }
             }
 

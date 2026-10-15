@@ -83,6 +83,22 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             Assert.Contains("Điều chỉnh hóa đơn", view);
         }
 
+        [Fact]
+        public async Task NotificationBell_UsesTablerMarkup_AndMarkAllReadEndpoint()
+        {
+            var js = await (await Client().GetAsync("/js/thongbao.js")).Content.ReadAsStringAsync();
+            Assert.DoesNotContain("markAllAsReadUi", js);
+            Assert.Contains("DanhDauTatCaDaDoc", js);
+            Assert.Contains("status-dot", js);
+            Assert.DoesNotContain("fa-clock", js);
+
+            var header = File.ReadAllText(Path.Combine(SolutionRoot(), "src", "QuanLyChoThuePhongTroWeb.Web",
+                "Views", "Shared", "_Header.cshtml"));
+            Assert.Contains("status-dot", header + js);
+            Assert.DoesNotContain("markAllAsReadUi", header);
+            Assert.Contains("badge-notification", header);
+        }
+
         private static string SolutionRoot()
         {
             var dir = new DirectoryInfo(System.AppContext.BaseDirectory);

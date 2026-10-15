@@ -230,7 +230,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                     $"Phòng {latest.SoPhong} kỳ {thang:00}/{nam}: có hóa đơn tự động chờ gửi duyệt",
                     $"Hóa đơn {created.MaHoaDon} đã được tạo ở trạng thái nháp. Kiểm tra rồi bấm Gửi duyệt.",
                     "HoaDon",
-                    "/QuanLyNhaTro/QuanLyHoaDon"));
+                    $"/QuanLyNhaTro/QuanLyHoaDon?chiNhanhId={latest.ChiNhanhId}&thang={thang}&nam={nam}&hoaDonId={hoaDonId}"));
 
                 _logger.LogInformation("Đã tạo hóa đơn nháp tự động {HoaDonId} (phòng {PhongTroId}, kỳ {Thang}/{Nam}, trigger {Trigger}).",
                     hoaDonId, phongTroId, thang, nam, trigger);
@@ -316,7 +316,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                 $"Phòng {ctx.SoPhong} kỳ {ctx.Thang:00}/{ctx.Nam}: chưa tạo được hóa đơn tự động",
                 "Lý do: " + string.Join("; ", moTas) + (lyDos.Contains(AutoInvoiceReason.ThieuDonGia) ? " " + HuongDanThieuDonGia : string.Empty),
                 "HoaDon",
-                $"/QuanLyNhaTro/ChotDienNuoc?thang={ctx.Thang}&nam={ctx.Nam}"));
+                $"/QuanLyNhaTro/ChotDienNuoc?chiNhanhId={ctx.ChiNhanhId}&thang={ctx.Thang}&nam={ctx.Nam}&phongTroId={ctx.PhongTroId}"));
 
             if (decision == null || ctx.HopDongHieuLuc.Count != 1)
             {

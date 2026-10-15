@@ -571,7 +571,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.Equal("Hóa đơn tháng 10/2026 đã được điều chỉnh", notice.TieuDe);
             Assert.Equal("Hóa đơn HD-500 đã được hủy để điều chỉnh, hóa đơn mới sẽ được gửi sau khi duyệt.", notice.NoiDung);
             Assert.Equal("HoaDon", notice.LinhVuc);
-            Assert.Equal("/KhachThue/HoaDon", notice.Link);
+            Assert.Equal("/KhachThue/HoaDon?hoaDonId=500", notice.Link);
         }
 
         [Fact]

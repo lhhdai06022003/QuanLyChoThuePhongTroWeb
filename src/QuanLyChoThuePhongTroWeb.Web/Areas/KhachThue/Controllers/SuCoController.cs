@@ -127,13 +127,13 @@ namespace QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers
 
                 if (ModelState.IsValid)
                 {
-                    bool success = await _yeuCauSuCoService.CreateAsync(model);
-                    if (success)
+                    int? suCoId = await _yeuCauSuCoService.CreateAsync(model);
+                    if (suCoId.HasValue)
                     {
                         try
                         {
                             string msg = $"Phòng {phong.SoPhong} vừa báo cáo sự cố: '{model.TieuDe}'";
-                            await _thongBaoService.GuiChoNguoiPhuTrachPhongAsync(model.PhongTroId, "Sự cố mới", msg, "SuCo", "/QuanLyNhaTro/YeuCauSuCo");
+                            await _thongBaoService.GuiChoNguoiPhuTrachPhongAsync(model.PhongTroId, "Sự cố mới", msg, "SuCo", $"/QuanLyNhaTro/YeuCauSuCo?soThang=0&suCoId={suCoId.Value}");
                         }
                         catch (Exception ex)
                         {

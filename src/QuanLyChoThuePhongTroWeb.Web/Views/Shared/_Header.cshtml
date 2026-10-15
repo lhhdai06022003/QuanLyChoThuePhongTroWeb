@@ -17,20 +17,22 @@
                 @if (User.Identity != null && User.Identity.IsAuthenticated)
                 {
                     <div class="nav-item dropdown ms-2">
-                        <a href="#" class="nav-link px-2" data-bs-toggle="dropdown" tabindex="-1" aria-label="Hiện thông báo" onclick="markAllAsReadUi()" style="position: relative;">
+                        <a href="#" class="nav-link px-2 position-relative" data-bs-toggle="dropdown" data-bs-auto-close="outside" tabindex="-1" aria-label="Hiện thông báo">
                             <i class="ti ti-bell" style="font-size: 1.15rem;"></i>
-                            <span id="badge-thong-bao" class="badge bg-red badge-blink d-none" style="position: absolute; top: 0; right: 0;">0</span>
+                            <span id="badge-thong-bao" class="badge bg-red badge-notification badge-blink d-none"></span>
                         </a>
-                        <div class="dropdown-menu dropdown-menu-arrow dropdown-menu-end dropdown-menu-card" style="width: 350px; max-height: 400px; overflow-y: auto;">
-                            <div class="card border-0">
-                                <div class="card-header border-bottom">
-                                    <h3 class="card-title font-weight-bold">Thông báo</h3>
+                        <div class="dropdown-menu dropdown-menu-arrow dropdown-menu-end dropdown-menu-card tb-notif-menu">
+                            <div class="card">
+                                <div class="card-header d-flex align-items-center">
+                                    <h3 class="card-title mb-0">Thông báo</h3>
+                                    <span id="badge-thong-bao-header" class="badge bg-red-lt ms-2 d-none">0</span>
+                                    <button type="button" id="btn-danh-dau-tat-ca" class="btn btn-link btn-sm ms-auto p-0 d-none">Đánh dấu đã đọc</button>
                                 </div>
-                                <div class="list-group list-group-flush list-group-hoverable" id="list-thong-bao">
-                                    <div class="p-3 text-center text-muted small">Đang tải...</div>
+                                <div class="list-group list-group-flush list-group-hoverable tb-notif-list" id="list-thong-bao">
+                                    <div class="list-group-item text-center text-secondary small">Đang tải...</div>
                                 </div>
-                                <div class="card-footer border-top text-center p-2">
-                                    <a href="@(User.IsInRole("KhachThue") ? "/KhachThue/ThongBao" : "/QuanLyNhaTro/ThongBao")" class="text-muted text-decoration-none small">
+                                <div class="card-footer text-center">
+                                    <a href="@(User.IsInRole("KhachThue") ? "/KhachThue/ThongBao" : "/QuanLyNhaTro/ThongBao")" class="small">
                                         Xem tất cả thông báo
                                     </a>
                                 </div>

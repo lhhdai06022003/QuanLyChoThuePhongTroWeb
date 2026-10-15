@@ -520,7 +520,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
 
             _autoStore.DiscardPendingChanges();
             // Chỉ hóa đơn đã công bố mới báo khách; hóa đơn chờ duyệt/đã chốt khách chưa thấy.
-            var khachDaDuocBao = !thayThe || await NotifyCustomerAsync(hoaDonIdMoi, hopDongId, maHoaDonCu, thang, nam);
+            var khachDaDuocBao = !thayThe || await NotifyCustomerAsync(hoaDonIdMoi, request.HoaDonId, hopDongId, maHoaDonCu, thang, nam);
             var result = new InvoiceAdjustmentResult
             {
                 HoaDonIdMoi = hoaDonIdMoi,
@@ -723,7 +723,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
 
         // Báo khách (chỉ qua cổng) rằng hóa đơn đã gửi bị hủy để điều chỉnh; bản thay thế chỉ gửi khách sau khi duyệt và công bố.
         // Trả false khi khách chưa nhận được thông báo (thiếu người nhận, gửi lỗi) để nhân viên tự liên hệ.
-        private async Task<bool> NotifyCustomerAsync(int hoaDonIdMoi, int hopDongId, string maHoaDonCu, int thang, int nam)
+        private async Task<bool> NotifyCustomerAsync(int hoaDonIdMoi, int hoaDonIdCu, int hopDongId, string maHoaDonCu, int thang, int nam)
         {
             try
             {
@@ -740,7 +740,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                     $"Hóa đơn tháng {thang}/{nam} đã được điều chỉnh",
                     $"Hóa đơn {maHoaDonCu} đã được hủy để điều chỉnh, hóa đơn mới sẽ được gửi sau khi duyệt.",
                     "HoaDon",
-                    "/KhachThue/HoaDon");
+                    $"/KhachThue/HoaDon?hoaDonId={hoaDonIdCu}");
                 _autoStore.DiscardPendingChanges();
                 if (!sent.Success)
                 {

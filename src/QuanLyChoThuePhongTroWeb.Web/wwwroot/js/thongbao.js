@@ -54,36 +54,64 @@ function safeLink(url) {
     return typeof url === 'string' && url.charAt(0) === '/' && url.charAt(1) !== '/' && url.charAt(1) !== '\\' ? url : '#';
 }
 
-$(document).on('click', '#list-thong-bao .list-group-item[data-id]', function () {
-    markAsRead($(this).data('id'), $(this).attr('data-link'));
+// Màu/biểu tượng theo lĩnh vực của thông báo (HoaDon, DienNuoc, SuCo; còn lại dùng chuông).
+function iconThongBao(linhVuc) {
+    switch (linhVuc) {
+        case 'HoaDon': return { bg: 'bg-blue-lt', icon: 'ti-file-invoice' };
+        case 'DienNuoc': return { bg: 'bg-yellow-lt', icon: 'ti-bolt' };
+        case 'SuCo': return { bg: 'bg-orange-lt', icon: 'ti-tool' };
+        case 'ThanhToan': return { bg: 'bg-green-lt', icon: 'ti-cash' };
+        default: return { bg: 'bg-secondary-lt', icon: 'ti-bell' };
+    }
+}
+
+// Bấm dòng hoặc tiêu đề: đánh dấu đã đọc rồi chuyển trang. Ctrl/Cmd/Shift/chuột giữa trên link vẫn mở tab mới.
+$(document).on('click auxclick', '#list-thong-bao .list-group-item[data-id]', function (e) {
+    if (e.type === 'auxclick' && e.which !== 2) return;
+    var id = $(this).data('id');
+    var url = safeLink($(this).attr('data-link'));
+    var moTabMoi = e.type === 'auxclick' || e.ctrlKey || e.metaKey || e.shiftKey;
+    if (moTabMoi) {
+        // Trúng link thì trình duyệt tự mở tab mới, ngoài link thì không làm gì; cả hai chỉ đánh dấu đã đọc, không chuyển trang hiện tại.
+        markAsRead(id, '#');
+        return;
+    }
+    e.preventDefault();
+    markAsRead(id, url);
+});
+
+$(document).on('click', '#btn-danh-dau-tat-ca', function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    markAllAsRead();
 });
 
 function loadThongBaos() {
     $.get('/api/ThongBao/LayMoiNhat', function (data) {
         var $list = $('#list-thong-bao');
         $list.empty();
-        
+
         var unreadCount = 0;
 
-        if (data.length === 0) {
-            $list.append('<div class="p-3 text-center text-muted small">Không có thông báo nào.</div>');
+        if (!data || data.length === 0) {
+            $list.append('<div class="list-group-item text-center text-secondary py-4"><i class="ti ti-bell-off fs-1 d-block mb-1"></i>Không có thông báo nào.</div>');
         } else {
             data.forEach(function (tb) {
                 if (!tb.isRead) unreadCount++;
-                
-                var bgClass = tb.isRead ? '' : 'bg-blue-lt';
-                var iconClass = tb.linhVuc === 'SuCo' ? 'fa-tools text-orange' : 'fa-info-circle text-blue';
-                
+
+                var kind = iconThongBao(tb.linhVuc);
+                var link = escapeHtml(safeLink(tb.linkDieuHuong));
+                var dot = tb.isRead ? '<span class="d-block" style="width: .5rem; height: .5rem;"></span>' : '<span class="status-dot status-dot-animated bg-red d-block"></span>';
                 var html = `
-                    <div class="list-group-item ${bgClass}" data-id="${Number(tb.id)}" data-link="${escapeHtml(safeLink(tb.linkDieuHuong))}" style="cursor:pointer">
+                    <div class="list-group-item" data-id="${Number(tb.id)}" data-link="${link}" style="cursor:pointer">
                         <div class="row align-items-center">
-                            <div class="col-auto"><i class="fas ${iconClass} fa-lg"></i></div>
-                            <div class="col text-truncate">
-                                <div class="text-reset d-block fw-bold">${escapeHtml(tb.tieuDe)}</div>
-                                <div class="d-block text-muted text-truncate mt-n1" style="font-size: 0.85rem;">${escapeHtml(tb.noiDung)}</div>
-                                <div class="text-muted small mt-1" style="font-size: 0.75rem;"><i class="fas fa-clock me-1"></i>${escapeHtml(tb.createdAt)}</div>
+                            <div class="col-auto">${dot}</div>
+                            <div class="col-auto"><span class="avatar avatar-sm ${kind.bg}"><i class="ti ${kind.icon}"></i></span></div>
+                            <div class="col">
+                                <a href="${link}" class="text-body d-block text-wrap ${tb.isRead ? '' : 'fw-bold'}">${escapeHtml(tb.tieuDe)}</a>
+                                <div class="text-secondary tb-notif-text">${escapeHtml(tb.noiDung)}</div>
+                                <div class="small text-secondary mt-1"><i class="ti ti-clock me-1"></i>${escapeHtml(tb.createdAt)}</div>
                             </div>
-                            ${!tb.isRead ? '<div class="col-auto"><span class="badge bg-blue">Mới</span></div>' : ''}
                         </div>
                     </div>
                 `;
@@ -92,30 +120,51 @@ function loadThongBaos() {
         }
 
         updateBadge(unreadCount);
+    }).fail(function (xhr) {
+        console.warn('Không tải được thông báo.', xhr && xhr.status);
+        $('#list-thong-bao').html('<div class="list-group-item text-center text-secondary py-4">Không tải được thông báo.</div>');
     });
 }
 
 function updateBadge(count) {
     var $badge = $('#badge-thong-bao');
+    var $headerBadge = $('#badge-thong-bao-header');
+    var $markAll = $('#btn-danh-dau-tat-ca');
     if (count > 0) {
-        $badge.text(count > 99 ? '99+' : count);
-        $badge.removeClass('d-none');
+        var text = count > 99 ? '99+' : count;
+        $badge.text(text).removeClass('d-none');
+        $headerBadge.text(text).removeClass('d-none');
+        $markAll.removeClass('d-none');
     } else {
         $badge.addClass('d-none');
+        $headerBadge.addClass('d-none');
+        $markAll.addClass('d-none');
     }
 }
 
+// url: nơi chuyển tới sau khi đánh dấu ('#' = chỉ tải lại danh sách). Lỗi đánh dấu không chặn việc chuyển trang.
 function markAsRead(id, url) {
-    $.post('/api/ThongBao/DanhDauDaDoc/' + id, function (res) {
-        url = safeLink(url);
-        if (url !== '#') {
-            window.location.href = url;
-        } else {
-            loadThongBaos();
-        }
-    });
+    $.post('/api/ThongBao/DanhDauDaDoc/' + id)
+        .fail(function (xhr) { console.warn('Không đánh dấu được thông báo đã đọc.', xhr && xhr.status); })
+        .always(function () {
+            url = safeLink(url);
+            if (url !== '#') {
+                window.location.href = url;
+            } else {
+                loadThongBaos();
+            }
+        });
 }
 
-function markAllAsReadUi() {
-    // Có thể bổ sung tính năng mark all as read nếu cần
+function markAllAsRead() {
+    var $btn = $('#btn-danh-dau-tat-ca').prop('disabled', true);
+    $.post('/api/ThongBao/DanhDauTatCaDaDoc')
+        .done(function () { loadThongBaos(); })
+        .fail(function (xhr) {
+            console.warn('Không đánh dấu được tất cả thông báo đã đọc.', xhr && xhr.status);
+            if (window.Swal) {
+                Swal.fire({ toast: true, position: 'bottom-end', icon: 'error', titleText: 'Không đánh dấu được thông báo đã đọc.', showConfirmButton: false, timer: 3000 });
+            }
+        })
+        .always(function () { $btn.prop('disabled', false); });
 }
