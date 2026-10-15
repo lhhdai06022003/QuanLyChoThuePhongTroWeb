@@ -114,6 +114,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             var contract = await seeder.ContractAsync(room, tenant);
 
             var sent = await seeder.InvoiceAsync(contract, TrangThaiPhatHanhHoaDon.DaGui, TrangThaiHoaDon.ChuaThanhToan, 100_000m, null, month: 1, year: 2026);
+            sent.NgayGui = Han.AddDays(-1);
             sent.HanPhanHoi = Han;
             // Hóa đơn tạm tính cũ: Admin chốt hoặc trả lại vẫn có thể còn HanPhanHoi.
             var legacyChoDuyet = await seeder.InvoiceAsync(contract, TrangThaiPhatHanhHoaDon.ChoDuyet, TrangThaiHoaDon.ChuaThanhToan, 100_000m, null, month: 2, year: 2026);
@@ -150,6 +151,76 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
         }
 
         [Fact]
+        public async Task HanPhanHoiUtc_HoaDonCuDoJobTuChotGui_HanTruocNgayGui_KhongHienThi()
+        {
+            await using var db = _fixture.CreateDbContext();
+            await using var tx = await db.Database.BeginTransactionAsync();
+            var seeder = new DebtTestSeeder(db);
+            var branch = await seeder.BranchAsync("G");
+            var room = await seeder.RoomAsync(branch, "G");
+            var tenant = await seeder.TenantAsync("G");
+            var contract = await seeder.ContractAsync(room, tenant);
+
+            // Job tự chốt cũ gửi hóa đơn sau khi hết hạn xem xét: HanPhanHoi sớm hơn NgayGui.
+            var legacy = await seeder.InvoiceAsync(contract, TrangThaiPhatHanhHoaDon.DaGui, TrangThaiHoaDon.ChuaThanhToan, 100_000m, null, month: 1, year: 2026);
+            legacy.HanPhanHoi = Han;
+            legacy.NgayGui = Han.AddHours(1);
+            // Hóa đơn đã gửi không ghi NgayGui: không đủ căn cứ, không hiển thị hạn.
+            var noNgayGui = await seeder.InvoiceAsync(contract, TrangThaiPhatHanhHoaDon.DaGui, TrangThaiHoaDon.ChuaThanhToan, 100_000m, null, month: 2, year: 2026);
+            noNgayGui.HanPhanHoi = Han;
+            var current = await seeder.InvoiceAsync(contract, TrangThaiPhatHanhHoaDon.DaGui, TrangThaiHoaDon.ChuaThanhToan, 100_000m, null, month: 3, year: 2026);
+            current.NgayGui = Han.AddHours(-24);
+            current.HanPhanHoi = Han;
+            await db.SaveChangesAsync();
+            var viewStore = new InvoiceViewStore(db);
+            var hoaDonStore = new HoaDonStore(db);
+
+            var list = await viewStore.GetEmployeeListAsync(new DataTableRequest { Start = 0, Length = 50 },
+                new InvoiceListFilter { ChiNhanhId = branch.ChiNhanhId }, null);
+            var byId = list.data.ToDictionary(x => x.HoaDonId);
+            Assert.Null(byId[legacy.HoaDonId].HanPhanHoiUtc);
+            Assert.Equal(string.Empty, byId[legacy.HoaDonId].HanPhanHoiHienThi);
+            Assert.Null(byId[noNgayGui.HoaDonId].HanPhanHoiUtc);
+            Assert.Equal(Han, byId[current.HoaDonId].HanPhanHoiUtc);
+
+            var legacyDetail = await viewStore.GetDetailAsync(legacy.HoaDonId, includeHistory: true);
+            Assert.Null(legacyDetail!.HanPhanHoiUtc);
+            Assert.Equal(string.Empty, legacyDetail.HanPhanHoiHienThi);
+
+            var tenantList = (await hoaDonStore.GetInvoicesByContractIdsAsync(new[] { contract.HopDongId })).ToDictionary(x => x.HoaDonId);
+            Assert.Null(tenantList[legacy.HoaDonId].HanPhanHoiUtc);
+            Assert.Equal(Han, tenantList[current.HoaDonId].HanPhanHoiUtc);
+
+            await tx.RollbackAsync();
+        }
+
+        [Fact]
+        public async Task LyDoHuy_BoNhanNoiBo()
+        {
+            await using var db = _fixture.CreateDbContext();
+            await using var tx = await db.Database.BeginTransactionAsync();
+            var seeder = new DebtTestSeeder(db);
+            var branch = await seeder.BranchAsync("C");
+            var room = await seeder.RoomAsync(branch, "C");
+            var tenant = await seeder.TenantAsync("C");
+            var contract = await seeder.ContractAsync(room, tenant);
+
+            var cancelled = await seeder.InvoiceAsync(contract, TrangThaiPhatHanhHoaDon.DaHuy, TrangThaiHoaDon.ChuaThanhToan, 100_000m, null, deleted: true, month: 1, year: 2026);
+            cancelled.NgayGui = Han.AddDays(-2);
+            AddHistory(db, cancelled, AutoInvoiceHistoryTags.TaoLyDo(AutoInvoiceHistoryTags.DieuChinh, "Điều chỉnh hóa đơn"));
+            await db.SaveChangesAsync();
+            var store = new InvoiceViewStore(db);
+
+            foreach (var includeHistory in new[] { true, false })
+            {
+                var detail = await store.GetDetailAsync(cancelled.HoaDonId, includeHistory);
+                Assert.Equal("Điều chỉnh hóa đơn", detail!.LyDoHuy);
+            }
+
+            await tx.RollbackAsync();
+        }
+
+        [Fact]
         public async Task Detail_ReturnsMeterReadings_OfLinkedPeriod()
         {
             await using var db = _fixture.CreateDbContext();
@@ -162,6 +233,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             var ky = await PeriodAsync(db, room, 1);
 
             var sent = await seeder.InvoiceAsync(contract, TrangThaiPhatHanhHoaDon.DaGui, TrangThaiHoaDon.ChuaThanhToan, 100_000m, null, month: 1, year: 2026);
+            sent.NgayGui = Han.AddDays(-1);
             sent.HanPhanHoi = Han;
             sent.DichVuDienNuocCuaPhongId = ky.DichVuDienNuocCuaPhongId;
             await db.SaveChangesAsync();

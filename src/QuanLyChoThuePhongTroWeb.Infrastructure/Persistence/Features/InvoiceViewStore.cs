@@ -103,6 +103,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                     h.TrangThaiHoaDon,
                     h.TrangThaiPhatHanh,
                     h.HanPhanHoi,
+                    h.NgayGui,
                     h.IsDeleted,
                     LaTuDong = h.LichSuTrangThaiHoaDons.Any(l => l.LyDo != null && l.LyDo.StartsWith(AutoInvoiceHistoryTags.TuDong)),
                     h.NgayTao,
@@ -129,7 +130,8 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 TrangThaiHoaDonValue = (int)h.TrangThaiHoaDon,
                 TrangThaiPhatHanhValue = (int)h.TrangThaiPhatHanh,
                 LaHoaDonTuDong = h.LaTuDong,
-                HanPhanHoiUtc = InvoiceDetailProjection.HanPhanHoiHienThi(h.TrangThaiPhatHanh, h.HanPhanHoi, h.IsDeleted),
+                HanPhanHoiUtc = InvoiceDetailProjection.HanPhanHoiHienThi(h.TrangThaiPhatHanh, h.HanPhanHoi, h.NgayGui, h.IsDeleted),
+                HanPhanHoiHienThi = InvoiceDetailProjection.DinhDangHanPhanHoi(InvoiceDetailProjection.HanPhanHoiHienThi(h.TrangThaiPhatHanh, h.HanPhanHoi, h.NgayGui, h.IsDeleted)),
                 NgayTao = h.NgayTao.AddHours(7).ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture),
                 SoDienThoai = h.SoDienThoai,
                 Email = h.Email

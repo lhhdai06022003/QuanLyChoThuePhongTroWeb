@@ -113,9 +113,12 @@
                                         <input type="number" step="0.001" min="0" class="form-control fw-medium text-primary" id="inGiaTriXacNhan" placeholder="Nhập chỉ số..." />
                                         <span class="input-group-text unit-text">kWh/m³</span>
                                     </div>
+                                    <div class="alert alert-warning py-2 px-2 small mb-2" id="canhBaoBatThuong" role="alert" style="display: none;"></div>
+                                    <div class="text-secondary small mb-2" id="canhBaoBatThuongLoi" role="status" style="display: none;"></div>
                                     <div class="mb-2" id="wrapGhiChuXacNhan">
                                         <label class="form-label small mb-1" id="lblGhiChuXacNhan">
                                             Ghi chú xác nhận <span id="lblBatBuocLyDo" class="text-danger small font-weight-normal">(bắt buộc vì ảnh không đọc được)</span>
+                                            <span id="lblBatBuocBatThuong" class="text-danger small font-weight-normal" style="display: none;">(bắt buộc vì chỉ số bất thường)</span>
                                         </label>
                                         <input type="text" class="form-control form-control-sm" id="inGhiChuXacNhan" placeholder="Nhập lý do / ghi chú..." maxlength="500" />
                                     </div>
@@ -201,6 +204,9 @@
         let currentPhongTroId = 0;
         let currentThang = 0;
         let currentNam = 0;
+        let anomalyFlagged = false; // chỉ số đang nhập bị cảnh báo bất thường => bắt buộc ghi chú
+        let anomalyTimer = null;
+        let anomalySeq = 0;
 
         const STATUS_CLASSES = {
             0: 'bg-secondary text-white',
@@ -435,6 +441,8 @@
                 } else {
                     $('#lblBatBuocLyDo').hide();
                 }
+                resetAnomaly();
+                checkAnomaly();
                 hasAnyAction = true;
             } else {
                 $('#actionXacNhanWrap').hide();
@@ -537,6 +545,11 @@
                 $('#inGhiChuXacNhan').focus();
                 return;
             }
+            if (anomalyFlagged && !ghiChu) {
+                showWarning('Chỉ số bất thường so với lịch sử, cần ghi chú lý do.');
+                $('#inGhiChuXacNhan').focus();
+                return;
+            }
 
             const $btn = $(this);
             const origHtml = $btn.html();
@@ -562,6 +575,53 @@
                     $btn.prop('disabled', false).html(origHtml);
                 }
             });
+        });
+
+        function resetAnomaly() {
+            clearTimeout(anomalyTimer);
+            anomalySeq++;
+            anomalyFlagged = false;
+            $('#canhBaoBatThuong').hide().text('');
+            $('#canhBaoBatThuongLoi').hide().text('');
+            $('#lblBatBuocBatThuong').hide();
+        }
+
+        // Gọi server kiểm tra chỉ số đang nhập có bất thường không (debounce ở nơi gọi).
+        function checkAnomaly() {
+            if (!selectedImage) return;
+            const valStr = $('#inGiaTriXacNhan').val();
+            const val = parseFloat(valStr);
+            if (!valStr || isNaN(val)) {
+                resetAnomaly();
+                return;
+            }
+            const seq = ++anomalySeq;
+            const query = { phongTroId: currentPhongTroId, thang: currentThang, nam: currentNam };
+            const isDien = selectedImage.loai === 0;
+            query[isDien ? 'chiSoDienMoi' : 'chiSoNuocMoi'] = val;
+            $.get('/DienNuoc/KiemTraBatThuong', query).done(function (res) {
+                if (seq !== anomalySeq) return;
+                $('#canhBaoBatThuongLoi').hide().text('');
+                const w = isDien ? res.dien : res.nuoc;
+                anomalyFlagged = !!(w && w.moTa);
+                if (anomalyFlagged) {
+                    $('#canhBaoBatThuong').text(w.moTa).show();
+                    $('#lblBatBuocBatThuong').show();
+                } else {
+                    $('#canhBaoBatThuong').hide().text('');
+                    $('#lblBatBuocBatThuong').hide();
+                }
+            }).fail(function (xhr) {
+                if (seq !== anomalySeq) return;
+                // Giữ nguyên anomalyFlagged: không biết số mới có bất thường hay không, server vẫn kiểm lại khi lưu.
+                console.warn('Không kiểm tra được chỉ số bất thường', xhr.status);
+                $('#canhBaoBatThuongLoi').text('Không kiểm tra được chỉ số bất thường. Hệ thống vẫn kiểm lại khi lưu.').show();
+            });
+        }
+
+        $('#inGiaTriXacNhan').on('input change', function () {
+            clearTimeout(anomalyTimer);
+            anomalyTimer = setTimeout(checkAnomaly, 400);
         });
 
         // Action: Sửa số đã xác nhận

@@ -211,7 +211,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
         {
             using var host = new DeadlineHost(_fixture.ConnectionString);
             var seed = await DeadlineHarness.SeedAsync(_fixture, host.Clock.Now);
-            // Màn hình mở khi hóa đơn còn chờ duyệt; Admin chốt trước khi nhân viên bấm lưu.
+            // Màn hình (của Admin) mở khi hóa đơn còn chờ duyệt; hóa đơn được chốt trước khi Admin bấm lưu.
             var invoice = await CreateAsync(host, seed, TrangThaiPhatHanhHoaDon.DaChot);
             var before = Assert.Single(await DeadlineHarness.InvoicesAsync(_fixture, seed));
 
@@ -281,6 +281,75 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             Assert.Equal("/KhachThue/HoaDon", notice.LinkDieuHuong);
             // Chỉ báo qua cổng: không gửi lại email hóa đơn.
             Assert.Equal(invoiceEmailsBefore, host.Email.Invoice.Count);
+        }
+
+        [Fact]
+        public async Task Adjust_WhenScreenSaysDaChotButInvoiceAlreadySent_IsRejectedAndChangesNothing()
+        {
+            using var host = new DeadlineHost(_fixture.ConnectionString);
+            var seed = await DeadlineHarness.SeedAsync(_fixture, host.Clock.Now);
+            // Màn hình (của Admin) mở khi hóa đơn đã chốt; hóa đơn được công bố trước khi Admin bấm lưu.
+            var sent = await CreateAsync(host, seed, TrangThaiPhatHanhHoaDon.DaGui);
+            var before = Assert.Single(await DeadlineHarness.InvoicesAsync(_fixture, seed));
+            var noticesBefore = (await TenantNoticesAsync(seed)).Count;
+
+            var result = await AdjustAsync(host, seed.Admin.NguoiDungId, sent.HoaDonId, dien: 130m, nuoc: 60m, hienTai: TrangThaiPhatHanhHoaDon.DaChot);
+
+            Assert.False(result.Success);
+            Assert.Equal("Hóa đơn vừa đổi trạng thái, vui lòng tải lại.", result.Message);
+            var all = await DeadlineHarness.InvoicesAsync(_fixture, seed, includeDeleted: true);
+            var only = Assert.Single(all);
+            Assert.Equal(sent.HoaDonId, only.HoaDonId);
+            Assert.False(only.IsDeleted);
+            Assert.Equal(TrangThaiPhatHanhHoaDon.DaGui, only.TrangThaiPhatHanh);
+            Assert.Equal(before.TongTien, only.TongTien);
+            Assert.Equal(before.LichSuTrangThaiHoaDons.Count, only.LichSuTrangThaiHoaDons.Count);
+            Assert.Equal(noticesBefore, (await TenantNoticesAsync(seed)).Count);
+            await using var db = _fixture.CreateDbContext();
+            var period = await db.DichVuDienNuocCuaPhongs.AsNoTracking().SingleAsync(p => p.DichVuDienNuocCuaPhongId == sent.DichVuDienNuocCuaPhongId);
+            Assert.Equal(120m, period.ChiSoDienMoi);
+        }
+
+        [Fact]
+        public async Task AdjustDaGui_ReadingsOnly_ReplacementKeepsManualLineOfOldInvoice()
+        {
+            using var host = new DeadlineHost(_fixture.ConnectionString);
+            var seed = await DeadlineHarness.SeedAsync(_fixture, host.Clock.Now);
+            var sent = await CreateAsync(host, seed, TrangThaiPhatHanhHoaDon.DaGui);
+            await using (var db = _fixture.CreateDbContext())
+            {
+                // Nhân viên đã thêm tay một khoản phí vào hóa đơn trước khi gửi.
+                db.ChiTietHoaDons.Add(new ChiTietHoaDon { HoaDonId = sent.HoaDonId, TenDichVu = "Phí sửa khóa", DonGia = 50_000m, SoLuong = 1m, TongTien = 50_000m });
+                var entity = await db.HoaDons.SingleAsync(h => h.HoaDonId == sent.HoaDonId);
+                entity.TongTien += 50_000m;
+                await db.SaveChangesAsync();
+            }
+
+            var info = await InfoAsync(host, seed.Staff.NguoiDungId, sent.HoaDonId);
+            InvoiceMeterLinesPreview preview;
+            await using (var scope = host.Provider.CreateAsyncScope())
+            {
+                var p = await scope.ServiceProvider.GetRequiredService<IInvoiceAdjustmentService>()
+                    .PreviewMeterLinesAsync(seed.Staff.NguoiDungId, sent.HoaDonId, 130m, 60m);
+                Assert.True(p.Success, p.Message);
+                preview = p.Data!;
+            }
+
+            // Như màn điều chỉnh: chỉ dòng điện được tính lại theo chỉ số mới, các dòng khác gửi nguyên.
+            var dongs = info.ChiTiets.Select(l => l.Loai == "dien"
+                    ? new AdjustInvoiceLine { ChiTietHoaDonId = l.ChiTietHoaDonId, TenDichVu = preview.Dien!.TenDichVu, DonGia = preview.Dien.DonGia, SoLuong = preview.Dien.SoLuong }
+                    : Dong(l))
+                .ToList();
+
+            var result = await AdjustWithLinesAsync(host, seed.Staff.NguoiDungId, sent.HoaDonId, dongs, dien: 130m, nuoc: 60m);
+
+            Assert.True(result.Success, result.Message);
+            var replacement = (await DeadlineHarness.InvoicesAsync(_fixture, seed)).Single(h => h.HoaDonId == result.Data!.HoaDonIdMoi);
+            var lines = replacement.ChiTietHoaDonDichVus.Where(l => !l.IsDeleted).ToList();
+            Assert.Contains(lines, l => l.TenDichVu == "Phí sửa khóa" && l.TongTien == 50_000m);
+            Assert.Equal(info.ChiTiets.Count, lines.Count);
+            Assert.Contains(lines, l => l.TenDichVu == preview.Dien!.TenDichVu);
+            Assert.Equal(lines.Sum(l => l.TongTien), replacement.TongTien);
         }
 
         [Fact]
@@ -543,6 +612,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             var seed = await DeadlineHarness.SeedAsync(_fixture, host.Clock.Now);
             var sent = await CreateAsync(host, seed, TrangThaiPhatHanhHoaDon.DaGui);
             var info = await InfoAsync(host, seed.Staff.NguoiDungId, sent.HoaDonId);
+            var invoiceEmailsBefore = host.Email.Invoice.Count;
 
             var phong = info.ChiTiets.Single(l => l.TenDichVu.StartsWith("Tiền thuê phòng"));
             var dien = info.ChiTiets.Single(l => l.Loai == "dien");
@@ -553,6 +623,8 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             };
 
             var result = await AdjustWithLinesAsync(host, seed.Staff.NguoiDungId, sent.HoaDonId, dongs);
+            // Chỉ báo qua cổng: không gửi email hóa đơn.
+            Assert.Equal(invoiceEmailsBefore, host.Email.Invoice.Count);
 
             Assert.True(result.Success, result.Message);
             Assert.True(result.Data!.DaTaoHoaDonThayThe);

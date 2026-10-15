@@ -1,3 +1,4 @@
+using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Text.RegularExpressions;
@@ -38,7 +39,9 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             Assert.Contains("esc(s.lyDoKhoa)", js);
             Assert.Contains("esc(res.message)", js);
             Assert.Contains("esc(d.maHoaDon)", js);
-            Assert.Contains("esc(d.hanTuChot)", js);
+            Assert.Contains("esc(vnd(d.tongTien))", js);
+            Assert.Contains("trangThaiPhatHanhHienTai", js);
+            Assert.DoesNotContain("hanTuChot", js);
             Assert.Contains(".fail(", js);
             Assert.DoesNotContain("alert(", Regex.Replace(js, @"Swal\.fire|\.alert-|alert-", string.Empty));
             // Không có ô lý do trong modal điều chỉnh.
@@ -54,12 +57,41 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             // Gửi danh sách dòng khoản phí và hỏi server tính lại dòng điện nước theo chỉ số mới.
             Assert.Contains("chiTiets", js);
             Assert.Contains("/TinhLai", js);
+            // Đổi chỉ số mà chưa tính lại được dòng điện nước thì không gửi dòng cũ kèm chỉ số mới.
+            Assert.Contains("Chưa tính lại được dòng điện nước theo chỉ số mới", js);
             // Cùng giới hạn với server: tên dòng tối đa 500 ký tự, số lượng 3 chữ số thập phân, đơn giá nguyên đồng.
             Assert.Contains("maxlength=\"500\"", js);
             Assert.Contains("step=\"0.001\"", js);
             Assert.Contains("Đơn giá phải là số nguyên VND.", js);
             // Tên khoản phí và các ô nhập do người dùng gõ chỉ đưa vào DOM qua .val()/.text(), không ghép HTML.
             Assert.DoesNotContain("'<input type=\"text\" value=\"", js);
+        }
+
+        [Fact]
+        public async Task AdjustUi_NoLongerSaysResend()
+        {
+            var js = await (await Client().GetAsync("/js/hoadon-dieuchinh.js")).Content.ReadAsStringAsync();
+            Assert.DoesNotContain("gửi lại", js);
+            Assert.DoesNotContain("ti-send", js);
+            Assert.Contains("Điều chỉnh hóa đơn", js);
+            Assert.Contains("Lưu điều chỉnh", js);
+
+            // Index.cshtml vẫn có nút "gửi lại email" hợp lệ, nên chỉ chặn nhãn cũ của điều chỉnh.
+            var view = File.ReadAllText(Path.Combine(SolutionRoot(), "src", "QuanLyChoThuePhongTroWeb.Web",
+                "Areas", "QuanLyNhaTro", "Views", "HoaDon", "Index.cshtml"));
+            Assert.DoesNotContain("Điều chỉnh và gửi lại", view);
+            Assert.Contains("Điều chỉnh hóa đơn", view);
+        }
+
+        private static string SolutionRoot()
+        {
+            var dir = new DirectoryInfo(System.AppContext.BaseDirectory);
+            while (dir != null && !File.Exists(Path.Combine(dir.FullName, "QuanLyChoThuePhongTroWeb.sln")))
+            {
+                dir = dir.Parent;
+            }
+
+            return dir?.FullName ?? throw new DirectoryNotFoundException("Không tìm thấy thư mục chứa QuanLyChoThuePhongTroWeb.sln.");
         }
 
         [Theory]
@@ -71,6 +103,8 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             Assert.DoesNotContain("+ s.lyDoKhoa", js);
             Assert.DoesNotContain("+ res.message", js);
             Assert.DoesNotContain("+ d.maHoaDon", js);
+            // Cảnh báo bất thường của server chỉ đưa vào DOM qua .text().
+            Assert.Contains("$('<div class=\"alert alert-warning py-2 mb-2\">').text(w)", js);
         }
     }
 }

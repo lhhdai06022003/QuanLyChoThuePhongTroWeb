@@ -14,8 +14,16 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
     public static class InvoiceDetailProjection
     {
         // Hạn phản hồi chỉ có nghĩa với hóa đơn đã gửi; hóa đơn cũ ở trạng thái khác có thể còn HanPhanHoi nhưng không hiển thị.
-        public static DateTime? HanPhanHoiHienThi(TrangThaiPhatHanhHoaDon trangThai, DateTime? hanPhanHoi, bool isDeleted)
-            => trangThai == TrangThaiPhatHanhHoaDon.DaGui && !isDeleted ? hanPhanHoi : null;
+        // Hóa đơn cũ do job tự chốt gửi đi có HanPhanHoi (hạn xem xét) sớm hơn NgayGui: không phải hạn phản hồi của khách nên ẩn.
+        public static DateTime? HanPhanHoiHienThi(TrangThaiPhatHanhHoaDon trangThai, DateTime? hanPhanHoi, DateTime? ngayGui, bool isDeleted)
+            => trangThai == TrangThaiPhatHanhHoaDon.DaGui && !isDeleted && hanPhanHoi.HasValue && ngayGui.HasValue && hanPhanHoi.Value > ngayGui.Value
+                ? hanPhanHoi
+                : null;
+
+        public static string DinhDangHanPhanHoi(DateTime? hanPhanHoiUtc)
+            => hanPhanHoiUtc.HasValue
+                ? hanPhanHoiUtc.Value.AddHours(7).ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture)
+                : string.Empty;
 
         // Hóa đơn tự động = có dòng lịch sử mang thẻ [TU_DONG], không suy ra từ HanPhanHoi.
         public static bool LaHoaDonTuDong(IEnumerable<string?> lyDoLichSu)
@@ -53,13 +61,14 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 TrangThaiPhatHanhValue = (int)hd.TrangThaiPhatHanh,
                 TrangThaiPhatHanh = InvoiceStatusLabels.PhatHanh(hd.TrangThaiPhatHanh),
                 LaHoaDonTuDong = laHoaDonTuDong,
-                HanPhanHoiUtc = HanPhanHoiHienThi(hd.TrangThaiPhatHanh, hd.HanPhanHoi, hd.IsDeleted),
+                HanPhanHoiUtc = HanPhanHoiHienThi(hd.TrangThaiPhatHanh, hd.HanPhanHoi, hd.NgayGui, hd.IsDeleted),
+                HanPhanHoiHienThi = DinhDangHanPhanHoi(HanPhanHoiHienThi(hd.TrangThaiPhatHanh, hd.HanPhanHoi, hd.NgayGui, hd.IsDeleted)),
                 ChiSoDienCu = coKy ? ky!.ChiSoDienCu : null,
                 ChiSoDienMoi = coKy ? ky!.ChiSoDienMoi : null,
                 ChiSoNuocCu = coKy ? ky!.ChiSoNuocCu : null,
                 ChiSoNuocMoi = coKy ? ky!.ChiSoNuocMoi : null,
                 DaHuy = hd.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaHuy,
-                LyDoHuy = lyDoHuy ?? string.Empty,
+                LyDoHuy = AutoInvoiceHistoryTags.BoNhan(lyDoHuy),
                 LichSuTrangThais = lichSuTrangThais ?? new List<InvoiceStatusHistoryRes>(),
                 NgayTao = hd.NgayTao.AddHours(7).ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture),
                 HanThanhToan = hd.HanThanhToan.HasValue ? hd.HanThanhToan.Value.AddHours(7).ToString("dd/MM/yyyy", CultureInfo.InvariantCulture) : string.Empty,

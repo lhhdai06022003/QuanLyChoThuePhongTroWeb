@@ -1,6 +1,6 @@
 # Spec: Kiểm tra chỉ số theo hợp đồng và duyệt hóa đơn trước khi gửi
 
-- **Trạng thái:** v4, chờ người dùng duyệt (12/10/2026).
+- **Trạng thái:** v4, người dùng đã duyệt (12/10/2026); đã code (13/10/2026).
 - **Nhánh:** `feature/duyet-hoa-don-tu-dong` (từ `master` = `c11946c`).
 - **Thay thế** trong [spec hóa đơn tự động](../hoa-don-tu-dong/spec.md): mục 4.1 điều kiện 3, 5.2 bước 4–5, 5.3, 6, 7.1, 7.2, `HD4`.
 - **Schema:** không đổi.

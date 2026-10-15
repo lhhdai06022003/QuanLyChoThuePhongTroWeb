@@ -916,6 +916,43 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         }
 
         [Fact]
+        public async Task GetDanhSachDienNuoc_RoomWithReviewInvoice_SetsSuaQuaHoaDonAndDedicatedReason()
+        {
+            var store = StoreWithRoom101();
+            store.ReviewInvoiceRooms.Add(101);
+            store.LockedRooms.Add(101);
+
+            var row = await GetRow101(store);
+
+            Assert.True(row.SuaQuaHoaDon);
+            Assert.True(row.IsLocked);
+            Assert.Equal("Kỳ này đã có hóa đơn chờ duyệt hoặc đã chốt, sửa chỉ số qua hộp Điều chỉnh của hóa đơn.", row.LyDoKhoa);
+        }
+
+        [Fact]
+        public async Task GetDanhSachDienNuoc_RoomWithReviewInvoice_ButLaterPeriodClosed_GenericReasonWithoutLink()
+        {
+            var store = StoreWithRoom101();
+            store.ReviewInvoiceRooms.Add(101);
+            store.LockedRooms.Add(101);
+            store.LaterPeriodLockedRooms.Add(101);
+
+            var row = await GetRow101(store);
+
+            Assert.False(row.SuaQuaHoaDon);
+            Assert.True(row.IsLocked);
+            Assert.Equal("Kỳ sau đã chốt hoặc kỳ này đã có hóa đơn phát hành.", row.LyDoKhoa);
+        }
+
+        [Fact]
+        public async Task GetDanhSachDienNuoc_RoomWithoutReviewInvoice_SuaQuaHoaDonFalse()
+        {
+            var row = await GetRow101(StoreWithRoom101());
+
+            Assert.False(row.SuaQuaHoaDon);
+        }
+
+        [Fact]
         public async Task GetDanhSachDienNuoc_PreviousMonthHadContractAndNoRecord_RowLocked()
         {
             var store = StoreWithRoom101();

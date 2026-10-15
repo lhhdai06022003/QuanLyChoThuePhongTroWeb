@@ -604,6 +604,45 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         }
 
         [Fact]
+        public async Task Adjust_Sent_WithoutRecipient_MessageAsksStaffToContactCustomer()
+        {
+            var h = new Harness(TrangThaiPhatHanhHoaDon.DaGui);
+            h.SetupReplacement();
+            h.Publication.Recipients.Remove(HopDong);
+
+            var result = await h.Adjust();
+
+            Assert.True(result.Success, result.Message);
+            Assert.False(result.Data!.KhachDaDuocBao);
+            Assert.Equal("Đã hủy hóa đơn cũ và tạo hóa đơn thay thế chờ duyệt. Chưa báo được khách qua cổng, hãy liên hệ khách.", result.Message);
+        }
+
+        [Fact]
+        public async Task Adjust_Sent_NotificationFailure_MessageAsksStaffToContactCustomer()
+        {
+            var h = new Harness(TrangThaiPhatHanhHoaDon.DaGui);
+            h.SetupReplacement();
+            h.ThongBao.ThrowOnSend = true;
+
+            var result = await h.Adjust();
+
+            Assert.False(result.Data!.KhachDaDuocBao);
+            Assert.Contains("Chưa báo được khách qua cổng, hãy liên hệ khách.", result.Message);
+        }
+
+        [Fact]
+        public async Task Adjust_Sent_CustomerNotified_MessageHasNoContactHint()
+        {
+            var h = new Harness(TrangThaiPhatHanhHoaDon.DaGui);
+            h.SetupReplacement();
+
+            var result = await h.Adjust();
+
+            Assert.True(result.Data!.KhachDaDuocBao);
+            Assert.DoesNotContain("Chưa báo được khách", result.Message);
+        }
+
+        [Fact]
         public async Task Adjust_Sent_WhenReplacementBelongsToAnotherContract_RollsBack()
         {
             var h = new Harness(TrangThaiPhatHanhHoaDon.DaGui);
@@ -1015,6 +1054,149 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         }
 
         [Fact]
+        public async Task Adjust_Sent_ReadingsOnly_WithSameLines_ReplacementKeepsManualLine()
+        {
+            // Hóa đơn cũ có dòng nhân viên thêm tay; lõi tạo nháp chỉ dựng lại tiền phòng.
+            var h = new Harness(TrangThaiPhatHanhHoaDon.DaGui);
+            h.SetLines(Line(1, "Tiền phòng", 1_000_000m, 1m, 1_000_000m), Line(2, "Phí sửa khóa", 50_000m, 1m, 50_000m));
+            var replacement = h.SetupReplacement(1_070_000m);
+
+            // Hóa đơn cũ chưa có dòng điện; màn điều chỉnh đã thêm dòng điện tính lại theo chỉ số mới.
+            var result = await h.AdjustLines(new[]
+            {
+                Dong(1, "Tiền phòng", 1_000_000m, 1m),
+                Dong(2, "Phí sửa khóa", 50_000m, 1m),
+                Dong(null, "Tiền điện (100 → 130)", 3_500m, 30m)
+            }, dien: 130m, nuoc: 60m);
+
+            Assert.True(result.Success, result.Message);
+            Assert.Single(h.Meter.AdjustCalls);
+            var lines = replacement.ChiTietHoaDonDichVus.Where(l => !l.IsDeleted).ToList();
+            Assert.Equal(new[] { "Tiền phòng", "Phí sửa khóa", "Tiền điện (100 → 130)" }, lines.Select(l => l.TenDichVu));
+            Assert.Equal(1_155_000m, replacement.TongTien);
+            Assert.Equal(1_155_000m, result.Data!.TongTienMoi);
+        }
+
+        // ---------- Dòng điện/nước chưa tính lại theo chỉ số mới ----------
+
+        private const string DongDienNuocCu = "Dòng tiền điện/nước chưa được tính lại theo chỉ số mới, vui lòng tải lại.";
+
+        [Fact]
+        public async Task Adjust_Sent_NewReading_WithStaleElectricityLine_IsRejected_BeforeCancelling()
+        {
+            var h = new Harness(TrangThaiPhatHanhHoaDon.DaGui);
+            h.SetLines(BaseLines());
+            h.SetupReplacement();
+
+            // Màn hình chưa tính lại được: dòng điện vẫn là "100 → 120" nhưng chỉ số điện mới là 130.
+            var result = await h.AdjustLines(BaseDongs(), dien: 130m, nuoc: 60m);
+
+            Assert.False(result.Success);
+            Assert.Equal(DongDienNuocCu, result.Message);
+            var tx = Assert.Single(h.Uow.Transactions);
+            Assert.True(tx.RolledBack);
+            Assert.False(tx.Committed);
+            Assert.Equal(TrangThaiPhatHanhHoaDon.DaGui, h.Invoice.TrangThaiPhatHanh);
+            Assert.False(h.Invoice.IsDeleted);
+            Assert.Empty(h.Invoice.LichSuTrangThaiHoaDons);
+            Assert.Empty(h.IssuanceService.CreateInCurrentTransactionCalls);
+            Assert.Empty(h.Meter.AdjustCalls);
+            Assert.Equal(120m, h.Invoice.DichVuDienNuocCuaPhong!.ChiSoDienMoi);
+            Assert.Empty(h.ThongBao.Sent);
+        }
+
+        [Fact]
+        public async Task Adjust_ChoDuyet_NewReading_WithStaleElectricityLine_IsRejected_AndInvoiceUnchanged()
+        {
+            var h = new Harness();
+            h.SetLines(BaseLines());
+            var dongs = BaseDongs();
+            dongs[2] = Dong(3, "Rác", 50_000m, 3m);   // sửa dòng khác, dòng điện vẫn là số cũ
+
+            var result = await h.AdjustLines(dongs, dien: 130m, nuoc: 60m);
+
+            Assert.False(result.Success);
+            Assert.Equal(DongDienNuocCu, result.Message);
+            Assert.True(Assert.Single(h.Uow.Transactions).RolledBack);
+            Assert.Equal(TrangThaiPhatHanhHoaDon.ChoDuyet, h.Invoice.TrangThaiPhatHanh);
+            Assert.Empty(h.Invoice.LichSuTrangThaiHoaDons);
+            Assert.Empty(h.Meter.AdjustCalls);
+            Assert.Equal(1_670_000m, h.Invoice.TongTien);
+            Assert.Equal(new[] { 1, 2, 3 }, h.Invoice.ChiTietHoaDonDichVus.Select(l => l.ChiTietHoaDonId).ToArray());
+        }
+
+        [Fact]
+        public async Task Adjust_SecondManualElectricityLine_ResentUnchanged_IsAllowed_OnlyFirstLineIsChecked()
+        {
+            // Dòng điện hệ thống (id 2) và dòng truy thu nhập tay (id 5, cũng nhận là điện theo tên): màn hình chỉ tính lại dòng đầu.
+            ChiTietHoaDon[] Lines() => BaseLines().Append(Line(5, "Tiền điện truy thu tháng 9", 3_500m, 10m, 35_000m)).ToArray();
+            var ok = new Harness();
+            ok.SetLines(Lines());
+            var stale = new Harness();
+            stale.SetLines(Lines());
+
+            var dongsOk = BaseDongs().Append(Dong(5, "Tiền điện truy thu tháng 9", 3_500m, 10m)).ToArray();
+            dongsOk[1] = Dong(2, "Tiền điện (100 → 130)", 3_500m, 30m);
+            var resultOk = await ok.AdjustLines(dongsOk, dien: 130m, nuoc: 60m);
+            // Đối chứng: dòng đầu vẫn là số cũ thì vẫn chặn.
+            var resultStale = await stale.AdjustLines(BaseDongs().Append(Dong(5, "Tiền điện truy thu tháng 9", 3_500m, 10m)).ToArray(), dien: 130m, nuoc: 60m);
+
+            Assert.True(resultOk.Success, resultOk.Message);
+            Assert.Single(ok.Meter.AdjustCalls);
+            Assert.Equal(1_500_000m + 105_000m + 100_000m + 35_000m, ok.Invoice.TongTien);
+            Assert.False(resultStale.Success);
+            Assert.Equal(DongDienNuocCu, resultStale.Message);
+            Assert.Empty(stale.Meter.AdjustCalls);
+        }
+
+        [Fact]
+        public async Task Adjust_NoWaterLine_WaterReadingIncreased_WithoutNewWaterLine_IsRejected()
+        {
+            var h = new Harness();
+            h.SetLines(BaseLines());   // không có dòng nước
+
+            var result = await h.AdjustLines(BaseDongs(), dien: 120m, nuoc: 70m);
+
+            Assert.False(result.Success);
+            Assert.Equal(DongDienNuocCu, result.Message);
+            Assert.Equal(TrangThaiPhatHanhHoaDon.ChoDuyet, h.Invoice.TrangThaiPhatHanh);
+            Assert.Empty(h.Meter.AdjustCalls);
+        }
+
+        [Fact]
+        public async Task Adjust_NoWaterLine_WaterReadingIncreased_WithNewWaterLine_Succeeds()
+        {
+            var h = new Harness();
+            h.SetLines(BaseLines());
+            var dongs = BaseDongs().Append(Dong(null, "Tiền nước (50 → 70)", 15_000m, 20m)).ToArray();
+
+            var result = await h.AdjustLines(dongs, dien: 120m, nuoc: 70m);
+
+            Assert.True(result.Success, result.Message);
+            Assert.Single(h.Meter.AdjustCalls);
+            Assert.Equal(1_970_000m, h.Invoice.TongTien);
+        }
+
+        [Fact]
+        public async Task Adjust_Sent_NewReading_WithRecalculatedElectricityLine_Succeeds()
+        {
+            var h = new Harness(TrangThaiPhatHanhHoaDon.DaGui);
+            h.SetLines(BaseLines());
+            var replacement = h.SetupReplacement();
+            var dongs = BaseDongs();
+            dongs[1] = Dong(2, "Tiền điện (100 → 130)", 3_500m, 30m);
+
+            var result = await h.AdjustLines(dongs, dien: 130m, nuoc: 60m);
+
+            Assert.True(result.Success, result.Message);
+            Assert.True(result.Data!.DaTaoHoaDonThayThe);
+            Assert.Single(h.Meter.AdjustCalls);
+            Assert.True(h.Invoice.IsDeleted);
+            Assert.Equal(105_000m, replacement.ChiTietHoaDonDichVus.Single(l => l.TenDichVu == "Tiền điện (100 → 130)").TongTien);
+            Assert.Equal(1_705_000m, replacement.TongTien);
+        }
+
+        [Fact]
         public async Task Adjust_Sent_LinesOnly_StillCancelsOldInvoice_WithoutCallingMeterCore()
         {
             var h = new Harness(TrangThaiPhatHanhHoaDon.DaGui);
@@ -1122,6 +1304,21 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.Contains("Điện", canhBao);
             Assert.NotNull(batThuong.Data.Dien);
             Assert.Empty(binhThuong.Data!.CanhBaos);
+        }
+
+        [Fact]
+        public async Task Preview_HistoryStoreThrows_StillReturnsLines_WithoutWarnings()
+        {
+            var h = new Harness();
+            h.HistoryStore.ThrowOnGet = new InvalidOperationException("db down");
+
+            var result = await h.Service.PreviewMeterLinesAsync(Actor, HoaDonId, 191m, 50m);
+
+            Assert.True(result.Success, result.Message);
+            Assert.NotNull(result.Data!.Dien);
+            Assert.Empty(result.Data.CanhBaos);
+            Assert.Single(h.Logger.Entries, e => e.Level == LogLevel.Warning);
+            Assert.DoesNotContain(h.Logger.Entries, e => e.Level >= LogLevel.Error);
         }
 
         [Fact]

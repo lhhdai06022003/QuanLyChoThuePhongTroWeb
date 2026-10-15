@@ -89,5 +89,18 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.False(r.Success);
             Assert.Equal(ServiceErrorKind.NotFound, r.ErrorKind);
         }
+
+        [Theory]
+        [InlineData(0, 2026)]
+        [InlineData(13, 2026)]
+        [InlineData(10, 1999)]
+        [InlineData(10, 2101)]
+        public async Task KiemTra_KyKhongHopLe_Fail(int thang, int nam)
+        {
+            var r = await _service.KiemTraAsync(Actor, new MeterAnomalyCheckRequest { PhongTroId = Room, Thang = thang, Nam = nam, ChiSoDienMoi = 1091m });
+
+            Assert.False(r.Success);
+            Assert.Equal("Dữ liệu không hợp lệ.", r.Message);
+        }
     }
 }

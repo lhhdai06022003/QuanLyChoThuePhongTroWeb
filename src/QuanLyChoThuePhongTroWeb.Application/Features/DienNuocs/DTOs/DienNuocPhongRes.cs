@@ -16,6 +16,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.DTOs
         public bool IsDaChot { get; set; } // true if this record already exists in DB for the given month/year
         public bool IsLocked { get; set; }
         public string? LyDoKhoa { get; set; }
+        // Kỳ đã có hóa đơn chờ duyệt/đã chốt: sửa chỉ số qua hộp Điều chỉnh của hóa đơn.
+        public bool SuaQuaHoaDon { get; set; }
 
         public bool CoAnhDienChinhThuc { get; set; }
         public bool CoAnhNuocChinhThuc { get; set; }

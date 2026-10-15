@@ -69,6 +69,10 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
 
             var prevRecords = await _store.GetPreviousMonthRecordsAsync(phongTroIds, prevThang, prevNam);
             var lockedPhongIds = await _store.GetLockedRoomIdsAsync(phongTroIds, thang, nam);
+            var phongSuaQuaHoaDon = await _store.GetRoomIdsWithReviewInvoiceAsync(phongTroIds, thang, nam);
+            var phongKySauDaChot = phongSuaQuaHoaDon.Count > 0
+                ? await _store.GetRoomIdsLockedByLaterPeriodAsync(phongTroIds, thang, nam)
+                : new HashSet<int>();
             var phongCoHopDongThangTruoc = await _store.GetRoomIdsWithContractInMonthAsync(phongTroIds, prevThang, prevNam);
 
             var result = new List<DienNuocPhongRes>();
@@ -80,7 +84,13 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
                 // Đánh dấu khóa sẵn mọi phòng mà ApprovePeriodsAsync sẽ từ chối, để màn chốt
                 // không gửi chúng lên và làm rollback cả lô.
                 string? lyDoKhoa = null;
-                if (lockedPhongIds.Contains(phongTroId))
+                // Kỳ sau đã chốt thì hộp Điều chỉnh của hóa đơn cũng bị khóa: chỉ báo lý do chung, không gợi ý sửa qua hóa đơn.
+                bool suaQuaHoaDon = phongSuaQuaHoaDon.Contains(phongTroId) && !phongKySauDaChot.Contains(phongTroId);
+                if (suaQuaHoaDon)
+                {
+                    lyDoKhoa = "Kỳ này đã có hóa đơn chờ duyệt hoặc đã chốt, sửa chỉ số qua hộp Điều chỉnh của hóa đơn.";
+                }
+                else if (lockedPhongIds.Contains(phongTroId))
                 {
                     lyDoKhoa = "Kỳ sau đã chốt hoặc kỳ này đã có hóa đơn phát hành.";
                 }
@@ -123,6 +133,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
                         TrangThaiGhiNhan = (QuanLyChoThuePhongTroWeb.Application.Common.Enums.AppTrangThaiGhiNhan)currentRecord.TrangThaiGhiNhan,
                         IsLocked = isLocked,
                         LyDoKhoa = lyDoKhoa,
+                        SuaQuaHoaDon = suaQuaHoaDon,
                         SoAnhDien = dienImages.Count,
                         SoAnhNuoc = nuocImages.Count,
                         TrangThaiAnhDien = representativeDien != null ? (QuanLyChoThuePhongTroWeb.Application.Common.Enums.AppTrangThaiAnhChiSo)representativeDien.TrangThaiXuLy : null,
@@ -158,6 +169,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
                         IsDaChot = false,
                         IsLocked = isLocked,
                         LyDoKhoa = lyDoKhoa,
+                        SuaQuaHoaDon = suaQuaHoaDon,
                         SoAnhDien = 0,
                         SoAnhNuoc = 0,
                         TrangThaiAnhDien = null,

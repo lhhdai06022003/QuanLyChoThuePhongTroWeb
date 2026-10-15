@@ -11,7 +11,10 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Persistence
         Task<IReadOnlyList<HopDong>> GetActiveContractsInBranchAsync(int chiNhanhId, DateTime startOfMonth, DateTime endOfMonth, CancellationToken cancellationToken = default);
         Task<IReadOnlyDictionary<int, DichVuDienNuocCuaPhong>> GetCurrentMonthRecordsAsync(IReadOnlyList<int> roomIds, int thang, int nam, CancellationToken cancellationToken = default);
         Task<IReadOnlyDictionary<int, DichVuDienNuocCuaPhong>> GetPreviousMonthRecordsAsync(IReadOnlyList<int> roomIds, int prevThang, int prevNam, CancellationToken cancellationToken = default);
+        Task<ISet<int>> GetRoomIdsWithReviewInvoiceAsync(IReadOnlyList<int> phongTroIds, int thang, int nam, CancellationToken cancellationToken = default);
         Task<ISet<int>> GetLockedRoomIdsAsync(IReadOnlyList<int> roomIds, int thang, int nam, CancellationToken cancellationToken = default);
+        // Phòng bị khóa vì kỳ sau đã chốt hoặc đã có hóa đơn phát hành (nửa "kỳ sau" của GetLockedRoomIdsAsync).
+        Task<ISet<int>> GetRoomIdsLockedByLaterPeriodAsync(IReadOnlyList<int> roomIds, int thang, int nam, CancellationToken cancellationToken = default);
         // Phòng có hợp đồng (chưa hủy) phủ tháng đó; cùng định nghĩa với IMeterImageStore.HasContractInMonthAsync.
         Task<ISet<int>> GetRoomIdsWithContractInMonthAsync(IReadOnlyList<int> roomIds, int thang, int nam, CancellationToken cancellationToken = default);
         Task<(decimal ChiSoDienMoi, decimal ChiSoNuocMoi)> GetNearestPreviousReadingAsync(int phongTroId, int thang, int nam, CancellationToken cancellationToken = default);

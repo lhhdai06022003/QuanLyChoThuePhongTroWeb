@@ -331,6 +331,13 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                     continue;
                 }
 
+                // Số bất thường chỉ nhờ khách chụp lại khi số đến từ OCR; số nhân viên đã xác nhận hoặc kỳ đã chốt thì chỉ báo nhân viên.
+                var coGiaTri = meter.LyDo is AutoInvoiceReason.ChiSoGiam or AutoInvoiceReason.NghiSaiChuSo or AutoInvoiceReason.TieuThuThapBatThuong;
+                if (coGiaTri && meter.AnhTuXacNhanId == null)
+                {
+                    continue;
+                }
+
                 var tenDongHo = meter.LoaiDongHo == LoaiDongHo.Dien ? "điện" : "nước";
                 string tieuDe;
                 string noiDung;

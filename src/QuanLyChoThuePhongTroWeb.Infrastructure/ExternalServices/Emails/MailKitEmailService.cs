@@ -67,6 +67,22 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.Emails
             _logger = logger;
         }
 
+        // Dòng nhắc hạn phản hồi trong email hóa đơn, cùng câu với thông báo cổng lúc công bố. Hết hạn hoặc không có hạn thì bỏ trống.
+        public static string BuildFeedbackNoticeHtml(string? soDienThoaiChiNhanh, DateTime? hanPhanHoiUtc, DateTime nowUtc)
+        {
+            if (hanPhanHoiUtc is not DateTime hanPhanHoi || hanPhanHoi <= nowUtc)
+            {
+                return string.Empty;
+            }
+
+            var hanText = hanPhanHoi.AddHours(7).ToString("dd/MM/yyyy HH:mm", System.Globalization.CultureInfo.InvariantCulture);
+            var sdt = System.Net.WebUtility.HtmlEncode(soDienThoaiChiNhanh?.Trim() ?? string.Empty);
+            var cau = sdt.Length > 0
+                ? $"Nếu thấy sai sót, vui lòng liên hệ {sdt} trước {hanText}."
+                : $"Nếu thấy sai sót, vui lòng phản hồi trước {hanText}.";
+            return $"<div style='margin-bottom: 6px;'>{cau}</div>";
+        }
+
         public async Task<(bool IsSuccess, string ErrorMessage)> SendInvoiceEmailAsync(string toEmail, HoaDonChiTietRes hoaDon, byte[] pdfBytes)
         {
             try
@@ -87,14 +103,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.Emails
                 var accountNumber = _configuration["VietQRSettings:AccountNumber"] ?? "";
                 var accountName = _configuration["VietQRSettings:AccountName"] ?? "";
 
-                var phanHoiHtml = string.Empty;
-                if (hoaDon.HanPhanHoiUtc is DateTime hanPhanHoi && hanPhanHoi > DateTime.UtcNow)
-                {
-                    var hanText = hanPhanHoi.AddHours(7).ToString("dd/MM/yyyy HH:mm", System.Globalization.CultureInfo.InvariantCulture);
-                    var sdt = System.Net.WebUtility.HtmlEncode(hoaDon.SoDienThoaiChiNhanh?.Trim() ?? string.Empty);
-                    var lienHe = sdt.Length > 0 ? $"liên hệ {sdt} " : string.Empty;
-                    phanHoiHtml = $"<div style='margin-bottom: 6px;'>Nếu thấy sai sót, vui lòng {lienHe}trước {hanText}.</div>";
-                }
+                var phanHoiHtml = BuildFeedbackNoticeHtml(hoaDon.SoDienThoaiChiNhanh, hoaDon.HanPhanHoiUtc, DateTime.UtcNow);
 
                 var message = new MimeMessage();
                 message.From.Add(new MailboxAddress(senderName, senderEmail));

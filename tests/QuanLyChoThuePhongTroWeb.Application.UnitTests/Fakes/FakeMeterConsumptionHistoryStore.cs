@@ -11,7 +11,10 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
         public MeterConsumptionHistory History { get; set; } =
             new(new List<MeterConsumption>(), 31, 31, 10);
 
+        // Đặt để mô phỏng lỗi khi đọc lịch sử.
+        public System.Exception? ThrowOnGet { get; set; }
+
         public Task<MeterConsumptionHistory> GetAsync(int phongTroId, int thang, int nam, int soKyToiDa, CancellationToken ct = default)
-            => Task.FromResult(History);
+            => ThrowOnGet != null ? Task.FromException<MeterConsumptionHistory>(ThrowOnGet) : Task.FromResult(History);
     }
 }

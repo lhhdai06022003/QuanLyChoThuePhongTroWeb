@@ -614,7 +614,8 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             return Ok(new
             {
                 dien = preview.Dien == null ? null : ToLineJson(preview.Dien),
-                nuoc = preview.Nuoc == null ? null : ToLineJson(preview.Nuoc)
+                nuoc = preview.Nuoc == null ? null : ToLineJson(preview.Nuoc),
+                canhBaos = preview.CanhBaos
             });
         }
 
@@ -628,10 +629,6 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             loai = l.Loai,
             donVi = l.DonVi
         };
-
-        // Cùng định dạng giờ Việt Nam cho GET và POST điều chỉnh.
-        private static string? FormatVietnamTime(DateTime? utc)
-            => utc?.AddHours(7).ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture);
 
         [HttpPost("/HoaDon/DieuChinh/{id:int}")]
         [ValidateAntiForgeryToken]

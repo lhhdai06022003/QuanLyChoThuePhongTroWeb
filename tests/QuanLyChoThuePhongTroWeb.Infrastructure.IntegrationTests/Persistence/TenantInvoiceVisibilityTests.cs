@@ -84,6 +84,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             var tenant = await seeder.TenantAsync("L");
             var contract = await seeder.ContractAsync(room, tenant);
             var sent = await seeder.InvoiceAsync(contract, TrangThaiPhatHanhHoaDon.DaGui, TrangThaiHoaDon.ChuaThanhToan, 987_000m, null, month: 1, year: 2026);
+            sent.NgayGui = Han.AddDays(-1);
             sent.HanPhanHoi = Han;
             await db.SaveChangesAsync();
             var store = new HoaDonStore(db);

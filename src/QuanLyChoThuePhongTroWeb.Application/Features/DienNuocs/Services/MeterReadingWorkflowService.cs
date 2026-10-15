@@ -1416,7 +1416,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
             return null;
         }
 
-        // Nhận diện dòng điện/nước: quy tắc dùng chung với màn "Điều chỉnh và gửi lại" nên nằm ở InvoiceMeterLine.
+        // Nhận diện dòng điện/nước: quy tắc dùng chung với màn điều chỉnh hóa đơn nên nằm ở InvoiceMeterLine.
         private static bool IsMeterInvoiceLine(ChiTietHoaDon line, LoaiDichVu loai, string keyword)
         {
             if (line.IsDeleted) return false;

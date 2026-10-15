@@ -372,10 +372,12 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             var rooms = new[] { room.PhongTroId };
 
             Assert.DoesNotContain(room.PhongTroId, await store.GetLockedRoomIdsAsync(rooms, 9, 2026));
+            Assert.DoesNotContain(room.PhongTroId, await store.GetRoomIdsLockedByLaterPeriodAsync(rooms, 9, 2026));
 
             period10.TrangThaiGhiNhan = TrangThaiGhiNhan.DaDuyet;
             await context.SaveChangesAsync();
             Assert.Contains(room.PhongTroId, await store.GetLockedRoomIdsAsync(rooms, 9, 2026));
+            Assert.Contains(room.PhongTroId, await store.GetRoomIdsLockedByLaterPeriodAsync(rooms, 9, 2026));
         }
 
         [Theory]
@@ -440,6 +442,8 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
 
             Assert.Equal(expectLocked, locked.Contains(room.PhongTroId));
             Assert.DoesNotContain(otherRoom.PhongTroId, locked);
+            // Hóa đơn của chính kỳ này không phải khóa do kỳ sau.
+            Assert.Empty(await store.GetRoomIdsLockedByLaterPeriodAsync(new[] { room.PhongTroId, otherRoom.PhongTroId }, 9, 2026));
         }
 
         [Fact]

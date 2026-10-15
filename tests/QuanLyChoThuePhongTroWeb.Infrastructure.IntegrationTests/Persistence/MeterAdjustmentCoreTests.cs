@@ -13,7 +13,7 @@ using Xunit;
 
 namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
 {
-    // Lõi đổi chỉ số kỳ đã duyệt dùng cho "Điều chỉnh và gửi lại" (T16), chạy trong transaction do test mở.
+    // Lõi đổi chỉ số kỳ đã duyệt dùng cho điều chỉnh hóa đơn (T16), chạy trong transaction do test mở.
     [Collection("PostgreSqlCollection")]
     public class MeterAdjustmentCoreTests
     {

@@ -1,6 +1,8 @@
 # Spec: Hóa đơn tự động từ chỉ số điện nước
 
-- **Trạng thái:** v7, bản giao thực thi (10/10/2026). Người dùng đã duyệt nghiệp vụ và schema. Đã code đủ (đợt A–D và lượt dọn code, xem [plan.md](plan.md)), review ĐẠT ([review.md](review.md)); chưa gộp `master`.
+> **Đã thay thế một phần (13/10/2026).** Các mục sau hết hiệu lực: 4.1 điều kiện 3, 5.2 bước 4–5, 5.3, 6, 7.1, 7.2 và HD4. Luồng hiện hành (hóa đơn tự tạo ở nháp, nhân viên gửi duyệt, Admin chốt, công bố, kiểm tra chỉ số theo hợp đồng) xem [spec mới](../duyet-hoa-don-tu-dong/spec.md).
+
+- **Trạng thái:** v7, bản giao thực thi (10/10/2026). Người dùng đã duyệt nghiệp vụ và schema. Đã code đủ (đợt A–D và lượt dọn code, xem [plan.md](plan.md)), review ĐẠT ([review.md](review.md)); đã gộp `master` (`c11946c`).
 - **Nhánh:** `feature/hoa-don-tu-dong` (tách từ `master` = `dc391e3`).
 - **Phạm vi:** cổng quản lý + cổng khách thuê. Không đụng cổng khách vãng lai.
 - **Ngoài phạm vi:** đối soát chuyển khoản tự động, Zalo/Web Push, IoT, hoàn tiền (xem [huong-mo-rong.md](huong-mo-rong.md)).

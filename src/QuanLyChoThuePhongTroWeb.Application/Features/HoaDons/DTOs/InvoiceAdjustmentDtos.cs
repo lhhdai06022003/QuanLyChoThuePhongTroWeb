@@ -69,5 +69,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs
         public decimal TongTienMoi { get; init; }
         public int TrangThaiPhatHanhMoi { get; init; }
         public bool DaTaoHoaDonThayThe { get; init; }
+
+        // False khi đã hủy hóa đơn đã gửi nhưng chưa báo được khách qua cổng.
+        public bool KhachDaDuocBao { get; init; } = true;
     }
 }

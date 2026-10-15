@@ -1,4 +1,4 @@
-// Điều chỉnh hóa đơn tự động theo yêu cầu khách rồi gửi lại bản tạm tính: sửa chỉ số điện nước và/hoặc các khoản phí.
+// Điều chỉnh hóa đơn chờ duyệt, đã chốt hoặc đã gửi: sửa chỉ số điện nước và/hoặc các khoản phí.
 // Dùng ở màn Hóa đơn quản lý. Danh sách dòng gửi lên là danh sách cuối cùng của hóa đơn (server thay toàn bộ dòng).
 (function (window, $) {
     'use strict';
@@ -50,7 +50,7 @@
         $('body').append(
             '<div class="modal fade" id="' + MODAL_ID + '" tabindex="-1" aria-hidden="true">' +
             ' <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable"><div class="modal-content">' +
-            '  <div class="modal-header py-2"><h5 class="modal-title"><i class="ti ti-adjustments me-1"></i> Điều chỉnh và gửi lại hóa đơn <span class="text-primary" data-f="ma"></span></h5>' +
+            '  <div class="modal-header py-2"><h5 class="modal-title"><i class="ti ti-adjustments me-1"></i> Điều chỉnh hóa đơn <span class="text-primary" data-f="ma"></span></h5>' +
             '   <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button></div>' +
             '  <div class="modal-body py-3">' +
             '   <div data-f="banner"></div>' +
@@ -68,7 +68,8 @@
             '    </table>' +
             '   </div>' +
             '   <div class="form-hint mb-1">Đổi chỉ số sẽ tính lại dòng tiền điện, nước bên dưới. Bạn vẫn sửa tay được từng dòng sau đó.</div>' +
-            '   <div class="small mb-3" data-f="chi-so-ghi-chu" role="status"></div>' +
+            '   <div class="small mb-2" data-f="chi-so-ghi-chu" role="status"></div>' +
+            '   <div class="mb-3" data-f="canh-bao"></div>' +
             '   <h6 class="mb-2">Các khoản phí</h6>' +
             '   <div class="table-responsive">' +
             '    <table class="table table-vcenter table-sm table-striped mb-0">' +
@@ -85,7 +86,7 @@
             '   <div class="form-hint mt-2" data-f="hint"></div>' +
             '  </div>' +
             '  <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>' +
-            '   <button type="button" class="btn btn-primary" data-f="luu"><i class="ti ti-send me-1"></i> Điều chỉnh và gửi lại</button></div>' +
+            '   <button type="button" class="btn btn-primary" data-f="luu"><i class="ti ti-edit me-1"></i> Lưu điều chỉnh</button></div>' +
             ' </div></div></div>');
     }
 
@@ -93,10 +94,20 @@
         return $('#' + MODAL_ID).find('[data-f="' + name + '"]');
     }
 
-    function confirmText(daGui) {
-        var text = 'Hệ thống lưu các khoản phí đã chỉnh, tính lại tổng tiền và gửi lại khách bản tạm tính với hạn tự chốt mới.';
-        if (daGui) text += ' Hóa đơn đã công bố sẽ bị hủy và thay bằng hóa đơn mới.';
-        return text;
+    // Câu giải thích theo trạng thái phát hành: 1 ChoDuyet, 2 DaChot, 3 DaGui.
+    function confirmText(trangThai) {
+        if (trangThai === 3) return 'Hệ thống hủy hóa đơn cũ, tạo hóa đơn thay thế chờ duyệt và báo khách trên cổng.';
+        if (trangThai === 2) return 'Lưu thay đổi, hóa đơn vẫn ở trạng thái đã chốt.';
+        return 'Lưu thay đổi, hóa đơn vẫn chờ duyệt.';
+    }
+
+    // Cảnh báo bất thường từ server (chỉ báo, không chặn lưu).
+    function showWarnings(list) {
+        var $box = field('canh-bao');
+        $box.empty();
+        (list || []).forEach(function (w) {
+            $box.append($('<div class="alert alert-warning py-2 mb-2">').text(w));
+        });
     }
 
     // ---------- Bảng các khoản phí ----------
@@ -218,6 +229,7 @@
         if (doiDien) notes.push(applyMeterLine('dien', p.dien, 'điện'));
         if (doiNuoc) notes.push(applyMeterLine('nuoc', p.nuoc, 'nước'));
         notes = notes.filter(function (x) { return x; });
+        showWarnings(p.canhBaos);
         field('chi-so-ghi-chu').text(notes.join(' ')).toggleClass('text-secondary', notes.length > 0);
         refreshTotal();
     }
@@ -225,7 +237,6 @@
     function open(options) {
         ensureModal();
         var hoaDonId = options.hoaDonId;
-        var daGui = options.daGui === true;
 
         var previewTimer = null;
         var previewSeq = 0;
@@ -242,6 +253,12 @@
         $.get('/HoaDon/DieuChinh/' + hoaDonId).done(function (s) {
             clearPreviewState();
             var coThe = s.coTheDieuChinh !== false;
+            var trangThai = Number(s.trangThaiPhatHanhValue ?? options.trangThai);
+            if (isNaN(trangThai)) {
+                console.warn('Không đọc được trạng thái phát hành của hóa đơn', hoaDonId);
+                Swal.fire({ title: 'Không mở được điều chỉnh', text: 'Không xác định được trạng thái hóa đơn, vui lòng tải lại.', icon: 'error' });
+                return;
+            }
             var goc = (s.chiTiets || []).map(function (l) {
                 return { id: l.chiTietHoaDonId, ten: l.tenDichVu, donGia: Number(l.donGia), soLuong: Number(l.soLuong), tongTien: Number(l.tongTien), loai: l.loai, donVi: l.donVi };
             });
@@ -254,8 +271,9 @@
             $('#hdDcDien').val(s.chiSoDienMoi);
             $('#hdDcNuoc').val(s.chiSoNuocMoi);
             field('chi-so-ghi-chu').text('');
-            field('han').text(s.hanTuChot ? 'Hạn tự chốt hiện tại: ' + s.hanTuChot : '').toggle(!!s.hanTuChot);
-            field('hint').text(confirmText(daGui));
+            field('canh-bao').empty();
+            field('han').text(s.hanPhanHoi ? 'Hạn phản hồi của khách: ' + s.hanPhanHoi : '').toggle(!!s.hanPhanHoi);
+            field('hint').text(confirmText(trangThai));
             field('tong-cu').text('Tổng trước điều chỉnh: ' + vnd(s.tongTien));
 
             field('dong').empty();
@@ -275,7 +293,7 @@
                 refreshTotal();
                 $tr.find('.hd-dong-ten').trigger('focus').trigger('select');
             });
-            $btn.prop('disabled', !coThe).html('<i class="ti ti-send me-1"></i> Điều chỉnh và gửi lại');
+            $btn.prop('disabled', !coThe).html('<i class="ti ti-edit me-1"></i> Lưu điều chỉnh');
 
             // Đổi chỉ số thì chờ ngừng gõ rồi hỏi server tính lại dòng điện nước (cùng công thức lúc tạo hóa đơn).
             function runPreview() {
@@ -284,6 +302,8 @@
                 var r = readReadings(s);
                 if (r.error) {
                     field('chi-so-ghi-chu').text(r.error).removeClass('text-secondary');
+                    showWarnings([]);
+                    lastPreview = null;
                     return $.Deferred().resolve().promise();
                 }
                 if (lastPreview && r.dien === lastPreview.dien && r.nuoc === lastPreview.nuoc) {
@@ -302,6 +322,8 @@
                     })
                     .fail(function (xhr) {
                         if (seq !== previewSeq) return;
+                        showWarnings([]);
+                        lastPreview = null;
                         field('chi-so-ghi-chu').text(errorMessage(xhr, 'Không tính lại được dòng điện nước.')).removeClass('text-secondary');
                     });
                 return previewRequest;
@@ -323,6 +345,13 @@
                 var r = readReadings(s);
                 if (r.error) {
                     warn(r.error);
+                    return;
+                }
+
+                // Đổi chỉ số mà lần tính lại gần nhất lỗi hoặc chưa khớp số đang nhập: dòng điện nước còn là số cũ, không gửi.
+                var doiChiSo = r.dien !== Number(s.chiSoDienMoi) || r.nuoc !== Number(s.chiSoNuocMoi);
+                if (doiChiSo && (!lastPreview || lastPreview.dien !== r.dien || lastPreview.nuoc !== r.nuoc)) {
+                    warn('Chưa tính lại được dòng điện nước theo chỉ số mới, vui lòng thử lại.');
                     return;
                 }
 
@@ -352,7 +381,6 @@
                     return;
                 }
 
-                var doiChiSo = r.dien !== Number(s.chiSoDienMoi) || r.nuoc !== Number(s.chiSoNuocMoi);
                 var doiDong = lines.length !== goc.length || lines.some(function (l, i) {
                     var g = goc.filter(function (x) { return x.id === l.chiTietHoaDonId; })[0];
                     return !g || g.ten !== l.tenDichVu || g.donGia !== l.donGia || g.soLuong !== l.soLuong || goc.indexOf(g) !== i;
@@ -362,22 +390,22 @@
                     return;
                 }
 
-                var body = { chiTiets: lines };
+                var body = { chiTiets: lines, trangThaiPhatHanhHienTai: trangThai };
                 if (doiChiSo) {
                     body.chiSoDienMoi = r.dien;
                     body.chiSoNuocMoi = r.nuoc;
                 }
 
                 Swal.fire({
-                    title: 'Điều chỉnh và gửi lại?',
-                    text: confirmText(daGui),
+                    title: 'Lưu điều chỉnh?',
+                    text: confirmText(trangThai),
                     icon: 'question',
                     showCancelButton: true,
                     confirmButtonText: 'Điều chỉnh',
                     cancelButtonText: 'Hủy'
                 }).then(function (res) {
                     if (!res.isConfirmed) return;
-                    $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Đang gửi...');
+                    $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Đang lưu...');
                     $.ajax({
                         url: '/HoaDon/DieuChinh/' + hoaDonId,
                         type: 'POST',
@@ -389,15 +417,14 @@
                         bootstrap.Modal.getOrCreateInstance(document.getElementById(MODAL_ID)).hide();
                         Swal.fire({
                             icon: 'success',
-                            title: 'Đã gửi lại hóa đơn tạm tính',
+                            title: 'Đã điều chỉnh hóa đơn',
                             html: esc(res.message) + '<br>Mã hóa đơn: ' + esc(d.maHoaDon) +
-                                '<br>Tổng tiền mới: ' + esc(vnd(d.tongTien)) +
-                                '<br>Tự chốt lúc: ' + esc(d.hanTuChot)
+                                '<br>Tổng tiền mới: ' + esc(vnd(d.tongTien))
                         });
                         if (typeof options.onDone === 'function') options.onDone(res.data);
                     }).fail(function (xhr) {
                         Swal.fire({ title: 'Không điều chỉnh được', text: errorMessage(xhr, 'Vui lòng thử lại.'), icon: 'error' });
-                        $btn.prop('disabled', false).html('<i class="ti ti-send me-1"></i> Điều chỉnh và gửi lại');
+                        $btn.prop('disabled', false).html('<i class="ti ti-edit me-1"></i> Lưu điều chỉnh');
                     });
                 });
             }

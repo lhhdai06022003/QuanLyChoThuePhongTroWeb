@@ -33,7 +33,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
 
         public async Task<ServiceResult<MeterAnomalyCheckResult>> KiemTraAsync(int actorId, MeterAnomalyCheckRequest request, CancellationToken ct = default)
         {
-            if (actorId <= 0 || request == null || request.PhongTroId <= 0 || request.Thang < 1 || request.Thang > 12 || request.Nam < 2000)
+            if (actorId <= 0 || request == null || request.PhongTroId <= 0 || request.Thang < 1 || request.Thang > 12 || request.Nam < 2000 || request.Nam > 2100)
             {
                 return ServiceResult<MeterAnomalyCheckResult>.Fail("Dữ liệu không hợp lệ.");
             }

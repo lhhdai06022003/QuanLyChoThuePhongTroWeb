@@ -15,7 +15,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.ChiNhanhs.Services
         private const int SoGioPhanHoiToiThieu = 1;
         private const int SoGioPhanHoiToiDa = 168;
         private const int SoGioPhanHoiMacDinh = 24;
-        private const string LoiSoGio = "Số giờ xem xét hóa đơn phải là số nguyên từ 1 đến 168.";
+        private const string LoiSoGio = "Số giờ phản hồi hóa đơn phải là số nguyên từ 1 đến 168.";
 
         private readonly IChiNhanhStore _store;
         private readonly IUnitOfWork _unitOfWork;

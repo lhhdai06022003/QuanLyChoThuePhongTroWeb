@@ -727,7 +727,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
         }
 
         [Fact]
-        public async Task IndexPage_ShowsProvisionalLabelAndContactLine()
+        public async Task IndexPage_ShowsResponseDeadlineLine_WithoutProvisionalLabel()
         {
             var data = await SeedTestDataAsync("IDX_TT");
             var client = CreateHttpClient();
@@ -737,8 +737,10 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             Assert.Equal(HttpStatusCode.OK, res.StatusCode);
 
             var html = await res.Content.ReadAsStringAsync();
-            Assert.Contains("Tạm tính, tự chốt lúc", html);
-            Assert.Contains("Nếu có sai sót, vui lòng liên hệ", html);
+            Assert.DoesNotContain("Tạm tính", html);
+            Assert.DoesNotContain("laTamTinh", html);
+            Assert.Contains("Nếu thấy sai sót, vui lòng", html);
+            Assert.Contains("res.hanPhanHoi", html);
         }
 
         [Fact]

@@ -12,10 +12,10 @@ using Xunit;
 
 namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
 {
-    // Số giờ xem xét hóa đơn của chi nhánh (1-168, mặc định 24).
+    // Số giờ phản hồi hóa đơn của chi nhánh (1-168, mặc định 24).
     public class ChiNhanhServiceTests
     {
-        private const string LoiSoGio = "Số giờ xem xét hóa đơn phải là số nguyên từ 1 đến 168.";
+        private const string LoiSoGio = "Số giờ phản hồi hóa đơn phải là số nguyên từ 1 đến 168.";
 
         private sealed class FakeChiNhanhStore : IChiNhanhStore
         {

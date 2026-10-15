@@ -23,6 +23,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         private readonly IEmployeeAccessService _employeeAccessService;
         private readonly IMeterImagePortalService _meterImagePortalService;
         private readonly MeterImageOptions _meterImageOptions;
+        private readonly IMeterAnomalyCheckService _meterAnomalyCheckService;
 
         public DienNuocController(
             IDienNuocService dienNuocService,
@@ -30,7 +31,8 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             ILogger<DienNuocController> logger,
             IEmployeeAccessService employeeAccessService,
             IMeterImagePortalService meterImagePortalService,
-            MeterImageOptions meterImageOptions)
+            MeterImageOptions meterImageOptions,
+            IMeterAnomalyCheckService meterAnomalyCheckService)
         {
             _dienNuocService = dienNuocService;
             _phongTroService = phongTroService;
@@ -38,6 +40,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             _employeeAccessService = employeeAccessService;
             _meterImagePortalService = meterImagePortalService;
             _meterImageOptions = meterImageOptions;
+            _meterAnomalyCheckService = meterAnomalyCheckService;
         }
 
         [Route("QuanLyNhaTro/ChotDienNuoc")]
@@ -106,6 +109,36 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
                 _logger.LogError(ex, "Lỗi khi lưu chốt điện nước chi nhánh {ChiNhanhId}, tháng {Thang}/{Nam}", request?.ChiNhanhId, request?.Thang, request?.Nam);
                 return StatusCode(500, new { Message = "Lỗi hệ thống khi lưu chốt điện nước." });
             }
+        }
+
+        // Cảnh báo chỉ số bất thường khi nhân viên nhập/xác nhận; không chặn, chỉ báo để kiểm lại.
+        [HttpGet("/DienNuoc/KiemTraBatThuong")]
+        public async Task<IActionResult> KiemTraBatThuong(int phongTroId, int thang, int nam, decimal? chiSoDienMoi, decimal? chiSoNuocMoi)
+        {
+            if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var actorId) || actorId <= 0)
+            {
+                return Unauthorized(new { success = false, message = "Người dùng chưa đăng nhập hoặc phiên làm việc đã hết hạn." });
+            }
+
+            var result = await _meterAnomalyCheckService.KiemTraAsync(actorId, new MeterAnomalyCheckRequest
+            {
+                PhongTroId = phongTroId,
+                Thang = thang,
+                Nam = nam,
+                ChiSoDienMoi = chiSoDienMoi,
+                ChiSoNuocMoi = chiSoNuocMoi
+            }, HttpContext.RequestAborted);
+
+            if (!result.Success)
+            {
+                return this.ToErrorResult(result);
+            }
+
+            return Ok(new
+            {
+                dien = result.Data!.Dien == null ? null : new { maLyDo = result.Data.Dien.MaLyDo, moTa = result.Data.Dien.MoTa },
+                nuoc = result.Data.Nuoc == null ? null : new { maLyDo = result.Data.Nuoc.MaLyDo, moTa = result.Data.Nuoc.MoTa }
+            });
         }
 
         [HttpGet("/DienNuoc/AnhChiSo")]

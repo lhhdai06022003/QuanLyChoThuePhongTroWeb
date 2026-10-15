@@ -12,7 +12,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
         Task<ServiceResult<MeterImageWorkflowResult>> ConfirmImageAsync(ConfirmMeterImageRequest request, int actorUserId, CancellationToken cancellationToken = default);
         Task<ServiceResult<MeterImageWorkflowResult>> CorrectConfirmedImageAsync(CorrectConfirmedMeterImageRequest request, int actorUserId, CancellationToken cancellationToken = default);
         Task<ServiceResult<MeterPeriodsApprovalResult>> ApprovePeriodsAsync(ApproveMeterPeriodsRequest request, int actorUserId, CancellationToken cancellationToken = default);
-        // Đổi chỉ số kỳ đã DaDuyet cho "Điều chỉnh và gửi lại". Chạy trong transaction do caller mở: không Begin/Commit/Rollback, có SaveChanges.
+        // Đổi chỉ số kỳ đã DaDuyet khi điều chỉnh hóa đơn. Chạy trong transaction do caller mở: không Begin/Commit/Rollback, có SaveChanges.
         // Caller phải đã đưa hóa đơn của kỳ về Nhap hoặc hủy, và đã SaveChanges, trước khi gọi.
         Task<ServiceResult<MeterAdjustmentResult>> AdjustReadingsInCurrentTransactionAsync(MeterAdjustmentRequest request, int actorUserId, CancellationToken cancellationToken = default);
     }

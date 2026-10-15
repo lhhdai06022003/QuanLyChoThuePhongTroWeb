@@ -43,7 +43,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         public async Task<IActionResult> ThemChiNhanhMoi(QuanLyChoThuePhongTroWeb.Application.Features.ChiNhanhs.DTOs.ChiNhanhReq model)
         {
             if (ModelState.GetFieldValidationState(nameof(QuanLyChoThuePhongTroWeb.Application.Features.ChiNhanhs.DTOs.ChiNhanhReq.SoGioPhanHoiHoaDon)) == ModelValidationState.Invalid)
-                return Json(new { success = false, message = "Số giờ xem xét hóa đơn phải là số nguyên từ 1 đến 168." });
+                return Json(new { success = false, message = "Số giờ phản hồi hóa đơn phải là số nguyên từ 1 đến 168." });
 
             // Controller CHỈ NHẬN MODEL VÀ GỌI SERVICE
             var result = await _chiNhanhService.ThemChiNhanhMoi(model);
@@ -55,7 +55,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         public async Task<JsonResult> CapNhatChiNhanh(QuanLyChoThuePhongTroWeb.Application.Features.ChiNhanhs.DTOs.ChiNhanhReq model)
         {
             if (ModelState.GetFieldValidationState(nameof(QuanLyChoThuePhongTroWeb.Application.Features.ChiNhanhs.DTOs.ChiNhanhReq.SoGioPhanHoiHoaDon)) == ModelValidationState.Invalid)
-                return Json(new { success = false, message = "Số giờ xem xét hóa đơn phải là số nguyên từ 1 đến 168." });
+                return Json(new { success = false, message = "Số giờ phản hồi hóa đơn phải là số nguyên từ 1 đến 168." });
 
             // Controller CHỈ NHẬN MODEL VÀ GỌI SERVICE
             var result = await _chiNhanhService.ThemChiNhanhMoi(model);

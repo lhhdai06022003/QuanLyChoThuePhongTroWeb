@@ -34,6 +34,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs
         public bool LaHoaDonTuDong { get; set; }
         // HanPhanHoi khi DaGui && !IsDeleted, ngược lại null (UTC).
         public DateTime? HanPhanHoiUtc { get; set; }
+        // Giờ Việt Nam dd/MM/yyyy HH:mm; rỗng khi không có hạn.
+        public string HanPhanHoiHienThi { get; set; } = string.Empty;
         public string NgayTao { get; set; } = string.Empty;
         public string SoDienThoai { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
@@ -67,6 +69,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs
         public bool LaHoaDonTuDong { get; set; }
         // HanPhanHoi khi DaGui && !IsDeleted, ngược lại null (UTC).
         public DateTime? HanPhanHoiUtc { get; set; }
+        // Giờ Việt Nam dd/MM/yyyy HH:mm; rỗng khi không có hạn.
+        public string HanPhanHoiHienThi { get; set; } = string.Empty;
         // Chỉ số của kỳ điện nước liên kết (chưa xóa mềm); null khi không có kỳ hoặc nguồn dữ liệu không nạp kỳ.
         public decimal? ChiSoDienCu { get; set; }
         public decimal? ChiSoDienMoi { get; set; }

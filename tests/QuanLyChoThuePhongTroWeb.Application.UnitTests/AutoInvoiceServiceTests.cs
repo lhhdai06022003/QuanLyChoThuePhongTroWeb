@@ -438,6 +438,52 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         }
 
         [Fact]
+        public async Task TieuThuThap_OfficialConfirmedImage_NotifiesStaffOnly()
+        {
+            // Nhân viên đã xác nhận ảnh chính thức với số thấp: khách không bị yêu cầu chụp lại.
+            var lichSu = new MeterConsumptionHistory(
+                new[] { new MeterConsumption(40m, 10m), new MeterConsumption(40m, 10m), new MeterConsumption(40m, 10m) }, 31, 31, 10);
+            var ctx = Ctx(new[]
+            {
+                Img(1, LoaiDongHo.Dien, ai: 105m, xacNhan: 105m, official: true),
+                Img(2, LoaiDongHo.Nuoc, ai: 60m, xacNhan: 60m, official: true)
+            }, lichSu: lichSu);
+            var h = new Harness(ctx);
+
+            var result = await h.Run();
+
+            Assert.Equal(AutoInvoiceOutcome.DungCoThongBao, result.Data!.Outcome);
+            Assert.Equal(new[] { AutoInvoiceReason.TieuThuThapBatThuong }, result.Data.LyDos);
+            Assert.Empty(h.Issuance.CreateCalls);
+            Assert.Equal("Phong", Assert.Single(h.ThongBao.Sent).Kind);
+        }
+
+        [Fact]
+        public async Task NghiSaiChuSo_PeriodAlreadyApproved_NotifiesStaffOnly()
+        {
+            var h = new Harness(Ctx(status: TrangThaiGhiNhan.DaDuyet, dienMoi: 1000, nuocMoi: 60));
+
+            var result = await h.Run();
+
+            Assert.Equal(new[] { AutoInvoiceReason.NghiSaiChuSo }, result.Data!.LyDos);
+            Assert.Empty(h.Issuance.CreateCalls);
+            Assert.Equal("Phong", Assert.Single(h.ThongBao.Sent).Kind);
+        }
+
+        [Fact]
+        public async Task TieuThuThap_OcrValue_NotifiesCustomer()
+        {
+            var lichSu = new MeterConsumptionHistory(
+                new[] { new MeterConsumption(40m, 10m), new MeterConsumption(40m, 10m), new MeterConsumption(40m, 10m) }, 31, 31, 10);
+            var h = new Harness(Ctx(new[] { Img(1, LoaiDongHo.Dien, ai: 105m), Img(2, LoaiDongHo.Nuoc, ai: 60m) }, lichSu: lichSu));
+
+            await h.Run();
+
+            Assert.Single(h.ThongBao.Sent, n => n.Kind == "Khach");
+            Assert.Single(h.ThongBao.Sent, n => n.Kind == "Phong");
+        }
+
+        [Fact]
         public async Task AbnormalConsumption_NotifiesStaffOnly()
         {
             var images = new[] { Img(1, LoaiDongHo.Dien, ai: 700m), Img(2, LoaiDongHo.Nuoc, ai: 60m) };

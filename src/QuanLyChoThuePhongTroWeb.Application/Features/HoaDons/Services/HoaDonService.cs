@@ -242,7 +242,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                 return (false, "Không thể chỉnh sửa hóa đơn đã được thanh toán.");
             }
 
-            // Quy tắc kiểm tra và giữ thành tiền dòng cũ không đổi dùng chung với "Điều chỉnh và gửi lại" (InvoiceLineEditing).
+            // Quy tắc kiểm tra và giữ thành tiền dòng cũ không đổi dùng chung với điều chỉnh hóa đơn (InvoiceLineEditing).
             var dongCu = InvoiceLineEditing.Baseline(hd.ChiTietHoaDonDichVus);
             var dongMoi = req.ChiTiets
                 .Select(r => new InvoiceLineInput(r.ChiTietHoaDonId, r.TenDichVu, r.DonGia, r.SoLuong, r.DichVuId))

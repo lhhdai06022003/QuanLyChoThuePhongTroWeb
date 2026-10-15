@@ -23,7 +23,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
     [Collection(WebTestCollection.Name)]
     public class AutoInvoiceUiEndpointTests
     {
-        private const string LoiSoGio = "Số giờ xem xét hóa đơn phải là số nguyên từ 1 đến 168.";
+        private const string LoiSoGio = "Số giờ phản hồi hóa đơn phải là số nguyên từ 1 đến 168.";
 
         private readonly CustomWebApplicationFactory _factory;
 
@@ -32,7 +32,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             _factory = factory;
         }
 
-        // Hóa đơn tạm tính ở chi nhánh A (kỳ 10/2026) cùng giá dịch vụ để "Điều chỉnh và gửi lại" tính được.
+        // Hóa đơn tạm tính ở chi nhánh A (kỳ 10/2026) cùng giá dịch vụ để điều chỉnh hóa đơn tính được.
         private async Task<(BranchScopeWorld World, HoaDon Invoice)> SeedWithProvisionalAsync()
         {
             var w = await SeedAsync(_factory);
@@ -128,6 +128,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             // Cờ tự động chỉ theo thẻ lịch sử [TU_DONG]; hóa đơn mẫu chỉ có HanPhanHoi và ở ChoDuyet.
             Assert.False(row.GetProperty("laHoaDonTuDong").GetBoolean());
             Assert.Equal(JsonValueKind.Null, row.GetProperty("hanPhanHoiUtc").ValueKind);
+            Assert.Equal(string.Empty, row.GetProperty("hanPhanHoiHienThi").GetString());
 
             var detailRes = await staff.GetAsync($"/HoaDon/GetById/{invoice.HoaDonId}");
             Assert.Equal(HttpStatusCode.OK, detailRes.StatusCode);
@@ -135,11 +136,51 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             Assert.False(detail.TryGetProperty("laTamTinh", out _));
             Assert.False(detail.TryGetProperty("hanTuChot", out _));
             Assert.Equal(JsonValueKind.Null, detail.GetProperty("hanPhanHoiUtc").ValueKind);
+            Assert.Equal(string.Empty, detail.GetProperty("hanPhanHoiHienThi").GetString());
             Assert.Equal(100m, detail.GetProperty("chiSoDienCu").GetDecimal());
             Assert.Equal(120m, detail.GetProperty("chiSoDienMoi").GetDecimal());
             Assert.Equal(50m, detail.GetProperty("chiSoNuocCu").GetDecimal());
             Assert.Equal(60m, detail.GetProperty("chiSoNuocMoi").GetDecimal());
             Assert.Equal((int)TrangThaiPhatHanhHoaDon.ChoDuyet, detail.GetProperty("trangThaiPhatHanhValue").GetInt32());
+        }
+
+        [Fact]
+        public async Task Staff_GetListAndGetById_DaGui_ReturnVietnamTimeDeadline()
+        {
+            var (w, invoice) = await SeedWithProvisionalAsync();
+            var han = DateTime.UtcNow.AddHours(30);
+            using (var scope = _factory.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                var h = await db.HoaDons.SingleAsync(x => x.HoaDonId == invoice.HoaDonId);
+                h.TrangThaiPhatHanh = TrangThaiPhatHanhHoaDon.DaGui;
+                h.NgayGui = DateTime.UtcNow.AddHours(-1);
+                h.HanPhanHoi = han;
+                await db.SaveChangesAsync();
+            }
+            var (staff, token) = await LoginAsync(_factory, w.Staff);
+
+            var form = ListForm(w.BranchA);
+            form["trangThaiPhatHanh"] = "3";
+            var list = await JsonAsync(await PostFormAsync(staff, token, "/HoaDon/GetList", form));
+            var row = list.GetProperty("data").EnumerateArray().Single(x => x.GetProperty("hoaDonId").GetInt32() == invoice.HoaDonId);
+            Assert.Equal(VnText(han), row.GetProperty("hanPhanHoiHienThi").GetString());
+
+            var detail = await JsonAsync(await staff.GetAsync($"/HoaDon/GetById/{invoice.HoaDonId}"));
+            Assert.Equal(VnText(han), detail.GetProperty("hanPhanHoiHienThi").GetString());
+        }
+
+        [Fact]
+        public async Task Staff_DieuChinhInfo_ManualChoDuyetInvoice_IsAdjustable()
+        {
+            var (w, invoice) = await SeedWithProvisionalAsync();
+            var (staff, _) = await LoginAsync(_factory, w.Staff);
+
+            var info = await JsonAsync(await staff.GetAsync($"/HoaDon/DieuChinh/{invoice.HoaDonId}"));
+            Assert.True(info.GetProperty("coTheDieuChinh").GetBoolean());
+            Assert.Equal((int)TrangThaiPhatHanhHoaDon.ChoDuyet, info.GetProperty("trangThaiPhatHanhValue").GetInt32());
+            Assert.True(info.TryGetProperty("hanPhanHoi", out _));
+            Assert.False(info.TryGetProperty("hanTuChot", out _));
         }
 
         [Fact]
@@ -167,7 +208,10 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             var html = await response.Content.ReadAsStringAsync();
 
             Assert.Contains("hoadon-dieuchinh.js", html);
-            Assert.Contains("Điều chỉnh và gửi lại", html);
+            Assert.Contains("Điều chỉnh hóa đơn", html);
+            Assert.DoesNotContain("Điều chỉnh và gửi lại", html);
+            Assert.DoesNotContain("Tạm tính, tự chốt lúc", html);
+            Assert.Contains("data-trangthai", html);
 
             // QR chuyển khoản trong modal chi tiết chỉ dựng khi hóa đơn ở trạng thái Đã chốt (2) hoặc Đã gửi (3).
             Assert.Contains("const hienQrChuyenKhoan = !res.daHuy && res.conLai > 0", html);

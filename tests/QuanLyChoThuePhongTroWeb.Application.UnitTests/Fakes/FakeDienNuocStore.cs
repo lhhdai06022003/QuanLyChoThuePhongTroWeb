@@ -12,6 +12,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
         public Dictionary<int, int> RoomBranches { get; set; } = new() { { 101, 1 } };
         public Dictionary<int, string> RoomNames { get; set; } = new() { { 101, "101" } };
         public List<int> LockedRooms { get; } = new();
+        public List<int> ReviewInvoiceRooms { get; } = new();
+        public List<int> LaterPeriodLockedRooms { get; } = new();
         public List<DichVuDienNuocCuaPhong> SavedRecords { get; } = new();
 
         public List<HopDong> ActiveContracts { get; set; } = new();
@@ -29,8 +31,14 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
         public Task<IReadOnlyDictionary<int, DichVuDienNuocCuaPhong>> GetPreviousMonthRecordsAsync(IReadOnlyList<int> roomIds, int prevThang, int prevNam, CancellationToken cancellationToken = default)
             => Task.FromResult<IReadOnlyDictionary<int, DichVuDienNuocCuaPhong>>(PreviousMonthRecords);
 
+        public Task<ISet<int>> GetRoomIdsWithReviewInvoiceAsync(IReadOnlyList<int> phongTroIds, int thang, int nam, CancellationToken cancellationToken = default)
+            => Task.FromResult<ISet<int>>(new HashSet<int>(ReviewInvoiceRooms));
+
         public Task<ISet<int>> GetLockedRoomIdsAsync(IReadOnlyList<int> roomIds, int thang, int nam, CancellationToken cancellationToken = default)
             => Task.FromResult<ISet<int>>(new HashSet<int>(LockedRooms));
+
+        public Task<ISet<int>> GetRoomIdsLockedByLaterPeriodAsync(IReadOnlyList<int> roomIds, int thang, int nam, CancellationToken cancellationToken = default)
+            => Task.FromResult<ISet<int>>(new HashSet<int>(LaterPeriodLockedRooms));
 
         public Task<ISet<int>> GetRoomIdsWithContractInMonthAsync(IReadOnlyList<int> roomIds, int thang, int nam, CancellationToken cancellationToken = default)
         {

@@ -81,8 +81,14 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             public Task<IReadOnlyDictionary<int, DichVuDienNuocCuaPhong>> GetPreviousMonthRecordsAsync(IReadOnlyList<int> roomIds, int prevThang, int prevNam, CancellationToken cancellationToken = default)
                 => Task.FromResult<IReadOnlyDictionary<int, DichVuDienNuocCuaPhong>>(PreviousMonthRecords);
 
+            public Task<ISet<int>> GetRoomIdsWithReviewInvoiceAsync(IReadOnlyList<int> phongTroIds, int thang, int nam, CancellationToken cancellationToken = default)
+                => Task.FromResult<ISet<int>>(new HashSet<int>());
+
             public Task<ISet<int>> GetLockedRoomIdsAsync(IReadOnlyList<int> roomIds, int thang, int nam, CancellationToken cancellationToken = default)
                 => Task.FromResult<ISet<int>>(LockedRooms);
+
+            public Task<ISet<int>> GetRoomIdsLockedByLaterPeriodAsync(IReadOnlyList<int> roomIds, int thang, int nam, CancellationToken cancellationToken = default)
+                => Task.FromResult<ISet<int>>(new HashSet<int>());
 
             public Task<ISet<int>> GetRoomIdsWithContractInMonthAsync(IReadOnlyList<int> roomIds, int thang, int nam, CancellationToken cancellationToken = default)
                 => Task.FromResult<ISet<int>>(new HashSet<int>());

@@ -49,6 +49,21 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 .ToDictionaryAsync(x => x.PhongTroId, cancellationToken);
         }
 
+        public async Task<ISet<int>> GetRoomIdsWithReviewInvoiceAsync(IReadOnlyList<int> phongTroIds, int thang, int nam, CancellationToken cancellationToken = default)
+        {
+            var list = await _context.DichVuDienNuocCuaPhongs
+                .Where(x => phongTroIds.Contains(x.PhongTroId) && !x.IsDeleted && x.Thang == thang && x.Nam == nam &&
+                            _context.HoaDons.Any(h => h.DichVuDienNuocCuaPhongId == x.DichVuDienNuocCuaPhongId &&
+                                                      !h.IsDeleted &&
+                                                      (h.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.ChoDuyet ||
+                                                       h.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaChot)))
+                .Select(x => x.PhongTroId)
+                .Distinct()
+                .ToListAsync(cancellationToken);
+
+            return new HashSet<int>(list);
+        }
+
         public async Task<ISet<int>> GetLockedRoomIdsAsync(IReadOnlyList<int> roomIds, int thang, int nam, CancellationToken cancellationToken = default)
         {
             // Phòng bị khóa khi kỳ sau đã chốt/có hóa đơn phát hành, hoặc chính kỳ này đã có hóa đơn
@@ -65,6 +80,23 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                               _context.HoaDons.IgnoreQueryFilters().Any(h => h.DichVuDienNuocCuaPhongId == x.DichVuDienNuocCuaPhongId &&
                                                                              h.TrangThaiPhatHanh != TrangThaiPhatHanhHoaDon.Nhap &&
                                                                              h.TrangThaiPhatHanh != TrangThaiPhatHanhHoaDon.DaHuy))))
+                .Select(x => x.PhongTroId)
+                .Distinct()
+                .ToListAsync(cancellationToken);
+
+            return new HashSet<int>(list);
+        }
+
+        public async Task<ISet<int>> GetRoomIdsLockedByLaterPeriodAsync(IReadOnlyList<int> roomIds, int thang, int nam, CancellationToken cancellationToken = default)
+        {
+            // Cùng điều kiện "kỳ sau" với GetLockedRoomIdsAsync và HasSubsequentPeriodAsync.
+            var list = await _context.DichVuDienNuocCuaPhongs
+                .Where(x => roomIds.Contains(x.PhongTroId) && !x.IsDeleted &&
+                            (x.Nam > nam || (x.Nam == nam && x.Thang > thang)) &&
+                            (x.TrangThaiGhiNhan == TrangThaiGhiNhan.DaDuyet ||
+                             _context.HoaDons.IgnoreQueryFilters().Any(h => h.DichVuDienNuocCuaPhongId == x.DichVuDienNuocCuaPhongId &&
+                                                                            h.TrangThaiPhatHanh != TrangThaiPhatHanhHoaDon.Nhap &&
+                                                                            h.TrangThaiPhatHanh != TrangThaiPhatHanhHoaDon.DaHuy)))
                 .Select(x => x.PhongTroId)
                 .Distinct()
                 .ToListAsync(cancellationToken);

@@ -297,7 +297,8 @@
 
                 if (item.isLocked) {
                     statusBadge = '<span class="status status-red"><span class="status-dot"></span>Đã khóa</span>'
-                        + (item.lyDoKhoa ? `<div class="dn-lock-reason">${escapeHtml(item.lyDoKhoa)}</div>` : '');
+                        + (item.lyDoKhoa ? `<div class="dn-lock-reason">${escapeHtml(item.lyDoKhoa)}</div>` : '')
+                        + (item.suaQuaHoaDon ? `<div class="small mt-1"><a href="/QuanLyNhaTro/QuanLyHoaDon?thang=${encodeURIComponent($('#filterThang').val())}&nam=${encodeURIComponent($('#filterNam').val())}">Sửa qua hóa đơn</a></div>` : '');
                     rowClass = 'row-locked';
                     disabledAttr = 'disabled';
                 } else if (item.isDaChot) {
@@ -353,6 +354,7 @@
                         <td class="text-center align-middle diennuoc-input-td">
                             <input type="number" class="form-control text-center in-dien-moi" value="${defaultDienMoi}" min="0" ${disabledAttr}>
                             <div class="dn-delta">${deltaText(item.chiSoDienCu, defaultDienMoi, 'kWh')}</div>
+                            <div class="dn-anomaly dn-anomaly-dien text-warning small" style="display: none;"></div>
                             <div class="invalid-feedback text-center small" style="display: none;">Mới phải ≥ cũ</div>
                             <div class="wrap-lydo-dien mt-1" style="${isOfficialDien ? 'display: none;' : ''}">
                                 <input type="text" class="form-control form-control-sm in-lydo-dien" name="lyDoDien" placeholder="Lý do nhập tay" value="" ${disabledAttr}>
@@ -364,6 +366,7 @@
                         <td class="text-center align-middle diennuoc-input-td">
                             <input type="number" class="form-control text-center in-nuoc-moi" value="${defaultNuocMoi}" min="0" ${disabledAttr}>
                             <div class="dn-delta">${deltaText(item.chiSoNuocCu, defaultNuocMoi, 'm³')}</div>
+                            <div class="dn-anomaly dn-anomaly-nuoc text-warning small" style="display: none;"></div>
                             <div class="invalid-feedback text-center small" style="display: none;">Mới phải ≥ cũ</div>
                             <div class="wrap-lydo-nuoc mt-1" style="${isOfficialNuoc ? 'display: none;' : ''}">
                                 <input type="text" class="form-control form-control-sm in-lydo-nuoc" name="lyDoNuoc" placeholder="Lý do nhập tay" value="" ${disabledAttr}>
@@ -644,6 +647,42 @@
 
                 renderTable(currentData);
                 hideStickyBar();
+            });
+
+            // Cảnh báo chỉ số bất thường (không chặn: nhập tay đã bắt lý do). Debounce theo từng ô.
+            const anomalyTimers = {};
+            $('#tbodyDienNuoc').on('input change', '.in-dien-moi, .in-nuoc-moi', function () {
+                const $input = $(this);
+                const $tr = $input.closest('tr');
+                const rowData = currentData[$tr.data('index')];
+                if (!rowData || rowData.isLocked) return;
+                const isDien = $input.hasClass('in-dien-moi');
+                const $box = $tr.find(isDien ? '.dn-anomaly-dien' : '.dn-anomaly-nuoc');
+                const timerKey = rowData.phongTroId + (isDien ? 'd' : 'n');
+                clearTimeout(anomalyTimers[timerKey]);
+
+                const raw = $input.val();
+                if (raw === '' || isNaN(parseFloat(raw))) { $box.hide().text(''); return; }
+
+                anomalyTimers[timerKey] = setTimeout(function () {
+                    const query = { phongTroId: rowData.phongTroId, thang: $('#filterThang').val(), nam: $('#filterNam').val() };
+                    query[isDien ? 'chiSoDienMoi' : 'chiSoNuocMoi'] = raw;
+                    $.get('/DienNuoc/KiemTraBatThuong', query).done(function (res) {
+                        // Bỏ qua kết quả cũ nếu ô đã đổi trong lúc chờ.
+                        if ($input.val() !== raw) return;
+                        const w = isDien ? res.dien : res.nuoc;
+                        if (w && w.moTa) {
+                            $box.removeClass('text-secondary').addClass('text-warning').text(w.moTa).show();
+                        } else {
+                            $box.hide().text('');
+                        }
+                    }).fail(function (xhr) {
+                        if ($input.val() !== raw) return;
+                        console.warn('Không kiểm tra được chỉ số bất thường', xhr.status);
+                        $box.removeClass('text-warning').addClass('text-secondary')
+                            .text('Không kiểm tra được chỉ số bất thường. Hệ thống vẫn kiểm lại khi lưu.').show();
+                    });
+                }, 400);
             });
 
             // Chốt: gom đúng các hàng cần chốt, kiểm tra từng hàng, rồi gửi một giao dịch duy nhất (một phòng lỗi thì cả nhóm hủy)
