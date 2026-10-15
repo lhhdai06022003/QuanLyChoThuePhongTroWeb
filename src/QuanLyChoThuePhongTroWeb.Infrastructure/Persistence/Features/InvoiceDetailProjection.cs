@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.AutoInvoices;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Payments;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services;
@@ -12,21 +13,21 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
 {
     public static class InvoiceDetailProjection
     {
-        public static bool LaTamTinh(TrangThaiPhatHanhHoaDon trangThai, DateTime? hanPhanHoi, bool isDeleted)
-            => trangThai == TrangThaiPhatHanhHoaDon.ChoDuyet && hanPhanHoi != null && !isDeleted;
+        // Hạn phản hồi chỉ có nghĩa với hóa đơn đã gửi; hóa đơn cũ ở trạng thái khác có thể còn HanPhanHoi nhưng không hiển thị.
+        public static DateTime? HanPhanHoiHienThi(TrangThaiPhatHanhHoaDon trangThai, DateTime? hanPhanHoi, bool isDeleted)
+            => trangThai == TrangThaiPhatHanhHoaDon.DaGui && !isDeleted ? hanPhanHoi : null;
 
-        // Giờ Việt Nam khi tạm tính, ngược lại chuỗi rỗng.
-        public static string HanTuChotText(TrangThaiPhatHanhHoaDon trangThai, DateTime? hanPhanHoi, bool isDeleted)
-            => LaTamTinh(trangThai, hanPhanHoi, isDeleted)
-                ? hanPhanHoi!.Value.AddHours(7).ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture)
-                : string.Empty;
+        // Hóa đơn tự động = có dòng lịch sử mang thẻ [TU_DONG], không suy ra từ HanPhanHoi.
+        public static bool LaHoaDonTuDong(IEnumerable<string?> lyDoLichSu)
+            => lyDoLichSu.Any(l => l != null && l.StartsWith(AutoInvoiceHistoryTags.TuDong, StringComparison.Ordinal));
 
         public static HoaDonChiTietRes ProjectToRes(
             HoaDon hd,
             string donViDien,
             string donViNuoc,
             List<InvoiceStatusHistoryRes>? lichSuTrangThais = null,
-            string? lyDoHuy = null)
+            string? lyDoHuy = null,
+            bool laHoaDonTuDong = false)
         {
             var daThu = hd.LichSuThanhToans.Where(x => !x.IsDeleted).Sum(x => x.SoTienThanhToan);
             var ky = hd.DichVuDienNuocCuaPhong;
@@ -51,9 +52,8 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 SoTienThanhToanToiThieu = hd.SoTienThanhToanToiThieu,
                 TrangThaiPhatHanhValue = (int)hd.TrangThaiPhatHanh,
                 TrangThaiPhatHanh = InvoiceStatusLabels.PhatHanh(hd.TrangThaiPhatHanh),
-                LaHoaDonTuDong = hd.HanPhanHoi != null,
-                LaTamTinh = LaTamTinh(hd.TrangThaiPhatHanh, hd.HanPhanHoi, hd.IsDeleted),
-                HanTuChot = HanTuChotText(hd.TrangThaiPhatHanh, hd.HanPhanHoi, hd.IsDeleted),
+                LaHoaDonTuDong = laHoaDonTuDong,
+                HanPhanHoiUtc = HanPhanHoiHienThi(hd.TrangThaiPhatHanh, hd.HanPhanHoi, hd.IsDeleted),
                 ChiSoDienCu = coKy ? ky!.ChiSoDienCu : null,
                 ChiSoDienMoi = coKy ? ky!.ChiSoDienMoi : null,
                 ChiSoNuocCu = coKy ? ky!.ChiSoNuocCu : null,

@@ -289,12 +289,12 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         }
 
         [Fact]
-        public async Task ExportTenantPdf_ProvisionalChoDuyet_ReturnsNull()
+        public async Task ExportTenantPdf_ChoDuyetKhongThuocQuyenXem_ReturnsNull()
         {
+            // Hóa đơn ChoDuyet không qua được kiểm tra quyền xem của khách (store loại), nên không xuất PDF.
             var service = CreateService();
             const int hoaDonId = 110;
             const int tenantId = 5;
-            _hoaDonStore.OwnedInvoices.Add((hoaDonId, tenantId));
             _viewStore.Details[hoaDonId] = new HoaDonChiTietRes
             {
                 HoaDonId = hoaDonId,

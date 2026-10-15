@@ -108,16 +108,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.ViecCanLam.Services
                     $"/QuanLyNhaTro/QuanLyHoaDon?thang=0&nam={NamCuNhat(dongs)}&trangThaiPhatHanh=2");
             }
 
-            // HD4
-            if (DuocPhep(scope, EmployeeActionCodes.InvoiceRead))
-            {
-                var rows = await _store.DemHoaDonTamTinhAsync(branchId, allowed, ct);
-                var dongs = TuHoaDon(rows);
-                ThemViec(items, "HD4", NhomViec.HoaDon, MucUuTienViec.TheoDoi, "Hóa đơn tạm tính chờ tự chốt", dongs, branchId,
-                    $"/QuanLyNhaTro/QuanLyHoaDon?thang=0&nam={NamCuNhat(dongs)}&trangThaiPhatHanh=1");
-            }
-
-            // HD5: chuỗi tự tạo hóa đơn tạm tính đã dừng (và đã báo nhân viên) nên phải xử lý tay
+            // HD5: chuỗi tự tạo hóa đơn đã dừng (và đã báo nhân viên) nên phải xử lý tay
             if (DuocPhep(scope, EmployeeActionCodes.InvoiceDraft))
             {
                 await ThemViecHoaDonTuDongBiDungAsync(items, branchId, allowed, nowVn, ct);
@@ -351,7 +342,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.ViecCanLam.Services
                 }
 
                 ThemViec(items, "HD5", NhomViec.HoaDon, MucUuTienViec.CanLam,
-                    $"Chưa tạo được hóa đơn tạm tính T{kyGroup.Key.Thang}/{kyGroup.Key.Nam}", dongs, branchId,
+                    $"Chưa tạo được hóa đơn tự động T{kyGroup.Key.Thang}/{kyGroup.Key.Nam}", dongs, branchId,
                     $"/QuanLyNhaTro/ChotDienNuoc?thang={kyGroup.Key.Thang}&nam={kyGroup.Key.Nam}",
                     thang: kyGroup.Key.Thang, nam: kyGroup.Key.Nam, ghiChuThem: ghiChu);
             }

@@ -415,7 +415,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             public override DateTimeOffset GetUtcNow() => _now;
         }
 
-        // ---------- CS2 (ảnh chờ xác nhận) và HD5 (chưa tạo được hóa đơn tạm tính) qua HTTP ----------
+        // ---------- CS2 (ảnh chờ xác nhận) và HD5 (chưa tạo được hóa đơn tự động) qua HTTP ----------
 
         // Kỳ liền trước tháng hiện tại (giờ VN) luôn nằm trong khoảng quét của việc cần làm, bất kể ngày chạy test.
         private static (int Thang, int Nam) KyTruoc(int soThangLui)
@@ -478,7 +478,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
 
             var html = await ViecCanLamHtmlAsync(staff, w.BranchA);
 
-            Assert.Contains($"Chưa tạo được hóa đơn tạm tính T{ky.Thang}/{ky.Nam}", html);
+            Assert.Contains($"Chưa tạo được hóa đơn tự động T{ky.Thang}/{ky.Nam}", html);
             Assert.Contains($"{phong}: tiêu thụ điện nước bất thường", html);
             Assert.Contains($"/QuanLyNhaTro/ChotDienNuoc?thang={ky.Thang}&nam={ky.Nam}&chiNhanhId={w.BranchA}", html);
         }
@@ -490,7 +490,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             var ky = KyTruoc(1);
             await AddPeriodAsync(w.RoomA, ky, TrangThaiGhiNhan.DaDuyet, dienMoi: 5000m);
             var (staff, _) = await LoginAsync(_factory, w.Staff);
-            Assert.Contains("Chưa tạo được hóa đơn tạm tính", await ViecCanLamHtmlAsync(staff, w.BranchA));
+            Assert.Contains("Chưa tạo được hóa đơn tự động", await ViecCanLamHtmlAsync(staff, w.BranchA));
 
             using (var scope = _factory.Services.CreateScope())
             {
@@ -503,7 +503,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
                 await db.SaveChangesAsync();
             }
 
-            Assert.DoesNotContain("Chưa tạo được hóa đơn tạm tính", await ViecCanLamHtmlAsync(staff, w.BranchA));
+            Assert.DoesNotContain("Chưa tạo được hóa đơn tự động", await ViecCanLamHtmlAsync(staff, w.BranchA));
         }
 
         [Fact]
@@ -519,7 +519,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
 
             var html = await ViecCanLamHtmlAsync(staff, w.BranchA);
 
-            Assert.DoesNotContain("Chưa tạo được hóa đơn tạm tính", html);
+            Assert.DoesNotContain("Chưa tạo được hóa đơn tự động", html);
         }
 
         [Fact]
@@ -532,7 +532,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
 
             var html = await ViecCanLamHtmlAsync(staff, w.BranchA);
 
-            Assert.DoesNotContain("Chưa tạo được hóa đơn tạm tính", html);
+            Assert.DoesNotContain("Chưa tạo được hóa đơn tự động", html);
         }
 
         [Fact]
@@ -548,9 +548,9 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             var staffAllHtml = WebUtility.HtmlDecode(await (await staff.GetAsync("/QuanLyNhaTro/ViecCanLam")).Content.ReadAsStringAsync());
             var adminHtml = await ViecCanLamHtmlAsync(admin, w.BranchB);
 
-            Assert.DoesNotContain("Chưa tạo được hóa đơn tạm tính", staffHtml);
+            Assert.DoesNotContain("Chưa tạo được hóa đơn tự động", staffHtml);
             Assert.DoesNotContain(w.RoomNumberB, staffAllHtml);
-            Assert.Contains($"Chưa tạo được hóa đơn tạm tính T{ky.Thang}/{ky.Nam}", adminHtml);
+            Assert.Contains($"Chưa tạo được hóa đơn tự động T{ky.Thang}/{ky.Nam}", adminHtml);
             Assert.Contains($"{w.RoomNumberB}: tiêu thụ điện nước bất thường", adminHtml);
         }
 

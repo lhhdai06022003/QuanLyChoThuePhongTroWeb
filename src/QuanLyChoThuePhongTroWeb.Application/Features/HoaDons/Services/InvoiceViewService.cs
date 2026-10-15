@@ -167,12 +167,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                 return null;
             }
 
-            // Hóa đơn tạm tính (chờ duyệt) chưa phải bản chính thức nên khách không được tải PDF.
-            if (detail.TrangThaiPhatHanhValue == (int)TrangThaiPhatHanhHoaDon.ChoDuyet)
-            {
-                return null;
-            }
-
             return InvoicePdfComposer.Compose(detail, _vietQrService, _vietQrSettings, _exporter);
         }
     }

@@ -22,7 +22,7 @@ using Xunit;
 
 namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
 {
-    // Kiểm nối DI thật: khách tải đủ ảnh điện và nước qua HTTP thì hệ thống tự gửi hóa đơn tạm tính.
+    // Kiểm nối DI thật: khách tải đủ ảnh điện và nước qua HTTP thì hệ thống tự tạo hóa đơn nháp và báo nhân viên.
     [Collection(WebTestCollection.Name)]
     public class AutoInvoiceTriggerTests
     {
@@ -169,7 +169,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
         }
 
         [Fact]
-        public async Task TenantUploadsElectricityThenWater_CreatesProvisionalInvoice_AndSendsEmail()
+        public async Task TenantUploadsElectricityThenWater_CreatesDraftInvoice_NotifiesStaff_AndSendsNothingToTenant()
         {
             var ocr = _factory.FakeMeterOcrServiceInstance;
             try
@@ -187,17 +187,33 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
                 Assert.Equal(HttpStatusCode.OK, second.StatusCode);
 
                 var invoice = Assert.Single(await InvoicesAsync(seed));
-                Assert.Equal(TrangThaiPhatHanhHoaDon.ChoDuyet, invoice.TrangThaiPhatHanh);
-                Assert.NotNull(invoice.HanPhanHoi);
-                Assert.InRange(invoice.HanPhanHoi!.Value, DateTime.UtcNow.AddHours(23), DateTime.UtcNow.AddHours(25));
-                Assert.Contains(_factory.FakeEmailServiceInstance.ProvisionalEmailCalls,
-                    c => c.MaHoaDon == invoice.MaHoaDon && c.ToEmail == seed.TenantEmail);
+                Assert.Equal(TrangThaiPhatHanhHoaDon.Nhap, invoice.TrangThaiPhatHanh);
+                Assert.Null(invoice.HanPhanHoi);
+                Assert.DoesNotContain(_factory.FakeEmailServiceInstance.InvoiceEmailCalls,
+                    c => c.MaHoaDon == invoice.MaHoaDon || c.ToEmail == seed.TenantEmail);
 
-                // Khách thấy số tiền tạm tính trong danh sách hóa đơn của mình.
+                using (var scope = _factory.Services.CreateScope())
+                {
+                    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                    var staffNotices = await db.ThongBaos.AsNoTracking()
+                        .Where(t => t.NguoiDungId == seed.Staff.NguoiDungId).ToListAsync();
+                    var notice = Assert.Single(staffNotices, t => t.TieuDe.Contains("có hóa đơn tự động chờ gửi duyệt"));
+                    Assert.Equal($"Phòng {seed.Room.SoPhong} kỳ {seed.Thang:00}/{seed.Nam}: có hóa đơn tự động chờ gửi duyệt", notice.TieuDe);
+                    Assert.Equal("/QuanLyNhaTro/QuanLyHoaDon", notice.LinkDieuHuong);
+                    Assert.Empty(await db.ThongBaos.AsNoTracking()
+                        .Where(t => t.NguoiDung!.NguoiThueId == seed.Contract.NguoiThueId).ToListAsync());
+                }
+
+                // Hóa đơn nháp chưa hiện cho khách.
                 var list = await client.GetAsync("/KhachThue/HoaDon/GetDanhSach");
                 Assert.Equal(HttpStatusCode.OK, list.StatusCode);
                 using var doc = JsonDocument.Parse(await list.Content.ReadAsStringAsync());
-                Assert.Contains(doc.RootElement.EnumerateArray(), x => x.GetProperty("hoaDonId").GetInt32() == invoice.HoaDonId);
+                Assert.DoesNotContain(doc.RootElement.EnumerateArray(), x => x.GetProperty("hoaDonId").GetInt32() == invoice.HoaDonId);
+
+                // Link trong thông báo gửi nhân viên mở được trang quản lý hóa đơn.
+                var (staffClient, _) = await LoginAsync(seed.Staff.TenDangNhap, seed.Password);
+                var page = await staffClient.GetAsync("/QuanLyNhaTro/QuanLyHoaDon");
+                Assert.Equal(HttpStatusCode.OK, page.StatusCode);
             }
             finally
             {
@@ -220,7 +236,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
                 Assert.Equal(HttpStatusCode.OK, (await UploadAsync(client, csrf, seed, 1)).StatusCode);
 
                 Assert.Empty(await InvoicesAsync(seed));
-                Assert.DoesNotContain(_factory.FakeEmailServiceInstance.ProvisionalEmailCalls, c => c.ToEmail == seed.TenantEmail);
+                Assert.DoesNotContain(_factory.FakeEmailServiceInstance.InvoiceEmailCalls, c => c.ToEmail == seed.TenantEmail);
 
                 // Link trong thông báo gửi nhân viên phải mở được trang chốt điện nước, không phải 404.
                 string? link;
@@ -228,7 +244,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
                 {
                     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
                     link = await db.ThongBaos.AsNoTracking()
-                        .Where(t => t.NguoiDungId == seed.Staff.NguoiDungId && t.TieuDe.Contains("chưa tạo được hóa đơn tạm tính"))
+                        .Where(t => t.NguoiDungId == seed.Staff.NguoiDungId && t.TieuDe.Contains("chưa tạo được hóa đơn tự động"))
                         .Select(t => t.LinkDieuHuong)
                         .FirstOrDefaultAsync();
                 }

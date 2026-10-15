@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services;
+using QuanLyChoThuePhongTroWeb.Web.Helpers;
 
 namespace QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers
 {
@@ -44,6 +46,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers
             int nguoiThueId = int.Parse(nguoiThueIdClaim.Value);
 
             var hoaDons = await _hoaDonService.GetHoaDonsByNguoiThueIdAsync(nguoiThueId);
+            var nowUtc = DateTime.UtcNow;
             var result = hoaDons.Select(h => new {
                 h.HoaDonId,
                 h.MaHoaDon,
@@ -53,8 +56,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers
                 TrangThaiHoaDon = h.TrangThaiHoaDonValue,
                 trangThai = h.TrangThaiHoaDon,
                 trangThaiPhatHanh = h.TrangThaiPhatHanhValue,
-                laTamTinh = h.LaTamTinh,
-                hanTuChot = h.HanTuChot,
+                hanPhanHoi = VietnamTime.FormatDeadline(h.HanPhanHoiUtc, nowUtc),
                 NgayTao = h.NgayTao
             });
 
@@ -88,8 +90,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers
                 lichSuThanhToans = data.LichSuThanhToans,
                 daHuy = data.DaHuy,
                 lyDoHuy = data.LyDoHuy,
-                laTamTinh = data.LaTamTinh,
-                hanTuChot = data.HanTuChot,
+                hanPhanHoi = VietnamTime.FormatDeadline(data.HanPhanHoiUtc, DateTime.UtcNow),
                 soDienThoaiChiNhanh = data.SoDienThoaiChiNhanh,
                 chiSoDienCu = data.ChiSoDienCu,
                 chiSoDienMoi = data.ChiSoDienMoi,

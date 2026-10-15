@@ -18,8 +18,8 @@ using static QuanLyChoThuePhongTroWeb.Web.IntegrationTests.BranchScopeKit;
 
 namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
 {
-    // Giao diện hóa đơn tự động (đợt C): cờ tạm tính trong JSON quản lý, màn hóa đơn, màn chi nhánh,
-    // việc cần làm HD4 và quy tắc hiển thị mã QR chuyển khoản.
+    // Giao diện hóa đơn tự động (đợt C): JSON quản lý, màn hóa đơn, màn chi nhánh,
+    // việc cần làm HD2 và quy tắc hiển thị mã QR chuyển khoản.
     [Collection(WebTestCollection.Name)]
     public class AutoInvoiceUiEndpointTests
     {
@@ -116,22 +116,25 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
         private Task<ChiNhanh> LoadBranchAsync(int id) => ReadAsync(_factory, db => db.ChiNhanhs.AsNoTracking().SingleAsync(b => b.ChiNhanhId == id));
 
         [Fact]
-        public async Task Staff_GetList_ReturnsProvisionalFlags_AndGetByIdReturnsMeterReadings()
+        public async Task Staff_GetList_NoLongerReturnsProvisionalKeys_AndGetByIdReturnsMeterReadings()
         {
             var (w, invoice) = await SeedWithProvisionalAsync();
             var (staff, token) = await LoginAsync(_factory, w.Staff);
 
             var list = await JsonAsync(await PostFormAsync(staff, token, "/HoaDon/GetList", ListForm(w.BranchA)));
             var row = list.GetProperty("data").EnumerateArray().Single(x => x.GetProperty("hoaDonId").GetInt32() == invoice.HoaDonId);
-            Assert.True(row.GetProperty("laTamTinh").GetBoolean());
-            Assert.True(row.GetProperty("laHoaDonTuDong").GetBoolean());
-            Assert.Equal(VnText(invoice.HanPhanHoi!.Value), row.GetProperty("hanTuChot").GetString());
+            Assert.False(row.TryGetProperty("laTamTinh", out _));
+            Assert.False(row.TryGetProperty("hanTuChot", out _));
+            // Cờ tự động chỉ theo thẻ lịch sử [TU_DONG]; hóa đơn mẫu chỉ có HanPhanHoi và ở ChoDuyet.
+            Assert.False(row.GetProperty("laHoaDonTuDong").GetBoolean());
+            Assert.Equal(JsonValueKind.Null, row.GetProperty("hanPhanHoiUtc").ValueKind);
 
             var detailRes = await staff.GetAsync($"/HoaDon/GetById/{invoice.HoaDonId}");
             Assert.Equal(HttpStatusCode.OK, detailRes.StatusCode);
             var detail = await JsonAsync(detailRes);
-            Assert.True(detail.GetProperty("laTamTinh").GetBoolean());
-            Assert.Equal(VnText(invoice.HanPhanHoi.Value), detail.GetProperty("hanTuChot").GetString());
+            Assert.False(detail.TryGetProperty("laTamTinh", out _));
+            Assert.False(detail.TryGetProperty("hanTuChot", out _));
+            Assert.Equal(JsonValueKind.Null, detail.GetProperty("hanPhanHoiUtc").ValueKind);
             Assert.Equal(100m, detail.GetProperty("chiSoDienCu").GetDecimal());
             Assert.Equal(120m, detail.GetProperty("chiSoDienMoi").GetDecimal());
             Assert.Equal(50m, detail.GetProperty("chiSoNuocCu").GetDecimal());
@@ -192,7 +195,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
         }
 
         [Fact]
-        public async Task Admin_ChangingHours_KeepsExistingDeadline_AndAppliesToNextAdjustment()
+        public async Task Admin_ChangingHours_KeepsExistingDeadline_AndAdjustmentNoLongerSetsOne()
         {
             var (w, invoice) = await SeedWithProvisionalAsync();
             var (admin, adminToken) = await LoginAsync(_factory, w.Admin);
@@ -207,11 +210,13 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             Assert.Equal(invoice.HanPhanHoi!.Value, before.HanPhanHoi!.Value, TimeSpan.FromSeconds(1));
 
             var adjust = await SendJsonAsync(staff, staffToken, System.Net.Http.HttpMethod.Post, $"/HoaDon/DieuChinh/{invoice.HoaDonId}",
-                new { chiSoDienMoi = 130m, chiSoNuocMoi = 60m });
+                new { trangThaiPhatHanhHienTai = 1, chiSoDienMoi = 130m, chiSoNuocMoi = 60m });
             Assert.Equal(HttpStatusCode.OK, adjust.StatusCode);
 
             var after = await ReadAsync(_factory, db => db.HoaDons.AsNoTracking().SingleAsync(h => h.HoaDonId == invoice.HoaDonId));
-            Assert.InRange(after.HanPhanHoi!.Value, DateTime.UtcNow.AddHours(47), DateTime.UtcNow.AddHours(49));
+            // Điều chỉnh không gửi tạm tính nữa: hóa đơn vẫn chờ duyệt, không còn hạn phản hồi.
+            Assert.Equal(TrangThaiPhatHanhHoaDon.ChoDuyet, after.TrangThaiPhatHanh);
+            Assert.Null(after.HanPhanHoi);
         }
 
         [Fact]
@@ -273,7 +278,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
         }
 
         [Fact]
-        public async Task ViecCanLam_Hd4_ShownToAdminAndBranchStaff_NotToOtherBranch_AndNotCountedAsHd2()
+        public async Task ViecCanLam_Hd2CountsLegacyProvisionalForAdmin_NoHd4_NotShownToOtherBranch()
         {
             var (w, _) = await SeedWithProvisionalAsync();
             var otherStaff = await CreateStaffOfBranchAsync(w.BranchB);
@@ -282,12 +287,15 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             var (other, _) = await LoginAsync(_factory, otherStaff);
 
             var adminItems = Items(await JsonAsync(await admin.GetAsync(DashboardUrl(w.BranchA))));
-            var hd4 = adminItems.Single(i => i.GetProperty("maViec").GetString() == "HD4");
-            Assert.Equal(1, hd4.GetProperty("soLuong").GetInt32());
-            Assert.DoesNotContain(adminItems, i => i.GetProperty("maViec").GetString() == "HD2");
+            var hd2 = adminItems.Single(i => i.GetProperty("maViec").GetString() == "HD2");
+            Assert.Equal(1, hd2.GetProperty("soLuong").GetInt32());
+            Assert.Equal("Hóa đơn chờ Admin chốt", hd2.GetProperty("tieuDe").GetString());
+            Assert.DoesNotContain(adminItems, i => i.GetProperty("maViec").GetString() == "HD4");
 
+            // HD2 chỉ Admin; nhân viên không còn việc HD4 nào.
             var staffItems = Items(await JsonAsync(await staff.GetAsync(DashboardUrl(null))));
-            Assert.Contains(staffItems, i => i.GetProperty("maViec").GetString() == "HD4");
+            Assert.DoesNotContain(staffItems, i => i.GetProperty("maViec").GetString() == "HD2");
+            Assert.DoesNotContain(staffItems, i => i.GetProperty("maViec").GetString() == "HD4");
 
             var otherRoot = await JsonAsync(await other.GetAsync(DashboardUrl(null)));
             var branchAName = await ReadAsync(_factory, db => db.ChiNhanhs.AsNoTracking().Where(b => b.ChiNhanhId == w.BranchA).Select(b => b.TenChiNhanh).SingleAsync());

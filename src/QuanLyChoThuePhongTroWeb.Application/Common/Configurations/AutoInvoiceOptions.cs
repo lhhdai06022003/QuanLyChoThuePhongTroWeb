@@ -19,8 +19,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.Common.Configurations
         // Trần tiêu thụ cả tháng khi hợp đồng chưa đủ lịch sử.
         public decimal TranDienKwh { get; set; } = 500m;
         public decimal TranNuocM3 { get; set; } = 30m;
-        // Chu kỳ chạy job tự chốt hóa đơn tạm tính (phút).
-        public int ChuKyJobPhut { get; set; } = 5;
 
         public void Validate()
         {
@@ -77,11 +75,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.Common.Configurations
             if (TranNuocM3 <= 0)
             {
                 throw new System.InvalidOperationException("Cấu hình AutoInvoiceOptions:TranNuocM3 phải lớn hơn 0.");
-            }
-
-            if (ChuKyJobPhut < 1)
-            {
-                throw new System.InvalidOperationException("Cấu hình AutoInvoiceOptions:ChuKyJobPhut phải lớn hơn hoặc bằng 1.");
             }
         }
     }

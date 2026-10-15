@@ -53,7 +53,6 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             Assert.DoesNotContain(hostedServices, s => s.GetType().Name == "ContractAutoCloseJob");
             Assert.DoesNotContain(hostedServices, s => s.GetType().Name == "ContractExpiryAlertJob");
             Assert.DoesNotContain(hostedServices, s => s.GetType().Name == "InvoiceReminderJob");
-            Assert.DoesNotContain(hostedServices, s => s.GetType().Name == "AutoInvoiceFinalizeJob");
         }
 
         [Fact]
@@ -135,9 +134,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
         [InlineData("QuanLyChoThuePhongTroWeb.Web.BackgroundJobs.ContractAutoCloseJob")]
         [InlineData("QuanLyChoThuePhongTroWeb.Web.BackgroundJobs.ContractExpiryAlertJob")]
         [InlineData("QuanLyChoThuePhongTroWeb.Web.BackgroundJobs.InvoiceReminderJob")]
-        [InlineData("QuanLyChoThuePhongTroWeb.Infrastructure.BackgroundJobs.AutoInvoiceFinalizeJob")]
         [InlineData("QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.UseCases.InvoiceReminderUseCase")]
-        [InlineData("QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.UseCases.AutoInvoiceFinalizeUseCase")]
         [InlineData("QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.UseCases.ContractExpiryAlertUseCase")]
         [InlineData("QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.UseCases.ContractAutoCloseUseCase")]
         public void CustomWebApplicationFactory_Dispose_ShouldThrow_WhenBackgroundJobLogsAtInformation(string category)

@@ -24,14 +24,11 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.ViecCanLam.Persistence
         // HD1: hóa đơn chưa xóa, TrangThaiPhatHanh = Nhap.
         Task<IReadOnlyList<DemHoaDonRow>> DemHoaDonNhapAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, CancellationToken ct = default);
 
-        // HD2: hóa đơn chưa xóa, TrangThaiPhatHanh = ChoDuyet, HanPhanHoi = null (luồng tay).
+        // HD2: hóa đơn chưa xóa, TrangThaiPhatHanh = ChoDuyet (kể cả hóa đơn tạm tính cũ còn HanPhanHoi).
         Task<IReadOnlyList<DemHoaDonRow>> DemHoaDonChoDuyetAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, CancellationToken ct = default);
 
         // HD3: hóa đơn chưa xóa, TrangThaiPhatHanh = DaChot, TrangThaiHoaDon khác DaThanhToan.
         Task<IReadOnlyList<DemHoaDonRow>> DemHoaDonDaChotChuaGuiAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, CancellationToken ct = default);
-
-        // HD4: hóa đơn chưa xóa, TrangThaiPhatHanh = ChoDuyet, HanPhanHoi != null (tạm tính chờ tự chốt).
-        Task<IReadOnlyList<DemHoaDonRow>> DemHoaDonTamTinhAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, CancellationToken ct = default);
 
         // HD5: kỳ chỉ số chưa xóa, DaDuyet, thuộc phòng chưa xóa, từ (tuThang, tuNam) đến (denThang, denNam), mà phòng không có
         // hóa đơn chưa xóa nào của kỳ đó. Kỳ mới nhất trước rồi PhongTroId tăng dần; lấy tối đa gioiHan dòng.

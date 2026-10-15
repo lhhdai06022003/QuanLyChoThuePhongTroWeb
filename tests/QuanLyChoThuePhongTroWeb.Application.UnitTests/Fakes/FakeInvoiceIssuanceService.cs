@@ -11,16 +11,13 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
 {
     public class FakeInvoiceIssuanceService : IInvoiceIssuanceService
     {
-        public List<(CreateInvoiceDraftsRequest Request, int ActorId)> CreateCalls { get; } = new();
-        public List<(int HoaDonId, int ActorId)> SubmitProvisionalCalls { get; } = new();
+        public List<(CreateInvoiceDraftsRequest Request, int ActorId, string? LyDoKhoiTao)> CreateCalls { get; } = new();
         public Func<CreateInvoiceDraftsRequest, int, ServiceResult<InvoiceDraftBatchResult>>? OnCreateDrafts { get; set; }
-        public Func<int, int, ServiceResult<InvoiceTransitionResult>>? OnSubmitProvisional { get; set; }
-        public DateTime HanPhanHoiUtc { get; set; } = new DateTime(2026, 10, 11, 3, 0, 0, DateTimeKind.Utc);
         public List<string>? Log { get; set; }
 
-        public Task<ServiceResult<InvoiceDraftBatchResult>> CreateDraftsAsync(CreateInvoiceDraftsRequest request, int actorId, CancellationToken ct = default)
+        public Task<ServiceResult<InvoiceDraftBatchResult>> CreateDraftsAsync(CreateInvoiceDraftsRequest request, int actorId, string? lyDoKhoiTao = null, CancellationToken ct = default)
         {
-            CreateCalls.Add((request, actorId));
+            CreateCalls.Add((request, actorId, lyDoKhoiTao));
             Log?.Add("CreateDrafts");
             if (OnCreateDrafts != null)
             {
@@ -58,25 +55,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
                 return Task.FromResult(OnCreateDraftsInCurrentTransaction(request, actorId));
             }
 
-            return CreateDraftsAsync(request, actorId, ct);
-        }
-
-        public Task<ServiceResult<InvoiceTransitionResult>> SubmitProvisionalAsync(int hoaDonId, int actorId, CancellationToken ct = default)
-        {
-            SubmitProvisionalCalls.Add((hoaDonId, actorId));
-            Log?.Add("SubmitProvisional");
-            if (OnSubmitProvisional != null)
-            {
-                return Task.FromResult(OnSubmitProvisional(hoaDonId, actorId));
-            }
-
-            return Task.FromResult(ServiceResult<InvoiceTransitionResult>.Ok(new InvoiceTransitionResult
-            {
-                HoaDonId = hoaDonId,
-                MaHoaDon = "HD-500",
-                TrangThaiPhatHanh = TrangThaiPhatHanhHoaDon.ChoDuyet,
-                HanPhanHoiUtc = HanPhanHoiUtc
-            }));
+            return CreateDraftsAsync(request, actorId, lyDoKhoiTao, ct);
         }
 
         public Task<ServiceResult<InvoiceTransitionResult>> SubmitAsync(int hoaDonId, int actorId, CancellationToken ct = default)

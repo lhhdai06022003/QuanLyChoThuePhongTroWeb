@@ -45,6 +45,5 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs
         public int HoaDonId { get; init; }
         public string MaHoaDon { get; init; } = string.Empty;
         public TrangThaiPhatHanhHoaDon TrangThaiPhatHanh { get; init; }
-        public DateTime? HanPhanHoiUtc { get; init; }
     }
 }

@@ -1,7 +1,5 @@
 using System;
-using System.Globalization;
 using System.IO;
-using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using MailKit.Net.Smtp;
@@ -60,114 +58,6 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.Emails
             }
         }
 
-        public async Task<(bool IsSuccess, string ErrorMessage)> SendProvisionalInvoiceEmailAsync(string toEmail, ProvisionalInvoiceEmailData data)
-        {
-            try
-            {
-                var smtpServer = _configuration["EmailSettings:SmtpServer"] ?? "smtp.gmail.com";
-                var portStr = _configuration["EmailSettings:Port"] ?? "587";
-                int port = int.TryParse(portStr, out int p) ? p : 587;
-                var senderName = _configuration["EmailSettings:SenderName"] ?? "Hệ thống Quản lý Nhà Trọ";
-                var senderEmail = _configuration["EmailSettings:SenderEmail"];
-                var password = _configuration["EmailSettings:Password"];
-
-                if (string.IsNullOrEmpty(senderEmail) || string.IsNullOrEmpty(password))
-                {
-                    return (false, "Chưa cấu hình tài khoản gửi thư (SenderEmail/Password) trong appsettings.json.");
-                }
-
-                var message = new MimeMessage();
-                message.From.Add(new MailboxAddress(senderName, senderEmail));
-                message.To.Add(new MailboxAddress(data.TenNguoiThue, toEmail));
-                message.Subject = data.LaDieuChinh
-                    ? $"[HÓA ĐƠN ĐÃ ĐIỀU CHỈNH] - Phòng {data.TenPhong} - Kỳ tháng {data.Thang}/{data.Nam}"
-                    : $"[HÓA ĐƠN TẠM TÍNH] - Phòng {data.TenPhong} - Kỳ tháng {data.Thang}/{data.Nam}";
-
-                string FormatVND(decimal amount) => string.Format("{0:#,##0}", amount);
-                string Enc(string? value) => WebUtility.HtmlEncode(value ?? string.Empty);
-
-                var lineItemsHtml = new StringBuilder();
-                int stt = 1;
-                foreach (var ct in data.ChiTietHoaDons)
-                {
-                    lineItemsHtml.Append($@"
-                        <tr>
-                            <td style='text-align: center; border: 1px solid #dcdfe6; padding: 10px;'>{stt++}</td>
-                            <td style='border: 1px solid #dcdfe6; padding: 10px;'>{Enc(ct.TenDichVu)}</td>
-                            <td style='text-align: right; border: 1px solid #dcdfe6; padding: 10px;'>{FormatVND(ct.DonGia)}</td>
-                            <td style='text-align: center; border: 1px solid #dcdfe6; padding: 10px;'>{ChiSo.DinhDang(ct.SoLuong)}</td>
-                            <td style='text-align: right; border: 1px solid #dcdfe6; padding: 10px; font-weight: bold;'>{FormatVND(ct.TongTien)}</td>
-                        </tr>");
-                }
-
-                var tieuDeHtml = data.LaDieuChinh ? "Hóa đơn tạm tính đã được điều chỉnh" : "Hóa đơn tạm tính tiền phòng";
-                var moDauHtml = data.LaDieuChinh
-                    ? ". Hóa đơn tạm tính của bạn đã được điều chỉnh. Hóa đơn chưa phải bản chính thức và chưa cần thanh toán."
-                    : ", đây là hóa đơn <strong>tạm tính</strong> để bạn kiểm tra. Hóa đơn chưa phải bản chính thức và chưa cần thanh toán.";
-                var hanTuChot = data.HanTuChotUtc.AddHours(7).ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture);
-                var builder = new BodyBuilder();
-                builder.HtmlBody = $@"
-<!DOCTYPE html>
-<html>
-<head><meta charset='utf-8' /></head>
-<body style='font-family: Segoe UI, Tahoma, Geneva, Verdana, sans-serif; color: #333333; line-height: 1.6;'>
-    <div style='max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e1e4e8; border-radius: 8px;'>
-        <h2 style='color: #0056b3; text-align: center;'>{tieuDeHtml}</h2>
-        <p style='text-align: center; color: #666666;'>{Enc(data.TenChiNhanh)}</p>
-        <p>Xin chào {Enc(data.TenNguoiThue)}{moDauHtml}</p>
-        <table style='width: 100%; border-collapse: collapse;'>
-            <tr><td><strong>Mã hóa đơn:</strong></td><td>{Enc(data.MaHoaDon)}</td></tr>
-            <tr><td><strong>Phòng:</strong></td><td>{Enc(data.TenPhong)}</td></tr>
-            <tr><td><strong>Người thuê:</strong></td><td>{Enc(data.TenNguoiThue)}</td></tr>
-            <tr><td><strong>Kỳ:</strong></td><td>Tháng {data.Thang}/{data.Nam}</td></tr>
-            <tr><td><strong>Chỉ số điện:</strong></td><td>{ChiSo.DinhDang(data.ChiSoDienCu)} → {ChiSo.DinhDang(data.ChiSoDienMoi)}</td></tr>
-            <tr><td><strong>Chỉ số nước:</strong></td><td>{ChiSo.DinhDang(data.ChiSoNuocCu)} → {ChiSo.DinhDang(data.ChiSoNuocMoi)}</td></tr>
-        </table>
-        <table style='width: 100%; border-collapse: collapse; margin-top: 20px;'>
-            <thead>
-                <tr>
-                    <th style='border: 1px solid #dcdfe6; padding: 10px;'>STT</th>
-                    <th style='border: 1px solid #dcdfe6; padding: 10px; text-align: left;'>Dịch vụ</th>
-                    <th style='border: 1px solid #dcdfe6; padding: 10px; text-align: right;'>Đơn giá</th>
-                    <th style='border: 1px solid #dcdfe6; padding: 10px;'>SL</th>
-                    <th style='border: 1px solid #dcdfe6; padding: 10px; text-align: right;'>Thành tiền</th>
-                </tr>
-            </thead>
-            <tbody>
-                {lineItemsHtml}
-                <tr>
-                    <td colspan='4' style='text-align: right; border: 1px solid #dcdfe6; padding: 10px;'><strong>TỔNG CỘNG (tạm tính):</strong></td>
-                    <td style='text-align: right; border: 1px solid #dcdfe6; padding: 10px; color: #d9001b;'><strong>{FormatVND(data.TongTien)} đ</strong></td>
-                </tr>
-            </tbody>
-        </table>
-        <p style='margin-top: 20px;'>Hệ thống tự chốt lúc <strong>{hanTuChot}</strong>. Nếu có sai sót, vui lòng liên hệ <strong>{Enc(data.SoDienThoaiChiNhanh)}</strong> trước thời điểm này.</p>
-        <p>Xem chi tiết tại cổng khách thuê, mục Hóa đơn.</p>
-        <p style='color: #999999; font-size: 12px; border-top: 1px dashed #eeeeee; padding-top: 15px;'>Email này được gửi tự động từ hệ thống quản lý nhà trọ. Vui lòng không phản hồi trực tiếp email này.</p>
-    </div>
-</body>
-</html>";
-                message.Body = builder.ToMessageBody();
-
-                using (var client = new SmtpClient())
-                {
-                    client.ServerCertificateValidationCallback = (s, c, h, e) => true;
-
-                    await client.ConnectAsync(smtpServer, port, SecureSocketOptions.StartTls);
-                    await client.AuthenticateAsync(senderEmail, password);
-                    await client.SendAsync(message);
-                    await client.DisconnectAsync(true);
-                }
-
-                return (true, string.Empty);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Lỗi hệ thống khi gửi email hóa đơn tạm tính {MaHoaDon}", data.MaHoaDon);
-                return (false, "Lỗi hệ thống khi gửi email.");
-            }
-        }
-
         private readonly IConfiguration _configuration;
         private readonly ILogger<MailKitEmailService> _logger;
 
@@ -196,6 +86,15 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.Emails
                 var bankId = _configuration["VietQRSettings:BankId"] ?? "MB";
                 var accountNumber = _configuration["VietQRSettings:AccountNumber"] ?? "";
                 var accountName = _configuration["VietQRSettings:AccountName"] ?? "";
+
+                var phanHoiHtml = string.Empty;
+                if (hoaDon.HanPhanHoiUtc is DateTime hanPhanHoi && hanPhanHoi > DateTime.UtcNow)
+                {
+                    var hanText = hanPhanHoi.AddHours(7).ToString("dd/MM/yyyy HH:mm", System.Globalization.CultureInfo.InvariantCulture);
+                    var sdt = System.Net.WebUtility.HtmlEncode(hoaDon.SoDienThoaiChiNhanh?.Trim() ?? string.Empty);
+                    var lienHe = sdt.Length > 0 ? $"liên hệ {sdt} " : string.Empty;
+                    phanHoiHtml = $"<div style='margin-bottom: 6px;'>Nếu thấy sai sót, vui lòng {lienHe}trước {hanText}.</div>";
+                }
 
                 var message = new MimeMessage();
                 message.From.Add(new MailboxAddress(senderName, senderEmail));
@@ -338,6 +237,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.Emails
             <div class='signature-name'>Ban Quản Lý - {hoaDon.TenChiNhanh}</div>
             <div class='signature-info'>
                 <div>📍 <strong>Địa chỉ:</strong> {hoaDon.DiaChiChiNhanh}</div>
+                {phanHoiHtml}
                 <div>📞 <strong>Hotline hỗ trợ:</strong> <a href='tel:{hoaDon.SoDienThoaiChiNhanh}' style='color: #0056b3; text-decoration: none; font-weight: bold;'>{hoaDon.SoDienThoaiChiNhanh}</a></div>
             </div>
         </div>

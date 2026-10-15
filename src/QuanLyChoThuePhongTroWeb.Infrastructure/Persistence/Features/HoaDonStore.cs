@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using QuanLyChoThuePhongTroWeb.Application.Common.Models;
+using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.AutoInvoices;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services;
@@ -196,7 +197,10 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
             string donViDien = dienDichVu?.DonVi ?? "kWh";
             string donViNuoc = nuocDichVu?.DonVi ?? "m³";
 
-            return InvoiceDetailProjection.ProjectToRes(hd, donViDien, donViNuoc);
+            var laTuDong = await _context.LichSuTrangThaiHoaDons
+                .AnyAsync(l => l.HoaDonId == id && l.LyDo != null && l.LyDo.StartsWith(AutoInvoiceHistoryTags.TuDong), cancellationToken);
+
+            return InvoiceDetailProjection.ProjectToRes(hd, donViDien, donViNuoc, null, null, laTuDong);
         }
 
         public async Task<HoaDon?> GetActiveHoaDonByIdAsync(int id, CancellationToken cancellationToken = default)
@@ -260,8 +264,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 .Include(x => x.HopDong).ThenInclude(h => h.PhongTro)
                 .Where(x => contractIds.Contains(x.HopDongId) &&
                             ((x.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaGui && !x.IsDeleted) ||
-                             (x.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaHuy && x.NgayGui != null) ||
-                             (x.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.ChoDuyet && x.HanPhanHoi != null && !x.IsDeleted)))
+                             (x.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaHuy && x.NgayGui != null)))
                 .OrderByDescending(x => x.NgayTao)
                 .Select(x => new
                 {
@@ -278,6 +281,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                     x.TrangThaiHoaDon,
                     x.HanPhanHoi,
                     x.IsDeleted,
+                    LaTuDong = x.LichSuTrangThaiHoaDons.Any(l => l.LyDo != null && l.LyDo.StartsWith(AutoInvoiceHistoryTags.TuDong)),
                     x.NgayTao
                 })
                 .ToListAsync(cancellationToken);
@@ -297,9 +301,8 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 TrangThaiHoaDon = InvoiceStatusLabels.HienThi(x.TrangThaiPhatHanh, x.TrangThaiHoaDon),
                 TrangThaiHoaDonValue = (int)x.TrangThaiHoaDon,
                 TrangThaiPhatHanhValue = (int)x.TrangThaiPhatHanh,
-                LaHoaDonTuDong = x.HanPhanHoi != null,
-                LaTamTinh = InvoiceDetailProjection.LaTamTinh(x.TrangThaiPhatHanh, x.HanPhanHoi, x.IsDeleted),
-                HanTuChot = InvoiceDetailProjection.HanTuChotText(x.TrangThaiPhatHanh, x.HanPhanHoi, x.IsDeleted),
+                LaHoaDonTuDong = x.LaTuDong,
+                HanPhanHoiUtc = InvoiceDetailProjection.HanPhanHoiHienThi(x.TrangThaiPhatHanh, x.HanPhanHoi, x.IsDeleted),
                 NgayTao = x.NgayTao.AddHours(7).ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture)
             }).ToList();
         }
@@ -311,8 +314,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 .AnyAsync(h => h.HoaDonId == hoaDonId &&
                                h.HopDong.NguoiThueId == nguoiThueId &&
                                ((h.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaGui && !h.IsDeleted) ||
-                                (h.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaHuy && h.NgayGui != null) ||
-                                (h.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.ChoDuyet && h.HanPhanHoi != null && !h.IsDeleted)),
+                                (h.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaHuy && h.NgayGui != null)),
                           cancellationToken);
         }
 

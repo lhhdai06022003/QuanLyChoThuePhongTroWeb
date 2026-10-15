@@ -64,7 +64,6 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure
 
             // External services: Email, Storage, AI
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Abstractions.Services.IEmailService, ExternalServices.Emails.MailKitEmailService>();
-            services.AddSingleton<QuanLyChoThuePhongTroWeb.Application.Abstractions.Services.IProvisionalInvoiceEmailDispatcher, ExternalServices.Emails.BackgroundProvisionalInvoiceEmailDispatcher>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Abstractions.Services.IImageStorageService, ExternalServices.Storage.CloudinaryStorageService>();
 
             var meterOptions = configuration.GetSection("MeterImageOptions").Get<QuanLyChoThuePhongTroWeb.Application.Common.Configurations.MeterImageOptions>() ?? new QuanLyChoThuePhongTroWeb.Application.Common.Configurations.MeterImageOptions();
@@ -116,7 +115,6 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure
                 services.AddHostedService<BackgroundJobs.ContractAutoCloseJob>();
                 services.AddHostedService<BackgroundJobs.ContractExpiryAlertJob>();
                 services.AddHostedService<BackgroundJobs.InvoiceReminderJob>();
-                services.AddHostedService<BackgroundJobs.AutoInvoiceFinalizeJob>();
             }
 
             return services;

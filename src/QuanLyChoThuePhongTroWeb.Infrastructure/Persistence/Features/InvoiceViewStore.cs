@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using QuanLyChoThuePhongTroWeb.Application.Common.Models;
+using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.AutoInvoices;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services;
@@ -103,6 +104,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                     h.TrangThaiPhatHanh,
                     h.HanPhanHoi,
                     h.IsDeleted,
+                    LaTuDong = h.LichSuTrangThaiHoaDons.Any(l => l.LyDo != null && l.LyDo.StartsWith(AutoInvoiceHistoryTags.TuDong)),
                     h.NgayTao,
                     SoDienThoai = h.HopDong.NguoiThue.SoDienThoai,
                     Email = h.HopDong.NguoiThue.Email ?? ""
@@ -126,9 +128,8 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 TrangThaiHoaDon = InvoiceStatusLabels.HienThi(h.TrangThaiPhatHanh, h.TrangThaiHoaDon),
                 TrangThaiHoaDonValue = (int)h.TrangThaiHoaDon,
                 TrangThaiPhatHanhValue = (int)h.TrangThaiPhatHanh,
-                LaHoaDonTuDong = h.HanPhanHoi != null,
-                LaTamTinh = InvoiceDetailProjection.LaTamTinh(h.TrangThaiPhatHanh, h.HanPhanHoi, h.IsDeleted),
-                HanTuChot = InvoiceDetailProjection.HanTuChotText(h.TrangThaiPhatHanh, h.HanPhanHoi, h.IsDeleted),
+                LaHoaDonTuDong = h.LaTuDong,
+                HanPhanHoiUtc = InvoiceDetailProjection.HanPhanHoiHienThi(h.TrangThaiPhatHanh, h.HanPhanHoi, h.IsDeleted),
                 NgayTao = h.NgayTao.AddHours(7).ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture),
                 SoDienThoai = h.SoDienThoai,
                 Email = h.Email
@@ -213,7 +214,8 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                         .FirstOrDefault() ?? string.Empty;
                 }
 
-                return InvoiceDetailProjection.ProjectToRes(hd, donViDien, donViNuoc, historyDtos, latestCancelReason);
+                return InvoiceDetailProjection.ProjectToRes(hd, donViDien, donViNuoc, historyDtos, latestCancelReason,
+                    InvoiceDetailProjection.LaHoaDonTuDong(histories.Select(l => l.LyDo)));
             }
             else
             {
@@ -228,7 +230,10 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                         .FirstOrDefaultAsync(ct) ?? string.Empty;
                 }
 
-                return InvoiceDetailProjection.ProjectToRes(hd, donViDien, donViNuoc, null, latestCancelReason);
+                var laTuDong = await _context.LichSuTrangThaiHoaDons
+                    .AnyAsync(l => l.HoaDonId == hoaDonId && l.LyDo != null && l.LyDo.StartsWith(AutoInvoiceHistoryTags.TuDong), ct);
+
+                return InvoiceDetailProjection.ProjectToRes(hd, donViDien, donViNuoc, null, latestCancelReason, laTuDong);
             }
         }
     }

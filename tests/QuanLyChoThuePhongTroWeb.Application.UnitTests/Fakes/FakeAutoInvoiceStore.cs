@@ -52,24 +52,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
             return Task.FromResult(FallbackActorId);
         }
 
-        public List<AutoInvoiceDueItem> DueItems { get; } = new();
-        public Dictionary<int, int?> LastSubmitters { get; } = new();
         public Dictionary<int, AutoInvoiceAdjustmentSnapshot> AdjustmentSnapshots { get; } = new();
-
-        public Task<IReadOnlyList<AutoInvoiceDueItem>> GetDueProvisionalInvoicesAsync(DateTime nowUtc, CancellationToken ct = default)
-        {
-            Log?.Add("GetDue");
-            return Task.FromResult<IReadOnlyList<AutoInvoiceDueItem>>(DueItems
-                .Where(i => i.HanPhanHoiUtc <= nowUtc)
-                .OrderBy(i => i.HanPhanHoiUtc)
-                .ThenBy(i => i.HoaDonId)
-                .ToList());
-        }
-
-        public Task<int?> GetLastProvisionalSubmitterIdAsync(int hoaDonId, CancellationToken ct = default)
-        {
-            return Task.FromResult(LastSubmitters.TryGetValue(hoaDonId, out var id) ? id : null);
-        }
 
         public Task<AutoInvoiceAdjustmentSnapshot?> GetAdjustmentSnapshotAsync(int hoaDonId, CancellationToken ct = default)
         {

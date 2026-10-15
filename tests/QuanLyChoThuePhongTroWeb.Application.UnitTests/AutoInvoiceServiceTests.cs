@@ -8,6 +8,7 @@ using QuanLyChoThuePhongTroWeb.Application.Common.Models;
 using QuanLyChoThuePhongTroWeb.Application.Common.Security;
 using QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Persistence;
+using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.AutoInvoices;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services;
@@ -24,7 +25,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         private const int Chi = 1;
         private const int Actor = 10;
         private const int Fallback = 20;
-        private static readonly DateTime Han = new(2026, 10, 11, 3, 0, 0, DateTimeKind.Utc);
 
         private sealed class Harness
         {
@@ -34,8 +34,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             public FakeInvoiceIssuanceService Issuance { get; } = new();
             public FakeEmployeeAccessService Access { get; } = new();
             public FakeThongBaoService ThongBao { get; } = new();
-            public RecordingEmailService Email { get; } = new();
-            public FakeHoaDonStore HoaDonStore { get; } = new();
             public CapturingLogger<AutoInvoiceService> Logger { get; } = new();
             public List<ConfirmMeterImageRequest> Confirms { get; } = new();
             public AutoInvoiceService Service { get; }
@@ -45,8 +43,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
                 Store.Log = Log;
                 Issuance.Log = Log;
                 ThongBao.Log = Log;
-                Email.Log = Log;
-                Issuance.HanPhanHoiUtc = Han;
                 Store.Contexts.Add(ctx);
                 Store.FallbackActorId = Fallback;
                 Workflow.OnConfirmImage = (req, actor) =>
@@ -70,40 +66,26 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
                     }
                 }
 
-                HoaDonStore.Details[500] = new HoaDonChiTietRes
-                {
-                    HoaDonId = 500,
-                    MaHoaDon = "HD-500",
-                    TenPhong = "101",
-                    TenNguoiThue = "Nguyễn Văn A",
-                    TenChiNhanh = "Chi nhánh 1",
-                    SoDienThoaiChiNhanh = "0900000000",
-                    Thang = 10,
-                    Nam = 2026,
-                    TongTien = 1_234_500m,
-                    ChiTietHoaDons = new List<ChiTietHoaDonRes> { new() { TenDichVu = "Tiền phòng", DonGia = 1_234_500m, SoLuong = 1, TongTien = 1_234_500m } }
-                };
-
                 Service = new AutoInvoiceService(
-                    Store, Workflow, Issuance, Access, ThongBao, Email, HoaDonStore, new AutoInvoiceOptions(), Logger);
+                    Store, Workflow, Issuance, Access, ThongBao, new AutoInvoiceOptions(), Logger);
             }
 
             public Task<ServiceResult<AutoInvoiceRunResult>> Run(AutoInvoiceTrigger trigger = AutoInvoiceTrigger.NhanVienTaiAnh, int actor = Actor)
                 => Service.RunForRoomAsync(actor, trigger, Phong, 10, 2026);
         }
 
-        private static AutoInvoiceRoomContext Good(int? khachId = 5, string? email = null, IReadOnlyList<AutoInvoiceMeterImage>? images = null)
+        private static AutoInvoiceRoomContext Good(IReadOnlyList<AutoInvoiceMeterImage>? images = null)
         {
             return Ctx(images ?? new[]
             {
                 Img(1, LoaiDongHo.Dien, ai: 120m, tinCay: 0.95),
                 Img(2, LoaiDongHo.Nuoc, ai: 60m, tinCay: 0.97)
-            }, khachId: khachId, email: email);
+            });
         }
 
-        private static AutoInvoiceRoomContext Approved(int? khachId = 5, string? email = null)
+        private static AutoInvoiceRoomContext Approved()
         {
-            return Ctx(status: TrangThaiGhiNhan.DaDuyet, dienMoi: 120, nuocMoi: 60, khachId: khachId, email: email);
+            return Ctx(status: TrangThaiGhiNhan.DaDuyet, dienMoi: 120, nuocMoi: 60);
         }
 
         private static int Index(List<string> log, string entry) => log.IndexOf(entry);
@@ -111,20 +93,20 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         // ---------- Đường chính ----------
 
         [Fact]
-        public async Task HappyPath_RunsStepsInOrder_AndNotifiesCustomerAndEmail()
+        public async Task ChiSoHopLe_TaoNhap_KhongBaoKhach()
         {
-            var h = new Harness(Good(email: "khach@example.com"));
+            var h = new Harness(Good());
 
             var result = await h.Run();
 
             Assert.True(result.Success);
-            Assert.Equal(AutoInvoiceOutcome.DaGuiTamTinh, result.Data!.Outcome);
+            Assert.Equal(AutoInvoiceOutcome.DaTaoNhap, result.Data!.Outcome);
             Assert.Equal(500, result.Data.HoaDonId);
             Assert.Equal(Actor, result.Data.NguoiThucHienId);
-            Assert.Equal(Han, result.Data.HanPhanHoiUtc);
+            Assert.Empty(result.Data.LyDos);
 
-            var steps = h.Log.Where(x => x is "Confirm:1" or "Confirm:2" or "Approve" or "CreateDrafts" or "SubmitProvisional" or "Notify:Khach" or "Email").ToList();
-            Assert.Equal(new[] { "Confirm:1", "Confirm:2", "Approve", "CreateDrafts", "SubmitProvisional", "Notify:Khach", "Email" }, steps);
+            var steps = h.Log.Where(x => x is "Confirm:1" or "Confirm:2" or "Approve" or "CreateDrafts" or "Notify:Phong" or "Notify:Khach").ToList();
+            Assert.Equal(new[] { "Confirm:1", "Confirm:2", "Approve", "CreateDrafts", "Notify:Phong" }, steps);
 
             Assert.Equal(2, h.Confirms.Count);
             Assert.Equal(1, h.Confirms[0].AnhChiSoDongHoId);
@@ -148,29 +130,18 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.Equal(10, create.Request.Thang);
             Assert.Equal(2026, create.Request.Nam);
             Assert.Equal(Actor, create.ActorId);
-
-            var submit = Assert.Single(h.Issuance.SubmitProvisionalCalls);
-            Assert.Equal((500, Actor), submit);
+            // Lịch sử khởi tạo của hóa đơn mang nhãn [TU_DONG].
+            Assert.Equal("[TU_DONG] Tạo hóa đơn nháp tự động", create.LyDoKhoiTao);
+            Assert.StartsWith(AutoInvoiceHistoryTags.TuDong, create.LyDoKhoiTao);
 
             var notice = Assert.Single(h.ThongBao.Sent);
-            Assert.Equal("Khach", notice.Kind);
-            Assert.Equal(7, notice.TargetId);
+            Assert.Equal("Phong", notice.Kind);
+            Assert.Equal(Phong, notice.TargetId);
+            Assert.Equal("Phòng 101 kỳ 10/2026: có hóa đơn tự động chờ gửi duyệt", notice.TieuDe);
+            Assert.Equal("Hóa đơn HD-500 đã được tạo ở trạng thái nháp. Kiểm tra rồi bấm Gửi duyệt.", notice.NoiDung);
             Assert.Equal("HoaDon", notice.LinhVuc);
-            Assert.Equal("/KhachThue/HoaDon?hoaDonId=500", notice.Link);
-            Assert.Contains("1,234,500", notice.NoiDung);
-            Assert.Contains("tạm tính", notice.NoiDung);
-            Assert.Contains("11/10/2026 10:00", notice.NoiDung);
-            Assert.Contains("0900000000", notice.NoiDung);
-
-            var mail = Assert.Single(h.Email.ProvisionalCalls);
-            Assert.Equal("khach@example.com", mail.ToEmail);
-            Assert.Equal("HD-500", mail.Data.MaHoaDon);
-            Assert.Equal(1_234_500m, mail.Data.TongTien);
-            Assert.Equal(Han, mail.Data.HanTuChotUtc);
-            Assert.Equal(100m, mail.Data.ChiSoDienCu);
-            Assert.Equal(120m, mail.Data.ChiSoDienMoi);
-            Assert.Equal(50m, mail.Data.ChiSoNuocCu);
-            Assert.Equal(60m, mail.Data.ChiSoNuocMoi);
+            Assert.Equal("/QuanLyNhaTro/QuanLyHoaDon", notice.Link);
+            Assert.DoesNotContain(h.ThongBao.Sent, n => n.Kind == "Khach");
         }
 
         [Fact]
@@ -181,7 +152,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             await h.Run();
 
             Assert.Equal("Discard", h.Log[0]);
-            foreach (var step in new[] { "Confirm:1", "Confirm:2", "Approve", "CreateDrafts", "SubmitProvisional" })
+            foreach (var step in new[] { "Confirm:1", "Confirm:2", "Approve", "CreateDrafts", "Notify:Phong" })
             {
                 var i = Index(h.Log, step);
                 Assert.True(i >= 0, step);
@@ -201,7 +172,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
 
             var result = await h.Run();
 
-            Assert.Equal(AutoInvoiceOutcome.DaGuiTamTinh, result.Data!.Outcome);
+            Assert.Equal(AutoInvoiceOutcome.DaTaoNhap, result.Data!.Outcome);
             Assert.Empty(h.Confirms);
             Assert.Single(h.Workflow.ApprovedBatchRequests);
         }
@@ -213,11 +184,10 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
 
             var result = await h.Run();
 
-            Assert.Equal(AutoInvoiceOutcome.DaGuiTamTinh, result.Data!.Outcome);
+            Assert.Equal(AutoInvoiceOutcome.DaTaoNhap, result.Data!.Outcome);
             Assert.Empty(h.Confirms);
             Assert.Empty(h.Workflow.ApprovedBatchRequests);
             Assert.Single(h.Issuance.CreateCalls);
-            Assert.Single(h.Issuance.SubmitProvisionalCalls);
         }
 
         [Fact]
@@ -226,7 +196,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             var customer = new Harness(Good());
             await customer.Run(AutoInvoiceTrigger.KhachTaiAnh, actor: 99);
             Assert.Equal(Fallback, customer.Issuance.CreateCalls.Single().ActorId);
-            Assert.Equal(Fallback, customer.Issuance.SubmitProvisionalCalls.Single().ActorId);
 
             foreach (var trigger in new[] { AutoInvoiceTrigger.NhanVienTaiAnh, AutoInvoiceTrigger.XacNhanAnh, AutoInvoiceTrigger.SuaSoDaXacNhan, AutoInvoiceTrigger.ChotKy })
             {
@@ -257,7 +226,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         [Theory]
         [InlineData(EmployeeActionCodes.MeterReview)]
         [InlineData(EmployeeActionCodes.InvoiceDraft)]
-        [InlineData(EmployeeActionCodes.InvoiceSubmit)]
         public async Task MissingAnyPermission_StopsBeforeAnyStep(string missing)
         {
             var h = new Harness(Good());
@@ -270,7 +238,24 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.Empty(h.Confirms);
             Assert.Empty(h.Workflow.ApprovedBatchRequests);
             Assert.Empty(h.Issuance.CreateCalls);
-            Assert.Empty(h.Issuance.SubmitProvisionalCalls);
+            var notice = Assert.Single(h.ThongBao.Sent);
+            Assert.Equal("Phong", notice.Kind);
+            Assert.Contains("Meter.Review hoặc Invoice.Draft", notice.NoiDung);
+            Assert.DoesNotContain("Invoice.Submit", notice.NoiDung);
+        }
+
+        [Theory]
+        [InlineData(AutoInvoiceTrigger.NhanVienTaiAnh, Actor)]
+        [InlineData(AutoInvoiceTrigger.KhachTaiAnh, Fallback)]
+        public async Task NguoiThucHienKhongCanInvoiceSubmit(AutoInvoiceTrigger trigger, int nguoiThucHien)
+        {
+            var h = new Harness(Good());
+            h.Access.Permissions.Remove((nguoiThucHien, Chi, EmployeeActionCodes.InvoiceSubmit));
+
+            var result = await h.Run(trigger, actor: trigger == AutoInvoiceTrigger.KhachTaiAnh ? 99 : Actor);
+
+            Assert.Equal(AutoInvoiceOutcome.DaTaoNhap, result.Data!.Outcome);
+            Assert.Equal(nguoiThucHien, Assert.Single(h.Issuance.CreateCalls).ActorId);
             Assert.Equal("Phong", Assert.Single(h.ThongBao.Sent).Kind);
         }
 
@@ -295,7 +280,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
                 Assert.True(result.Success);
                 Assert.Equal(AutoInvoiceOutcome.DungImLang, result.Data!.Outcome);
                 Assert.Empty(h.ThongBao.Sent);
-                Assert.Empty(h.Email.ProvisionalCalls);
                 Assert.Empty(h.Issuance.CreateCalls);
             }
         }
@@ -407,7 +391,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Thang = ctx.Thang, Nam = ctx.Nam, DichVuDienNuocCuaPhongId = ctx.DichVuDienNuocCuaPhongId,
             TrangThaiGhiNhan = ctx.TrangThaiGhiNhan, ChiSoDienCu = ctx.ChiSoDienCu, ChiSoNuocCu = ctx.ChiSoNuocCu,
             DonGiaDien = ctx.DonGiaDien, DonGiaNuoc = ctx.DonGiaNuoc, LichSu = ctx.LichSu,
-            Images = ctx.Images, HopDongHieuLuc = ctx.HopDongHieuLuc, NguoiDungKhachId = ctx.NguoiDungKhachId
+            Images = ctx.Images, HopDongHieuLuc = ctx.HopDongHieuLuc
         };
 
         [Fact]
@@ -480,19 +464,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         }
 
         [Fact]
-        public async Task NoChannel_NotifiesStaffOnly()
-        {
-            var h = new Harness(Good(khachId: null, email: null));
-
-            var result = await h.Run();
-
-            Assert.Equal(new[] { AutoInvoiceReason.KhachKhongCoKenhNhan }, result.Data!.LyDos);
-            var notice = Assert.Single(h.ThongBao.Sent);
-            Assert.Equal("Phong", notice.Kind);
-            Assert.Contains("không có tài khoản cổng và không có email", notice.NoiDung);
-        }
-
-        [Fact]
         public async Task MultipleContracts_NotifiesStaffOnly_AndDoesNotRun()
         {
             var contracts = new[] { new AutoInvoiceContractRef(10, 7), new AutoInvoiceContractRef(11, 8) };
@@ -532,7 +503,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
 
             var result = await h.Run();
 
-            Assert.Equal(AutoInvoiceOutcome.DaGuiTamTinh, result.Data!.Outcome);
+            Assert.Equal(AutoInvoiceOutcome.DaTaoNhap, result.Data!.Outcome);
             Assert.Equal(2, h.Confirms.Count);
             Assert.Single(h.Issuance.CreateCalls);
         }
@@ -583,7 +554,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
 
             var result = await h.Run();
 
-            Assert.Equal(AutoInvoiceOutcome.DaGuiTamTinh, result.Data!.Outcome);
+            Assert.Equal(AutoInvoiceOutcome.DaTaoNhap, result.Data!.Outcome);
             Assert.Single(h.Issuance.CreateCalls);
         }
 
@@ -616,7 +587,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
 
             Assert.Equal(AutoInvoiceOutcome.DungImLang, result.Data!.Outcome);
             Assert.Empty(h.ThongBao.Sent);
-            Assert.Empty(h.Issuance.SubmitProvisionalCalls);
         }
 
         [Fact]
@@ -629,7 +599,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
 
             Assert.Equal(new[] { AutoInvoiceReason.LoiKhiTao }, result.Data!.LyDos);
             Assert.Equal("Phong", Assert.Single(h.ThongBao.Sent).Kind);
-            Assert.Empty(h.Issuance.SubmitProvisionalCalls);
         }
 
         [Fact]
@@ -650,76 +619,33 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.Contains("Dữ liệu tính tiền phòng không hợp lệ.", Assert.Single(h.ThongBao.Sent).NoiDung);
         }
 
-        [Fact]
-        public async Task SubmitProvisionalFails_NotifiesStaffOnly_AndDoesNotRetry()
-        {
-            var h = new Harness(Good(email: "khach@example.com"));
-            h.Issuance.OnSubmitProvisional = (id, actor) => ServiceResult<InvoiceTransitionResult>.Fail("Tổng tiền hóa đơn không khớp.");
-
-            var result = await h.Run();
-
-            Assert.Equal(AutoInvoiceOutcome.DungCoThongBao, result.Data!.Outcome);
-            Assert.Equal(new[] { AutoInvoiceReason.LoiKhiTao }, result.Data.LyDos);
-            Assert.Single(h.Issuance.SubmitProvisionalCalls);
-            var notice = Assert.Single(h.ThongBao.Sent);
-            Assert.Equal("Phong", notice.Kind);
-            Assert.Contains("Đã tạo hóa đơn nháp HD-500 nhưng chưa gửi được bản tạm tính", notice.NoiDung);
-            Assert.Contains("Vui lòng xử lý theo luồng tay.", notice.NoiDung);
-            Assert.Empty(h.Email.ProvisionalCalls);
-        }
-
-        // ---------- Kênh nhận ----------
+        // ---------- Thông báo nhân viên ----------
 
         [Fact]
-        public async Task OnlyEmail_SendsEmailWithoutCustomerNotice()
+        public async Task StaffNotificationThrowing_StillReportsDaTaoNhap_WithWarningOnly()
         {
-            var h = new Harness(Good(khachId: null, email: "khach@example.com"));
-
-            var result = await h.Run();
-
-            Assert.Equal(AutoInvoiceOutcome.DaGuiTamTinh, result.Data!.Outcome);
-            Assert.Empty(h.ThongBao.Sent);
-            Assert.Single(h.Email.ProvisionalCalls);
-        }
-
-        [Fact]
-        public async Task OnlyAccount_SendsNoticeWithoutEmail()
-        {
-            var h = new Harness(Good(khachId: 5, email: null));
-
-            var result = await h.Run();
-
-            Assert.Equal(AutoInvoiceOutcome.DaGuiTamTinh, result.Data!.Outcome);
-            Assert.Single(h.ThongBao.Sent, n => n.Kind == "Khach");
-            Assert.Empty(h.Email.ProvisionalCalls);
-        }
-
-        [Fact]
-        public async Task NotificationOrEmailThrowing_StillReportsSuccess_WithWarningsOnly()
-        {
-            var h = new Harness(Good(email: "khach@example.com"));
+            var h = new Harness(Good());
             h.ThongBao.ThrowOnSend = true;
-            h.Email.ThrowOnProvisional = true;
 
             var result = await h.Run();
 
             Assert.True(result.Success);
-            Assert.Equal(AutoInvoiceOutcome.DaGuiTamTinh, result.Data!.Outcome);
+            Assert.Equal(AutoInvoiceOutcome.DaTaoNhap, result.Data!.Outcome);
+            Assert.Equal(500, result.Data.HoaDonId);
             Assert.Contains(h.Logger.Entries, e => e.Level == LogLevel.Warning);
             Assert.DoesNotContain(h.Logger.Entries, e => e.Level == LogLevel.Error);
         }
 
         [Fact]
-        public async Task NotificationOrEmailFailing_StillReportsSuccess()
+        public async Task StaffNotificationFailing_StillReportsDaTaoNhap()
         {
-            var h = new Harness(Good(email: "khach@example.com"));
+            var h = new Harness(Good());
             h.ThongBao.FailOnSend = true;
-            h.Email.FailOnProvisional = true;
 
             var result = await h.Run();
 
-            Assert.Equal(AutoInvoiceOutcome.DaGuiTamTinh, result.Data!.Outcome);
-            Assert.Contains(h.Logger.Entries, e => e.Level == LogLevel.Warning);
+            Assert.Equal(AutoInvoiceOutcome.DaTaoNhap, result.Data!.Outcome);
+            Assert.Contains(h.Logger.Entries, e => e.Level == LogLevel.Information && e.Message.Contains("Không có người nhận thông báo."));
             Assert.DoesNotContain(h.Logger.Entries, e => e.Level == LogLevel.Error);
         }
 
@@ -751,7 +677,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.Equal(1, h.Logger.Entries.Count(e => e.Level == LogLevel.Error));
             var notice = Assert.Single(h.ThongBao.Sent);
             Assert.Equal("Phong", notice.Kind);
-            Assert.Contains("chưa tạo được hóa đơn tạm tính", notice.TieuDe);
+            Assert.Contains("chưa tạo được hóa đơn tự động", notice.TieuDe);
         }
 
         [Fact]
@@ -765,7 +691,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         }
 
 
-        // ---------- Đợt B: ThieuDonGia, đánh giá lại (L3), hoãn email (L2) ----------
+        // ---------- Đợt B: ThieuDonGia, đánh giá lại (L3) ----------
 
         [Fact]
         public async Task ThieuDonGia_NotifiesStaffWithGuidance_NotCustomer_AndCreatesNothing()
@@ -785,7 +711,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.DoesNotContain(h.ThongBao.Sent, n => n.Kind == "Khach");
             Assert.Empty(h.Workflow.ApprovedBatchRequests);
             Assert.Empty(h.Issuance.CreateCalls);
-            Assert.Empty(h.Email.ProvisionalCalls);
         }
 
         [Fact]
@@ -810,7 +735,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.Equal(AutoInvoiceOutcome.DungCoThongBao, result.Data!.Outcome);
             Assert.Equal(new[] { AutoInvoiceReason.KyTruocChuaChot }, result.Data.LyDos);
             Assert.Empty(h.Issuance.CreateCalls);
-            Assert.Empty(h.Issuance.SubmitProvisionalCalls);
             Assert.Equal("Phong", Assert.Single(h.ThongBao.Sent).Kind);
         }
 
@@ -826,55 +750,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.Equal(AutoInvoiceOutcome.DungImLang, result.Data!.Outcome);
             Assert.Empty(h.Issuance.CreateCalls);
             Assert.Empty(h.ThongBao.Sent);
-        }
-
-        [Fact]
-        public async Task ReevaluatesBeforeCreating_ProvisionalEmailUsesLatestReadings()
-        {
-            var h = new Harness(Good(email: "khach@example.com"));
-            h.Store.Contexts.Add(Good(email: "khach@example.com"));
-            h.Store.Contexts.Add(Good(email: "khach@example.com", images: new[]
-            {
-                Img(1, LoaiDongHo.Dien, ai: 125m, tinCay: 0.95),
-                Img(2, LoaiDongHo.Nuoc, ai: 62m, tinCay: 0.97)
-            }));
-
-            var result = await h.Run();
-
-            Assert.Equal(AutoInvoiceOutcome.DaGuiTamTinh, result.Data!.Outcome);
-            var mail = Assert.Single(h.Email.ProvisionalCalls);
-            Assert.Equal(125m, mail.Data.ChiSoDienMoi);
-            Assert.Equal(62m, mail.Data.ChiSoNuocMoi);
-        }
-
-        [Fact]
-        public async Task HoanGuiEmail_True_DoesNotSendEmail_AndReturnsPendingEmail()
-        {
-            var h = new Harness(Good(email: "khach@example.com"));
-
-            var result = await h.Service.RunForRoomAsync(Actor, AutoInvoiceTrigger.ChotKy, Phong, 10, 2026, hoanGuiEmail: true);
-
-            Assert.Equal(AutoInvoiceOutcome.DaGuiTamTinh, result.Data!.Outcome);
-            Assert.Empty(h.Email.ProvisionalCalls);
-            var pending = result.Data.EmailChoGui;
-            Assert.NotNull(pending);
-            Assert.Equal(500, pending!.HoaDonId);
-            Assert.Equal("khach@example.com", pending.ToEmail);
-            Assert.Equal("HD-500", pending.Data.MaHoaDon);
-            Assert.Equal(1_234_500m, pending.Data.TongTien);
-            Assert.Equal(Han, pending.Data.HanTuChotUtc);
-            Assert.Contains(h.ThongBao.Sent, n => n.Kind == "Khach");
-        }
-
-        [Fact]
-        public async Task HoanGuiEmail_False_SendsEmailImmediately_AndReturnsNoPendingEmail()
-        {
-            var h = new Harness(Good(email: "khach@example.com"));
-
-            var result = await h.Service.RunForRoomAsync(Actor, AutoInvoiceTrigger.ChotKy, Phong, 10, 2026);
-
-            Assert.Null(result.Data!.EmailChoGui);
-            Assert.Single(h.Email.ProvisionalCalls);
         }
     }
 }

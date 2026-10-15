@@ -276,6 +276,10 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
                 NguoiDungId = nguoiDungId
             };
             _hoaDonStore.Details[id] = new HoaDonChiTietRes { HoaDonId = id, MaHoaDon = ma };
+            if (!_hoaDonStore.Branches.ContainsKey(chiNhanhId))
+            {
+                _hoaDonStore.Branches[chiNhanhId] = new ChiNhanh { ChiNhanhId = chiNhanhId, SoDienThoai = "0901234567", SoGioPhanHoiHoaDon = 24 };
+            }
         }
 
         // ---------- PublishAsync: input validation ----------
@@ -412,6 +416,56 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.Equal(existingHan, _store.Invoices[1].HanThanhToan);
             Assert.Equal(existingHan, result.Data!.Items.Single().HanThanhToanUtc);
             Assert.Contains(existingHan.AddHours(7).ToString("dd/MM/yyyy", CultureInfo.InvariantCulture), Assert.Single(_store.AddedNotifications).NoiDung);
+        }
+
+        [Fact]
+        public async Task CongBo_DatHanPhanHoiTheoSoGioChiNhanh()
+        {
+            SeedPublishable(1, hopDongId: 100);
+            _hoaDonStore.Branches[1].SoGioPhanHoiHoaDon = 48;
+
+            var result = await _service.PublishAsync(new PublishInvoicesRequest { HoaDonIds = new List<int> { 1 } }, 10);
+
+            Assert.True(result.Success);
+            var invoice = _store.Invoices[1];
+            Assert.Equal(invoice.NgayGui!.Value.AddHours(48), invoice.HanPhanHoi);
+        }
+
+        [Fact]
+        public async Task CongBo_ThongBaoCoDongLienHe()
+        {
+            SeedPublishable(1, hopDongId: 100, nguoiDungId: 55);
+
+            await _service.PublishAsync(new PublishInvoicesRequest { HoaDonIds = new List<int> { 1 } }, 10);
+
+            var han = _store.Invoices[1].HanPhanHoi!.Value.AddHours(7).ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture);
+            Assert.EndsWith($" Nếu thấy sai sót, vui lòng liên hệ 0901234567 trước {han}.", Assert.Single(_store.AddedNotifications).NoiDung);
+        }
+
+        [Fact]
+        public async Task CongBo_ThongBaoKhongSoDienThoai_BoCumLienHe()
+        {
+            SeedPublishable(1, hopDongId: 100, nguoiDungId: 55);
+            _hoaDonStore.Branches[1].SoDienThoai = "";
+
+            await _service.PublishAsync(new PublishInvoicesRequest { HoaDonIds = new List<int> { 1 } }, 10);
+
+            var noiDung = Assert.Single(_store.AddedNotifications).NoiDung;
+            Assert.DoesNotContain("liên hệ", noiDung);
+            Assert.Contains("Nếu thấy sai sót, vui lòng phản hồi trước ", noiDung);
+        }
+
+        [Fact]
+        public async Task CongBo_HoaDonTamTinhCu_GhiDeHan()
+        {
+            SeedPublishable(1, hopDongId: 100);
+            _store.Invoices[1].HanPhanHoi = DateTime.UtcNow.AddHours(-5);
+
+            var result = await _service.PublishAsync(new PublishInvoicesRequest { HoaDonIds = new List<int> { 1 } }, 10);
+
+            Assert.True(result.Success);
+            var invoice = _store.Invoices[1];
+            Assert.Equal(invoice.NgayGui!.Value.AddHours(24), invoice.HanPhanHoi);
         }
 
         [Fact]

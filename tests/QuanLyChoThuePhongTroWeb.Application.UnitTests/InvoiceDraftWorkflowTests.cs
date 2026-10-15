@@ -1047,109 +1047,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.Equal(2375000m, item.TongTienDuKien);
         }
 
-        private (InvoiceIssuanceService service, FakeInvoiceIssuanceStore issuanceStore, FakeEmployeeAccessService accessService, FakeHoaDonStore hoaDonStore) CreateProvisionalService(DateTimeOffset now, int soGio = 24)
-        {
-            var issuanceStore = new FakeInvoiceIssuanceStore();
-            var hoaDonStore = new FakeHoaDonStore();
-            hoaDonStore.Branches[1] = new ChiNhanh { ChiNhanhId = 1, MaChiNhanh = "CN1", SoGioPhanHoiHoaDon = soGio };
-            var accessService = new FakeEmployeeAccessService();
-            accessService.Permissions.Add((10, 1, EmployeeActionCodes.InvoiceSubmit));
-            var service = new InvoiceIssuanceService(
-                issuanceStore,
-                hoaDonStore,
-                new FakeUnitOfWork(),
-                accessService,
-                new FakeCalculatorService(),
-                NullLogger<InvoiceIssuanceService>.Instance,
-                new Fakes.FixedTimeProvider(now));
-            return (service, issuanceStore, accessService, hoaDonStore);
-        }
-
-        [Theory]
-        [InlineData(24)]
-        [InlineData(48)]
-        public async Task SubmitProvisional_SetsHanPhanHoi_FromBranchHours_AndTagsHistory(int soGio)
-        {
-            var now = new DateTimeOffset(2026, 10, 10, 3, 0, 0, TimeSpan.Zero);
-            var (service, issuanceStore, _, _) = CreateProvisionalService(now, soGio);
-            var inv = CreateSampleInvoice();
-            issuanceStore.AddedInvoices.Add(inv);
-
-            var result = await service.SubmitProvisionalAsync(inv.HoaDonId, actorId: 10);
-
-            Assert.True(result.Success);
-            var expected = now.UtcDateTime.AddHours(soGio);
-            Assert.Equal(expected, inv.HanPhanHoi);
-            Assert.Equal(expected, result.Data!.HanPhanHoiUtc);
-            Assert.Equal(TrangThaiPhatHanhHoaDon.ChoDuyet, inv.TrangThaiPhatHanh);
-            var history = Assert.Single(inv.LichSuTrangThaiHoaDons);
-            Assert.StartsWith("[TU_DONG]", history.LyDo);
-            Assert.Equal(10, history.NguoiThucHienId);
-        }
-
-        [Fact]
-        public async Task SubmitProvisional_Fails_WhenNotNhap()
-        {
-            var (service, issuanceStore, _, _) = CreateProvisionalService(DateTimeOffset.UtcNow);
-            var inv = CreateSampleInvoice(1, TrangThaiPhatHanhHoaDon.ChoDuyet);
-            issuanceStore.AddedInvoices.Add(inv);
-
-            var result = await service.SubmitProvisionalAsync(1, 10);
-
-            Assert.False(result.Success);
-            Assert.Null(inv.HanPhanHoi);
-        }
-
-        [Fact]
-        public async Task SubmitProvisional_Fails_WhenMissingSubmitPermission()
-        {
-            var (service, issuanceStore, accessService, _) = CreateProvisionalService(DateTimeOffset.UtcNow);
-            accessService.Permissions.Clear();
-            var inv = CreateSampleInvoice();
-            issuanceStore.AddedInvoices.Add(inv);
-
-            var result = await service.SubmitProvisionalAsync(inv.HoaDonId, 10);
-
-            Assert.False(result.Success);
-            Assert.Equal(TrangThaiPhatHanhHoaDon.Nhap, inv.TrangThaiPhatHanh);
-            Assert.Null(inv.HanPhanHoi);
-        }
-
-        [Theory]
-        [InlineData(TrangThaiGhiNhan.ChoDuyet)]
-        [InlineData(TrangThaiGhiNhan.Nhap)]
-        [InlineData(TrangThaiGhiNhan.TuChoi)]
-        public async Task SubmitProvisional_Fails_WhenMeterPeriodNotDaDuyet(TrangThaiGhiNhan status)
-        {
-            var (service, issuanceStore, _, _) = CreateProvisionalService(DateTimeOffset.UtcNow);
-            issuanceStore.PeriodStatus = status;
-            var inv = CreateSampleInvoice();
-            issuanceStore.AddedInvoices.Add(inv);
-
-            var result = await service.SubmitProvisionalAsync(inv.HoaDonId, 10);
-
-            Assert.False(result.Success);
-            Assert.Equal(TrangThaiPhatHanhHoaDon.Nhap, inv.TrangThaiPhatHanh);
-            Assert.Null(inv.HanPhanHoi);
-        }
-
-        [Fact]
-        public async Task SubmitProvisional_Fails_WhenTotalMismatch_OrNoDetails()
-        {
-            var (service, issuanceStore, _, _) = CreateProvisionalService(DateTimeOffset.UtcNow);
-            var mismatch = CreateSampleInvoice(1, TrangThaiPhatHanhHoaDon.Nhap, total: 3000000m);
-            mismatch.ChiTietHoaDonDichVus.First().TongTien = 2000000m;
-            issuanceStore.AddedInvoices.Add(mismatch);
-            var empty = CreateSampleInvoice(2, TrangThaiPhatHanhHoaDon.Nhap);
-            empty.ChiTietHoaDonDichVus.Clear();
-            issuanceStore.AddedInvoices.Add(empty);
-
-            Assert.False((await service.SubmitProvisionalAsync(1, 10)).Success);
-            Assert.False((await service.SubmitProvisionalAsync(2, 10)).Success);
-            Assert.Null(mismatch.HanPhanHoi);
-            Assert.Null(empty.HanPhanHoi);
-        }
-
         [Fact]
         public async Task Submit_Manual_DoesNotSetHanPhanHoi()
         {
@@ -1162,14 +1059,13 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
 
             Assert.True(result.Success);
             Assert.Null(inv.HanPhanHoi);
-            Assert.Null(result.Data!.HanPhanHoiUtc);
         }
 
 
-        // ---------- Đợt B: hóa đơn tạm tính (HanPhanHoi) và lõi tạo nháp dùng chung ----------
+        // ---------- Hóa đơn ChoDuyet còn HanPhanHoi từ luồng cũ và lõi tạo nháp dùng chung ----------
 
         [Fact]
-        public async Task Finalize_Rejects_ProvisionalInvoiceWithHanPhanHoi_WithoutChangingState()
+        public async Task AdminChotHoaDonTamTinhCu_DuocChot()
         {
             var (service, issuanceStore, _, accessService, _, uow) = CreateService();
             var inv = CreateSampleInvoice(1, TrangThaiPhatHanhHoaDon.ChoDuyet);
@@ -1179,17 +1075,13 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
 
             var result = await service.FinalizeAsync(inv.HoaDonId, actorId: 1);
 
-            Assert.False(result.Success);
-            Assert.Equal("Hóa đơn đang tự chốt theo hạn, dùng Điều chỉnh và gửi lại.", result.Message);
-            Assert.Equal(TrangThaiPhatHanhHoaDon.ChoDuyet, inv.TrangThaiPhatHanh);
-            var tx = Assert.Single(uow.Transactions);
-            Assert.True(tx.RolledBack);
-            Assert.False(tx.Committed);
-            Assert.Equal(0, uow.SaveCalls);
+            Assert.True(result.Success);
+            Assert.Equal(TrangThaiPhatHanhHoaDon.DaChot, inv.TrangThaiPhatHanh);
+            Assert.True(Assert.Single(uow.Transactions).Committed);
         }
 
         [Fact]
-        public async Task Reject_Rejects_ProvisionalInvoiceWithHanPhanHoi_WithoutChangingState()
+        public async Task AdminTraLaiHoaDonTamTinhCu_DuocTraLai()
         {
             var (service, issuanceStore, _, accessService, _, uow) = CreateService();
             var inv = CreateSampleInvoice(1, TrangThaiPhatHanhHoaDon.ChoDuyet);
@@ -1199,10 +1091,9 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
 
             var result = await service.RejectAsync(inv.HoaDonId, "Lý do", actorId: 1);
 
-            Assert.False(result.Success);
-            Assert.Equal("Hóa đơn đang tự chốt theo hạn, dùng Điều chỉnh và gửi lại.", result.Message);
-            Assert.Equal(TrangThaiPhatHanhHoaDon.ChoDuyet, inv.TrangThaiPhatHanh);
-            Assert.False(Assert.Single(uow.Transactions).Committed);
+            Assert.True(result.Success);
+            Assert.Equal(TrangThaiPhatHanhHoaDon.Nhap, inv.TrangThaiPhatHanh);
+            Assert.True(Assert.Single(uow.Transactions).Committed);
         }
 
         [Fact]
@@ -1259,6 +1150,37 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
                 a.ChiTietHoaDonDichVus.Select(c => (c.TenDichVu, c.DonGia, c.SoLuong, c.TongTien)).ToList(),
                 b.ChiTietHoaDonDichVus.Select(c => (c.TenDichVu, c.DonGia, c.SoLuong, c.TongTien)).ToList());
             Assert.Equal("Tạo hóa đơn nháp", Assert.Single(b.LichSuTrangThaiHoaDons).LyDo);
+        }
+
+        [Fact]
+        public async Task CreateDrafts_WithReason_WritesReasonToInitialHistory()
+        {
+            var (service, issuanceStore, hoaDonStore, access, _, uow) = CreateService();
+            SetupValidBranchAndRoom(hoaDonStore, access);
+            var req = new CreateInvoiceDraftsRequest { ChiNhanhId = 1, Thang = 9, Nam = 2026, PhongTroIds = new[] { 101 } };
+
+            var result = await service.CreateDraftsAsync(req, actorId: 1, lyDoKhoiTao: "[TU_DONG] Tạo hóa đơn nháp tự động");
+
+            Assert.True(result.Success);
+            var tx = Assert.Single(uow.Transactions);
+            Assert.True(tx.Committed);
+            var invoice = Assert.Single(issuanceStore.AddedInvoices);
+            Assert.Equal("[TU_DONG] Tạo hóa đơn nháp tự động", Assert.Single(invoice.LichSuTrangThaiHoaDons).LyDo);
+        }
+
+        [Theory]
+        [InlineData(null)]
+        [InlineData("  ")]
+        public async Task CreateDrafts_WithoutReason_UsesDefaultReason(string? lyDo)
+        {
+            var (service, issuanceStore, hoaDonStore, access, _, _) = CreateService();
+            SetupValidBranchAndRoom(hoaDonStore, access);
+            var req = new CreateInvoiceDraftsRequest { ChiNhanhId = 1, Thang = 9, Nam = 2026, PhongTroIds = new[] { 101 } };
+
+            await service.CreateDraftsAsync(req, actorId: 1, lyDoKhoiTao: lyDo);
+
+            var invoice = Assert.Single(issuanceStore.AddedInvoices);
+            Assert.Equal("Tạo hóa đơn nháp", Assert.Single(invoice.LichSuTrangThaiHoaDons).LyDo);
         }
 
         [Fact]

@@ -133,58 +133,33 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.True(store.WasCalled(nameof(store.DemHoaDonChoDuyetAsync)));
         }
 
-        // 4b. HD4: hóa đơn tạm tính chờ tự chốt
+        // 4b. HD2 đếm cả hóa đơn tạm tính cũ; không còn việc HD4
 
         [Fact]
-        public async Task Staff_GetsHd4_AsTheoDoi_WithTitleAndLinkWithBranch()
+        public async Task HD2_DemCaHoaDonTamTinhCu()
         {
-            var (service, store) = Create(StaffOfA());
-            store.HoaDonTamTinh.Add(HoaDon(BranchA, "A", 2, nam: 2025));
-
-            var tongHop = await service.GetTongHopAsync(Staff, BranchA);
-
-            var item = Item(tongHop, "HD4");
-            Assert.Equal(2, item.SoLuong);
-            Assert.Equal(MucUuTienViec.TheoDoi, item.MucUuTien);
-            Assert.Equal("Hóa đơn tạm tính chờ tự chốt", item.TieuDe);
-            Assert.Equal("/QuanLyNhaTro/QuanLyHoaDon?thang=0&nam=2025&trangThaiPhatHanh=1&chiNhanhId=1", item.Link);
-            Assert.DoesNotContain(tongHop.Items, i => i.MaViec == "HD2");
-        }
-
-        [Fact]
-        public async Task Admin_GetsHd4AndHd2AsSeparateItems()
-        {
+            // Store trả mọi hóa đơn ChoDuyet (kể cả bản cũ còn HanPhanHoi) trong cùng một nguồn HD2.
             var (service, store) = Create(AdminScope());
-            store.HoaDonChoDuyet.Add(HoaDon(BranchA, "A", 3));
-            store.HoaDonTamTinh.Add(HoaDon(BranchA, "A", 1));
+            store.HoaDonChoDuyet.Add(HoaDon(BranchA, "A", 2, nam: 2025));
+            store.HoaDonChoDuyet.Add(HoaDon(BranchB, "B", 1, nam: 2024));
 
             var tongHop = await service.GetTongHopAsync(Admin, null);
 
-            Assert.Equal(3, Item(tongHop, "HD2").SoLuong);
-            Assert.Equal(1, Item(tongHop, "HD4").SoLuong);
+            var item = Item(tongHop, "HD2");
+            Assert.Equal(3, item.SoLuong);
+            Assert.Equal("Hóa đơn chờ Admin chốt", item.TieuDe);
         }
 
         [Fact]
-        public async Task Hd4_WithoutData_HasNoItem()
+        public async Task KhongConHD4()
         {
             var (service, store) = Create(AdminScope());
-            store.HoaDonTamTinh.Add(HoaDon(BranchA, "A", 0));
+            store.HoaDonChoDuyet.Add(HoaDon(BranchA, "A", 3));
+            store.HoaDonNhap.Add(HoaDon(BranchA, "A", 1));
 
             var tongHop = await service.GetTongHopAsync(Admin, null);
 
             Assert.DoesNotContain(tongHop.Items, i => i.MaViec == "HD4");
-        }
-
-        [Fact]
-        public async Task Hd4_BranchOutsideScope_DoesNotCallStore()
-        {
-            var (service, store) = Create(StaffOfA());
-            store.HoaDonTamTinh.Add(HoaDon(BranchB, "B", 4));
-
-            var tongHop = await service.GetTongHopAsync(Staff, BranchB);
-
-            Assert.Empty(tongHop.Items);
-            Assert.False(store.WasCalled(nameof(store.DemHoaDonTamTinhAsync)));
         }
 
         // 5. Truyền phạm vi xuống store
@@ -617,16 +592,16 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.DoesNotContain(tongHop.Items, i => i.MaViec == "HD1");
         }
 
-        // HD5: chuỗi tự tạo hóa đơn tạm tính dừng có thông báo (đánh giá lại từ dữ liệu hiện tại)
+        // HD5: chuỗi tự tạo hóa đơn dừng có thông báo (đánh giá lại từ dữ liệu hiện tại)
 
         private static KyDaChotChuaCoHoaDonRow Ky(int phongId, string soPhong, int thang = 12, int nam = 2026, int branchId = BranchA, string ten = "A")
             => new() { PhongTroId = phongId, SoPhong = soPhong, ChiNhanhId = branchId, TenChiNhanh = ten, Thang = thang, Nam = nam };
 
-        // Kỳ đã chốt, một hợp đồng, khách có tài khoản, đơn giá đủ; lịch sử hợp đồng ba kỳ tiêu thụ điện 100 và nước 5
+        // Kỳ đã chốt, một hợp đồng, đơn giá đủ; lịch sử hợp đồng ba kỳ tiêu thụ điện 100 và nước 5
         // (điện bình thường trong 30–200, nước trong 1,5–10).
         private static AutoInvoiceRoomContext KyCtx(
             int phongId, string soPhong, decimal dienMoi = 120m, decimal nuocMoi = 5m, int thang = 12, int nam = 2026, int branchId = BranchA, string ten = "A",
-            bool coHoaDon = false, bool coHopDong = true, decimal donGiaDien = 3500m, bool kyTruocChuaChot = false, int soHopDong = 1, bool coKenhNhan = true,
+            bool coHoaDon = false, bool coHopDong = true, decimal donGiaDien = 3500m, bool kyTruocChuaChot = false, int soHopDong = 1,
             decimal dienCu = 0m)
             => new()
             {
@@ -651,9 +626,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
                     ? Enumerable.Range(1, soHopDong).Select(i => new AutoInvoiceContractRef(phongId * 10 + i, phongId * 10 + i)).ToList()
                     : Array.Empty<AutoInvoiceContractRef>(),
                 CoHoaDonHoatDong = coHoaDon,
-                KyTruocChuaChot = kyTruocChuaChot,
-                NguoiDungKhachId = coKenhNhan ? 5 : null,
-                EmailKhach = null
+                KyTruocChuaChot = kyTruocChuaChot
             };
 
         [Fact]
@@ -669,7 +642,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.Equal(NhomViec.HoaDon, item.Nhom);
             Assert.Equal(MucUuTienViec.CanLam, item.MucUuTien);
             Assert.Equal(1, item.SoLuong);
-            Assert.Equal("Chưa tạo được hóa đơn tạm tính T12/2026", item.TieuDe);
+            Assert.Equal("Chưa tạo được hóa đơn tự động T12/2026", item.TieuDe);
             Assert.Equal(12, item.Thang);
             Assert.Equal(2026, item.Nam);
             Assert.Contains("A: 1", item.MoTa);
@@ -742,18 +715,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.Equal(2, item.SoLuong);
             Assert.Contains("P.101: nghi đọc sai chữ số", item.MoTa);
             Assert.Contains("P.102: tiêu thụ thấp bất thường", item.MoTa);
-        }
-
-        [Fact]
-        public async Task Hd5_RoomWithoutAccountOrEmail_IsReported()
-        {
-            var (service, store, auto) = CreateWithAuto(AdminScope());
-            store.KyDaChotChuaCoHoaDon.Add(Ky(14, "P.104"));
-            auto.ContextsByKey[(14, 12, 2026)] = KyCtx(14, "P.104", coKenhNhan: false);
-
-            var tongHop = await service.GetTongHopAsync(Admin, null);
-
-            Assert.Contains("P.104: khách không có tài khoản hoặc email", Item(tongHop, "HD5").MoTa);
         }
 
         [Fact]

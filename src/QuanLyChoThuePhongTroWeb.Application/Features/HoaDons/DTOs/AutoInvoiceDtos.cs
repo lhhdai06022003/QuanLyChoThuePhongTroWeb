@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using QuanLyChoThuePhongTroWeb.Application.Features.Emails.DTOs;
 
 namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs
 {
@@ -25,6 +24,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs
         ChiSoGiam,
         TieuThuBatThuong,
         KyTruocChuaChot,
+        // Không còn được sinh (khách không có kênh nhận vẫn tự tạo nháp); giữ để không đổi số.
         KhachKhongCoKenhNhan,
         ChiNhanhKhongCoNhanVien,
         NguoiThucHienThieuQuyen,
@@ -38,7 +38,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs
 
     public enum AutoInvoiceOutcome
     {
-        DaGuiTamTinh = 1,
+        DaTaoNhap = 1,
         DungImLang,
         DungCoThongBao
     }
@@ -49,8 +49,5 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs
         public IReadOnlyList<AutoInvoiceReason> LyDos { get; init; } = Array.Empty<AutoInvoiceReason>();
         public int? HoaDonId { get; init; }
         public int? NguoiThucHienId { get; init; }
-        public DateTime? HanPhanHoiUtc { get; init; }
-        // Chỉ có khi RunForRoomAsync được gọi với hoanGuiEmail = true: email tạm tính chưa gửi, caller gửi nền.
-        public PendingProvisionalEmail? EmailChoGui { get; init; }
     }
 }

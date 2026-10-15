@@ -93,7 +93,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             await Inv("cd1", TrangThaiPhatHanhHoaDon.ChoDuyet, Chua, 100_000m);
             await Inv("cd2", TrangThaiPhatHanhHoaDon.ChoDuyet, Chua, 100_000m);
             await Inv("cdDel", TrangThaiPhatHanhHoaDon.ChoDuyet, Chua, 100_000m, deleted: true);
-            // Hóa đơn tạm tính (ChoDuyet có HanPhanHoi): HD4 đếm, HD2 không đếm. Kỳ riêng để không trùng hóa đơn khác.
+            // Hóa đơn tạm tính cũ (ChoDuyet còn HanPhanHoi) vẫn là ChoDuyet nên HD2 đếm. Kỳ riêng để không trùng hóa đơn khác.
             var tamTinhA = await Inv("tamTinhA", TrangThaiPhatHanhHoaDon.ChoDuyet, Chua, 100_000m, month: 1, year: 1998);
             tamTinhA.HanPhanHoi = Now.AddHours(24);
             var tamTinhDel = await Inv("tamTinhDel", TrangThaiPhatHanhHoaDon.ChoDuyet, Chua, 100_000m, deleted: true, month: 2, year: 1998);
@@ -444,21 +444,20 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
 
             var row = Assert.Single(await Store(db).DemHoaDonChoDuyetAsync(w.A.ChiNhanhId, null));
 
-            Assert.Equal(3, row.SoLuong); // cd1, cd2, overCd; cdDel xóa mềm
+            Assert.Equal(4, row.SoLuong); // cd1, cd2, overCd, tamTinhA (còn HanPhanHoi); cdDel, tamTinhDel xóa mềm
             await tx.RollbackAsync();
         }
 
         [Fact]
-        public async Task HoaDonTamTinh_CountsProvisionalNotDeleted()
+        public async Task HoaDonChoDuyet_CountsLegacyProvisionalInvoiceWithHanPhanHoi()
         {
             await using var db = _fixture.CreateDbContext();
             await using var tx = await db.Database.BeginTransactionAsync();
             var w = await SeedAsync(db);
 
-            var row = Assert.Single(await Store(db).DemHoaDonTamTinhAsync(w.A.ChiNhanhId, null));
+            var row = Assert.Single(await Store(db).DemHoaDonChoDuyetAsync(w.A.ChiNhanhId, null));
 
-            Assert.Equal(1, row.SoLuong); // tamTinhA; tamTinhDel xóa mềm; hóa đơn tay không có HanPhanHoi
-            Assert.Equal(1998, row.NamCuNhat);
+            Assert.Equal(1998, row.NamCuNhat); // tamTinhA (ChoDuyet còn HanPhanHoi) nằm trong số đếm HD2
             await tx.RollbackAsync();
         }
 
@@ -626,7 +625,6 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             Add("HD5", (await s.GetKyDaChotChuaCoHoaDonAsync(branchId, allowed, 1, 2003, 12, 2003, 50)).Select(r => r.ChiNhanhId));
             Add("HD1", (await s.DemHoaDonNhapAsync(branchId, allowed)).Select(r => r.ChiNhanhId));
             Add("HD2", (await s.DemHoaDonChoDuyetAsync(branchId, allowed)).Select(r => r.ChiNhanhId));
-            Add("HD4", (await s.DemHoaDonTamTinhAsync(branchId, allowed)).Select(r => r.ChiNhanhId));
             Add("HD3", (await s.DemHoaDonDaChotChuaGuiAsync(branchId, allowed)).Select(r => r.ChiNhanhId));
             Add("TT1", (await s.DemMinhChungChoDoiChieuAsync(branchId, allowed)).Select(r => r.ChiNhanhId));
             Add("TT2", (await s.DemHoaDonQuaHanAsync(branchId, allowed, Now)).Select(r => r.ChiNhanhId));

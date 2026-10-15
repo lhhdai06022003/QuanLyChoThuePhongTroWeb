@@ -62,7 +62,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             };
 
         [Fact]
-        public async Task QuickPaymentAndRoomDebt_IgnoreDraftPendingAndProvisional_CountOnlySent()
+        public async Task QuickPaymentAndRoomDebt_IgnoreDraftPendingAndLegacyProvisional_CountOnlySent()
         {
             await using var context = _fixture.CreateDbContext();
             await using var tx = await context.Database.BeginTransactionAsync();
@@ -74,7 +74,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             context.HoaDons.AddRange(
                 sent,
                 Invoice(contract, $"PT_DRAFT_{suffix}", 8, 500_000m, TrangThaiPhatHanhHoaDon.Nhap, now.AddDays(-2)),
-                // Hóa đơn tạm tính mới nhất: trước đây modal "Thu tiền" lấy nhầm bản này.
+                // Hóa đơn ChoDuyet cũ còn HanPhanHoi, mới nhất: trước đây modal "Thu tiền" lấy nhầm bản này.
                 Invoice(contract, $"PT_PROV_{suffix}", 9, 3_200_000m, TrangThaiPhatHanhHoaDon.ChoDuyet, now.AddMinutes(-5), now.AddHours(24)));
             await context.SaveChangesAsync();
 
@@ -92,7 +92,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
         }
 
         [Fact]
-        public async Task RoomWithOnlyProvisionalInvoice_HasNoDebtAndNoInvoiceToCollect()
+        public async Task RoomWithOnlyLegacyProvisionalInvoice_HasNoDebtAndNoInvoiceToCollect()
         {
             await using var context = _fixture.CreateDbContext();
             await using var tx = await context.Database.BeginTransactionAsync();

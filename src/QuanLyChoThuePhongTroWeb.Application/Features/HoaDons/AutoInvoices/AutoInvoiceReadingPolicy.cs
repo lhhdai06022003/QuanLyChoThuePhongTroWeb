@@ -27,7 +27,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.AutoInvoices
         AutoInvoiceMeterDecision? Nuoc,
         AutoInvoiceContractRef? HopDong);
 
-    // Quyết định thuần (không I/O) có tự tạo hóa đơn tạm tính hay không.
+    // Quyết định thuần (không I/O) có tự tạo hóa đơn nháp hay không.
     public static class AutoInvoiceReadingPolicy
     {
         public static bool IsSilent(AutoInvoiceReason reason) =>
@@ -180,12 +180,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.AutoInvoices
                 var (thangTruoc, namTruoc) = ctx.Thang <= 1 ? (12, ctx.Nam - 1) : (ctx.Thang - 1, ctx.Nam);
                 return new AutoInvoiceRoomDecision(false, new[] { AutoInvoiceReason.KyTruocChuaChot },
                     new[] { $"Kỳ {thangTruoc:00}/{namTruoc} trước chưa được chốt" }, dien, nuoc, null);
-            }
-
-            if (ctx.NguoiDungKhachId == null && ctx.EmailKhach == null)
-            {
-                return new AutoInvoiceRoomDecision(false, new[] { AutoInvoiceReason.KhachKhongCoKenhNhan },
-                    new[] { "Khách thuê đại diện không có tài khoản cổng và không có email" }, dien, nuoc, null);
             }
 
             return new AutoInvoiceRoomDecision(true, Array.Empty<AutoInvoiceReason>(), Array.Empty<string>(), dien, nuoc, ctx.HopDongHieuLuc[0]);

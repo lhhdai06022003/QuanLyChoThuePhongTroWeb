@@ -1,19 +1,16 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Persistence;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Security;
-using QuanLyChoThuePhongTroWeb.Application.Abstractions.Services;
 using QuanLyChoThuePhongTroWeb.Application.Common.Models;
 using QuanLyChoThuePhongTroWeb.Application.Common.Security;
 using QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Persistence;
 using QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services;
-using QuanLyChoThuePhongTroWeb.Application.Features.Emails.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.AutoInvoices;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence;
@@ -23,15 +20,17 @@ using QuanLyChoThuePhongTroWeb.Domain.Enums;
 
 namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
 {
-    // "Điều chỉnh và gửi lại" hóa đơn tự động theo yêu cầu khách thuê: sửa chỉ số điện nước và/hoặc các khoản phí của hóa đơn,
-    // tính lại tổng tiền rồi gửi lại bản tạm tính với hạn mới.
+    // Điều chỉnh hóa đơn theo trạng thái: sửa chỉ số điện nước và/hoặc các khoản phí rồi tính lại tổng tiền.
+    // Chờ duyệt: vẫn chờ duyệt. Đã chốt (chỉ Admin): vẫn đã chốt. Đã gửi: hủy bản cũ, tạo bản thay thế chờ duyệt và báo khách qua cổng.
     public class InvoiceAdjustmentService : IInvoiceAdjustmentService
     {
-        // Spec: màn điều chỉnh không có ô lý do; lịch sử luôn ghi lý do này (kèm tóm tắt các dòng đã sửa khi gửi lại).
-        private const string LyDoDieuChinh = "Điều chỉnh hóa đơn theo yêu cầu khách thuê";
-        private const string KhongPhaiTuDong = "Chỉ hóa đơn tự động mới dùng được Điều chỉnh và gửi lại.";
+        // Spec: màn điều chỉnh không có ô lý do; lịch sử luôn ghi lý do này (kèm tóm tắt các dòng đã sửa).
+        private const string LyDoDieuChinh = "Điều chỉnh hóa đơn";
+        private const string LyDoThayThe = "Tạo hóa đơn thay thế sau điều chỉnh";
         private const string TrangThaiKhongHopLe = "Hóa đơn không ở trạng thái điều chỉnh được.";
+        private const string TrangThaiDaDoi = "Hóa đơn vừa đổi trạng thái, vui lòng tải lại.";
         private const string ThieuQuyen = "Bạn không có quyền điều chỉnh hóa đơn tại chi nhánh này.";
+        private const string ChiAdminDaChot = "Chỉ Quản trị viên mới điều chỉnh được hóa đơn đã chốt.";
         private const string KhongCoKy = "Hóa đơn không gắn kỳ chỉ số điện nước.";
         private const string KySauDaChot = "Kỳ sau đã được chốt hoặc đã có hóa đơn phát hành, không thể điều chỉnh.";
         private const string DaCoKhoanThu = "Hóa đơn đã có khoản thu, không thể điều chỉnh.";
@@ -52,13 +51,11 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IEmployeeAccessService _employeeAccessService;
         private readonly IThongBaoService _thongBaoService;
-        private readonly IEmailService _emailService;
         private readonly IHoaDonCalculatorService _calculator;
         private readonly IMeterConsumptionHistoryStore _historyStore;
         private readonly QuanLyChoThuePhongTroWeb.Application.Common.Configurations.AutoInvoiceOptions _autoOptions;
         private readonly ILogger<InvoiceAdjustmentService> _logger;
         private readonly TimeProvider _time;
-        private readonly IProvisionalInvoiceEmailDispatcher? _emailDispatcher;
 
         public InvoiceAdjustmentService(
             IAutoInvoiceStore autoStore,
@@ -72,13 +69,11 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
             IUnitOfWork unitOfWork,
             IEmployeeAccessService employeeAccessService,
             IThongBaoService thongBaoService,
-            IEmailService emailService,
             IHoaDonCalculatorService calculator,
             IMeterConsumptionHistoryStore historyStore,
             QuanLyChoThuePhongTroWeb.Application.Common.Configurations.AutoInvoiceOptions autoOptions,
             ILogger<InvoiceAdjustmentService> logger,
-            TimeProvider? timeProvider = null,
-            IProvisionalInvoiceEmailDispatcher? emailDispatcher = null)
+            TimeProvider? timeProvider = null)
         {
             _autoStore = autoStore ?? throw new ArgumentNullException(nameof(autoStore));
             _issuanceStore = issuanceStore ?? throw new ArgumentNullException(nameof(issuanceStore));
@@ -91,13 +86,11 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
             _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
             _employeeAccessService = employeeAccessService ?? throw new ArgumentNullException(nameof(employeeAccessService));
             _thongBaoService = thongBaoService ?? throw new ArgumentNullException(nameof(thongBaoService));
-            _emailService = emailService ?? throw new ArgumentNullException(nameof(emailService));
             _calculator = calculator ?? throw new ArgumentNullException(nameof(calculator));
             _historyStore = historyStore ?? throw new ArgumentNullException(nameof(historyStore));
             _autoOptions = autoOptions ?? throw new ArgumentNullException(nameof(autoOptions));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _time = timeProvider ?? TimeProvider.System;
-            _emailDispatcher = emailDispatcher;
         }
 
         public async Task<ServiceResult<InvoiceAdjustmentInfo>> GetAdjustmentInfoAsync(int actorId, int hoaDonId, CancellationToken ct = default)
@@ -128,12 +121,13 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                     MaHoaDon = snap.MaHoaDon,
                     CoTheDieuChinh = lyDoKhoa == null,
                     LyDoKhoa = lyDoKhoa,
+                    TrangThaiPhatHanhValue = (int)snap.TrangThaiPhatHanh,
                     ChiSoDienCu = snap.ChiSoDienCu,
                     ChiSoDienMoi = snap.ChiSoDienMoi,
                     ChiSoNuocCu = snap.ChiSoNuocCu,
                     ChiSoNuocMoi = snap.ChiSoNuocMoi,
-                    // Hóa đơn đã gửi có hạn cũ đã qua; chỉ bản tạm tính (chờ duyệt) mới có hạn tự chốt hiện tại.
-                    HanPhanHoiUtc = snap.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.ChoDuyet ? snap.HanPhanHoi : null,
+                    // Hạn khách phản hồi chỉ có khi hóa đơn đã công bố.
+                    HanPhanHoiUtc = snap.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaGui ? snap.HanPhanHoi : null,
                     TongTien = snap.TongTien,
                     ChiTiets = snap.ChiTiets.Select(ToLine).ToList()
                 });
@@ -274,10 +268,9 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                 return failure;
             }
 
-            HoaDon hoaDonGui;
+            HoaDon hoaDonKetQua;
             HoaDon hoaDon;
-            DateTime han;
-            ChiSoKy chiSoKy;
+            TrangThaiPhatHanhHoaDon trangThaiBanDau;
             bool thayThe;
             try
             {
@@ -291,6 +284,13 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                 }
 
                 hoaDon = locked;
+                trangThaiBanDau = hoaDon.TrangThaiPhatHanh;
+
+                // Màn hình đang thấy trạng thái khác (vừa được chốt, công bố...): không điều chỉnh theo dữ liệu cũ.
+                if ((int)trangThaiBanDau != request.TrangThaiPhatHanhHienTai)
+                {
+                    return await AbortAsync(ServiceResult<InvoiceAdjustmentResult>.Fail(TrangThaiDaDoi));
+                }
 
                 var current = new AutoInvoiceAdjustmentSnapshot
                 {
@@ -362,9 +362,9 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                     return adjusted.Success ? null : await AbortAsync(ServiceResult<InvoiceAdjustmentResult>.FailFrom(adjusted));
                 }
 
-                if (hoaDon.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.ChoDuyet)
+                if (trangThaiBanDau != TrangThaiPhatHanhHoaDon.DaGui)
                 {
-                    // Nhánh ChoDuyet: mở lại bản tạm tính, sửa tại chỗ rồi gửi lại với hạn mới.
+                    // Nhánh ChoDuyet/DaChot: mở lại về Nhap, sửa tại chỗ rồi đưa về trạng thái ban đầu.
                     thayThe = false;
                     hoaDon.MoLaiDeDieuChinh(actorId, now, lyDoTag);
                     await _unitOfWork.SaveChangesAsync(ct);
@@ -379,7 +379,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                         ApDungDong(hoaDon, dongMoi!, dongCu, now);
                     }
 
-                    hoaDonGui = hoaDon;
+                    hoaDonKetQua = hoaDon;
                 }
                 else
                 {
@@ -410,7 +410,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                         Thang = hoaDon.Thang,
                         Nam = hoaDon.Nam,
                         PhongTroIds = new[] { snap.PhongTroId }
-                    }, actorId, AutoInvoiceHistoryTags.TaoLyDo(AutoInvoiceHistoryTags.DieuChinh, "Tạo hóa đơn thay thế sau điều chỉnh"), ct);
+                    }, actorId, AutoInvoiceHistoryTags.TaoLyDo(AutoInvoiceHistoryTags.DieuChinh, LyDoThayThe), ct);
                     if (!drafts.Success)
                     {
                         return await AbortAsync(ServiceResult<InvoiceAdjustmentResult>.FailFrom(drafts));
@@ -439,34 +439,29 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                         ApDungDong(replacement, dongMoi!, dongCu, now);
                     }
 
-                    hoaDonGui = replacement;
+                    hoaDonKetQua = replacement;
                 }
 
-                var activeDetails = hoaDonGui.ChiTietHoaDonDichVus.Where(x => !x.IsDeleted).ToList();
-                if (doiDong && hoaDonGui.TongTien <= 0)
+                var activeDetails = hoaDonKetQua.ChiTietHoaDonDichVus.Where(x => !x.IsDeleted).ToList();
+                if (doiDong && hoaDonKetQua.TongTien <= 0)
                 {
                     return await AbortAsync(ServiceResult<InvoiceAdjustmentResult>.Fail(TongTienPhaiDuong));
                 }
 
-                if (activeDetails.Count == 0 || hoaDonGui.TongTien <= 0 || hoaDonGui.TongTien != activeDetails.Sum(x => x.TongTien))
+                if (activeDetails.Count == 0 || hoaDonKetQua.TongTien <= 0 || hoaDonKetQua.TongTien != activeDetails.Sum(x => x.TongTien))
                 {
                     return await AbortAsync(ServiceResult<InvoiceAdjustmentResult>.Fail(TongTienLech));
                 }
 
-                var chiNhanh = await _hoaDonStore.GetChiNhanhByIdAsync(snap.ChiNhanhId, ct);
-                if (chiNhanh == null || chiNhanh.SoGioPhanHoiHoaDon < 1 || chiNhanh.SoGioPhanHoiHoaDon > 168)
+                // Bản sửa tại chỗ và bản thay thế đều về Chờ duyệt (không còn hạn phản hồi), lịch sử kèm tóm tắt các dòng đã sửa;
+                // hóa đơn đã chốt được người điều chỉnh (Admin) chốt lại ngay.
+                var tomTat = tomTatDong != null ? $" ({tomTatDong})" : string.Empty;
+                hoaDonKetQua.GuiDuyet(actorId, AutoInvoiceHistoryTags.TaoLyDo(AutoInvoiceHistoryTags.DieuChinh, (thayThe ? LyDoThayThe : LyDoDieuChinh) + tomTat));
+                if (trangThaiBanDau == TrangThaiPhatHanhHoaDon.DaChot)
                 {
-                    return await AbortAsync(ServiceResult<InvoiceAdjustmentResult>.Fail("Chi nhánh không tồn tại hoặc số giờ phản hồi hóa đơn không hợp lệ."));
+                    hoaDonKetQua.ChotHoaDon(actorId, lyDoTag);
                 }
 
-                // Chỉ số hiển thị cho khách là chỉ số của kỳ sau khi điều chỉnh (cũ → mới), khớp các dòng điện/nước trên hóa đơn.
-                // Dùng giá trị đã chốt ở trên thay vì đọc lại từ "period": lõi chỉ số tách kỳ ra khỏi bộ theo dõi rồi nạp lại bản mới,
-                // nên biến "period" này có thể là bản cũ (chỉ số cũ của kỳ không đổi khi điều chỉnh).
-                chiSoKy = new ChiSoKy(period.ChiSoDienCu, chiSoDienMoi, period.ChiSoNuocCu, chiSoNuocMoi);
-
-                han = now.AddHours(chiNhanh.SoGioPhanHoiHoaDon);
-                var lyDoGui = "Gửi lại hóa đơn tạm tính sau điều chỉnh" + (tomTatDong != null ? $" ({tomTatDong})" : string.Empty);
-                hoaDonGui.GuiTamTinh(actorId, now, han, AutoInvoiceHistoryTags.TaoLyDo(AutoInvoiceHistoryTags.DieuChinh, lyDoGui));
                 await _unitOfWork.SaveChangesAsync(ct);
                 await tx.CommitAsync(ct);
             }
@@ -493,18 +488,31 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
 
             var result = new InvoiceAdjustmentResult
             {
-                HoaDonIdMoi = hoaDonGui.HoaDonId,
-                MaHoaDonMoi = hoaDonGui.MaHoaDon,
-                TongTienMoi = hoaDonGui.TongTien,
-                HanPhanHoiUtc = han,
+                HoaDonIdMoi = hoaDonKetQua.HoaDonId,
+                MaHoaDonMoi = hoaDonKetQua.MaHoaDon,
+                TongTienMoi = hoaDonKetQua.TongTien,
+                TrangThaiPhatHanhMoi = (int)hoaDonKetQua.TrangThaiPhatHanh,
                 DaTaoHoaDonThayThe = thayThe
             };
-            var hopDongId = hoaDonGui.HopDongId;
+            var hopDongId = hoaDon.HopDongId;
+            var maHoaDonCu = hoaDon.MaHoaDon;
+            var thang = hoaDon.Thang;
+            var nam = hoaDon.Nam;
 
             _autoStore.DiscardPendingChanges();
-            await NotifyCustomerAsync(result, hopDongId, chiSoKy);
+            if (thayThe)
+            {
+                // Chỉ hóa đơn đã công bố mới báo khách; hóa đơn chờ duyệt/đã chốt khách chưa thấy.
+                await NotifyCustomerAsync(result.HoaDonIdMoi, hopDongId, maHoaDonCu, thang, nam);
+            }
 
-            return ServiceResult<InvoiceAdjustmentResult>.Ok(result, "Đã điều chỉnh và gửi lại hóa đơn tạm tính.");
+            var message = trangThaiBanDau switch
+            {
+                TrangThaiPhatHanhHoaDon.DaChot => "Đã điều chỉnh hóa đơn đã chốt.",
+                TrangThaiPhatHanhHoaDon.DaGui => "Đã hủy hóa đơn cũ và tạo hóa đơn thay thế chờ duyệt.",
+                _ => "Đã điều chỉnh hóa đơn, hóa đơn vẫn chờ duyệt."
+            };
+            return ServiceResult<InvoiceAdjustmentResult>.Ok(result, message);
         }
 
         // Thay toàn bộ dòng khoản phí của hóa đơn (đang ở trạng thái nháp trong giao dịch) bằng danh sách người dùng đã chốt.
@@ -525,34 +533,36 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
             hoaDon.NgayCapNhat = now;
         }
 
-        // Chỉ số của kỳ sau điều chỉnh (cũ → mới) để in trong email cho khách.
-        private sealed record ChiSoKy(decimal DienCu, decimal DienMoi, decimal NuocCu, decimal NuocMoi);
-
         private async Task<bool> CoDuQuyenDieuChinhAsync(int actorId, int chiNhanhId, CancellationToken ct)
         {
-            // Điều chỉnh gồm sửa chỉ số (duyệt chỉ số), sửa khoản phí (soạn hóa đơn) và gửi lại cho khách (gửi duyệt).
+            // Điều chỉnh gồm sửa chỉ số (duyệt chỉ số) và sửa khoản phí (soạn hóa đơn).
             return await _employeeAccessService.CanPerformAsync(actorId, chiNhanhId, EmployeeActionCodes.MeterReview, ct)
-                && await _employeeAccessService.CanPerformAsync(actorId, chiNhanhId, EmployeeActionCodes.InvoiceDraft, ct)
-                && await _employeeAccessService.CanPerformAsync(actorId, chiNhanhId, EmployeeActionCodes.InvoiceSubmit, ct);
+                && await _employeeAccessService.CanPerformAsync(actorId, chiNhanhId, EmployeeActionCodes.InvoiceDraft, ct);
         }
 
         // Trả (lý do khóa, có phải lỗi quyền). Xét theo thứ tự, trả lý do đầu tiên.
         private async Task<(string? Reason, bool Forbidden)> GetLockReasonAsync(int actorId, AutoInvoiceAdjustmentSnapshot s, DateTime now, CancellationToken ct)
         {
-            if (s.HanPhanHoi == null)
-            {
-                return (KhongPhaiTuDong, false);
-            }
-
-            var daGui = s.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaGui;
-            if (s.TrangThaiPhatHanh != TrangThaiPhatHanhHoaDon.ChoDuyet && !daGui)
+            var trangThai = s.TrangThaiPhatHanh;
+            if (trangThai != TrangThaiPhatHanhHoaDon.ChoDuyet && trangThai != TrangThaiPhatHanhHoaDon.DaChot && trangThai != TrangThaiPhatHanhHoaDon.DaGui)
             {
                 return (TrangThaiKhongHopLe, false);
             }
 
-            var duQuyen = await CoDuQuyenDieuChinhAsync(actorId, s.ChiNhanhId, ct)
-                && (!daGui || await _employeeAccessService.CanPerformAsync(actorId, s.ChiNhanhId, EmployeeActionCodes.InvoiceCancel, ct));
-            if (!duQuyen)
+            if (!await CoDuQuyenDieuChinhAsync(actorId, s.ChiNhanhId, ct))
+            {
+                return (ThieuQuyen, true);
+            }
+
+            // Hóa đơn đã chốt chỉ Admin sửa được (Invoice.Finalize là quyền chỉ Admin có).
+            if (trangThai == TrangThaiPhatHanhHoaDon.DaChot
+                && !await _employeeAccessService.CanPerformAsync(actorId, s.ChiNhanhId, EmployeeActionCodes.InvoiceFinalize, ct))
+            {
+                return (ChiAdminDaChot, true);
+            }
+
+            var daGui = trangThai == TrangThaiPhatHanhHoaDon.DaGui;
+            if (daGui && !await _employeeAccessService.CanPerformAsync(actorId, s.ChiNhanhId, EmployeeActionCodes.InvoiceCancel, ct))
             {
                 return (ThieuQuyen, true);
             }
@@ -639,92 +649,35 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
             DonVi = donVi
         };
 
-        private async Task NotifyCustomerAsync(InvoiceAdjustmentResult result, int hopDongId, ChiSoKy chiSoKy)
+        // Báo khách (chỉ qua cổng) rằng hóa đơn đã gửi bị hủy để điều chỉnh; bản thay thế chỉ gửi khách sau khi duyệt và công bố.
+        private async Task NotifyCustomerAsync(int hoaDonIdMoi, int hopDongId, string maHoaDonCu, int thang, int nam)
         {
-            InvoiceRecipientInfo? recipient = null;
-            HoaDonChiTietRes? detail = null;
             try
             {
-                recipient = await _publicationStore.GetRecipientAsync(hopDongId, CancellationToken.None);
-                detail = await _hoaDonStore.GetHoaDonDetailByIdAsync(result.HoaDonIdMoi, CancellationToken.None);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Không đọc được dữ liệu để báo khách về hóa đơn đã điều chỉnh {HoaDonId}.", result.HoaDonIdMoi);
-            }
+                var recipient = await _publicationStore.GetRecipientAsync(hopDongId, CancellationToken.None);
+                if (recipient == null)
+                {
+                    _autoStore.DiscardPendingChanges();
+                    _logger.LogWarning("Không báo được khách về hóa đơn đã điều chỉnh {HoaDonId}: thiếu người nhận.", hoaDonIdMoi);
+                    return;
+                }
 
-            if (recipient == null || detail == null)
-            {
-                _logger.LogWarning("Không báo được khách về hóa đơn đã điều chỉnh {HoaDonId}: thiếu người nhận hoặc chi tiết hóa đơn.", result.HoaDonIdMoi);
-                return;
-            }
-
-            var hanText = result.HanPhanHoiUtc.AddHours(7).ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture);
-            var noiDung = $"Hóa đơn {detail.MaHoaDon} tháng {detail.Thang}/{detail.Nam} đã được điều chỉnh: tổng tiền mới {detail.TongTien.ToString("#,##0", CultureInfo.InvariantCulture)} đ (tạm tính). "
-                + $"Hệ thống tự chốt lúc {hanText}. Nếu có sai sót, vui lòng liên hệ {detail.SoDienThoaiChiNhanh}.";
-            try
-            {
                 var sent = await _thongBaoService.GuiChoKhachThueAsync(
                     recipient.NguoiThueId,
-                    $"Hóa đơn tháng {detail.Thang}/{detail.Nam} đã được điều chỉnh",
-                    noiDung,
+                    $"Hóa đơn tháng {thang}/{nam} đã được điều chỉnh",
+                    $"Hóa đơn {maHoaDonCu} đã được hủy để điều chỉnh, hóa đơn mới sẽ được gửi sau khi duyệt.",
                     "HoaDon",
-                    $"/KhachThue/HoaDon?hoaDonId={result.HoaDonIdMoi}");
+                    "/KhachThue/HoaDon");
                 _autoStore.DiscardPendingChanges();
                 if (!sent.Success)
                 {
-                    _logger.LogWarning("Không gửi được thông báo cổng về hóa đơn đã điều chỉnh {HoaDonId}: {Message}", result.HoaDonIdMoi, sent.Message);
+                    _logger.LogWarning("Không gửi được thông báo cổng về hóa đơn đã điều chỉnh {HoaDonId}: {Message}", hoaDonIdMoi, sent.Message);
                 }
             }
             catch (Exception ex)
             {
                 _autoStore.DiscardPendingChanges();
-                _logger.LogWarning(ex, "Lỗi khi gửi thông báo cổng về hóa đơn đã điều chỉnh {HoaDonId}.", result.HoaDonIdMoi);
-            }
-
-            if (string.IsNullOrWhiteSpace(recipient.Email))
-            {
-                return;
-            }
-
-            try
-            {
-                var data = new ProvisionalInvoiceEmailData
-                {
-                    MaHoaDon = detail.MaHoaDon,
-                    TenNguoiThue = detail.TenNguoiThue,
-                    TenPhong = detail.TenPhong,
-                    TenChiNhanh = detail.TenChiNhanh,
-                    SoDienThoaiChiNhanh = detail.SoDienThoaiChiNhanh,
-                    Thang = detail.Thang,
-                    Nam = detail.Nam,
-                    TongTien = detail.TongTien,
-                    ChiTietHoaDons = detail.ChiTietHoaDons,
-                    ChiSoDienCu = chiSoKy.DienCu,
-                    ChiSoDienMoi = chiSoKy.DienMoi,
-                    ChiSoNuocCu = chiSoKy.NuocCu,
-                    ChiSoNuocMoi = chiSoKy.NuocMoi,
-                    HanTuChotUtc = result.HanPhanHoiUtc,
-                    LaDieuChinh = true
-                };
-
-                // Gửi nền như email tạm tính khi chốt kỳ: màn điều chỉnh không phải chờ SMTP. Không có bộ gửi nền thì gửi ngay.
-                if (_emailDispatcher != null)
-                {
-                    _emailDispatcher.Enqueue(new[] { new PendingProvisionalEmail(result.HoaDonIdMoi, recipient.Email, data) });
-                }
-                else
-                {
-                    var email = await _emailService.SendProvisionalInvoiceEmailAsync(recipient.Email, data);
-                    if (!email.IsSuccess)
-                    {
-                        _logger.LogWarning("Không gửi được email hóa đơn đã điều chỉnh {HoaDonId}: {Error}", result.HoaDonIdMoi, email.ErrorMessage);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Lỗi khi gửi email hóa đơn đã điều chỉnh {HoaDonId}.", result.HoaDonIdMoi);
+                _logger.LogWarning(ex, "Lỗi khi gửi thông báo cổng về hóa đơn đã điều chỉnh {HoaDonId}.", hoaDonIdMoi);
             }
         }
 

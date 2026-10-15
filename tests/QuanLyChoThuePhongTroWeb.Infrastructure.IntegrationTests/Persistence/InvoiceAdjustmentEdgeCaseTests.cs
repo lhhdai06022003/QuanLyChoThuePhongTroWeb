@@ -5,7 +5,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services;
-using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.UseCases;
 using QuanLyChoThuePhongTroWeb.Domain.Entities;
 using QuanLyChoThuePhongTroWeb.Domain.Enums;
 using QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Fixtures;
@@ -13,7 +12,7 @@ using Xunit;
 
 namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
 {
-    // Các trường hợp biên của đợt B: hóa đơn thay thế tính lại mọi dòng, và ThieuDonGia không chặn điều chỉnh hay tự chốt.
+    // Các trường hợp biên: hóa đơn thay thế tính lại mọi dòng, và ThieuDonGia không chặn điều chỉnh.
     [Collection("PostgreSqlCollection")]
     public class InvoiceAdjustmentEdgeCaseTests
     {
@@ -24,11 +23,14 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             _fixture = fixture;
         }
 
-        private async Task<InvoiceAdjustmentResult?> AdjustAsync(DeadlineHost host, int actorId, int hoaDonId, decimal dien, decimal nuoc)
+        private async Task<InvoiceAdjustmentResult?> AdjustAsync(DeadlineHost host, int actorId, int hoaDonId, TrangThaiPhatHanhHoaDon hienTai, decimal dien, decimal nuoc)
         {
             await using var scope = host.Provider.CreateAsyncScope();
             var service = scope.ServiceProvider.GetRequiredService<IInvoiceAdjustmentService>();
-            var result = await service.AdjustAsync(actorId, new AdjustInvoiceRequest { HoaDonId = hoaDonId, ChiSoDienMoi = dien, ChiSoNuocMoi = nuoc });
+            var result = await service.AdjustAsync(actorId, new AdjustInvoiceRequest
+            {
+                HoaDonId = hoaDonId, ChiSoDienMoi = dien, ChiSoNuocMoi = nuoc, TrangThaiPhatHanhHienTai = (int)hienTai
+            });
             Assert.True(result.Success, result.Message);
             return result.Data;
         }
@@ -38,13 +40,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
         {
             using var host = new DeadlineHost(_fixture.ConnectionString);
             var seed = await DeadlineHarness.SeedAsync(_fixture, host.Clock.Now);
-            var invoice = await DeadlineHarness.CreateProvisionalInvoiceAsync(host, _fixture, seed);
-            host.Clock.Now = invoice.HanPhanHoi!.Value.AddMinutes(1);
-            await DeadlineHarness.IsolateJobAsync(_fixture, seed);
-            await using (var scope = host.Provider.CreateAsyncScope())
-            {
-                await scope.ServiceProvider.GetRequiredService<IAutoInvoiceFinalizeUseCase>().ExecuteAsync();
-            }
+            await DeadlineHarness.CreateInvoiceAsync(host, _fixture, seed, TrangThaiPhatHanhHoaDon.DaGui);
 
             var sent = Assert.Single(await DeadlineHarness.InvoicesAsync(_fixture, seed));
             Assert.Equal(TrangThaiPhatHanhHoaDon.DaGui, sent.TrangThaiPhatHanh);
@@ -82,7 +78,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
                 await db.SaveChangesAsync();
             }
 
-            var data = await AdjustAsync(host, seed.Staff.NguoiDungId, sent.HoaDonId, dien: 130m, nuoc: 60m);
+            var data = await AdjustAsync(host, seed.Staff.NguoiDungId, sent.HoaDonId, TrangThaiPhatHanhHoaDon.DaGui, dien: 130m, nuoc: 60m);
 
             var replacement = (await DeadlineHarness.InvoicesAsync(_fixture, seed)).Single(h => h.HoaDonId == data!.HoaDonIdMoi);
             var lines = replacement.ChiTietHoaDonDichVus.Where(c => !c.IsDeleted).ToList();
@@ -96,11 +92,11 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
         }
 
         [Fact]
-        public async Task AdjustProvisional_DoesNotCheckMissingUnitPrice()
+        public async Task AdjustChoDuyet_DoesNotCheckMissingUnitPrice()
         {
             using var host = new DeadlineHost(_fixture.ConnectionString);
             var seed = await DeadlineHarness.SeedAsync(_fixture, host.Clock.Now);
-            var invoice = await DeadlineHarness.CreateProvisionalInvoiceAsync(host, _fixture, seed);
+            var invoice = await DeadlineHarness.CreateInvoiceAsync(host, _fixture, seed, TrangThaiPhatHanhHoaDon.ChoDuyet);
             await using (var db = _fixture.CreateDbContext())
             {
                 var period = await db.DichVuDienNuocCuaPhongs.SingleAsync(p => p.DichVuDienNuocCuaPhongId == invoice.DichVuDienNuocCuaPhongId);
@@ -109,37 +105,12 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             }
 
             host.Clock.Now = host.Clock.Now.AddHours(1);
-            var data = await AdjustAsync(host, seed.Staff.NguoiDungId, invoice.HoaDonId, dien: 130m, nuoc: 60m);
+            var data = await AdjustAsync(host, seed.Staff.NguoiDungId, invoice.HoaDonId, TrangThaiPhatHanhHoaDon.ChoDuyet, dien: 130m, nuoc: 60m);
 
             var after = Assert.Single(await DeadlineHarness.InvoicesAsync(_fixture, seed));
             Assert.Equal(data!.TongTienMoi, after.TongTien);
             Assert.Equal(TrangThaiPhatHanhHoaDon.ChoDuyet, after.TrangThaiPhatHanh);
             Assert.Equal(after.TongTien, after.ChiTietHoaDonDichVus.Where(c => !c.IsDeleted).Sum(c => c.TongTien));
-        }
-
-        [Fact]
-        public async Task FinalizeJob_DoesNotCheckMissingUnitPrice()
-        {
-            using var host = new DeadlineHost(_fixture.ConnectionString);
-            var seed = await DeadlineHarness.SeedAsync(_fixture, host.Clock.Now);
-            var invoice = await DeadlineHarness.CreateProvisionalInvoiceAsync(host, _fixture, seed);
-            await using (var db = _fixture.CreateDbContext())
-            {
-                var period = await db.DichVuDienNuocCuaPhongs.SingleAsync(p => p.DichVuDienNuocCuaPhongId == invoice.DichVuDienNuocCuaPhongId);
-                period.DonGiaDien = 0;
-                period.DonGiaNuoc = 0;
-                await db.SaveChangesAsync();
-            }
-
-            host.Clock.Now = invoice.HanPhanHoi!.Value.AddMinutes(1);
-            await DeadlineHarness.IsolateJobAsync(_fixture, seed);
-            await using (var scope = host.Provider.CreateAsyncScope())
-            {
-                await scope.ServiceProvider.GetRequiredService<IAutoInvoiceFinalizeUseCase>().ExecuteAsync();
-            }
-
-            var after = Assert.Single(await DeadlineHarness.InvoicesAsync(_fixture, seed));
-            Assert.Equal(TrangThaiPhatHanhHoaDon.DaGui, after.TrangThaiPhatHanh);
         }
     }
 }

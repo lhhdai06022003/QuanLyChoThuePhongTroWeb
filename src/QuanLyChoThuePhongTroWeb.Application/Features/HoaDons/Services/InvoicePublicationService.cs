@@ -121,7 +121,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                         continue;
                     }
 
-                    txResult = await PublishOneInTransactionAsync(id, snapshot.MaHoaDon, actorId, ct);
+                    txResult = await PublishOneInTransactionAsync(id, snapshot.MaHoaDon, snapshot.ChiNhanhId, actorId, ct);
                 }
                 catch (Exception ex)
                 {
@@ -235,7 +235,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
             public InvoiceRecipientInfo? Recipient { get; init; }
         }
 
-        private async Task<PublishTransactionResult> PublishOneInTransactionAsync(int hoaDonId, string snapshotMaHoaDon, int actorId, CancellationToken ct)
+        private async Task<PublishTransactionResult> PublishOneInTransactionAsync(int hoaDonId, string snapshotMaHoaDon, int chiNhanhId, int actorId, CancellationToken ct)
         {
             await using var tx = await _unitOfWork.BeginTransactionAsync(ct);
             var committed = false;
@@ -270,12 +270,16 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                 var recipient = await _store.GetRecipientAsync(hoaDon.HopDongId, ct);
                 var now = DateTime.UtcNow;
                 var hanMacDinh = InvoiceDueDateCalculator.Compute(now, _options.SoNgayHanThanhToan);
-                hoaDon.GuiHoaDon(actorId, now, hanMacDinh, "Công bố hóa đơn lên cổng khách thuê");
+                var chiNhanh = await _hoaDonStore.GetChiNhanhByIdAsync(chiNhanhId, ct)
+                    ?? throw new InvalidOperationException($"Không tìm thấy chi nhánh {chiNhanhId} của hóa đơn {hoaDonId}.");
+                var hanPhanHoi = now.AddHours(chiNhanh.SoGioPhanHoiHoaDon);
+                hoaDon.GuiHoaDon(actorId, now, hanMacDinh, hanPhanHoi, "Công bố hóa đơn lên cổng khách thuê");
 
                 ThongBao? thongBao = null;
                 if (recipient?.NguoiDungId is int nguoiDungId)
                 {
-                    var noiDung = $"Hóa đơn {hoaDon.MaHoaDon} tháng {hoaDon.Thang}/{hoaDon.Nam}: tổng tiền {string.Format("{0:#,##0}", hoaDon.TongTien)} đ, hạn thanh toán hết ngày {hoaDon.HanThanhToan!.Value.AddHours(7).ToString("dd/MM/yyyy", CultureInfo.InvariantCulture)}.";
+                    var noiDung = $"Hóa đơn {hoaDon.MaHoaDon} tháng {hoaDon.Thang}/{hoaDon.Nam}: tổng tiền {string.Format("{0:#,##0}", hoaDon.TongTien)} đ, hạn thanh toán hết ngày {hoaDon.HanThanhToan!.Value.AddHours(7).ToString("dd/MM/yyyy", CultureInfo.InvariantCulture)}."
+                        + BuildFeedbackNotice(chiNhanh.SoDienThoai, hoaDon.HanPhanHoi!.Value);
                     thongBao = new ThongBao
                     {
                         NguoiDungId = nguoiDungId,
@@ -311,6 +315,14 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                 _logger.LogError(ex, "Lỗi khi công bố hóa đơn {HoaDonId} bởi actor {ActorId}", hoaDonId, actorId);
                 return new PublishTransactionResult { Outcome = InvoicePublishOutcome.Error, MaHoaDon = snapshotMaHoaDon };
             }
+        }
+
+        private static string BuildFeedbackNotice(string? soDienThoai, DateTime hanPhanHoiUtc)
+        {
+            var han = hanPhanHoiUtc.AddHours(7).ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture);
+            return string.IsNullOrWhiteSpace(soDienThoai)
+                ? $" Nếu thấy sai sót, vui lòng phản hồi trước {han}."
+                : $" Nếu thấy sai sót, vui lòng liên hệ {soDienThoai.Trim()} trước {han}.";
         }
 
         private async Task TryRollbackAsync(IApplicationTransaction tx, int hoaDonId, int actorId)

@@ -36,7 +36,7 @@ namespace QuanLyChoThuePhongTroWeb.Domain.UnitTests
 
             // 3. DaChot -> DaGui
             var guiNow = DateTime.UtcNow;
-            hoaDon.GuiHoaDon(5, guiNow, guiNow.AddDays(7), "Công bố lên cổng khách thuê");
+            hoaDon.GuiHoaDon(5, guiNow, guiNow.AddDays(7), guiNow.AddHours(24), "Công bố lên cổng khách thuê");
             Assert.Equal(TrangThaiPhatHanhHoaDon.DaGui, hoaDon.TrangThaiPhatHanh);
             Assert.NotNull(hoaDon.NgayGui);
 
@@ -112,18 +112,18 @@ namespace QuanLyChoThuePhongTroWeb.Domain.UnitTests
             var hoaDon = new HoaDon { TongTien = 2_000_000m };
 
             // Từ Nháp không thể gửi
-            Assert.Throws<InvalidOperationException>(() => hoaDon.GuiHoaDon(1, DateTime.UtcNow, DateTime.UtcNow.AddDays(7)));
+            Assert.Throws<InvalidOperationException>(() => hoaDon.GuiHoaDon(1, DateTime.UtcNow, DateTime.UtcNow.AddDays(7), DateTime.UtcNow.AddHours(24)));
 
             hoaDon.GuiDuyet(10);
             // Từ Chờ duyệt không thể gửi
-            Assert.Throws<InvalidOperationException>(() => hoaDon.GuiHoaDon(1, DateTime.UtcNow, DateTime.UtcNow.AddDays(7)));
+            Assert.Throws<InvalidOperationException>(() => hoaDon.GuiHoaDon(1, DateTime.UtcNow, DateTime.UtcNow.AddDays(7), DateTime.UtcNow.AddHours(24)));
 
             hoaDon.ChotHoaDon(1);
-            hoaDon.GuiHoaDon(1, DateTime.UtcNow, DateTime.UtcNow.AddDays(7));
+            hoaDon.GuiHoaDon(1, DateTime.UtcNow, DateTime.UtcNow.AddDays(7), DateTime.UtcNow.AddHours(24));
             Assert.Equal(TrangThaiPhatHanhHoaDon.DaGui, hoaDon.TrangThaiPhatHanh);
 
             // Gửi lặp khi đã gửi bị từ chối
-            Assert.Throws<InvalidOperationException>(() => hoaDon.GuiHoaDon(1, DateTime.UtcNow, DateTime.UtcNow.AddDays(7)));
+            Assert.Throws<InvalidOperationException>(() => hoaDon.GuiHoaDon(1, DateTime.UtcNow, DateTime.UtcNow.AddDays(7), DateTime.UtcNow.AddHours(24)));
         }
 
         [Fact]
@@ -142,7 +142,7 @@ namespace QuanLyChoThuePhongTroWeb.Domain.UnitTests
             Assert.Throws<InvalidOperationException>(() => hoaDon.GuiDuyet(10));
             Assert.Throws<InvalidOperationException>(() => hoaDon.TraLai(1, "Lý do"));
             Assert.Throws<InvalidOperationException>(() => hoaDon.ChotHoaDon(1));
-            Assert.Throws<InvalidOperationException>(() => hoaDon.GuiHoaDon(1, DateTime.UtcNow, DateTime.UtcNow.AddDays(7)));
+            Assert.Throws<InvalidOperationException>(() => hoaDon.GuiHoaDon(1, DateTime.UtcNow, DateTime.UtcNow.AddDays(7), DateTime.UtcNow.AddHours(24)));
             Assert.Throws<InvalidOperationException>(() => hoaDon.HuyHoaDon(1, "Hủy lần hai"));
         }
 
@@ -203,7 +203,7 @@ namespace QuanLyChoThuePhongTroWeb.Domain.UnitTests
             Assert.Contains("đã gửi cho khách thuê", exDaChot.Message, StringComparison.OrdinalIgnoreCase);
 
             var guiNow = DateTime.UtcNow;
-            hoaDonNhap.GuiHoaDon(1, guiNow, guiNow.AddDays(7));
+            hoaDonNhap.GuiHoaDon(1, guiNow, guiNow.AddDays(7), guiNow.AddHours(24));
             Assert.True(hoaDonNhap.KiemTraDuDieuKienYeuCauThanhToan());
         }
 
@@ -216,7 +216,7 @@ namespace QuanLyChoThuePhongTroWeb.Domain.UnitTests
 
             var nowUtc = DateTime.UtcNow;
             var han = nowUtc.AddDays(7);
-            hoaDon.GuiHoaDon(5, nowUtc, han, "Công bố lên cổng khách thuê");
+            hoaDon.GuiHoaDon(5, nowUtc, han, nowUtc.AddHours(24), "Công bố lên cổng khách thuê");
 
             Assert.Equal(TrangThaiPhatHanhHoaDon.DaGui, hoaDon.TrangThaiPhatHanh);
             Assert.Equal(nowUtc, hoaDon.NgayGui);
@@ -241,9 +241,51 @@ namespace QuanLyChoThuePhongTroWeb.Domain.UnitTests
             hoaDon.HanThanhToan = existingHan;
 
             var nowUtc = DateTime.UtcNow;
-            hoaDon.GuiHoaDon(5, nowUtc, nowUtc.AddDays(7));
+            hoaDon.GuiHoaDon(5, nowUtc, nowUtc.AddDays(7), nowUtc.AddHours(24));
 
             Assert.Equal(existingHan, hoaDon.HanThanhToan);
+        }
+
+        private static HoaDon MakeDaChotHoaDon()
+        {
+            var hd = new HoaDon { TongTien = 1_000_000m };
+            hd.GuiDuyet(10);
+            hd.ChotHoaDon(1);
+            return hd;
+        }
+
+        [Fact]
+        public void GuiHoaDon_DatHanPhanHoi()
+        {
+            var hoaDon = MakeDaChotHoaDon();
+            var now = DateTime.UtcNow;
+            var hanPhanHoi = now.AddHours(48);
+
+            hoaDon.GuiHoaDon(5, now, now.AddDays(7), hanPhanHoi);
+
+            Assert.Equal(hanPhanHoi, hoaDon.HanPhanHoi);
+        }
+
+        [Fact]
+        public void GuiHoaDon_HanPhanHoiKhongQuaHanThanhToan()
+        {
+            var hoaDon = MakeDaChotHoaDon();
+            var now = DateTime.UtcNow;
+            var hanThanhToan = now.AddDays(2);
+
+            hoaDon.GuiHoaDon(5, now, hanThanhToan, now.AddHours(168));
+
+            Assert.Equal(hanThanhToan, hoaDon.HanPhanHoi);
+        }
+
+        [Fact]
+        public void GuiHoaDon_HanPhanHoiKhongHopLe_NemLoi()
+        {
+            var now = DateTime.UtcNow;
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => MakeDaChotHoaDon().GuiHoaDon(1, now, now.AddDays(7), now));
+            Assert.Throws<ArgumentOutOfRangeException>(() => MakeDaChotHoaDon().GuiHoaDon(1, now, now.AddDays(7), now.AddHours(-1)));
+            Assert.Throws<ArgumentOutOfRangeException>(() => MakeDaChotHoaDon().GuiHoaDon(1, now, now.AddDays(7), DateTime.SpecifyKind(now.AddHours(24), DateTimeKind.Local)));
         }
 
         [Theory]
@@ -256,7 +298,7 @@ namespace QuanLyChoThuePhongTroWeb.Domain.UnitTests
             var hoaDon = new HoaDon { TongTien = 1_000_000m, TrangThaiPhatHanh = status };
             var nowUtc = DateTime.UtcNow;
 
-            Assert.Throws<InvalidOperationException>(() => hoaDon.GuiHoaDon(1, nowUtc, nowUtc.AddDays(7)));
+            Assert.Throws<InvalidOperationException>(() => hoaDon.GuiHoaDon(1, nowUtc, nowUtc.AddDays(7), nowUtc.AddHours(24)));
         }
 
         [Fact]
@@ -272,12 +314,12 @@ namespace QuanLyChoThuePhongTroWeb.Domain.UnitTests
                 return hd;
             }
 
-            Assert.Throws<ArgumentOutOfRangeException>(() => MakeDaChot().GuiHoaDon(0, now, now.AddDays(7)));
-            Assert.Throws<ArgumentOutOfRangeException>(() => MakeDaChot().GuiHoaDon(-1, now, now.AddDays(7)));
-            Assert.Throws<ArgumentOutOfRangeException>(() => MakeDaChot().GuiHoaDon(1, DateTime.SpecifyKind(now, DateTimeKind.Local), now.AddDays(7)));
-            Assert.Throws<ArgumentOutOfRangeException>(() => MakeDaChot().GuiHoaDon(1, DateTime.SpecifyKind(now, DateTimeKind.Unspecified), now.AddDays(7)));
-            Assert.Throws<ArgumentOutOfRangeException>(() => MakeDaChot().GuiHoaDon(1, now, now));
-            Assert.Throws<ArgumentOutOfRangeException>(() => MakeDaChot().GuiHoaDon(1, now, now.AddSeconds(-1)));
+            Assert.Throws<ArgumentOutOfRangeException>(() => MakeDaChot().GuiHoaDon(0, now, now.AddDays(7), now.AddHours(24)));
+            Assert.Throws<ArgumentOutOfRangeException>(() => MakeDaChot().GuiHoaDon(-1, now, now.AddDays(7), now.AddHours(24)));
+            Assert.Throws<ArgumentOutOfRangeException>(() => MakeDaChot().GuiHoaDon(1, DateTime.SpecifyKind(now, DateTimeKind.Local), now.AddDays(7), now.AddHours(24)));
+            Assert.Throws<ArgumentOutOfRangeException>(() => MakeDaChot().GuiHoaDon(1, DateTime.SpecifyKind(now, DateTimeKind.Unspecified), now.AddDays(7), now.AddHours(24)));
+            Assert.Throws<ArgumentOutOfRangeException>(() => MakeDaChot().GuiHoaDon(1, now, now, now.AddHours(24)));
+            Assert.Throws<ArgumentOutOfRangeException>(() => MakeDaChot().GuiHoaDon(1, now, now.AddSeconds(-1), now.AddHours(24)));
         }
 
         [Theory]
@@ -409,60 +451,7 @@ namespace QuanLyChoThuePhongTroWeb.Domain.UnitTests
             Assert.Contains("thanh toán", ex.Message, StringComparison.OrdinalIgnoreCase);
         }
 
-        private static readonly DateTime TamTinhNow = new(2026, 10, 10, 3, 0, 0, DateTimeKind.Utc);
-
-        [Fact]
-        public void HoaDon_GuiTamTinh_FromNhap_SetsChoDuyetAndHanPhanHoi()
-        {
-            var hoaDon = new HoaDon { TongTien = 1_000_000m };
-            var han = TamTinhNow.AddHours(24);
-
-            hoaDon.GuiTamTinh(7, TamTinhNow, han, "[TU_DONG] Gửi khách hóa đơn tạm tính");
-
-            Assert.Equal(TrangThaiPhatHanhHoaDon.ChoDuyet, hoaDon.TrangThaiPhatHanh);
-            Assert.Equal(han, hoaDon.HanPhanHoi);
-            Assert.Equal(TamTinhNow, hoaDon.NgayCapNhat);
-            var history = Assert.Single(hoaDon.LichSuTrangThaiHoaDons);
-            Assert.Equal(TrangThaiPhatHanhHoaDon.Nhap, history.TrangThaiPhatHanhCu);
-            Assert.Equal(TrangThaiPhatHanhHoaDon.ChoDuyet, history.TrangThaiPhatHanhMoi);
-            Assert.Equal(TrangThaiHoaDon.ChuaThanhToan, history.TrangThaiThanhToanMoi);
-            Assert.Equal(7, history.NguoiThucHienId);
-            Assert.Equal(TamTinhNow, history.NgayThucHien);
-            Assert.Equal("[TU_DONG] Gửi khách hóa đơn tạm tính", history.LyDo);
-        }
-
-        [Theory]
-        [InlineData(TrangThaiPhatHanhHoaDon.ChoDuyet)]
-        [InlineData(TrangThaiPhatHanhHoaDon.DaChot)]
-        [InlineData(TrangThaiPhatHanhHoaDon.DaGui)]
-        [InlineData(TrangThaiPhatHanhHoaDon.DaHuy)]
-        public void HoaDon_GuiTamTinh_Throws_WhenNotNhap(TrangThaiPhatHanhHoaDon status)
-        {
-            var hoaDon = new HoaDon { TongTien = 1_000_000m, TrangThaiPhatHanh = status };
-
-            Assert.Throws<InvalidOperationException>(() =>
-                hoaDon.GuiTamTinh(7, TamTinhNow, TamTinhNow.AddHours(24), "[TU_DONG] lý do"));
-            Assert.Null(hoaDon.HanPhanHoi);
-            Assert.Empty(hoaDon.LichSuTrangThaiHoaDons);
-        }
-
-        [Fact]
-        public void HoaDon_GuiTamTinh_Throws_WhenArgumentsInvalid()
-        {
-            var hoaDon = new HoaDon { TongTien = 1_000_000m };
-
-            Assert.Throws<ArgumentOutOfRangeException>(() => hoaDon.GuiTamTinh(0, TamTinhNow, TamTinhNow.AddHours(1), "lý do"));
-            Assert.Throws<ArgumentOutOfRangeException>(() => hoaDon.GuiTamTinh(-1, TamTinhNow, TamTinhNow.AddHours(1), "lý do"));
-            Assert.Throws<ArgumentOutOfRangeException>(() =>
-                hoaDon.GuiTamTinh(7, DateTime.SpecifyKind(TamTinhNow, DateTimeKind.Unspecified), TamTinhNow.AddHours(1), "lý do"));
-            Assert.Throws<ArgumentOutOfRangeException>(() =>
-                hoaDon.GuiTamTinh(7, TamTinhNow, DateTime.SpecifyKind(TamTinhNow.AddHours(1), DateTimeKind.Local), "lý do"));
-            Assert.Throws<ArgumentOutOfRangeException>(() => hoaDon.GuiTamTinh(7, TamTinhNow, TamTinhNow, "lý do"));
-            Assert.Throws<ArgumentOutOfRangeException>(() => hoaDon.GuiTamTinh(7, TamTinhNow, TamTinhNow.AddSeconds(-1), "lý do"));
-            Assert.Throws<ArgumentException>(() => hoaDon.GuiTamTinh(7, TamTinhNow, TamTinhNow.AddHours(1), " "));
-            Assert.Equal(TrangThaiPhatHanhHoaDon.Nhap, hoaDon.TrangThaiPhatHanh);
-            Assert.Null(hoaDon.HanPhanHoi);
-        }
+        private static readonly DateTime MocNow = new(2026, 10, 10, 3, 0, 0, DateTimeKind.Utc);
 
         [Fact]
         public void HoaDon_GuiDuyet_DoesNotSetHanPhanHoi()
@@ -478,7 +467,7 @@ namespace QuanLyChoThuePhongTroWeb.Domain.UnitTests
         [Fact]
         public void HoaDon_GuiDuyet_ClearsExistingHanPhanHoi()
         {
-            var hoaDon = new HoaDon { TongTien = 1_000_000m, HanPhanHoi = TamTinhNow.AddHours(24) };
+            var hoaDon = new HoaDon { TongTien = 1_000_000m, HanPhanHoi = MocNow.AddHours(24) };
 
             hoaDon.GuiDuyet(3, "Nhân viên gửi duyệt");
 
@@ -489,18 +478,17 @@ namespace QuanLyChoThuePhongTroWeb.Domain.UnitTests
         [Fact]
         public void HoaDon_MoLaiDeDieuChinh_FromChoDuyetWithHan_GoesBackToNhapKeepingHan()
         {
-            var hoaDon = new HoaDon { TongTien = 1_000_000m };
-            var han = TamTinhNow.AddHours(24);
-            hoaDon.GuiTamTinh(7, TamTinhNow, han, "[TU_DONG] Gửi khách hóa đơn tạm tính");
-            var later = TamTinhNow.AddHours(2);
+            // Hóa đơn ChoDuyet còn hạn phản hồi từ luồng cũ.
+            var han = MocNow.AddHours(24);
+            var hoaDon = new HoaDon { TongTien = 1_000_000m, TrangThaiPhatHanh = TrangThaiPhatHanhHoaDon.ChoDuyet, HanPhanHoi = han };
+            var later = MocNow.AddHours(2);
 
             hoaDon.MoLaiDeDieuChinh(9, later, "[DIEU_CHINH] lý do");
 
             Assert.Equal(TrangThaiPhatHanhHoaDon.Nhap, hoaDon.TrangThaiPhatHanh);
             Assert.Equal(han, hoaDon.HanPhanHoi);
             Assert.Equal(later, hoaDon.NgayCapNhat);
-            Assert.Equal(2, hoaDon.LichSuTrangThaiHoaDons.Count);
-            var history = hoaDon.LichSuTrangThaiHoaDons.Last();
+            var history = Assert.Single(hoaDon.LichSuTrangThaiHoaDons);
             Assert.Equal(TrangThaiPhatHanhHoaDon.ChoDuyet, history.TrangThaiPhatHanhCu);
             Assert.Equal(TrangThaiPhatHanhHoaDon.Nhap, history.TrangThaiPhatHanhMoi);
             Assert.Equal(TrangThaiHoaDon.ChuaThanhToan, history.TrangThaiThanhToanCu);
@@ -511,38 +499,72 @@ namespace QuanLyChoThuePhongTroWeb.Domain.UnitTests
         }
 
         [Fact]
-        public void HoaDon_MoLaiDeDieuChinh_Throws_WhenChoDuyetWithoutHan()
+        public void HoaDon_MoLaiDeDieuChinh_FromChoDuyetWithoutHan_GoesBackToNhap()
         {
+            // Hóa đơn lập tay (không có hạn phản hồi) cũng mở lại được.
             var hoaDon = new HoaDon { TongTien = 1_000_000m };
             hoaDon.GuiDuyet(3, "Nhân viên gửi duyệt");
 
-            Assert.Throws<InvalidOperationException>(() => hoaDon.MoLaiDeDieuChinh(9, TamTinhNow, "lý do"));
-            Assert.Equal(TrangThaiPhatHanhHoaDon.ChoDuyet, hoaDon.TrangThaiPhatHanh);
+            hoaDon.MoLaiDeDieuChinh(9, MocNow, "[DIEU_CHINH] lý do");
+
+            Assert.Equal(TrangThaiPhatHanhHoaDon.Nhap, hoaDon.TrangThaiPhatHanh);
+            Assert.Null(hoaDon.HanPhanHoi);
+        }
+
+        [Fact]
+        public void MoLaiTuDaChot_VeNhap_XoaNguoiChot()
+        {
+            var hoaDon = new HoaDon { TongTien = 1_000_000m };
+            hoaDon.GuiDuyet(3, "Nhân viên gửi duyệt");
+            hoaDon.ChotHoaDon(1, "Quản trị viên chốt");
+            Assert.Equal(1, hoaDon.NguoiChotId);
+            Assert.NotNull(hoaDon.NgayChot);
+
+            hoaDon.MoLaiDeDieuChinh(1, MocNow, "[DIEU_CHINH] lý do");
+
+            Assert.Equal(TrangThaiPhatHanhHoaDon.Nhap, hoaDon.TrangThaiPhatHanh);
+            Assert.Null(hoaDon.NguoiChotId);
+            Assert.Null(hoaDon.NgayChot);
+            Assert.Equal(MocNow, hoaDon.NgayCapNhat);
+            var history = hoaDon.LichSuTrangThaiHoaDons.Last();
+            Assert.Equal(TrangThaiPhatHanhHoaDon.DaChot, history.TrangThaiPhatHanhCu);
+            Assert.Equal(TrangThaiPhatHanhHoaDon.Nhap, history.TrangThaiPhatHanhMoi);
+            Assert.Equal("[DIEU_CHINH] lý do", history.LyDo);
+        }
+
+        [Fact]
+        public void MoLaiTuNhap_NemLoi()
+        {
+            var hoaDon = new HoaDon { TongTien = 1_000_000m };
+
+            var ex = Assert.Throws<InvalidOperationException>(() => hoaDon.MoLaiDeDieuChinh(9, MocNow, "lý do"));
+
+            Assert.Equal("Chỉ hóa đơn chờ duyệt hoặc đã chốt mới có thể mở lại để điều chỉnh.", ex.Message);
+            Assert.Equal(TrangThaiPhatHanhHoaDon.Nhap, hoaDon.TrangThaiPhatHanh);
+            Assert.Empty(hoaDon.LichSuTrangThaiHoaDons);
         }
 
         [Theory]
-        [InlineData(TrangThaiPhatHanhHoaDon.Nhap)]
-        [InlineData(TrangThaiPhatHanhHoaDon.DaChot)]
         [InlineData(TrangThaiPhatHanhHoaDon.DaGui)]
         [InlineData(TrangThaiPhatHanhHoaDon.DaHuy)]
-        public void HoaDon_MoLaiDeDieuChinh_Throws_WhenNotChoDuyet(TrangThaiPhatHanhHoaDon status)
+        public void HoaDon_MoLaiDeDieuChinh_Throws_WhenNotChoDuyetOrDaChot(TrangThaiPhatHanhHoaDon status)
         {
-            var hoaDon = new HoaDon { TongTien = 1_000_000m, TrangThaiPhatHanh = status, HanPhanHoi = TamTinhNow.AddHours(24) };
+            var hoaDon = new HoaDon { TongTien = 1_000_000m, TrangThaiPhatHanh = status, HanPhanHoi = MocNow.AddHours(24) };
 
-            Assert.Throws<InvalidOperationException>(() => hoaDon.MoLaiDeDieuChinh(9, TamTinhNow, "lý do"));
+            Assert.Throws<InvalidOperationException>(() => hoaDon.MoLaiDeDieuChinh(9, MocNow, "lý do"));
+            Assert.Equal(status, hoaDon.TrangThaiPhatHanh);
         }
 
         [Fact]
         public void HoaDon_MoLaiDeDieuChinh_Throws_WhenArgumentsInvalid()
         {
-            var hoaDon = new HoaDon { TongTien = 1_000_000m };
-            hoaDon.GuiTamTinh(7, TamTinhNow, TamTinhNow.AddHours(24), "lý do");
+            var hoaDon = new HoaDon { TongTien = 1_000_000m, TrangThaiPhatHanh = TrangThaiPhatHanhHoaDon.ChoDuyet, HanPhanHoi = MocNow.AddHours(24) };
 
-            Assert.Throws<ArgumentOutOfRangeException>(() => hoaDon.MoLaiDeDieuChinh(0, TamTinhNow, "lý do"));
-            Assert.Throws<ArgumentOutOfRangeException>(() => hoaDon.MoLaiDeDieuChinh(-1, TamTinhNow, "lý do"));
+            Assert.Throws<ArgumentOutOfRangeException>(() => hoaDon.MoLaiDeDieuChinh(0, MocNow, "lý do"));
+            Assert.Throws<ArgumentOutOfRangeException>(() => hoaDon.MoLaiDeDieuChinh(-1, MocNow, "lý do"));
             Assert.Throws<ArgumentOutOfRangeException>(() =>
-                hoaDon.MoLaiDeDieuChinh(9, DateTime.SpecifyKind(TamTinhNow, DateTimeKind.Unspecified), "lý do"));
-            Assert.Throws<ArgumentException>(() => hoaDon.MoLaiDeDieuChinh(9, TamTinhNow, " "));
+                hoaDon.MoLaiDeDieuChinh(9, DateTime.SpecifyKind(MocNow, DateTimeKind.Unspecified), "lý do"));
+            Assert.Throws<ArgumentException>(() => hoaDon.MoLaiDeDieuChinh(9, MocNow, " "));
             Assert.Equal(TrangThaiPhatHanhHoaDon.ChoDuyet, hoaDon.TrangThaiPhatHanh);
         }
 

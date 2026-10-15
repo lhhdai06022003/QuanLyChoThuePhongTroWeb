@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using QuanLyChoThuePhongTroWeb.Application.Abstractions.Services;
 using QuanLyChoThuePhongTroWeb.Application.Common.Models;
 using QuanLyChoThuePhongTroWeb.Application.Common.Security;
 using QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.DTOs;
@@ -20,7 +19,9 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
 {
     public class InvoiceAdjustmentServiceTests
     {
+        // Actor là nhân viên (không có Invoice.Finalize), AdminActor có thêm Invoice.Finalize.
         private const int Actor = 7;
+        private const int AdminActor = 1;
         private const int Chi = 1;
         private const int Phong = 101;
         private const int HopDong = 10;
@@ -28,6 +29,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         private const int PeriodId = 40;
         private static readonly DateTime Now = new(2026, 10, 15, 10, 0, 0, DateTimeKind.Utc);
         private static readonly DateTime OldHan = Now.AddHours(10);
+        private const string TrangThaiDaDoi = "Hóa đơn vừa đổi trạng thái, vui lòng tải lại.";
+        private const string ChiAdminDaChot = "Chỉ Quản trị viên mới điều chỉnh được hóa đơn đã chốt.";
 
         private sealed class FakeIssuanceStore : IInvoiceIssuanceStore
         {
@@ -75,20 +78,21 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             public RecordingUnitOfWork Uow { get; } = new();
             public FakeEmployeeAccessService Access { get; } = new();
             public FakeThongBaoService ThongBao { get; } = new();
-            public RecordingEmailService Email { get; } = new();
             public CapturingLogger<InvoiceAdjustmentService> Logger { get; } = new();
             public FakeMeterConsumptionHistoryStore HistoryStore { get; } = new();
             public InvoiceAdjustmentService Service { get; }
             public HoaDon Invoice { get; }
 
             public Harness(TrangThaiPhatHanhHoaDon status = TrangThaiPhatHanhHoaDon.ChoDuyet, TrangThaiHoaDon pay = TrangThaiHoaDon.ChuaThanhToan,
-                DateTime? han = null, bool grantAll = true, IProvisionalInvoiceEmailDispatcher? dispatcher = null)
+                DateTime? han = null, bool grantAll = true)
             {
                 var hasHan = han ?? OldHan;
+                var daChot = status == TrangThaiPhatHanhHoaDon.DaChot;
                 Invoice = new HoaDon
                 {
                     HoaDonId = HoaDonId, HopDongId = HopDong, MaHoaDon = "HD-500", Thang = 10, Nam = 2026, TongTien = 1_000_000m,
                     TrangThaiPhatHanh = status, TrangThaiHoaDon = pay, HanPhanHoi = hasHan, DichVuDienNuocCuaPhongId = PeriodId,
+                    NguoiChotId = daChot ? 2 : null, NgayChot = daChot ? Now.AddDays(-1) : null,
                     HopDong = new HopDong { HopDongId = HopDong, PhongTroId = Phong },
                     DichVuDienNuocCuaPhong = new DichVuDienNuocCuaPhong
                     {
@@ -129,25 +133,36 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
                 };
                 if (grantAll)
                 {
-                    foreach (var action in new[] { EmployeeActionCodes.MeterReview, EmployeeActionCodes.InvoiceDraft, EmployeeActionCodes.InvoiceSubmit, EmployeeActionCodes.InvoiceCancel, EmployeeActionCodes.InvoiceRead })
+                    foreach (var action in new[] { EmployeeActionCodes.MeterReview, EmployeeActionCodes.InvoiceDraft, EmployeeActionCodes.InvoiceCancel, EmployeeActionCodes.InvoiceRead })
                     {
                         Access.Permissions.Add((Actor, Chi, action));
+                        Access.Permissions.Add((AdminActor, Chi, action));
                     }
+
+                    Access.Permissions.Add((AdminActor, Chi, EmployeeActionCodes.InvoiceFinalize));
                 }
 
                 Service = new InvoiceAdjustmentService(
-                    Auto, Issuance, IssuanceService, Meter, MeterStore, Payments, Publication, HoaDonStore, Uow, Access, ThongBao, Email,
+                    Auto, Issuance, IssuanceService, Meter, MeterStore, Payments, Publication, HoaDonStore, Uow, Access, ThongBao,
                     new HoaDonCalculatorService(), HistoryStore, new QuanLyChoThuePhongTroWeb.Application.Common.Configurations.AutoInvoiceOptions(), Logger,
-                    new FixedTimeProvider(new DateTimeOffset(Now)),
-                    dispatcher);
+                    new FixedTimeProvider(new DateTimeOffset(Now)));
             }
 
-            public Task<ServiceResult<InvoiceAdjustmentResult>> Adjust(decimal dien = 130m, decimal nuoc = 60m, int actor = Actor)
-                => Service.AdjustAsync(actor, new AdjustInvoiceRequest { HoaDonId = HoaDonId, ChiSoDienMoi = dien, ChiSoNuocMoi = nuoc });
+            // hienTai null = trạng thái màn hình khớp trạng thái hiện tại của hóa đơn.
+            public Task<ServiceResult<InvoiceAdjustmentResult>> Adjust(decimal dien = 130m, decimal nuoc = 60m, int actor = Actor, TrangThaiPhatHanhHoaDon? hienTai = null)
+                => Service.AdjustAsync(actor, new AdjustInvoiceRequest
+                {
+                    HoaDonId = HoaDonId, ChiSoDienMoi = dien, ChiSoNuocMoi = nuoc,
+                    TrangThaiPhatHanhHienTai = (int)(hienTai ?? Invoice.TrangThaiPhatHanh)
+                });
 
             // Điều chỉnh có danh sách dòng; chỉ số null = giữ nguyên.
             public Task<ServiceResult<InvoiceAdjustmentResult>> AdjustLines(IReadOnlyList<AdjustInvoiceLine> lines, decimal? dien = null, decimal? nuoc = null, int actor = Actor)
-                => Service.AdjustAsync(actor, new AdjustInvoiceRequest { HoaDonId = HoaDonId, ChiSoDienMoi = dien, ChiSoNuocMoi = nuoc, ChiTiets = lines });
+                => Service.AdjustAsync(actor, new AdjustInvoiceRequest
+                {
+                    HoaDonId = HoaDonId, ChiSoDienMoi = dien, ChiSoNuocMoi = nuoc, ChiTiets = lines,
+                    TrangThaiPhatHanhHienTai = (int)Invoice.TrangThaiPhatHanh
+                });
 
             // Đặt các dòng hiện có của hóa đơn (và ảnh chụp để màn điều chỉnh đọc).
             public void SetLines(params ChiTietHoaDon[] lines)
@@ -166,6 +181,32 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
                     ChiTiets = lines.Select(l => new AutoInvoiceInvoiceLine(l.ChiTietHoaDonId, l.TenDichVu, l.DonGia, l.SoLuong, l.TongTien, l.DichVuId, null, null)).ToList()
                 };
             }
+
+            // Lõi tạo nháp trả một bản thay thế -R1 ở Nhap cho nhánh DaGui.
+            public HoaDon SetupReplacement(decimal tongTien = 1_070_000m, List<ChiTietHoaDon>? lines = null)
+            {
+                var replacement = new HoaDon
+                {
+                    HoaDonId = 501, HopDongId = HopDong, MaHoaDon = "HD-500-R1", Thang = 10, Nam = 2026, TongTien = tongTien,
+                    TrangThaiPhatHanh = TrangThaiPhatHanhHoaDon.Nhap,
+                    ChiTietHoaDonDichVus = lines ?? new List<ChiTietHoaDon> { new() { ChiTietHoaDonId = 77, HoaDonId = 501, TenDichVu = "Tiền phòng", TongTien = tongTien } }
+                };
+                replacement.KhoiTaoNhap(Actor);
+                Issuance.Invoices[501] = replacement;
+                IssuanceService.OnCreateDraftsInCurrentTransaction = (_, _) => ServiceResult<InvoiceDraftBatchResult>.Ok(new InvoiceDraftBatchResult
+                {
+                    CreatedCount = 1,
+                    Items = new[]
+                    {
+                        new InvoiceDraftItemResult
+                        {
+                            PhongTroId = Phong, SoPhong = "101", HopDongId = HopDong, MaHopDong = "HD-01",
+                            Status = InvoiceDraftItemStatus.Created, HoaDonId = 501, MaHoaDon = "HD-500-R1"
+                        }
+                    }
+                });
+                return replacement;
+            }
         }
 
         // ---------- Quyền ----------
@@ -173,8 +214,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         [Theory]
         [InlineData(EmployeeActionCodes.MeterReview)]
         [InlineData(EmployeeActionCodes.InvoiceDraft)]
-        [InlineData(EmployeeActionCodes.InvoiceSubmit)]
-        public async Task Adjust_MissingMeterReviewInvoiceDraftOrInvoiceSubmit_IsForbidden_AndNothingStarts(string missing)
+        public async Task Adjust_MissingMeterReviewOrInvoiceDraft_IsForbidden_AndNothingStarts(string missing)
         {
             var h = new Harness();
             h.Access.Permissions.Remove((Actor, Chi, missing));
@@ -208,7 +248,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         public async Task Adjust_StaffOfAnotherBranch_IsForbidden()
         {
             var h = new Harness(grantAll: false);
-            foreach (var action in new[] { EmployeeActionCodes.MeterReview, EmployeeActionCodes.InvoiceSubmit })
+            foreach (var action in new[] { EmployeeActionCodes.MeterReview, EmployeeActionCodes.InvoiceDraft })
             {
                 h.Access.Permissions.Add((Actor, 99, action));
             }
@@ -220,11 +260,32 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         }
 
         [Fact]
+        public async Task NhanVienDieuChinhDaChot_Forbidden()
+        {
+            var h = new Harness(TrangThaiPhatHanhHoaDon.DaChot);
+
+            var result = await h.Adjust();
+            var info = await h.Service.GetAdjustmentInfoAsync(Actor, HoaDonId);
+
+            Assert.False(result.Success);
+            Assert.Equal(ServiceErrorKind.Forbidden, result.ErrorKind);
+            Assert.Equal(ChiAdminDaChot, result.Message);
+            var tx = Assert.Single(h.Uow.Transactions);
+            Assert.True(tx.RolledBack);
+            Assert.False(tx.Committed);
+            Assert.Empty(h.Meter.AdjustCalls);
+            Assert.Equal(TrangThaiPhatHanhHoaDon.DaChot, h.Invoice.TrangThaiPhatHanh);
+            Assert.Equal(2, h.Invoice.NguoiChotId);
+            Assert.False(info.Data!.CoTheDieuChinh);
+            Assert.Equal(ChiAdminDaChot, info.Data.LyDoKhoa);
+        }
+
+        [Fact]
         public async Task Adjust_UnknownInvoice_IsNotFound_AndInvalidArgumentsAreRejected()
         {
             var h = new Harness();
 
-            var missing = await h.Service.AdjustAsync(Actor, new AdjustInvoiceRequest { HoaDonId = 999, ChiSoDienMoi = 130, ChiSoNuocMoi = 60 });
+            var missing = await h.Service.AdjustAsync(Actor, new AdjustInvoiceRequest { HoaDonId = 999, ChiSoDienMoi = 130, ChiSoNuocMoi = 60, TrangThaiPhatHanhHienTai = 1 });
             var negative = await h.Adjust(dien: -1m);
             var decimals = await h.Adjust(dien: 130.1234m);
             var noActor = await h.Adjust(actor: 0);
@@ -239,31 +300,37 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         // ---------- Lý do khóa ----------
 
         [Fact]
-        public async Task Adjust_ManualInvoiceWithoutDeadline_IsRejected()
+        public async Task HoaDonLapTay_DieuChinhDuoc()
         {
+            // Hóa đơn lập tay không có hạn phản hồi vẫn điều chỉnh được.
             var h = new Harness();
             h.Invoice.HanPhanHoi = null;
             h.Auto.AdjustmentSnapshots[HoaDonId] = Snap(h, han: null);
 
+            var info = await h.Service.GetAdjustmentInfoAsync(Actor, HoaDonId);
             var result = await h.Adjust();
 
-            Assert.False(result.Success);
-            Assert.Equal("Chỉ hóa đơn tự động mới dùng được Điều chỉnh và gửi lại.", result.Message);
-            Assert.True(Assert.Single(h.Uow.Transactions).RolledBack);
-            Assert.Empty(h.Meter.AdjustCalls);
+            Assert.True(info.Data!.CoTheDieuChinh, info.Data.LyDoKhoa);
+            Assert.True(result.Success, result.Message);
+            Assert.Equal(TrangThaiPhatHanhHoaDon.ChoDuyet, h.Invoice.TrangThaiPhatHanh);
+            Assert.Null(h.Invoice.HanPhanHoi);
+            Assert.True(Assert.Single(h.Uow.Transactions).Committed);
+            Assert.Single(h.Meter.AdjustCalls);
         }
 
         [Theory]
         [InlineData(TrangThaiPhatHanhHoaDon.Nhap)]
-        [InlineData(TrangThaiPhatHanhHoaDon.DaChot)]
         [InlineData(TrangThaiPhatHanhHoaDon.DaHuy)]
-        public async Task Adjust_StatusOtherThanChoDuyetOrDaGui_IsRejected(TrangThaiPhatHanhHoaDon status)
+        public async Task Adjust_StatusOtherThanChoDuyetDaChotOrDaGui_IsRejected(TrangThaiPhatHanhHoaDon status)
         {
             var h = new Harness(status);
 
-            var result = await h.Adjust();
+            var result = await h.Adjust(actor: AdminActor);
+            var info = await h.Service.GetAdjustmentInfoAsync(AdminActor, HoaDonId);
 
             Assert.Equal("Hóa đơn không ở trạng thái điều chỉnh được.", result.Message);
+            Assert.Equal("Hóa đơn không ở trạng thái điều chỉnh được.", info.Data!.LyDoKhoa);
+            Assert.Empty(h.Meter.AdjustCalls);
         }
 
         [Fact]
@@ -278,11 +345,10 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.True(Assert.Single(h.Uow.Transactions).RolledBack);
             Assert.Empty(h.Meter.AdjustCalls);
             Assert.Empty(h.ThongBao.Sent);
-            Assert.Empty(h.Email.ProvisionalCalls);
         }
 
         [Fact]
-        public async Task Adjust_SentInvoiceWithCollectedMoney_IsRejected()
+        public async Task DaGuiCoKhoanThu_BiKhoa()
         {
             var partial = new Harness(TrangThaiPhatHanhHoaDon.DaGui, TrangThaiHoaDon.ThanhToanMotPhan);
             var ledger = new Harness(TrangThaiPhatHanhHoaDon.DaGui);
@@ -290,9 +356,15 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
 
             var byStatus = await partial.Adjust();
             var byLedger = await ledger.Adjust();
+            var info = await ledger.Service.GetAdjustmentInfoAsync(Actor, HoaDonId);
 
-            Assert.Contains("Hóa đơn đã có khoản thu", byStatus.Message);
-            Assert.Contains("Hóa đơn đã có khoản thu", byLedger.Message);
+            Assert.Equal("Hóa đơn đã có khoản thu, không thể điều chỉnh.", byStatus.Message);
+            Assert.Equal("Hóa đơn đã có khoản thu, không thể điều chỉnh.", byLedger.Message);
+            Assert.True(Assert.Single(ledger.Uow.Transactions).RolledBack);
+            Assert.Empty(ledger.IssuanceService.CreateInCurrentTransactionCalls);
+            Assert.False(ledger.Invoice.IsDeleted);
+            Assert.False(info.Data!.CoTheDieuChinh);
+            Assert.Equal("Hóa đơn đã có khoản thu, không thể điều chỉnh.", info.Data.LyDoKhoa);
         }
 
         [Fact]
@@ -329,22 +401,52 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.Equal("Chỉ số nước mới không được nhỏ hơn chỉ số nước cũ.", (await h.Adjust(nuoc: 49m)).Message);
         }
 
+        // ---------- Trạng thái đổi giữa lúc mở màn và lúc lưu ----------
+
+        [Fact]
+        public async Task TrangThaiDaDoi_TuChoi()
+        {
+            // Màn hình thấy Chờ duyệt nhưng hóa đơn đã được chốt.
+            var daChot = new Harness(TrangThaiPhatHanhHoaDon.DaChot);
+            // Màn hình thấy Đã chốt nhưng hóa đơn đã được công bố.
+            var daGui = new Harness(TrangThaiPhatHanhHoaDon.DaGui);
+
+            var r1 = await daChot.Adjust(actor: AdminActor, hienTai: TrangThaiPhatHanhHoaDon.ChoDuyet);
+            var r2 = await daGui.Adjust(actor: AdminActor, hienTai: TrangThaiPhatHanhHoaDon.DaChot);
+
+            foreach (var (h, r, status) in new[] { (daChot, r1, TrangThaiPhatHanhHoaDon.DaChot), (daGui, r2, TrangThaiPhatHanhHoaDon.DaGui) })
+            {
+                Assert.False(r.Success);
+                Assert.Equal(TrangThaiDaDoi, r.Message);
+                var tx = Assert.Single(h.Uow.Transactions);
+                Assert.True(tx.RolledBack);
+                Assert.False(tx.Committed);
+                Assert.Empty(h.Meter.AdjustCalls);
+                Assert.Empty(h.IssuanceService.CreateInCurrentTransactionCalls);
+                Assert.Equal(status, h.Invoice.TrangThaiPhatHanh);
+                Assert.False(h.Invoice.IsDeleted);
+                Assert.Empty(h.Invoice.LichSuTrangThaiHoaDons);
+                Assert.Empty(h.ThongBao.Sent);
+            }
+        }
+
         // ---------- Nhánh ChoDuyet ----------
 
         [Fact]
-        public async Task Adjust_Provisional_ReopensRecalculatesAndResendsWithNewDeadline()
+        public async Task NhanVienDieuChinhChoDuyet_VanChoDuyet()
         {
             var h = new Harness();
 
             var result = await h.Adjust();
 
             Assert.True(result.Success, result.Message);
+            Assert.Equal("Đã điều chỉnh hóa đơn, hóa đơn vẫn chờ duyệt.", result.Message);
             Assert.False(result.Data!.DaTaoHoaDonThayThe);
             Assert.Equal(HoaDonId, result.Data.HoaDonIdMoi);
             Assert.Equal(1_070_000m, result.Data.TongTienMoi);
-            Assert.Equal(Now.AddHours(24), result.Data.HanPhanHoiUtc);
+            Assert.Equal((int)TrangThaiPhatHanhHoaDon.ChoDuyet, result.Data.TrangThaiPhatHanhMoi);
             Assert.Equal(TrangThaiPhatHanhHoaDon.ChoDuyet, h.Invoice.TrangThaiPhatHanh);
-            Assert.Equal(Now.AddHours(24), h.Invoice.HanPhanHoi);
+            Assert.Null(h.Invoice.HanPhanHoi);
             var tx = Assert.Single(h.Uow.Transactions);
             Assert.True(tx.Committed);
             Assert.False(tx.RolledBack);
@@ -353,35 +455,51 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             var call = Assert.Single(h.Meter.AdjustCalls);
             Assert.Equal(PeriodId, call.Request.DichVuDienNuocCuaPhongId);
             Assert.Equal(130m, call.Request.ChiSoDienMoi);
-            Assert.Equal("Điều chỉnh hóa đơn theo yêu cầu khách thuê", call.Request.LyDo);
+            Assert.Equal("Điều chỉnh hóa đơn", call.Request.LyDo);
 
             var history = h.Invoice.LichSuTrangThaiHoaDons.ToList();
             Assert.Equal(2, history.Count);
             Assert.All(history, e => Assert.StartsWith("[DIEU_CHINH]", e.LyDo));
+            Assert.All(history, e => Assert.Equal(Actor, e.NguoiThucHienId));
             Assert.Equal(TrangThaiPhatHanhHoaDon.Nhap, history[0].TrangThaiPhatHanhMoi);
             Assert.Equal(TrangThaiPhatHanhHoaDon.ChoDuyet, history[1].TrangThaiPhatHanhMoi);
 
-            var notice = Assert.Single(h.ThongBao.Sent);
-            Assert.Equal("Khach", notice.Kind);
-            Assert.Equal(9, notice.TargetId);
-            Assert.Contains("đã được điều chỉnh", notice.TieuDe);
-            Assert.Equal($"/KhachThue/HoaDon?hoaDonId={HoaDonId}", notice.Link);
-            var mail = Assert.Single(h.Email.ProvisionalCalls);
-            Assert.True(mail.Data.LaDieuChinh);
-            Assert.Equal("khach@example.com", mail.ToEmail);
-            Assert.Equal(130m, mail.Data.ChiSoDienMoi);
-            Assert.Equal(Now.AddHours(24), mail.Data.HanTuChotUtc);
+            // Hóa đơn chưa công bố: không báo khách.
+            Assert.Empty(h.ThongBao.Sent);
         }
 
         [Fact]
-        public async Task Adjust_Provisional_UsesCurrentBranchResponseHours()
+        public async Task AdminDieuChinhDaChot_VanDaChot()
         {
-            var h = new Harness();
-            h.HoaDonStore.Branches[Chi].SoGioPhanHoiHoaDon = 48;
+            var h = new Harness(TrangThaiPhatHanhHoaDon.DaChot);
 
-            var result = await h.Adjust();
+            var result = await h.Adjust(actor: AdminActor);
 
-            Assert.Equal(Now.AddHours(48), result.Data!.HanPhanHoiUtc);
+            Assert.True(result.Success, result.Message);
+            Assert.Equal("Đã điều chỉnh hóa đơn đã chốt.", result.Message);
+            Assert.False(result.Data!.DaTaoHoaDonThayThe);
+            Assert.Equal(HoaDonId, result.Data.HoaDonIdMoi);
+            Assert.Equal(1_070_000m, result.Data.TongTienMoi);
+            Assert.Equal((int)TrangThaiPhatHanhHoaDon.DaChot, result.Data.TrangThaiPhatHanhMoi);
+            Assert.Equal(TrangThaiPhatHanhHoaDon.DaChot, h.Invoice.TrangThaiPhatHanh);
+            Assert.Equal(AdminActor, h.Invoice.NguoiChotId);
+            Assert.NotNull(h.Invoice.NgayChot);
+            Assert.Null(h.Invoice.HanPhanHoi);
+            Assert.False(h.Invoice.IsDeleted);
+            Assert.True(Assert.Single(h.Uow.Transactions).Committed);
+            Assert.Single(h.Meter.AdjustCalls);
+
+            var history = h.Invoice.LichSuTrangThaiHoaDons.ToList();
+            Assert.Equal(
+                new[]
+                {
+                    (TrangThaiPhatHanhHoaDon.DaChot, TrangThaiPhatHanhHoaDon.Nhap),
+                    (TrangThaiPhatHanhHoaDon.Nhap, TrangThaiPhatHanhHoaDon.ChoDuyet),
+                    (TrangThaiPhatHanhHoaDon.ChoDuyet, TrangThaiPhatHanhHoaDon.DaChot)
+                },
+                history.Select(e => (e.TrangThaiPhatHanhCu!.Value, e.TrangThaiPhatHanhMoi)).ToArray());
+            Assert.All(history, e => Assert.StartsWith("[DIEU_CHINH]", e.LyDo));
+            Assert.Empty(h.ThongBao.Sent);
         }
 
         [Fact]
@@ -399,7 +517,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.False(tx.Committed);
             Assert.True(h.Auto.DiscardCalls >= 1);
             Assert.Empty(h.ThongBao.Sent);
-            Assert.Empty(h.Email.ProvisionalCalls);
         }
 
         [Fact]
@@ -417,149 +534,73 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.Empty(h.ThongBao.Sent);
         }
 
+        // ---------- Nhánh DaGui ----------
+
         [Fact]
-        public async Task Adjust_NotificationAndEmailFailures_StillSucceed_WithWarningsOnly()
+        public async Task DieuChinhDaGui_TaoThayTheChoDuyet_BaoKhachCong()
         {
-            var h = new Harness();
-            h.ThongBao.ThrowOnSend = true;
-            h.Email.ThrowOnProvisional = true;
+            var h = new Harness(TrangThaiPhatHanhHoaDon.DaGui);
+            var waiting = YeuCauThanhToanHoaDon.Tao(HoaDonId, "YC1", 1_000_000m, Now.AddDays(1), Actor, Now.AddHours(-1));
+            h.Payments.Requests.Add(waiting);
+            var replacement = h.SetupReplacement();
 
             var result = await h.Adjust();
 
-            Assert.True(result.Success);
+            Assert.True(result.Success, result.Message);
+            Assert.Equal("Đã hủy hóa đơn cũ và tạo hóa đơn thay thế chờ duyệt.", result.Message);
+            Assert.True(result.Data!.DaTaoHoaDonThayThe);
+            Assert.Equal(501, result.Data.HoaDonIdMoi);
+            Assert.Equal("HD-500-R1", result.Data.MaHoaDonMoi);
+            Assert.Equal((int)TrangThaiPhatHanhHoaDon.ChoDuyet, result.Data.TrangThaiPhatHanhMoi);
+            Assert.Equal(TrangThaiPhatHanhHoaDon.DaHuy, h.Invoice.TrangThaiPhatHanh);
+            Assert.True(h.Invoice.IsDeleted);
+            Assert.Equal(TrangThaiYeuCauThanhToan.DaHuy, waiting.TrangThai);
+            Assert.Equal(TrangThaiPhatHanhHoaDon.ChoDuyet, replacement.TrangThaiPhatHanh);
+            Assert.Null(replacement.HanPhanHoi);
+            Assert.Contains("Tạo hóa đơn thay thế sau điều chỉnh", replacement.LichSuTrangThaiHoaDons.Last().LyDo);
+            Assert.StartsWith("[DIEU_CHINH]", replacement.LichSuTrangThaiHoaDons.Last().LyDo);
+            var call = Assert.Single(h.IssuanceService.CreateInCurrentTransactionCalls);
+            Assert.StartsWith("[DIEU_CHINH]", call.LyDoKhoiTao);
+            Assert.Equal(new[] { Phong }, call.Request.PhongTroIds);
             Assert.True(Assert.Single(h.Uow.Transactions).Committed);
-            Assert.Equal(2, h.Logger.Entries.Count(e => e.Level == LogLevel.Warning));
-            Assert.DoesNotContain(h.Logger.Entries, e => e.Level >= LogLevel.Error);
+
+            // Chỉ báo khách qua cổng, nội dung nói rõ bản cũ đã hủy và bản mới chờ duyệt.
+            var notice = Assert.Single(h.ThongBao.Sent);
+            Assert.Equal("Khach", notice.Kind);
+            Assert.Equal(9, notice.TargetId);
+            Assert.Equal("Hóa đơn tháng 10/2026 đã được điều chỉnh", notice.TieuDe);
+            Assert.Equal("Hóa đơn HD-500 đã được hủy để điều chỉnh, hóa đơn mới sẽ được gửi sau khi duyệt.", notice.NoiDung);
+            Assert.Equal("HoaDon", notice.LinhVuc);
+            Assert.Equal("/KhachThue/HoaDon", notice.Link);
         }
 
-        // ---------- Email gửi nền ----------
-
         [Fact]
-        public async Task Adjust_WithDispatcher_QueuesEmailInBackground_InsteadOfSendingInline()
+        public async Task Adjust_Sent_NotificationFailure_StillSucceeds_WithWarningOnly()
         {
-            var dispatcher = new RecordingProvisionalEmailDispatcher();
-            var h = new Harness(dispatcher: dispatcher);
+            var h = new Harness(TrangThaiPhatHanhHoaDon.DaGui);
+            h.SetupReplacement();
+            h.ThongBao.ThrowOnSend = true;
 
             var result = await h.Adjust();
 
             Assert.True(result.Success, result.Message);
-            // Request không tự gọi SMTP; email chờ ở bộ gửi nền.
-            Assert.Empty(h.Email.ProvisionalCalls);
-            var batch = Assert.Single(dispatcher.Batches);
-            var pending = Assert.Single(batch);
-            Assert.Equal(HoaDonId, pending.HoaDonId);
-            Assert.Equal("khach@example.com", pending.ToEmail);
-            Assert.True(pending.Data.LaDieuChinh);
-            Assert.Equal("HD-500", pending.Data.MaHoaDon);
-            Assert.Equal((100m, 130m, 50m, 60m), (pending.Data.ChiSoDienCu, pending.Data.ChiSoDienMoi, pending.Data.ChiSoNuocCu, pending.Data.ChiSoNuocMoi));
-            Assert.Equal(Now.AddHours(24), pending.Data.HanTuChotUtc);
-            // Thông báo trong cổng vẫn gửi ngay trong request.
-            Assert.Equal($"/KhachThue/HoaDon?hoaDonId={HoaDonId}", Assert.Single(h.ThongBao.Sent).Link);
-        }
-
-        [Fact]
-        public async Task Adjust_WithDispatcher_QueuesEmailOnlyAfterTheAdjustmentIsCommitted()
-        {
-            var dispatcher = new RecordingProvisionalEmailDispatcher();
-            var h = new Harness(dispatcher: dispatcher);
-            h.Uow.FailOnSave = n => n == 1 ? new InvalidOperationException("deadlock") : null;
-
-            var result = await h.Adjust();
-
-            Assert.False(result.Success);
-            Assert.Empty(dispatcher.Batches);
-            Assert.Empty(h.Email.ProvisionalCalls);
-        }
-
-        [Fact]
-        public async Task Adjust_WithDispatcher_RejectedAdjustment_QueuesNothing()
-        {
-            var dispatcher = new RecordingProvisionalEmailDispatcher();
-            var h = new Harness(dispatcher: dispatcher);
-
-            var noChange = await h.Adjust(dien: 120m, nuoc: 60m);
-            var forbidden = await h.Adjust(actor: 99);
-
-            Assert.False(noChange.Success);
-            Assert.False(forbidden.Success);
-            Assert.Empty(dispatcher.Batches);
-        }
-
-        [Fact]
-        public async Task Adjust_WithDispatcher_RecipientWithoutEmail_QueuesNothing_ButStillSucceeds()
-        {
-            var dispatcher = new RecordingProvisionalEmailDispatcher();
-            var h = new Harness(dispatcher: dispatcher);
-            h.Publication.Recipients[HopDong] = new InvoiceRecipientInfo { NguoiThueId = 9, HoVaTen = "A", Email = null, NguoiDungId = 3 };
-
-            var result = await h.Adjust();
-
-            Assert.True(result.Success, result.Message);
-            Assert.Empty(dispatcher.Batches);
-            Assert.Single(h.ThongBao.Sent);
-        }
-
-        [Fact]
-        public async Task Adjust_WithDispatcher_WhenQueueingThrows_StillSucceeds_WithWarningOnly()
-        {
-            var dispatcher = new RecordingProvisionalEmailDispatcher { ThrowOnEnqueue = true };
-            var h = new Harness(dispatcher: dispatcher);
-
-            var result = await h.Adjust();
-
-            Assert.True(result.Success);
             Assert.True(Assert.Single(h.Uow.Transactions).Committed);
             Assert.Single(h.Logger.Entries, e => e.Level == LogLevel.Warning);
             Assert.DoesNotContain(h.Logger.Entries, e => e.Level >= LogLevel.Error);
         }
 
-        // ---------- Nhánh DaGui ----------
-
         [Fact]
-        public async Task Adjust_Sent_CancelsOldAndWaitingRequest_CreatesReplacementAndResends()
+        public async Task Adjust_Sent_WithoutRecipient_StillSucceeds_WithWarningOnly()
         {
             var h = new Harness(TrangThaiPhatHanhHoaDon.DaGui);
-            var waiting = YeuCauThanhToanHoaDon.Tao(HoaDonId, "YC1", 1_000_000m, Now.AddDays(1), Actor, Now.AddHours(-1));
-            h.Payments.Requests.Add(waiting);
-            var replacement = new HoaDon
-            {
-                HoaDonId = 501, HopDongId = HopDong, MaHoaDon = "HD-500-R1", Thang = 10, Nam = 2026, TongTien = 1_070_000m,
-                TrangThaiPhatHanh = TrangThaiPhatHanhHoaDon.Nhap,
-                ChiTietHoaDonDichVus = new List<ChiTietHoaDon> { new() { TenDichVu = "Tiền phòng", TongTien = 1_070_000m } }
-            };
-            replacement.KhoiTaoNhap(Actor);
-            h.Issuance.Invoices[501] = replacement;
-            h.HoaDonStore.Details[501] = h.HoaDonStore.Details[HoaDonId];
-            h.IssuanceService.OnCreateDraftsInCurrentTransaction = (req, actor) => ServiceResult<InvoiceDraftBatchResult>.Ok(new InvoiceDraftBatchResult
-            {
-                CreatedCount = 1,
-                Items = new[]
-                {
-                    new InvoiceDraftItemResult
-                    {
-                        PhongTroId = Phong, SoPhong = "101", HopDongId = HopDong, MaHopDong = "HD-01",
-                        Status = InvoiceDraftItemStatus.Created, HoaDonId = 501, MaHoaDon = "HD-500-R1"
-                    }
-                }
-            });
+            h.SetupReplacement();
+            h.Publication.Recipients.Remove(HopDong);
 
             var result = await h.Adjust();
 
             Assert.True(result.Success, result.Message);
-            Assert.True(result.Data!.DaTaoHoaDonThayThe);
-            Assert.Equal(501, result.Data.HoaDonIdMoi);
-            Assert.Equal("HD-500-R1", result.Data.MaHoaDonMoi);
-            Assert.Equal(TrangThaiPhatHanhHoaDon.DaHuy, h.Invoice.TrangThaiPhatHanh);
-            Assert.True(h.Invoice.IsDeleted);
-            Assert.Equal(TrangThaiYeuCauThanhToan.DaHuy, waiting.TrangThai);
-            Assert.Equal(TrangThaiPhatHanhHoaDon.ChoDuyet, replacement.TrangThaiPhatHanh);
-            Assert.Equal(Now.AddHours(24), replacement.HanPhanHoi);
-            var call = Assert.Single(h.IssuanceService.CreateInCurrentTransactionCalls);
-            Assert.StartsWith("[DIEU_CHINH]", call.LyDoKhoiTao);
-            Assert.Equal(new[] { Phong }, call.Request.PhongTroIds);
-            Assert.True(Assert.Single(h.Uow.Transactions).Committed);
-            Assert.True(Assert.Single(h.Email.ProvisionalCalls).Data.LaDieuChinh);
-            Assert.Equal("/KhachThue/HoaDon?hoaDonId=501", Assert.Single(h.ThongBao.Sent).Link);
+            Assert.Empty(h.ThongBao.Sent);
+            Assert.Single(h.Logger.Entries, e => e.Level == LogLevel.Warning);
         }
 
         [Fact]
@@ -596,6 +637,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
 
             Assert.False(result.Success);
             Assert.True(Assert.Single(h.Uow.Transactions).RolledBack);
+            Assert.Empty(h.ThongBao.Sent);
         }
 
         // ---------- GetAdjustmentInfoAsync ----------
@@ -622,35 +664,56 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.True(result.Success);
             Assert.True(result.Data!.CoTheDieuChinh);
             Assert.Null(result.Data.LyDoKhoa);
+            Assert.Equal((int)TrangThaiPhatHanhHoaDon.ChoDuyet, result.Data.TrangThaiPhatHanhValue);
             Assert.Equal((100m, 120m, 50m, 60m), (result.Data.ChiSoDienCu, result.Data.ChiSoDienMoi, result.Data.ChiSoNuocCu, result.Data.ChiSoNuocMoi));
-            Assert.Equal(OldHan, result.Data.HanPhanHoiUtc);
+            // Hạn phản hồi chỉ có ý nghĩa với hóa đơn đã gửi.
+            Assert.Null(result.Data.HanPhanHoiUtc);
             Assert.True(h.Auto.DiscardCalls >= 1);
+        }
+
+        [Fact]
+        public async Task Info_AdminOnDaChot_IsAdjustable()
+        {
+            var h = new Harness(TrangThaiPhatHanhHoaDon.DaChot);
+
+            var result = await h.Service.GetAdjustmentInfoAsync(AdminActor, HoaDonId);
+
+            Assert.True(result.Data!.CoTheDieuChinh, result.Data.LyDoKhoa);
+            Assert.Equal((int)TrangThaiPhatHanhHoaDon.DaChot, result.Data.TrangThaiPhatHanhValue);
+            Assert.Null(result.Data.HanPhanHoiUtc);
         }
 
         [Fact]
         public async Task Info_ReportsFirstMatchingLockReason()
         {
-            var manual = new Harness();
-            manual.Auto.AdjustmentSnapshots[HoaDonId] = Snap(manual, han: null);
             var closedLater = new Harness();
             closedLater.MeterStore.SubsequentPeriods.Add((Phong, 10, 2026));
             var noPermission = new Harness();
-            noPermission.Access.Permissions.Remove((Actor, Chi, EmployeeActionCodes.InvoiceSubmit));
+            noPermission.Access.Permissions.Remove((Actor, Chi, EmployeeActionCodes.InvoiceDraft));
+            var noPeriod = new Harness();
+            var snap = Snap(noPeriod, han: OldHan);
+            noPeriod.Auto.AdjustmentSnapshots[HoaDonId] = new AutoInvoiceAdjustmentSnapshot
+            {
+                HoaDonId = snap.HoaDonId, MaHoaDon = snap.MaHoaDon, HopDongId = snap.HopDongId, ChiNhanhId = snap.ChiNhanhId, PhongTroId = snap.PhongTroId,
+                Thang = snap.Thang, Nam = snap.Nam, TrangThaiPhatHanh = snap.TrangThaiPhatHanh, TrangThaiHoaDon = snap.TrangThaiHoaDon, DichVuDienNuocCuaPhongId = null
+            };
 
-            Assert.Equal("Chỉ hóa đơn tự động mới dùng được Điều chỉnh và gửi lại.", (await manual.Service.GetAdjustmentInfoAsync(Actor, HoaDonId)).Data!.LyDoKhoa);
             Assert.Equal("Kỳ sau đã được chốt hoặc đã có hóa đơn phát hành, không thể điều chỉnh.", (await closedLater.Service.GetAdjustmentInfoAsync(Actor, HoaDonId)).Data!.LyDoKhoa);
             Assert.Equal("Bạn không có quyền điều chỉnh hóa đơn tại chi nhánh này.", (await noPermission.Service.GetAdjustmentInfoAsync(Actor, HoaDonId)).Data!.LyDoKhoa);
+            Assert.Equal("Hóa đơn không gắn kỳ chỉ số điện nước.", (await noPeriod.Service.GetAdjustmentInfoAsync(Actor, HoaDonId)).Data!.LyDoKhoa);
         }
 
         [Fact]
-        public async Task Info_SentInvoice_HasNoCurrentDeadline_BecauseItsOldDeadlineHasPassed()
+        public async Task Info_SentInvoice_ReportsResponseDeadline()
         {
-            var h = new Harness(TrangThaiPhatHanhHoaDon.DaGui, han: Now.AddHours(-30));
+            var han = Now.AddHours(-30);
+            var h = new Harness(TrangThaiPhatHanhHoaDon.DaGui, han: han);
 
             var result = await h.Service.GetAdjustmentInfoAsync(Actor, HoaDonId);
 
             Assert.True(result.Data!.CoTheDieuChinh);
-            Assert.Null(result.Data.HanPhanHoiUtc);
+            Assert.Equal((int)TrangThaiPhatHanhHoaDon.DaGui, result.Data.TrangThaiPhatHanhValue);
+            Assert.Equal(han, result.Data.HanPhanHoiUtc);
         }
 
         private static AutoInvoiceAdjustmentSnapshot Snap(Harness h, DateTime? han) => new()
@@ -684,7 +747,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         };
 
         [Fact]
-        public async Task Adjust_Provisional_EditedLinesOnly_ReplacesLinesKeepsProratedAmount_AndResends()
+        public async Task Adjust_ChoDuyet_EditedLinesOnly_ReplacesLinesKeepsProratedAmount()
         {
             var h = new Harness();
             h.SetLines(BaseLines());
@@ -709,21 +772,16 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.Equal(1_820_000m, result.Data!.TongTienMoi);
             Assert.False(result.Data.DaTaoHoaDonThayThe);
             Assert.Equal(TrangThaiPhatHanhHoaDon.ChoDuyet, h.Invoice.TrangThaiPhatHanh);
-            Assert.Equal(Now.AddHours(24), h.Invoice.HanPhanHoi);
             Assert.True(Assert.Single(h.Uow.Transactions).Committed);
 
             var history = h.Invoice.LichSuTrangThaiHoaDons.ToList();
             Assert.Equal(2, history.Count);
             Assert.Contains("(sửa 1 dòng, thêm 1 dòng)", history[1].LyDo);
-
-            var mail = Assert.Single(h.Email.ProvisionalCalls);
-            Assert.True(mail.Data.LaDieuChinh);
-            // Chỉ số gửi khách là chỉ số của kỳ (cũ → mới), không phải "giá trị trước điều chỉnh".
-            Assert.Equal((100m, 120m, 50m, 60m), (mail.Data.ChiSoDienCu, mail.Data.ChiSoDienMoi, mail.Data.ChiSoNuocCu, mail.Data.ChiSoNuocMoi));
+            Assert.Empty(h.ThongBao.Sent);
         }
 
         [Fact]
-        public async Task Adjust_Provisional_ReadingsAndLines_AdjustsReadingsThenAppliesSubmittedLines()
+        public async Task Adjust_ChoDuyet_ReadingsAndLines_AdjustsReadingsThenAppliesSubmittedLines()
         {
             var h = new Harness();
             h.SetLines(BaseLines());
@@ -744,9 +802,23 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.Equal(1_500_000m, lines[0].TongTien);
             Assert.Equal(105_000m, lines[1].TongTien);
             Assert.Equal(1_605_000m, h.Invoice.TongTien);
-            var mail = Assert.Single(h.Email.ProvisionalCalls);
-            Assert.Equal((100m, 130m), (mail.Data.ChiSoDienCu, mail.Data.ChiSoDienMoi));
             Assert.Contains("(sửa 1 dòng, xóa 1 dòng)", h.Invoice.LichSuTrangThaiHoaDons.Last().LyDo);
+        }
+
+        [Fact]
+        public async Task Adjust_DaChot_EditedLines_AdminKeepsFinalizedState_WithLineSummary()
+        {
+            var h = new Harness(TrangThaiPhatHanhHoaDon.DaChot);
+            h.SetLines(BaseLines());
+            var dongs = BaseDongs();
+            dongs[2] = Dong(3, "Rác", 50_000m, 3m);
+
+            var result = await h.AdjustLines(dongs, actor: AdminActor);
+
+            Assert.True(result.Success, result.Message);
+            Assert.Equal(1_720_000m, h.Invoice.TongTien);
+            Assert.Equal(TrangThaiPhatHanhHoaDon.DaChot, h.Invoice.TrangThaiPhatHanh);
+            Assert.Contains(h.Invoice.LichSuTrangThaiHoaDons, e => e.LyDo != null && e.LyDo.Contains("(sửa 1 dòng)"));
         }
 
         [Fact]
@@ -879,7 +951,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.Equal(expected, result.Message);
             Assert.Empty(h.Uow.Transactions);
             Assert.Empty(h.Meter.AdjustCalls);
-            Assert.Empty(h.Email.ProvisionalCalls);
         }
 
         [Fact]
@@ -912,7 +983,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.True(tx.RolledBack);
             Assert.False(tx.Committed);
             Assert.Empty(h.ThongBao.Sent);
-            Assert.Empty(h.Email.ProvisionalCalls);
         }
 
         [Fact]
@@ -920,24 +990,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         {
             var h = new Harness(TrangThaiPhatHanhHoaDon.DaGui);
             h.SetLines(BaseLines());
-            var replacement = new HoaDon
-            {
-                HoaDonId = 501, HopDongId = HopDong, MaHoaDon = "HD-500-R1", Thang = 10, Nam = 2026, TongTien = 9_999m,
-                TrangThaiPhatHanh = TrangThaiPhatHanhHoaDon.Nhap,
-                // Dòng do lõi tạo nháp tính lại từ kỳ: sẽ bị thay bằng danh sách người dùng đã chốt.
-                ChiTietHoaDonDichVus = new List<ChiTietHoaDon> { new() { ChiTietHoaDonId = 77, HoaDonId = 501, TenDichVu = "Tiền phòng", DonGia = 3_000_000m, SoLuong = 1, TongTien = 9_999m } }
-            };
-            replacement.KhoiTaoNhap(Actor);
-            h.Issuance.Invoices[501] = replacement;
-            h.HoaDonStore.Details[501] = h.HoaDonStore.Details[HoaDonId];
-            h.IssuanceService.OnCreateDraftsInCurrentTransaction = (_, _) => ServiceResult<InvoiceDraftBatchResult>.Ok(new InvoiceDraftBatchResult
-            {
-                CreatedCount = 1,
-                Items = new[]
-                {
-                    new InvoiceDraftItemResult { PhongTroId = Phong, HopDongId = HopDong, Status = InvoiceDraftItemStatus.Created, HoaDonId = 501, MaHoaDon = "HD-500-R1" }
-                }
-            });
+            // Dòng do lõi tạo nháp tính lại từ kỳ: sẽ bị thay bằng danh sách người dùng đã chốt.
+            var replacement = h.SetupReplacement(9_999m, new List<ChiTietHoaDon> { new() { ChiTietHoaDonId = 77, HoaDonId = 501, TenDichVu = "Tiền phòng", DonGia = 3_000_000m, SoLuong = 1, TongTien = 9_999m } });
             var dongs = new[]
             {
                 Dong(1, "Tiền thuê phòng (thực tế ở 15/30 ngày)", 3_000_000m, 1m),
@@ -964,20 +1018,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         public async Task Adjust_Sent_LinesOnly_StillCancelsOldInvoice_WithoutCallingMeterCore()
         {
             var h = new Harness(TrangThaiPhatHanhHoaDon.DaGui);
-            var replacement = new HoaDon
-            {
-                HoaDonId = 501, HopDongId = HopDong, MaHoaDon = "HD-500-R1", Thang = 10, Nam = 2026, TongTien = 1_000_000m,
-                TrangThaiPhatHanh = TrangThaiPhatHanhHoaDon.Nhap,
-                ChiTietHoaDonDichVus = new List<ChiTietHoaDon> { new() { ChiTietHoaDonId = 77, HoaDonId = 501, TenDichVu = "Tiền phòng", TongTien = 1_000_000m } }
-            };
-            replacement.KhoiTaoNhap(Actor);
-            h.Issuance.Invoices[501] = replacement;
-            h.HoaDonStore.Details[501] = h.HoaDonStore.Details[HoaDonId];
-            h.IssuanceService.OnCreateDraftsInCurrentTransaction = (_, _) => ServiceResult<InvoiceDraftBatchResult>.Ok(new InvoiceDraftBatchResult
-            {
-                CreatedCount = 1,
-                Items = new[] { new InvoiceDraftItemResult { PhongTroId = Phong, HopDongId = HopDong, Status = InvoiceDraftItemStatus.Created, HoaDonId = 501, MaHoaDon = "HD-500-R1" } }
-            });
+            var replacement = h.SetupReplacement(1_000_000m);
 
             var result = await h.AdjustLines(new[] { Dong(1, "Tiền phòng", 1_200_000m, 1m) });
 

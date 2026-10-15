@@ -37,8 +37,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             IReadOnlyList<AutoInvoiceContractRef>? contracts = null,
             bool coHoaDon = false,
             bool kyTruocChuaChot = false,
-            int? khachId = 5,
-            string? email = null,
             int? periodId = 1,
             decimal dienCu = 100,
             decimal dienMoi = 0,
@@ -69,13 +67,11 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
                 LichSu = lichSu ?? new MeterConsumptionHistory(Array.Empty<MeterConsumption>(), 30, 30, null),
                 HopDongHieuLuc = contracts ?? new[] { new AutoInvoiceContractRef(10, 7) },
                 CoHoaDonHoatDong = coHoaDon,
-                KyTruocChuaChot = kyTruocChuaChot,
-                NguoiDungKhachId = khachId,
-                EmailKhach = email
+                KyTruocChuaChot = kyTruocChuaChot
             };
         }
 
-        private static AutoInvoiceRoomContext GoodCtx(Action<List<AutoInvoiceMeterImage>>? tweak = null, int? khachId = 5, string? email = null)
+        private static AutoInvoiceRoomContext GoodCtx(Action<List<AutoInvoiceMeterImage>>? tweak = null)
         {
             var images = new List<AutoInvoiceMeterImage>
             {
@@ -83,7 +79,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
                 Img(2, LoaiDongHo.Nuoc, ai: 60m)
             };
             tweak?.Invoke(images);
-            return Ctx(images, khachId: khachId, email: email);
+            return Ctx(images);
         }
 
         // ---------- EvaluateMeter ----------
@@ -563,31 +559,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.Equal(new[] { AutoInvoiceReason.KyTruocChuaChot }, d.LyDos);
             Assert.Equal("Kỳ 09/2026 trước chưa được chốt", d.MoTaLyDos.Single());
         }
-
-        [Fact]
-        public void Room_NoAccountNoEmail_IsKhachKhongCoKenhNhan()
-        {
-            var d = AutoInvoiceReadingPolicy.EvaluateRoom(GoodCtx(khachId: null, email: null), Options);
-
-            Assert.Equal(new[] { AutoInvoiceReason.KhachKhongCoKenhNhan }, d.LyDos);
-        }
-
-        [Fact]
-        public void Room_OnlyEmail_IsEligible()
-        {
-            var d = AutoInvoiceReadingPolicy.EvaluateRoom(GoodCtx(khachId: null, email: "a@b.vn"), Options);
-
-            Assert.True(d.DuDieuKien);
-        }
-
-        [Fact]
-        public void Room_OnlyAccount_IsEligible()
-        {
-            var d = AutoInvoiceReadingPolicy.EvaluateRoom(GoodCtx(khachId: 5, email: null), Options);
-
-            Assert.True(d.DuDieuKien);
-        }
-
 
         // ---------- ThieuDonGia (L1) ----------
 

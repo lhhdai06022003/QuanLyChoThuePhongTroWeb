@@ -121,26 +121,6 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 previousChuaChot = previousStatus != TrangThaiGhiNhan.DaDuyet;
             }
 
-            int? nguoiDungKhachId = null;
-            string? emailKhach = null;
-            if (contracts.Count == 1)
-            {
-                var nguoiThueId = contracts[0].NguoiThueId;
-                var rawEmail = await _context.NguoiThues
-                    .AsNoTracking()
-                    .Where(n => n.NguoiThueId == nguoiThueId)
-                    .Select(n => n.Email)
-                    .FirstOrDefaultAsync(ct);
-                emailKhach = string.IsNullOrWhiteSpace(rawEmail) ? null : rawEmail.Trim();
-
-                nguoiDungKhachId = await _context.NguoiDungs
-                    .AsNoTracking()
-                    .Where(u => u.NguoiThueId == nguoiThueId && !u.IsDeleted && u.IsActive)
-                    .OrderBy(u => u.NguoiDungId)
-                    .Select(u => (int?)u.NguoiDungId)
-                    .FirstOrDefaultAsync(ct);
-            }
-
             return new AutoInvoiceRoomContext
             {
                 PhongTroId = room.PhongTroId,
@@ -162,9 +142,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 LichSu = lichSu,
                 HopDongHieuLuc = contracts,
                 CoHoaDonHoatDong = hasActiveInvoice,
-                KyTruocChuaChot = previousChuaChot,
-                NguoiDungKhachId = nguoiDungKhachId,
-                EmailKhach = emailKhach
+                KyTruocChuaChot = previousChuaChot
             };
         }
 
@@ -181,33 +159,6 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 .OrderBy(n => n.NgayPhanCong)
                 .ThenBy(n => n.NhanVienChiNhanhId)
                 .Select(n => (int?)n.NguoiDungId)
-                .FirstOrDefaultAsync(ct);
-        }
-
-        public async Task<IReadOnlyList<AutoInvoiceDueItem>> GetDueProvisionalInvoicesAsync(DateTime nowUtc, CancellationToken ct = default)
-        {
-            return await _context.HoaDons
-                .AsNoTracking()
-                .Where(h => h.HanPhanHoi != null
-                            && !h.IsDeleted
-                            && h.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.ChoDuyet
-                            && h.HanPhanHoi <= nowUtc)
-                .OrderBy(h => h.HanPhanHoi)
-                .ThenBy(h => h.HoaDonId)
-                .Select(h => new AutoInvoiceDueItem(h.HoaDonId, h.MaHoaDon, h.HopDong.PhongTroId, h.HanPhanHoi!.Value))
-                .ToListAsync(ct);
-        }
-
-        public async Task<int?> GetLastProvisionalSubmitterIdAsync(int hoaDonId, CancellationToken ct = default)
-        {
-            return await _context.LichSuTrangThaiHoaDons
-                .AsNoTracking()
-                .Where(l => l.HoaDonId == hoaDonId
-                            && l.TrangThaiPhatHanhMoi == TrangThaiPhatHanhHoaDon.ChoDuyet
-                            && l.TrangThaiPhatHanhCu != TrangThaiPhatHanhHoaDon.ChoDuyet)
-                .OrderByDescending(l => l.NgayThucHien)
-                .ThenByDescending(l => l.LichSuTrangThaiHoaDonId)
-                .Select(l => l.NguoiThucHienId)
                 .FirstOrDefaultAsync(ct);
         }
 

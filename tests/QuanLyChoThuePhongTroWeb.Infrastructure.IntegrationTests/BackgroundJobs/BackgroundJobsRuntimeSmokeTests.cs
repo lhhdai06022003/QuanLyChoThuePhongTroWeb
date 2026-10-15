@@ -28,7 +28,6 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.BackgroundJob
             var autoClose = new BlockingContractAutoCloseUseCase();
             var expiryAlert = new BlockingContractExpiryAlertUseCase();
             var invoiceReminder = new BlockingInvoiceReminderUseCase();
-            var autoInvoiceFinalize = new BlockingAutoInvoiceFinalizeUseCase();
             var logSink = new InMemoryLogSink();
 
             var hostBuilder = new HostBuilder()
@@ -49,8 +48,6 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.BackgroundJob
                     services.AddScoped<IContractExpiryAlertUseCase>(_ => expiryAlert);
                     services.RemoveAll<IInvoiceReminderUseCase>();
                     services.AddScoped<IInvoiceReminderUseCase>(_ => invoiceReminder);
-                    services.RemoveAll<IAutoInvoiceFinalizeUseCase>();
-                    services.AddScoped<IAutoInvoiceFinalizeUseCase>(_ => autoInvoiceFinalize);
                     AddTestLogging(services, logSink);
                 });
 
@@ -61,8 +58,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.BackgroundJob
             await Task.WhenAll(
                 autoClose.Entered.WaitAsync(timeout.Token),
                 expiryAlert.Entered.WaitAsync(timeout.Token),
-                invoiceReminder.Entered.WaitAsync(timeout.Token),
-                autoInvoiceFinalize.Entered.WaitAsync(timeout.Token));
+                invoiceReminder.Entered.WaitAsync(timeout.Token));
 
             await host.StopAsync(timeout.Token);
 
@@ -70,11 +66,9 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.BackgroundJob
             AssertStartupLogFor<ContractAutoCloseJob>(logSink);
             AssertStartupLogFor<ContractExpiryAlertJob>(logSink);
             AssertStartupLogFor<InvoiceReminderJob>(logSink);
-            AssertStartupLogFor<AutoInvoiceFinalizeJob>(logSink);
             AssertShutdownLogFor<ContractAutoCloseJob>(logSink);
             AssertShutdownLogFor<ContractExpiryAlertJob>(logSink);
             AssertShutdownLogFor<InvoiceReminderJob>(logSink);
-            AssertShutdownLogFor<AutoInvoiceFinalizeJob>(logSink);
         }
 
         [Fact]
@@ -84,7 +78,6 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.BackgroundJob
             var autoCloseTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             var expiryAlertTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             var invoiceReminderTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-            var autoInvoiceFinalizeTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             var logSink = new InMemoryLogSink();
 
@@ -114,9 +107,6 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.BackgroundJob
                     services.RemoveAll<IInvoiceReminderUseCase>();
                     services.AddScoped<IInvoiceReminderUseCase>(_ => new ObservableInvoiceReminderUseCase(invoiceReminderTcs));
 
-                    services.RemoveAll<IAutoInvoiceFinalizeUseCase>();
-                    services.AddScoped<IAutoInvoiceFinalizeUseCase>(_ => new ObservableAutoInvoiceFinalizeUseCase(autoInvoiceFinalizeTcs));
-
                     // Replace external services with fakes to prevent any real side-effects
                     services.RemoveAll<IEmailService>();
                     services.AddScoped<IEmailService, FakeEmailService>();
@@ -135,12 +125,13 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.BackgroundJob
 
             using var host = hostBuilder.Build();
 
-            // 3. Assertion 1: All 4 background hosted jobs must be registered
+            // 3. Assertion 1: All 3 background hosted jobs must be registered
             var hostedServices = host.Services.GetServices<IHostedService>().ToList();
             Assert.Contains(hostedServices, s => s is ContractAutoCloseJob);
             Assert.Contains(hostedServices, s => s is ContractExpiryAlertJob);
             Assert.Contains(hostedServices, s => s is InvoiceReminderJob);
-            Assert.Contains(hostedServices, s => s is AutoInvoiceFinalizeJob);
+            // Chỉ còn ba job: không còn job tự chốt hóa đơn.
+            Assert.Equal(3, hostedServices.Count(s => s.GetType().Namespace == typeof(ContractAutoCloseJob).Namespace));
 
             // 4. Start host safely
             await host.StartAsync();
@@ -150,20 +141,17 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.BackgroundJob
             var completed = await Task.WhenAll(
                 autoCloseTcs.Task.WaitAsync(cts.Token),
                 expiryAlertTcs.Task.WaitAsync(cts.Token),
-                invoiceReminderTcs.Task.WaitAsync(cts.Token),
-                autoInvoiceFinalizeTcs.Task.WaitAsync(cts.Token)
+                invoiceReminderTcs.Task.WaitAsync(cts.Token)
             );
 
             Assert.True(completed[0], "ContractAutoCloseJob first cycle did not execute.");
             Assert.True(completed[1], "ContractExpiryAlertJob first cycle did not execute.");
             Assert.True(completed[2], "InvoiceReminderJob first cycle did not execute.");
-            Assert.True(completed[3], "AutoInvoiceFinalizeJob first cycle did not execute.");
 
             await Task.WhenAll(
                 WaitForLogAsync<ContractAutoCloseJob>(logSink, "sẽ chạy lại", cts.Token),
                 WaitForLogAsync<ContractExpiryAlertJob>(logSink, "sẽ chạy lại", cts.Token),
-                WaitForLogAsync<InvoiceReminderJob>(logSink, "sẽ chạy lại", cts.Token),
-                WaitForLogAsync<AutoInvoiceFinalizeJob>(logSink, "sẽ chạy lại", cts.Token));
+                WaitForLogAsync<InvoiceReminderJob>(logSink, "sẽ chạy lại", cts.Token));
 
             // 6. Stop host cleanly after all jobs have entered their production delay
             await host.StopAsync();
@@ -180,11 +168,9 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.BackgroundJob
             AssertStartupLogFor<ContractAutoCloseJob>(logSink);
             AssertStartupLogFor<ContractExpiryAlertJob>(logSink);
             AssertStartupLogFor<InvoiceReminderJob>(logSink);
-            AssertStartupLogFor<AutoInvoiceFinalizeJob>(logSink);
             AssertShutdownLogFor<ContractAutoCloseJob>(logSink);
             AssertShutdownLogFor<ContractExpiryAlertJob>(logSink);
             AssertShutdownLogFor<InvoiceReminderJob>(logSink);
-            AssertShutdownLogFor<AutoInvoiceFinalizeJob>(logSink);
         }
 
         private static void AddTestLogging(IServiceCollection services, InMemoryLogSink logSink)
@@ -267,24 +253,6 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.BackgroundJob
         {
             public Task<int> ExecuteAsync(CancellationToken cancellationToken = default) =>
                 BlockUntilCancelledAsync(cancellationToken);
-        }
-
-        private sealed class BlockingAutoInvoiceFinalizeUseCase : BlockingUseCase, IAutoInvoiceFinalizeUseCase
-        {
-            public Task<int> ExecuteAsync(CancellationToken cancellationToken = default) =>
-                BlockUntilCancelledAsync(cancellationToken);
-        }
-
-        private class ObservableAutoInvoiceFinalizeUseCase : IAutoInvoiceFinalizeUseCase
-        {
-            private readonly TaskCompletionSource<bool> _tcs;
-            public ObservableAutoInvoiceFinalizeUseCase(TaskCompletionSource<bool> tcs) => _tcs = tcs;
-
-            public Task<int> ExecuteAsync(CancellationToken cancellationToken = default)
-            {
-                _tcs.TrySetResult(true);
-                return Task.FromResult(0);
-            }
         }
 
         private class ObservableContractAutoCloseUseCase : IContractAutoCloseUseCase

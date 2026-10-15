@@ -1,19 +1,16 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Security;
-using QuanLyChoThuePhongTroWeb.Application.Abstractions.Services;
 using QuanLyChoThuePhongTroWeb.Application.Common.Configurations;
 using QuanLyChoThuePhongTroWeb.Application.Common.Formatting;
 using QuanLyChoThuePhongTroWeb.Application.Common.Models;
 using QuanLyChoThuePhongTroWeb.Application.Common.Security;
 using QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services;
-using QuanLyChoThuePhongTroWeb.Application.Features.Emails.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.AutoInvoices;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence;
@@ -31,8 +28,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
         private readonly IInvoiceIssuanceService _issuanceService;
         private readonly IEmployeeAccessService _employeeAccessService;
         private readonly IThongBaoService _thongBaoService;
-        private readonly IEmailService _emailService;
-        private readonly IHoaDonStore _hoaDonStore;
         private readonly AutoInvoiceOptions _options;
         private readonly ILogger<AutoInvoiceService> _logger;
 
@@ -42,8 +37,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
             IInvoiceIssuanceService issuanceService,
             IEmployeeAccessService employeeAccessService,
             IThongBaoService thongBaoService,
-            IEmailService emailService,
-            IHoaDonStore hoaDonStore,
             AutoInvoiceOptions options,
             ILogger<AutoInvoiceService> logger)
         {
@@ -52,13 +45,11 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
             _issuanceService = issuanceService ?? throw new ArgumentNullException(nameof(issuanceService));
             _employeeAccessService = employeeAccessService ?? throw new ArgumentNullException(nameof(employeeAccessService));
             _thongBaoService = thongBaoService ?? throw new ArgumentNullException(nameof(thongBaoService));
-            _emailService = emailService ?? throw new ArgumentNullException(nameof(emailService));
-            _hoaDonStore = hoaDonStore ?? throw new ArgumentNullException(nameof(hoaDonStore));
             _options = options ?? throw new ArgumentNullException(nameof(options));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        public async Task<ServiceResult<AutoInvoiceRunResult>> RunForRoomAsync(int actorId, AutoInvoiceTrigger trigger, int phongTroId, int thang, int nam, bool hoanGuiEmail = false)
+        public async Task<ServiceResult<AutoInvoiceRunResult>> RunForRoomAsync(int actorId, AutoInvoiceTrigger trigger, int phongTroId, int thang, int nam)
         {
             AutoInvoiceRoomContext? ctx = null;
             try
@@ -101,12 +92,12 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                     nguoiThucHien = actorId;
                 }
 
-                foreach (var action in new[] { EmployeeActionCodes.MeterReview, EmployeeActionCodes.InvoiceDraft, EmployeeActionCodes.InvoiceSubmit })
+                foreach (var action in new[] { EmployeeActionCodes.MeterReview, EmployeeActionCodes.InvoiceDraft })
                 {
                     if (!await _employeeAccessService.CanPerformAsync(nguoiThucHien, ctx.ChiNhanhId, action, CancellationToken.None))
                     {
                         return await DungCoThongBaoAsync(ctx, AutoInvoiceReason.NguoiThucHienThieuQuyen,
-                            "Người thực hiện thiếu quyền Meter.Review, Invoice.Draft hoặc Invoice.Submit tại chi nhánh");
+                            "Người thực hiện thiếu quyền Meter.Review hoặc Invoice.Draft tại chi nhánh");
                     }
                 }
 
@@ -198,14 +189,16 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                     return await DungKhongDuDieuKienAsync(latest, latestDecision, trigger, " khi đánh giá lại");
                 }
 
-                // Bước 3: tạo hóa đơn nháp (cách tính tiền giữ nguyên của luồng tay).
+                // Bước 3: tạo hóa đơn nháp (cách tính tiền giữ nguyên của luồng tay), lịch sử mang nhãn [TU_DONG].
                 var drafts = await _issuanceService.CreateDraftsAsync(new CreateInvoiceDraftsRequest
                 {
                     ChiNhanhId = latest.ChiNhanhId,
                     Thang = thang,
                     Nam = nam,
                     PhongTroIds = new[] { phongTroId }
-                }, nguoiThucHien, CancellationToken.None);
+                }, nguoiThucHien,
+                    lyDoKhoiTao: AutoInvoiceHistoryTags.TaoLyDo(AutoInvoiceHistoryTags.TuDong, "Tạo hóa đơn nháp tự động"),
+                    ct: CancellationToken.None);
                 _store.DiscardPendingChanges();
 
                 if (!drafts.Success)
@@ -230,30 +223,22 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                         string.IsNullOrWhiteSpace(moTa) ? "Không tạo được hóa đơn nháp" : moTa);
                 }
 
-                // Bước 4: gửi bản tạm tính cho khách và đặt hạn phản hồi.
+                // Dừng ở nháp: chỉ báo nhân viên phụ trách phòng kiểm tra rồi gửi duyệt, không gửi gì cho khách.
                 var hoaDonId = created.HoaDonId.Value;
-                var submit = await _issuanceService.SubmitProvisionalAsync(hoaDonId, nguoiThucHien, CancellationToken.None);
-                _store.DiscardPendingChanges();
-                if (!submit.Success || submit.Data == null)
-                {
-                    return await DungCoThongBaoAsync(latest, AutoInvoiceReason.LoiKhiTao,
-                        $"Đã tạo hóa đơn nháp {created.MaHoaDon} nhưng chưa gửi được bản tạm tính: {submit.Message}. Vui lòng xử lý theo luồng tay.");
-                }
+                await TryNotifyAsync("nhân viên", () => _thongBaoService.GuiChoNguoiPhuTrachPhongAsync(
+                    phongTroId,
+                    $"Phòng {latest.SoPhong} kỳ {thang:00}/{nam}: có hóa đơn tự động chờ gửi duyệt",
+                    $"Hóa đơn {created.MaHoaDon} đã được tạo ở trạng thái nháp. Kiểm tra rồi bấm Gửi duyệt.",
+                    "HoaDon",
+                    "/QuanLyNhaTro/QuanLyHoaDon"));
 
-                var han = submit.Data.HanPhanHoiUtc ?? DateTime.UtcNow;
-
-                // Bước 5: báo khách số tiền tạm tính.
-                var emailChoGui = await BaoKhachTamTinhAsync(latest, latestDecision, hoaDonId, han, hoanGuiEmail);
-
-                _logger.LogInformation("Đã gửi hóa đơn tạm tính {HoaDonId} (phòng {PhongTroId}, kỳ {Thang}/{Nam}, trigger {Trigger}), hạn phản hồi {Han:O}.",
-                    hoaDonId, phongTroId, thang, nam, trigger, han);
+                _logger.LogInformation("Đã tạo hóa đơn nháp tự động {HoaDonId} (phòng {PhongTroId}, kỳ {Thang}/{Nam}, trigger {Trigger}).",
+                    hoaDonId, phongTroId, thang, nam, trigger);
                 return ServiceResult<AutoInvoiceRunResult>.Ok(new AutoInvoiceRunResult
                 {
-                    Outcome = AutoInvoiceOutcome.DaGuiTamTinh,
+                    Outcome = AutoInvoiceOutcome.DaTaoNhap,
                     HoaDonId = hoaDonId,
-                    NguoiThucHienId = nguoiThucHien,
-                    HanPhanHoiUtc = han,
-                    EmailChoGui = emailChoGui
+                    NguoiThucHienId = nguoiThucHien
                 });
             }
             catch (Exception ex)
@@ -265,7 +250,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                     if (ctx != null)
                     {
                         _store.DiscardPendingChanges();
-                        await BaoDungAsync(ctx, new[] { AutoInvoiceReason.LoiKhiTao }, new[] { "Lỗi hệ thống khi tự động lập hóa đơn tạm tính" }, null);
+                        await BaoDungAsync(ctx, new[] { AutoInvoiceReason.LoiKhiTao }, new[] { "Lỗi hệ thống khi lập hóa đơn tự động" }, null);
                     }
                 }
                 catch (Exception notifyEx)
@@ -328,7 +313,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
 
             await TryNotifyAsync("nhân viên", () => _thongBaoService.GuiChoNguoiPhuTrachPhongAsync(
                 ctx.PhongTroId,
-                $"Phòng {ctx.SoPhong} kỳ {ctx.Thang:00}/{ctx.Nam}: chưa tạo được hóa đơn tạm tính",
+                $"Phòng {ctx.SoPhong} kỳ {ctx.Thang:00}/{ctx.Nam}: chưa tạo được hóa đơn tự động",
                 "Lý do: " + string.Join("; ", moTas) + (lyDos.Contains(AutoInvoiceReason.ThieuDonGia) ? " " + HuongDanThieuDonGia : string.Empty),
                 "HoaDon",
                 $"/QuanLyNhaTro/ChotDienNuoc?thang={ctx.Thang}&nam={ctx.Nam}"));
@@ -392,79 +377,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                 _store.DiscardPendingChanges();
                 _logger.LogWarning(ex, "Lỗi khi gửi thông báo hóa đơn tự động cho {DoiTuong}.", doiTuong);
             }
-        }
-
-        private async Task<PendingProvisionalEmail?> BaoKhachTamTinhAsync(AutoInvoiceRoomContext ctx, AutoInvoiceRoomDecision decision, int hoaDonId, DateTime hanUtc, bool hoanGuiEmail)
-        {
-            HoaDonChiTietRes? detail = null;
-            try
-            {
-                detail = await _hoaDonStore.GetHoaDonDetailByIdAsync(hoaDonId, CancellationToken.None);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Không đọc được hóa đơn {HoaDonId} để báo khách tạm tính.", hoaDonId);
-            }
-
-            if (detail == null)
-            {
-                _logger.LogWarning("Không tìm thấy hóa đơn {HoaDonId} để báo khách tạm tính.", hoaDonId);
-                return null;
-            }
-
-            var hanText = hanUtc.AddHours(7).ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture);
-
-            if (ctx.NguoiDungKhachId.HasValue && ctx.HopDongHieuLuc.Count == 1)
-            {
-                var noiDung = $"Hóa đơn {detail.MaHoaDon} tháng {detail.Thang}/{detail.Nam}: tổng tiền {detail.TongTien.ToString("#,##0", CultureInfo.InvariantCulture)} đ (tạm tính). "
-                    + $"Hệ thống tự chốt lúc {hanText}. Nếu có sai sót, vui lòng liên hệ {detail.SoDienThoaiChiNhanh}.";
-                await TryNotifyAsync("khách thuê", () => _thongBaoService.GuiChoKhachThueAsync(
-                    ctx.HopDongHieuLuc[0].NguoiThueId,
-                    $"Hóa đơn tạm tính tháng {detail.Thang}/{detail.Nam}",
-                    noiDung,
-                    "HoaDon",
-                    $"/KhachThue/HoaDon?hoaDonId={hoaDonId}"));
-            }
-
-            if (!string.IsNullOrWhiteSpace(ctx.EmailKhach))
-            {
-                try
-                {
-                    var data = new ProvisionalInvoiceEmailData
-                    {
-                        MaHoaDon = detail.MaHoaDon,
-                        TenNguoiThue = detail.TenNguoiThue,
-                        TenPhong = detail.TenPhong,
-                        TenChiNhanh = detail.TenChiNhanh,
-                        SoDienThoaiChiNhanh = detail.SoDienThoaiChiNhanh,
-                        Thang = detail.Thang,
-                        Nam = detail.Nam,
-                        TongTien = detail.TongTien,
-                        ChiTietHoaDons = detail.ChiTietHoaDons,
-                        ChiSoDienCu = decision.Dien?.ChiSoCu ?? 0m,
-                        ChiSoDienMoi = decision.Dien?.ChiSoMoi ?? 0m,
-                        ChiSoNuocCu = decision.Nuoc?.ChiSoCu ?? 0m,
-                        ChiSoNuocMoi = decision.Nuoc?.ChiSoMoi ?? 0m,
-                        HanTuChotUtc = hanUtc
-                    };
-                    if (hoanGuiEmail)
-                    {
-                        return new PendingProvisionalEmail(hoaDonId, ctx.EmailKhach!, data);
-                    }
-
-                    var result = await _emailService.SendProvisionalInvoiceEmailAsync(ctx.EmailKhach!, data);
-                    if (!result.IsSuccess)
-                    {
-                        _logger.LogWarning("Không gửi được email tạm tính hóa đơn {HoaDonId}: {Error}", hoaDonId, result.ErrorMessage);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Lỗi khi gửi email tạm tính hóa đơn {HoaDonId}.", hoaDonId);
-                }
-            }
-
-            return null;
         }
 
         private static string FormatSo(decimal? value) => value.HasValue ? ChiSo.DinhDang(value.Value) : string.Empty;

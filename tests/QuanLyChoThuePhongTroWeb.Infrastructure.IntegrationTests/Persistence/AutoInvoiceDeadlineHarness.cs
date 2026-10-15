@@ -26,7 +26,7 @@ using QuanLyChoThuePhongTroWeb.Infrastructure.Persistence;
 
 namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
 {
-    // Dùng chung cho test điều chỉnh và tự chốt: service thật trên DB test, chỉ thay OCR, lưu ảnh, email, PDF, SignalR và đồng hồ.
+    // Dùng chung cho test điều chỉnh hóa đơn và chỉ số: service thật trên DB test, chỉ thay OCR, lưu ảnh, email, PDF, SignalR và đồng hồ.
     internal sealed class DeadlineClock : TimeProvider
     {
         public DateTime Now { get; set; } = new(2026, 10, 15, 10, 0, 0, DateTimeKind.Utc);
@@ -36,27 +36,8 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
 
     internal sealed class DeadlineEmail : IEmailService
     {
-        public ConcurrentQueue<(string To, ProvisionalInvoiceEmailData Data)> Provisional { get; } = new();
         public ConcurrentQueue<(string To, string MaHoaDon)> Invoice { get; } = new();
         public bool FailInvoiceEmail { get; set; }
-
-        public Task<(bool IsSuccess, string ErrorMessage)> SendProvisionalInvoiceEmailAsync(string toEmail, ProvisionalInvoiceEmailData data)
-        {
-            Provisional.Enqueue((toEmail, data));
-            return Task.FromResult((true, string.Empty));
-        }
-
-        // Email tạm tính khi chốt kỳ và khi điều chỉnh gửi nền sau khi request trả về: chờ có hạn cho tới khi đủ số email mong đợi.
-        public async Task<List<(string To, ProvisionalInvoiceEmailData Data)>> WaitForProvisionalAsync(int expectedCount, int timeoutMs = 5000)
-        {
-            var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);
-            while (Provisional.Count < expectedCount && DateTime.UtcNow < deadline)
-            {
-                await Task.Delay(50);
-            }
-
-            return Provisional.ToList();
-        }
 
         public Task<(bool IsSuccess, string ErrorMessage)> SendInvoiceEmailAsync(string toEmail, HoaDonChiTietRes hoaDon, byte[] pdfBytes)
         {
@@ -232,8 +213,8 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             };
         }
 
-        // Khách tải ảnh điện rồi nước (OCR 120 và 60): chuỗi tự tạo sinh hóa đơn tạm tính (điện tiêu thụ 20, nước 10).
-        public static async Task<HoaDon> CreateProvisionalInvoiceAsync(DeadlineHost host, PostgreSqlFixture fixture, DeadlineSeed seed)
+        // Khách tải ảnh điện rồi nước (OCR 120 và 60): chuỗi tự tạo sinh hóa đơn nháp (điện tiêu thụ 20, nước 10).
+        public static async Task<HoaDon> CreateAutoDraftInvoiceAsync(DeadlineHost host, PostgreSqlFixture fixture, DeadlineSeed seed)
         {
             foreach (var loai in new[] { AppLoaiDongHo.Dien, AppLoaiDongHo.Nuoc })
             {
@@ -258,17 +239,47 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
                 .SingleAsync(h => h.HopDongId == seed.Contract.HopDongId && !h.IsDeleted);
         }
 
-        // DB test dùng chung: hóa đơn tạm tính còn sót từ các lần chạy trước cũng đến hạn khi đồng hồ test chạy tới,
-        // làm job xử lý (và báo lỗi) hàng loạt. Bỏ hạn của chúng (thành hóa đơn gửi duyệt tay) để job chỉ còn thấy dữ liệu của test này.
-        public static async Task IsolateJobAsync(PostgreSqlFixture fixture, params DeadlineSeed[] keep)
+        // Đưa hóa đơn nháp đi tiếp bằng service thật: nhân viên gửi duyệt, Admin chốt, Admin công bố (dừng ở trạng thái đích).
+        public static async Task<HoaDon> MoveToAsync(DeadlineHost host, PostgreSqlFixture fixture, DeadlineSeed seed, int hoaDonId, TrangThaiPhatHanhHoaDon target)
         {
-            var keepContractIds = keep.Select(s => s.Contract.HopDongId).ToList();
+            await using (var scope = host.Provider.CreateAsyncScope())
+            {
+                var issuance = scope.ServiceProvider.GetRequiredService<QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services.IInvoiceIssuanceService>();
+                var submit = await issuance.SubmitAsync(hoaDonId, seed.Staff.NguoiDungId);
+                if (!submit.Success) throw new InvalidOperationException(submit.Message);
+            }
+
+            if (target != TrangThaiPhatHanhHoaDon.ChoDuyet)
+            {
+                await using var scope = host.Provider.CreateAsyncScope();
+                var issuance = scope.ServiceProvider.GetRequiredService<QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services.IInvoiceIssuanceService>();
+                var finalize = await issuance.FinalizeAsync(hoaDonId, seed.Admin.NguoiDungId);
+                if (!finalize.Success) throw new InvalidOperationException(finalize.Message);
+            }
+
+            if (target == TrangThaiPhatHanhHoaDon.DaGui)
+            {
+                await using var scope = host.Provider.CreateAsyncScope();
+                var publication = scope.ServiceProvider.GetRequiredService<QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services.IInvoicePublicationService>();
+                var publish = await publication.PublishAsync(new PublishInvoicesRequest { HoaDonIds = new[] { hoaDonId } }, seed.Admin.NguoiDungId);
+                if (!publish.Success) throw new InvalidOperationException(publish.Message);
+            }
+
             await using var db = fixture.CreateDbContext();
-            await db.HoaDons
-                .Where(h => h.HanPhanHoi != null
-                            && h.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.ChoDuyet
-                            && !keepContractIds.Contains(h.HopDongId))
-                .ExecuteUpdateAsync(s => s.SetProperty(h => h.HanPhanHoi, (DateTime?)null));
+            var invoice = await db.HoaDons.AsNoTracking().SingleAsync(h => h.HoaDonId == hoaDonId);
+            if (invoice.TrangThaiPhatHanh != target)
+            {
+                throw new InvalidOperationException($"Hóa đơn {hoaDonId} ở {invoice.TrangThaiPhatHanh}, mong đợi {target}.");
+            }
+
+            return invoice;
+        }
+
+        // Hóa đơn nháp do chuỗi tự động tạo, rồi đưa tới trạng thái đích.
+        public static async Task<HoaDon> CreateInvoiceAsync(DeadlineHost host, PostgreSqlFixture fixture, DeadlineSeed seed, TrangThaiPhatHanhHoaDon target)
+        {
+            var draft = await CreateAutoDraftInvoiceAsync(host, fixture, seed);
+            return await MoveToAsync(host, fixture, seed, draft.HoaDonId, target);
         }
 
         public static async Task<List<HoaDon>> InvoicesAsync(PostgreSqlFixture fixture, DeadlineSeed seed, bool includeDeleted = false)

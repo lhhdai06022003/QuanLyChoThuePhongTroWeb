@@ -78,19 +78,26 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
 
         private sealed class RecordingEmail : IEmailService
         {
-            public ConcurrentQueue<(string To, ProvisionalInvoiceEmailData Data)> Provisional { get; } = new();
+            // Mọi email đã gửi (người nhận): chuỗi tự động chỉ tạo nháp nên không được gửi email nào.
+            public ConcurrentQueue<string> Sent { get; } = new();
 
-            public Task<(bool IsSuccess, string ErrorMessage)> SendProvisionalInvoiceEmailAsync(string toEmail, ProvisionalInvoiceEmailData data)
+            public Task<(bool IsSuccess, string ErrorMessage)> SendInvoiceEmailAsync(string toEmail, HoaDonChiTietRes hoaDon, byte[] pdfBytes)
             {
-                Provisional.Enqueue((toEmail, data));
+                Sent.Enqueue(toEmail);
                 return Task.FromResult((true, string.Empty));
             }
 
-            public Task<(bool IsSuccess, string ErrorMessage)> SendInvoiceEmailAsync(string toEmail, HoaDonChiTietRes hoaDon, byte[] pdfBytes)
-                => Task.FromResult((true, string.Empty));
-
             public Task<(bool IsSuccess, string ErrorMessage)> SendContractExpiryAlertAsync(string toEmail, string tenNguoiNhan, ContractExpiryAlertData alertData)
-                => Task.FromResult((true, string.Empty));
+            {
+                Sent.Enqueue(toEmail);
+                return Task.FromResult((true, string.Empty));
+            }
+
+            public Task<(bool IsSuccess, string ErrorMessage)> SendRoomDepositedNoticeAsync(string toEmail, string recipientName, string roomNumber, string branchName)
+            {
+                Sent.Enqueue(toEmail);
+                return Task.FromResult((true, string.Empty));
+            }
         }
 
         private sealed class NoopNotifier : IThongBaoNotifier
@@ -275,7 +282,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
         }
 
         [Fact]
-        public async Task TenantUploadsBothMeters_CreatesOneProvisionalInvoice_WithConfirmationAndNotifications()
+        public async Task TenantUploadsBothMeters_CreatesOneDraftInvoice_TaggedTuDong_AndNotifiesStaffOnly()
         {
             using var host = new Host(_fixture.ConnectionString);
             var seed = await SeedAsync();
@@ -285,13 +292,12 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             await UploadAsync(host, seed, seed.TenantAccount.NguoiDungId, AppLoaiDongHo.Nuoc);
 
             var invoice = Assert.Single(await InvoicesAsync(seed));
-            Assert.Equal(TrangThaiPhatHanhHoaDon.ChoDuyet, invoice.TrangThaiPhatHanh);
-            Assert.Equal(Now.AddHours(SoGio), invoice.HanPhanHoi);
+            Assert.Equal(TrangThaiPhatHanhHoaDon.Nhap, invoice.TrangThaiPhatHanh);
+            Assert.Null(invoice.HanPhanHoi);
             Assert.True(invoice.TongTien > 0);
-            var history = invoice.LichSuTrangThaiHoaDons.OrderBy(h => h.LichSuTrangThaiHoaDonId).ToList();
-            Assert.Equal(2, history.Count);
-            Assert.StartsWith("[TU_DONG]", history[1].LyDo);
-            Assert.Equal(seed.Staff.NguoiDungId, history[1].NguoiThucHienId);
+            var history = Assert.Single(invoice.LichSuTrangThaiHoaDons);
+            Assert.Equal("[TU_DONG] Tạo hóa đơn nháp tự động", history.LyDo);
+            Assert.Equal(seed.Staff.NguoiDungId, history.NguoiThucHienId);
 
             await using var db = _fixture.CreateDbContext();
             var period = await db.DichVuDienNuocCuaPhongs.AsNoTracking()
@@ -309,17 +315,19 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
                 Assert.StartsWith("Tự xác nhận, độ tin cậy 0,95", a.GhiChuXacNhan);
             });
 
-            var notices = await db.ThongBaos.AsNoTracking()
-                .Where(t => t.NguoiDungId == seed.TenantAccount.NguoiDungId).ToListAsync();
-            var notice = Assert.Single(notices);
-            Assert.Equal($"/KhachThue/HoaDon?hoaDonId={invoice.HoaDonId}", notice.LinkDieuHuong);
-            Assert.Contains("tạm tính", notice.NoiDung);
+            var tieuDe = $"Phòng {seed.Room.SoPhong} kỳ 10/2026: có hóa đơn tự động chờ gửi duyệt";
+            var staffNotice = Assert.Single(await db.ThongBaos.AsNoTracking()
+                .Where(t => t.NguoiDungId == seed.Staff.NguoiDungId).ToListAsync());
+            Assert.Equal(tieuDe, staffNotice.TieuDe);
+            Assert.Equal($"Hóa đơn {invoice.MaHoaDon} đã được tạo ở trạng thái nháp. Kiểm tra rồi bấm Gửi duyệt.", staffNotice.NoiDung);
+            Assert.Equal("HoaDon", staffNotice.LinhVuc);
+            Assert.Equal("/QuanLyNhaTro/QuanLyHoaDon", staffNotice.LinkDieuHuong);
+            Assert.Contains(await db.ThongBaos.AsNoTracking().Where(t => t.NguoiDungId == seed.Admin.NguoiDungId).ToListAsync(),
+                t => t.TieuDe == tieuDe);
 
-            var mail = Assert.Single(host.Email.Provisional);
-            Assert.Equal(seed.Tenant.Email, mail.To);
-            Assert.Equal(invoice.MaHoaDon, mail.Data.MaHoaDon);
-            Assert.Equal(invoice.TongTien, mail.Data.TongTien);
-            Assert.Equal(Now.AddHours(SoGio), mail.Data.HanTuChotUtc);
+            // Không gửi gì cho khách: không thông báo cổng, không email.
+            Assert.Empty(await db.ThongBaos.AsNoTracking().Where(t => t.NguoiDungId == seed.TenantAccount.NguoiDungId).ToListAsync());
+            Assert.Empty(host.Email.Sent);
         }
 
         [Fact]
@@ -381,8 +389,9 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
 
             var autoInvoice = Assert.Single(await InvoicesAsync(auto));
             var manualInvoice = Assert.Single(await InvoicesAsync(manual));
-            Assert.Equal(TrangThaiPhatHanhHoaDon.ChoDuyet, autoInvoice.TrangThaiPhatHanh);
+            Assert.Equal(TrangThaiPhatHanhHoaDon.Nhap, autoInvoice.TrangThaiPhatHanh);
             Assert.Equal(TrangThaiPhatHanhHoaDon.Nhap, manualInvoice.TrangThaiPhatHanh);
+            Assert.Equal("Tạo hóa đơn nháp", Assert.Single(manualInvoice.LichSuTrangThaiHoaDons).LyDo);
 
             await using var verify = _fixture.CreateDbContext();
             async Task<List<(string Ten, decimal SoLuong, decimal DonGia, decimal Tong)>> LinesAsync(int id)
@@ -400,19 +409,14 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
         }
 
         [Fact]
-        public async Task ProvisionalInvoice_ShowsDeadlineInVietnamTime_AndIsNotCountedAsDebt()
+        public async Task AutoDraftInvoice_IsNotCountedAsDebt()
         {
             using var host = new Host(_fixture.ConnectionString);
             var seed = await SeedAsync();
             await UploadAsync(host, seed, seed.TenantAccount.NguoiDungId, AppLoaiDongHo.Dien);
             await UploadAsync(host, seed, seed.TenantAccount.NguoiDungId, AppLoaiDongHo.Nuoc);
             var invoice = Assert.Single(await InvoicesAsync(seed));
-
-            await using var db = _fixture.CreateDbContext();
-            var notice = Assert.Single(await db.ThongBaos.AsNoTracking().Where(t => t.NguoiDungId == seed.TenantAccount.NguoiDungId).ToListAsync());
-            // Hạn UTC 17/10/2026 10:00 hiển thị 17:00 giờ Việt Nam.
-            Assert.Contains("17/10/2026 17:00", notice.NoiDung);
-            Assert.DoesNotContain("17/10/2026 10:00", notice.NoiDung);
+            Assert.Equal(TrangThaiPhatHanhHoaDon.Nhap, invoice.TrangThaiPhatHanh);
 
             await using var scope = host.Provider.CreateAsyncScope();
             var store = scope.ServiceProvider.GetRequiredService<QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence.IHoaDonStore>();
@@ -438,7 +442,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             Assert.Equal(AutoInvoiceOutcome.DungCoThongBao, result.Data!.Outcome);
             Assert.Contains(AutoInvoiceReason.NguoiThucHienThieuQuyen, result.Data.LyDos);
             Assert.Empty(await InvoicesAsync(seed));
-            Assert.Empty(host.Email.Provisional);
+            Assert.Empty(host.Email.Sent);
         }
 
         [Fact]
@@ -469,7 +473,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             var auto = scope.ServiceProvider.GetRequiredService<IAutoInvoiceService>();
             var result = await auto.RunForRoomAsync(seed.Staff.NguoiDungId, AutoInvoiceTrigger.ChotKy, seed.Room.PhongTroId, Thang, Nam);
 
-            Assert.Equal(AutoInvoiceOutcome.DaGuiTamTinh, result.Data!.Outcome);
+            Assert.Equal(AutoInvoiceOutcome.DaTaoNhap, result.Data!.Outcome);
             var invoice = Assert.Single(await InvoicesAsync(seed));
             Assert.Equal(invoice.HoaDonId, result.Data.HoaDonId);
             Assert.True(result.Data.HoaDonId > 0);
@@ -496,10 +500,10 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
                     .RunForRoomAsync(seed.Staff.NguoiDungId, AutoInvoiceTrigger.ChotKy, seed.Room.PhongTroId, Thang, Nam)).Data;
             }
 
-            Assert.Equal(AutoInvoiceOutcome.DaGuiTamTinh, first!.Outcome);
+            Assert.Equal(AutoInvoiceOutcome.DaTaoNhap, first!.Outcome);
             Assert.Equal(AutoInvoiceOutcome.DungImLang, second!.Outcome);
             Assert.Single(await InvoicesAsync(seed));
-            Assert.Single(host.Email.Provisional);
+            Assert.Empty(host.Email.Sent);
         }
 
         [Fact]
@@ -522,7 +526,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             var results = await Task.WhenAll(RunAsync(), RunAsync());
 
             Assert.Single(await InvoicesAsync(seed));
-            Assert.Equal(1, results.Count(r => r!.Outcome == AutoInvoiceOutcome.DaGuiTamTinh));
+            Assert.Equal(1, results.Count(r => r!.Outcome == AutoInvoiceOutcome.DaTaoNhap));
             Assert.DoesNotContain(results, r => r!.LyDos.Contains(AutoInvoiceReason.LoiKhiTao));
         }
 
@@ -541,13 +545,13 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             Assert.Empty(await InvoicesAsync(seed));
             await using var db = _fixture.CreateDbContext();
             var staffNotices = await db.ThongBaos.AsNoTracking().Where(t => t.NguoiDungId == seed.Staff.NguoiDungId).ToListAsync();
-            Assert.Contains(staffNotices, t => t.TieuDe.Contains("chưa tạo được hóa đơn tạm tính") && t.NoiDung.Contains("0,89 < 0,90"));
+            Assert.Contains(staffNotices, t => t.TieuDe.Contains("chưa tạo được hóa đơn tự động") && t.NoiDung.Contains("0,89 < 0,90"));
             var adminNotices = await db.ThongBaos.AsNoTracking().Where(t => t.NguoiDungId == seed.Admin.NguoiDungId).ToListAsync();
-            Assert.Contains(adminNotices, t => t.TieuDe.Contains("chưa tạo được hóa đơn tạm tính"));
+            Assert.Contains(adminNotices, t => t.TieuDe.Contains("chưa tạo được hóa đơn tự động"));
             var tenantNotices = await db.ThongBaos.AsNoTracking().Where(t => t.NguoiDungId == seed.TenantAccount.NguoiDungId).ToListAsync();
             var tenantNotice = Assert.Single(tenantNotices);
             Assert.Equal("Cần chụp lại ảnh đồng hồ", tenantNotice.TieuDe);
-            Assert.Empty(host.Email.Provisional);
+            Assert.Empty(host.Email.Sent);
 
             // Ảnh chưa bị tự xác nhận.
             Assert.DoesNotContain(await db.AnhChiSoDongHos.AsNoTracking().Where(a => a.DichVuDienNuocCuaPhong.PhongTroId == seed.Room.PhongTroId).ToListAsync(),
@@ -586,10 +590,11 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
         }
 
         [Fact]
-        public async Task StaffManualClose_ThroughDienNuocService_CreatesProvisionalInvoice()
+        public async Task StaffManualClose_ThroughDienNuocService_CreatesDraftInvoice_EvenWhenTenantHasNoChannel()
         {
             using var host = new Host(_fixture.ConnectionString);
-            var seed = await SeedAsync(withAccount: false);
+            // Khách không có tài khoản cổng lẫn email vẫn được tự tạo nháp (chỉ báo nhân viên).
+            var seed = await SeedAsync(email: "", withAccount: false);
             await UploadWithoutTriggerAsync(host, seed, seed.Staff.NguoiDungId, LoaiDongHo.Dien);
             await UploadWithoutTriggerAsync(host, seed, seed.Staff.NguoiDungId, LoaiDongHo.Nuoc);
 
@@ -619,16 +624,14 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             }
 
             var invoice = Assert.Single(await InvoicesAsync(seed));
-            Assert.Equal(TrangThaiPhatHanhHoaDon.ChoDuyet, invoice.TrangThaiPhatHanh);
-            Assert.NotNull(invoice.HanPhanHoi);
+            Assert.Equal(TrangThaiPhatHanhHoaDon.Nhap, invoice.TrangThaiPhatHanh);
+            Assert.Null(invoice.HanPhanHoi);
+            Assert.StartsWith("[TU_DONG]", Assert.Single(invoice.LichSuTrangThaiHoaDons).LyDo);
 
-            // Chốt kỳ gửi email tạm tính ở nền (Task.Run) sau khi request trả về, nên chờ có hạn rồi mới kiểm.
-            for (var i = 0; i < 100 && host.Email.Provisional.IsEmpty; i++)
-            {
-                await Task.Delay(50);
-            }
-
-            Assert.Single(host.Email.Provisional);
+            await using var db = _fixture.CreateDbContext();
+            Assert.Contains(await db.ThongBaos.AsNoTracking().Where(t => t.NguoiDungId == seed.Staff.NguoiDungId).ToListAsync(),
+                t => t.TieuDe.Contains("có hóa đơn tự động chờ gửi duyệt"));
+            Assert.Empty(host.Email.Sent);
         }
     }
 }

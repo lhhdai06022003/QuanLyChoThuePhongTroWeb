@@ -363,99 +363,6 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
         }
 
         [Fact]
-        public async Task GetRoomContext_Recipient_SingleContract_TrimmedEmailAndActiveAccount()
-        {
-            await using var db = _fixture.CreateDbContext();
-            await using var tx = await db.Database.BeginTransactionAsync();
-            var seeder = new DebtTestSeeder(db);
-            var branch = await seeder.BranchAsync("R");
-            var room = await seeder.RoomAsync(branch, "R");
-            var tenant = await seeder.TenantAsync("R");
-            tenant.Email = "  khach@example.com  ";
-            await db.SaveChangesAsync();
-            await seeder.ContractAsync(room, tenant);
-            // nguoi_dung.NguoiThueId là duy nhất nên mỗi khách tối đa một tài khoản.
-            var account = await UserAsync(db, "ok1", Role.KhachThue, nguoiThueId: tenant.NguoiThueId);
-            var store = new AutoInvoiceStore(db, new MeterConsumptionHistoryStore(db));
-
-            var ctx = await store.GetRoomContextAsync(room.PhongTroId, Thang, Nam, 3);
-
-            Assert.Equal("khach@example.com", ctx!.EmailKhach);
-            Assert.Equal(account.NguoiDungId, ctx.NguoiDungKhachId);
-
-            await tx.RollbackAsync();
-        }
-
-        [Theory]
-        [InlineData(true, false)]
-        [InlineData(false, true)]
-        public async Task GetRoomContext_Recipient_DeletedOrInactiveAccount_IsNotUsed(bool deleted, bool inactive)
-        {
-            await using var db = _fixture.CreateDbContext();
-            await using var tx = await db.Database.BeginTransactionAsync();
-            var seeder = new DebtTestSeeder(db);
-            var branch = await seeder.BranchAsync("Q");
-            var room = await seeder.RoomAsync(branch, "Q");
-            var tenant = await seeder.TenantAsync("Q");
-            await seeder.ContractAsync(room, tenant);
-            await UserAsync(db, "bad", Role.KhachThue, active: !inactive, deleted: deleted, nguoiThueId: tenant.NguoiThueId);
-            var store = new AutoInvoiceStore(db, new MeterConsumptionHistoryStore(db));
-
-            var ctx = await store.GetRoomContextAsync(room.PhongTroId, Thang, Nam, 3);
-
-            Assert.Null(ctx!.NguoiDungKhachId);
-            Assert.NotNull(ctx.EmailKhach);
-
-            await tx.RollbackAsync();
-        }
-
-        [Fact]
-        public async Task GetRoomContext_Recipient_BlankEmailAndNoAccount_AreNull()
-        {
-            await using var db = _fixture.CreateDbContext();
-            await using var tx = await db.Database.BeginTransactionAsync();
-            var seeder = new DebtTestSeeder(db);
-            var branch = await seeder.BranchAsync("B");
-            var room = await seeder.RoomAsync(branch, "B");
-            var tenant = await seeder.TenantAsync("B");
-            tenant.Email = "   ";
-            await db.SaveChangesAsync();
-            await seeder.ContractAsync(room, tenant);
-            var store = new AutoInvoiceStore(db, new MeterConsumptionHistoryStore(db));
-
-            var ctx = await store.GetRoomContextAsync(room.PhongTroId, Thang, Nam, 3);
-
-            Assert.Null(ctx!.EmailKhach);
-            Assert.Null(ctx.NguoiDungKhachId);
-
-            await tx.RollbackAsync();
-        }
-
-        [Fact]
-        public async Task GetRoomContext_Recipient_MultipleContracts_NotResolved()
-        {
-            await using var db = _fixture.CreateDbContext();
-            await using var tx = await db.Database.BeginTransactionAsync();
-            var seeder = new DebtTestSeeder(db);
-            var branch = await seeder.BranchAsync("M");
-            var room = await seeder.RoomAsync(branch, "M");
-            var t1 = await seeder.TenantAsync("M1");
-            var t2 = await seeder.TenantAsync("M2");
-            await seeder.ContractAsync(room, t1, Utc(2026, 1, 1), Utc(2026, 10, 14));
-            await seeder.ContractAsync(room, t2, Utc(2026, 10, 15), null);
-            await UserAsync(db, "m1", Role.KhachThue, nguoiThueId: t1.NguoiThueId);
-            var store = new AutoInvoiceStore(db, new MeterConsumptionHistoryStore(db));
-
-            var ctx = await store.GetRoomContextAsync(room.PhongTroId, Thang, Nam, 3);
-
-            Assert.Equal(2, ctx!.HopDongHieuLuc.Count);
-            Assert.Null(ctx.EmailKhach);
-            Assert.Null(ctx.NguoiDungKhachId);
-
-            await tx.RollbackAsync();
-        }
-
-        [Fact]
         public async Task FindFallbackActor_PicksEarliestAssignment_TiesByLowestId_SkippingInvalid()
         {
             await using var db = _fixture.CreateDbContext();
@@ -536,9 +443,9 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
         }
 
 
-        // ---------- Đợt B: truy vấn tự chốt và điều chỉnh ----------
+        // ---------- Truy vấn điều chỉnh ----------
 
-        private static async Task<HoaDon> ProvisionalAsync(
+        private static async Task<HoaDon> InvoiceWithHanAsync(
             ApplicationDbContext db, DebtTestSeeder seeder, HopDong contract, DateTime? han,
             TrangThaiPhatHanhHoaDon issue = TrangThaiPhatHanhHoaDon.ChoDuyet, bool deleted = false)
         {
@@ -546,82 +453,6 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             inv.HanPhanHoi = han;
             await db.SaveChangesAsync();
             return inv;
-        }
-
-        [Fact]
-        public async Task GetDueProvisionalInvoices_ReturnsOnlyDueChoDuyetWithDeadline_InDeadlineOrder()
-        {
-            await using var db = _fixture.CreateDbContext();
-            await using var tx = await db.Database.BeginTransactionAsync();
-            var seeder = new DebtTestSeeder(db);
-            var branch = await seeder.BranchAsync("Q");
-            var room = await seeder.RoomAsync(branch, "Q");
-            var tenant = await seeder.TenantAsync("Q");
-            var contract = await seeder.ContractAsync(room, tenant);
-            var now = Utc(2026, 10, 20, 3);
-
-            var later = await ProvisionalAsync(db, seeder, contract, now.AddHours(-1));
-            var exactly = await ProvisionalAsync(db, seeder, contract, now);
-            var earlier = await ProvisionalAsync(db, seeder, contract, now.AddHours(-5));
-            var notDue = await ProvisionalAsync(db, seeder, contract, now.AddSeconds(1));
-            var manual = await ProvisionalAsync(db, seeder, contract, null);
-            var deleted = await ProvisionalAsync(db, seeder, contract, now.AddHours(-2), deleted: true);
-            var sent = await ProvisionalAsync(db, seeder, contract, now.AddHours(-3), TrangThaiPhatHanhHoaDon.DaGui);
-            var store = new AutoInvoiceStore(db, new MeterConsumptionHistoryStore(db));
-
-            var due = await store.GetDueProvisionalInvoicesAsync(now);
-
-            var mine = new[] { later, exactly, earlier, notDue, manual, deleted, sent }.Select(i => i.HoaDonId).ToHashSet();
-            var result = due.Where(d => mine.Contains(d.HoaDonId)).ToList();
-            Assert.Equal(new[] { earlier.HoaDonId, later.HoaDonId, exactly.HoaDonId }, result.Select(d => d.HoaDonId).ToArray());
-            var first = result[0];
-            Assert.Equal(earlier.MaHoaDon, first.MaHoaDon);
-            Assert.Equal(room.PhongTroId, first.PhongTroId);
-            Assert.Equal(now.AddHours(-5), first.HanPhanHoiUtc);
-
-            await tx.RollbackAsync();
-        }
-
-        [Fact]
-        public async Task GetLastProvisionalSubmitterId_ReturnsLatestTransitionIntoChoDuyet()
-        {
-            await using var db = _fixture.CreateDbContext();
-            await using var tx = await db.Database.BeginTransactionAsync();
-            var seeder = new DebtTestSeeder(db);
-            var branch = await seeder.BranchAsync("S");
-            var room = await seeder.RoomAsync(branch, "S");
-            var tenant = await seeder.TenantAsync("S");
-            var contract = await seeder.ContractAsync(room, tenant);
-            var first = await UserAsync(db, "first");
-            var second = await UserAsync(db, "second");
-            var other = await UserAsync(db, "other");
-            var inv = await ProvisionalAsync(db, seeder, contract, Utc(2026, 10, 20, 3));
-            var withoutHistory = await ProvisionalAsync(db, seeder, contract, Utc(2026, 10, 20, 3));
-
-            LichSuTrangThaiHoaDon Row(TrangThaiPhatHanhHoaDon? from, TrangThaiPhatHanhHoaDon to, int who, DateTime at) => new()
-            {
-                HoaDonId = inv.HoaDonId,
-                TrangThaiPhatHanhCu = from,
-                TrangThaiPhatHanhMoi = to,
-                TrangThaiThanhToanCu = TrangThaiHoaDon.ChuaThanhToan,
-                TrangThaiThanhToanMoi = TrangThaiHoaDon.ChuaThanhToan,
-                NguoiThucHienId = who,
-                NgayThucHien = at,
-                LyDo = "x"
-            };
-
-            db.LichSuTrangThaiHoaDons.AddRange(
-                Row(null, TrangThaiPhatHanhHoaDon.Nhap, other.NguoiDungId, Utc(2026, 10, 18, 1)),
-                Row(TrangThaiPhatHanhHoaDon.Nhap, TrangThaiPhatHanhHoaDon.ChoDuyet, first.NguoiDungId, Utc(2026, 10, 18, 2)),
-                Row(TrangThaiPhatHanhHoaDon.ChoDuyet, TrangThaiPhatHanhHoaDon.Nhap, other.NguoiDungId, Utc(2026, 10, 18, 3)),
-                Row(TrangThaiPhatHanhHoaDon.Nhap, TrangThaiPhatHanhHoaDon.ChoDuyet, second.NguoiDungId, Utc(2026, 10, 18, 4)));
-            await db.SaveChangesAsync();
-            var store = new AutoInvoiceStore(db, new MeterConsumptionHistoryStore(db));
-
-            Assert.Equal(second.NguoiDungId, await store.GetLastProvisionalSubmitterIdAsync(inv.HoaDonId));
-            Assert.Null(await store.GetLastProvisionalSubmitterIdAsync(withoutHistory.HoaDonId));
-
-            await tx.RollbackAsync();
         }
 
         [Fact]
@@ -636,10 +467,10 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             var contract = await seeder.ContractAsync(room, tenant);
             var period = await PeriodAsync(db, room, Thang, Nam, TrangThaiGhiNhan.DaDuyet, 100, 130, 50, 60);
             var han = Utc(2026, 10, 20, 3);
-            var inv = await ProvisionalAsync(db, seeder, contract, han);
+            var inv = await InvoiceWithHanAsync(db, seeder, contract, han);
             inv.DichVuDienNuocCuaPhongId = period.DichVuDienNuocCuaPhongId;
-            var noPeriod = await ProvisionalAsync(db, seeder, contract, han);
-            var deleted = await ProvisionalAsync(db, seeder, contract, han, deleted: true);
+            var noPeriod = await InvoiceWithHanAsync(db, seeder, contract, han);
+            var deleted = await InvoiceWithHanAsync(db, seeder, contract, han, deleted: true);
             await db.SaveChangesAsync();
             var store = new AutoInvoiceStore(db, new MeterConsumptionHistoryStore(db));
 

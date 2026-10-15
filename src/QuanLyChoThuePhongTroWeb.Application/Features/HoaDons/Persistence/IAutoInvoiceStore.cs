@@ -45,12 +45,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence
         public IReadOnlyList<AutoInvoiceContractRef> HopDongHieuLuc { get; init; } = Array.Empty<AutoInvoiceContractRef>();
         public bool CoHoaDonHoatDong { get; init; }
         public bool KyTruocChuaChot { get; init; }
-        // Chỉ điền khi HopDongHieuLuc.Count == 1.
-        public int? NguoiDungKhachId { get; init; }
-        public string? EmailKhach { get; init; }
     }
-
-    public sealed record AutoInvoiceDueItem(int HoaDonId, string MaHoaDon, int PhongTroId, DateTime HanPhanHoiUtc);
 
     // Dòng chi tiết chưa xóa mềm của hóa đơn; LoaiDichVu và DonVi chỉ có khi dòng gắn dịch vụ.
     public sealed record AutoInvoiceInvoiceLine(
@@ -98,12 +93,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence
 
         // Nhân viên đang được phân công (chưa thu hồi) của chi nhánh, phân công sớm nhất trước; null nếu không có.
         Task<int?> FindFallbackActorAsync(int chiNhanhId, CancellationToken ct = default);
-
-        // AsNoTracking. ChoDuyet, !IsDeleted, HanPhanHoi != null && HanPhanHoi <= nowUtc; sắp HanPhanHoi rồi HoaDonId tăng dần.
-        Task<IReadOnlyList<AutoInvoiceDueItem>> GetDueProvisionalInvoicesAsync(DateTime nowUtc, CancellationToken ct = default);
-
-        // NguoiThucHienId của dòng lịch sử mới nhất (NgayThucHien rồi LichSuTrangThaiHoaDonId giảm dần) có TrangThaiPhatHanhMoi == ChoDuyet && TrangThaiPhatHanhCu != ChoDuyet; null nếu không có.
-        Task<int?> GetLastProvisionalSubmitterIdAsync(int hoaDonId, CancellationToken ct = default);
 
         // AsNoTracking, hóa đơn !IsDeleted; chỉ số và đơn giá lấy từ kỳ liên kết (0 nếu không có kỳ); kèm các dòng chi tiết chưa xóa
         // và dữ liệu hợp đồng (tiền thuê, ngày bắt đầu/kết thúc); null nếu không có hóa đơn.

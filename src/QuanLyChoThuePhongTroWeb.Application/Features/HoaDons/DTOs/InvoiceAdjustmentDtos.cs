@@ -15,6 +15,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs
     public sealed class AdjustInvoiceRequest
     {
         public int HoaDonId { get; init; }
+        // Giá trị số của trạng thái phát hành màn điều chỉnh đang thấy; khác trạng thái hiện tại thì từ chối.
+        public int TrangThaiPhatHanhHienTai { get; init; }
         // null = giữ chỉ số hiện tại của kỳ.
         public decimal? ChiSoDienMoi { get; init; }
         public decimal? ChiSoNuocMoi { get; init; }
@@ -41,10 +43,12 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs
         public string MaHoaDon { get; init; } = string.Empty;
         public bool CoTheDieuChinh { get; init; }
         public string? LyDoKhoa { get; init; }
+        public int TrangThaiPhatHanhValue { get; init; }
         public decimal ChiSoDienCu { get; init; }
         public decimal ChiSoDienMoi { get; init; }
         public decimal ChiSoNuocCu { get; init; }
         public decimal ChiSoNuocMoi { get; init; }
+        // Hạn khách phản hồi, chỉ có với hóa đơn đã gửi.
         public DateTime? HanPhanHoiUtc { get; init; }
         public decimal TongTien { get; init; }
         public IReadOnlyList<InvoiceAdjustmentLine> ChiTiets { get; init; } = Array.Empty<InvoiceAdjustmentLine>();
@@ -63,7 +67,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs
         public int HoaDonIdMoi { get; init; }
         public string MaHoaDonMoi { get; init; } = string.Empty;
         public decimal TongTienMoi { get; init; }
-        public DateTime HanPhanHoiUtc { get; init; }
+        public int TrangThaiPhatHanhMoi { get; init; }
         public bool DaTaoHoaDonThayThe { get; init; }
     }
 }

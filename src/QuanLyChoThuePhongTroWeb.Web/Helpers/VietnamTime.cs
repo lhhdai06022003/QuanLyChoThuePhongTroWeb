@@ -15,6 +15,12 @@ namespace QuanLyChoThuePhongTroWeb.Web.Helpers
             "yyyy-MM-dd"
         };
 
+        // Hạn còn hiệu lực (sau thời điểm hiện tại) thì trả giờ Việt Nam "dd/MM/yyyy HH:mm", ngược lại chuỗi rỗng.
+        public static string FormatDeadline(DateTime? utc, DateTime nowUtc)
+            => utc.HasValue && utc.Value > nowUtc
+                ? utc.Value.AddHours(7).ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture)
+                : string.Empty;
+
         public static bool TryParseToUtc(string? value, out DateTime utc)
         {
             utc = default;

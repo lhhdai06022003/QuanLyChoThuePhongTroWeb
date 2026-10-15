@@ -5,11 +5,9 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Persistence;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Security;
-using QuanLyChoThuePhongTroWeb.Application.Abstractions.Services;
 using QuanLyChoThuePhongTroWeb.Application.Common.Security;
 using QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Persistence;
-using QuanLyChoThuePhongTroWeb.Application.Features.Emails.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.NhanViens.Services;
 using QuanLyChoThuePhongTroWeb.Domain.Entities;
 using QuanLyChoThuePhongTroWeb.Domain.Enums;
@@ -26,20 +24,17 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
         private readonly IEmployeeAccessService _employeeAccessService;
         private readonly IMeterReadingWorkflowService _workflowService;
         private readonly IAutoInvoiceService? _autoInvoiceService;
-        private readonly IProvisionalInvoiceEmailDispatcher? _emailDispatcher;
 
         public DienNuocService(
             IDienNuocStore store,
             IEmployeeAccessService employeeAccessService,
             IMeterReadingWorkflowService workflowService,
-            IAutoInvoiceService? autoInvoiceService = null,
-            IProvisionalInvoiceEmailDispatcher? emailDispatcher = null)
+            IAutoInvoiceService? autoInvoiceService = null)
         {
             _store = store ?? throw new ArgumentNullException(nameof(store));
             _employeeAccessService = employeeAccessService ?? throw new ArgumentNullException(nameof(employeeAccessService));
             _workflowService = workflowService ?? throw new ArgumentNullException(nameof(workflowService));
             _autoInvoiceService = autoInvoiceService;
-            _emailDispatcher = emailDispatcher;
         }
 
         public async Task<List<DienNuocPhongRes>> GetDanhSachDienNuocAsync(int chiNhanhId, int thang, int nam, int actorId)
@@ -240,20 +235,9 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
 
             if (_autoInvoiceService != null)
             {
-                var emailChoGui = new List<PendingProvisionalEmail>();
                 foreach (var phongTroId in phongTroIds.OrderBy(x => x))
                 {
-                    var result = await _autoInvoiceService.RunForRoomAsync(actorId, AutoInvoiceTrigger.ChotKy, phongTroId, input.Thang, input.Nam, hoanGuiEmail: _emailDispatcher != null);
-                    if (result.Data?.EmailChoGui != null)
-                    {
-                        emailChoGui.Add(result.Data.EmailChoGui);
-                    }
-                }
-
-                // Email tạm tính gửi nền sau khi request trả về, không giữ request chờ SMTP.
-                if (_emailDispatcher != null && emailChoGui.Count > 0)
-                {
-                    _emailDispatcher.Enqueue(emailChoGui);
+                    await _autoInvoiceService.RunForRoomAsync(actorId, AutoInvoiceTrigger.ChotKy, phongTroId, input.Thang, input.Nam);
                 }
             }
 

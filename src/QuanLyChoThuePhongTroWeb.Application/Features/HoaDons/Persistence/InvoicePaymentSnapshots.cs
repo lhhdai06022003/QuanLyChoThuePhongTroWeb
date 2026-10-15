@@ -19,7 +19,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence
         public int? YeuCauId { get; init; }
         public string? MaYeuCau { get; init; }
 
-        // Quy tắc vào luồng thanh toán: hóa đơn đã gửi hoặc đã hủy sau khi gửi. Hẹp hơn IHoaDonStore.CheckHoaDonOwnershipAsync (không gồm hóa đơn tạm tính ChoDuyet có HanPhanHoi) để hóa đơn tạm tính không vào được màn thanh toán.
+        // Quy tắc vào luồng thanh toán: hóa đơn đã gửi hoặc đã hủy sau khi gửi. Cùng quy tắc với IHoaDonStore.CheckHoaDonOwnershipAsync.
         public bool KhachXemDuoc(int nguoiThueId)
         {
             return nguoiThueId > 0 && NguoiThueId == nguoiThueId &&

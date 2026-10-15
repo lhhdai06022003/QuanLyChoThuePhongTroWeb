@@ -23,11 +23,13 @@ using Xunit;
 
 namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
 {
-    // HTTP của "Điều chỉnh và gửi lại", chặn Admin chốt/trả lại tay hóa đơn tạm tính, và gửi nền email tạm tính khi chốt kỳ.
+    // HTTP của điều chỉnh hóa đơn theo trạng thái, Admin chốt/trả lại tay hóa đơn chờ duyệt còn hạn phản hồi từ luồng cũ, và chốt kỳ chỉ tạo nháp (không gửi email).
     [Collection(WebTestCollection.Name)]
     public class AutoInvoiceAdjustmentEndpointTests
     {
         private const string Password = "Password123!";
+        private const int ChoDuyet = (int)TrangThaiPhatHanhHoaDon.ChoDuyet;
+        private const int DaChot = (int)TrangThaiPhatHanhHoaDon.DaChot;
 
         private readonly CustomWebApplicationFactory _factory;
 
@@ -45,7 +47,9 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             public string StaffUsername { get; init; } = string.Empty;
         }
 
-        private async Task<Seed> SeedAsync(int roomCount = 1, bool withProvisionalInvoice = true, bool manualChoDuyet = false)
+        // Hóa đơn ChoDuyet được seed kèm HanPhanHoi như dữ liệu còn lại từ luồng tạm tính cũ.
+        private async Task<Seed> SeedAsync(int roomCount = 1, bool withInvoice = true,
+            TrangThaiPhatHanhHoaDon status = TrangThaiPhatHanhHoaDon.ChoDuyet)
         {
             using var scope = _factory.Services.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -99,7 +103,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             });
             await db.SaveChangesAsync();
 
-            if (withProvisionalInvoice)
+            if (withInvoice)
             {
                 var (room, _, contract) = seed.Rooms[0];
                 var period = new DichVuDienNuocCuaPhong
@@ -115,8 +119,9 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
                 {
                     HopDongId = contract.HopDongId, MaHoaDon = $"HD-ADJ-{suffix}", Thang = 10, Nam = 2026,
                     TongTien = 3_000_000m + 70_000m + 200_000m,
-                    TrangThaiPhatHanh = TrangThaiPhatHanhHoaDon.ChoDuyet, TrangThaiHoaDon = TrangThaiHoaDon.ChuaThanhToan,
-                    HanPhanHoi = manualChoDuyet ? null : DateTime.UtcNow.AddHours(24),
+                    TrangThaiPhatHanh = status, TrangThaiHoaDon = TrangThaiHoaDon.ChuaThanhToan,
+                    HanPhanHoi = status != TrangThaiPhatHanhHoaDon.ChoDuyet ? null : DateTime.UtcNow.AddHours(24),
+                    NgayChot = status == TrangThaiPhatHanhHoaDon.DaChot ? DateTime.UtcNow.AddHours(-1) : null,
                     DichVuDienNuocCuaPhongId = period.DichVuDienNuocCuaPhongId, NgayTao = DateTime.UtcNow,
                     ChiTietHoaDonDichVus = new List<ChiTietHoaDon>
                     {
@@ -194,7 +199,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
         }
 
         [Fact]
-        public async Task StaffOfSameBranch_AdjustsProvisionalInvoice_Returns200AndUpdatesDatabase()
+        public async Task StaffOfSameBranch_AdjustsChoDuyetInvoice_Returns200_StaysChoDuyet()
         {
             var seed = await SeedAsync();
             var (client, csrf) = await LoginAsync(seed.StaffUsername);
@@ -205,38 +210,44 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             {
                 Assert.True(infoJson.RootElement.GetProperty("coTheDieuChinh").GetBoolean());
                 Assert.Equal(120m, infoJson.RootElement.GetProperty("chiSoDienMoi").GetDecimal());
-                // GET và POST cùng trả hạn tự chốt theo giờ Việt Nam.
-                Assert.Equal(VnText(seed.Invoice.HanPhanHoi!.Value), infoJson.RootElement.GetProperty("hanTuChot").GetString());
+                Assert.Equal(ChoDuyet, infoJson.RootElement.GetProperty("trangThaiPhatHanhValue").GetInt32());
+                // Hạn phản hồi chỉ có với hóa đơn đã gửi.
+                Assert.Equal(string.Empty, infoJson.RootElement.GetProperty("hanPhanHoi").GetString());
+                Assert.False(infoJson.RootElement.TryGetProperty("hanTuChot", out _));
             }
 
-            var response = await client.SendAsync(Post($"/HoaDon/DieuChinh/{seed.Invoice.HoaDonId}", csrf, new { chiSoDienMoi = 130m, chiSoNuocMoi = 60m }));
+            var response = await client.SendAsync(Post($"/HoaDon/DieuChinh/{seed.Invoice.HoaDonId}", csrf,
+                new { trangThaiPhatHanhHienTai = ChoDuyet, chiSoDienMoi = 130m, chiSoNuocMoi = 60m }));
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
             Assert.True(json.RootElement.GetProperty("success").GetBoolean());
+            Assert.Equal("Đã điều chỉnh hóa đơn, hóa đơn vẫn chờ duyệt.", json.RootElement.GetProperty("message").GetString());
             var data = json.RootElement.GetProperty("data");
             Assert.Equal(seed.Invoice.HoaDonId, data.GetProperty("hoaDonId").GetInt32());
             Assert.Equal(3_305_000m, data.GetProperty("tongTien").GetDecimal());
             Assert.False(data.GetProperty("daTaoHoaDonThayThe").GetBoolean());
+            Assert.Equal(ChoDuyet, data.GetProperty("trangThaiPhatHanhMoi").GetInt32());
+            Assert.False(data.TryGetProperty("hanTuChot", out _));
 
             var after = await ReloadInvoiceAsync(seed.Invoice.HoaDonId);
             Assert.Equal(3_305_000m, after.TongTien);
             Assert.Equal(TrangThaiPhatHanhHoaDon.ChoDuyet, after.TrangThaiPhatHanh);
-            Assert.InRange(after.HanPhanHoi!.Value, DateTime.UtcNow.AddHours(23), DateTime.UtcNow.AddHours(25));
-            Assert.Equal(VnText(after.HanPhanHoi.Value), data.GetProperty("hanTuChot").GetString());
+            Assert.Null(after.HanPhanHoi);
         }
 
         [Fact]
-        public async Task Info_OfSentInvoice_HasNoCurrentDeadline()
+        public async Task Info_OfSentInvoice_ReturnsStatusAndResponseDeadline()
         {
             var seed = await SeedAsync();
+            var han = DateTime.UtcNow.AddHours(30);
             using (var scope = _factory.Services.CreateScope())
             {
-                // Hóa đơn tạm tính đã tự chốt và công bố: hạn phản hồi cũ còn lưu nhưng đã qua.
+                // Hóa đơn đã công bố: hạn khách phản hồi trả về theo giờ Việt Nam.
                 var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
                 var entity = await db.HoaDons.SingleAsync(h => h.HoaDonId == seed.Invoice!.HoaDonId);
                 entity.TrangThaiPhatHanh = TrangThaiPhatHanhHoaDon.DaGui;
-                entity.HanPhanHoi = DateTime.UtcNow.AddHours(-30);
+                entity.HanPhanHoi = han;
                 await db.SaveChangesAsync();
             }
 
@@ -247,18 +258,19 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
             Assert.True(json.RootElement.GetProperty("coTheDieuChinh").GetBoolean());
-            Assert.Equal(JsonValueKind.Null, json.RootElement.GetProperty("hanTuChot").ValueKind);
+            Assert.Equal((int)TrangThaiPhatHanhHoaDon.DaGui, json.RootElement.GetProperty("trangThaiPhatHanhValue").GetInt32());
+            Assert.Equal(VnText(han), json.RootElement.GetProperty("hanPhanHoi").GetString());
         }
 
         [Fact]
         public async Task StaffOfAnotherBranch_GetsForbiddenOnInfoAndAdjust_AndDatabaseIsUnchanged()
         {
             var seed = await SeedAsync();
-            var other = await SeedAsync(withProvisionalInvoice: false);
+            var other = await SeedAsync(withInvoice: false);
             var (client, csrf) = await LoginAsync(other.StaffUsername);
 
             var info = await client.GetAsync($"/HoaDon/DieuChinh/{seed.Invoice!.HoaDonId}");
-            var adjust = await client.SendAsync(Post($"/HoaDon/DieuChinh/{seed.Invoice.HoaDonId}", csrf, new { chiSoDienMoi = 130m, chiSoNuocMoi = 60m }));
+            var adjust = await client.SendAsync(Post($"/HoaDon/DieuChinh/{seed.Invoice.HoaDonId}", csrf, new { trangThaiPhatHanhHienTai = ChoDuyet, chiSoDienMoi = 130m, chiSoNuocMoi = 60m }));
 
             Assert.Equal(HttpStatusCode.Forbidden, info.StatusCode);
             Assert.Equal(HttpStatusCode.Forbidden, adjust.StatusCode);
@@ -275,7 +287,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
 
             var request = new HttpRequestMessage(HttpMethod.Post, $"/HoaDon/DieuChinh/{seed.Invoice!.HoaDonId}")
             {
-                Content = JsonContent.Create(new { chiSoDienMoi = 130m, chiSoNuocMoi = 60m })
+                Content = JsonContent.Create(new { trangThaiPhatHanhHienTai = ChoDuyet, chiSoDienMoi = 130m, chiSoNuocMoi = 60m })
             };
             var response = await client.SendAsync(request);
 
@@ -284,32 +296,29 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
         }
 
         [Fact]
-        public async Task Admin_CannotFinalizeOrRejectProvisionalInvoice_ButStillCanForManualChoDuyet()
+        public async Task Admin_CanFinalizeAndReject_ChoDuyetWithLegacyDeadline()
         {
-            var provisional = await SeedAsync();
-            var manual = await SeedAsync(manualChoDuyet: true);
+            var toFinalize = await SeedAsync();
+            var toReject = await SeedAsync();
+            Assert.NotNull(toFinalize.Invoice!.HanPhanHoi);
+            Assert.NotNull(toReject.Invoice!.HanPhanHoi);
             var adminName = $"adj_admin_{Guid.NewGuid():N}"[..24];
             await CreateUserAsync(adminName, AppRole.Admin);
             var (client, csrf) = await LoginAsync(adminName);
 
-            var chot = await client.SendAsync(Post($"/HoaDon/Chot/{provisional.Invoice!.HoaDonId}", csrf));
-            var traLai = await client.SendAsync(Post($"/HoaDon/TraLai/{provisional.Invoice.HoaDonId}", csrf, new { lyDo = "Sai số" }));
+            var chot = await client.SendAsync(Post($"/HoaDon/Chot/{toFinalize.Invoice.HoaDonId}", csrf));
+            var traLai = await client.SendAsync(Post($"/HoaDon/TraLai/{toReject.Invoice.HoaDonId}", csrf, new { lyDo = "Sai số" }));
 
-            Assert.Equal(HttpStatusCode.BadRequest, chot.StatusCode);
-            Assert.Equal(HttpStatusCode.BadRequest, traLai.StatusCode);
-            Assert.Contains("Hóa đơn đang tự chốt theo hạn, dùng Điều chỉnh và gửi lại.", await chot.Content.ReadAsStringAsync());
-            Assert.Contains("Hóa đơn đang tự chốt theo hạn, dùng Điều chỉnh và gửi lại.", await traLai.Content.ReadAsStringAsync());
-            Assert.Equal(TrangThaiPhatHanhHoaDon.ChoDuyet, (await ReloadInvoiceAsync(provisional.Invoice.HoaDonId)).TrangThaiPhatHanh);
-
-            var manualChot = await client.SendAsync(Post($"/HoaDon/Chot/{manual.Invoice!.HoaDonId}", csrf));
-            Assert.Equal(HttpStatusCode.OK, manualChot.StatusCode);
-            Assert.Equal(TrangThaiPhatHanhHoaDon.DaChot, (await ReloadInvoiceAsync(manual.Invoice.HoaDonId)).TrangThaiPhatHanh);
+            Assert.Equal(HttpStatusCode.OK, chot.StatusCode);
+            Assert.Equal(HttpStatusCode.OK, traLai.StatusCode);
+            Assert.Equal(TrangThaiPhatHanhHoaDon.DaChot, (await ReloadInvoiceAsync(toFinalize.Invoice.HoaDonId)).TrangThaiPhatHanh);
+            Assert.Equal(TrangThaiPhatHanhHoaDon.Nhap, (await ReloadInvoiceAsync(toReject.Invoice.HoaDonId)).TrangThaiPhatHanh);
         }
 
         [Fact]
-        public async Task StaffClosingTwoRooms_SendsProvisionalEmailsInBackground()
+        public async Task StaffClosingTwoRooms_CreatesDraftInvoices_AndSendsNoEmail()
         {
-            var seed = await SeedAsync(roomCount: 2, withProvisionalInvoice: false);
+            var seed = await SeedAsync(roomCount: 2, withInvoice: false);
             var (client, csrf) = await LoginAsync(seed.StaffUsername);
             var request = new ChotDienNuocReq
             {
@@ -332,74 +341,120 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
 
             var emails = seed.Rooms.Select(r => r.Tenant.Email!).ToList();
             var fakeEmail = _factory.FakeEmailServiceInstance;
-            // Cổng chặn email: request chỉ trả về được nếu email gửi nền thật sự (không chờ email).
-            var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-            fakeEmail.ProvisionalGate = gate;
-            try
+
+            var response = await client.SendAsync(Post("/DienNuoc/SaveChotDienNuoc", csrf, request));
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            using (var scope = _factory.Services.CreateScope())
             {
-                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
-                var response = await client.SendAsync(Post("/DienNuoc/SaveChotDienNuoc", csrf, request), cts.Token);
-
-                Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-                Assert.DoesNotContain(fakeEmail.ProvisionalEmailCalls, c => emails.Contains(c.ToEmail));
-
-                gate.TrySetResult();
-                var deadline = DateTime.UtcNow.AddSeconds(10);
-                while (DateTime.UtcNow < deadline
-                       && emails.Any(e => !fakeEmail.ProvisionalEmailCalls.Any(c => c.ToEmail == e)))
+                var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                foreach (var (_, _, contract) in seed.Rooms)
                 {
-                    await Task.Delay(100);
-                }
-
-                foreach (var email in emails)
-                {
-                    Assert.Contains(fakeEmail.ProvisionalEmailCalls, c => c.ToEmail == email);
+                    var invoice = await db.HoaDons.AsNoTracking().Include(h => h.LichSuTrangThaiHoaDons)
+                        .SingleAsync(h => h.HopDongId == contract.HopDongId && !h.IsDeleted);
+                    Assert.Equal(TrangThaiPhatHanhHoaDon.Nhap, invoice.TrangThaiPhatHanh);
+                    Assert.Null(invoice.HanPhanHoi);
+                    Assert.StartsWith("[TU_DONG]", Assert.Single(invoice.LichSuTrangThaiHoaDons).LyDo);
                 }
             }
-            finally
-            {
-                gate.TrySetResult();
-                fakeEmail.ProvisionalGate = null;
-            }
+
+            Assert.DoesNotContain(fakeEmail.InvoiceEmailCalls, c => emails.Contains(c.ToEmail));
         }
 
         [Fact]
-        public async Task StaffAdjustingInvoice_DoesNotWaitForSmtp_AndSendsTheEmailInBackground()
+        public async Task StaffAdjustingChoDuyet_SendsNoEmail()
         {
             var seed = await SeedAsync();
             var (client, csrf) = await LoginAsync(seed.StaffUsername);
             var email = seed.Rooms[0].Tenant.Email!;
-            var fakeEmail = _factory.FakeEmailServiceInstance;
-            // Cổng chặn email: request chỉ trả về được nếu email điều chỉnh gửi nền thật sự (không chờ SMTP).
-            var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-            fakeEmail.ProvisionalGate = gate;
-            try
+
+            var response = await client.SendAsync(Post($"/HoaDon/DieuChinh/{seed.Invoice!.HoaDonId}", csrf,
+                new { trangThaiPhatHanhHienTai = ChoDuyet, chiSoDienMoi = 130m, chiSoNuocMoi = 60m }));
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Equal(3_305_000m, (await ReloadInvoiceAsync(seed.Invoice.HoaDonId)).TongTien);
+            Assert.DoesNotContain(_factory.FakeEmailServiceInstance.InvoiceEmailCalls, c => c.ToEmail == email);
+        }
+
+        [Fact]
+        public async Task Adjust_WithoutCurrentStatus_Returns400AndChangesNothing()
+        {
+            var seed = await SeedAsync();
+            var (client, csrf) = await LoginAsync(seed.StaffUsername);
+
+            var response = await client.SendAsync(Post($"/HoaDon/DieuChinh/{seed.Invoice!.HoaDonId}", csrf, new { chiSoDienMoi = 130m, chiSoNuocMoi = 60m }));
+
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Contains("Dữ liệu không hợp lệ.", await response.Content.ReadAsStringAsync());
+            var after = await ReloadInvoiceAsync(seed.Invoice.HoaDonId);
+            Assert.Equal(seed.Invoice.TongTien, after.TongTien);
+            Assert.Empty(after.LichSuTrangThaiHoaDons);
+        }
+
+        [Fact]
+        public async Task Adjust_WithStaleStatus_Returns400AndChangesNothing()
+        {
+            // Màn hình còn thấy Chờ duyệt nhưng hóa đơn đã được chốt.
+            var seed = await SeedAsync(status: TrangThaiPhatHanhHoaDon.DaChot);
+            var adminName = $"adj_admin_{Guid.NewGuid():N}"[..24];
+            await CreateUserAsync(adminName, AppRole.Admin);
+            var (client, csrf) = await LoginAsync(adminName);
+
+            var response = await client.SendAsync(Post($"/HoaDon/DieuChinh/{seed.Invoice!.HoaDonId}", csrf,
+                new { trangThaiPhatHanhHienTai = ChoDuyet, chiSoDienMoi = 130m, chiSoNuocMoi = 60m }));
+
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Contains("Hóa đơn vừa đổi trạng thái, vui lòng tải lại.", await response.Content.ReadAsStringAsync());
+            var after = await ReloadInvoiceAsync(seed.Invoice.HoaDonId);
+            Assert.Equal(TrangThaiPhatHanhHoaDon.DaChot, after.TrangThaiPhatHanh);
+            Assert.Equal(seed.Invoice.TongTien, after.TongTien);
+            Assert.Empty(after.LichSuTrangThaiHoaDons);
+        }
+
+        [Fact]
+        public async Task StaffAdjustingDaChot_Returns403_AndInfoIsLocked()
+        {
+            var seed = await SeedAsync(status: TrangThaiPhatHanhHoaDon.DaChot);
+            var (client, csrf) = await LoginAsync(seed.StaffUsername);
+
+            var info = await client.GetAsync($"/HoaDon/DieuChinh/{seed.Invoice!.HoaDonId}");
+            var response = await client.SendAsync(Post($"/HoaDon/DieuChinh/{seed.Invoice.HoaDonId}", csrf,
+                new { trangThaiPhatHanhHienTai = DaChot, chiSoDienMoi = 130m, chiSoNuocMoi = 60m }));
+
+            Assert.Equal(HttpStatusCode.OK, info.StatusCode);
+            using (var infoJson = JsonDocument.Parse(await info.Content.ReadAsStringAsync()))
             {
-                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
-                var response = await client.SendAsync(
-                    Post($"/HoaDon/DieuChinh/{seed.Invoice!.HoaDonId}", csrf, new { chiSoDienMoi = 130m, chiSoNuocMoi = 60m }), cts.Token);
-
-                Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-                // Hóa đơn đã điều chỉnh và gửi lại ngay; email vẫn đang bị chặn ở nền.
-                Assert.Equal(3_305_000m, (await ReloadInvoiceAsync(seed.Invoice.HoaDonId)).TongTien);
-                Assert.DoesNotContain(fakeEmail.ProvisionalEmailCalls, c => c.ToEmail == email);
-
-                gate.TrySetResult();
-                var deadline = DateTime.UtcNow.AddSeconds(10);
-                while (DateTime.UtcNow < deadline && !fakeEmail.ProvisionalEmailCalls.Any(c => c.ToEmail == email))
-                {
-                    await Task.Delay(100);
-                }
-
-                var sent = Assert.Single(fakeEmail.ProvisionalEmailCalls, c => c.ToEmail == email);
-                Assert.Equal(seed.Invoice.MaHoaDon, sent.MaHoaDon);
-                Assert.Equal(3_305_000m, sent.TongTien);
+                Assert.False(infoJson.RootElement.GetProperty("coTheDieuChinh").GetBoolean());
+                Assert.Equal("Chỉ Quản trị viên mới điều chỉnh được hóa đơn đã chốt.", infoJson.RootElement.GetProperty("lyDoKhoa").GetString());
+                Assert.Equal(DaChot, infoJson.RootElement.GetProperty("trangThaiPhatHanhValue").GetInt32());
             }
-            finally
-            {
-                gate.TrySetResult();
-                fakeEmail.ProvisionalGate = null;
-            }
+
+            Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+            var after = await ReloadInvoiceAsync(seed.Invoice.HoaDonId);
+            Assert.Equal(TrangThaiPhatHanhHoaDon.DaChot, after.TrangThaiPhatHanh);
+            Assert.Equal(seed.Invoice.TongTien, after.TongTien);
+        }
+
+        [Fact]
+        public async Task AdminAdjustingDaChot_Returns200_StaysDaChot()
+        {
+            var seed = await SeedAsync(status: TrangThaiPhatHanhHoaDon.DaChot);
+            var adminName = $"adj_admin_{Guid.NewGuid():N}"[..24];
+            await CreateUserAsync(adminName, AppRole.Admin);
+            var (client, csrf) = await LoginAsync(adminName);
+
+            var response = await client.SendAsync(Post($"/HoaDon/DieuChinh/{seed.Invoice!.HoaDonId}", csrf,
+                new { trangThaiPhatHanhHienTai = DaChot, chiSoDienMoi = 130m, chiSoNuocMoi = 60m }));
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+            Assert.Equal("Đã điều chỉnh hóa đơn đã chốt.", json.RootElement.GetProperty("message").GetString());
+            Assert.Equal(DaChot, json.RootElement.GetProperty("data").GetProperty("trangThaiPhatHanhMoi").GetInt32());
+            var after = await ReloadInvoiceAsync(seed.Invoice.HoaDonId);
+            Assert.Equal(TrangThaiPhatHanhHoaDon.DaChot, after.TrangThaiPhatHanh);
+            Assert.Equal(3_305_000m, after.TongTien);
+            Assert.NotNull(after.NguoiChotId);
+            Assert.NotNull(after.NgayChot);
         }
 
         // ---------- Sửa các khoản phí khi điều chỉnh ----------
@@ -467,7 +522,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
         public async Task Preview_StaffOfAnotherBranch_IsForbidden_AndAnonymousIsRedirected()
         {
             var seed = await SeedAsync();
-            var other = await SeedAsync(withProvisionalInvoice: false);
+            var other = await SeedAsync(withInvoice: false);
             var (client, _) = await LoginAsync(other.StaffUsername);
             var anonymous = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false, HandleCookies = true });
 
@@ -489,6 +544,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
 
             var response = await client.SendAsync(Post($"/HoaDon/DieuChinh/{seed.Invoice.HoaDonId}", csrf, new
             {
+                trangThaiPhatHanhHienTai = ChoDuyet,
                 chiTiets = new object[]
                 {
                     new { chiTietHoaDonId = phong.ChiTietHoaDonId, tenDichVu = "Tiền phòng (giảm giá)", donGia = 2_800_000m, soLuong = 1m },
@@ -506,11 +562,11 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             var after = await ReloadInvoiceAsync(seed.Invoice.HoaDonId);
             Assert.Equal(3_070_000m, after.TongTien);
             Assert.Equal(TrangThaiPhatHanhHoaDon.ChoDuyet, after.TrangThaiPhatHanh);
-            Assert.InRange(after.HanPhanHoi!.Value, DateTime.UtcNow.AddHours(23), DateTime.UtcNow.AddHours(25));
+            Assert.Null(after.HanPhanHoi);
             var lines = await ReloadLinesAsync(seed.Invoice.HoaDonId);
             Assert.Equal(new[] { "Tiền phòng (giảm giá)", "Tiền điện", "Phí giữ xe" }, lines.Select(l => l.TenDichVu).ToArray());
             Assert.Equal(new[] { 2_800_000m, 70_000m, 200_000m }, lines.Select(l => l.TongTien).ToArray());
-            Assert.Contains(after.LichSuTrangThaiHoaDons, h => h.LyDo != null && h.LyDo.Contains("Điều chỉnh hóa đơn theo yêu cầu khách thuê"));
+            Assert.Contains(after.LichSuTrangThaiHoaDons, h => h.LyDo != null && h.LyDo == "[DIEU_CHINH] Điều chỉnh hóa đơn");
             Assert.Contains(after.LichSuTrangThaiHoaDons, h => h.LyDo != null && h.LyDo.Contains("(sửa 1 dòng, thêm 1 dòng, xóa 1 dòng)"));
         }
 
@@ -521,10 +577,10 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             var (client, csrf) = await LoginAsync(seed.StaffUsername);
 
             var blankName = await client.SendAsync(Post($"/HoaDon/DieuChinh/{seed.Invoice!.HoaDonId}", csrf,
-                new { chiTiets = new[] { new { tenDichVu = "  ", donGia = 1_000m, soLuong = 1m } } }));
-            var emptyList = await client.SendAsync(Post($"/HoaDon/DieuChinh/{seed.Invoice.HoaDonId}", csrf, new { chiTiets = Array.Empty<object>() }));
+                new { trangThaiPhatHanhHienTai = ChoDuyet, chiTiets = new[] { new { tenDichVu = "  ", donGia = 1_000m, soLuong = 1m } } }));
+            var emptyList = await client.SendAsync(Post($"/HoaDon/DieuChinh/{seed.Invoice.HoaDonId}", csrf, new { trangThaiPhatHanhHienTai = ChoDuyet, chiTiets = Array.Empty<object>() }));
             var fractionalPrice = await client.SendAsync(Post($"/HoaDon/DieuChinh/{seed.Invoice.HoaDonId}", csrf,
-                new { chiTiets = new[] { new { tenDichVu = "Phí", donGia = 10.5m, soLuong = 1m } } }));
+                new { trangThaiPhatHanhHienTai = ChoDuyet, chiTiets = new[] { new { tenDichVu = "Phí", donGia = 10.5m, soLuong = 1m } } }));
 
             Assert.Equal(HttpStatusCode.BadRequest, blankName.StatusCode);
             Assert.Contains("Tên dịch vụ không được để trống.", await blankName.Content.ReadAsStringAsync());
@@ -539,13 +595,13 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
         }
 
         [Fact]
-        public async Task Adjust_ReadingsOnlyBody_StillWorks_AsBefore()
+        public async Task Adjust_ReadingsOnlyBody_Works()
         {
             var seed = await SeedAsync();
             var (client, csrf) = await LoginAsync(seed.StaffUsername);
 
-            // Thân yêu cầu cũ chỉ có hai chỉ số, không có danh sách dòng.
-            var response = await client.SendAsync(Post($"/HoaDon/DieuChinh/{seed.Invoice!.HoaDonId}", csrf, new { chiSoDienMoi = 130m, chiSoNuocMoi = 60m }));
+            // Thân yêu cầu chỉ có trạng thái và hai chỉ số, không có danh sách dòng.
+            var response = await client.SendAsync(Post($"/HoaDon/DieuChinh/{seed.Invoice!.HoaDonId}", csrf, new { trangThaiPhatHanhHienTai = ChoDuyet, chiSoDienMoi = 130m, chiSoNuocMoi = 60m }));
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.Equal(3_305_000m, (await ReloadInvoiceAsync(seed.Invoice.HoaDonId)).TongTien);
@@ -560,6 +616,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
 
             var response = await client.SendAsync(Post($"/HoaDon/DieuChinh/{seed.Invoice.HoaDonId}", csrf, new
             {
+                trangThaiPhatHanhHienTai = ChoDuyet,
                 chiSoDienMoi = 120m,
                 chiSoNuocMoi = 60m,
                 chiTiets = lines.Select(l => new { chiTietHoaDonId = l.ChiTietHoaDonId, tenDichVu = l.TenDichVu, donGia = l.DonGia, soLuong = l.SoLuong }).ToArray()

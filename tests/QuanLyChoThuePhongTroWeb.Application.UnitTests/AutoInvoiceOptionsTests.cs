@@ -24,7 +24,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.Equal(2m, options.NguongXetThapNuocM3);
             Assert.Equal(500m, options.TranDienKwh);
             Assert.Equal(30m, options.TranNuocM3);
-            Assert.Equal(5, options.ChuKyJobPhut);
         }
 
         [Fact]
@@ -143,13 +142,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         {
             var ex = Assert.Throws<InvalidOperationException>(() => new AutoInvoiceOptions { TranNuocM3 = 0 }.Validate());
             Assert.Contains("TranNuocM3", ex.Message);
-        }
-
-        [Fact]
-        public void ChuKyJobPhut_Zero_Throws()
-        {
-            var ex = Assert.Throws<InvalidOperationException>(() => new AutoInvoiceOptions { ChuKyJobPhut = 0 }.Validate());
-            Assert.Contains("ChuKyJobPhut", ex.Message);
         }
     }
 }

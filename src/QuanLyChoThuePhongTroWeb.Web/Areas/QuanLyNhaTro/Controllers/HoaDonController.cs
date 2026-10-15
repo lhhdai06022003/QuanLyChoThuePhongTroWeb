@@ -586,11 +586,12 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
                 maHoaDon = info.MaHoaDon,
                 coTheDieuChinh = info.CoTheDieuChinh,
                 lyDoKhoa = info.LyDoKhoa,
+                trangThaiPhatHanhValue = info.TrangThaiPhatHanhValue,
                 chiSoDienCu = info.ChiSoDienCu,
                 chiSoDienMoi = info.ChiSoDienMoi,
                 chiSoNuocCu = info.ChiSoNuocCu,
                 chiSoNuocMoi = info.ChiSoNuocMoi,
-                hanTuChot = FormatVietnamTime(info.HanPhanHoiUtc),
+                hanPhanHoi = VietnamTime.FormatDeadline(info.HanPhanHoiUtc, DateTime.UtcNow),
                 tongTien = info.TongTien,
                 chiTiets = info.ChiTiets.Select(ToLineJson).ToList()
             });
@@ -636,7 +637,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DieuChinh(int id, [FromBody] DieuChinhHoaDonReq? req, CancellationToken ct)
         {
-            if (id <= 0 || req == null)
+            if (id <= 0 || req?.TrangThaiPhatHanhHienTai == null)
                 return BadRequest(new { success = false, message = "Dữ liệu không hợp lệ." });
 
             if (!TryGetActorId(out var actorId))
@@ -645,6 +646,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             var result = await _adjustmentService.AdjustAsync(actorId, new AdjustInvoiceRequest
             {
                 HoaDonId = id,
+                TrangThaiPhatHanhHienTai = req.TrangThaiPhatHanhHienTai.Value,
                 ChiSoDienMoi = req.ChiSoDienMoi,
                 ChiSoNuocMoi = req.ChiSoNuocMoi,
                 ChiTiets = req.ChiTiets?
@@ -669,7 +671,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
                     hoaDonId = d.HoaDonIdMoi,
                     maHoaDon = d.MaHoaDonMoi,
                     tongTien = d.TongTienMoi,
-                    hanTuChot = FormatVietnamTime(d.HanPhanHoiUtc),
+                    trangThaiPhatHanhMoi = d.TrangThaiPhatHanhMoi,
                     daTaoHoaDonThayThe = d.DaTaoHoaDonThayThe
                 }
             });
@@ -688,6 +690,8 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
 
     public class DieuChinhHoaDonReq
     {
+        // Trạng thái phát hành (giá trị số) màn điều chỉnh đang thấy; bắt buộc.
+        public int? TrangThaiPhatHanhHienTai { get; set; }
         // Không gửi = giữ chỉ số hiện tại của kỳ.
         public decimal? ChiSoDienMoi { get; set; }
         public decimal? ChiSoNuocMoi { get; set; }
