@@ -373,10 +373,9 @@ Mục tiêu: chạy trọn luồng ghi sổ → biên lai → email → Telegram
    - `Telegram:*` = bot thật (miễn phí); `EmailSettings` = Gmail App Password; `OnlinePayment:PublicBaseUrl` = URL tunnel.
 3. **Tunnel: ngrok với domain tĩnh miễn phí** (người dùng chọn 16/10), để URL webhook trên SePay và `PublicBaseUrl` chỉ khai báo một lần.
    - Người dùng tự đăng ký ngrok, cài (`winget install ngrok.ngrok`), chạy `ngrok config add-authtoken ...`, lấy domain tĩnh trên dashboard.
-   - Script `scripts/dev-tunnel.ps1`: đọc domain từ biến môi trường `QLCTPT_NGROK_DOMAIN`, chạy `ngrok http --url={domain} 5009`, in ra URL webhook cần dán vào SePay và giá trị `PublicBaseUrl`. Báo lỗi rõ nếu chưa cài ngrok hoặc thiếu biến môi trường.
+   - Mở tunnel bằng lệnh viết trong `huong-dan-thiet-lap.md`: `ngrok http --url={domain-tĩnh} 5009`. URL webhook dán vào SePay là `https://{domain-tĩnh}/api/webhooks/payment/sepay`, `PublicBaseUrl` là `https://{domain-tĩnh}`.
    - Tunnel mở cả trang web ra Internet: chỉ bật khi thử, tắt ngay sau đó, dùng mật khẩu Admin mạnh.
-   - Script gửi webhook cục bộ (bước 4) không cần tunnel; tunnel chỉ dùng cho kịch bản §11.3 có SePay thật gọi về.
-4. **Script gửi webhook cục bộ** `scripts/sepay-test-webhook.ps1` (công cụ dev, không phải mã ứng dụng): tham số `-HoaDonId`, `-SoTien`, `-NoiDung` (mặc định `TTPTHD{HoaDonId}`), `-ReferenceCode` (mặc định sinh ngẫu nhiên), `-Url` (mặc định `http://localhost:5009/api/webhooks/payment/sepay`). Đọc secret và số tài khoản từ biến môi trường (`QLCTPT_SEPAY_WEBHOOK_SECRET`, `QLCTPT_SEPAY_ACCOUNT_NUMBER`), dựng payload đúng định dạng SePay, ký HMAC `{timestamp}.{body}` và POST. Dùng để thử khi chưa bật tunnel và không tốn hạn mức Test mode; gửi lại cùng `-ReferenceCode` để thử chống trùng.
+4. **Không có script phụ trợ** (người dùng quyết định 16/10/2026). Thử luồng webhook không cần tài khoản đã nằm trong test xUnit (`SePayWebhookTests`, `SePayWebhookBehaviourTests`: tự ký HMAC, gửi trùng, gửi song song). Thử thật dùng Test send / Simulate của SePay Test mode qua tunnel. Hướng dẫn thao tác tay chỉ viết dạng lệnh và bước trong `huong-dan-thiet-lap.md`.
 
 Kịch bản §11.3 chạy được hoàn toàn trên sandbox; chỉ TC04 (deeplink) cần điện thoại thật, và app ngân hàng sẽ mở với tài khoản giả nên dừng ở màn xác nhận, không chuyển.
 
@@ -419,5 +418,5 @@ Kịch bản §11.3 chạy được hoàn toàn trên sandbox; chỉ TC04 (deepl
 - [ ] §11.1, §11.2 PASS; `dotnet build` không lỗi; `has-pending-model-changes` không có thay đổi.
 - [ ] TC01, TC02, E01, E02, E03, TC05, đồng bộ bù chạy đúng trên SePay Test mode (người dùng thử tay).
 - [ ] TC04 trên ít nhất một điện thoại Android hoặc iOS; ghi lại app ngân hàng không hỗ trợ deeplink.
-- [ ] Hướng dẫn thiết lập SePay Test mode, bot Telegram, ngrok ở `huong-dan-thiet-lap.md`; `scripts/sepay-test-webhook.ps1` chạy được với web local; `scripts/dev-tunnel.ps1` mở được tunnel ngrok domain tĩnh.
+- [ ] Hướng dẫn thiết lập SePay Test mode, bot Telegram, ngrok ở `huong-dan-thiet-lap.md` (lệnh và từng bước, không có script).
 - [ ] `README.md` module, `docs/features/README.md` và mục Hiện trạng trong `AGENTS.md` được cập nhật.
