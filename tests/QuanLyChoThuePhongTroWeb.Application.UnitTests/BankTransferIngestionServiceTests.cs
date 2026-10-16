@@ -134,6 +134,44 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         }
 
         [Fact]
+        public async Task RecordedWithOverpayment_LogsAmountsAsInformation()
+        {
+            var handler = new RecordingHandler((t, c) => new TransferOutcome
+            {
+                Kind = TransferOutcomeKind.Recorded, Transfer = t, Code = c, HoaDonId = 105,
+                SoTienGhiNhan = 1_950_000m, TienThua = 50_000m, ConLai = 0m
+            });
+            var classifier = new IncomingTransferClassifier(new IIncomingTransferHandler[] { handler }, new VietQrSettings { AccountNumber = Account });
+            var log = new CapturingLogger<BankTransferIngestionService>();
+
+            await new BankTransferIngestionService(classifier, log).IngestAsync(Transfer());
+
+            var entry = Assert.Single(log.Entries);
+            Assert.Equal(LogLevel.Information, entry.Level);
+            Assert.Contains("1950000", entry.Message.Replace(".", "").Replace(",", ""));
+            Assert.Contains("50000", entry.Message.Replace(".", "").Replace(",", ""));
+        }
+
+        [Fact]
+        public async Task RecordedWhileProofAwaitsReview_LogsWarningToCheckForDuplicate()
+        {
+            var handler = new RecordingHandler((t, c) => new TransferOutcome
+            {
+                Kind = TransferOutcomeKind.Recorded, Transfer = t, Code = c, HoaDonId = 105,
+                SoTienGhiNhan = 2_000_000m, ConMinhChungChoDoiChieu = true
+            });
+            var classifier = new IncomingTransferClassifier(new IIncomingTransferHandler[] { handler }, new VietQrSettings { AccountNumber = Account });
+            var log = new CapturingLogger<BankTransferIngestionService>();
+
+            var outcome = await new BankTransferIngestionService(classifier, log).IngestAsync(Transfer());
+
+            Assert.Equal(TransferOutcomeKind.Recorded, outcome.Kind);
+            var entry = Assert.Single(log.Entries);
+            Assert.Equal(LogLevel.Warning, entry.Level);
+            Assert.Contains("minh chứng chờ đối chiếu", entry.Message);
+        }
+
+        [Fact]
         public async Task Logs_NeverContainTheBankTransferText()
         {
             var (service, _, log) = Create();

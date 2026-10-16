@@ -16,7 +16,7 @@ Các README sau mô tả **công việc dự kiến và người sở hữu**, t
 | [Trung tâm việc cần làm](viec-can-lam/README.md) | — | Code xong 2 đợt, review cuối ĐẠT 08/10/2026 ([review](viec-can-lam/review.md)); spec 1.2 đã xác nhận, người dùng thử tay đạt 09/10/2026; đã commit `361575e` |
 | [Hóa đơn tự động](hoa-don-tu-dong/plan.md) | — | Code xong đợt A–D và lượt dọn code, review ĐẠT 11/10/2026 ([review](hoa-don-tu-dong/review.md)); đã gộp `master` (commit `c11946c`) |
 | [Kiểm tra chỉ số theo hợp đồng và duyệt hóa đơn trước khi gửi](duyet-hoa-don-tu-dong/README.md) | — | Code xong 13 task trên nhánh `feature/duyet-hoa-don-tu-dong` (13/10/2026), review cuối và sửa xong 14/10/2026; chờ thử tay và gộp `master` |
-| [Thanh toán trực tuyến hóa đơn](thanh-toan-truc-tuyen/README.md) | — | Đợt 1 (VietQR + SePay) có spec v1 chờ duyệt (16/10/2026), nhánh `feature/thanh-toan-truc-tuyen`; đợt 2 VNPay chưa có spec |
+| [Thanh toán trực tuyến hóa đơn](thanh-toan-truc-tuyen/README.md) | — | Spec đợt 1 (VietQR + SePay) đã duyệt; phần 1/5 (webhook SePay ghi sổ) xong 16/10/2026 trên nhánh `feature/thanh-toan-truc-tuyen`; đợt 2 VNPay chưa có spec |
 
 Quyền sở hữu file và lịch 60 ngày nằm trong [roadmap](../roadmap-60-ngay.md). Không đánh dấu hoàn thành chỉ vì đã có entity, migration hoặc thư mục tài liệu.
 

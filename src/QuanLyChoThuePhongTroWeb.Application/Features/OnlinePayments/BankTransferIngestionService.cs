@@ -29,10 +29,17 @@ public sealed class BankTransferIngestionService(
             logger.LogWarning("SePay {SePayId} → {Kind}, mã {Code}, hóa đơn {HoaDonId}: {LyDo}",
                 transfer.SePayId, outcome.Kind, outcome.Code, outcome.HoaDonId, outcome.LyDo);
         }
+        else if (outcome.Kind == TransferOutcomeKind.Recorded && outcome.ConMinhChungChoDoiChieu)
+        {
+            // Phần 2 chưa có cảnh báo trên giao diện: để lại dấu vết cho nhân viên kiểm trùng trước khi xác nhận minh chứng.
+            logger.LogWarning("SePay {SePayId} → {Kind}, hóa đơn {HoaDonId} ghi {SoTienGhiNhan}, tiền thừa {TienThua}, còn lại {ConLai}; hóa đơn còn minh chứng chờ đối chiếu, kiểm trùng trước khi xác nhận",
+                transfer.SePayId, outcome.Kind, outcome.HoaDonId, outcome.SoTienGhiNhan, outcome.TienThua, outcome.ConLai);
+        }
         else
         {
-            logger.LogInformation("SePay {SePayId} → {Kind}, mã {Code}, hóa đơn {HoaDonId}, số tiền {TransferAmount}",
-                transfer.SePayId, outcome.Kind, outcome.Code, outcome.HoaDonId, transfer.TransferAmount);
+            logger.LogInformation("SePay {SePayId} → {Kind}, mã {Code}, hóa đơn {HoaDonId}, số tiền {TransferAmount}, ghi {SoTienGhiNhan}, tiền thừa {TienThua}, còn lại {ConLai}",
+                transfer.SePayId, outcome.Kind, outcome.Code, outcome.HoaDonId, transfer.TransferAmount,
+                outcome.SoTienGhiNhan, outcome.TienThua, outcome.ConLai);
         }
 
         return outcome;
