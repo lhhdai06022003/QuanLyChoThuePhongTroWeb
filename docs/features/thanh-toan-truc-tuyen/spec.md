@@ -88,8 +88,9 @@ Nội dung:
    - `Hmac` (mặc định): header `X-SePay-Timestamp` (Unix giây) và `X-SePay-Signature` = `sha256=` + hex(HMAC-SHA256(`{timestamp}.{rawBody}`, `WebhookSecret`)). So sánh constant-time. Lệch giờ quá `TimestampToleranceSeconds` (mặc định 300) → từ chối.
    - `ApiKey`: header `Authorization: Apikey {WebhookApiKey}`, so sánh constant-time. Chỉ dùng khi thử nhanh.
    - Sai/thiếu → `401`, không ghi gì, log Warning (không log secret, không log body).
-3. JSON không hợp lệ → `400`.
-4. Mọi trường hợp còn lại (kể cả bỏ qua, trùng, không khớp) trả **`200` với body đúng `{"success": true}`**; SePay chỉ coi thành công khi status 200/201 và body đúng như vậy, trong 30 giây.
+3. JSON không hợp lệ, hoặc thiếu/sai kiểu trường bắt buộc (`id`, `transferType`, `transferAmount`, `transactionDate` đúng định dạng) → `400`.
+4. Lỗi hệ thống khi ghi sổ (DB lỗi...) → `500` để SePay gửi lại; an toàn nhờ chống trùng (quyết định 16/10).
+5. Mọi trường hợp còn lại (kể cả bỏ qua, trùng, không khớp) trả **`200` với body đúng `{"success": true}`**; SePay chỉ coi thành công khi status 200/201 và body đúng như vậy, trong 30 giây.
 
 Payload dùng các trường: `id` (int), `gateway`, `transactionDate` (`yyyy-MM-dd HH:mm:ss`, giờ Việt Nam), `accountNumber`, `subAccount`, `code` (có thể `null`), `content`, `transferType` (`in`/`out`), `transferAmount` (int VND), `referenceCode`, `description`.
 
@@ -104,7 +105,7 @@ Theo thứ tự, dừng ở bước đầu tiên khớp:
 | 1 | `transferType != "in"` | `Ignored` — không làm gì |
 | 2 | `accountNumber` khác `VietQRSettings.AccountNumber` (so sau khi bỏ khoảng trắng) | `WrongAccount` — cảnh báo Telegram |
 | 3 | `transferAmount <= 0` | `Ignored` |
-| 4 | Lấy mã: ưu tiên `code`; nếu `null`/rỗng thì regex `TTPT\s*HD\s*(\d{1,9})` (không phân biệt hoa thường) trên `content` rồi `description` | Không có → `Unmatched` — cảnh báo Telegram (E03) |
+| 4 | Lấy mã: ưu tiên `code`; nếu `null`/rỗng thì regex `TTPT\s*HD\s*([0-9]{1,9})(?![0-9])` (không phân biệt hoa thường; chỉ chữ số ASCII; quá 9 chữ số là không khớp) trên `content` rồi `description` | Không có → `Unmatched` — cảnh báo Telegram (E03) |
 | 5 | Mã khớp → `HoaDonId` | Chuyển §5 |
 
 Bộ phân loại là một bảng "tiền tố → bộ xử lý". Đợt 1 chỉ đăng ký `TTPTHD` → hóa đơn. Sau này thanh toán giữ chỗ thêm tiền tố riêng và bộ xử lý riêng, không sửa phần ghi sổ hóa đơn (§4.4).
@@ -159,6 +160,16 @@ Trong khóa:
 ### 5.3 Kết quả không ghi
 
 `Ignored`, `WrongAccount`, `Unmatched`, `InvoiceNotPayable`, `AlreadyPaid` không ghi DB. Để retry/replay của SePay không bắn cảnh báo Telegram nhiều lần, lưu khóa chống trùng của các kết quả này trong `IMemoryCache` 24 giờ (mất khi khởi động lại — chấp nhận).
+
+### 5.4 Chặn ghi trùng khi xác nhận minh chứng cũ (làm ở phần 2)
+
+Review phần 1 (16/10): webhook ghi sổ khi còn lượt `DangDoiChieu`; nếu sau đó nhân viên xác nhận minh chứng của lượt đó với số thực nhận ≤ số còn lại, `InvoicePaymentConfirmationService.ConfirmAsync` vẫn ghi thêm (mã giao dịch khác `SEPAY-...` nên không bị chặn). Phần 2 thêm chặn cứng, cần người dùng xác nhận logic tiền:
+
+- Hóa đơn có dòng `SEPAY-` do hệ thống ghi sau thời điểm khách nộp minh chứng → nhân viên phải chuyển Admin, không tự xác nhận.
+- Khi nhập mã giao dịch ngân hàng, kiểm thêm `SEPAY-{mã}` đã tồn tại.
+- Test cho các ca: đã thu đủ, thu một phần, mã trùng.
+
+Ghi chú vận hành: tiền tố mã thanh toán khai báo trên SePay phải là `TTPTHD` hoặc để trống, vì trường `code` được ưu tiên (§4.2 bước 4).
 
 ## 6. Thông báo sau khi ghi nhận
 

@@ -14,6 +14,7 @@ using Microsoft.Extensions.Logging;
 using Npgsql;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.BackgroundJobs;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Services;
+using QuanLyChoThuePhongTroWeb.Application.Common.Configurations;
 using QuanLyChoThuePhongTroWeb.Application.Common.Files;
 using QuanLyChoThuePhongTroWeb.Application.Features.AiAssistants.ChatModel;
 using QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.DTOs;
@@ -27,7 +28,18 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests.Fixtures
     public class CustomWebApplicationFactory : WebApplicationFactory<Program>
     {
         private static readonly string TestConnectionString = ResolveTestConnectionString();
+
+        // Số tài khoản nhận tiền của host test: webhook SePay chỉ nhận giao dịch vào đúng tài khoản này.
+        public const string TestBankAccount = "0123456789";
+
         public TestLogSink LogSink { get; } = new();
+        // Một instance singleton để test bật/tắt webhook hoặc đổi chế độ xác thực lúc chạy.
+        public SePayOptions SePayOptionsInstance { get; } = new()
+        {
+            Enabled = true,
+            WebhookAuthMode = SePayWebhookAuthMode.Hmac,
+            WebhookSecret = "test-sepay-webhook-secret"
+        };
         public FakeEmailService FakeEmailServiceInstance { get; } = new();
         public FakeMeterImageStorageService FakeMeterImageStorageInstance { get; } = new();
         public FakeMeterOcrService FakeMeterOcrServiceInstance { get; } = new();
@@ -93,6 +105,12 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests.Fixtures
                 // Thay thế mô hình AI thật (Gemini) bằng test fake: test không bao giờ gọi mạng.
                 services.RemoveAll<IAiChatModel>();
                 services.AddSingleton<IAiChatModel>(FakeAiChatModelInstance);
+
+                // Webhook SePay: cấu hình cố định, không phụ thuộc appsettings.json của máy chạy test.
+                services.RemoveAll<SePayOptions>();
+                services.AddSingleton(SePayOptionsInstance);
+                services.RemoveAll<VietQrSettings>();
+                services.AddSingleton(new VietQrSettings { BankId = "MB", AccountNumber = TestBankAccount, AccountName = "NHA TRO TEST" });
             });
         }
 

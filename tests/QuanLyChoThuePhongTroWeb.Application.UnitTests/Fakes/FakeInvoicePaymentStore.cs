@@ -146,6 +146,11 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
             return Task.FromResult(Ledger.Any(l => !l.IsDeleted && string.Equals(l.MaGiaoDich, maGiaoDich.Trim(), StringComparison.OrdinalIgnoreCase)));
         }
 
+        public Task<bool> ExistsMaGiaoDichForInvoiceIncludingDeletedAsync(int hoaDonId, string maGiaoDich, CancellationToken ct = default)
+        {
+            return Task.FromResult(Ledger.Any(l => l.HoaDonId == hoaDonId && string.Equals(l.MaGiaoDich, maGiaoDich.Trim(), StringComparison.OrdinalIgnoreCase)));
+        }
+
         public Task<bool> ExistsPendingProofMaGiaoDichAsync(string maGiaoDich, int? exceptMinhChungId, CancellationToken ct = default)
         {
             return Task.FromResult(Proofs.Any(p => !p.IsDeleted &&

@@ -7,6 +7,7 @@ using QuanLyChoThuePhongTroWeb.Application.Features.DichVus.Services;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services;
 using QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.Services;
 using QuanLyChoThuePhongTroWeb.Application.Features.NguoiThues.Services;
+using QuanLyChoThuePhongTroWeb.Application.Features.OnlinePayments;
 using QuanLyChoThuePhongTroWeb.Application.Features.PhongTros.Services;
 using QuanLyChoThuePhongTroWeb.Application.Features.ThanhVienHopDongs.Services;
 using QuanLyChoThuePhongTroWeb.Application.Features.YeuCauSuCos.Services;
@@ -31,7 +32,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             typeof(IAiAssistantService),
             typeof(IYeuCauSuCoService),
             typeof(IAutoInvoiceService),
-            typeof(IInvoiceAdjustmentService)
+            typeof(IInvoiceAdjustmentService),
+            typeof(IBankTransferIngestionService)
         };
 
         private static readonly HashSet<string> Exceptions = new()
@@ -47,7 +49,9 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             $"{nameof(IYeuCauSuCoService)}.{nameof(IYeuCauSuCoService.CreateAsync)}",
             // Danh mục dịch vụ dùng chung: ai cũng được xem.
             $"{nameof(IDichVuService)}.{nameof(IDichVuService.GetDanhSachDichVuAsync)}",
-            $"{nameof(IDichVuService)}.{nameof(IDichVuService.GetDichVuByIdAsync)}"
+            $"{nameof(IDichVuService)}.{nameof(IDichVuService.GetDichVuByIdAsync)}",
+            // Webhook SePay đã xác thực chữ ký, hoặc đồng bộ bù đã kiểm Admin (spec thanh toán trực tuyến §9.1).
+            $"{nameof(IBankTransferIngestionService)}.{nameof(IBankTransferIngestionService.IngestAsync)}"
         };
 
         [Fact]

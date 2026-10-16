@@ -82,6 +82,11 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure
             invoicePaymentOptions.Validate();
             services.AddSingleton(invoicePaymentOptions);
 
+            var sePayOptions = configuration.GetSection(QuanLyChoThuePhongTroWeb.Application.Common.Configurations.SePayOptions.SectionName).Get<QuanLyChoThuePhongTroWeb.Application.Common.Configurations.SePayOptions>() ?? new QuanLyChoThuePhongTroWeb.Application.Common.Configurations.SePayOptions();
+            sePayOptions.Validate();
+            services.AddSingleton(sePayOptions);
+            services.AddSingleton<QuanLyChoThuePhongTroWeb.Application.Features.OnlinePayments.ISePayWebhookVerifier, ExternalServices.Payments.SePayWebhookVerifier>();
+
             services.AddHttpClient<QuanLyChoThuePhongTroWeb.Application.Abstractions.Services.IMeterImageStorageService, ExternalServices.Storage.CloudinaryMeterImageStorageService>(client =>
             {
                 client.Timeout = TimeSpan.FromSeconds(meterOptions.DownloadTimeoutSeconds);

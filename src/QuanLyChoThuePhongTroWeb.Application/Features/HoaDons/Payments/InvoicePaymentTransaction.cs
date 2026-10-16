@@ -22,6 +22,9 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Payments
     // được đổi thành lỗi nghiệp vụ, không retry trong cùng transaction.
     public sealed class InvoicePaymentTransaction
     {
+        // Thông báo khi vi phạm unique index MaGiaoDich; luồng ghi sổ tự động dựa vào chuỗi này để nhận ra giao dịch trùng.
+        public const string MaGiaoDichDaGhiNhanMessage = "Mã giao dịch đã được ghi nhận.";
+
         private readonly IInvoicePaymentStore _store;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IThongBaoNotifier _notifier;
@@ -125,7 +128,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Payments
         {
             if (constraintName.Contains("MaGiaoDich", StringComparison.OrdinalIgnoreCase))
             {
-                return "Mã giao dịch đã được ghi nhận.";
+                return MaGiaoDichDaGhiNhanMessage;
             }
 
             if (constraintName.Contains("MinhChungThanhToanHoaDonId", StringComparison.OrdinalIgnoreCase))

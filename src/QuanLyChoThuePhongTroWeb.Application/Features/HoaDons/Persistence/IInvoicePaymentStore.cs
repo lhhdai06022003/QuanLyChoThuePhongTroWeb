@@ -24,6 +24,9 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence
         Task<bool> ExistsMaYeuCauAsync(string maYeuCau, CancellationToken ct = default);
         // So khớp không phân biệt hoa thường, chỉ với khoản ghi nhận chưa xóa mềm.
         Task<bool> ExistsMaGiaoDichAsync(string maGiaoDich, CancellationToken ct = default);
+        // Kể cả khoản đã xóa mềm, chỉ trong hóa đơn này, không phân biệt hoa thường: giao dịch ngân hàng đã
+        // bị hủy ghi nhận thì lần gửi lại không được ghi lại (spec thanh toán trực tuyến §5.1, bước 1).
+        Task<bool> ExistsMaGiaoDichForInvoiceIncludingDeletedAsync(int hoaDonId, string maGiaoDich, CancellationToken ct = default);
         Task<bool> ExistsPendingProofMaGiaoDichAsync(string maGiaoDich, int? exceptMinhChungId, CancellationToken ct = default);
 
         void AddRequest(YeuCauThanhToanHoaDon yeuCau);

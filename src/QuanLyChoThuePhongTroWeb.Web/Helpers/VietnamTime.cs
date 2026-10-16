@@ -33,5 +33,20 @@ namespace QuanLyChoThuePhongTroWeb.Web.Helpers
             utc = DateTime.SpecifyKind(local.AddHours(-7), DateTimeKind.Utc);
             return true;
         }
+
+        // Như TryParseToUtc nhưng chỉ nhận đúng một định dạng, cho dữ liệu máy gửi (ví dụ webhook SePay: "yyyy-MM-dd HH:mm:ss").
+        public static bool TryParseExactToUtc(string? value, string format, out DateTime utc)
+        {
+            utc = default;
+            if (string.IsNullOrWhiteSpace(value) ||
+                !DateTime.TryParseExact(value.Trim(), format, CultureInfo.InvariantCulture, DateTimeStyles.None, out var local) ||
+                local < DateTime.MinValue.AddHours(7))
+            {
+                return false;
+            }
+
+            utc = DateTime.SpecifyKind(local.AddHours(-7), DateTimeKind.Utc);
+            return true;
+        }
     }
 }
