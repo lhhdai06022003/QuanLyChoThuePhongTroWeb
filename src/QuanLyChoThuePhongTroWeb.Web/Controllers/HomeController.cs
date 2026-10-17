@@ -16,6 +16,9 @@ namespace QuanLyChoThuePhongTroWeb.Controllers
 
         public IActionResult Index()
         {
+            if (User.Identity?.IsAuthenticated != true)
+                return Redirect("/phong");
+
             if (User.Identity != null && User.Identity.IsAuthenticated)
             {
                 if (User.IsInRole("KhachThue"))

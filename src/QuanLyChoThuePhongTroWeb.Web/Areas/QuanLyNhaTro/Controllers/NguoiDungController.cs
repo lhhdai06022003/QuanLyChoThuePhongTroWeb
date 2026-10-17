@@ -30,6 +30,10 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         {
             if (User.Identity != null && User.Identity.IsAuthenticated)
             {
+                if (User.IsInRole("KhachThue") && Url.IsLocalUrl(returnUrl) &&
+                    !returnUrl!.Contains("/QuanLyNhaTro", StringComparison.OrdinalIgnoreCase))
+                    return LocalRedirect(returnUrl);
+
                 if (User.IsInRole("KhachThue"))
                 {
                     return RedirectToAction("Index", "Dashboard", new { area = "KhachThue" });
@@ -108,7 +112,9 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DangXuat()
         {
+            var isCustomer = User.Identity?.IsAuthenticated != true || User.IsInRole("KhachThue");
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            if (isCustomer) return Redirect("/phong");
             return RedirectToAction("DangNhap", "NguoiDung", new { area = "QuanLyNhaTro" });
         }
 

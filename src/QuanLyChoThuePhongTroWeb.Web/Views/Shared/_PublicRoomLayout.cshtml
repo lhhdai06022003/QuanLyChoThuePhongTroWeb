@@ -1,31 +1,51 @@
+@{
+    var currentPath = Context.Request.Path.Value ?? string.Empty;
+    var isRequestsPage = currentPath.StartsWith("/tai-khoan/yeu-cau-phong", StringComparison.OrdinalIgnoreCase);
+    var isSavedPage = currentPath == "/phong/da-luu";
+    var isGuidePage = currentPath == "/phong/cam-nang";
+    var isRoomsPage = currentPath.StartsWith("/phong", StringComparison.OrdinalIgnoreCase) && !isSavedPage && !isGuidePage;
+    var pendingReturnUrl = ViewData["GuestReturnUrl"] as string ?? ViewBag.ReturnUrl as string
+        ?? Context.Request.Query["returnUrl"].ToString();
+    var authReturnUrl = Url.IsLocalUrl(pendingReturnUrl) ? pendingReturnUrl!
+        : isRoomsPage ? currentPath + Context.Request.QueryString : "/phong";
+}
 <!doctype html>
 <html lang="vi">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#183b53" />
-    <title>@ViewData["Title"] · Phòng trọ</title>
+    <meta name="theme-color" content="#066fd1" />
+    <title>@ViewData["Title"] · System Rental</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="~/Theme/tabler/dist/css/tabler.min.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/khach-vang-lai.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/guest-discovery.css" asp-append-version="true" />
 </head>
 <body class="guest-site">
+    <partial name="_GuestIcons" />
     <a class="guest-skip-link" href="#main-content">Đi đến nội dung</a>
     <header class="guest-header">
         <div class="guest-container guest-header-inner">
             <a class="guest-brand" href="/phong" aria-label="Trang danh sách phòng">
-                <span class="guest-brand-icon" aria-hidden="true"><span></span><span></span><span></span></span>
-                <span>Phòng trọ<span class="guest-brand-dot">.</span></span>
+                <img class="guest-brand-logo" src="~/Theme/images/logo-hcmute.png" alt="" />
+                <span class="guest-brand-text"><strong>SYSTEM RENTAL</strong><small>Tìm phòng &amp; đặt lịch</small></span>
             </a>
             <nav class="guest-nav" aria-label="Điều hướng chính">
-                <a href="/phong">Tìm phòng</a>
+                <a href="/phong" aria-current="@(isRoomsPage ? "page" : null)">Tìm phòng</a>
+                <a href="/phong/cam-nang" aria-current="@(isGuidePage ? "page" : null)">Cẩm nang</a>
+                <a href="/phong/da-luu" aria-current="@(isSavedPage ? "page" : null)" class="room-saved-nav"><svg class="room-icon" aria-hidden="true"><use href="#room-heart" /></svg>Đã lưu <span class="room-nav-count" data-saved-count hidden>0</span></a>
                 @if (User.Identity?.IsAuthenticated == true)
                 {
-                    <span class="guest-signed-in">Đang đăng nhập: <strong>@User.Identity.Name</strong></span>
+                    <a href="/tai-khoan/yeu-cau-phong" aria-current="@(isRequestsPage ? "page" : null)">Lịch xem và đặt phòng</a>
+                    <span class="guest-signed-in"><strong>@User.Identity.Name</strong></span>
                     <form method="post" asp-area="QuanLyNhaTro" asp-controller="NguoiDung" asp-action="DangXuat">@Html.AntiForgeryToken()<button class="guest-nav-button" type="submit">Đăng xuất</button></form>
                 }
                 else
                 {
-                    <a asp-area="QuanLyNhaTro" asp-controller="NguoiDung" asp-action="DangNhap">Đăng nhập</a>
+                    <a asp-area="QuanLyNhaTro" asp-controller="NguoiDung" asp-action="DangNhap" asp-route-returnUrl="@authReturnUrl">Đăng nhập</a>
+                    <a class="guest-nav-register" href="/dang-ky-khach?returnUrl=@Uri.EscapeDataString(authReturnUrl)">Đăng ký</a>
                 }
             </nav>
         </div>
@@ -35,10 +55,21 @@
     </main>
     <footer class="guest-footer">
         <div class="guest-container guest-footer-inner">
-            <span>Phòng trọ<span class="guest-brand-dot">.</span></span>
-            <span>Thông tin phòng được cập nhật bởi người quản lý.</span>
+            <div><strong class="room-footer-brand">System Rental</strong><p>Tìm phòng, chọn nơi ở phù hợp.</p><small>Thông tin phòng được cập nhật bởi người quản lý.</small></div>
+            <nav aria-label="Liên kết cuối trang"><a href="/phong">Khám phá phòng</a><a href="/phong/da-luu">Phòng đã lưu</a><a href="/phong/cam-nang">Cẩm nang thuê phòng</a>
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <a href="/tai-khoan/yeu-cau-phong">Lịch xem và đặt phòng</a>
+                }
+                else
+                {
+                    <a asp-area="QuanLyNhaTro" asp-controller="NguoiDung" asp-action="DangNhap" asp-route-returnUrl="/tai-khoan/yeu-cau-phong">Đăng nhập để theo dõi yêu cầu</a>
+                }
+            </nav>
         </div>
     </footer>
+    <partial name="_GuestRoomTools" />
+    <script type="module" src="~/js/guest-room-tools.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

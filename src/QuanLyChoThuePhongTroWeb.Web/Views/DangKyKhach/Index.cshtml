@@ -1,0 +1,31 @@
+@{
+    Layout = "_PublicRoomLayout";
+    ViewData["Title"] = "Đăng ký tài khoản";
+}
+
+<div class="guest-container guest-form-page guest-account-page">
+    <div class="guest-account-intro">
+        <p class="guest-kicker">Đăng ký tài khoản</p>
+        <h1>Tài khoản cho<br /><em>chỗ ở mới.</em></h1>
+        <p>Dùng tài khoản để hẹn xem phòng, gửi yêu cầu giữ chỗ và theo dõi tiền cọc.</p>
+    </div>
+    <div class="guest-viewing-form guest-account-form" role="group" aria-label="Thông tin đăng ký">
+        <h2>Thông tin tài khoản</h2>
+        <label for="newUsername">Tên đăng nhập</label>
+        <input id="newUsername" type="text" autocomplete="username" placeholder="Tên đăng nhập của bạn" />
+        <label for="newPassword">Mật khẩu</label>
+        <input id="newPassword" type="password" autocomplete="new-password" placeholder="Tạo mật khẩu" />
+        <div class="guest-form-divider"></div>
+        <h2>Thông tin liên hệ</h2>
+        <label for="newFullName">Họ và tên</label>
+        <input id="newFullName" type="text" autocomplete="name" placeholder="Nguyễn Văn A" />
+        <label for="newPhone">Số điện thoại</label>
+        <input id="newPhone" type="tel" autocomplete="tel" placeholder="09..." />
+        <label for="newEmail">Email</label>
+        <input id="newEmail" type="email" autocomplete="email" placeholder="ban@example.com" />
+        <label for="newIdentity">CCCD</label>
+        <input id="newIdentity" type="text" inputmode="numeric" placeholder="Số căn cước công dân" />
+        <button class="guest-button guest-button-primary guest-button-disabled" type="button" disabled>Tạo tài khoản</button>
+        <p class="guest-form-footnote">Nếu đã có tài khoản, hãy <a asp-area="QuanLyNhaTro" asp-controller="NguoiDung" asp-action="DangNhap" asp-route-returnUrl="@ViewBag.ReturnUrl">đăng nhập tại đây</a>.</p>
+    </div>
+</div>

@@ -48,9 +48,10 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 
 var app = builder.Build();
 
-// Khởi tạo Database và Seed data qua Infrastructure Initializer
-using (var scope = app.Services.CreateScope())
+// Cho phép chạy bản xem trước giao diện mà không đụng tới schema/database lúc khởi động.
+if (builder.Configuration.GetValue("Database:InitializeOnStartup", true))
 {
+    using var scope = app.Services.CreateScope();
     var initializer = scope.ServiceProvider.GetRequiredService<IDatabaseInitializer>();
     await initializer.InitializeAsync();
 }

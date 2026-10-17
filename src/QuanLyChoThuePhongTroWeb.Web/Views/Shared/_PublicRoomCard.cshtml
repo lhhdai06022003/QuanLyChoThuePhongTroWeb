@@ -1,0 +1,40 @@
+@model QuanLyChoThuePhongTroWeb.ViewModels.PublicRooms.PublicRoomCardModel
+@{
+    var room = Model.Room;
+    var image = Model.Images.FirstOrDefault();
+}
+<article class="guest-room-card" data-room-card="@room.PhongTroId">
+    <div class="room-card-cover">
+        <a class="guest-room-visual" href="/phong/@room.PhongTroId" aria-label="Xem chi tiết phòng @room.SoPhong">
+            @if (image is not null)
+            {
+                <img src="@image" alt="Ảnh phòng @room.SoPhong" loading="lazy" />
+            }
+            else
+            {
+                <span class="guest-room-no-image"><svg class="room-placeholder-icon" aria-hidden="true"><use href="#room-home" /></svg><span>Ảnh phòng đang được cập nhật</span></span>
+            }
+            <span class="guest-room-number">Phòng @room.SoPhong</span>
+        </a>
+        <button class="room-save-button" type="button" data-save-room="@room.PhongTroId" data-room-name="@room.SoPhong" aria-label="Lưu phòng @room.SoPhong" aria-pressed="false" hidden><svg class="room-icon" aria-hidden="true"><use href="#room-heart" /></svg></button>
+        @if (Model.Images.Count > 1)
+        {
+            <span class="room-photo-count">@Model.Images.Count ảnh</span>
+        }
+    </div>
+    <div class="guest-room-body">
+        <p class="room-card-branch">@room.TenChiNhanh</p>
+        <h3><a href="/phong/@room.PhongTroId">Phòng @room.SoPhong</a></h3>
+        <p class="room-card-address"><svg class="room-icon" aria-hidden="true"><use href="#room-location" /></svg><span>@room.DiaChi</span></p>
+        <div class="guest-room-facts"><span><svg class="room-icon" aria-hidden="true"><use href="#room-area" /></svg>@room.DienTich.ToString("0.#") m²</span><span><svg class="room-icon" aria-hidden="true"><use href="#room-people" /></svg>Tối đa @room.SoNguoiToiDa người</span></div>
+        <div class="guest-room-bottom">
+            <p><strong>@room.GiaThue.ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("vi-VN")) ₫</strong><span>/ tháng</span></p>
+            <a href="/phong/@room.PhongTroId" aria-label="Xem chi tiết phòng @room.SoPhong">Chi tiết</a>
+        </div>
+        <label class="room-compare-choice" hidden><input type="checkbox" data-compare-room="@room.PhongTroId" />So sánh phòng này</label>
+        <div class="guest-room-actions" aria-label="Đăng ký phòng @room.SoPhong">
+            <a class="guest-button guest-button-outline" href="/phong/@room.PhongTroId/hen-xem">Hẹn xem phòng</a>
+            <a class="guest-button guest-button-primary" href="/phong/@room.PhongTroId/giu-cho">Đặt phòng</a>
+        </div>
+    </div>
+</article>

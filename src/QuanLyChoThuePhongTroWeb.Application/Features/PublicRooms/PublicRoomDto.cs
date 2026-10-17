@@ -9,4 +9,5 @@ public sealed record PublicRoomDto(
     double DienTich,
     int SoNguoiToiDa,
     int TangLau,
-    string MoTa);
+    string MoTa,
+    string SoDienThoaiChiNhanh = "");

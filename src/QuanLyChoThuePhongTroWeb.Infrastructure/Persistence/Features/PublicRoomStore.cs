@@ -20,7 +20,8 @@ public sealed class PublicRoomStore(ApplicationDbContext context) : IPublicRoomS
                 room.DienTich,
                 room.SoNguoiToiDa,
                 room.TangLau,
-                room.MoTa))
+                room.MoTa,
+                room.ChiNhanh.SoDienThoai))
             .ToListAsync(cancellationToken);
 
     public Task<PublicRoomDto?> GetAvailableAsync(int id,
@@ -36,7 +37,8 @@ public sealed class PublicRoomStore(ApplicationDbContext context) : IPublicRoomS
                 room.DienTich,
                 room.SoNguoiToiDa,
                 room.TangLau,
-                room.MoTa))
+                room.MoTa,
+                room.ChiNhanh.SoDienThoai))
             .FirstOrDefaultAsync(cancellationToken);
 
     private IQueryable<Domain.Entities.PhongTro> AvailableRooms() =>
