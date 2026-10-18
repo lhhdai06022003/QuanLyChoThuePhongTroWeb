@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -169,46 +168,36 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
         private static string VnNow(int minutesOffset = 0) =>
             DateTime.UtcNow.AddHours(7).AddMinutes(minutesOffset).ToString("yyyy-MM-dd'T'HH:mm");
 
+        // Minh chứng khách đã nộp trước khi gỡ tính năng nộp minh chứng vẫn đối chiếu được (spec thanh toán trực tuyến §7.3, §8):
+        // lượt và minh chứng được dựng thẳng trong DB vì khách không còn tạo được qua HTTP.
         [Fact]
-        public async Task TenantPaysByQr_StaffScopeEnforced_AdminConfirms_InvoicePaid()
+        public async Task LegacyProof_StaffScopeEnforced_AdminConfirms_InvoicePaid()
         {
             var seed = await SeedAsync();
             var bankCode = $"FT-WEB-{Guid.NewGuid().ToString("N")[..8]}";
-            var (tenant, tenantToken) = await LoginAsync(NewClient(), seed.Tenant, "/KhachThue/HoaDon");
-
-            // Tạo lượt và lấy QR theo lượt
-            var created = await PostJsonAsync(tenant, tenantToken, "/KhachThue/HoaDon/ThanhToan/Tao", new { hoaDonId = seed.HoaDonId });
-            Assert.Equal(HttpStatusCode.OK, created.StatusCode);
-            var yeuCauId = (await JsonAsync(created)).GetProperty("data").GetProperty("yeuCauId").GetInt32();
-
-            var qr = await tenant.GetAsync($"/KhachThue/HoaDon/ThanhToan/QR/{yeuCauId}");
-            Assert.Equal(HttpStatusCode.OK, qr.StatusCode);
-            Assert.Equal("image/png", qr.Content.Headers.ContentType?.MediaType);
-
-            // Nộp minh chứng (storage giả)
-            var jpeg = new byte[] { 0xFF, 0xD8, 0xFF, 0xE0, 0, 0x10, 0x4A, 0x46, 0x49, 0x46, 0, 1 };
-            var form = new MultipartFormDataContent
+            int minhChungId;
+            using (var seedScope = _factory.Services.CreateScope())
             {
-                { new StringContent(yeuCauId.ToString()), "yeuCauId" },
-                { new StringContent(VnNow(-5)), "ngayChuyen" },
-                { new StringContent(bankCode), "maGiaoDich" }
-            };
-            var file = new ByteArrayContent(jpeg);
-            file.Headers.ContentType = new MediaTypeHeaderValue("image/jpeg");
-            form.Add(file, "file", "bienlai.jpg");
-            var upload = new HttpRequestMessage(HttpMethod.Post, "/KhachThue/HoaDon/ThanhToan/NopMinhChung") { Content = form };
-            upload.Headers.Add("RequestVerificationToken", tenantToken);
-            var submitted = await tenant.SendAsync(upload);
-            Assert.Equal(HttpStatusCode.OK, submitted.StatusCode);
-            var minhChungId = (await JsonAsync(submitted)).GetProperty("data").GetProperty("minhChungId").GetInt32();
+                var seedDb = seedScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                var tenantUserId = (await seedDb.NguoiDungs.AsNoTracking().FirstAsync(u => u.TenDangNhap == seed.Tenant)).NguoiDungId;
+                var now = DateTime.UtcNow;
+                var code = $"TT{seed.HoaDonId}{Guid.NewGuid().ToString("N")[..6].ToUpperInvariant()}";
+                var request = YeuCauThanhToanHoaDon.Tao(seed.HoaDonId, code, 2000000m, now.AddHours(24), tenantUserId, now);
+                request.NopMinhChung("https://example.test/p.jpg", "payment-proofs/p", bankCode, now.AddMinutes(-5), tenantUserId, now);
+                seedDb.YeuCauThanhToanHoaDons.Add(request);
+                await seedDb.SaveChangesAsync();
+                minhChungId = request.MinhChungThanhToanHoaDons.Single().MinhChungThanhToanHoaDonId;
+            }
 
+            // Khách đứng tên thấy báo minh chứng đang chờ đối chiếu
+            var (tenant, _) = await LoginAsync(NewClient(), seed.Tenant, "/KhachThue/HoaDon");
             var panel = await JsonAsync(await tenant.GetAsync($"/KhachThue/HoaDon/ThanhToan/{seed.HoaDonId}"));
-            Assert.Equal((int)AppTrangThaiYeuCauThanhToan.DangDoiChieu, panel.GetProperty("data").GetProperty("luotGanNhat").GetProperty("trangThaiHieuLuc").GetInt32());
+            Assert.Equal(minhChungId, panel.GetProperty("data").GetProperty("minhChungChoDoiChieu").GetProperty("minhChungId").GetInt32());
 
             // Khách khác không thấy hóa đơn, QR hay ảnh
             var (other, _) = await LoginAsync(NewClient(), seed.OtherTenant, "/KhachThue/HoaDon");
             Assert.Equal(HttpStatusCode.NotFound, (await other.GetAsync($"/KhachThue/HoaDon/ThanhToan/{seed.HoaDonId}")).StatusCode);
-            Assert.Equal(HttpStatusCode.NotFound, (await other.GetAsync($"/KhachThue/HoaDon/ThanhToan/QR/{yeuCauId}")).StatusCode);
+            Assert.Equal(HttpStatusCode.NotFound, (await other.GetAsync($"/KhachThue/HoaDon/ThanhToan/QR/{seed.HoaDonId}")).StatusCode);
             Assert.Equal(HttpStatusCode.NotFound, (await other.GetAsync($"/KhachThue/HoaDon/ThanhToan/AnhMinhChung/{minhChungId}")).StatusCode);
 
             // Nhân viên chi nhánh khác: 403
@@ -258,8 +247,9 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             Assert.Equal(HttpStatusCode.NotFound, (await staffB.GetAsync($"/DoiChieuThanhToan/TraCuu?ma={expired.MaYeuCau}")).StatusCode);
         }
 
+        // Lượt cũ quá hạn không ảnh hưởng panel mới: QR luôn theo hóa đơn và số còn lại.
         [Fact]
-        public async Task Panel_ShowsOverdueRequestAsExpired_AndAllowsNewRequest()
+        public async Task Panel_IgnoresLegacyWaitingRequest_ShowsQrForRemaining()
         {
             var seed = await SeedAsync();
             await SeedRequestAsync(seed.HoaDonId, TrangThaiYeuCauThanhToan.ChoThanhToan, DateTime.UtcNow.AddHours(-30));
@@ -267,22 +257,10 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             var (tenant, _) = await LoginAsync(NewClient(), seed.Tenant, "/KhachThue/HoaDon");
             var panel = (await JsonAsync(await tenant.GetAsync($"/KhachThue/HoaDon/ThanhToan/{seed.HoaDonId}"))).GetProperty("data");
 
-            Assert.Equal((int)AppTrangThaiYeuCauThanhToan.HetHan, panel.GetProperty("luotGanNhat").GetProperty("trangThaiHieuLuc").GetInt32());
-            Assert.True(panel.GetProperty("coTheTaoLuot").GetBoolean());
-        }
-
-        [Fact]
-        public async Task Post_WithoutAntiforgery_IsRejected()
-        {
-            var seed = await SeedAsync();
-            var (tenant, _) = await LoginAsync(NewClient(), seed.Tenant, "/KhachThue/HoaDon");
-
-            var res = await PostJsonAsync(tenant, null!, "/KhachThue/HoaDon/ThanhToan/Tao", new { hoaDonId = seed.HoaDonId });
-
-            Assert.Equal(HttpStatusCode.BadRequest, res.StatusCode);
-            using var scope = _factory.Services.CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            Assert.False(await db.YeuCauThanhToanHoaDons.AnyAsync(y => y.HoaDonId == seed.HoaDonId));
+            Assert.True(panel.GetProperty("coTheThanhToan").GetBoolean());
+            Assert.Equal(2000000m, panel.GetProperty("conLai").GetDecimal());
+            Assert.Equal(JsonValueKind.Null, panel.GetProperty("minhChungChoDoiChieu").ValueKind);
+            Assert.Equal(HttpStatusCode.OK, (await tenant.GetAsync($"/KhachThue/HoaDon/ThanhToan/QR/{seed.HoaDonId}")).StatusCode);
         }
 
         [Fact]

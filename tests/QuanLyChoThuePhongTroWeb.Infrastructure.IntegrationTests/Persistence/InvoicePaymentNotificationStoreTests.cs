@@ -187,6 +187,104 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             Assert.Equal((1, 100_000m), (receipt!.DotThu, receipt.LuyKeDaThanhToan));
         }
 
+        // ---------- GetActiveLedgerRowsAsync, GetInvoiceSnapshotAsync (panel thanh toán của khách thuê, spec §3.2) ----------
+
+        [Fact]
+        public async Task ActiveLedgerRows_SkipVoided_OrderByPaymentDateThenId()
+        {
+            var seeded = await SeedInvoiceAsync("dong_so");
+            var other = await SeedInvoiceAsync("dong_so_khac");
+            var late = await AddLedgerAsync(seeded.InvoiceId, 400_000m, NewCode("GD-MUON"), T0.AddDays(2));
+            var voided = await AddLedgerAsync(seeded.InvoiceId, 200_000m, NewCode("GD-HUY"), T0.AddDays(1), isDeleted: true);
+            var early = await AddLedgerAsync(seeded.InvoiceId, 500_000m, NewCode("SEPAY-SOM"), T0);
+            var sameDayAsLate = await AddLedgerAsync(seeded.InvoiceId, 600_000m, NewCode("GD-CUNG-NGAY"), T0.AddDays(2), PhuongThucThanhToan.TienMat);
+            await AddLedgerAsync(other.InvoiceId, 999_000m, NewCode("GD-HD-KHAC"), T0.AddDays(-1));
+
+            await using var ctx = _fixture.CreateDbContext();
+            var rows = await new InvoicePaymentStore(ctx).GetActiveLedgerRowsAsync(seeded.InvoiceId);
+
+            Assert.DoesNotContain(rows, r => r.LichSuThanhToanId == voided);
+            Assert.Equal(new[] { early, late, sameDayAsLate }, rows.Select(r => r.LichSuThanhToanId).ToArray());
+            Assert.Equal(new[] { 500_000m, 400_000m, 600_000m }, rows.Select(r => r.SoTienThanhToan).ToArray());
+            Assert.Equal(T0, rows[0].NgayThanhToanUtc);
+            Assert.StartsWith("SEPAY-SOM", rows[0].MaGiaoDich);
+            Assert.Equal(PhuongThucThanhToan.ChuyenKhoan, rows[0].PhuongThucThanhToan);
+            Assert.Equal(PhuongThucThanhToan.TienMat, rows[2].PhuongThucThanhToan);
+        }
+
+        [Fact]
+        public async Task ActiveLedgerRows_SameOrderAsTheReceiptInstalments()
+        {
+            var seeded = await SeedInvoiceAsync("cung_thu_tu");
+            await AddLedgerAsync(seeded.InvoiceId, 300_000m, NewCode("GD-C"), T0.AddDays(3));
+            await AddLedgerAsync(seeded.InvoiceId, 100_000m, NewCode("GD-A"), T0);
+            await AddLedgerAsync(seeded.InvoiceId, 200_000m, NewCode("GD-B"), T0.AddDays(1));
+
+            await using var ctx = _fixture.CreateDbContext();
+            var store = new InvoicePaymentStore(ctx);
+            var rows = await store.GetActiveLedgerRowsAsync(seeded.InvoiceId);
+
+            for (var i = 0; i < rows.Count; i++)
+            {
+                var receipt = await store.GetReceiptSnapshotAsync(rows[i].LichSuThanhToanId);
+                Assert.Equal(i + 1, receipt!.DotThu);
+            }
+        }
+
+        [Fact]
+        public async Task ActiveLedgerRows_InvoiceWithoutPayments_IsEmpty()
+        {
+            var seeded = await SeedInvoiceAsync("chua_tra");
+
+            await using var ctx = _fixture.CreateDbContext();
+
+            Assert.Empty(await new InvoicePaymentStore(ctx).GetActiveLedgerRowsAsync(seeded.InvoiceId));
+        }
+
+        [Fact]
+        public async Task InvoiceSnapshot_CarriesPeriodAndDueDate()
+        {
+            var seeded = await SeedInvoiceAsync("ky_han");
+            var dueDate = T0.AddDays(10);
+            await using (var ctx = _fixture.CreateDbContext())
+            {
+                var invoice = await ctx.HoaDons.SingleAsync(h => h.HoaDonId == seeded.InvoiceId);
+                invoice.HanThanhToan = dueDate;
+                await ctx.SaveChangesAsync();
+            }
+
+            await AddLedgerAsync(seeded.InvoiceId, 700_000m, NewCode("GD-1"), T0);
+            await AddLedgerAsync(seeded.InvoiceId, 100_000m, NewCode("GD-HUY"), T0, isDeleted: true);
+
+            await using var queryCtx = _fixture.CreateDbContext();
+            var snapshot = await new InvoicePaymentStore(queryCtx).GetInvoiceSnapshotAsync(seeded.InvoiceId);
+
+            Assert.NotNull(snapshot);
+            Assert.Equal(9, snapshot.Thang);
+            Assert.Equal(2026, snapshot.Nam);
+            Assert.NotNull(snapshot.HanThanhToan);
+            Assert.Equal(dueDate, snapshot.HanThanhToan);
+            Assert.Equal(700_000m, snapshot.DaThu);
+            Assert.Equal(seeded.TenPhong, snapshot.TenPhong);
+        }
+
+        [Fact]
+        public async Task InvoiceSnapshot_WithoutADueDate_HasNullHanThanhToan()
+        {
+            var seeded = await SeedInvoiceAsync("khong_han");
+            await using (var ctx = _fixture.CreateDbContext())
+            {
+                var invoice = await ctx.HoaDons.SingleAsync(h => h.HoaDonId == seeded.InvoiceId);
+                invoice.HanThanhToan = null;
+                await ctx.SaveChangesAsync();
+            }
+
+            await using var queryCtx = _fixture.CreateDbContext();
+            var snapshot = await new InvoicePaymentStore(queryCtx).GetInvoiceSnapshotAsync(seeded.InvoiceId);
+
+            Assert.Null(snapshot!.HanThanhToan);
+        }
+
         // ---------- FindSystemSePayEntryRecordedAfterAsync ----------
 
         [Fact]

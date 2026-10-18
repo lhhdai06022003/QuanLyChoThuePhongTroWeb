@@ -1,49 +1,37 @@
 using System;
-using System.IO;
+using System.Globalization;
+using System.Linq;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using QuanLyChoThuePhongTroWeb.Application.Common.Configurations;
-using QuanLyChoThuePhongTroWeb.Application.Common.Files;
-using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services;
+using QuanLyChoThuePhongTroWeb.Application.Features.OnlinePayments;
+using QuanLyChoThuePhongTroWeb.Models.ThanhToan;
 using QuanLyChoThuePhongTroWeb.Web.Helpers;
 
 namespace QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers
 {
-    // Khung "Thanh toán" của khách thuê (spec §27.1). Quyền sở hữu hóa đơn do Application kiểm.
+    // Khung "Thanh toán" của khách thuê (spec thanh toán trực tuyến §3.2, §3.4): QR và deeplink theo số còn lại, biên lai web.
+    // Khách không còn tự tạo lượt hay nộp minh chứng (spec §8). Quyền sở hữu hóa đơn do Application kiểm.
     [Area("KhachThue")]
     [Authorize(Roles = "KhachThue")]
     [AutoValidateAntiforgeryToken]
     public class ThanhToanHoaDonController : Controller
     {
-        private const long MaxRequestBytes = 6 * 1024 * 1024;
+        private readonly ITenantPaymentPanelService _panel;
+        private readonly IInvoiceReceiptService _receipts;
+        private readonly IInvoicePaymentRequestService _requests;
 
-        private readonly IInvoicePaymentRequestService _service;
-        private readonly InvoicePaymentOptions _options;
-
-        public ThanhToanHoaDonController(IInvoicePaymentRequestService service, InvoicePaymentOptions options)
+        public ThanhToanHoaDonController(
+            ITenantPaymentPanelService panel,
+            IInvoiceReceiptService receipts,
+            IInvoicePaymentRequestService requests)
         {
-            _service = service;
-            _options = options;
-        }
-
-        public sealed class TaoLuotReq
-        {
-            public int HoaDonId { get; set; }
-            public decimal? SoTien { get; set; }
-        }
-
-        public sealed class NopMinhChungForm
-        {
-            public int YeuCauId { get; set; }
-            public IFormFile? File { get; set; }
-            public string? MaGiaoDich { get; set; }
-            // Giờ Việt Nam từ ô datetime-local.
-            public string? NgayChuyen { get; set; }
+            _panel = panel;
+            _receipts = receipts;
+            _requests = requests;
         }
 
         [HttpGet("/KhachThue/HoaDon/ThanhToan/{hoaDonId:int}")]
@@ -54,92 +42,73 @@ namespace QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers
                 return Unauthorized(new { success = false, message = "Tài khoản chưa liên kết hồ sơ người thuê." });
             }
 
-            var result = await _service.GetPaymentPanelAsync(hoaDonId, nguoiThueId, ct);
-            return result.Success ? Ok(new { success = true, data = result.Data }) : this.ToErrorResult(result);
+            var result = await _panel.GetPanelAsync(hoaDonId, nguoiThueId, ct);
+            if (!result.Success)
+            {
+                return this.ToErrorResult(result);
+            }
+
+            var p = result.Data!;
+            return Ok(new
+            {
+                success = true,
+                data = new
+                {
+                    hoaDonId = p.HoaDonId,
+                    maHoaDon = p.MaHoaDon,
+                    tenPhong = p.TenPhong,
+                    tenChiNhanh = p.TenChiNhanh,
+                    thang = p.Thang,
+                    nam = p.Nam,
+                    tongTien = p.TongTien,
+                    daThu = p.DaThu,
+                    conLai = p.ConLai,
+                    hanThanhToan = p.HanThanhToanUtc.HasValue ? VietnamTime.Format(p.HanThanhToanUtc.Value, "dd/MM/yyyy") : string.Empty,
+                    coTheThanhToan = p.CoTheThanhToan,
+                    lyDoKhongTheThanhToan = p.LyDoKhongTheThanhToan,
+                    maChuyenKhoan = p.MaChuyenKhoan,
+                    tenNganHang = p.TenNganHang,
+                    soTaiKhoan = p.SoTaiKhoan,
+                    chuTaiKhoan = p.ChuTaiKhoan,
+                    soTienSaoChep = p.ConLai.ToString("0", CultureInfo.InvariantCulture),
+                    deeplinks = p.Deeplinks.Select(d => new { tenNganHang = d.TenNganHang, url = d.Url }),
+                    cacLanThanhToan = p.CacLanThanhToan.Select(e => new
+                    {
+                        lichSuThanhToanId = e.LichSuThanhToanId,
+                        dotThu = e.DotThu,
+                        soTien = e.SoTien,
+                        ngayThanhToan = VietnamTime.Format(e.NgayThanhToanUtc, "dd/MM/yyyy HH:mm"),
+                        phuongThuc = e.PhuongThuc
+                    }),
+                    minhChungChoDoiChieu = p.MinhChungChoDoiChieu == null
+                        ? null
+                        : new
+                        {
+                            minhChungId = p.MinhChungChoDoiChieu.MinhChungId,
+                            soTien = p.MinhChungChoDoiChieu.SoTien,
+                            ngayNop = VietnamTime.Format(p.MinhChungChoDoiChieu.NgayNopUtc, "dd/MM/yyyy HH:mm")
+                        }
+                }
+            });
         }
 
-        [HttpPost("/KhachThue/HoaDon/ThanhToan/Tao")]
-        public async Task<IActionResult> Tao([FromBody] TaoLuotReq req, CancellationToken ct)
-        {
-            if (!TryGetTenant(out var nguoiThueId, out var userId))
-            {
-                return Unauthorized(new { success = false, message = "Tài khoản chưa liên kết hồ sơ người thuê." });
-            }
-
-            var result = await _service.CreateAsync(req?.HoaDonId ?? 0, nguoiThueId, userId, req?.SoTien, ct);
-            return result.Success ? Ok(new { success = true, message = result.Message, data = result.Data }) : this.ToErrorResult(result);
-        }
-
-        [HttpPost("/KhachThue/HoaDon/ThanhToan/Huy/{yeuCauId:int}")]
-        public async Task<IActionResult> Huy(int yeuCauId, CancellationToken ct)
-        {
-            if (!TryGetTenant(out var nguoiThueId, out var userId))
-            {
-                return Unauthorized(new { success = false, message = "Tài khoản chưa liên kết hồ sơ người thuê." });
-            }
-
-            var result = await _service.CancelAsync(yeuCauId, nguoiThueId, userId, ct);
-            return result.Success ? Ok(new { success = true, message = result.Message }) : this.ToErrorResult(result);
-        }
-
-        [HttpPost("/KhachThue/HoaDon/ThanhToan/NopMinhChung")]
-        [RequestSizeLimit(MaxRequestBytes)]
-        [RequestFormLimits(MultipartBodyLengthLimit = MaxRequestBytes)]
-        public async Task<IActionResult> NopMinhChung([FromForm] NopMinhChungForm form, CancellationToken ct)
-        {
-            if (!TryGetTenant(out var nguoiThueId, out var userId))
-            {
-                return Unauthorized(new { success = false, message = "Tài khoản chưa liên kết hồ sơ người thuê." });
-            }
-
-            if (!VietnamTime.TryParseToUtc(form.NgayChuyen, out var ngayChuyenUtc))
-            {
-                return BadRequest(new { success = false, message = "Vui lòng nhập thời điểm chuyển khoản hợp lệ." });
-            }
-
-            if (form.File == null || form.File.Length == 0)
-            {
-                return BadRequest(new { success = false, message = "Vui lòng chọn ảnh minh chứng." });
-            }
-
-            if (form.File.Length > _options.MinhChungToiDaBytes)
-            {
-                return BadRequest(new { success = false, message = $"Ảnh vượt quá dung lượng cho phép ({_options.MinhChungToiDaBytes / (1024 * 1024)} MB)." });
-            }
-
-            await using var buffer = new MemoryStream();
-            await form.File.CopyToAsync(buffer, ct);
-            buffer.Position = 0;
-            var upload = new UploadFile(buffer, Path.GetFileName(form.File.FileName), form.File.ContentType ?? string.Empty, buffer.Length);
-
-            // Kiểm ở Web trước, Application kiểm lại (spec §12).
-            var fileError = ProofImageValidator.Validate(upload, _options.MinhChungToiDaBytes);
-            if (fileError != null)
-            {
-                return BadRequest(new { success = false, message = fileError });
-            }
-
-            var result = await _service.SubmitProofAsync(new SubmitPaymentProofRequest
-            {
-                YeuCauId = form.YeuCauId,
-                File = upload,
-                MaGiaoDichNganHang = form.MaGiaoDich,
-                NgayChuyenUtc = ngayChuyenUtc
-            }, nguoiThueId, userId, ct);
-
-            return result.Success ? Ok(new { success = true, message = result.Message, data = result.Data }) : this.ToErrorResult(result);
-        }
-
-        [HttpGet("/KhachThue/HoaDon/ThanhToan/QR/{yeuCauId:int}")]
-        public async Task<IActionResult> QR(int yeuCauId, CancellationToken ct)
+        // Không có taiVe: ảnh hiển thị trong <img>. Có taiVe=true: tải về với tên file ASCII.
+        [HttpGet("/KhachThue/HoaDon/ThanhToan/QR/{hoaDonId:int}")]
+        public async Task<IActionResult> QR(int hoaDonId, [FromQuery] bool taiVe, CancellationToken ct)
         {
             if (!TryGetTenant(out var nguoiThueId, out _))
             {
                 return Unauthorized();
             }
 
-            var result = await _service.GetQrAsync(yeuCauId, nguoiThueId, ct);
-            return result.Success ? File(result.Data!, "image/png") : this.ToErrorResult(result);
+            var result = await _panel.GetQrAsync(hoaDonId, nguoiThueId, ct);
+            if (!result.Success)
+            {
+                return this.ToErrorResult(result);
+            }
+
+            var qr = result.Data!;
+            return taiVe ? File(qr.Png, "image/png", qr.FileName) : File(qr.Png, "image/png");
         }
 
         [HttpGet("/KhachThue/HoaDon/ThanhToan/AnhMinhChung/{minhChungId:int}")]
@@ -150,8 +119,26 @@ namespace QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers
                 return Unauthorized();
             }
 
-            var result = await _service.GetProofImageAsync(minhChungId, nguoiThueId, ct);
+            var result = await _requests.GetProofImageAsync(minhChungId, nguoiThueId, ct);
             return result.Success ? File(result.Data!.Bytes, result.Data.ContentType) : this.ToErrorResult(result);
+        }
+
+        [HttpGet("/KhachThue/HoaDon/BienLai/{lichSuThanhToanId:int}")]
+        public async Task<IActionResult> BienLai(int lichSuThanhToanId, CancellationToken ct)
+        {
+            if (!TryGetTenant(out var nguoiThueId, out _))
+            {
+                return Unauthorized();
+            }
+
+            var result = await _receipts.GetForTenantAsync(lichSuThanhToanId, nguoiThueId, ct);
+            if (!result.Success)
+            {
+                return this.ToErrorResult(result);
+            }
+
+            var receipt = result.Data!;
+            return View("BienLai", BienLaiThanhToanViewModel.From(receipt, $"/KhachThue/HoaDon?hoaDonId={receipt.HoaDonId}"));
         }
 
         private bool TryGetTenant(out int nguoiThueId, out int userId)

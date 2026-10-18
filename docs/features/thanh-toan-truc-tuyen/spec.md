@@ -343,7 +343,7 @@ Không ghi đè `appsettings.json` của người dùng.
   - biên lai: khách chỉ xem biên lai của mình; nhân viên chỉ xem chi nhánh được phân công;
   - màn Giao dịch SePay: nhân viên → bị chặn;
   - đăng nhập với `ReturnUrl=/KhachThue/HoaDon?hoaDonId=` → quay lại đúng trang;
-  - endpoint tạo lượt/nộp minh chứng đã gỡ → 404.
+  - endpoint tạo lượt/nộp minh chứng đã gỡ → 404 hoặc 405, không tạo lượt.
 - Kiến trúc: `ArchitectureBoundaryTests`, `InfrastructureBoundaryTests`, `BranchScopeArchitectureTests` PASS.
 
 ### 11.3 Thử tay (người dùng có tài khoản SePay Test mode, bot Telegram, tunnel)

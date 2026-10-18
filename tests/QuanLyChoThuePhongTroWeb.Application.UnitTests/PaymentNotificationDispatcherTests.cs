@@ -100,7 +100,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.True(call.Data.DaThuDu);
             Assert.Equal(0m, call.Data.ConNo);
             Assert.Equal("FT26ABC", call.Data.MaThamChieu);
-            Assert.Equal("https://tro.test/KhachThue/HoaDon?hoaDonId=7", call.Data.LinkXemBienLai);
+            Assert.Equal($"https://tro.test/KhachThue/HoaDon/BienLai/{outcome.LichSuThanhToanId}", call.Data.LinkXemBienLai);
             Assert.Empty(_log.Entries);
         }
 

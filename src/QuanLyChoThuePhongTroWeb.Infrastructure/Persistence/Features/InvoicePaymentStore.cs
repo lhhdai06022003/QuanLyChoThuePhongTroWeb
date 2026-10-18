@@ -272,9 +272,30 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                     SoTienThanhToanToiThieu = h.SoTienThanhToanToiThieu,
                     TrangThaiHoaDon = h.TrangThaiHoaDon,
                     TrangThaiPhatHanh = h.TrangThaiPhatHanh,
-                    IsDeleted = h.IsDeleted
+                    IsDeleted = h.IsDeleted,
+                    Thang = h.Thang,
+                    Nam = h.Nam,
+                    HanThanhToan = h.HanThanhToan
                 })
                 .FirstOrDefaultAsync(ct);
+        }
+
+        public async Task<IReadOnlyList<PaymentLedgerRowSnapshot>> GetActiveLedgerRowsAsync(int hoaDonId, CancellationToken ct = default)
+        {
+            return await _context.LichSuThanhToans
+                .AsNoTracking()
+                .Where(l => l.HoaDonId == hoaDonId && !l.IsDeleted)
+                .OrderBy(l => l.NgayThanhToan)
+                .ThenBy(l => l.LichSuThanhToanId)
+                .Select(l => new PaymentLedgerRowSnapshot
+                {
+                    LichSuThanhToanId = l.LichSuThanhToanId,
+                    SoTienThanhToan = l.SoTienThanhToan,
+                    NgayThanhToanUtc = l.NgayThanhToan,
+                    MaGiaoDich = l.MaGiaoDich,
+                    PhuongThucThanhToan = l.PhuongThucThanhToan
+                })
+                .ToListAsync(ct);
         }
 
         public Task<IReadOnlyList<PaymentRequestSnapshot>> GetRequestSnapshotsAsync(int hoaDonId, CancellationToken ct = default)

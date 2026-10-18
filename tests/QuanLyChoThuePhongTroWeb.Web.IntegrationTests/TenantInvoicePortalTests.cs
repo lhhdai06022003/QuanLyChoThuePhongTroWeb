@@ -248,18 +248,6 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             });
         }
 
-        private static async Task<HttpResponseMessage> PostTaoLuotAsync(HttpClient client, int hoaDonId)
-        {
-            var page = await client.GetAsync("/KhachThue/HoaDon");
-            var token = ExtractAntiForgeryToken(await page.Content.ReadAsStringAsync());
-            var req = new HttpRequestMessage(HttpMethod.Post, "/KhachThue/HoaDon/ThanhToan/Tao")
-            {
-                Content = new StringContent(JsonSerializer.Serialize(new { hoaDonId }), System.Text.Encoding.UTF8, "application/json")
-            };
-            req.Headers.Add("RequestVerificationToken", token);
-            return await client.SendAsync(req);
-        }
-
         [Fact]
         public async Task GetDanhSach_IncludesPublishState_CancelledMarked()
         {
@@ -306,7 +294,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             var panel = await client.GetAsync($"/KhachThue/HoaDon/ThanhToan/{data.InvoiceCancelled.HoaDonId}");
             Assert.Equal(HttpStatusCode.OK, panel.StatusCode);
             using var panelDoc = JsonDocument.Parse(await panel.Content.ReadAsStringAsync());
-            Assert.False(panelDoc.RootElement.GetProperty("data").GetProperty("coTheTaoLuot").GetBoolean());
+            Assert.False(panelDoc.RootElement.GetProperty("data").GetProperty("coTheThanhToan").GetBoolean());
         }
 
         [Fact]
@@ -328,7 +316,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             var panel = await client.GetAsync($"/KhachThue/HoaDon/ThanhToan/{data.InvoiceDaGui.HoaDonId}");
             Assert.Equal(HttpStatusCode.OK, panel.StatusCode);
             using var panelDoc = JsonDocument.Parse(await panel.Content.ReadAsStringAsync());
-            Assert.True(panelDoc.RootElement.GetProperty("data").GetProperty("coTheTaoLuot").GetBoolean());
+            Assert.True(panelDoc.RootElement.GetProperty("data").GetProperty("coTheThanhToan").GetBoolean());
         }
 
         [Fact]
@@ -473,13 +461,13 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
         }
 
         [Fact]
-        public async Task CreatePaymentRequest_Cancelled_400()
+        public async Task PaymentQr_Cancelled_400()
         {
             var data = await SeedTestDataAsync("VQR_Can");
             var client = CreateHttpClient();
             await LoginTenantAsync(client, data.TenantAUsername, data.TenantAPassword);
 
-            var res = await PostTaoLuotAsync(client, data.InvoiceCancelled.HoaDonId);
+            var res = await client.GetAsync($"/KhachThue/HoaDon/ThanhToan/QR/{data.InvoiceCancelled.HoaDonId}");
             Assert.Equal(HttpStatusCode.BadRequest, res.StatusCode);
         }
 
@@ -573,23 +561,20 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
         }
 
         [Fact]
-        public async Task CreatePaymentRequest_Provisional_Rejected_AndNoRequestCreated()
+        public async Task PaymentQr_Provisional_404()
         {
             var data = await SeedTestDataAsync("VQR_TT");
             var (provisional, _) = await AddProvisionalInvoicesAsync(data.InvoiceDaGui);
             var client = CreateHttpClient();
             await LoginTenantAsync(client, data.TenantAUsername, data.TenantAPassword);
 
-            var res = await PostTaoLuotAsync(client, provisional.HoaDonId);
+            var res = await client.GetAsync($"/KhachThue/HoaDon/ThanhToan/QR/{provisional.HoaDonId}");
 
             Assert.Equal(HttpStatusCode.NotFound, res.StatusCode);
-            using var scope = _factory.Services.CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            Assert.False(db.YeuCauThanhToanHoaDons.Any(y => y.HoaDonId == provisional.HoaDonId));
         }
 
         [Fact]
-        public async Task PaymentPanel_Provisional_404_AndPartialPaymentRequestRejected()
+        public async Task PaymentPanel_Provisional_404()
         {
             var data = await SeedTestDataAsync("PNL_TT");
             var (provisional, _) = await AddProvisionalInvoicesAsync(data.InvoiceDaGui);
@@ -599,19 +584,8 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             var panel = await client.GetAsync($"/KhachThue/HoaDon/ThanhToan/{provisional.HoaDonId}");
             Assert.Equal(HttpStatusCode.NotFound, panel.StatusCode);
 
-            var page = await client.GetAsync("/KhachThue/HoaDon");
-            var token = ExtractAntiForgeryToken(await page.Content.ReadAsStringAsync());
-            var req = new HttpRequestMessage(HttpMethod.Post, "/KhachThue/HoaDon/ThanhToan/Tao")
-            {
-                Content = new StringContent(JsonSerializer.Serialize(new { hoaDonId = provisional.HoaDonId, soTien = 1000m }), System.Text.Encoding.UTF8, "application/json")
-            };
-            req.Headers.Add("RequestVerificationToken", token);
-            var partial = await client.SendAsync(req);
-            Assert.Equal(HttpStatusCode.NotFound, partial.StatusCode);
-
-            using var scope = _factory.Services.CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            Assert.False(db.YeuCauThanhToanHoaDons.Any(y => y.HoaDonId == provisional.HoaDonId));
+            var qr = await client.GetAsync($"/KhachThue/HoaDon/ThanhToan/QR/{provisional.HoaDonId}");
+            Assert.Equal(HttpStatusCode.NotFound, qr.StatusCode);
         }
 
         private static string VnText(DateTime utc)

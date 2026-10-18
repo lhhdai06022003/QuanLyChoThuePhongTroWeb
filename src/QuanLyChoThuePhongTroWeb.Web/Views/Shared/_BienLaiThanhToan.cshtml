@@ -1,0 +1,86 @@
+@model QuanLyChoThuePhongTroWeb.Models.ThanhToan.BienLaiThanhToanViewModel
+
+@* Biên lai thanh toán dùng chung cho cổng khách thuê và cổng quản lý (spec thanh toán trực tuyến §3.4). Chỉ in giá trị đã mã hóa bởi Razor. *@
+<div class="card bien-lai">
+    <div class="card-body">
+        <div class="text-center mb-3">
+            <h3 class="mb-2">BIÊN LAI XÁC NHẬN THU TIỀN PHÒNG TRỌ</h3>
+            <span class="badge @(Model.DaThuDu ? "bg-success" : "bg-info") fs-3">@Model.HuyHieu</span>
+        </div>
+
+        <table class="table table-sm table-borderless mb-3">
+            <tbody>
+                <tr>
+                    <td class="text-secondary">Mã hóa đơn</td>
+                    <td class="text-end fw-bold">@Model.MaHoaDon (@("#HD" + Model.HoaDonId))</td>
+                </tr>
+                @if (!string.IsNullOrWhiteSpace(Model.MaThamChieu))
+                {
+                    <tr>
+                        <td class="text-secondary">Mã tham chiếu ngân hàng</td>
+                        <td class="text-end">@Model.MaThamChieu</td>
+                    </tr>
+                }
+                <tr>
+                    <td class="text-secondary">Mã giao dịch</td>
+                    <td class="text-end">@Model.MaGiaoDich</td>
+                </tr>
+                <tr>
+                    <td class="text-secondary">Ngày giờ thanh toán</td>
+                    <td class="text-end">@Model.NgayThanhToan</td>
+                </tr>
+                <tr>
+                    <td class="text-secondary">Phương thức</td>
+                    <td class="text-end">@Model.PhuongThuc</td>
+                </tr>
+                <tr>
+                    <td class="text-secondary">Chi nhánh</td>
+                    <td class="text-end">@Model.TenChiNhanh<br /><span class="text-secondary">@Model.DiaChiChiNhanh</span></td>
+                </tr>
+                <tr>
+                    <td class="text-secondary">Phòng</td>
+                    <td class="text-end">@Model.TenPhong</td>
+                </tr>
+                <tr>
+                    <td class="text-secondary">Người thanh toán</td>
+                    <td class="text-end">@Model.TenNguoiThanhToan</td>
+                </tr>
+                <tr>
+                    <td class="text-secondary">Kỳ hóa đơn</td>
+                    <td class="text-end">@Model.KyHoaDon</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <table class="table table-bordered mb-2">
+            <tbody>
+                <tr>
+                    <td>Tổng hóa đơn</td>
+                    <td class="text-end">@Model.TongTien</td>
+                </tr>
+                <tr>
+                    <td>Số tiền lần này</td>
+                    <td class="text-end fw-bold">@Model.SoTienLanNay</td>
+                </tr>
+                <tr>
+                    <td>Lũy kế đã thanh toán (tính đến lần này)</td>
+                    <td class="text-end">@Model.LuyKeDaThanhToan</td>
+                </tr>
+                <tr>
+                    <td>Còn nợ sau lần này</td>
+                    <td class="text-end fw-bold">@Model.ConNo</td>
+                </tr>
+            </tbody>
+        </table>
+
+        @if (!string.IsNullOrEmpty(Model.TienThua))
+        {
+            <p class="mb-2">Tiền thừa @Model.TienThua — chủ trọ sẽ liên hệ</p>
+        }
+
+        <div class="d-print-none text-center mt-4">
+            <button type="button" class="btn btn-primary" onclick="window.print()"><i class="ti ti-printer me-1"></i> In biên lai / Lưu PDF</button>
+            <a href="@Model.QuayLaiUrl" class="btn btn-outline-secondary ms-2"><i class="ti ti-arrow-left me-1"></i> Quay lại hóa đơn</a>
+        </div>
+    </div>
+</div>

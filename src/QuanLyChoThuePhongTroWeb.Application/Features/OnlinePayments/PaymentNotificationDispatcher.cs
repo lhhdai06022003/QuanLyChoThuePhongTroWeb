@@ -128,7 +128,7 @@ public sealed class PaymentNotificationDispatcher(
         var data = PaymentNotificationFormatter.BuildReceiptEmail(
             receipt,
             outcome.Transfer.ReferenceCode,
-            onlinePaymentOptions.BuildUrl($"/KhachThue/HoaDon?hoaDonId={receipt.HoaDonId}"));
+            onlinePaymentOptions.BuildUrl($"/KhachThue/HoaDon/BienLai/{receipt.LichSuThanhToanId}"));
 
         try
         {

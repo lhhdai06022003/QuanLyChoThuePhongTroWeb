@@ -50,6 +50,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence
         Task<InvoicePaymentTarget?> GetTargetByMaYeuCauAsync(string maYeuCau, CancellationToken ct = default);
 
         Task<PaymentInvoiceSnapshot?> GetInvoiceSnapshotAsync(int hoaDonId, CancellationToken ct = default);
+        // Các dòng sổ chưa xóa mềm của hóa đơn, xếp (NgayThanhToan, LichSuThanhToanId) tăng dần, cùng thứ tự đợt với GetReceiptSnapshotAsync.
+        Task<IReadOnlyList<PaymentLedgerRowSnapshot>> GetActiveLedgerRowsAsync(int hoaDonId, CancellationToken ct = default);
         // Mọi lượt chưa xóa của hóa đơn, mới nhất trước.
         Task<IReadOnlyList<PaymentRequestSnapshot>> GetRequestSnapshotsAsync(int hoaDonId, CancellationToken ct = default);
         Task<PaymentRequestSnapshot?> GetRequestSnapshotAsync(int yeuCauId, CancellationToken ct = default);

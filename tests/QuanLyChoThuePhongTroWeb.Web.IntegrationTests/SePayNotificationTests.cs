@@ -194,7 +194,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             Assert.Equal(0m, email.Data.ConNo);
             Assert.Equal(2_000_000m, email.Data.SoTienLanNay);
             Assert.Equal(reference, email.Data.MaThamChieu);
-            Assert.Equal($"https://tro.test/KhachThue/HoaDon?hoaDonId={seeded.InvoiceId}", email.Data.LinkXemBienLai);
+            Assert.Equal($"https://tro.test/KhachThue/HoaDon/BienLai/{(await LedgerAsync(seeded.InvoiceId)).Single().LichSuThanhToanId}", email.Data.LinkXemBienLai);
             Assert.Equal("Chuyển khoản 24/7 (VietQR, tự động)", email.Data.PhuongThuc);
         }
 

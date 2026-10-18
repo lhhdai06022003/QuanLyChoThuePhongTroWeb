@@ -253,8 +253,27 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
                 SoTienThanhToanToiThieu = hd.SoTienThanhToanToiThieu,
                 TrangThaiHoaDon = hd.TrangThaiHoaDon,
                 TrangThaiPhatHanh = hd.TrangThaiPhatHanh,
-                IsDeleted = hd.IsDeleted
+                IsDeleted = hd.IsDeleted,
+                Thang = meta.Thang,
+                Nam = meta.Nam,
+                HanThanhToan = hd.HanThanhToan
             });
+        }
+
+        public Task<IReadOnlyList<PaymentLedgerRowSnapshot>> GetActiveLedgerRowsAsync(int hoaDonId, CancellationToken ct = default)
+        {
+            return Task.FromResult<IReadOnlyList<PaymentLedgerRowSnapshot>>(Ledger
+                .Where(l => l.HoaDonId == hoaDonId && !l.IsDeleted)
+                .OrderBy(l => l.NgayThanhToan).ThenBy(l => l.LichSuThanhToanId)
+                .Select(l => new PaymentLedgerRowSnapshot
+                {
+                    LichSuThanhToanId = l.LichSuThanhToanId,
+                    SoTienThanhToan = l.SoTienThanhToan,
+                    NgayThanhToanUtc = l.NgayThanhToan,
+                    MaGiaoDich = l.MaGiaoDich,
+                    PhuongThucThanhToan = l.PhuongThucThanhToan
+                })
+                .ToList());
         }
 
         public Task<IReadOnlyList<PaymentRequestSnapshot>> GetRequestSnapshotsAsync(int hoaDonId, CancellationToken ct = default)

@@ -78,6 +78,8 @@
         }
 
         var autoOpenHoaDonId = @moHoaDonId;
+        // Hóa đơn đang mở trong modal (0 = không mở); sự kiện tiền vào của đúng hóa đơn này thì tải lại modal.
+        var dangXemHoaDonId = 0;
 
         $(document).ready(function () {
             $('#hoaDonTable').DataTable({
@@ -151,13 +153,22 @@
                     }
                 }
             });
+
+            // Tiền về qua SePay: danh sách luôn được làm mới, modal chỉ tải lại khi đang mở đúng hóa đơn đó.
+            KtThanhToan.watch(function (e) {
+                $('#hoaDonTable').DataTable().ajax.reload(null, false);
+                if (e && e.hoaDonId === dangXemHoaDonId && $('#chiTietModal').hasClass('show')) {
+                    showChiTiet(dangXemHoaDonId);
+                }
+            });
         });
 
         $(document).on('hidden.bs.modal', '#chiTietModal', function () {
-            KtThanhToan.stop();
+            dangXemHoaDonId = 0;
         });
 
         function showChiTiet(hoaDonId) {
+            dangXemHoaDonId = hoaDonId;
             var modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('chiTietModal'));
             modal.show();
 
@@ -280,7 +291,7 @@
                     html += `</tbody></table></div>`;
                 }
 
-                // Khung "Thanh toán": lượt thanh toán, QR theo lượt và nộp minh chứng.
+                // Khung "Thanh toán": VietQR theo số còn lại và biên lai.
                 if (!res.daHuy) {
                     html += '<div id="ktPaymentPanel" class="mt-4 pt-3 border-top"></div>';
                 }
@@ -289,6 +300,7 @@
                 if (!res.daHuy) {
                     KtThanhToan.load(res.hoaDonId, '#ktPaymentPanel', function () {
                         $('#hoaDonTable').DataTable().ajax.reload(null, false);
+                        showChiTiet(res.hoaDonId);
                     });
                 }
             }).fail(function() {

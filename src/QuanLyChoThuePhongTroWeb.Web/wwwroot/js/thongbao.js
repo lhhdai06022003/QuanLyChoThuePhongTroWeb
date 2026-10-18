@@ -1,9 +1,20 @@
+// Cho trang khác đăng ký sự kiện trên kết nối ThongBaoHub sẵn có (spec thanh toán trực tuyến §3.3). Đăng ký trước hay sau khi kết nối đều được.
+window.ThongBaoHub = (function () {
+    var handlers = [], connection = null;
+    return {
+        on: function (eventName, handler) { handlers.push([eventName, handler]); if (connection) connection.on(eventName, handler); },
+        attach: function (conn) { connection = conn; handlers.forEach(function (h) { conn.on(h[0], h[1]); }); }
+    };
+})();
+
 $(document).ready(function () {
     if (typeof signalR !== 'undefined') {
         const connection = new signalR.HubConnectionBuilder()
             .withUrl("/thongBaoHub")
             .withAutomaticReconnect()
             .build();
+
+        window.ThongBaoHub.attach(connection);
 
         connection.on("NhanThongBao", function (thongBao) {
             // Hiển thị popup toast

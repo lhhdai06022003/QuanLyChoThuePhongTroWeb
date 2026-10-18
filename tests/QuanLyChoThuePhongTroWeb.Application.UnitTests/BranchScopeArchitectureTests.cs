@@ -33,7 +33,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             typeof(IYeuCauSuCoService),
             typeof(IAutoInvoiceService),
             typeof(IInvoiceAdjustmentService),
-            typeof(IBankTransferIngestionService)
+            typeof(IBankTransferIngestionService),
+            typeof(IInvoiceReceiptService)
         };
 
         private static readonly HashSet<string> Exceptions = new()
@@ -51,7 +52,9 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             $"{nameof(IDichVuService)}.{nameof(IDichVuService.GetDanhSachDichVuAsync)}",
             $"{nameof(IDichVuService)}.{nameof(IDichVuService.GetDichVuByIdAsync)}",
             // Webhook SePay đã xác thực chữ ký, hoặc đồng bộ bù đã kiểm Admin (spec thanh toán trực tuyến §9.1).
-            $"{nameof(IBankTransferIngestionService)}.{nameof(IBankTransferIngestionService.IngestAsync)}"
+            $"{nameof(IBankTransferIngestionService)}.{nameof(IBankTransferIngestionService.IngestAsync)}",
+            // Cổng khách thuê: giới hạn theo NguoiThueId của người đứng tên hợp đồng.
+            $"{nameof(IInvoiceReceiptService)}.{nameof(IInvoiceReceiptService.GetForTenantAsync)}"
         };
 
         [Fact]

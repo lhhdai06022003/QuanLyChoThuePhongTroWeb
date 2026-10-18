@@ -102,7 +102,7 @@ public static class PaymentNotificationFormatter
             Thang = receipt.Thang,
             Nam = receipt.Nam,
             NgayThanhToanVn = VietnamTime(receipt.NgayThanhToanUtc),
-            PhuongThuc = PaymentMethodLabel(receipt),
+            PhuongThuc = PaymentMethodLabel(receipt.MaGiaoDich, receipt.PhuongThucThanhToan),
             MaThamChieu = string.IsNullOrWhiteSpace(maThamChieu) ? null : maThamChieu.Trim(),
             TongTien = receipt.TongTien,
             SoTienLanNay = receipt.SoTienThanhToan,
@@ -147,14 +147,15 @@ public static class PaymentNotificationFormatter
         return outcome.MaHoaDon ?? "#HD" + outcome.HoaDonId;
     }
 
-    private static string PaymentMethodLabel(PaymentReceiptSnapshot receipt)
+    // Dùng chung với biên lai web và panel thanh toán của khách thuê (cùng nhãn phương thức với email biên lai).
+    internal static string PaymentMethodLabel(string maGiaoDich, PhuongThucThanhToan phuongThuc)
     {
-        if (receipt.MaGiaoDich.StartsWith(InvoicePaymentPolicy.SePayMaGiaoDichPrefix, StringComparison.OrdinalIgnoreCase))
+        if (maGiaoDich.StartsWith(InvoicePaymentPolicy.SePayMaGiaoDichPrefix, StringComparison.OrdinalIgnoreCase))
         {
             return "Chuyển khoản 24/7 (VietQR, tự động)";
         }
 
-        return receipt.PhuongThucThanhToan == PhuongThucThanhToan.TienMat ? "Tiền mặt" : "Chuyển khoản";
+        return phuongThuc == PhuongThucThanhToan.TienMat ? "Tiền mặt" : "Chuyển khoản";
     }
 
     // Mã tham chiếu ngân hàng; giao dịch không có thì dùng id SePay.

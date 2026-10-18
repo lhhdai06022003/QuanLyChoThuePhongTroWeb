@@ -1,0 +1,53 @@
+/* Biên lai thanh toán (spec thanh toán trực tuyến §3.4): xem trên web và in khổ A5 dọc */
+
+.bien-lai {
+    max-width: 148mm;
+    margin: 0 auto;
+}
+
+@page {
+    size: A5 portrait;
+    margin: 8mm;
+}
+
+@media print {
+    /* Chỉ in tờ biên lai, ẩn menu, thanh trên và chân trang */
+    body * {
+        visibility: hidden;
+    }
+
+    .bien-lai,
+    .bien-lai * {
+        visibility: visible;
+    }
+
+    .bien-lai {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        max-width: none;
+        box-shadow: none;
+        border: 0;
+    }
+
+    .d-print-none {
+        display: none !important;
+    }
+
+    /* Giấy trắng: không phụ thuộc giao diện sáng/tối và tùy chọn "in hình nền" của trình duyệt */
+    .bien-lai {
+        background: #fff !important;
+        color: #000 !important;
+    }
+
+    .bien-lai .text-secondary {
+        color: #444 !important;
+    }
+
+    .bien-lai .badge {
+        background: transparent !important;
+        color: #000 !important;
+        border: 1px solid #000;
+    }
+}

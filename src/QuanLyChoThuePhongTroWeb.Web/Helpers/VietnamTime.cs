@@ -21,6 +21,10 @@ namespace QuanLyChoThuePhongTroWeb.Web.Helpers
                 ? utc.Value.AddHours(7).ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture)
                 : string.Empty;
 
+        // Đổi thời điểm UTC sang giờ Việt Nam rồi định dạng theo format cho trước (ví dụ "dd/MM/yyyy HH:mm").
+        public static string Format(DateTime utc, string format)
+            => utc.AddHours(7).ToString(format, CultureInfo.InvariantCulture);
+
         public static bool TryParseToUtc(string? value, out DateTime utc)
         {
             utc = default;

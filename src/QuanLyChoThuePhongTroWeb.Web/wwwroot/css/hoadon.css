@@ -82,6 +82,21 @@
     color: var(--tblr-body-color);
 }
 
+/* Panel thanh toán của khách thuê: ảnh QR và lưới nút mở app ngân hàng (spec thanh toán trực tuyến §3.2) */
+.kt-qr {
+    max-width: 280px;
+}
+
+.kt-bank-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: .5rem;
+}
+
+.kt-bank-grid .btn {
+    min-height: 44px;
+}
+
 /* Căn chỉnh bảng nhập liệu chi phí khi chỉnh sửa */
 #editLinesTable th {
     font-size: 0.8125rem;

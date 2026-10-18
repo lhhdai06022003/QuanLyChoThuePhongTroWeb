@@ -42,6 +42,20 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence
         public TrangThaiHoaDon TrangThaiHoaDon { get; init; }
         public TrangThaiPhatHanhHoaDon TrangThaiPhatHanh { get; init; }
         public bool IsDeleted { get; init; }
+        public int Thang { get; init; }
+        public int Nam { get; init; }
+        // UTC.
+        public DateTime? HanThanhToan { get; init; }
+    }
+
+    // Một dòng sổ chưa xóa mềm của hóa đơn (panel thanh toán khách thuê, spec thanh toán trực tuyến §3.2).
+    public sealed class PaymentLedgerRowSnapshot
+    {
+        public int LichSuThanhToanId { get; init; }
+        public decimal SoTienThanhToan { get; init; }
+        public DateTime NgayThanhToanUtc { get; init; }
+        public string MaGiaoDich { get; init; } = string.Empty;
+        public PhuongThucThanhToan PhuongThucThanhToan { get; init; }
     }
 
     public sealed class PaymentRequestSnapshot
