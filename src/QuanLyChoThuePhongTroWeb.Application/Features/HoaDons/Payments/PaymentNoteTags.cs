@@ -39,6 +39,14 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Payments
             return string.IsNullOrWhiteSpace(ghiChu) ? text : $"{text} {ghiChu.Trim()}";
         }
 
+        // Lượt chờ Admin vì hóa đơn đã nhận chuyển khoản tự động sau khi khách nộp minh chứng (spec thanh toán trực tuyến §5.4).
+        // Cùng tiền tố [CHO-ADMIN] để IsWaitingAdmin và hàng đợi "chờ Admin" nhận ra.
+        public static string ChoAdminTrungSePay(string maGiaoDichSePay, decimal thucNhan, string? ghiChu)
+        {
+            var text = $"{ChoAdminPrefix} Hóa đơn đã nhận chuyển khoản tự động {maGiaoDichSePay} sau khi khách nộp minh chứng; thực nhận {InvoicePaymentPolicy.FormatVnd(thucNhan)}, cần Admin kiểm trùng.";
+            return string.IsNullOrWhiteSpace(ghiChu) ? text : $"{text} {ghiChu.Trim()}";
+        }
+
         // Nối dấu vết hủy ghi nhận vào ghi chú hiện có; giờ hiển thị theo giờ Việt Nam.
         public static string AppendDaHuy(string? ghiChu, DateTime nowUtc, int adminId, string lyDo)
         {

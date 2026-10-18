@@ -12,5 +12,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Abstractions.Services
             string toEmail, string recipientName, string roomNumber, string branchName) =>
             Task.FromResult((IsSuccess: false,
                 ErrorMessage: "Dịch vụ email chưa hỗ trợ thông báo đặt cọc phòng."));
+        Task<(bool IsSuccess, string ErrorMessage)> SendPaymentReceiptAsync(string toEmail, PaymentReceiptEmail data) =>
+            Task.FromResult((IsSuccess: false,
+                ErrorMessage: "Dịch vụ email chưa hỗ trợ gửi biên lai thanh toán."));
     }
 }

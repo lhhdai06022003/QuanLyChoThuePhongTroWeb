@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Notifications;
+using QuanLyChoThuePhongTroWeb.Application.Abstractions.Persistence;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Payments;
 using QuanLyChoThuePhongTroWeb.Application.Features.OnlinePayments;
 using QuanLyChoThuePhongTroWeb.Domain.Entities;
@@ -241,6 +242,199 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             Assert.Equal(1_500_000m, ledger.SoTienThanhToan);
             Assert.StartsWith("[TIEN-THUA:500000] [SEPAY]", ledger.GhiChu);
             Assert.Equal(TrangThaiHoaDon.DaThanhToan, (await verifyCtx.HoaDons.AsNoTracking().SingleAsync(h => h.HoaDonId == seeded.InvoiceId)).TrangThaiHoaDon);
+        }
+
+        // Nhân viên của một chi nhánh khác: không được nhận thông báo của hóa đơn này.
+        private async Task<int> SeedOtherBranchStaffAsync()
+        {
+            await using var context = _fixture.CreateDbContext();
+            var suffix = Guid.NewGuid().ToString("N")[..6];
+            var branch = new ChiNhanh { TenChiNhanh = $"CN_khac_{suffix}", MaChiNhanh = TestCodes.MaChiNhanh("K"), DiaChi = "456 Duong Test", SoDienThoai = "0912345678", MoTa = "test" };
+            context.ChiNhanhs.Add(branch);
+            await context.SaveChangesAsync();
+
+            var staff = new NguoiDung { TenDangNhap = $"staff_khac_{suffix}", MatKhauHash = "hash", Role = Role.NhanVien, IsActive = true };
+            context.NguoiDungs.Add(staff);
+            await context.SaveChangesAsync();
+
+            context.NhanVienChiNhanhs.Add(new NhanVienChiNhanh { NguoiDungId = staff.NguoiDungId, ChiNhanhId = branch.ChiNhanhId, IsActive = true, NguoiPhanCongId = staff.NguoiDungId });
+            await context.SaveChangesAsync();
+            return staff.NguoiDungId;
+        }
+
+        [Fact]
+        public async Task Recorded_CreatesInAppNotifications_ForBranchStaffAndTenant_ButNotForStaffOfAnotherBranch()
+        {
+            var seeded = await SeedSentInvoiceAsync("thong_bao");
+            var otherBranchStaffId = await SeedOtherBranchStaffAsync();
+            var reference = NewReference();
+
+            var outcome = await HandleAsync(Transfer(reference, seeded.InvoiceId), seeded.InvoiceId);
+
+            Assert.Equal(TransferOutcomeKind.Recorded, outcome.Kind);
+            Assert.Equal(seeded.TenantUserId, outcome.TenantUserId);
+
+            await using var verifyCtx = _fixture.CreateDbContext();
+            var staffNote = Assert.Single(await verifyCtx.ThongBaos.AsNoTracking().Where(t => t.NguoiDungId == seeded.ActorId).ToListAsync());
+            var tenantNote = Assert.Single(await verifyCtx.ThongBaos.AsNoTracking().Where(t => t.NguoiDungId == seeded.TenantUserId).ToListAsync());
+            Assert.Empty(await verifyCtx.ThongBaos.AsNoTracking().Where(t => t.NguoiDungId == otherBranchStaffId).ToListAsync());
+
+            Assert.StartsWith("Đã nhận chuyển khoản 1.500.000đ — P_", staffNote.TieuDe);
+            Assert.Equal(staffNote.TieuDe, tenantNote.TieuDe);
+            Assert.Equal("HoaDon", staffNote.LinhVuc);
+            Assert.False(staffNote.IsRead);
+            Assert.Equal($"/QuanLyNhaTro/QuanLyHoaDon?hoaDonId={seeded.InvoiceId}", staffNote.LinkDieuHuong);
+            Assert.Contains($"REF {reference}", staffNote.NoiDung);
+            Assert.Contains("đã thu 1.500.000/1.500.000đ, còn lại 0đ", staffNote.NoiDung);
+            Assert.Equal($"/KhachThue/HoaDon?hoaDonId={seeded.InvoiceId}", tenantNote.LinkDieuHuong);
+            Assert.EndsWith("đã ghi nhận 1.500.000đ, còn lại 0đ.", tenantNote.NoiDung);
+        }
+
+        [Fact]
+        public async Task SameTransferSentTwice_CreatesTheNotificationsOnce()
+        {
+            var seeded = await SeedSentInvoiceAsync("tb_lap");
+            var transfer = Transfer(NewReference(), seeded.InvoiceId);
+
+            var first = await HandleAsync(transfer, seeded.InvoiceId);
+            var second = await HandleAsync(transfer, seeded.InvoiceId);
+
+            Assert.Equal(TransferOutcomeKind.Recorded, first.Kind);
+            Assert.Equal(TransferOutcomeKind.Duplicate, second.Kind);
+            await using var verifyCtx = _fixture.CreateDbContext();
+            Assert.Single(await verifyCtx.ThongBaos.AsNoTracking().Where(t => t.NguoiDungId == seeded.ActorId).ToListAsync());
+            Assert.Single(await verifyCtx.ThongBaos.AsNoTracking().Where(t => t.NguoiDungId == seeded.TenantUserId).ToListAsync());
+        }
+
+        // Lần lưu thứ hai (thông báo, ngay trước commit) ném lỗi: transaction thật phải rollback cả dòng sổ lẫn thông báo.
+        private sealed class FailOnSecondSaveUnitOfWork : IUnitOfWork
+        {
+            private readonly EfUnitOfWork _inner;
+            private int _saves;
+
+            public FailOnSecondSaveUnitOfWork(ApplicationDbContext context) => _inner = new EfUnitOfWork(context);
+
+            public Task<IApplicationTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default)
+                => _inner.BeginTransactionAsync(cancellationToken);
+
+            public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+            {
+                if (++_saves == 2)
+                {
+                    throw new InvalidOperationException("SECRET-DB-DETAIL");
+                }
+
+                return _inner.SaveChangesAsync(cancellationToken);
+            }
+        }
+
+        [Fact]
+        public async Task WhenSavingTheNotificationsFails_NeitherTheLedgerRowNorAnyNotificationRemains()
+        {
+            var seeded = await SeedSentInvoiceAsync("tb_rollback");
+            var reference = NewReference();
+            TransferOutcome outcome;
+            await using (var ctx = _fixture.CreateDbContext())
+            {
+                var transaction = new InvoicePaymentTransaction(
+                    new InvoicePaymentStore(ctx), new FailOnSecondSaveUnitOfWork(ctx), new NoOpNotifier(), NullLogger<InvoicePaymentTransaction>.Instance);
+                outcome = await new InvoiceTransferHandler(transaction).HandleAsync(Transfer(reference, seeded.InvoiceId), $"TTPTHD{seeded.InvoiceId}");
+            }
+
+            Assert.Equal(TransferOutcomeKind.Failed, outcome.Kind);
+            Assert.DoesNotContain("SECRET", outcome.LyDo);
+            Assert.Null(outcome.TenantUserId);
+
+            await using var verifyCtx = _fixture.CreateDbContext();
+            Assert.Empty(await verifyCtx.LichSuThanhToans.AsNoTracking().Where(l => l.HoaDonId == seeded.InvoiceId).ToListAsync());
+            Assert.Empty(await verifyCtx.ThongBaos.AsNoTracking().Where(t => t.NguoiDungId == seeded.ActorId || t.NguoiDungId == seeded.TenantUserId).ToListAsync());
+            Assert.Equal(TrangThaiHoaDon.ChuaThanhToan, (await verifyCtx.HoaDons.AsNoTracking().SingleAsync(h => h.HoaDonId == seeded.InvoiceId)).TrangThaiHoaDon);
+
+            // SePay gửi lại sau lỗi: lần này ghi được, thông báo tạo đúng một lần.
+            var retried = await HandleAsync(Transfer(reference, seeded.InvoiceId), seeded.InvoiceId);
+            Assert.Equal(TransferOutcomeKind.Recorded, retried.Kind);
+            await using var afterCtx = _fixture.CreateDbContext();
+            Assert.Single(await afterCtx.ThongBaos.AsNoTracking().Where(t => t.NguoiDungId == seeded.ActorId).ToListAsync());
+            Assert.Single(await afterCtx.ThongBaos.AsNoTracking().Where(t => t.NguoiDungId == seeded.TenantUserId).ToListAsync());
+        }
+
+        [Fact]
+        public async Task Overpayment_AdminSeesTheSurplusSentence_AndBranchStaffAndTenantDoNot()
+        {
+            var seeded = await SeedSentInvoiceAsync("tb_du_tien");
+            var adminId = await SeedAdminAsync();
+
+            var outcome = await HandleAsync(Transfer(NewReference(), seeded.InvoiceId, amount: 2_000_000m), seeded.InvoiceId);
+
+            Assert.Equal(TransferOutcomeKind.Recorded, outcome.Kind);
+            await using var verifyCtx = _fixture.CreateDbContext();
+            var admin = Assert.Single(await verifyCtx.ThongBaos.AsNoTracking().Where(t => t.NguoiDungId == adminId).ToListAsync());
+            var staff = Assert.Single(await verifyCtx.ThongBaos.AsNoTracking().Where(t => t.NguoiDungId == seeded.ActorId).ToListAsync());
+            var tenant = Assert.Single(await verifyCtx.ThongBaos.AsNoTracking().Where(t => t.NguoiDungId == seeded.TenantUserId).ToListAsync());
+            Assert.EndsWith("Khách chuyển dư 500.000đ, cần xử lý ngoài hệ thống.", admin.NoiDung);
+            Assert.DoesNotContain("Khách chuyển dư", staff.NoiDung);
+            Assert.DoesNotContain("Khách chuyển dư", tenant.NoiDung);
+            Assert.StartsWith("Đã nhận chuyển khoản 2.000.000đ", admin.TieuDe);
+        }
+
+        [Fact]
+        public async Task AnInactiveAdmin_AndAStaffOfAnotherBranch_GetNoNotification()
+        {
+            var seeded = await SeedSentInvoiceAsync("tb_khong_nhan");
+            var inactiveAdminId = await SeedAdminAsync(isActive: false);
+            var otherBranchStaffId = await SeedOtherBranchStaffAsync();
+            var revokedStaffId = await SeedRevokedStaffAsync(seeded.ChiNhanhId);
+
+            await HandleAsync(Transfer(NewReference(), seeded.InvoiceId), seeded.InvoiceId);
+
+            await using var verifyCtx = _fixture.CreateDbContext();
+            Assert.Empty(await verifyCtx.ThongBaos.AsNoTracking()
+                .Where(t => t.NguoiDungId == inactiveAdminId || t.NguoiDungId == otherBranchStaffId || t.NguoiDungId == revokedStaffId).ToListAsync());
+            Assert.Single(await verifyCtx.ThongBaos.AsNoTracking().Where(t => t.NguoiDungId == seeded.ActorId).ToListAsync());
+        }
+
+        // Nhân viên từng được phân công đúng chi nhánh này nhưng đã bị thu hồi.
+        private async Task<int> SeedRevokedStaffAsync(int chiNhanhId)
+        {
+            await using var context = _fixture.CreateDbContext();
+            var staff = new NguoiDung { TenDangNhap = $"staff_thu_hoi_{Guid.NewGuid().ToString("N")[..8]}", MatKhauHash = "hash", Role = Role.NhanVien, IsActive = true };
+            context.NguoiDungs.Add(staff);
+            await context.SaveChangesAsync();
+            context.NhanVienChiNhanhs.Add(new NhanVienChiNhanh
+            {
+                NguoiDungId = staff.NguoiDungId, ChiNhanhId = chiNhanhId, IsActive = false, NguoiPhanCongId = staff.NguoiDungId, NgayThuHoi = DateTime.UtcNow.AddDays(-1)
+            });
+            await context.SaveChangesAsync();
+            return staff.NguoiDungId;
+        }
+
+        private async Task<int> SeedAdminAsync(bool isActive = true)
+        {
+            await using var context = _fixture.CreateDbContext();
+            var admin = new NguoiDung { TenDangNhap = $"admin_{Guid.NewGuid().ToString("N")[..8]}", MatKhauHash = "hash", Role = Role.Admin, IsActive = isActive };
+            context.NguoiDungs.Add(admin);
+            await context.SaveChangesAsync();
+            return admin.NguoiDungId;
+        }
+
+        [Fact]
+        public async Task NotPayableAndAlreadyPaid_CreateNoNotifications()
+        {
+            var seeded = await SeedSentInvoiceAsync("tb_khong_ghi");
+            Assert.Equal(TransferOutcomeKind.Recorded, (await HandleAsync(Transfer(NewReference(), seeded.InvoiceId), seeded.InvoiceId)).Kind);
+            await using (var ctx = _fixture.CreateDbContext())
+            {
+                ctx.ThongBaos.RemoveRange(ctx.ThongBaos.Where(t => t.NguoiDungId == seeded.ActorId || t.NguoiDungId == seeded.TenantUserId));
+                await ctx.SaveChangesAsync();
+            }
+
+            var alreadyPaid = await HandleAsync(Transfer(NewReference(), seeded.InvoiceId), seeded.InvoiceId);
+            var missing = await HandleAsync(Transfer(NewReference(), 999_999_999), 999_999_999);
+
+            Assert.Equal(TransferOutcomeKind.AlreadyPaid, alreadyPaid.Kind);
+            Assert.Equal(TransferOutcomeKind.InvoiceNotPayable, missing.Kind);
+            await using var verifyCtx = _fixture.CreateDbContext();
+            Assert.Empty(await verifyCtx.ThongBaos.AsNoTracking().Where(t => t.NguoiDungId == seeded.ActorId || t.NguoiDungId == seeded.TenantUserId).ToListAsync());
         }
 
         [Fact]

@@ -24,6 +24,12 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Payments
         public const int MaxLyDoLength = 500;
         public const int MaxMaGiaoDichLength = 100;
 
+        // Tiền tố MaGiaoDich của dòng sổ do webhook SePay ghi (spec thanh toán trực tuyến §5.2).
+        public const string SePayMaGiaoDichPrefix = "SEPAY-";
+
+        // Báo lỗi khi mã giao dịch nhập tay hoặc khách khai trùng một dòng sổ SePay chưa xóa (spec thanh toán trực tuyến §5.4).
+        public const string SePayAlreadyRecordedMessage = "Mã giao dịch này đã được hệ thống ghi nhận tự động qua SePay.";
+
         public static string? ValidateWholeAmount(decimal soTien, string tenTruong)
         {
             return soTien <= 0 || !InvoiceMoney.IsWholeVnd(soTien)
@@ -142,6 +148,14 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Payments
         public static string? NormalizeText(string? value)
         {
             return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+        }
+
+        // Khóa MaGiaoDich của dòng sổ do SePay ghi từ mã tham chiếu ngân hàng: "SEPAY-" + mã bỏ mọi khoảng trắng,
+        // viết hoa. Dùng chung cho chống trùng webhook (IncomingBankTransfer.DedupKey) và cho kiểm tra mã giao dịch
+        // nhập tay có trùng dòng SePay đã ghi không (spec thanh toán trực tuyến §5.4).
+        public static string SePayLedgerKey(string bankReference)
+        {
+            return SePayMaGiaoDichPrefix + new string(bankReference.Where(c => !char.IsWhiteSpace(c)).ToArray()).ToUpperInvariant();
         }
 
         public static string? ValidateMaGiaoDich(string? maGiaoDich)

@@ -17,6 +17,8 @@ public sealed class InvoiceTransferHandler(InvoicePaymentTransaction transaction
     public const string InvoicePrefix = "TTPTHD";
 
     private const int MaxIdDigits = 9;
+    // ThongBao.TieuDe tối đa 255 ký tự.
+    private const int MaxTitleLength = 255;
     private const string InvoiceNotFoundReason = "Không tìm thấy hóa đơn";
 
     public string Prefix => InvoicePrefix;
@@ -145,10 +147,14 @@ public sealed class InvoiceTransferHandler(InvoicePaymentTransaction transaction
             $"SePay ghi nhận {InvoicePaymentPolicy.FormatVnd(decision.SoTienGhiNhan)}đ, {Reference(transfer)}");
         await scope.ApplyLedgerChangeAsync(Truncate(lyDo, InvoicePaymentPolicy.MaxLyDoLength));
 
-        // Thông báo cho khách và nhân viên không nằm trong phần này.
+        // Thông báo trong app (spec §6.4): tạo trong cùng transaction, khung đẩy SignalR sau commit.
+        // Telegram, email biên lai và sự kiện cho panel của khách do IPaymentOutcomePublisher gửi sau khi có kết quả.
+        var tenantUserId = await NotifyRecordedAsync(scope, transfer, decision, conMinhChungChoDoiChieu, ct);
+
         return ServiceResult<TransferOutcome>.Ok(Outcome(TransferOutcomeKind.Recorded) with
         {
             LichSuThanhToanId = ledger.LichSuThanhToanId,
+            TenantUserId = tenantUserId,
             SoTienGhiNhan = decision.SoTienGhiNhan,
             TienThua = decision.Kind == RecordingKind.Overpay ? decision.ChenhLech : 0,
             TongTien = hoaDon.TongTien,
@@ -158,6 +164,53 @@ public sealed class InvoiceTransferHandler(InvoicePaymentTransaction transaction
             MaLuotDaHuy = maLuotDaHuy,
             ConMinhChungChoDoiChieu = conMinhChungChoDoiChieu
         });
+    }
+
+    // Báo Admin, nhân viên chi nhánh của phòng và khách đứng tên hợp đồng. Câu về tiền thừa chỉ Admin thấy.
+    // Trả tài khoản khách để phát sự kiện cho panel thanh toán sau commit; null nếu khách chưa có tài khoản hoạt động.
+    private static async Task<int?> NotifyRecordedAsync(
+        InvoicePaymentScope scope, IncomingBankTransfer transfer, RecordingDecision decision, bool conMinhChungChoDoiChieu, CancellationToken ct)
+    {
+        var hoaDon = scope.HoaDon;
+        var tenantUserId = await scope.Store.GetTenantUserIdAsync(hoaDon.HopDongId, ct);
+        var target = await scope.Store.GetTargetByHoaDonAsync(hoaDon.HoaDonId, ct);
+        var invoice = await scope.Store.GetInvoiceSnapshotAsync(hoaDon.HoaDonId, ct);
+        var admins = (await scope.Store.GetAdminUserIdsAsync(ct)).ToHashSet();
+        IEnumerable<int> reviewers = target != null
+            ? await scope.Store.GetReviewerUserIdsAsync(target.ChiNhanhId, ct)
+            : admins;
+
+        var tieuDe = Truncate(
+            $"Đã nhận chuyển khoản {Vnd(transfer.TransferAmount)}đ — {invoice?.TenPhong ?? string.Empty}", MaxTitleLength);
+
+        var noiDungNhanVien =
+            $"Hóa đơn {hoaDon.MaHoaDon}: ghi nhận {Vnd(decision.SoTienGhiNhan)}đ qua chuyển khoản tự động ({Reference(transfer)}), " +
+            $"đã thu {Vnd(scope.DaThu)}/{Vnd(hoaDon.TongTien)}đ, còn lại {Vnd(scope.ConLai)}đ.";
+        if (conMinhChungChoDoiChieu)
+        {
+            noiDungNhanVien += " Hóa đơn còn minh chứng chờ đối chiếu, kiểm tra trùng trước khi xác nhận.";
+        }
+
+        var noiDungAdmin = decision.Kind == RecordingKind.Overpay
+            ? noiDungNhanVien + $" Khách chuyển dư {Vnd(decision.ChenhLech)}đ, cần xử lý ngoài hệ thống."
+            : noiDungNhanVien;
+
+        var linkQuanLy = $"/QuanLyNhaTro/QuanLyHoaDon?hoaDonId={hoaDon.HoaDonId}";
+        foreach (var userId in reviewers)
+        {
+            scope.Notify(userId, tieuDe, admins.Contains(userId) ? noiDungAdmin : noiDungNhanVien, linkQuanLy);
+        }
+
+        if (tenantUserId.HasValue)
+        {
+            scope.Notify(
+                tenantUserId.Value,
+                tieuDe,
+                $"Hóa đơn {hoaDon.MaHoaDon}: đã ghi nhận {Vnd(decision.SoTienGhiNhan)}đ, còn lại {Vnd(scope.ConLai)}đ.",
+                $"/KhachThue/HoaDon?hoaDonId={hoaDon.HoaDonId}");
+        }
+
+        return tenantUserId;
     }
 
     private static string? NotPayableReason(HoaDon hoaDon)
@@ -212,6 +265,8 @@ public sealed class InvoiceTransferHandler(InvoicePaymentTransaction transaction
 
         return Truncate(note, InvoicePaymentPolicy.MaxLyDoLength);
     }
+
+    private static string Vnd(decimal soTien) => InvoicePaymentPolicy.FormatVnd(soTien);
 
     // Mã tham chiếu ngân hàng; giao dịch không có thì dùng id SePay.
     private static string Reference(IncomingBankTransfer transfer)

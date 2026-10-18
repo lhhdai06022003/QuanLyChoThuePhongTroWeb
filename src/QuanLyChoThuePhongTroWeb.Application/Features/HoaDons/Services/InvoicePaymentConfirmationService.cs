@@ -216,15 +216,52 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                     return ServiceResult<ConfirmPaymentResult>.Fail("Hóa đơn đã được thanh toán đủ; khoản tiền này cần Admin xử lý ngoài hệ thống.");
                 }
 
-                var conLaiTruoc = scope.ConLai;
                 var thucNhan = request.SoTienThucNhan;
+                var link = $"/QuanLyNhaTro/DoiChieuThanhToan?ma={yeuCau.MaYeuCau}";
+
+                // Chặn ghi trùng với dòng SePay do hệ thống đã ghi (spec thanh toán trực tuyến §5.4).
+                // 1. Mã giao dịch nhân viên nhập hoặc khách khai trên minh chứng đã có dòng SePay chưa xóa: khoản này đã được ghi tự động.
+                if (await IsRecordedBySePayAsync(scope.Store, maGiaoDich, ct) ||
+                    await IsRecordedBySePayAsync(scope.Store, minhChung.MaGiaoDichNganHang, ct))
+                {
+                    return ServiceResult<ConfirmPaymentResult>.Fail(InvoicePaymentPolicy.SePayAlreadyRecordedMessage);
+                }
+
+                // 2. Hóa đơn nhận chuyển khoản tự động sau khi khách nộp minh chứng: có thể cùng khoản tiền với minh chứng này.
+                // Nhân viên không tự xác nhận; Admin phải ghi chú kết quả kiểm trùng.
+                var maSePay = await scope.Store.FindSystemSePayEntryRecordedAfterAsync(hoaDon.HoaDonId, minhChung.NgayTao, ct);
+                if (maSePay != null)
+                {
+                    if (!isAdmin)
+                    {
+                        yeuCau.GhiChuyenAdmin(actorId, scope.NowUtc, PaymentNoteTags.ChoAdminTrungSePay(maSePay, thucNhan, ghiChu));
+                        await scope.NotifyAdminsAsync(
+                            "Thanh toán cần Admin kiểm trùng",
+                            $"Lượt {yeuCau.MaYeuCau} (hóa đơn {hoaDon.MaHoaDon}): hóa đơn đã nhận chuyển khoản tự động {maSePay} sau khi khách nộp minh chứng; thực nhận khai {Vnd(thucNhan)}đ. Kiểm trùng trước khi xác nhận.",
+                            link);
+
+                        return ServiceResult<ConfirmPaymentResult>.Ok(new ConfirmPaymentResult
+                        {
+                            KetQua = KetQuaDoiChieu.DaChuyenAdmin,
+                            ChenhLech = 0,
+                            ConLai = scope.ConLai,
+                            TrangThaiHoaDon = InvoiceStatusLabels.ThanhToan(hoaDon.TrangThaiHoaDon),
+                            Message = "Hóa đơn đã nhận chuyển khoản tự động sau khi khách nộp minh chứng, đã chuyển Admin kiểm trùng."
+                        }, "Đã chuyển Admin xử lý.");
+                    }
+
+                    if (ghiChu == null)
+                    {
+                        return ServiceResult<ConfirmPaymentResult>.Fail("Hóa đơn đã nhận chuyển khoản tự động sau khi khách nộp minh chứng, vui lòng ghi chú kết quả kiểm trùng.");
+                    }
+                }
+
+                var conLaiTruoc = scope.ConLai;
                 var decision = InvoicePaymentPolicy.DecideRecording(thucNhan, yeuCau.SoTien, conLaiTruoc, isAdmin);
                 if (decision.Kind != RecordingKind.Exact && ghiChu == null)
                 {
                     return ServiceResult<ConfirmPaymentResult>.Fail("Số thực nhận khác số lượt, vui lòng ghi chú lý do.");
                 }
-
-                var link = $"/QuanLyNhaTro/DoiChieuThanhToan?ma={yeuCau.MaYeuCau}";
 
                 if (decision.Kind == RecordingKind.NeedsAdmin)
                 {
@@ -494,6 +531,13 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
         private async Task<bool> IsAdminAsync(int actorId, CancellationToken ct)
         {
             return (await _access.GetScopeAsync(actorId, ct))?.IsAdmin == true;
+        }
+
+        // Mã giao dịch ngân hàng đã có dòng sổ SePay chưa xóa (khóa SEPAY-{mã bỏ khoảng trắng, viết hoa}). Mã trống thì bỏ qua.
+        private static async Task<bool> IsRecordedBySePayAsync(IInvoicePaymentStore store, string? maGiaoDich, CancellationToken ct)
+        {
+            return !string.IsNullOrWhiteSpace(maGiaoDich) &&
+                await store.ExistsMaGiaoDichAsync(InvoicePaymentPolicy.SePayLedgerKey(maGiaoDich), ct);
         }
 
         private static string Vnd(decimal soTien) => InvoicePaymentPolicy.FormatVnd(soTien);

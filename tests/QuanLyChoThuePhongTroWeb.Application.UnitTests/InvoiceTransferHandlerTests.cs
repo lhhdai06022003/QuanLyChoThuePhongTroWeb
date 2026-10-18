@@ -157,15 +157,226 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.Equal(TrangThaiHoaDon.DaThanhToan, hoaDon.TrangThaiHoaDon);
         }
 
+        // ---------- Thông báo trong app (spec §6.4) ----------
+
+        private const string ExpectedTitle = "Đã nhận chuyển khoản 2.000.000đ — P101";
+        private const string StaffLink = "/QuanLyNhaTro/QuanLyHoaDon?hoaDonId=7";
+        private const string TenantLink = "/KhachThue/HoaDon?hoaDonId=7";
+
         [Fact]
-        public async Task NoNotificationIsCreated()
+        public async Task Recorded_NotifiesAdmin_BranchStaff_AndTenant_ButNotStaffOfAnotherBranch()
+        {
+            _h.AddSentInvoice();
+
+            var outcome = await HandleAsync(Transfer());
+
+            Assert.Equal(TransferOutcomeKind.Recorded, outcome.Kind);
+            Assert.Equal(
+                new[] { PaymentTestHarness.AdminId, PaymentTestHarness.StaffId, PaymentTestHarness.TenantUserId }.OrderBy(id => id),
+                _h.Store.Notifications.Select(n => n.NguoiDungId!.Value).OrderBy(id => id));
+            Assert.All(_h.Store.Notifications, n =>
+            {
+                Assert.Equal(ExpectedTitle, n.TieuDe);
+                Assert.Equal("HoaDon", n.LinhVuc);
+                Assert.Equal(Now, n.CreatedAt);
+                Assert.False(n.IsRead);
+            });
+
+            var admin = Assert.Single(_h.Store.Notifications, n => n.NguoiDungId == PaymentTestHarness.AdminId);
+            var staff = Assert.Single(_h.Store.Notifications, n => n.NguoiDungId == PaymentTestHarness.StaffId);
+            var tenant = Assert.Single(_h.Store.Notifications, n => n.NguoiDungId == PaymentTestHarness.TenantUserId);
+            const string staffContent = "Hóa đơn HD-7: ghi nhận 2.000.000đ qua chuyển khoản tự động (REF FT26ABC), đã thu 2.000.000/2.000.000đ, còn lại 0đ.";
+            Assert.Equal(staffContent, admin.NoiDung);
+            Assert.Equal(staffContent, staff.NoiDung);
+            Assert.Equal(StaffLink, admin.LinkDieuHuong);
+            Assert.Equal(StaffLink, staff.LinkDieuHuong);
+            Assert.Equal("Hóa đơn HD-7: đã ghi nhận 2.000.000đ, còn lại 0đ.", tenant.NoiDung);
+            Assert.Equal(TenantLink, tenant.LinkDieuHuong);
+        }
+
+        [Fact]
+        public async Task Recorded_ReportsTheTenantUserId_ForTheCustomerPanel()
+        {
+            _h.AddSentInvoice();
+
+            var outcome = await HandleAsync(Transfer());
+
+            Assert.Equal(PaymentTestHarness.TenantUserId, outcome.TenantUserId);
+        }
+
+        [Fact]
+        public async Task Recorded_TenantWithoutAnActiveAccount_GetsNoNotification_AndNoTenantUserId()
+        {
+            var hoaDon = _h.AddSentInvoice();
+            _h.Store.TenantUserIdByHopDong.Remove(hoaDon.HopDongId);
+
+            var outcome = await HandleAsync(Transfer());
+
+            Assert.Equal(TransferOutcomeKind.Recorded, outcome.Kind);
+            Assert.Null(outcome.TenantUserId);
+            Assert.Equal(2, _h.Store.Notifications.Count);
+            Assert.DoesNotContain(_h.Store.Notifications, n => n.LinkDieuHuong == TenantLink);
+        }
+
+        [Fact]
+        public async Task Recorded_PushesEachNotificationOverSignalR_AfterCommit()
         {
             _h.AddSentInvoice();
 
             await HandleAsync(Transfer());
 
+            Assert.True(_h.LastTx.Committed);
+            Assert.Equal(
+                new[] { PaymentTestHarness.AdminId, PaymentTestHarness.StaffId, PaymentTestHarness.TenantUserId }.OrderBy(id => id),
+                _h.Notifier.Sent.Select(s => s.UserId).OrderBy(id => id));
+        }
+
+        [Fact]
+        public async Task Recorded_UsesTheAmountReceived_InTheTitle_AndTheRecordedAmount_InTheContent()
+        {
+            _h.AddSentInvoice();
+            _h.AddLedger(7, 500_000m);
+
+            await HandleAsync(Transfer(amount: 1_700_000m));
+
+            Assert.All(_h.Store.Notifications, n => Assert.Equal("Đã nhận chuyển khoản 1.700.000đ — P101", n.TieuDe));
+            var staff = Assert.Single(_h.Store.Notifications, n => n.NguoiDungId == PaymentTestHarness.StaffId);
+            Assert.Contains("ghi nhận 1.500.000đ", staff.NoiDung);
+            Assert.Contains("đã thu 2.000.000/2.000.000đ", staff.NoiDung);
+        }
+
+        [Fact]
+        public async Task PartialPayment_ContentShowsWhatIsStillOwed()
+        {
+            _h.AddSentInvoice();
+
+            await HandleAsync(Transfer(amount: 1_500_000m));
+
+            var staff = Assert.Single(_h.Store.Notifications, n => n.NguoiDungId == PaymentTestHarness.StaffId);
+            Assert.Contains("đã thu 1.500.000/2.000.000đ, còn lại 500.000đ.", staff.NoiDung);
+            var tenant = Assert.Single(_h.Store.Notifications, n => n.NguoiDungId == PaymentTestHarness.TenantUserId);
+            Assert.Equal("Hóa đơn HD-7: đã ghi nhận 1.500.000đ, còn lại 500.000đ.", tenant.NoiDung);
+        }
+
+        [Fact]
+        public async Task Overpayment_OnlyAdminSeesTheSurplusSentence()
+        {
+            _h.AddSentInvoice();
+
+            await HandleAsync(Transfer(amount: 2_500_000m));
+
+            var admin = Assert.Single(_h.Store.Notifications, n => n.NguoiDungId == PaymentTestHarness.AdminId);
+            var staff = Assert.Single(_h.Store.Notifications, n => n.NguoiDungId == PaymentTestHarness.StaffId);
+            var tenant = Assert.Single(_h.Store.Notifications, n => n.NguoiDungId == PaymentTestHarness.TenantUserId);
+            Assert.EndsWith(" Khách chuyển dư 500.000đ, cần xử lý ngoài hệ thống.", admin.NoiDung);
+            Assert.DoesNotContain("Khách chuyển dư", staff.NoiDung);
+            Assert.DoesNotContain("Khách chuyển dư", tenant.NoiDung);
+            Assert.All(_h.Store.Notifications, n => Assert.Equal("Đã nhận chuyển khoản 2.500.000đ — P101", n.TieuDe));
+        }
+
+        [Fact]
+        public async Task RequestUnderReview_AddsTheCheckForDuplicateSentence_ForStaffAndAdmin_NotForTheTenant()
+        {
+            _h.AddSentInvoice();
+            _h.AddProof(_h.AddRequest());
+
+            await HandleAsync(Transfer());
+
+            const string sentence = "Hóa đơn còn minh chứng chờ đối chiếu, kiểm tra trùng trước khi xác nhận.";
+            Assert.Contains(sentence, Assert.Single(_h.Store.Notifications, n => n.NguoiDungId == PaymentTestHarness.AdminId).NoiDung);
+            Assert.Contains(sentence, Assert.Single(_h.Store.Notifications, n => n.NguoiDungId == PaymentTestHarness.StaffId).NoiDung);
+            Assert.DoesNotContain("kiểm tra trùng", Assert.Single(_h.Store.Notifications, n => n.NguoiDungId == PaymentTestHarness.TenantUserId).NoiDung);
+        }
+
+        [Fact]
+        public async Task LongRoomName_KeepsTheTitleWithinTheColumnLimit()
+        {
+            _h.AddSentInvoice();
+            _h.Store.Meta[7] = _h.Store.Meta[7] with { TenPhong = new string('P', 400) };
+
+            await HandleAsync(Transfer());
+
+            Assert.All(_h.Store.Notifications, n => Assert.Equal(255, n.TieuDe.Length));
+        }
+
+        [Fact]
+        public async Task NonRecordedOutcomes_CreateNoNotification()
+        {
+            _h.AddSentInvoice();
+            _h.AddSentInvoice(hoaDonId: 8).TrangThaiPhatHanh = TrangThaiPhatHanhHoaDon.DaChot;
+            _h.AddSentInvoice(hoaDonId: 9);
+            _h.AddLedger(9, 2_000_000m);
+
+            var notPayable = await HandleAsync(Transfer(reference: "FT-NP"), "TTPTHD8");
+            var alreadyPaid = await HandleAsync(Transfer(reference: "FT-AP"), "TTPTHD9");
+            var missing = await HandleAsync(Transfer(reference: "FT-MS"), "TTPTHD99");
+            _h.AddSePayLedger(7, 500_000m, "FT-DUP", Now.AddDays(-1));
+            var duplicate = await HandleAsync(Transfer(reference: "FT-DUP"));
+
+            Assert.Equal(TransferOutcomeKind.InvoiceNotPayable, notPayable.Kind);
+            Assert.Equal(TransferOutcomeKind.AlreadyPaid, alreadyPaid.Kind);
+            Assert.Equal(TransferOutcomeKind.InvoiceNotPayable, missing.Kind);
+            Assert.Equal(TransferOutcomeKind.Duplicate, duplicate.Kind);
             Assert.Empty(_h.Store.Notifications);
             Assert.Empty(_h.Notifier.Sent);
+            Assert.All(new[] { notPayable, alreadyPaid, missing, duplicate }, o => Assert.Null(o.TenantUserId));
+        }
+
+        // Thông báo trong app nằm trong transaction ghi sổ: lưu thông báo hỏng thì rollback cả sổ,
+        // không đẩy SignalR và không báo khách có tiền vào (store giả không hoàn tác dữ liệu nên kiểm qua commit/rollback và đẩy tin).
+        [Fact]
+        public async Task WhenSavingTheNotificationsFails_TheTransactionRollsBack_AndNothingIsPushed()
+        {
+            _h.AddSentInvoice();
+            // Lần lưu 1: dòng sổ (ApplyLedgerChange). Lần lưu 2: thông báo, ngay trước commit.
+            _h.UnitOfWork.FailOnSave = n => n == 2 ? new InvalidOperationException("SECRET-DB-DETAIL") : null;
+
+            var outcome = await HandleAsync(Transfer());
+
+            Assert.Equal(TransferOutcomeKind.Failed, outcome.Kind);
+            Assert.Equal(7, outcome.HoaDonId);
+            Assert.Equal("Đã có lỗi hệ thống, vui lòng thử lại.", outcome.LyDo);
+            Assert.Null(outcome.TenantUserId);
+            Assert.Null(outcome.LichSuThanhToanId);
+            Assert.Equal(2, _h.UnitOfWork.SaveChangesCalls);
+            Assert.True(_h.LastTx.RolledBack);
+            Assert.False(_h.LastTx.Committed);
+            Assert.Empty(_h.Notifier.Sent);
+            Assert.Empty(_h.Notifier.PaymentUpdates);
+        }
+
+        [Fact]
+        public async Task AfterAFailedAttempt_TheSameTransferCanBeRecordedOnRetry_AndNotifiesOnce()
+        {
+            _h.AddSentInvoice();
+            _h.UnitOfWork.FailOnSave = n => n == 2 ? new InvalidOperationException("boom") : null;
+            var failed = await HandleAsync(Transfer());
+            _h.UnitOfWork.FailOnSave = null;
+            // Store giả giữ thực thể đã thêm dù rollback; dọn như DB thật sẽ làm.
+            _h.Store.Ledger.Clear();
+            _h.Store.Notifications.Clear();
+            _h.Notifier.Sent.Clear();
+
+            var retried = await HandleAsync(Transfer());
+
+            Assert.Equal(TransferOutcomeKind.Failed, failed.Kind);
+            Assert.Equal(TransferOutcomeKind.Recorded, retried.Kind);
+            Assert.Equal(PaymentTestHarness.TenantUserId, retried.TenantUserId);
+            Assert.Equal(3, _h.Store.Notifications.Count);
+            Assert.Equal(3, _h.Notifier.Sent.Count);
+        }
+
+        [Fact]
+        public async Task Recorded_NotificationsAreDeliveredOnlyAfterTheCommit()
+        {
+            _h.AddSentInvoice();
+            var committedWhenPushed = new System.Collections.Generic.List<bool>();
+            _h.Notifier.OnSend = () => committedWhenPushed.Add(_h.LastTx.Committed);
+
+            await HandleAsync(Transfer());
+
+            Assert.Equal(3, committedWhenPushed.Count);
+            Assert.All(committedWhenPushed, Assert.True);
         }
 
         // ---------- Không ghi ----------

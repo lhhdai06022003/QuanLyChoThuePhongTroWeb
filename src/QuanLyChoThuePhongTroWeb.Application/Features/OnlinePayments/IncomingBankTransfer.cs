@@ -1,3 +1,5 @@
+using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Payments;
+
 namespace QuanLyChoThuePhongTroWeb.Application.Features.OnlinePayments;
 
 // Một biến động số dư báo từ ngân hàng (qua SePay), đã chuẩn hóa: thời gian là UTC, không chứa kiểu ASP.NET.
@@ -19,5 +21,5 @@ public sealed record IncomingBankTransfer(
     // không gọi ingest cho giao dịch thiếu mã tham chiếu nên hai đường không thể ghi đôi.
     public string DedupKey => string.IsNullOrWhiteSpace(ReferenceCode)
         ? $"SEPAY-ID-{SePayId}"
-        : "SEPAY-" + new string(ReferenceCode.Where(c => !char.IsWhiteSpace(c)).ToArray()).ToUpperInvariant();
+        : InvoicePaymentPolicy.SePayLedgerKey(ReferenceCode);
 }

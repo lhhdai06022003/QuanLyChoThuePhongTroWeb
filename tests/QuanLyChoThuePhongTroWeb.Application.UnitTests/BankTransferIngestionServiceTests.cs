@@ -35,13 +35,15 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             string type = "in", string? account = Account, decimal amount = 2_000_000m, string? content = "Nguyen Van A TTPTHD105")
             => new(92704, "MBBank", new DateTime(2026, 10, 3, 2, 30, 0, DateTimeKind.Utc), account, null, null, content, type, amount, "FT26ABC", null);
 
-        private static (BankTransferIngestionService Service, RecordingHandler Handler, CapturingLogger<BankTransferIngestionService> Log) Create(
+        private readonly RecordingOutcomePublisher _publisher = new();
+
+        private (BankTransferIngestionService Service, RecordingHandler Handler, CapturingLogger<BankTransferIngestionService> Log) Create(
             TransferOutcomeKind handlerKind = TransferOutcomeKind.Recorded)
         {
             var handler = new RecordingHandler((t, c) => new TransferOutcome { Kind = handlerKind, Transfer = t, Code = c, HoaDonId = 105, LyDo = handlerKind == TransferOutcomeKind.Failed ? "Đã có lỗi hệ thống, vui lòng thử lại." : null });
             var classifier = new IncomingTransferClassifier(new IIncomingTransferHandler[] { handler }, new VietQrSettings { AccountNumber = Account });
             var log = new CapturingLogger<BankTransferIngestionService>();
-            return (new BankTransferIngestionService(classifier, log), handler, log);
+            return (new BankTransferIngestionService(classifier, _publisher, log), handler, log);
         }
 
         [Fact]
@@ -144,7 +146,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             var classifier = new IncomingTransferClassifier(new IIncomingTransferHandler[] { handler }, new VietQrSettings { AccountNumber = Account });
             var log = new CapturingLogger<BankTransferIngestionService>();
 
-            await new BankTransferIngestionService(classifier, log).IngestAsync(Transfer());
+            await new BankTransferIngestionService(classifier, _publisher, log).IngestAsync(Transfer());
 
             var entry = Assert.Single(log.Entries);
             Assert.Equal(LogLevel.Information, entry.Level);
@@ -163,7 +165,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             var classifier = new IncomingTransferClassifier(new IIncomingTransferHandler[] { handler }, new VietQrSettings { AccountNumber = Account });
             var log = new CapturingLogger<BankTransferIngestionService>();
 
-            var outcome = await new BankTransferIngestionService(classifier, log).IngestAsync(Transfer());
+            var outcome = await new BankTransferIngestionService(classifier, _publisher, log).IngestAsync(Transfer());
 
             Assert.Equal(TransferOutcomeKind.Recorded, outcome.Kind);
             var entry = Assert.Single(log.Entries);
@@ -184,12 +186,59 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.All(log.Entries, e => Assert.DoesNotContain("BI-MAT-NOI-DUNG", e.Message));
         }
 
+        // ---------- Phát thông báo sau khi xử lý ----------
+
+        [Theory]
+        [InlineData(TransferOutcomeKind.Recorded)]
+        [InlineData(TransferOutcomeKind.Duplicate)]
+        [InlineData(TransferOutcomeKind.InvoiceNotPayable)]
+        [InlineData(TransferOutcomeKind.AlreadyPaid)]
+        [InlineData(TransferOutcomeKind.Failed)]
+        public async Task HandlerOutcome_IsHandedToThePublisher_AsIs(TransferOutcomeKind kind)
+        {
+            var (service, _, _) = Create(kind);
+
+            var outcome = await service.IngestAsync(Transfer());
+
+            Assert.Same(outcome, Assert.Single(_publisher.Outcomes));
+            Assert.Equal(kind, outcome.Kind);
+        }
+
+        [Theory]
+        [InlineData("out", Account, 2_000_000, "TTPTHD105", TransferOutcomeKind.Ignored)]
+        [InlineData("in", "9999999999", 2_000_000, "TTPTHD105", TransferOutcomeKind.WrongAccount)]
+        [InlineData("in", Account, 2_000_000, "chuyen tien tro", TransferOutcomeKind.Unmatched)]
+        public async Task ClassifierOutcome_IsHandedToThePublisher(string type, string account, int amount, string content, TransferOutcomeKind expected)
+        {
+            var (service, _, _) = Create();
+
+            var outcome = await service.IngestAsync(Transfer(type, account, amount, content));
+
+            Assert.Same(outcome, Assert.Single(_publisher.Outcomes));
+            Assert.Equal(expected, outcome.Kind);
+        }
+
+        [Fact]
+        public async Task PublisherThrows_TheOutcomeIsStillReturned_AndAWarningIsLogged()
+        {
+            _publisher.Throw = true;
+            var (service, _, log) = Create();
+
+            var outcome = await service.IngestAsync(Transfer());
+
+            Assert.Equal(TransferOutcomeKind.Recorded, outcome.Kind);
+            Assert.Equal(105, outcome.HoaDonId);
+            Assert.Single(_publisher.Outcomes);
+            Assert.Contains(log.Entries, e => e.Level == LogLevel.Warning && e.Message.Contains("Không phát được thông báo"));
+            Assert.DoesNotContain(log.Entries, e => e.Level >= LogLevel.Error);
+        }
+
         [Fact]
         public async Task HandlerException_IsNotSwallowed()
         {
             var handler = new RecordingHandler((_, _) => throw new InvalidOperationException("boom"));
             var classifier = new IncomingTransferClassifier(new IIncomingTransferHandler[] { handler }, new VietQrSettings { AccountNumber = Account });
-            var service = new BankTransferIngestionService(classifier, new CapturingLogger<BankTransferIngestionService>());
+            var service = new BankTransferIngestionService(classifier, _publisher, new CapturingLogger<BankTransferIngestionService>());
 
             await Assert.ThrowsAsync<InvalidOperationException>(() => service.IngestAsync(Transfer()));
         }

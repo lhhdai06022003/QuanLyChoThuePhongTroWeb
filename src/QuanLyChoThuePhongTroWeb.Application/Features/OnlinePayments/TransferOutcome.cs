@@ -32,6 +32,8 @@ public sealed record TransferOutcome
     public string? MaHoaDon { get; init; }
     // Chỉ có khi Recorded.
     public int? LichSuThanhToanId { get; init; }
+    // Chỉ có khi Recorded: tài khoản khách thuê đứng tên hợp đồng, null nếu khách chưa có tài khoản hoạt động.
+    public int? TenantUserId { get; init; }
     public decimal SoTienGhiNhan { get; init; }
     public decimal TienThua { get; init; }
     public decimal TongTien { get; init; }

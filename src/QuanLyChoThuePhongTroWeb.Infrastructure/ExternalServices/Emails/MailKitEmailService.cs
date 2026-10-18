@@ -11,6 +11,7 @@ using QuanLyChoThuePhongTroWeb.Application.Abstractions.Services;
 using QuanLyChoThuePhongTroWeb.Application.Common.Formatting;
 using QuanLyChoThuePhongTroWeb.Application.Features.Emails.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs;
+using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Payments;
 
 namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.Emails
 {
@@ -414,6 +415,169 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.Emails
                 _logger.LogError(ex, "Lỗi hệ thống khi gửi email cảnh báo hết hạn hợp đồng {MaHopDong} đến {Email}", alertData.MaHopDong, toEmail);
                 return (false, "Lỗi hệ thống khi gửi email cảnh báo.");
             }
+        }
+
+        public async Task<(bool IsSuccess, string ErrorMessage)> SendPaymentReceiptAsync(string toEmail, PaymentReceiptEmail data)
+        {
+            var senderEmail = _configuration["EmailSettings:SenderEmail"];
+            var password = _configuration["EmailSettings:Password"];
+            if (string.IsNullOrWhiteSpace(senderEmail) || string.IsNullOrWhiteSpace(password))
+                return (false, "Chưa cấu hình tài khoản gửi email.");
+
+            try
+            {
+                var server = _configuration["EmailSettings:SmtpServer"] ?? "smtp.gmail.com";
+                var port = int.TryParse(_configuration["EmailSettings:Port"], out var parsed)
+                    ? parsed : 587;
+                var senderName = _configuration["EmailSettings:SenderName"] ??
+                    "Hệ thống Quản lý Nhà Trọ";
+                var message = new MimeMessage();
+                message.From.Add(new MailboxAddress(senderName, senderEmail));
+                message.To.Add(new MailboxAddress(data.TenNguoiThanhToan, toEmail));
+                message.Subject = $"[BIÊN LAI] Phòng {data.TenPhong} - Kỳ tháng {data.Thang}/{data.Nam} - {data.MaHoaDon}";
+                message.Body = new BodyBuilder { HtmlBody = BuildPaymentReceiptHtml(data) }.ToMessageBody();
+                using var client = new SmtpClient();
+                await client.ConnectAsync(server, port, SecureSocketOptions.StartTls);
+                await client.AuthenticateAsync(senderEmail, password);
+                await client.SendAsync(message);
+                await client.DisconnectAsync(true);
+                return (true, string.Empty);
+            }
+            catch (Exception ex)
+            {
+                // Không log địa chỉ email hay nội dung biên lai.
+                _logger.LogWarning(ex, "Không gửi được email biên lai: hóa đơn {HoaDonId}, khoản {LichSuThanhToanId}",
+                    data.HoaDonId, data.LichSuThanhToanId);
+                return (false, "Không gửi được email biên lai.");
+            }
+        }
+
+        private const string PaymentReceiptStyle = @"
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #333333; line-height: 1.6; background-color: #f4f6fa; margin: 0; padding: 20px; }
+        .container { max-width: 600px; background-color: #ffffff; margin: 0 auto; border-radius: 8px; padding: 30px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); border: 1px solid #e1e4e8; }
+        .header { text-align: center; border-bottom: 2px solid #0056b3; padding-bottom: 15px; margin-bottom: 20px; }
+        .header h2 { color: #0056b3; margin: 0; font-size: 22px; }
+        .header p { color: #666666; margin: 5px 0 0 0; font-size: 14px; }
+        .badge-wrap { text-align: center; margin-bottom: 20px; }
+        .badge { display: inline-block; background-color: #2f9e44; color: #ffffff; font-weight: bold; font-size: 14px; padding: 6px 18px; border-radius: 16px; }
+        .badge-partial { background-color: #f59f00; }
+        .info-table { width: 100%; border-collapse: collapse; margin-bottom: 25px; }
+        .info-table td { padding: 8px 0; font-size: 15px; vertical-align: top; }
+        .info-table td.label { font-weight: bold; color: #555555; width: 38%; }
+        .info-table td.value { color: #111111; }
+        .details-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        .details-table td { border: 1px solid #dcdfe6; padding: 10px; font-size: 14px; color: #333333; }
+        .details-table td.amount { text-align: right; font-weight: bold; }
+        .total-row td { font-weight: bold; font-size: 16px; color: #d9001b; }
+        .note { background-color: #fff9db; border-left: 4px solid #f59f00; color: #664d03; padding: 12px 15px; border-radius: 4px; font-size: 14px; margin-bottom: 20px; }
+        .button-wrap { text-align: center; margin: 25px 0; }
+        .button { display: inline-block; background-color: #0056b3; color: #ffffff !important; text-decoration: none; font-weight: bold; font-size: 15px; padding: 12px 28px; border-radius: 6px; }
+        .signature-block { text-align: left; margin-top: 30px; margin-bottom: 20px; font-size: 14px; color: #444444; border-top: 1px solid #e1e4e8; padding-top: 20px; }
+        .signature-title { font-size: 13px; color: #666666; font-style: italic; margin-bottom: 5px; }
+        .signature-name { font-weight: bold; color: #0056b3; font-size: 16px; margin: 0 0 10px 0; }
+        .signature-info { font-size: 13px; color: #555555; line-height: 1.5; }
+        .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #999999; border-top: 1px dashed #eeeeee; padding-top: 15px; }
+
+        @media (prefers-color-scheme: dark) {
+            body { background-color: #1a1f2c !important; color: #f4f6fa !important; }
+            .container { background-color: #232936 !important; border-color: #384252 !important; box-shadow: 0 4px 10px rgba(0,0,0,0.2) !important; }
+            .header { border-bottom-color: #3080e6 !important; }
+            .header h2 { color: #3080e6 !important; }
+            .header p { color: #a0aebf !important; }
+            .info-table td.label { color: #a0aebf !important; }
+            .info-table td.value { color: #ffffff !important; }
+            .details-table td { border-color: #384252 !important; color: #e1e8f2 !important; }
+            .total-row td { color: #ff4d61 !important; }
+            .note { background-color: #2b2515 !important; border-left-color: #f59f00 !important; color: #ffe066 !important; }
+            .signature-block { border-top-color: #384252 !important; color: #e1e8f2 !important; }
+            .signature-title { color: #a0aebf !important; }
+            .signature-name { color: #3080e6 !important; }
+            .signature-info { color: #a0aebf !important; }
+            .footer { color: #707d90 !important; border-top-color: #384252 !important; }
+        }";
+
+        // Thân email biên lai thanh toán (spec thanh toán trực tuyến §3.4, §6.3). Mọi chuỗi động qua HtmlEncode.
+        // Nút "Xem biên lai" chỉ có khi có link; không đính kèm PDF.
+        public static string BuildPaymentReceiptHtml(PaymentReceiptEmail data)
+        {
+            static string Encode(string? value) => System.Net.WebUtility.HtmlEncode(value ?? string.Empty);
+            static string Money(decimal amount) => InvoicePaymentPolicy.FormatVnd(amount) + "đ";
+
+            // Huy hiệu xanh khi hóa đơn đã thu đủ; mới thu một phần thì màu cam.
+            var badgeHtml = data.DaThuDu
+                ? "<span class='badge'>ĐÃ THU TIỀN</span>"
+                : $"<span class='badge badge-partial'>XÁC NHẬN THU ĐỢT {data.DotThu}</span>";
+
+            var infoRows = new StringBuilder();
+            void InfoRow(string label, string valueHtml) =>
+                infoRows.Append($"<tr><td class='label'>{label}:</td><td class='value'>{valueHtml}</td></tr>");
+
+            InfoRow("Mã hóa đơn", $"<strong>{Encode(data.MaHoaDon)}</strong> (#HD{data.HoaDonId})");
+            if (!string.IsNullOrWhiteSpace(data.MaThamChieu))
+            {
+                InfoRow("Mã tham chiếu", Encode(data.MaThamChieu));
+            }
+
+            InfoRow("Ngày giờ thanh toán", Encode(data.NgayThanhToanVn));
+            InfoRow("Phương thức", Encode(data.PhuongThuc));
+            InfoRow("Chi nhánh", Encode(data.TenChiNhanh));
+            InfoRow("Địa chỉ", Encode(data.DiaChiChiNhanh));
+            InfoRow("Phòng", Encode(data.TenPhong));
+            InfoRow("Người thanh toán", Encode(data.TenNguoiThanhToan));
+            InfoRow("Kỳ thanh toán", $"Tháng {data.Thang}/{data.Nam}");
+
+            var surplusHtml = data.TienThua > 0
+                ? $"<div class='note'>Tiền thừa {Money(data.TienThua)} — chủ trọ sẽ liên hệ</div>"
+                : string.Empty;
+
+            var buttonHtml = string.IsNullOrWhiteSpace(data.LinkXemBienLai)
+                ? string.Empty
+                : $"<div class='button-wrap'><a class='button' href='{Encode(data.LinkXemBienLai)}'>Xem biên lai</a></div>";
+
+            return $@"
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8' />
+    <style>{PaymentReceiptStyle}
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='header'>
+            <h2>BIÊN LAI XÁC NHẬN THU TIỀN PHÒNG TRỌ</h2>
+            <p>{Encode(data.TenChiNhanh)}</p>
+        </div>
+
+        <div class='badge-wrap'>{badgeHtml}</div>
+
+        <table class='info-table'>
+            {infoRows}
+        </table>
+
+        <table class='details-table'>
+            <tr><td>Tổng hóa đơn</td><td class='amount'>{Money(data.TongTien)}</td></tr>
+            <tr><td>Số tiền lần này</td><td class='amount'>{Money(data.SoTienLanNay)}</td></tr>
+            <tr><td>Lũy kế đã thanh toán</td><td class='amount'>{Money(data.LuyKeDaThanhToan)}</td></tr>
+            <tr class='total-row'><td>Còn nợ sau lần này</td><td class='amount'>{Money(data.ConNo)}</td></tr>
+        </table>
+        {surplusHtml}
+        {buttonHtml}
+        <div class='signature-block'>
+            <div class='signature-title'>Trân trọng,</div>
+            <div class='signature-name'>Ban Quản Lý - {Encode(data.TenChiNhanh)}</div>
+            <div class='signature-info'>
+                <div><strong>Địa chỉ:</strong> {Encode(data.DiaChiChiNhanh)}</div>
+            </div>
+        </div>
+
+        <div class='footer'>
+            <p>Email này được gửi tự động từ hệ thống quản lý nhà trọ.</p>
+            <p>Vui lòng không phản hồi trực tiếp email này. Xin cảm ơn!</p>
+        </div>
+    </div>
+</body>
+</html>";
         }
     }
 }

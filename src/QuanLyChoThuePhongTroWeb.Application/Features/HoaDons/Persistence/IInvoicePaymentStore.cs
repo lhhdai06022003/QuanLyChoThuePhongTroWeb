@@ -54,5 +54,14 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence
         Task<IReadOnlyList<PaymentRequestSnapshot>> GetRequestSnapshotsAsync(int hoaDonId, CancellationToken ct = default);
         Task<PaymentRequestSnapshot?> GetRequestSnapshotAsync(int yeuCauId, CancellationToken ct = default);
         Task<ReviewQueuePage> GetReviewQueueAsync(ReviewQueueQuery query, CancellationToken ct = default);
+
+        // Dòng sổ chưa xóa, MaGiaoDich bắt đầu "SEPAY-", NguoiXacNhanId == null (hệ thống ghi), NgayXacNhan != null
+        // và NgayXacNhan >= sinceUtc. Trả MaGiaoDich của dòng có NgayXacNhan sớm nhất (rồi Id nhỏ nhất); không có thì
+        // null (spec thanh toán trực tuyến §5.4).
+        Task<string?> FindSystemSePayEntryRecordedAfterAsync(int hoaDonId, DateTime sinceUtc, CancellationToken ct = default);
+        // Dữ liệu biên lai của một dòng sổ, kể cả dòng đã xóa mềm (IsDeleted cho biết). Không có thì null.
+        Task<PaymentReceiptSnapshot?> GetReceiptSnapshotAsync(int lichSuThanhToanId, CancellationToken ct = default);
+        // Ngữ cảnh cảnh báo Telegram của hóa đơn, không lọc IsDeleted. Không có thì null.
+        Task<TransferAlertContext?> GetTransferAlertContextAsync(int hoaDonId, CancellationToken ct = default);
     }
 }

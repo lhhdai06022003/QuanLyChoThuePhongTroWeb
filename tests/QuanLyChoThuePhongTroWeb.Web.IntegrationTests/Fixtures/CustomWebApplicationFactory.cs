@@ -20,6 +20,7 @@ using QuanLyChoThuePhongTroWeb.Application.Features.AiAssistants.ChatModel;
 using QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.Emails.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs;
+using QuanLyChoThuePhongTroWeb.Application.Features.OnlinePayments;
 using QuanLyChoThuePhongTroWeb.Domain.Enums;
 using QuanLyChoThuePhongTroWeb.Infrastructure.Persistence;
 
@@ -40,6 +41,12 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests.Fixtures
             WebhookAuthMode = SePayWebhookAuthMode.Hmac,
             WebhookSecret = "test-sepay-webhook-secret"
         };
+        // Telegram bật với bot giả và một chat chung; test đổi lúc chạy (BranchChatIds, Enabled) rồi trả lại trong finally.
+        public TelegramOptions TelegramOptionsInstance { get; } = new() { Enabled = true, BotToken = "123456:test-token", DefaultChatId = "-100100" };
+        public OnlinePaymentOptions OnlinePaymentOptionsInstance { get; } = new() { PublicBaseUrl = "https://tro.test" };
+        public FakeTelegramNotifier FakeTelegramInstance { get; } = new();
+        // Mọi việc hậu xử lý thanh toán đã vào hàng đợi (hàng đợi test chạy ngay, đồng bộ).
+        public ConcurrentQueue<PaymentNotificationWorkItem> PaymentNotifications { get; } = new();
         public FakeEmailService FakeEmailServiceInstance { get; } = new();
         public FakeMeterImageStorageService FakeMeterImageStorageInstance { get; } = new();
         public FakeMeterOcrService FakeMeterOcrServiceInstance { get; } = new();
@@ -111,6 +118,18 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests.Fixtures
                 services.AddSingleton(SePayOptionsInstance);
                 services.RemoveAll<VietQrSettings>();
                 services.AddSingleton(new VietQrSettings { BankId = "MB", AccountNumber = TestBankAccount, AccountName = "NHA TRO TEST" });
+
+                // Thông báo thanh toán: cấu hình cố định, Telegram giả (không gọi mạng) và hàng đợi chạy ngay trong request
+                // để test không phải chờ worker. Worker thật vẫn được đăng ký nhưng không có gì để đọc.
+                services.RemoveAll<TelegramOptions>();
+                services.AddSingleton(TelegramOptionsInstance);
+                services.RemoveAll<OnlinePaymentOptions>();
+                services.AddSingleton(OnlinePaymentOptionsInstance);
+                services.RemoveAll<ITelegramNotifier>();
+                services.AddSingleton<ITelegramNotifier>(FakeTelegramInstance);
+                services.RemoveAll<IPaymentNotificationQueue>();
+                services.AddSingleton<IPaymentNotificationQueue>(sp =>
+                    new SynchronousPaymentNotificationQueue(sp.GetRequiredService<IServiceScopeFactory>(), PaymentNotifications));
             });
         }
 
@@ -227,6 +246,60 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests.Fixtures
             public Task<(bool IsSuccess, string ErrorMessage)> SendContractExpiryAlertAsync(string toEmail, string tenNguoiNhan, ContractExpiryAlertData alertData)
             {
                 return Task.FromResult((true, string.Empty));
+            }
+
+            public ConcurrentQueue<(string ToEmail, PaymentReceiptEmail Data)> PaymentReceiptCalls { get; } = new();
+
+            // Cùng quy ước cấu hình theo địa chỉ với SendInvoiceEmailAsync.
+            public Task<(bool IsSuccess, string ErrorMessage)> SendPaymentReceiptAsync(string toEmail, PaymentReceiptEmail data)
+            {
+                PaymentReceiptCalls.Enqueue((toEmail, data));
+
+                if (ThrowForAddress.ContainsKey(toEmail))
+                {
+                    throw new InvalidOperationException("Fake SMTP exception for test address: " + toEmail);
+                }
+
+                if (ResultByAddress.TryGetValue(toEmail, out var configured))
+                {
+                    return Task.FromResult(configured);
+                }
+
+                return Task.FromResult((true, string.Empty));
+            }
+        }
+
+        // Ghi lại mọi tin Telegram (kể cả hai chat nhận cùng một tin); luôn thành công, không gọi mạng.
+        public class FakeTelegramNotifier : ITelegramNotifier
+        {
+            public ConcurrentQueue<(string ChatId, string Text)> Messages { get; } = new();
+
+            public Task<(bool IsSuccess, string ErrorMessage)> SendMessageAsync(string chatId, string htmlText, CancellationToken ct = default)
+            {
+                Messages.Enqueue((chatId, htmlText));
+                return Task.FromResult((true, string.Empty));
+            }
+        }
+
+        // Thay hàng đợi Channel + worker: ghi việc vào PaymentNotifications rồi gửi ngay trong một scope mới, nên khi webhook
+        // trả lời thì Telegram và email đã xong. Exception của dispatcher để publisher bắt và log Warning như hàng đợi thật.
+        public class SynchronousPaymentNotificationQueue : IPaymentNotificationQueue
+        {
+            private readonly IServiceScopeFactory _scopeFactory;
+            private readonly ConcurrentQueue<PaymentNotificationWorkItem> _recorded;
+
+            public SynchronousPaymentNotificationQueue(IServiceScopeFactory scopeFactory, ConcurrentQueue<PaymentNotificationWorkItem> recorded)
+            {
+                _scopeFactory = scopeFactory;
+                _recorded = recorded;
+            }
+
+            public async ValueTask<bool> EnqueueAsync(PaymentNotificationWorkItem item, CancellationToken ct = default)
+            {
+                _recorded.Enqueue(item);
+                using var scope = _scopeFactory.CreateScope();
+                await scope.ServiceProvider.GetRequiredService<IPaymentNotificationDispatcher>().DispatchAsync(item, ct);
+                return true;
             }
         }
 

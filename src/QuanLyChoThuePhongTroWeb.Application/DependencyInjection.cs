@@ -69,6 +69,8 @@ namespace QuanLyChoThuePhongTroWeb.Application
             services.AddScoped<Features.OnlinePayments.IIncomingTransferHandler, Features.OnlinePayments.InvoiceTransferHandler>();
             services.AddScoped<Features.OnlinePayments.IncomingTransferClassifier>();
             services.AddScoped<Features.OnlinePayments.IBankTransferIngestionService, Features.OnlinePayments.BankTransferIngestionService>();
+            services.AddScoped<Features.OnlinePayments.IPaymentOutcomePublisher, Features.OnlinePayments.PaymentOutcomePublisher>();
+            services.AddScoped<Features.OnlinePayments.IPaymentNotificationDispatcher, Features.OnlinePayments.PaymentNotificationDispatcher>();
             services.AddScoped<Features.HoaDons.Payments.InvoicePaymentTransaction>();
             services.AddSingleton<Features.HoaDons.Payments.IPaymentCodeGenerator, Features.HoaDons.Payments.PaymentCodeGenerator>();
             services.AddScoped<ILichSuThanhToanService, LichSuThanhToanService>();

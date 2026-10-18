@@ -14,7 +14,9 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
     // test kiểm commit/rollback qua RecordingUnitOfWork. Id được gán khi SaveChanges (AssignIds).
     public class FakeInvoicePaymentStore : IInvoicePaymentStore
     {
-        public sealed record InvoiceMeta(int ChiNhanhId, int NguoiThueId, string TenPhong = "P101", string TenChiNhanh = "CN1", string TenKhachThue = "Nguyễn Văn A");
+        public sealed record InvoiceMeta(
+            int ChiNhanhId, int NguoiThueId, string TenPhong = "P101", string TenChiNhanh = "CN1", string TenKhachThue = "Nguyễn Văn A",
+            string DiaChiChiNhanh = "1 Đường A", string? EmailKhachThue = "khach@test.vn", int Thang = 9, int Nam = 2026);
 
         private int _nextId = 1000;
 
@@ -338,6 +340,83 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
             {
                 Total = rows.Count,
                 Rows = rows.Skip(query.Start).Take(query.Length).ToList()
+            });
+        }
+
+        public Task<string?> FindSystemSePayEntryRecordedAfterAsync(int hoaDonId, DateTime sinceUtc, CancellationToken ct = default)
+        {
+            return Task.FromResult(Ledger
+                .Where(l => l.HoaDonId == hoaDonId && !l.IsDeleted &&
+                            l.MaGiaoDich.StartsWith(InvoicePaymentPolicy.SePayMaGiaoDichPrefix, StringComparison.Ordinal) &&
+                            l.NguoiXacNhanId == null && l.NgayXacNhan != null && l.NgayXacNhan >= sinceUtc)
+                .OrderBy(l => l.NgayXacNhan).ThenBy(l => l.LichSuThanhToanId)
+                .Select(l => l.MaGiaoDich)
+                .FirstOrDefault());
+        }
+
+        public Task<PaymentReceiptSnapshot?> GetReceiptSnapshotAsync(int lichSuThanhToanId, CancellationToken ct = default)
+        {
+            var row = Ledger.FirstOrDefault(l => l.LichSuThanhToanId == lichSuThanhToanId);
+            if (row == null || !Invoices.TryGetValue(row.HoaDonId, out var hd) || !Meta.TryGetValue(row.HoaDonId, out var meta))
+            {
+                return Task.FromResult<PaymentReceiptSnapshot?>(null);
+            }
+
+            var upToThisEntry = Ledger
+                .Where(l => l.HoaDonId == row.HoaDonId && !l.IsDeleted &&
+                            (l.NgayThanhToan < row.NgayThanhToan ||
+                             (l.NgayThanhToan == row.NgayThanhToan && l.LichSuThanhToanId <= row.LichSuThanhToanId)))
+                .ToList();
+
+            return Task.FromResult<PaymentReceiptSnapshot?>(new PaymentReceiptSnapshot
+            {
+                LichSuThanhToanId = row.LichSuThanhToanId,
+                HoaDonId = row.HoaDonId,
+                MaHoaDon = hd.MaHoaDon,
+                ChiNhanhId = meta.ChiNhanhId,
+                TenChiNhanh = meta.TenChiNhanh,
+                DiaChiChiNhanh = meta.DiaChiChiNhanh,
+                TenPhong = meta.TenPhong,
+                Thang = meta.Thang,
+                Nam = meta.Nam,
+                TenKhachThue = meta.TenKhachThue,
+                EmailKhachThue = meta.EmailKhachThue,
+                TongTien = hd.TongTien,
+                SoTienThanhToan = row.SoTienThanhToan,
+                NgayThanhToanUtc = row.NgayThanhToan,
+                MaGiaoDich = row.MaGiaoDich,
+                PhuongThucThanhToan = row.PhuongThucThanhToan,
+                GhiChu = row.GhiChu,
+                IsDeleted = row.IsDeleted,
+                DotThu = upToThisEntry.Count,
+                LuyKeDaThanhToan = upToThisEntry.Sum(l => l.SoTienThanhToan)
+            });
+        }
+
+        public Task<TransferAlertContext?> GetTransferAlertContextAsync(int hoaDonId, CancellationToken ct = default)
+        {
+            if (!Invoices.TryGetValue(hoaDonId, out var hd) || !Meta.TryGetValue(hoaDonId, out var meta))
+            {
+                return Task.FromResult<TransferAlertContext?>(null);
+            }
+
+            HoaDon? replacement = null;
+            if (hd.IsDeleted || hd.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaHuy)
+            {
+                replacement = Invoices.Values
+                    .Where(h => h.HopDongId == hd.HopDongId && h.Thang == hd.Thang && h.Nam == hd.Nam && h.HoaDonId != hd.HoaDonId &&
+                                !h.IsDeleted && h.TrangThaiPhatHanh != TrangThaiPhatHanhHoaDon.DaHuy)
+                    .OrderByDescending(h => h.HoaDonId)
+                    .FirstOrDefault();
+            }
+
+            return Task.FromResult<TransferAlertContext?>(new TransferAlertContext
+            {
+                HoaDonId = hd.HoaDonId,
+                MaHoaDon = hd.MaHoaDon,
+                ChiNhanhId = meta.ChiNhanhId,
+                HoaDonThayTheId = replacement?.HoaDonId,
+                MaHoaDonThayThe = replacement?.MaHoaDon
             });
         }
     }

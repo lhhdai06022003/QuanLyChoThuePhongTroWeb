@@ -121,6 +121,28 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
             return ledger;
         }
 
+        // Dòng sổ do webhook SePay ghi: khóa SEPAY-{mã}, hệ thống xác nhận (NguoiXacNhanId null), ghi lúc recordedAtUtc.
+        public LichSuThanhToan AddSePayLedger(int hoaDonId, decimal soTien, string reference, DateTime recordedAtUtc, bool isDeleted = false)
+        {
+            var ledger = new LichSuThanhToan
+            {
+                HoaDonId = hoaDonId,
+                MaGiaoDich = InvoicePaymentPolicy.SePayLedgerKey(reference),
+                SoTienThanhToan = soTien,
+                PhuongThucThanhToan = PhuongThucThanhToan.ChuyenKhoan,
+                NgayThanhToan = recordedAtUtc,
+                NgayXacNhan = recordedAtUtc,
+                NguoiXacNhanId = null,
+                IsDeleted = isDeleted
+            };
+            Store.Ledger.Add(ledger);
+            Store.AssignIds();
+            var hoaDon = Store.Invoices[hoaDonId];
+            var tong = Store.Ledger.Where(l => l.HoaDonId == hoaDonId && !l.IsDeleted).Sum(l => l.SoTienThanhToan);
+            hoaDon.TrangThaiHoaDon = tong == 0 ? TrangThaiHoaDon.ChuaThanhToan : tong == hoaDon.TongTien ? TrangThaiHoaDon.DaThanhToan : TrangThaiHoaDon.ThanhToanMotPhan;
+            return ledger;
+        }
+
         public static UploadFile JpegFile(string fileName = "bienlai.jpg")
         {
             var bytes = new byte[] { 0xFF, 0xD8, 0xFF, 0xE0, 0, 0x10, 0x4A, 0x46, 0x49, 0x46, 0, 1, 2, 3 };
@@ -194,6 +216,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
     {
         public List<(int UserId, object Payload)> Sent { get; } = new();
         public bool Throw { get; set; }
+        // Chạy mỗi lần đẩy thông báo thường (để test kiểm trạng thái giao dịch lúc đẩy).
+        public Action? OnSend { get; set; }
 
         public Task SendToUserAsync(int nguoiDungId, object payload, CancellationToken cancellationToken = default)
         {
@@ -202,11 +226,25 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
                 throw new InvalidOperationException("SignalR down");
             }
 
+            OnSend?.Invoke();
             Sent.Add((nguoiDungId, payload));
             return Task.CompletedTask;
         }
 
         public Task SendToRoleGroupAsync(string roleName, object payload, CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+        public List<(int UserId, InvoicePaymentUpdatedEvent Payload)> PaymentUpdates { get; } = new();
+
+        public Task SendInvoicePaymentUpdatedAsync(int nguoiDungId, InvoicePaymentUpdatedEvent payload, CancellationToken cancellationToken = default)
+        {
+            if (Throw)
+            {
+                throw new InvalidOperationException("SignalR down");
+            }
+
+            PaymentUpdates.Add((nguoiDungId, payload));
+            return Task.CompletedTask;
+        }
     }
 
     // Mô phỏng quy tắc của EmployeeAccessService: Admin làm mọi hành động hợp lệ; nhân viên chỉ ở chi nhánh

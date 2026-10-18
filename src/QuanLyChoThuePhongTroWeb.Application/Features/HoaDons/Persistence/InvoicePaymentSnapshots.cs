@@ -84,6 +84,47 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence
         public string? LyDo { get; init; }
     }
 
+    // Dữ liệu biên lai của một dòng sổ (spec thanh toán trực tuyến §3.4, §6.3). Đọc không tracking, kể cả dòng đã hủy ghi nhận.
+    public sealed class PaymentReceiptSnapshot
+    {
+        public int LichSuThanhToanId { get; init; }
+        public int HoaDonId { get; init; }
+        public string MaHoaDon { get; init; } = string.Empty;
+        public int ChiNhanhId { get; init; }
+        public string TenChiNhanh { get; init; } = string.Empty;
+        public string DiaChiChiNhanh { get; init; } = string.Empty;
+        // PhongTro.SoPhong.
+        public string TenPhong { get; init; } = string.Empty;
+        public int Thang { get; init; }
+        public int Nam { get; init; }
+        // NguoiThue.HoVaTen của hợp đồng.
+        public string TenKhachThue { get; init; } = string.Empty;
+        // NguoiThue.Email.
+        public string? EmailKhachThue { get; init; }
+        public decimal TongTien { get; init; }
+        public decimal SoTienThanhToan { get; init; }
+        public DateTime NgayThanhToanUtc { get; init; }
+        public string MaGiaoDich { get; init; } = string.Empty;
+        public PhuongThucThanhToan PhuongThucThanhToan { get; init; }
+        public string GhiChu { get; init; } = string.Empty;
+        public bool IsDeleted { get; init; }
+        // Thứ tự lần trả chưa xóa mềm theo (NgayThanhToan, LichSuThanhToanId), tính cả dòng này nếu chưa xóa.
+        public int DotThu { get; init; }
+        // Tổng SoTienThanhToan các dòng chưa xóa có (NgayThanhToan, Id) không sau dòng này.
+        public decimal LuyKeDaThanhToan { get; init; }
+    }
+
+    // Ngữ cảnh để soạn cảnh báo Telegram của một hóa đơn (không lọc IsDeleted để tìm được hóa đơn thay thế).
+    public sealed class TransferAlertContext
+    {
+        public int HoaDonId { get; init; }
+        public string MaHoaDon { get; init; } = string.Empty;
+        public int ChiNhanhId { get; init; }
+        // Chỉ có khi hóa đơn đã xóa mềm hoặc DaHuy: hóa đơn khác cùng HopDongId/Thang/Nam, chưa xóa, khác DaHuy, Id lớn nhất.
+        public int? HoaDonThayTheId { get; init; }
+        public string? MaHoaDonThayThe { get; init; }
+    }
+
     public sealed class ReviewQueueQuery
     {
         public int ChiNhanhId { get; init; }

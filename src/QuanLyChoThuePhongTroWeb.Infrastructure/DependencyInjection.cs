@@ -87,6 +87,18 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure
             services.AddSingleton(sePayOptions);
             services.AddSingleton<QuanLyChoThuePhongTroWeb.Application.Features.OnlinePayments.ISePayWebhookVerifier, ExternalServices.Payments.SePayWebhookVerifier>();
 
+            var telegramOptions = configuration.GetSection(QuanLyChoThuePhongTroWeb.Application.Common.Configurations.TelegramOptions.SectionName).Get<QuanLyChoThuePhongTroWeb.Application.Common.Configurations.TelegramOptions>() ?? new QuanLyChoThuePhongTroWeb.Application.Common.Configurations.TelegramOptions();
+            telegramOptions.Validate();
+            services.AddSingleton(telegramOptions);
+
+            var onlinePaymentOptions = configuration.GetSection(QuanLyChoThuePhongTroWeb.Application.Common.Configurations.OnlinePaymentOptions.SectionName).Get<QuanLyChoThuePhongTroWeb.Application.Common.Configurations.OnlinePaymentOptions>() ?? new QuanLyChoThuePhongTroWeb.Application.Common.Configurations.OnlinePaymentOptions();
+            onlinePaymentOptions.Validate();
+            services.AddSingleton(onlinePaymentOptions);
+
+            // Chống cảnh báo Telegram lặp (spec thanh toán trực tuyến §5.3): một bộ nhớ dùng chung cho mọi request.
+            services.AddMemoryCache();
+            services.AddSingleton<QuanLyChoThuePhongTroWeb.Application.Features.OnlinePayments.ITransferAlertDeduplicator, ExternalServices.Payments.MemoryCacheTransferAlertDeduplicator>();
+
             services.AddHttpClient<QuanLyChoThuePhongTroWeb.Application.Abstractions.Services.IMeterImageStorageService, ExternalServices.Storage.CloudinaryMeterImageStorageService>(client =>
             {
                 client.Timeout = TimeSpan.FromSeconds(meterOptions.DownloadTimeoutSeconds);
@@ -97,6 +109,11 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure
                 client.Timeout = TimeSpan.FromSeconds(30);
             });
             services.AddHttpClient<QuanLyChoThuePhongTroWeb.Application.Abstractions.Services.IMeterOcrService, ExternalServices.AiAssistants.GeminiMeterOcrService>();
+            // URL gọi Telegram chứa BotToken: gỡ logger của HttpClient để không in URL ra log.
+            services.AddHttpClient<QuanLyChoThuePhongTroWeb.Application.Features.OnlinePayments.ITelegramNotifier, ExternalServices.Telegram.TelegramBotNotifier>(client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(10);
+            }).RemoveAllLoggers();
 
             // Security services
             services.AddScoped<Microsoft.AspNetCore.Identity.IPasswordHasher<QuanLyChoThuePhongTroWeb.Domain.Entities.NguoiDung>, Microsoft.AspNetCore.Identity.PasswordHasher<QuanLyChoThuePhongTroWeb.Domain.Entities.NguoiDung>>();
@@ -112,6 +129,13 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure
             // Background job state stores
             services.AddSingleton<QuanLyChoThuePhongTroWeb.Application.Abstractions.BackgroundJobs.IInvoiceReminderStateStore, BackgroundJobs.State.JsonInvoiceReminderStateStore>();
             services.AddSingleton<QuanLyChoThuePhongTroWeb.Application.Abstractions.BackgroundJobs.IContractExpiryAlertStateStore, BackgroundJobs.State.JsonContractExpiryAlertStateStore>();
+
+            // Hàng đợi và worker gửi Telegram, email biên lai sau khi ghi sổ: luôn đăng ký, không phụ thuộc BackgroundJobs:Enabled
+            // (tắt job định kỳ không được làm mất tin thanh toán, spec thanh toán trực tuyến §6.1).
+            services.AddSingleton<BackgroundJobs.PaymentNotifications.ChannelPaymentNotificationQueue>();
+            services.AddSingleton<QuanLyChoThuePhongTroWeb.Application.Features.OnlinePayments.IPaymentNotificationQueue>(sp =>
+                sp.GetRequiredService<BackgroundJobs.PaymentNotifications.ChannelPaymentNotificationQueue>());
+            services.AddHostedService<BackgroundJobs.PaymentNotifications.PaymentNotificationWorker>();
 
             // Background hosted jobs (default enabled, can be disabled via BackgroundJobs:Enabled in test host)
             var backgroundJobsEnabled = configuration.GetValue<bool?>("BackgroundJobs:Enabled") ?? true;

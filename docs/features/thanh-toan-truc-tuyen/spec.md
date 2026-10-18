@@ -166,7 +166,7 @@ Trong khóa:
 Review phần 1 (16/10): webhook ghi sổ khi còn lượt `DangDoiChieu`; nếu sau đó nhân viên xác nhận minh chứng của lượt đó với số thực nhận ≤ số còn lại, `InvoicePaymentConfirmationService.ConfirmAsync` vẫn ghi thêm (mã giao dịch khác `SEPAY-...` nên không bị chặn). Phần 2 thêm chặn cứng, cần người dùng xác nhận logic tiền:
 
 - Hóa đơn có dòng `SEPAY-` do hệ thống ghi sau thời điểm khách nộp minh chứng → nhân viên phải chuyển Admin, không tự xác nhận.
-- Khi nhập mã giao dịch ngân hàng, kiểm thêm `SEPAY-{mã}` đã tồn tại.
+- Mã giao dịch ngân hàng (nhân viên nhập hoặc khách khai trên minh chứng) mà sổ đã có dòng chưa xóa `SEPAY-{mã}` → báo lỗi, không ghi. Thu thủ công có mã giao dịch cũng kiểm như vậy (người dùng chọn 17/10).
 - Test cho các ca: đã thu đủ, thu một phần, mã trùng.
 
 Ghi chú vận hành: tiền tố mã thanh toán khai báo trên SePay phải là `TTPTHD` hoặc để trống, vì trường `code` được ưu tiên (§4.2 bước 4).

@@ -459,5 +459,143 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
 
             return new ReviewQueuePage { Total = total, Rows = page };
         }
+
+        public async Task<string?> FindSystemSePayEntryRecordedAfterAsync(int hoaDonId, DateTime sinceUtc, CancellationToken ct = default)
+        {
+            var prefix = InvoicePaymentPolicy.SePayMaGiaoDichPrefix;
+            return await _context.LichSuThanhToans
+                .AsNoTracking()
+                .Where(l => l.HoaDonId == hoaDonId &&
+                            !l.IsDeleted &&
+                            l.MaGiaoDich.StartsWith(prefix) &&
+                            l.NguoiXacNhanId == null &&
+                            l.NgayXacNhan != null &&
+                            l.NgayXacNhan >= sinceUtc)
+                .OrderBy(l => l.NgayXacNhan)
+                .ThenBy(l => l.LichSuThanhToanId)
+                .Select(l => l.MaGiaoDich)
+                .FirstOrDefaultAsync(ct);
+        }
+
+        public async Task<PaymentReceiptSnapshot?> GetReceiptSnapshotAsync(int lichSuThanhToanId, CancellationToken ct = default)
+        {
+            var row = await _context.LichSuThanhToans
+                .AsNoTracking()
+                .Where(l => l.LichSuThanhToanId == lichSuThanhToanId)
+                .Select(l => new
+                {
+                    l.LichSuThanhToanId,
+                    l.HoaDonId,
+                    l.HoaDon.MaHoaDon,
+                    l.HoaDon.Thang,
+                    l.HoaDon.Nam,
+                    l.HoaDon.TongTien,
+                    ChiNhanhId = l.HoaDon.HopDong.PhongTro.ChiNhanhId,
+                    TenChiNhanh = l.HoaDon.HopDong.PhongTro.ChiNhanh.TenChiNhanh,
+                    DiaChiChiNhanh = l.HoaDon.HopDong.PhongTro.ChiNhanh.DiaChi,
+                    TenPhong = l.HoaDon.HopDong.PhongTro.SoPhong,
+                    TenKhachThue = l.HoaDon.HopDong.NguoiThue.HoVaTen,
+                    EmailKhachThue = l.HoaDon.HopDong.NguoiThue.Email,
+                    l.SoTienThanhToan,
+                    l.NgayThanhToan,
+                    l.MaGiaoDich,
+                    l.PhuongThucThanhToan,
+                    l.GhiChu,
+                    l.IsDeleted
+                })
+                .FirstOrDefaultAsync(ct);
+
+            if (row == null)
+            {
+                return null;
+            }
+
+            // Thứ tự lần trả và lũy kế chỉ tính dòng chưa xóa mềm, theo (NgayThanhToan, Id) không sau dòng này.
+            var upToThisEntry = _context.LichSuThanhToans
+                .AsNoTracking()
+                .Where(l => l.HoaDonId == row.HoaDonId &&
+                            !l.IsDeleted &&
+                            (l.NgayThanhToan < row.NgayThanhToan ||
+                             (l.NgayThanhToan == row.NgayThanhToan && l.LichSuThanhToanId <= row.LichSuThanhToanId)));
+            var dotThu = await upToThisEntry.CountAsync(ct);
+            var luyKe = await upToThisEntry.SumAsync(l => l.SoTienThanhToan, ct);
+
+            return new PaymentReceiptSnapshot
+            {
+                LichSuThanhToanId = row.LichSuThanhToanId,
+                HoaDonId = row.HoaDonId,
+                MaHoaDon = row.MaHoaDon ?? string.Empty,
+                ChiNhanhId = row.ChiNhanhId,
+                TenChiNhanh = row.TenChiNhanh ?? string.Empty,
+                DiaChiChiNhanh = row.DiaChiChiNhanh ?? string.Empty,
+                TenPhong = row.TenPhong ?? string.Empty,
+                Thang = row.Thang,
+                Nam = row.Nam,
+                TenKhachThue = row.TenKhachThue ?? string.Empty,
+                EmailKhachThue = row.EmailKhachThue,
+                TongTien = row.TongTien,
+                SoTienThanhToan = row.SoTienThanhToan,
+                NgayThanhToanUtc = row.NgayThanhToan,
+                MaGiaoDich = row.MaGiaoDich ?? string.Empty,
+                PhuongThucThanhToan = row.PhuongThucThanhToan,
+                GhiChu = row.GhiChu ?? string.Empty,
+                IsDeleted = row.IsDeleted,
+                DotThu = dotThu,
+                LuyKeDaThanhToan = luyKe
+            };
+        }
+
+        public async Task<TransferAlertContext?> GetTransferAlertContextAsync(int hoaDonId, CancellationToken ct = default)
+        {
+            var invoice = await _context.HoaDons
+                .AsNoTracking()
+                .Where(h => h.HoaDonId == hoaDonId)
+                .Select(h => new
+                {
+                    h.HoaDonId,
+                    h.MaHoaDon,
+                    h.HopDongId,
+                    h.Thang,
+                    h.Nam,
+                    h.IsDeleted,
+                    h.TrangThaiPhatHanh,
+                    ChiNhanhId = h.HopDong.PhongTro.ChiNhanhId
+                })
+                .FirstOrDefaultAsync(ct);
+
+            if (invoice == null)
+            {
+                return null;
+            }
+
+            // Hóa đơn đã hủy được lập lại bản "-R{n}" cùng hợp đồng và kỳ: báo mã bản thay thế để nhân viên chuyển khoản sang đúng hóa đơn.
+            int? replacementId = null;
+            string? replacementCode = null;
+            if (invoice.IsDeleted || invoice.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaHuy)
+            {
+                var replacement = await _context.HoaDons
+                    .AsNoTracking()
+                    .Where(h => h.HopDongId == invoice.HopDongId &&
+                                h.Thang == invoice.Thang &&
+                                h.Nam == invoice.Nam &&
+                                h.HoaDonId != invoice.HoaDonId &&
+                                !h.IsDeleted &&
+                                h.TrangThaiPhatHanh != TrangThaiPhatHanhHoaDon.DaHuy)
+                    .OrderByDescending(h => h.HoaDonId)
+                    .Select(h => new { h.HoaDonId, h.MaHoaDon })
+                    .FirstOrDefaultAsync(ct);
+                replacementId = replacement?.HoaDonId;
+                replacementCode = replacement?.MaHoaDon;
+            }
+
+            return new TransferAlertContext
+            {
+                HoaDonId = invoice.HoaDonId,
+                MaHoaDon = invoice.MaHoaDon ?? string.Empty,
+                ChiNhanhId = invoice.ChiNhanhId,
+                HoaDonThayTheId = replacementId,
+                MaHoaDonThayThe = replacementCode
+            };
+        }
     }
 }

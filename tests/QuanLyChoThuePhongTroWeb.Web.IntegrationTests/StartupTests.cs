@@ -6,7 +6,9 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.BackgroundJobs;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Services;
+using QuanLyChoThuePhongTroWeb.Application.Common.Configurations;
 using QuanLyChoThuePhongTroWeb.Application.Common.Files;
+using QuanLyChoThuePhongTroWeb.Application.Features.OnlinePayments;
 using QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers;
 using QuanLyChoThuePhongTroWeb.Web.IntegrationTests.Fixtures;
@@ -53,6 +55,30 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             Assert.DoesNotContain(hostedServices, s => s.GetType().Name == "ContractAutoCloseJob");
             Assert.DoesNotContain(hostedServices, s => s.GetType().Name == "ContractExpiryAlertJob");
             Assert.DoesNotContain(hostedServices, s => s.GetType().Name == "InvoiceReminderJob");
+        }
+
+        [Fact]
+        public void PaymentNotificationWorker_ShouldBeRegistered_EvenWhenBackgroundJobsAreDisabled()
+        {
+            // Worker gửi Telegram và email biên lai luôn chạy, không phụ thuộc BackgroundJobs:Enabled (spec thanh toán trực tuyến §6.1).
+            var hostedServices = _factory.Services.GetServices<IHostedService>().ToList();
+
+            Assert.Contains(hostedServices, s => s.GetType().Name == "PaymentNotificationWorker");
+        }
+
+        [Fact]
+        public void PaymentNotificationServices_ShouldResolveToTestDoubles_NotRealTelegramOrChannelQueue()
+        {
+            using var scope = _factory.Services.CreateScope();
+            var sp = scope.ServiceProvider;
+
+            Assert.IsType<CustomWebApplicationFactory.FakeTelegramNotifier>(sp.GetRequiredService<ITelegramNotifier>());
+            Assert.IsType<CustomWebApplicationFactory.SynchronousPaymentNotificationQueue>(sp.GetRequiredService<IPaymentNotificationQueue>());
+            Assert.NotNull(sp.GetRequiredService<IPaymentOutcomePublisher>());
+            Assert.NotNull(sp.GetRequiredService<IPaymentNotificationDispatcher>());
+            Assert.NotNull(sp.GetRequiredService<ITransferAlertDeduplicator>());
+            Assert.Same(_factory.TelegramOptionsInstance, sp.GetRequiredService<TelegramOptions>());
+            Assert.Same(_factory.OnlinePaymentOptionsInstance, sp.GetRequiredService<OnlinePaymentOptions>());
         }
 
         [Fact]

@@ -121,6 +121,12 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                     return ServiceResult<ManualCollectionResult>.Fail("Mã giao dịch đã được ghi nhận.");
                 }
 
+                // Mã ngân hàng đã có dòng SePay chưa xóa: khoản này webhook đã ghi tự động (spec thanh toán trực tuyến §5.4).
+                if (maGiaoDich != null && await scope.Store.ExistsMaGiaoDichAsync(InvoicePaymentPolicy.SePayLedgerKey(maGiaoDich), ct))
+                {
+                    return ServiceResult<ManualCollectionResult>.Fail(InvoicePaymentPolicy.SePayAlreadyRecordedMessage);
+                }
+
                 string? maLuotDaHuy = null;
                 if (active?.TrangThai == TrangThaiYeuCauThanhToan.ChoThanhToan)
                 {
