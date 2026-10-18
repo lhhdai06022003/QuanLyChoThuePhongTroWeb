@@ -98,6 +98,13 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 .AnyAsync(l => l.HoaDonId == hoaDonId && l.MaGiaoDich.ToUpper() == upper, ct);
         }
 
+        public async Task<bool> ExistsMaGiaoDichIncludingDeletedAsync(string maGiaoDich, CancellationToken ct = default)
+        {
+            var upper = maGiaoDich.Trim().ToUpperInvariant();
+            return await _context.LichSuThanhToans
+                .AnyAsync(l => l.MaGiaoDich.ToUpper() == upper, ct);
+        }
+
         public async Task<bool> ExistsPendingProofMaGiaoDichAsync(string maGiaoDich, int? exceptMinhChungId, CancellationToken ct = default)
         {
             var upper = maGiaoDich.Trim().ToUpperInvariant();

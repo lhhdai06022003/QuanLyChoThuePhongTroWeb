@@ -34,7 +34,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             typeof(IAutoInvoiceService),
             typeof(IInvoiceAdjustmentService),
             typeof(IBankTransferIngestionService),
-            typeof(IInvoiceReceiptService)
+            typeof(IInvoiceReceiptService),
+            typeof(ISePaySyncService)
         };
 
         private static readonly HashSet<string> Exceptions = new()

@@ -186,6 +186,53 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.Contains("Hàng đợi thông báo thanh toán đầy", entry.Message);
         }
 
+        // ---------- Đồng bộ bù (LaDongBoBu): Admin đang xem bảng kết quả nên không cảnh báo Telegram ----------
+
+        [Theory]
+        [MemberData(nameof(AlertKinds))]
+        public async Task SyncAlert_IsNotQueued_AndNeverReachesTheDeduplicator(TransferOutcomeKind kind)
+        {
+            var transfer = Transfer() with { LaDongBoBu = true };
+
+            await _publisher.PublishAsync(Outcome(kind, transfer));
+            await _publisher.PublishAsync(Outcome(kind, transfer));
+
+            Assert.Empty(_queue.Items);
+            Assert.Equal(0, _deduplicator.Calls);
+            Assert.Empty(_notifier.PaymentUpdates);
+            Assert.Empty(_log.Entries);
+        }
+
+        [Theory]
+        [MemberData(nameof(AlertKinds))]
+        public async Task SyncAlert_DoesNotUseUpTheDedupKey_SoALaterWebhookRetryStillAlerts(TransferOutcomeKind kind)
+        {
+            await _publisher.PublishAsync(Outcome(kind, Transfer() with { LaDongBoBu = true }));
+            await _publisher.PublishAsync(Outcome(kind, Transfer()));
+
+            Assert.Single(_queue.Items);
+            Assert.False(_queue.Items[0].Outcome.Transfer.LaDongBoBu);
+        }
+
+        [Fact]
+        public async Task SyncRecorded_StillSendsThePanelEvent_AndQueuesTheFullNotifications()
+        {
+            var outcome = Outcome(TransferOutcomeKind.Recorded, Transfer() with { LaDongBoBu = true });
+
+            await _publisher.PublishAsync(outcome);
+
+            Assert.Single(_notifier.PaymentUpdates);
+            Assert.Same(outcome, Assert.Single(_queue.Items).Outcome);
+            Assert.Empty(_log.Entries);
+        }
+
+        [Fact]
+        public void LaDongBoBu_IsFalseByDefault_AndDoesNotChangeTheDedupKey()
+        {
+            Assert.False(Transfer().LaDongBoBu);
+            Assert.Equal(Transfer().DedupKey, (Transfer() with { LaDongBoBu = true }).DedupKey);
+        }
+
         // ---------- Không làm gì ----------
 
         [Theory]

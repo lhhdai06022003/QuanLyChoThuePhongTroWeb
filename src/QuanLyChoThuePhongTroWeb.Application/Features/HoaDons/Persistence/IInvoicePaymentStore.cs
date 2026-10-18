@@ -27,6 +27,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence
         // Kể cả khoản đã xóa mềm, chỉ trong hóa đơn này, không phân biệt hoa thường: giao dịch ngân hàng đã
         // bị hủy ghi nhận thì lần gửi lại không được ghi lại (spec thanh toán trực tuyến §5.1, bước 1).
         Task<bool> ExistsMaGiaoDichForInvoiceIncludingDeletedAsync(int hoaDonId, string maGiaoDich, CancellationToken ct = default);
+        // Mọi hóa đơn, kể cả khoản đã xóa mềm, không phân biệt hoa thường: dùng khi đồng bộ bù chỉ đối chiếu (chưa biết hóa đơn nào).
+        Task<bool> ExistsMaGiaoDichIncludingDeletedAsync(string maGiaoDich, CancellationToken ct = default);
         Task<bool> ExistsPendingProofMaGiaoDichAsync(string maGiaoDich, int? exceptMinhChungId, CancellationToken ct = default);
 
         void AddRequest(YeuCauThanhToanHoaDon yeuCau);

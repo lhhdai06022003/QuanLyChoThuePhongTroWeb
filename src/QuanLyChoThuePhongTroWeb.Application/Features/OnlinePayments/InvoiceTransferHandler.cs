@@ -23,6 +23,9 @@ public sealed class InvoiceTransferHandler(InvoicePaymentTransaction transaction
 
     public string Prefix => InvoicePrefix;
 
+    // Mã chuyển khoản của một hóa đơn (TTPTHD{HoaDonId}), dùng chung cho QR, email và PDF để mọi nơi khách quét đều khớp với bộ phân loại.
+    public static string TransferCode(int hoaDonId) => InvoicePrefix + hoaDonId.ToString(CultureInfo.InvariantCulture);
+
     public async Task<TransferOutcome> HandleAsync(IncomingBankTransfer transfer, string code, CancellationToken ct = default)
     {
         // Bộ phân loại đã loại số tiền không dương; kiểm lại để không bao giờ ghi sổ khoản 0đ hoặc âm.

@@ -29,3 +29,10 @@ public sealed class InvoiceReceiptDto
     public bool DaThuDu { get; init; }
     public int DotThu { get; init; }
 }
+
+// Kết quả gửi lại email biên lai (spec thanh toán trực tuyến §7.2).
+public sealed class InvoiceReceiptResendResult
+{
+    public int LichSuThanhToanId { get; init; }
+    public int HoaDonId { get; init; }
+}

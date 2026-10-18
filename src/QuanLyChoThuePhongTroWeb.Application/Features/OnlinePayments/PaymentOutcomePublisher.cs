@@ -5,7 +5,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.OnlinePayments;
 
 // Recorded: gửi ngay sự kiện HoaDonThanhToanCapNhat cho khách rồi đưa việc Telegram + email biên lai vào hàng đợi.
 // WrongAccount, Unmatched, InvoiceNotPayable, AlreadyPaid: đưa cảnh báo Telegram vào hàng đợi, mỗi giao dịch một lần
-// trong 24 giờ (spec §5.3). Duplicate, Ignored, Failed: không làm gì.
+// trong 24 giờ (spec §5.3); riêng giao dịch của đồng bộ bù (LaDongBoBu) không cảnh báo vì Admin đang xem bảng kết quả.
+// Duplicate, Ignored, Failed: không làm gì.
 // Mọi lỗi chỉ log Warning kèm mã giao dịch SePay, hóa đơn và khoản; không log nội dung chuyển khoản.
 public sealed class PaymentOutcomePublisher(
     IThongBaoNotifier notifier,
@@ -26,6 +27,12 @@ public sealed class PaymentOutcomePublisher(
             case TransferOutcomeKind.Unmatched:
             case TransferOutcomeKind.InvoiceNotPayable:
             case TransferOutcomeKind.AlreadyPaid:
+                // Đồng bộ bù: không cảnh báo và không đăng ký khóa với bộ chống lặp, để webhook gửi lại sau đó vẫn được cảnh báo.
+                if (outcome.Transfer.LaDongBoBu)
+                {
+                    break;
+                }
+
                 await EnqueueAlertOnceAsync(outcome, ct);
                 break;
         }

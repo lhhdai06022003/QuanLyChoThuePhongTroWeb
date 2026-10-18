@@ -134,7 +134,10 @@ namespace QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers
             var result = await _receipts.GetForTenantAsync(lichSuThanhToanId, nguoiThueId, ct);
             if (!result.Success)
             {
-                return this.ToErrorResult(result);
+                // Trang mở thẳng từ link email nên trả trang lỗi thân thiện, mã HTTP vẫn theo loại lỗi.
+                var errorView = View("BienLaiLoi", BienLaiLoiViewModel.From(result, "/KhachThue/HoaDon", "Về danh sách hóa đơn"));
+                errorView.StatusCode = result.ToHttpStatusCode();
+                return errorView;
             }
 
             var receipt = result.Data!;

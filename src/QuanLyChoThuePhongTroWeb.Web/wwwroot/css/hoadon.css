@@ -70,6 +70,7 @@
 .qr-details-list .qr-detail-item {
     display: flex;
     justify-content: space-between;
+    align-items: center;
     padding: 4px 0;
     border-bottom: 1px dashed var(--tblr-border-color);
 }
@@ -95,6 +96,16 @@
 
 .kt-bank-grid .btn {
     min-height: 44px;
+}
+
+/* Nút sao chép trong khung chuyển khoản: vùng chạm tối thiểu 44px cho điện thoại */
+.kt-pay-copy {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 /* Căn chỉnh bảng nhập liệu chi phí khi chỉnh sửa */

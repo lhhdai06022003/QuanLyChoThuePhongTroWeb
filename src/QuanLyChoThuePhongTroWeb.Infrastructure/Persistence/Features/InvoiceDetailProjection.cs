@@ -93,7 +93,9 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                     PhuongThucThanhToan = ls.PhuongThucThanhToan == PhuongThucThanhToan.TienMat ? "Tiền mặt" : "Chuyển khoản",
                     NgayThanhToan = ls.NgayThanhToan.AddHours(7).ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture),
                     NguoiXacNhan = ls.NguoiXacNhan?.TenDangNhap ?? "",
-                    GhiChu = PaymentNoteTags.ToDisplayText(ls.GhiChu)
+                    GhiChu = PaymentNoteTags.ToDisplayText(ls.GhiChu),
+                    LaSePay = InvoicePaymentPolicy.IsSePayKey(ls.MaGiaoDich),
+                    MaThamChieu = InvoicePaymentPolicy.SePayBankReference(ls.MaGiaoDich)
                 }).ToList()
             };
         }

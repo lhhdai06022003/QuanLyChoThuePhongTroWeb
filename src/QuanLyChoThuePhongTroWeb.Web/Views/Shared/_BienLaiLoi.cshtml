@@ -1,0 +1,15 @@
+@model QuanLyChoThuePhongTroWeb.Models.ThanhToan.BienLaiLoiViewModel
+
+@* Trang lỗi khi không mở được biên lai, dùng chung cho cổng khách thuê và cổng quản lý. Chỉ in giá trị đã mã hóa bởi Razor. *@
+<div class="card">
+    <div class="card-body">
+        <div class="empty">
+            <div class="empty-icon"><i class="ti ti-receipt-off"></i></div>
+            <p class="empty-title">@Model.TieuDe</p>
+            <p class="empty-subtitle text-secondary">@Model.ThongDiep</p>
+            <div class="empty-action">
+                <a href="@Model.QuayLaiUrl" class="btn btn-primary"><i class="ti ti-arrow-left me-1"></i> @Model.QuayLaiText</a>
+            </div>
+        </div>
+    </div>
+</div>

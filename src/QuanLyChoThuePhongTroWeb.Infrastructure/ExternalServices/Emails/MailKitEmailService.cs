@@ -1,6 +1,8 @@
 using System;
+using System.Globalization;
 using System.IO;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using MailKit.Net.Smtp;
 using MailKit.Security;
@@ -8,10 +10,12 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using MimeKit;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Services;
+using QuanLyChoThuePhongTroWeb.Application.Common.Configurations;
 using QuanLyChoThuePhongTroWeb.Application.Common.Formatting;
 using QuanLyChoThuePhongTroWeb.Application.Features.Emails.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Payments;
+using QuanLyChoThuePhongTroWeb.Application.Features.OnlinePayments;
 
 namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.Emails
 {
@@ -61,11 +65,16 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.Emails
 
         private readonly IConfiguration _configuration;
         private readonly ILogger<MailKitEmailService> _logger;
+        private readonly OnlinePaymentOptions _onlinePaymentOptions;
 
-        public MailKitEmailService(IConfiguration configuration, ILogger<MailKitEmailService> logger)
+        // Chỉ để log Warning thiếu OnlinePayment:PublicBaseUrl một lần mỗi process, không phải trạng thái nghiệp vụ.
+        private static int s_missingPublicBaseUrlWarned;
+
+        public MailKitEmailService(IConfiguration configuration, ILogger<MailKitEmailService> logger, OnlinePaymentOptions onlinePaymentOptions)
         {
             _configuration = configuration;
             _logger = logger;
+            _onlinePaymentOptions = onlinePaymentOptions;
         }
 
         // Dòng nhắc hạn phản hồi trong email hóa đơn, cùng câu với thông báo cổng lúc công bố. Hết hạn hoặc không có hạn thì bỏ trống.
@@ -82,6 +91,57 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.Emails
                 ? $"Nếu thấy sai sót, vui lòng liên hệ {sdt} trước {hanText}."
                 : $"Nếu thấy sai sót, vui lòng phản hồi trước {hanText}.";
             return $"<div style='margin-bottom: 6px;'>{cau}</div>";
+        }
+
+        // Nút "Thanh toán trực tuyến" và dòng nội dung chuyển khoản TTPTHD{Id} trong email hóa đơn (spec thanh toán trực tuyến §7.1).
+        // Chỉ hiện khi hóa đơn chưa hủy và còn nợ. Nút chỉ có khi có link (OnlinePayment:PublicBaseUrl); dòng nội dung luôn có.
+        public static string BuildOnlinePaymentHtml(HoaDonChiTietRes hoaDon, string? paymentUrl)
+        {
+            if (hoaDon.DaHuy || hoaDon.ConLai <= 0)
+            {
+                return string.Empty;
+            }
+
+            var html = new StringBuilder();
+            if (!string.IsNullOrWhiteSpace(paymentUrl))
+            {
+                html.Append("<div style='text-align: center; margin: 25px 0 10px 0;'>")
+                    .Append($"<a href='{System.Net.WebUtility.HtmlEncode(paymentUrl.Trim())}' style='display:inline-block;background-color:#0056b3;color:#ffffff;text-decoration:none;font-weight:bold;font-size:16px;padding:14px 32px;border-radius:6px;'>THANH TOÁN TRỰC TUYẾN</a>")
+                    .Append("</div>");
+            }
+
+            var memo = System.Net.WebUtility.HtmlEncode(InvoiceTransferHandler.TransferCode(hoaDon.HoaDonId));
+            html.Append($"<div style='text-align: center; font-size: 14px; margin-bottom: 10px;'>Nội dung chuyển khoản: <code style='color: #0056b3; font-weight: bold; font-size: 15px;'>{memo}</code></div>");
+            return html.ToString();
+        }
+
+        // Khối QR trong email hóa đơn (spec thanh toán trực tuyến §7.1): nội dung là mã chuyển khoản TTPTHD{Id}, số tiền là số còn lại,
+        // để khách quét QR trong email cũng được SePay tự khớp. Hóa đơn đã hủy hoặc hết nợ thì không có QR (giống PDF).
+        public static string BuildInvoiceQrSectionHtml(HoaDonChiTietRes hoaDon, string bankId, string accountNumber, string accountName)
+        {
+            if (hoaDon.DaHuy || hoaDon.ConLai <= 0)
+            {
+                return string.Empty;
+            }
+
+            static string Encode(string? value) => System.Net.WebUtility.HtmlEncode(value ?? string.Empty);
+
+            var memo = InvoiceTransferHandler.TransferCode(hoaDon.HoaDonId);
+            var amount = hoaDon.ConLai.ToString("0", CultureInfo.InvariantCulture);
+            var qrUrl = $"https://img.vietqr.io/image/{bankId}-{accountNumber}-compact2.png?amount={amount}&addInfo={Uri.EscapeDataString(memo)}&accountName={Uri.EscapeDataString(accountName)}";
+
+            return $@"
+        <div class='qr-section'>
+            <h3>Quét mã QR để chuyển khoản nhanh</h3>
+            <img src='{Encode(qrUrl)}' alt='VietQR' />
+            <div style='text-align: left; font-size: 13px; margin-top: 15px; color: #444;'>
+                <div>- Ngân hàng: <strong>{Encode(bankId)}</strong></div>
+                <div>- Số tài khoản: <strong>{Encode(accountNumber)}</strong></div>
+                <div>- Tên chủ TK: <strong>{Encode(accountName)}</strong></div>
+                <div>- Số tiền: <strong style='color: #d9001b;'>{string.Format("{0:#,##0}", hoaDon.ConLai)} đ</strong></div>
+                <div>- Nội dung: <code style='color: #0056b3; font-weight: bold; font-size: 14px;'>{Encode(memo)}</code></div>
+            </div>
+        </div>";
         }
 
         public async Task<(bool IsSuccess, string ErrorMessage)> SendInvoiceEmailAsync(string toEmail, HoaDonChiTietRes hoaDon, byte[] pdfBytes)
@@ -106,6 +166,16 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.Emails
 
                 var phanHoiHtml = BuildFeedbackNoticeHtml(hoaDon.SoDienThoaiChiNhanh, hoaDon.HanPhanHoiUtc, DateTime.UtcNow);
 
+                // Nút "Thanh toán trực tuyến" dẫn vào cổng khách thuê; thiếu PublicBaseUrl thì không có nút (spec thanh toán trực tuyến §7.1).
+                var paymentUrl = _onlinePaymentOptions.BuildUrl($"/KhachThue/HoaDon?hoaDonId={hoaDon.HoaDonId}");
+                if (paymentUrl == null && Interlocked.Exchange(ref s_missingPublicBaseUrlWarned, 1) == 0)
+                {
+                    _logger.LogWarning("OnlinePayment:PublicBaseUrl trống: email hóa đơn không có nút Thanh toán trực tuyến.");
+                }
+
+                var onlinePaymentHtml = BuildOnlinePaymentHtml(hoaDon, paymentUrl);
+                var qrSectionHtml = BuildInvoiceQrSectionHtml(hoaDon, bankId, accountNumber, accountName);
+
                 var message = new MimeMessage();
                 message.From.Add(new MailboxAddress(senderName, senderEmail));
                 message.To.Add(new MailboxAddress(hoaDon.TenNguoiThue, toEmail));
@@ -117,9 +187,6 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.Emails
                 {
                     return string.Format("{0:#,##0}", amount);
                 }
-
-                string memo = $"THANH TOAN {hoaDon.MaHoaDon}";
-                string qrUrl = $"https://img.vietqr.io/image/{bankId}-{accountNumber}-compact2.png?amount={hoaDon.TongTien}&addInfo={Uri.EscapeDataString(memo)}&accountName={Uri.EscapeDataString(accountName)}";
 
                 string hanThanhToanHtml = string.IsNullOrEmpty(hoaDon.HanThanhToan)
                     ? ""
@@ -230,18 +297,9 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.Emails
             </tbody>
         </table>
         {hanThanhToanHtml}
-        <div class='qr-section'>
-            <h3>Quét mã QR để chuyển khoản nhanh</h3>
-            <img src='{qrUrl}' alt='VietQR' />
-            <div style='text-align: left; font-size: 13px; margin-top: 15px; color: #444;'>
-                <div>- Ngân hàng: <strong>{bankId}</strong></div>
-                <div>- Số tài khoản: <strong>{accountNumber}</strong></div>
-                <div>- Tên chủ TK: <strong>{accountName}</strong></div>
-                <div>- Số tiền: <strong style='color: #d9001b;'>{FormatVND(hoaDon.TongTien)} đ</strong></div>
-                <div>- Nội dung: <code style='color: #0056b3; font-weight: bold; font-size: 14px;'>THANH TOAN {hoaDon.MaHoaDon}</code></div>
-            </div>
-        </div>
-        
+        {onlinePaymentHtml}
+        {qrSectionHtml}
+
         <div class='signature-block'>
             <div class='signature-title'>Trân trọng,</div>
             <div class='signature-name'>Ban Quản Lý - {hoaDon.TenChiNhanh}</div>

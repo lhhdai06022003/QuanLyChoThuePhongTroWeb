@@ -1,0 +1,88 @@
+@model QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.GiaoDichSePayViewModel
+@{
+    ViewData["Title"] = "Giao dịch SePay";
+}
+
+<link rel="stylesheet" href="~/css/hoadon.css" asp-append-version="true" />
+@Html.AntiForgeryToken()
+
+<div class="page-body hd-page">
+    <div class="container-xl">
+        <div class="page-header d-print-none mb-3">
+            <div class="row align-items-center">
+                <div class="col">
+                    <div class="page-pretitle">Thanh toán hóa đơn</div>
+                    <h2 class="page-title">Giao dịch SePay</h2>
+                    <div class="text-secondary mt-1">Đồng bộ bù giao dịch tiền vào khi webhook bị lỡ</div>
+                </div>
+            </div>
+        </div>
+
+        @if (!Model.DaCauHinhApiToken)
+        {
+            <div class="alert alert-warning">
+                <i class="ti ti-key-off me-1"></i>
+                Chưa cấu hình <code>SePay:ApiToken</code>. Tạo API token trong trang quản trị SePay, thêm vào <code>appsettings.json</code>
+                mục <code>SePay:ApiToken</code> (Test mode thì đổi cả <code>SePay:ApiBaseUrl</code>) rồi khởi động lại ứng dụng.
+            </div>
+        }
+
+        @if (Model.ChiDoiChieu)
+        {
+            <div class="alert alert-info">
+                <i class="ti ti-eye-check me-1"></i>
+                Chế độ chỉ đối chiếu: không ghi sổ. Kiểm giao dịch đã nhận qua webhook hiện "Đã có" rồi mới bật <code>SePay:SyncRecordEnabled</code>.
+            </div>
+        }
+
+        <div class="card mb-3">
+            <div class="card-body">
+                <form id="sepaySyncForm" class="row g-2 align-items-end" autocomplete="off" data-max-days="@Model.SoNgayToiDa">
+                    <div class="col-12 col-md-3">
+                        <label for="sepayTuNgay" class="form-label">Từ ngày</label>
+                        <input type="date" id="sepayTuNgay" class="form-control" value="@Model.TuNgayMacDinh" />
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <label for="sepayDenNgay" class="form-label">Đến ngày</label>
+                        <input type="date" id="sepayDenNgay" class="form-control" value="@Model.DenNgayMacDinh" />
+                    </div>
+                    <div class="col-auto">
+                        <button type="submit" id="btnDongBoSePay" class="btn btn-primary" @(Model.DaCauHinhApiToken ? "" : "disabled")>
+                            <i class="ti ti-refresh me-1"></i> Đồng bộ
+                        </button>
+                    </div>
+                    <div class="col-12 form-hint mt-1">Tối đa @Model.SoNgayToiDa ngày, tính cả hai đầu. Ngày theo giờ Việt Nam.</div>
+                </form>
+            </div>
+        </div>
+
+        <div id="sepayAlerts"></div>
+        <div id="sepaySummary" class="mb-2"></div>
+
+        <div class="card">
+            <div class="table-responsive">
+                <table id="sepayRows" class="table table-vcenter card-table">
+                    <thead>
+                        <tr>
+                            <th>Thời gian</th>
+                            <th class="text-end">Số tiền</th>
+                            <th>Nội dung</th>
+                            <th>Mã tham chiếu</th>
+                            <th>Mã CK</th>
+                            <th>Hóa đơn</th>
+                            <th>Trạng thái</th>
+                            <th>Ghi chú</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td colspan="8" class="text-center text-secondary py-4">Chọn khoảng ngày rồi bấm Đồng bộ.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/giao-dich-sepay.js" asp-append-version="true"></script>
+}

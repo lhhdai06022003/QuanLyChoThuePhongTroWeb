@@ -27,6 +27,9 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Payments
         // Tiền tố MaGiaoDich của dòng sổ do webhook SePay ghi (spec thanh toán trực tuyến §5.2).
         public const string SePayMaGiaoDichPrefix = "SEPAY-";
 
+        // SEPAY-ID-{id}: khóa dùng khi webhook không có mã tham chiếu ngân hàng.
+        private const string SePayIdKeyPrefix = SePayMaGiaoDichPrefix + "ID-";
+
         // Báo lỗi khi mã giao dịch nhập tay hoặc khách khai trùng một dòng sổ SePay chưa xóa (spec thanh toán trực tuyến §5.4).
         public const string SePayAlreadyRecordedMessage = "Mã giao dịch này đã được hệ thống ghi nhận tự động qua SePay.";
 
@@ -156,6 +159,26 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Payments
         public static string SePayLedgerKey(string bankReference)
         {
             return SePayMaGiaoDichPrefix + new string(bankReference.Where(c => !char.IsWhiteSpace(c)).ToArray()).ToUpperInvariant();
+        }
+
+        // Dòng sổ do SePay ghi (webhook hoặc đồng bộ bù): MaGiaoDich bắt đầu "SEPAY-", không phân biệt hoa thường.
+        public static bool IsSePayKey(string? maGiaoDich)
+        {
+            return maGiaoDich != null && maGiaoDich.StartsWith(SePayMaGiaoDichPrefix, StringComparison.OrdinalIgnoreCase);
+        }
+
+        // Mã tham chiếu ngân hàng của dòng SePay: SEPAY-{X} thì X, đúng như đã lưu (viết hoa, bỏ khoảng trắng).
+        // SEPAY-ID-{id} là khóa chống trùng, không phải mã ngân hàng. Khóa không phải SePay (tiền mặt, thu thủ công)
+        // hoặc phần sau tiền tố rỗng thì không có mã tham chiếu.
+        public static string? SePayBankReference(string? maGiaoDich)
+        {
+            if (!IsSePayKey(maGiaoDich) || maGiaoDich!.StartsWith(SePayIdKeyPrefix, StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+            var reference = maGiaoDich[SePayMaGiaoDichPrefix.Length..];
+            return string.IsNullOrWhiteSpace(reference) ? null : reference;
         }
 
         public static string? ValidateMaGiaoDich(string? maGiaoDich)

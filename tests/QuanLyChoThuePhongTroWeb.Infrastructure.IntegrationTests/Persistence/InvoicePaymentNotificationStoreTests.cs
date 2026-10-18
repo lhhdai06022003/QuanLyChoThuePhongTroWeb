@@ -473,5 +473,56 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
 
             Assert.Null(await new InvoicePaymentStore(ctx).GetTransferAlertContextAsync(int.MaxValue));
         }
+
+        // ---------- ExistsMaGiaoDichIncludingDeletedAsync (đồng bộ bù chỉ đối chiếu) ----------
+
+        [Fact]
+        public async Task ExistsIncludingDeleted_FindsActiveAndVoidedRows_OfAnyInvoice_IgnoringCaseAndSurroundingSpaces()
+        {
+            var a = await SeedInvoiceAsync("tim_a");
+            var b = await SeedInvoiceAsync("tim_b");
+            var active = NewCode("SEPAY-HOATDONG");
+            var voided = NewCode("SEPAY-DAHUY");
+            await AddLedgerAsync(a.InvoiceId, 1m, active, T0);
+            await AddLedgerAsync(b.InvoiceId, 1m, voided, T0, isDeleted: true);
+
+            await using var ctx = _fixture.CreateDbContext();
+            var store = new InvoicePaymentStore(ctx);
+
+            Assert.True(await store.ExistsMaGiaoDichIncludingDeletedAsync(active));
+            Assert.True(await store.ExistsMaGiaoDichIncludingDeletedAsync(active.ToLowerInvariant()));
+            Assert.True(await store.ExistsMaGiaoDichIncludingDeletedAsync($"  {active.ToUpperInvariant()}  "));
+            Assert.True(await store.ExistsMaGiaoDichIncludingDeletedAsync(voided));
+            Assert.True(await store.ExistsMaGiaoDichIncludingDeletedAsync(voided.ToLowerInvariant()));
+        }
+
+        [Fact]
+        public async Task ExistsIncludingDeleted_UnknownKey_IsFalse_AndOnlyMatchesTheWholeKey()
+        {
+            var seeded = await SeedInvoiceAsync("tim_khong");
+            var key = NewCode("SEPAY-CHINHXAC");
+            await AddLedgerAsync(seeded.InvoiceId, 1m, key, T0);
+
+            await using var ctx = _fixture.CreateDbContext();
+            var store = new InvoicePaymentStore(ctx);
+
+            Assert.False(await store.ExistsMaGiaoDichIncludingDeletedAsync(NewCode("SEPAY-KHONGCO")));
+            Assert.False(await store.ExistsMaGiaoDichIncludingDeletedAsync(key[..^1]));
+            Assert.False(await store.ExistsMaGiaoDichIncludingDeletedAsync(key + "X"));
+        }
+
+        [Fact]
+        public async Task ExistsIncludingDeleted_DiffersFromTheActiveOnlyCheck_ForAVoidedRow()
+        {
+            var seeded = await SeedInvoiceAsync("tim_huy");
+            var voided = NewCode("SEPAY-BIHUY");
+            await AddLedgerAsync(seeded.InvoiceId, 1m, voided, T0, isDeleted: true);
+
+            await using var ctx = _fixture.CreateDbContext();
+            var store = new InvoicePaymentStore(ctx);
+
+            Assert.False(await store.ExistsMaGiaoDichAsync(voided));
+            Assert.True(await store.ExistsMaGiaoDichIncludingDeletedAsync(voided));
+        }
     }
 }

@@ -75,7 +75,7 @@
             infoRow('Kỳ', 'Tháng ' + esc(p.thang) + '/' + esc(p.nam)) +
             infoRow('Tổng tiền', vnd(p.tongTien)) +
             infoRow('Đã thanh toán', vnd(p.daThu), 'text-success') +
-            infoRow('Còn lại', vnd(p.conLai), 'text-danger') +
+            infoRow('Còn lại', vnd(Math.max(0, Number(p.conLai) || 0)), 'text-danger') +
             (p.hanThanhToan ? infoRow('Hạn thanh toán', esc(p.hanThanhToan)) : '') +
             '</div></div>';
     }
@@ -150,7 +150,7 @@
 
     function copyRow(label, valueHtml, copyValue, copyLabel) {
         var button = copyValue === null ? '' :
-            '<button type="button" class="btn btn-sm btn-ghost-primary py-0 px-1 ms-1 kt-pay-copy" data-copy="' + esc(copyValue) +
+            '<button type="button" class="btn btn-ghost-primary ms-1 kt-pay-copy" data-copy="' + esc(copyValue) +
             '" title="' + copyLabel + '" aria-label="' + copyLabel + '"><i class="ti ti-copy"></i></button>';
 
         return '<div class="qr-detail-item"><span>' + label + ':</span><span class="text-end">' + valueHtml + button + '</span></div>';

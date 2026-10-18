@@ -49,7 +49,7 @@ Thay nội dung panel hiện tại. Panel hiện khi hóa đơn `DaGui`, chưa x
 
 1. **Ảnh VietQR** sinh ở server bằng `IVietQRService` với số tiền = số còn lại, nội dung = mã chuyển khoản, tài khoản trong `VietQRSettings`. Hiện to ở giữa trên màn hình lớn.
 2. **Tải ảnh QR**: nút gọi `GET /KhachThue/HoaDon/ThanhToan/QR/{hoaDonId}?taiVe=true`, trả PNG với `Content-Disposition: attachment; filename="QR_Phong_{TenPhong}_HD{HoaDonId}.png"` (tên file bỏ dấu, bỏ ký tự lạ). Kèm hướng dẫn: "Tải ảnh → mở app ngân hàng → Quét QR → chọn ảnh từ thư viện".
-3. **Mở app ngân hàng (deeplink)**: lưới 12 ngân hàng (MBBank, Vietcombank, Techcombank, BIDV, ACB, VietinBank, VPBank, TPBank, Agribank, Sacombank, OCB, MSB). Mỗi nút trỏ `https://dl.vietqr.io/pay?app={appId}&ba={SoTaiKhoan}@{BankId}&am={SoConLai}&tn={MaChuyenKhoan}&bn={TenChuTaiKhoan}` (tham số URL-encode). Danh sách `appId` lấy từ danh sách app chính thức của VietQR khi triển khai và kiểm trên điện thoại thật (§11.3). Lưới chỉ hiện trên màn hình nhỏ; màn hình lớn có liên kết "Đang dùng điện thoại?" để mở lưới.
+3. **Mở app ngân hàng (deeplink)**: lưới 12 ngân hàng (MBBank, Vietcombank, Techcombank, BIDV, ACB, VietinBank, VPBank, TPBank, Agribank, OCB, HDBank, VIB). Sacombank và MSB không có trong danh sách deeplink của VietQR nên thay bằng HDBank, VIB (người dùng chốt ở phần 3). Mỗi nút trỏ `https://dl.vietqr.io/pay?app={appId}&ba={SoTaiKhoan}@{BankId}&am={SoConLai}&tn={MaChuyenKhoan}&bn={TenChuTaiKhoan}` (tham số URL-encode). Danh sách `appId` lấy từ danh sách app chính thức của VietQR khi triển khai và kiểm trên điện thoại thật (§11.3). Lưới chỉ hiện trên màn hình nhỏ; màn hình lớn có liên kết "Đang dùng điện thoại?" để mở lưới.
 4. **Sao chép 1 chạm**: ngân hàng, chủ tài khoản (chỉ hiển thị), số tài khoản, số tiền (số nguyên, không dấu chấm), nội dung — 3 nút sao chép cho STK, số tiền, nội dung; toast "Đã sao chép".
 5. Ghi chú bắt buộc: "Giữ nguyên nội dung `TTPTHD{Id}` để hệ thống tự xác nhận. Sai nội dung, chủ trọ phải xác nhận tay."
 
@@ -114,12 +114,14 @@ Bộ phân loại là một bảng "tiền tố → bộ xử lý". Đợt 1 ch�
 
 Lý do: SePay chỉ thử lại tối đa 7 lần trong ~33 phút; server tắt lâu hơn thì webhook mất.
 
-- Màn **Giao dịch SePay** `/QuanLyNhaTro/GiaoDichSePay`, **chỉ Admin**, mục menu trong nhóm hóa đơn/thanh toán.
-- Chọn khoảng ngày (mặc định 3 ngày gần nhất, tối đa 31 ngày) → bấm **Đồng bộ**.
-- Server gọi `GET {SePay:ApiBaseUrl}/transactions?transaction_date_from=...&transaction_date_to=...` (API v2, `Authorization: Bearer {ApiToken}`), duyệt hết các trang (`meta.pagination.has_more`), tôn trọng giới hạn 3 request/giây (gặp `429` thì chờ `Retry-After` rồi thử lại, tối đa 3 lần).
-- Mỗi giao dịch tiền vào đưa qua **đúng** §4.2 và §5 như webhook (cùng khóa chống trùng), nên chạy lại bao nhiêu lần cũng không ghi đôi.
-- Kết quả hiển thị (không lưu DB): bảng giao dịch với cột trạng thái `Mới ghi nhận` / `Đã có` / `Không khớp mã` / `Hóa đơn không nhận tiền` / `Thiếu mã tham chiếu` / `Bỏ qua`, kèm tổng số mỗi loại. Dòng `Mới ghi nhận` cũng phát thông báo như webhook (§6).
+- Màn **Giao dịch SePay** `/QuanLyNhaTro/GiaoDichSePay`, **chỉ Admin** (controller `[Authorize(Roles = "Admin")]`, service kiểm lại và không gọi API khi không phải Admin), mục menu "Giao dịch SePay" trong nhóm "Quản lý nhà trọ", ngay sau "Lịch sử thanh toán".
+- Chọn khoảng ngày (mặc định 3 ngày gần nhất = hôm nay và 2 ngày trước theo giờ Việt Nam; tối đa 31 ngày lịch, tính cả hai đầu, quá thì báo lỗi) → bấm **Đồng bộ**. Ngày nhập là giờ Việt Nam: từ 00:00:00 của ngày đầu đến 23:59:59 của ngày cuối, đổi sang UTC ở Web; client SePay đổi lại sang giờ Việt Nam khi gọi API (ranh giới với API ngoài). Tài liệu API v2 không ghi múi giờ của `transaction_date_from/to` và `transaction_date`; giả định giờ Việt Nam như webhook và phải kiểm ở bước thử tay (§11.3).
+- Server gọi `GET {SePay:ApiBaseUrl}/transactions?transaction_date_from=...&transaction_date_to=...&transfer_type=in&page=...&per_page=100` (API v2, `Authorization: Bearer {ApiToken}`), duyệt hết các trang (`meta.pagination.has_more`, thiếu thì so `current_page` với `last_page`), tối đa 100 trang mỗi lượt (quá thì dừng và báo thu hẹp khoảng ngày), tôn trọng giới hạn 3 request/giây (cách nhau ít nhất 350 ms; gặp `429` thì chờ `Retry-After` rồi thử lại, tối đa 3 lần). Trang N lỗi thì dừng, vẫn hiện các dòng đã xử lý và lý do dừng.
+- Mỗi giao dịch tiền vào đưa qua **đúng** §4.2 và §5 như webhook (cùng khóa chống trùng), nên chạy lại bao nhiêu lần cũng không ghi đôi. Cùng `id` của API xuất hiện lại trong một lượt chạy (phân trang bị xô) thì chỉ xử lý một lần.
+- Kết quả hiển thị (không lưu DB): bảng giao dịch với cột trạng thái `Mới ghi nhận` / `Đã có` / `Không khớp mã` / `Hóa đơn không nhận tiền` / `Thiếu mã tham chiếu` / `Bỏ qua` / `Lỗi ghi sổ` / `Chưa ghi sổ`, kèm tổng số mỗi loại. Ánh xạ từ kết quả ghi sổ: `Recorded` → Mới ghi nhận; `Duplicate` → Đã có; `Unmatched` → Không khớp mã; `InvoiceNotPayable`, `AlreadyPaid` → Hóa đơn không nhận tiền (ghi chú lý do hoặc "Hóa đơn đã thu đủ"); thiếu `reference_number` → Thiếu mã tham chiếu; không phải `in`, `Ignored` ("Số tiền không hợp lệ"), `WrongAccount` ("Tiền vào tài khoản khác") → Bỏ qua; `Failed` → Lỗi ghi sổ (ghi chú "Lỗi hệ thống, bấm Đồng bộ lại"). `Chưa ghi sổ` chỉ có ở chế độ chỉ đối chiếu (bên dưới). Dòng `Mới ghi nhận` cũng phát thông báo như webhook (§6).
+- **Không cảnh báo Telegram khi đồng bộ bù** (người dùng chọn 18/10): Admin đang xem bảng kết quả, và API trả giao dịch của mọi tài khoản trong công ty SePay nên mọi tài khoản khác sẽ thành `WrongAccount`. `IncomingBankTransfer.LaDongBoBu` bật thì `PaymentOutcomePublisher` bỏ qua cảnh báo cho `WrongAccount`, `Unmatched`, `InvoiceNotPayable`, `AlreadyPaid` và không đăng ký khóa với bộ chống lặp (webhook gửi lại sau đó vẫn được cảnh báo).
 - Giao dịch API không có `reference_number` → `Thiếu mã tham chiếu`, **không** tự ghi (không chống trùng được với webhook); Admin xử lý bằng "Thu thủ công".
+- **Cờ `SePay:SyncRecordEnabled` (mặc định `false`, người dùng chọn 18/10)**: khi tắt, màn **chỉ đối chiếu** với sổ, không ghi sổ và không thông báo. Dòng có `reference_number` hiện `Đã có` nếu sổ đã có `SEPAY-{mã}` (kể cả dòng đã hủy ghi nhận), ngược lại `Chưa ghi sổ`; dòng không phải `in` và dòng thiếu mã tham chiếu vẫn hiện như thường. Chế độ này cũng liệt kê giao dịch của tài khoản khác hay số tiền không hợp lệ là `Chưa ghi sổ`, vì chỉ so khóa trong sổ. Dùng chính màn này để kiểm §5.2: giao dịch Test mode đã vào qua webhook phải hiện `Đã có`; đúng thì mới bật cờ.
 - `SePay:ApiToken` trống → nút Đồng bộ bị khóa, hiện hướng dẫn cấu hình.
 
 ### 4.4 Điểm mở rộng cho thanh toán chung
@@ -153,9 +155,13 @@ Trong khóa:
 ### 5.2 Khóa chống trùng
 
 - Có `referenceCode` (webhook) / `reference_number` (API): `SEPAY-{referenceCode}` (viết hoa, bỏ khoảng trắng). Webhook và đồng bộ bù cùng một khóa.
-- Webhook không có `referenceCode`: `SEPAY-ID-{id}`. Đồng bộ bù không tự ghi giao dịch thiếu mã tham chiếu (§4.3), nên không thể ghi đôi.
+- Webhook không có `referenceCode`: `SEPAY-ID-{id}`. Đồng bộ bù không tự ghi giao dịch mà API trả thiếu `reference_number` (§4.3).
+- **Rủi ro ghi đôi còn lại** (chỉ khi bật `SePay:SyncRecordEnabled`): hai đường dùng hai khóa khác nhau cho cùng một giao dịch, nên chống trùng không bắt được.
+  - Webhook đến không có `referenceCode` nên đã ghi `SEPAY-ID-{id}`, còn API trả `reference_number` cho cùng giao dịch → đồng bộ bù ghi thêm một dòng `SEPAY-{mã}`.
+  - Chiều ngược lại: đồng bộ bù ghi trước theo `SEPAY-{mã}`, webhook đến muộn không có `referenceCode` → ghi thêm `SEPAY-ID-{id}`.
+  - Cờ tắt (mặc định) thì không xảy ra. Ở chế độ chỉ đối chiếu, giao dịch đã ghi theo `SEPAY-ID-…` vẫn hiện "Chưa ghi sổ", và "Thu thủ công" chỉ chặn trùng với `SEPAY-{mã}`: Admin phải kiểm lịch sử thanh toán của hóa đơn trước khi thu thủ công.
 - Unique index sẵn có trên `MaGiaoDich` (lọc dòng chưa xóa) là lớp chặn thứ hai; bước 1 của §5.1 chặn cả dòng đã xóa mềm.
-- Cần kiểm trong Test mode SePay rằng `referenceCode` (webhook) và `reference_number` (API v2) của cùng giao dịch trùng nhau (§11.3). Nếu không trùng, đồng bộ bù chuyển sang so `id` và spec sẽ được sửa trước khi code phần này.
+- Cần kiểm trong Test mode SePay rằng `referenceCode` (webhook) và `reference_number` (API v2) của cùng giao dịch trùng nhau (§11.3). Không thể chuyển sang so `id` nếu hai mã khác nhau: `id` của API v2 là UUID, `id` của webhook là số nguyên, và không có cột nào lưu `id` của API, nên không có cách tự ghi nào an toàn. Phương án đã chọn (18/10): đồng bộ bù mặc định chỉ đối chiếu, cờ `SePay:SyncRecordEnabled` (§4.3) chỉ bật ghi sổ sau khi bước kiểm này đạt. Không đạt thì giữ cờ tắt và xử lý giao dịch bị lỡ bằng "Thu thủ công".
 
 ### 5.3 Kết quả không ghi
 
@@ -226,14 +232,18 @@ Số tiền định dạng `InvoicePaymentPolicy.FormatVnd` (1.900.000).
 
 ### 7.1 Email hóa đơn có nút thanh toán
 
-- `SendInvoiceEmailAsync` (dùng khi công bố hóa đơn và trong `InvoiceReminderJob`) thêm nút lớn **THANH TOÁN TRỰC TUYẾN** → link §3.1, và dòng "Nội dung chuyển khoản: `TTPTHD{Id}`".
-- `PublicBaseUrl` trống → không chèn nút, log Warning một lần.
-- QR trong PDF hóa đơn (`InvoicePdfComposer`) đổi nội dung từ `THANH TOAN {MaHoaDon}` sang mã chuyển khoản, để quét QR trên PDF cũng tự khớp. Số tiền giữ là số còn lại.
+- `SendInvoiceEmailAsync` (dùng khi công bố hóa đơn và trong `InvoiceReminderJob`) thêm nút lớn **THANH TOÁN TRỰC TUYẾN** → link §3.1, và dòng "Nội dung chuyển khoản: `TTPTHD{Id}`". Nút và dòng nội dung chỉ hiện khi hóa đơn chưa hủy và còn nợ (`ConLai > 0`); email gửi lại cho hóa đơn đã trả đủ thì không có nút.
+- `PublicBaseUrl` trống → không chèn nút (dòng nội dung vẫn có), log Warning một lần mỗi process.
+- **Khối QR trong email** (người dùng chọn 18/10): trước đây dùng ảnh `img.vietqr.io` với số tiền `TongTien` (kể cả khi đã trả một phần, ví dụ email nhắc nợ) và nội dung `THANH TOAN {MaHoaDon}`, nên khách quét QR trong email ra giao dịch "Không khớp mã". Đổi nội dung sang `TTPTHD{Id}` và số tiền (cả ảnh QR lẫn dòng "Số tiền") sang số còn lại; khối chỉ hiện khi hóa đơn chưa hủy và còn nợ, giống PDF, để một email không có hai nội dung chuyển khoản khác nhau.
+- QR trong PDF hóa đơn (`InvoicePdfComposer`) đổi nội dung từ `THANH TOAN {MaHoaDon}` sang mã chuyển khoản, để quét QR trên PDF cũng tự khớp. Số tiền giữ là số còn lại; hóa đơn đã hủy hoặc hết nợ thì không có QR.
 
 ### 7.2 Chi tiết hóa đơn
 
 - **Gửi lại email hóa đơn**: đã có (`POST /HoaDon/SendEmail/{id}` → `InvoicePublicationService.ResendEmailAsync`). Không thêm nút mới; email gửi lại tự có nút thanh toán nhờ §7.1.
 - Mỗi dòng lịch sử thanh toán: nhãn **SePay** khi `MaGiaoDich` bắt đầu `SEPAY-`, hiện mã tham chiếu; nút **Biên lai** (mở §3.4) và **Gửi lại biên lai** (email §6.3; quyền `InvoiceSend`; không gửi cho dòng đã hủy ghi nhận).
+  - Gửi lại biên lai áp dụng cho mọi dòng chưa hủy ghi nhận (kể cả tiền mặt và thu thủ công), gửi ngay trong request (không qua hàng đợi); khách không có email hợp lệ thì báo lỗi. Mã tham chiếu trong email lấy từ `MaGiaoDich` (viết hoa, bỏ khoảng trắng) nên có thể khác chữ hoa/thường so với email biên lai tự gửi lúc đầu.
+  - Biên lai không mở được (không tìm thấy, đã hủy ghi nhận, không thuộc quyền) hiện trang lỗi thân thiện thay vì JSON; mã HTTP vẫn là 403/404.
+- QR trên màn chi tiết hóa đơn quản lý (`GET /HoaDon/GetVietQR`, người dùng chọn 18/10): nội dung `TTPTHD{Id}`, số tiền là số còn lại. Dòng "Nội dung CK" cạnh QR trên các màn dùng endpoint này (Hóa đơn, Lịch sử thanh toán, Phòng trọ) hiện cùng mã.
 - Giữ nguyên: Thu thủ công, Hủy ghi nhận (Admin), cấu hình trả một phần.
 
 ### 7.3 Màn đối chiếu minh chứng
@@ -304,7 +314,10 @@ Thêm vào `appsettings.example.json` (giá trị mẫu, không secret thật):
   "TimestampToleranceSeconds": 300,
   // Live: https://userapi.sepay.vn/v2 · Test mode: host userapi-sandbox.sepay.vn (kiểm đường dẫn /v2 khi cài)
   "ApiBaseUrl": "https://userapi.sepay.vn/v2",
-  "ApiToken": ""
+  // API token cho màn Giao dịch SePay (đồng bộ bù, chỉ Admin). Trống = khóa nút Đồng bộ.
+  "ApiToken": "",
+  // false = màn Giao dịch SePay chỉ đối chiếu, không ghi sổ. Bật sau khi kiểm referenceCode (webhook) trùng reference_number (API).
+  "SyncRecordEnabled": false
 },
 "Telegram": {
   "Enabled": false,
@@ -353,7 +366,10 @@ Không ghi đè `appsettings.json` của người dùng.
 3. **E01/E02:** mô phỏng thiếu rồi dư.
 4. **E03:** mô phỏng nội dung sai → Telegram cảnh báo, hóa đơn không đổi.
 5. **TC05:** dùng Replay của SePay 3 lần → 1 dòng ledger, 1 tin Telegram.
-6. **Đồng bộ bù:** tắt app, mô phỏng giao dịch, đợi SePay hết retry hoặc tắt webhook, bật app, bấm Đồng bộ → ghi nhận đúng; bấm lại → "Đã có". Đồng thời kiểm `referenceCode` = `reference_number` (§5.2).
+6. **Đồng bộ bù** (theo thứ tự, bước sau chỉ làm khi bước trước đạt):
+   - (a) Để `SePay:SyncRecordEnabled = false`. Bấm Đồng bộ cho khoảng ngày đã có giao dịch Test mode vào qua webhook: các giao dịch đó phải hiện "Đã có", giờ giao dịch khớp giờ trên SePay. Hiện "Chưa ghi sổ" nghĩa là `referenceCode` ≠ `reference_number`: giữ cờ tắt.
+   - (b) Trong Delivery Logs của SePay, `referenceCode` của các webhook phải khác rỗng; trong lịch sử thanh toán không có dòng `MaGiaoDich` bắt đầu `SEPAY-ID-` (§5.2, rủi ro ghi đôi còn lại).
+   - (c) Đạt cả (a) và (b) mới bật cờ. Tắt app, mô phỏng giao dịch, đợi SePay hết retry hoặc tắt webhook, bật app, bấm Đồng bộ → "Mới ghi nhận"; bấm lại → "Đã có".
 7. **TC04:** mở panel trên điện thoại thật: từng nút deeplink mở đúng app với số tiền và nội dung điền sẵn (ghi lại app nào không hỗ trợ), tải ảnh QR, sao chép.
 
 Giới hạn Test mode SePay: 50 webhook mỗi công ty và hạn mức mô phỏng mỗi ngày — dùng tiết kiệm.

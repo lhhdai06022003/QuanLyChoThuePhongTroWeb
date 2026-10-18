@@ -114,6 +114,11 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure
             {
                 client.Timeout = TimeSpan.FromSeconds(10);
             }).RemoveAllLoggers();
+            // Header Authorization chứa ApiToken: gỡ logger của HttpClient để không in request ra log.
+            services.AddHttpClient<QuanLyChoThuePhongTroWeb.Application.Features.OnlinePayments.ISePayTransactionClient, ExternalServices.Payments.SePayTransactionClient>(client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(15);
+            }).RemoveAllLoggers();
 
             // Security services
             services.AddScoped<Microsoft.AspNetCore.Identity.IPasswordHasher<QuanLyChoThuePhongTroWeb.Domain.Entities.NguoiDung>, Microsoft.AspNetCore.Identity.PasswordHasher<QuanLyChoThuePhongTroWeb.Domain.Entities.NguoiDung>>();

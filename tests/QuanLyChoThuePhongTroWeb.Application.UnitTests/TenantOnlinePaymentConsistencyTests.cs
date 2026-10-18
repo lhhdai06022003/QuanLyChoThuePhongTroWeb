@@ -1,4 +1,6 @@
 using System.Globalization;
+using Microsoft.Extensions.Logging.Abstractions;
+using QuanLyChoThuePhongTroWeb.Application.Common.Configurations;
 using QuanLyChoThuePhongTroWeb.Application.Common.Models;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Payments;
 using QuanLyChoThuePhongTroWeb.Application.Features.OnlinePayments;
@@ -18,7 +20,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         private readonly PaymentTestHarness _h = new();
 
         private TenantPaymentPanelService Panel() => new(_h.Store, _h.VietQr, _h.VietQrSettings);
-        private InvoiceReceiptService Receipts() => new(_h.Store, _h.Access);
+        private InvoiceReceiptService Receipts()
+            => new(_h.Store, _h.Access, new RecordingPaymentReceiptEmailService(), new OnlinePaymentOptions(), NullLogger<InvoiceReceiptService>.Instance);
 
         private static string QueryValue(string url, string key)
         {

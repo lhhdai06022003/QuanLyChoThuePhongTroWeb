@@ -220,5 +220,27 @@
         });
     }
 
-    window.HdThanhToan = { openThuTien: openThuTien, renderSummary: renderSummary };
+    // Gửi lại email biên lai của một dòng lịch sử thanh toán (spec thanh toán trực tuyến §7.2). Quyền kiểm ở server theo chi nhánh.
+    function resendReceipt(button) {
+        var $btn = $(button);
+        var id = $btn.data('id');
+        if (!id || $btn.prop('disabled')) return;
+
+        var original = $btn.html();
+        $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Đang gửi');
+
+        $.ajax({
+            url: '/QuanLyNhaTro/HoaDon/BienLai/' + encodeURIComponent(id) + '/GuiLai',
+            type: 'POST',
+            headers: { 'RequestVerificationToken': token() }
+        }).done(function (res) {
+            Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: res.message, showConfirmButton: false, timer: 2000 });
+        }).fail(function (xhr) {
+            Swal.fire('Không gửi được', errorMessage(xhr, 'Không gửi được biên lai.'), 'error');
+        }).always(function () {
+            $btn.html(original).prop('disabled', false);
+        });
+    }
+
+    window.HdThanhToan = { openThuTien: openThuTien, renderSummary: renderSummary, resendReceipt: resendReceipt };
 })(window, jQuery);

@@ -27,7 +27,7 @@ public sealed class TenantPaymentPanelService(
         var conLai = invoice.TongTien - invoice.DaThu;
         var lyDo = CannotPayReason(invoice, conLai);
         var coTheThanhToan = lyDo == null;
-        var maChuyenKhoan = TransferCode(hoaDonId);
+        var maChuyenKhoan = InvoiceTransferHandler.TransferCode(hoaDonId);
 
         var rows = await store.GetActiveLedgerRowsAsync(hoaDonId, ct);
         var cacLanThanhToan = rows
@@ -80,7 +80,7 @@ public sealed class TenantPaymentPanelService(
             return ServiceResult<InvoiceQrImage>.Fail(lyDo);
         }
 
-        var payload = vietQr.GenerateVietQRString(vietQrSettings.BankId, vietQrSettings.AccountNumber, conLai, TransferCode(hoaDonId));
+        var payload = vietQr.GenerateVietQRString(vietQrSettings.BankId, vietQrSettings.AccountNumber, conLai, InvoiceTransferHandler.TransferCode(hoaDonId));
         return ServiceResult<InvoiceQrImage>.Ok(new InvoiceQrImage(
             vietQr.GenerateQRCodePNGBytes(payload),
             PaymentQrFileName.Build(invoice.TenPhong, hoaDonId)));
@@ -97,8 +97,6 @@ public sealed class TenantPaymentPanelService(
 
         return await store.GetInvoiceSnapshotAsync(hoaDonId, ct);
     }
-
-    private static string TransferCode(int hoaDonId) => InvoiceTransferHandler.InvoicePrefix + hoaDonId;
 
     // Lý do chưa hiện được khối chuyển khoản, xét theo thứ tự; null nghĩa là thanh toán được.
     private string? CannotPayReason(PaymentInvoiceSnapshot invoice, decimal conLai)

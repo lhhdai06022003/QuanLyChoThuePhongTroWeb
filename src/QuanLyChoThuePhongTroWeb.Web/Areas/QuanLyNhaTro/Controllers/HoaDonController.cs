@@ -8,6 +8,7 @@ using QuanLyChoThuePhongTroWeb.Application.Common.Security;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs;
 using Microsoft.Extensions.Logging;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services;
+using QuanLyChoThuePhongTroWeb.Application.Features.OnlinePayments;
 using QuanLyChoThuePhongTroWeb.Web.Helpers;
 
 namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
@@ -345,7 +346,8 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
 
             var bankId = _configuration["VietQRSettings:BankId"] ?? "MB";
             var accountNumber = _configuration["VietQRSettings:AccountNumber"] ?? "";
-            string memo = $"THANH TOAN {hd.MaHoaDon}";
+            // Nội dung là mã chuyển khoản TTPTHD{Id} để tiền quét từ QR này tự khớp giao dịch SePay (số tiền vẫn là số còn lại).
+            string memo = InvoiceTransferHandler.TransferCode(hd.HoaDonId);
 
             string qrString = _vietQRService.GenerateVietQRString(bankId, accountNumber, hd.ConLai, memo);
             byte[] qrBytes = _vietQRService.GenerateQRCodePNGBytes(qrString);

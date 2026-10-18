@@ -26,6 +26,10 @@ namespace QuanLyChoThuePhongTroWeb.Application.Common.Configurations
         public string ApiBaseUrl { get; set; } = "https://userapi.sepay.vn/v2";
         public string ApiToken { get; set; } = string.Empty;
 
+        // false (mặc định) = màn Giao dịch SePay chỉ đối chiếu với sổ, không ghi sổ và không thông báo. Bật sau khi đã kiểm trên
+        // Test mode rằng referenceCode của webhook trùng reference_number của API (spec thanh toán trực tuyến §5.2).
+        public bool SyncRecordEnabled { get; set; }
+
         public void Validate()
         {
             if (!System.Enum.IsDefined(WebhookAuthMode))

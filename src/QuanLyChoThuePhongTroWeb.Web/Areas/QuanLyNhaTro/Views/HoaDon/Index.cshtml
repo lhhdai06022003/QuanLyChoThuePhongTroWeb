@@ -980,6 +980,12 @@
                 showInvoiceDetail($(this).data('id'));
             });
 
+            // Gửi lại email biên lai của một dòng lịch sử thanh toán. Nút nằm trong nội dung modal được dựng lại mỗi lần xem,
+            // nên gắn handler một lần ở đây qua document thay vì trong hàm dựng nội dung.
+            $(document).on('click', '.hd-resend-receipt', function () {
+                HdThanhToan.resendReceipt(this);
+            });
+
             function showInvoiceDetail(id) {
                 $.get(`/HoaDon/GetById/${id}`, function(res) {
                     $('#chiTietModalTitle').html('<i class="ti ti-file-description me-1"></i> Hóa đơn ' + escapeHtml(res.maHoaDon));
@@ -1092,16 +1098,26 @@
                             <div class="table-responsive">
                             <table class="table card-table table-vcenter table-striped table-hover w-100 table-sm">
                                 <thead>
-                                    <tr><th>Mã GD</th><th class="text-end">Số tiền</th><th>Phương thức</th><th>Ngày</th><th>Người xác nhận</th><th>Ghi chú</th></tr>
+                                    <tr><th>Mã GD</th><th class="text-end">Số tiền</th><th>Phương thức</th><th>Ngày</th><th>Người xác nhận</th><th>Ghi chú</th><th></th></tr>
                                 </thead><tbody>`;
                         res.lichSuThanhToans.forEach(ls => {
+                            // Dòng SePay ghi: nhãn SePay và mã tham chiếu ngân hàng (không có mã thì hiện khóa chống trùng).
+                            const maGiaoDichHtml = ls.laSePay
+                                ? `<span class="badge bg-green-lt me-1">SePay</span>${escapeHtml(ls.maThamChieu ? 'REF ' + ls.maThamChieu : ls.maGiaoDich)}`
+                                : escapeHtml(ls.maGiaoDich);
                             html += `<tr>
-                                <td>${escapeHtml(ls.maGiaoDich)}</td>
+                                <td>${maGiaoDichHtml}</td>
                                 <td class="text-end fw-medium text-success hd-num">${formatVND(ls.soTienThanhToan)}</td>
                                 <td>${escapeHtml(ls.phuongThucThanhToan)}</td>
                                 <td class="hd-num">${escapeHtml(ls.ngayThanhToan)}</td>
                                 <td>${escapeHtml(ls.nguoiXacNhan)}</td>
                                 <td>${escapeHtml(ls.ghiChu || '')}</td>
+                                <td class="text-end">
+                                    <div class="btn-list flex-nowrap justify-content-end">
+                                        <a class="btn btn-sm btn-outline-primary" href="/QuanLyNhaTro/HoaDon/BienLai/${ls.lichSuThanhToanId}" target="_blank" rel="noopener"><i class="ti ti-receipt me-1"></i>Biên lai</a>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary hd-resend-receipt" data-id="${ls.lichSuThanhToanId}"><i class="ti ti-mail-forward me-1"></i>Gửi lại biên lai</button>
+                                    </div>
+                                </td>
                             </tr>`;
                         });
                         html += `</tbody></table></div>`;
@@ -1112,7 +1128,8 @@
                         html += '<div id="hdPaymentSummary"></div>';
                     }
 
-                    // QR ngoài luồng theo số còn lại; tiền chuyển qua QR này cần thu thủ công khi đối chiếu.
+                    // QR theo số còn lại với nội dung TTPTHD{Id}: hóa đơn đã gửi (3) được SePay tự ghi sổ khi tiền về,
+                    // hóa đơn đã chốt (2) chưa nhận tiền được nên cần thu thủ công khi đối chiếu.
                     // Chỉ hiện khi hóa đơn đã chốt (2) hoặc đã gửi (3); Nháp, Chờ duyệt, Đã hủy không có QR.
                     const hienQrChuyenKhoan = !res.daHuy && res.conLai > 0
                         && (res.trangThaiPhatHanhValue === 2 || res.trangThaiPhatHanhValue === 3);
@@ -1131,7 +1148,7 @@
                                         <div class="qr-detail-item"><span>Số tài khoản:</span><strong>${escapeHtml(accountNumber)}</strong></div>
                                         <div class="qr-detail-item"><span>Chủ tài khoản:</span><strong>${escapeHtml(accountName)}</strong></div>
                                         <div class="qr-detail-item"><span>Số tiền:</span><strong class="text-primary hd-num">${formatVND(res.conLai)}</strong></div>
-                                        <div class="qr-detail-item"><span>Nội dung CK:</span><code class="text-primary fw-bold">THANH TOAN ${escapeHtml(res.maHoaDon)}</code></div>
+                                        <div class="qr-detail-item"><span>Nội dung CK:</span><code class="text-primary fw-bold">TTPTHD${res.hoaDonId}</code></div>
                                     </div>
                                 </div>
                             </div>
