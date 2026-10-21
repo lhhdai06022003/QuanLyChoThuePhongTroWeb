@@ -40,14 +40,14 @@
 </div>
 
 <!-- Modal Chi tiết Hóa đơn -->
-<div class="modal modal-blur fade" id="chiTietModal" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+<div class="modal modal-blur fade modal-fullscreen-sm-down" id="chiTietModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" role="document">
         <div class="modal-content shadow-lg border-0">
             <div class="modal-header py-3">
                 <h5 class="modal-title font-weight-bold"><i class="ti ti-receipt-dollar me-1"></i> Chi tiết Hóa đơn</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body py-4" id="chiTietBody">
+            <div class="modal-body py-3 py-md-4" id="chiTietBody">
                 <div class="text-center"><i class="ti ti-loader fa-spin fa-2x"></i> Đang tải dữ liệu...</div>
             </div>
             <div class="modal-footer" id="chiTietFooter">
@@ -215,25 +215,25 @@
                 let html = `
                     ${cancelBanner}
                     ${deadlineBanner}
-                    <div class="row mb-3 fs-3">
-                        <div class="col-md-6 mb-2"><strong>Mã HĐ:</strong> <span class="text-primary font-weight-bold">${escapeHtml(res.maHoaDon)}</span></div>
-                        <div class="col-md-6 mb-2"><strong>Ngày tạo:</strong> ${escapeHtml(res.ngayTao)}</div>
-                        <div class="col-md-6 mb-2"><strong>Phòng:</strong> <span class="text-primary font-weight-bold">${escapeHtml(res.tenPhong)}</span></div>
-                        <div class="col-md-6 mb-2"><strong>Kỳ:</strong> Tháng ${res.thang}/${res.nam}</div>
-                        <div class="col-md-6 mb-2"><strong>Người thuê:</strong> ${escapeHtml(res.tenNguoiThue)}</div>
-                        <div class="col-md-6 mb-2"><strong>Trạng thái:</strong> ${ttBadge}</div>
+                    <div class="datagrid mb-3">
+                        <div class="datagrid-item"><div class="datagrid-title">Mã HĐ</div><div class="datagrid-content fw-medium text-primary">${escapeHtml(res.maHoaDon)}</div></div>
+                        <div class="datagrid-item"><div class="datagrid-title">Ngày tạo</div><div class="datagrid-content fw-medium hd-num text-secondary">${escapeHtml(res.ngayTao)}</div></div>
+                        <div class="datagrid-item"><div class="datagrid-title">Phòng</div><div class="datagrid-content fw-medium text-primary">${escapeHtml(res.tenPhong)}</div></div>
+                        <div class="datagrid-item"><div class="datagrid-title">Kỳ</div><div class="datagrid-content fw-medium hd-num">Tháng ${res.thang}/${res.nam}</div></div>
+                        <div class="datagrid-item"><div class="datagrid-title">Người thuê</div><div class="datagrid-content fw-medium ">${escapeHtml(res.tenNguoiThue)}</div></div>
+                        <div class="datagrid-item"><div class="datagrid-title">Trạng thái</div><div class="datagrid-content fw-medium ">${ttBadge}</div></div>
                     </div>
-                    <h4 class="font-weight-bold border-bottom pb-2 mt-4"><i class="ti ti-list me-1"></i> Chi tiết các khoản phí</h4>
+                    <h4 class="fw-bold border-bottom pb-2 mt-4"><i class="ti ti-list me-1"></i> Chi tiết các khoản phí</h4>
                     <div class="table-responsive mb-3">
                         <table class="table card-table table-vcenter table-striped table-hover w-100 table-sm">
                             <thead>
                                 <tr>
-                                    <th class="text-center" width="6%">STT</th>
+                                    <th class="text-center hd-col-stt" width="6%">STT</th>
                                     <th>Dịch vụ</th>
-                                    <th class="text-right" width="18%">Đơn giá</th>
-                                    <th class="text-center" width="12%">SL</th>
-                                    <th class="text-center" width="12%">Đơn vị</th>
-                                    <th class="text-right" width="20%">Thành tiền</th>
+                                    <th class="text-end" width="20%">Đơn giá</th>
+                                    <th class="text-center" width="10%">SL</th>
+                                    <th class="text-center hd-col-unit" width="12%">Đơn vị</th>
+                                    <th class="text-end" width="22%">Thành tiền</th>
                                 </tr>
                             </thead>
                             <tbody>`;
@@ -241,31 +241,26 @@
                 res.chiTietHoaDons.forEach((ct, idx) => {
                     let donViText = ct.donVi ? ct.donVi : '-';
                     html += `<tr>
-                        <td class="text-center align-middle">${idx+1}</td>
+                        <td class="text-center align-middle hd-col-stt">${idx + 1}</td>
                         <td class="align-middle">${escapeHtml(ct.tenDichVu)}</td>
-                        <td class="text-right align-middle">${formatVND(ct.donGia)}</td>
-                        <td class="text-center align-middle">${ct.soLuong}</td>
-                        <td class="text-center align-middle">${escapeHtml(donViText)}</td>
-                        <td class="text-right align-middle font-weight-bold">${formatVND(ct.tongTien)}</td>
+                        <td class="text-end align-middle hd-num">${formatVND(ct.donGia)}</td>
+                        <td class="text-center align-middle hd-num">${ct.soLuong}<span class="hd-unit-inline text-secondary"> ${escapeHtml(donViText)}</span></td>
+                        <td class="text-center align-middle hd-col-unit">${escapeHtml(donViText)}</td>
+                        <td class="text-end align-middle fw-medium hd-num">${formatVND(ct.tongTien)}</td>
                     </tr>`;
                 });
 
                 html += `</tbody>
-                        <tfoot>
-                            <tr>
-                                <td colspan="5" class="text-right font-weight-bold align-middle fs-2 text-uppercase">TỔNG CỘNG</td>
-                                <td class="text-right font-weight-bold text-danger align-middle fs-2">${formatVND(res.tongTien)}</td>
-                            </tr>
-                        </tfoot>
-                    </table>
-                    </div>`;
+                        </table>
+                        </div>
+                        <div class="hd-total-row mb-3"><span class="fw-bold">Tổng cộng</span><span class="fw-bold text-danger fs-3 hd-num">${formatVND(res.tongTien)}</span></div>`;
 
                 // Chỉ số điện nước của kỳ (mọi hóa đơn có chỉ số).
                 if (res.chiSoDienMoi !== null && res.chiSoDienMoi !== undefined) {
                     const soVN = n => Number(n).toLocaleString('vi-VN');
                     const dongChiSo = (ten, cu, moi) =>
-                        `<tr><td>${ten}</td><td class="text-end">${soVN(cu)}</td><td class="text-end">${soVN(moi)}</td><td class="text-end">${soVN(moi - cu)}</td></tr>`;
-                    html += `<h4 class="font-weight-bold border-bottom pb-2 mt-4"><i class="ti ti-bolt me-1"></i> Chỉ số điện nước</h4>
+                        `<tr><td>${ten}</td><td class="text-end hd-num">${soVN(cu)}</td><td class="text-end hd-num">${soVN(moi)}</td><td class="text-end hd-num fw-medium">${soVN(moi - cu)}</td></tr>`;
+                    html += `<h4 class="fw-bold border-bottom pb-2 mt-4"><i class="ti ti-bolt me-1"></i> Chỉ số điện nước</h4>
                         <div class="table-responsive mb-3">
                         <table class="table card-table table-vcenter table-sm">
                             <thead><tr><th>Loại</th><th class="text-end">Chỉ số cũ</th><th class="text-end">Chỉ số mới</th><th class="text-end">Tiêu thụ</th></tr></thead>
@@ -279,14 +274,14 @@
 
                 // Lịch sử thanh toán
                 if (res.lichSuThanhToans && res.lichSuThanhToans.length > 0) {
-                    html += `<h4 class="font-weight-bold border-bottom pb-2 mt-4"><i class="ti ti-history me-1"></i> Lịch sử thanh toán</h4>
-                        <div class="table-responsive">
+                    html += `<h4 class="fw-bold border-bottom pb-2 mt-4"><i class="ti ti-history me-1"></i> Lịch sử thanh toán</h4>
+                        <div class="table-responsive mb-3">
                         <table class="table card-table table-vcenter table-striped table-hover w-100 table-sm">
                             <thead>
-                                <tr><th>Mã GD</th><th class="text-right">Số tiền</th><th>Phương thức</th><th>Ngày</th><th>Người xác nhận</th><th>Ghi chú</th></tr>
+                                <tr><th>Mã GD</th><th class="text-end">Số tiền</th><th>Phương thức</th><th>Ngày</th><th>Người xác nhận</th><th class="hd-note">Ghi chú</th></tr>
                             </thead><tbody>`;
                     res.lichSuThanhToans.forEach(ls => {
-                        html += `<tr><td>${escapeHtml(ls.maGiaoDich)}</td><td class="text-right font-weight-bold text-success">${formatVND(ls.soTienThanhToan)}</td><td>${escapeHtml(ls.phuongThucThanhToan)}</td><td>${escapeHtml(ls.ngayThanhToan)}</td><td>${escapeHtml(ls.nguoiXacNhan)}</td><td>${escapeHtml(ls.ghiChu || '')}</td></tr>`;
+                        html += `<tr><td>${escapeHtml(ls.maGiaoDich)}</td><td class="text-end fw-medium text-success hd-num">${formatVND(ls.soTienThanhToan)}</td><td>${escapeHtml(ls.phuongThucThanhToan)}</td><td class="hd-num">${escapeHtml(ls.ngayThanhToan)}</td><td>${escapeHtml(ls.nguoiXacNhan) || '—'}</td><td class="hd-note">${escapeHtml(ls.ghiChu || '')}</td></tr>`;
                     });
                     html += `</tbody></table></div>`;
                 }

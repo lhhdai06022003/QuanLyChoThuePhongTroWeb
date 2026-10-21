@@ -55,8 +55,8 @@
     function render(p) {
         var html = '<h4 class="fw-bold border-bottom pb-2 mb-3"><i class="ti ti-credit-card me-1"></i> Thanh toán</h4>' +
             '<div class="row g-3">' +
-            '  <div class="col-lg-4">' + renderInfo(p) + '</div>' +
-            '  <div class="col-lg-8">' + renderMain(p) + '</div>' +
+            '  <div class="col-12 col-lg-4">' + renderInfo(p) + '</div>' +
+            '  <div class="col-12 col-lg-8">' + renderMain(p) + '</div>' +
             '</div>';
 
         current.container.html(html);
@@ -64,19 +64,19 @@
     }
 
     function infoRow(label, value, valueClass) {
-        return '<div class="d-flex justify-content-between py-1"><span class="text-secondary">' + label + '</span>' +
+        return '<div class="d-flex justify-content-between align-items-center py-1"><span class="text-secondary small">' + label + '</span>' +
             '<strong class="' + (valueClass || '') + '">' + value + '</strong></div>';
     }
 
     function renderInfo(p) {
-        return '<div class="card card-sm"><div class="card-body">' +
+        return '<div class="card card-sm shadow-none border mb-0"><div class="card-body p-3">' +
             infoRow('Phòng', esc(p.tenPhong)) +
             infoRow('Chi nhánh', esc(p.tenChiNhanh)) +
             infoRow('Kỳ', 'Tháng ' + esc(p.thang) + '/' + esc(p.nam)) +
-            infoRow('Tổng tiền', vnd(p.tongTien)) +
-            infoRow('Đã thanh toán', vnd(p.daThu), 'text-success') +
-            infoRow('Còn lại', vnd(Math.max(0, Number(p.conLai) || 0)), 'text-danger') +
-            (p.hanThanhToan ? infoRow('Hạn thanh toán', esc(p.hanThanhToan)) : '') +
+            infoRow('Tổng tiền', '<span class="hd-num">' + vnd(p.tongTien) + '</span>') +
+            infoRow('Đã thanh toán', '<span class="hd-num">' + vnd(p.daThu) + '</span>', 'text-success') +
+            infoRow('Còn lại', '<span class="hd-num fs-3">' + vnd(Math.max(0, Number(p.conLai) || 0)) + '</span>', 'text-danger') +
+            (p.hanThanhToan ? infoRow('Hạn thanh toán', '<span class="hd-num">' + esc(p.hanThanhToan) + '</span>') : '') +
             '</div></div>';
     }
 
@@ -103,8 +103,8 @@
 
         // Đã trả một phần: báo đợt vừa nhận rồi vẫn hiện QR mới theo số còn lại.
         if (last) {
-            html += '<div class="alert alert-success"><i class="ti ti-circle-check me-1"></i> Đã nhận <strong>' + vnd(last.soTien) +
-                '</strong> (đợt ' + esc(last.dotThu) + '). ' + receiptLink(last, '', 'Xem / in biên lai') + '</div>';
+            html += '<div class="alert alert-success d-block py-2 mb-3"><i class="ti ti-circle-check me-1"></i> Đã nhận <strong>' + vnd(last.soTien) +
+                '</strong> (đợt ' + esc(last.dotThu) + '). ' + receiptLink(last, 'fw-medium text-decoration-underline', 'Xem / in biên lai') + '</div>';
         }
 
         if (!p.coTheThanhToan) {
@@ -115,36 +115,36 @@
     }
 
     function renderLegacyProof(proof) {
-        return '<div class="alert alert-warning"><i class="ti ti-hourglass me-1"></i> Bạn đã gửi minh chứng chuyển <strong>' + vnd(proof.soTien) +
+        return '<div class="alert alert-warning d-block py-2 mb-3"><i class="ti ti-hourglass me-1"></i> Bạn đã gửi minh chứng chuyển <strong>' + vnd(proof.soTien) +
             '</strong> lúc ' + esc(proof.ngayNop) + ', đang chờ nhân viên đối chiếu. Nếu khoản đó đã chuyển thì đừng chuyển lại. ' +
-            '<a href="' + BASE + '/AnhMinhChung/' + esc(proof.minhChungId) + '" target="_blank" rel="noopener">Xem ảnh minh chứng</a></div>';
+            '<a href="' + BASE + '/AnhMinhChung/' + esc(proof.minhChungId) + '" target="_blank" rel="noopener" class="fw-medium">Xem ảnh minh chứng</a></div>';
     }
 
     function renderPaidInFull(p, entries, last) {
         if (!last) {
-            return '<div class="alert alert-success mb-0"><i class="ti ti-circle-check me-1"></i> ' +
+            return '<div class="alert alert-success d-block mb-0"><i class="ti ti-circle-check me-1"></i> ' +
                 esc(p.lyDoKhongTheThanhToan || 'Hóa đơn đã được thanh toán đủ.') + '</div>';
         }
 
         var rows = entries.map(function (e) {
             return '<tr>' +
                 '<td>' + esc(e.dotThu) + '</td>' +
-                '<td>' + esc(e.ngayThanhToan) + '</td>' +
-                '<td class="text-end">' + vnd(e.soTien) + '</td>' +
+                '<td class="hd-num">' + esc(e.ngayThanhToan) + '</td>' +
+                '<td class="text-end fw-medium text-success hd-num">' + vnd(e.soTien) + '</td>' +
                 '<td>' + esc(e.phuongThuc) + '</td>' +
-                '<td class="text-end">' + receiptLink(e, 'btn btn-sm btn-outline-primary', 'Xem / in biên lai') + '</td>' +
+                '<td class="text-end">' + receiptLink(e, 'btn btn-sm btn-outline-primary', '<i class="ti ti-receipt me-1"></i>Biên lai') + '</td>' +
                 '</tr>';
         }).join('');
 
-        return '<div class="card border-success mb-3"><div class="card-body">' +
+        return '<div class="card border-success mb-3"><div class="card-body text-center text-sm-start">' +
             '  <span class="badge bg-success mb-2">ĐÃ THU TIỀN</span>' +
-            '  <div class="h2 mb-1">' + vnd(last.soTien) + '</div>' +
-            '  <div class="text-secondary mb-3">' + esc(last.ngayThanhToan) + ' · ' + esc(last.phuongThuc) + '</div>' +
-            '  ' + receiptLink(last, 'btn btn-primary', '<i class="ti ti-receipt me-1"></i> Xem / in biên lai') +
+            '  <div class="h2 mb-1 text-success hd-num">' + vnd(last.soTien) + '</div>' +
+            '  <div class="text-secondary mb-3 small">' + esc(last.ngayThanhToan) + ' · ' + esc(last.phuongThuc) + '</div>' +
+            '  ' + receiptLink(last, 'btn btn-primary w-100 w-sm-auto', '<i class="ti ti-receipt me-1"></i> Xem / in biên lai') +
             '</div></div>' +
-            '<h5 class="mb-2">Các lần thanh toán</h5>' +
-            '<div class="table-responsive"><table class="table table-sm table-vcenter mb-0">' +
-            '<thead><tr><th>Đợt</th><th>Ngày</th><th class="text-end">Số tiền</th><th>Phương thức</th><th></th></tr></thead>' +
+            '<h5 class="mb-2 fw-semibold"><i class="ti ti-history me-1"></i> Các lần thanh toán</h5>' +
+            '<div class="table-responsive"><table class="table table-sm table-vcenter card-table mb-0">' +
+            '<thead><tr><th>Đợt</th><th>Ngày</th><th class="text-end">Số tiền</th><th>Phương thức</th><th class="text-end"></th></tr></thead>' +
             '<tbody>' + rows + '</tbody></table></div>';
     }
 
@@ -153,7 +153,7 @@
             '<button type="button" class="btn btn-ghost-primary ms-1 kt-pay-copy" data-copy="' + esc(copyValue) +
             '" title="' + copyLabel + '" aria-label="' + copyLabel + '"><i class="ti ti-copy"></i></button>';
 
-        return '<div class="qr-detail-item"><span>' + label + ':</span><span class="text-end">' + valueHtml + button + '</span></div>';
+        return '<div class="qr-detail-item"><span>' + label + ':</span><span class="d-inline-flex align-items-center justify-content-end text-end">' + valueHtml + button + '</span></div>';
     }
 
     function renderTransfer(p) {
@@ -164,27 +164,27 @@
 
         return '' +
             '<div class="text-center mb-3">' +
-            '  <img src="' + qrUrl + '?v=' + esc(encodeURIComponent(p.soTienSaoChep)) + '" alt="Mã VietQR thanh toán hóa đơn" class="img-fluid kt-qr">' +
-            '  <div class="mt-2"><a class="btn btn-outline-primary" href="' + qrUrl + '?taiVe=true" download><i class="ti ti-download me-1"></i> Tải ảnh QR</a></div>' +
+            '  <img src="' + qrUrl + '?v=' + esc(encodeURIComponent(p.soTienSaoChep)) + '" alt="Mã VietQR thanh toán hóa đơn" class="img-fluid kt-qr shadow-sm">' +
+            '  <div class="mt-2"><a class="btn btn-outline-primary w-100 w-sm-auto" href="' + qrUrl + '?taiVe=true" download><i class="ti ti-download me-1"></i> Tải ảnh QR</a></div>' +
             '  <div class="form-hint mt-2">Tải ảnh → mở app ngân hàng → Quét QR → chọn ảnh từ thư viện</div>' +
             '</div>' +
             '<div class="mb-3">' +
             '  <div class="d-flex justify-content-between align-items-center mb-2">' +
-            '    <h5 class="mb-0">Mở app ngân hàng</h5>' +
-            '    <a href="#" class="d-none d-lg-inline" id="ktPayShowBanks">Đang dùng điện thoại?</a>' +
+            '    <h5 class="mb-0 fw-semibold"><i class="ti ti-building-bank me-1"></i> Mở app ngân hàng</h5>' +
+            '    <a href="#" class="d-none d-lg-inline small" id="ktPayShowBanks">Đang dùng điện thoại?</a>' +
             '  </div>' +
             '  <div class="kt-bank-grid d-lg-none" id="ktPayBankGrid">' + banks + '</div>' +
             '</div>' +
-            '<div class="qr-details-list bg-body-secondary p-3 rounded mb-3">' +
+            '<div class="qr-details-list p-3 rounded mb-3">' +
             copyRow('Ngân hàng', '<strong>' + esc(p.tenNganHang) + '</strong>', null, '') +
             copyRow('Chủ tài khoản', '<strong>' + esc(p.chuTaiKhoan) + '</strong>', null, '') +
             copyRow('Số tài khoản', '<strong>' + esc(p.soTaiKhoan) + '</strong>', p.soTaiKhoan, 'Sao chép số tài khoản') +
-            copyRow('Số tiền', '<strong class="text-danger">' + vnd(p.conLai) + '</strong>', p.soTienSaoChep, 'Sao chép số tiền') +
+            copyRow('Số tiền', '<strong class="text-danger hd-num fs-3">' + vnd(p.conLai) + '</strong>', p.soTienSaoChep, 'Sao chép số tiền') +
             copyRow('Nội dung CK', '<code class="text-primary fw-bold">' + esc(p.maChuyenKhoan) + '</code>', p.maChuyenKhoan, 'Sao chép nội dung') +
             '</div>' +
-            '<div class="alert alert-warning"><i class="ti ti-alert-triangle me-1"></i> Giữ nguyên nội dung <code>' + esc(p.maChuyenKhoan) +
+            '<div class="alert alert-warning d-block py-2 mb-3"><i class="ti ti-alert-triangle me-1"></i> Giữ nguyên nội dung <code>' + esc(p.maChuyenKhoan) +
             '</code> để hệ thống tự xác nhận. Sai nội dung, chủ trọ phải xác nhận tay.</div>' +
-            '<button type="button" class="btn btn-outline-secondary" id="ktPayRecheck"><i class="ti ti-refresh me-1"></i> Tôi đã chuyển khoản, kiểm tra lại</button>';
+            '<button type="button" class="btn btn-outline-secondary w-100 w-sm-auto" id="ktPayRecheck"><i class="ti ti-refresh me-1"></i> Tôi đã chuyển khoản, kiểm tra lại</button>';
     }
 
     // Chép được thì báo "Đã sao chép", không thì nhắc khách chép tay.

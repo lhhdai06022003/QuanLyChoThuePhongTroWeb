@@ -37,10 +37,11 @@
 
 /* Khung hiển thị QR Code và thông tin chuyển khoản (VietQR Card) */
 .qr-payment-box {
-    border-radius: var(--tblr-border-radius, 4px);
+    border-radius: var(--tblr-border-radius, 8px);
     border: 1px solid var(--tblr-border-color);
     background-color: var(--tblr-bg-surface);
     transition: all 0.2s ease-in-out;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .qr-payment-box .qr-title {
@@ -52,27 +53,32 @@
     border: 1px solid var(--tblr-border-color);
     background-color: #ffffff;
     padding: 6px;
-    border-radius: var(--tblr-border-radius, 4px);
-    max-width: 160px;
+    border-radius: var(--tblr-border-radius, 6px);
+    max-width: 170px;
+    width: 100%;
     height: auto;
     transition: transform 0.2s ease;
 }
 
 .qr-payment-box img:hover {
-    transform: scale(1.03);
+    transform: scale(1.02);
 }
 
 .qr-details-list {
     font-size: 0.85rem;
-    line-height: 1.6;
+    line-height: 1.5;
+    background-color: var(--tblr-bg-surface-secondary, rgba(0, 0, 0, 0.02));
+    border: 1px solid var(--tblr-border-color);
+    border-radius: var(--tblr-border-radius, 6px);
 }
 
 .qr-details-list .qr-detail-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 4px 0;
+    padding: 6px 0;
     border-bottom: 1px dashed var(--tblr-border-color);
+    gap: 0.5rem;
 }
 
 .qr-details-list .qr-detail-item:last-child {
@@ -83,29 +89,81 @@
     color: var(--tblr-body-color);
 }
 
+@media (max-width: 575.98px) {
+    .qr-details-list .qr-detail-item {
+        flex-wrap: wrap;
+        padding: 5px 0;
+    }
+    .qr-details-list .qr-detail-item > span:first-child {
+        color: var(--tblr-secondary);
+        font-size: 0.8125rem;
+    }
+    .qr-details-list .qr-detail-item > span:last-child {
+        text-align: right;
+        margin-left: auto;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        word-break: break-all;
+    }
+}
+
 /* Panel thanh toán của khách thuê: ảnh QR và lưới nút mở app ngân hàng (spec thanh toán trực tuyến §3.2) */
 .kt-qr {
-    max-width: 280px;
+    max-width: 240px;
+    width: 100%;
+    height: auto;
+    border: 1px solid var(--tblr-border-color);
+    border-radius: var(--tblr-border-radius, 8px);
+    padding: 6px;
+    background-color: #ffffff;
+}
+
+@media (max-width: 575.98px) {
+    .kt-qr {
+        max-width: 190px;
+    }
 }
 
 .kt-bank-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
     gap: .5rem;
 }
 
-.kt-bank-grid .btn {
-    min-height: 44px;
+@media (max-width: 575.98px) {
+    .kt-bank-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: .375rem;
+    }
 }
 
-/* Nút sao chép trong khung chuyển khoản: vùng chạm tối thiểu 44px cho điện thoại */
+.kt-bank-grid .btn {
+    min-height: 42px;
+    font-size: 0.8125rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 0.35rem 0.5rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Nút sao chép trong khung chuyển khoản: vùng chạm tối thiểu 40px cho điện thoại */
 .kt-pay-copy {
-    min-width: 44px;
-    min-height: 44px;
+    min-width: 38px;
+    min-height: 38px;
     padding: 0;
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    border-radius: var(--tblr-border-radius, 4px);
+}
+
+.kt-pay-copy:active {
+    transform: scale(0.95);
 }
 
 /* Căn chỉnh bảng nhập liệu chi phí khi chỉnh sửa */
@@ -283,7 +341,8 @@ html[data-bs-theme="dark"] .hd-page {
 }
 
 /* Số tiền và kỳ căn thẳng cột */
-.hd-page .hd-num {
+.hd-page .hd-num,
+#chiTietModal .hd-num {
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
 }
@@ -387,4 +446,128 @@ html[data-bs-theme="dark"] .hd-page {
 
 html[data-bs-theme="dark"] .swal2-popup .swal2-styled.swal2-confirm {
     background-color: #3fb8ac !important;
+}
+
+/* ========== Responsive Tối Ưu Cho Modal Chi Tiết Hóa Đơn ========== */
+/* Modal chi tiết trên thiết bị di động (Phone < 576px) */
+@media (max-width: 575.98px) {
+    #chiTietModal.modal-fullscreen-sm-down .modal-dialog {
+        margin: 0;
+        width: 100%;
+        max-width: 100%;
+        height: 100%;
+        min-height: 100%;
+    }
+
+    #chiTietModal.modal-fullscreen-sm-down .modal-content {
+        height: 100%;
+        border: 0;
+        border-radius: 0;
+        display: flex;
+        flex-direction: column;
+    }
+
+    #chiTietModal.modal-fullscreen-sm-down .modal-header {
+        padding: 0.75rem 1rem;
+        flex-shrink: 0;
+        border-bottom: 1px solid var(--tblr-border-color);
+    }
+
+    #chiTietModal.modal-fullscreen-sm-down .modal-title {
+        font-size: 1rem;
+    }
+
+    #chiTietModal.modal-fullscreen-sm-down .modal-body {
+        padding: 0.875rem;
+        flex-grow: 1;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    #chiTietModal.modal-fullscreen-sm-down .modal-footer {
+        padding: 0.625rem 1rem;
+        flex-shrink: 0;
+        border-top: 1px solid var(--tblr-border-color);
+    }
+
+    /* Bảng trong modal thu gọn padding trên mobile */
+    #chiTietModal .card-table th,
+    #chiTietModal .card-table td {
+        padding: 0.4rem 0.5rem;
+        font-size: 0.8125rem;
+    }
+
+    /* Nút biên lai và gửi lại biên lai linh hoạt trên mobile */
+    #chiTietModal .btn-list {
+        flex-wrap: wrap;
+        gap: 0.25rem;
+    }
+
+    #chiTietModal .btn-list .btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+    }
+}
+
+/* Nút full-width trên điện thoại, tự co lại từ màn hình nhỏ (Tabler/Bootstrap không có sẵn w-sm-auto) */
+@media (min-width: 576px) {
+    .w-sm-auto {
+        width: auto !important;
+    }
+}
+
+/* Bảng khoản phí trong modal trên điện thoại: ẩn STT và Đơn vị để không cắt mất Thành tiền / Tổng cộng */
+@media (max-width: 575.98px) {
+    #chiTietModal .hd-col-stt,
+    #chiTietModal .hd-col-unit {
+        display: none;
+    }
+}
+@media (min-width: 576px) {
+    #chiTietModal .hd-unit-inline {
+        display: none;
+    }
+}
+
+/* Dòng tổng cộng dưới bảng khoản phí: tách khỏi tfoot để không phụ thuộc số cột đang hiển thị */
+.hd-total-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.625rem 0.75rem;
+    background-color: var(--tblr-bg-surface-secondary, rgba(0, 0, 0, 0.02));
+    border: 1px solid var(--tblr-border-color);
+    border-radius: var(--tblr-border-radius, 8px);
+}
+
+/* site.css ép .table-responsive overflow: visible !important (để dropdown không bị cắt) nên bảng trong modal đẩy cả thân modal cuộn ngang; trong modal chi tiết thì cho bảng tự cuộn */
+#chiTietModal .table-responsive {
+    overflow-x: auto !important;
+}
+
+/* Hàng .row của panel thanh toán dùng lề âm của gutter, không để nó đẩy thân modal rộng thêm */
+#ktPaymentPanel {
+    overflow-x: clip;
+}
+
+/* Cột ghi chú lịch sử thanh toán (mã tham chiếu SePay dài): đủ rộng, được xuống dòng */
+#chiTietModal .hd-note {
+    min-width: 14rem;
+    white-space: normal;
+    word-break: break-word;
+}
+
+/* Modal chi tiết: rộng theo màn hình (tối đa 1140px), không chờ tới breakpoint xl của Bootstrap */
+@media (min-width: 576px) {
+    #chiTietModal .modal-dialog.modal-xl {
+        max-width: min(1140px, calc(100vw - 2rem));
+    }
+}
+
+/* Điện thoại: khối thông tin hóa đơn (datagrid) xếp 2 cột thay vì 1 cột dài */
+@media (max-width: 575.98px) {
+    #chiTietModal .datagrid {
+        --tblr-datagrid-item-width: 9rem;
+    }
 }

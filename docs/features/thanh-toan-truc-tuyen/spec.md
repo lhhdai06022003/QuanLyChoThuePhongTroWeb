@@ -1,6 +1,6 @@
 # Spec: Thanh toán trực tuyến hóa đơn — đợt 1 (VietQR + SePay)
 
-- **Trạng thái:** v1, bản nháp chờ người dùng duyệt (16/10/2026).
+- **Trạng thái:** đã duyệt (16/10/2026). Đợt 1 code xong cả 5 phần (18/10/2026); còn thử tay đồng bộ bù. Lịch sử thay đổi ở §16; kế hoạch ở [plan.md](plan.md), kiểm chứng ở [review.md](review.md).
 - **Nhánh:** `feature/thanh-toan-truc-tuyen` (từ `master` = `6b551fe`).
 - **Nguồn yêu cầu:** tài liệu "Đặc tả kỹ thuật & nghiệp vụ: phân hệ thanh toán hóa đơn, biên lai điện tử & thông báo tự động" v1.0 của người dùng; các điểm điều chỉnh có ghi ở §13.
 - **Nối tiếp:** [thanh toán hóa đơn](../thanh-toan-hoa-don/spec.md) (luồng lượt + minh chứng + đối chiếu tay). Spec này hiện thực hướng nâng cấp số 1 ở §35 của spec đó: tự khớp giao dịch ngân hàng qua webhook.
@@ -428,11 +428,27 @@ Kịch bản §11.3 chạy được hoàn toàn trên sandbox; chỉ TC04 (deepl
 - Tiền thừa chỉ được đánh dấu, xử lý ngoài hệ thống.
 - Docker (Dockerfile + compose gồm web, PostgreSQL, tùy chọn tunnel; lưu key Data Protection; secret qua biến môi trường) không làm trong nhánh này; spec riêng khi cần deploy demo (người dùng chọn 16/10).
 - Dọn mã tạo lượt/nộp minh chứng không còn dùng; outbox cho thông báo; lưu giao dịch không khớp — cần đổi schema, làm spec riêng.
+- Chốt chặn "Nghi trùng, kiểm tay" (đồng bộ bù không tự ghi khi hóa đơn đã có dòng `SEPAY-ID-…`, không đổi schema): người dùng chọn để sau (20/10/2026), làm trước khi bật `SePay:SyncRecordEnabled`. Quy tắc so khớp chưa thiết kế, cần người dùng duyệt (xem §5.2).
+- Spec này thay một phần luồng ở [thanh toán hóa đơn](../thanh-toan-hoa-don/spec.md): trên nhánh này khách không còn tự tạo lượt và nộp minh chứng (§8); luồng đối chiếu minh chứng cũ của nhân viên vẫn còn cho các lượt tồn đọng.
 
 ## 15. Điều kiện nghiệm thu
 
-- [ ] §11.1, §11.2 PASS; `dotnet build` không lỗi; `has-pending-model-changes` không có thay đổi.
-- [ ] TC01, TC02, E01, E02, E03, TC05, đồng bộ bù chạy đúng trên SePay Test mode (người dùng thử tay).
-- [ ] TC04 trên ít nhất một điện thoại Android hoặc iOS; ghi lại app ngân hàng không hỗ trợ deeplink.
-- [ ] Hướng dẫn thiết lập SePay Test mode, bot Telegram, ngrok ở `huong-dan-thiet-lap.md` (lệnh và từng bước, không có script).
-- [ ] `README.md` module, `docs/features/README.md` và mục Hiện trạng trong `AGENTS.md` được cập nhật.
+- [x] §11.1, §11.2 PASS; `dotnet build` không lỗi; `has-pending-model-changes` không có thay đổi (20/10/2026; chi tiết và một lần FAIL lẻ của test đếm cả bảng ở [review.md](review.md) mục 4).
+- [ ] TC01, TC02, E01, E02, E03, TC05, đồng bộ bù chạy đúng trên SePay Test mode (người dùng thử tay). Đã thử TC01, TC02, E01–E03, TC05 ngày 20/10/2026 trên Test mode (tương đối ổn; chưa thử giao dịch thật); **đồng bộ bù chưa xác nhận** nên chưa tick.
+- [x] TC04 trên ít nhất một điện thoại Android hoặc iOS; ghi lại app ngân hàng không hỗ trợ deeplink. Đã thử 20/10/2026 (tương đối ổn); chưa ghi danh sách app không hỗ trợ.
+- [x] Hướng dẫn thiết lập SePay Test mode, bot Telegram, ngrok ở `huong-dan-thiet-lap.md` (lệnh và từng bước, không có script).
+- [x] `README.md` module, `docs/features/README.md` và mục Hiện trạng trong `AGENTS.md` được cập nhật.
+
+## 16. Lịch sử thay đổi
+
+Lấy từ lịch sử commit của file này và các thay đổi chưa commit.
+
+| Ngày | Commit | Thay đổi |
+| --- | --- | --- |
+| 16/10/2026 | `0a46022` | Bản đầu của spec (người dùng duyệt) |
+| 16/10/2026 | `6b690e4` | Cập nhật theo câu trả lời Q1–Q3 của phần 1; ghi việc chặn ghi trùng khi xác nhận minh chứng cho phần 2 |
+| 16/10/2026 | `33e210e` | Gỡ hai script phụ trợ; §11.4 thay bằng hướng dẫn lệnh trong `huong-dan-thiet-lap.md` |
+| 18/10/2026 | `2111a43` | Chỉnh nhỏ sau phần 2 (một dòng) |
+| 18/10/2026 | `6057625` | Chỉnh nhỏ sau phần 3 (một dòng): §11.2 dòng endpoint đã gỡ thành "404 hoặc 405, không tạo lượt" |
+| 18/10/2026 | `d093a96` | Sau phần 4: §3.2 deeplink 12 ngân hàng, §4.3 đồng bộ bù theo PA2 (cờ `SyncRecordEnabled` mặc định tắt), §5.2 viết lại thành "Rủi ro ghi đôi còn lại", §7.1/§7.2 QR và email dùng `TTPTHD{Id}` với số còn lại, §10, §11.3 mục 6 thành ba bước (a)(b)(c) |
+| 20/10/2026 | commit "hồ sơ module và responsive modal" (xem `git log`) | Header đổi sang "đã duyệt"; §14 thêm chốt chặn để sau và quan hệ với spec thanh toán hóa đơn; §15 ghi kết quả thử tay trên Test mode; thêm mục này |

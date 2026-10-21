@@ -4,6 +4,7 @@
 - **Mốc roadmap:** ngày 23–43, ổn định ngày 44–53
 - **Hiện trạng:** VietQR và một phần Application Service xử lý yêu cầu/minh chứng đã có; Web chưa nối trọn luồng. Đặc tả v2.0 chốt ngày 02/10/2026 ([spec.md](spec.md)), chưa có mã triển khai.
 - **Schema:** không đổi; dùng các bảng có sẵn từ Migration 1.
+- **Liên quan:** nhánh `feature/thanh-toan-truc-tuyen` (chưa gộp `master`) nối tiếp module này bằng [thanh toán trực tuyến](../thanh-toan-truc-tuyen/README.md): tự ghi sổ qua webhook SePay, và **gỡ** luồng khách tự tạo lượt/nộp minh chứng ở cổng khách thuê. Khi gộp, các mục "khách tạo lượt" và "khách tải minh chứng" bên dưới không còn áp dụng cho khách thuê; đối chiếu của nhân viên vẫn dùng cho lượt cũ.
 
 ## Tính năng cần hoàn thành
 
