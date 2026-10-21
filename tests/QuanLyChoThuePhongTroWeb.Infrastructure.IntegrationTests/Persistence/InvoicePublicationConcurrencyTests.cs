@@ -271,7 +271,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
         [Fact]
         public async Task Publish_Repeat_AfterDaGui_NoChanges()
         {
-            var (_, _, _, contract, _) = await CreateHierarchyWithAccountAsync("repeat");
+            var (_, _, _, contract, tenantAccount) = await CreateHierarchyWithAccountAsync("repeat");
 
             await using var seedCtx = _fixture.CreateDbContext();
             var invoice = MakeDaChotInvoice(contract.HopDongId, "HD-REPEAT-1");
@@ -294,7 +294,8 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
                 ngayGuiSau1Lan = inv.NgayGui!.Value;
                 hanSau1Lan = inv.HanThanhToan;
                 historyCountSau1Lan = inv.LichSuTrangThaiHoaDons.Count;
-                thongBaoCountSau1Lan = await verify1.ThongBaos.CountAsync();
+                // Chỉ đếm thông báo của khách trong test: test khác chạy song song cũng ghi vào bảng thong_bao.
+                thongBaoCountSau1Lan = await verify1.ThongBaos.CountAsync(t => t.NguoiDungId == tenantAccount.NguoiDungId);
             }
 
             await using var ctx2 = _fixture.CreateDbContext();
@@ -307,7 +308,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             Assert.Equal(ngayGuiSau1Lan, invAfter.NgayGui);
             Assert.Equal(hanSau1Lan, invAfter.HanThanhToan);
             Assert.Equal(historyCountSau1Lan, invAfter.LichSuTrangThaiHoaDons.Count);
-            Assert.Equal(thongBaoCountSau1Lan, await verify2.ThongBaos.CountAsync());
+            Assert.Equal(thongBaoCountSau1Lan, await verify2.ThongBaos.CountAsync(t => t.NguoiDungId == tenantAccount.NguoiDungId));
         }
 
         [Fact]
