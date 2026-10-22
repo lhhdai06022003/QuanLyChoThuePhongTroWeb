@@ -16,7 +16,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#066fd1" />
-    <title>@ViewData["Title"] · System Rental</title>
+    <title>@ViewData["Title"] · TroSync</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@500;600;700&display=swap" rel="stylesheet" />
@@ -30,8 +30,20 @@
     <header class="guest-header">
         <div class="guest-container guest-header-inner">
             <a class="guest-brand" href="/phong" aria-label="Trang danh sách phòng">
-                <img class="guest-brand-logo" src="~/Theme/images/logo-hcmute.png" alt="" />
-                <span class="guest-brand-text"><strong>SYSTEM RENTAL</strong><small>Tìm phòng &amp; đặt lịch</small></span>
+                <svg class="guest-brand-logo" width="34" height="34" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <defs>
+                        <linearGradient id="troSyncBg" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#2563eb" />
+                            <stop offset="100%" stop-color="#1d4ed8" />
+                        </linearGradient>
+                    </defs>
+                    <rect width="36" height="36" rx="9" fill="url(#troSyncBg)" />
+                    <path d="M8 25V17L14.5 12V25H8Z" fill="#ffffff" fill-opacity="0.4" />
+                    <path d="M13.5 25V14L20.5 8.5L27.5 14V25H22.5V17.5H18.5V25H13.5Z" fill="#ffffff" />
+                    <circle cx="20.5" cy="8.5" r="2.2" fill="#38bdf8" />
+                    <circle cx="20.5" cy="8.5" r="0.9" fill="#ffffff" />
+                </svg>
+                <span class="guest-brand-text"><strong>Tro<span class="guest-brand-accent">Sync</span></strong><small>Tìm phòng &amp; đặt lịch</small></span>
             </a>
             <nav class="guest-nav" aria-label="Điều hướng chính">
                 <a href="/phong" aria-current="@(isRoomsPage ? "page" : null)">Tìm phòng</a>
@@ -60,7 +72,7 @@
     </main>
     <footer class="guest-footer">
         <div class="guest-container guest-footer-inner">
-            <div><strong class="room-footer-brand">System Rental</strong><p>Tìm phòng, chọn nơi ở phù hợp.</p><small>Thông tin phòng được cập nhật bởi người quản lý.</small></div>
+            <div><strong class="room-footer-brand">Tro<span class="guest-brand-accent">Sync</span></strong><p>Tìm phòng, chọn nơi ở phù hợp.</p><small>Thông tin phòng được cập nhật bởi người quản lý.</small></div>
             <nav aria-label="Liên kết cuối trang"><a href="/phong">Khám phá phòng</a><a href="/phong/da-luu">Phòng đã lưu</a><a href="/phong/cam-nang">Cẩm nang thuê phòng</a>
                 @if (User.Identity?.IsAuthenticated == true)
                 {

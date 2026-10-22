@@ -8,8 +8,10 @@ body.guest-site{--guest-ink:#374151;--guest-primary:#066fd1;--guest-mist:#f4f7fc
 .room-placeholder-icon{width:60px;height:60px;stroke-width:1.2;color:#839ab5}
 .guest-header{background:#fff;position:relative;z-index:5}
 .guest-header-inner{min-height:82px;gap:20px}
-.guest-brand-logo{width:32px;height:38px}
-.guest-brand-text strong{font-family:Manrope,Inter,sans-serif;letter-spacing:-.025em}
+.guest-brand-logo{width:34px;height:34px;flex-shrink:0;object-fit:initial;filter:drop-shadow(0 2px 4px rgba(37,99,235,.25));transition:transform .2s ease}
+.guest-brand:hover .guest-brand-logo{transform:scale(1.05)}
+.guest-brand-text strong{font-size:1.15rem;line-height:1.1;font-weight:700;letter-spacing:-.02em;color:var(--guest-ink)}
+.guest-brand-text .guest-brand-accent,.room-footer-brand .guest-brand-accent{color:var(--guest-primary)}
 .guest-brand-text small{font-size:.72rem;margin-top:2px}
 .guest-nav{gap:5px;font-size:.83rem}
 .guest-nav>a,.guest-nav-button{padding:10px 13px}

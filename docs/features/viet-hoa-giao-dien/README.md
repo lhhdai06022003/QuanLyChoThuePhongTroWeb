@@ -22,6 +22,9 @@ Phần lớn giao diện đã là tiếng Việt. Chỗ còn tiếng Anh nằm �
 | Màn nhân viên: yêu cầu giữ chỗ, chi tiết giữ chỗ, lịch xem phòng | in tên enum thô (`MoiTao`, `ChoNhanVienXuLy`, `DaXacNhan`...) | nhãn tiếng Việt qua `Helpers/GuestStatusText.cs`, lấy theo cách các trang khách (`YeuCauCuaToi`, `DatCoc`) đang hiển thị |
 | Thông báo lỗi lẫn từ Anh | "database", "request", "Role", "file", "form", "tick", "Gemini API Key", "Dashboard", "chat" | "cơ sở dữ liệu", "yêu cầu", "vai trò", "tệp", "biểu mẫu", "đánh dấu", "khóa API Gemini", "Bảng điều khiển", "trò chuyện" |
 | Model đăng ký khách: độ dài tên đăng nhập, mật khẩu, họ tên | thông báo mặc định của DataAnnotations (tiếng Anh) | thông báo tiếng Việt trong `GuestRegistrationModel` |
+| Trang khách sau khi gộp `thuan` (22/10/2026): layout `_PublicRoomLayout` | logo HCMUTE và chữ "System Rental" ở tiêu đề tab, đầu trang, chân trang | logo SVG và chữ "TroSync" giống menu cổng quản lý (`_Sidebar.cshtml`); giữ dòng phụ "Tìm phòng & đặt lịch" |
+| Email xác nhận/từ chối/hủy lịch xem (`SendViewingStatusNoticeAsync`) | "theo dõi trạng thái tại dashboard" | "tại Tổng quan tài khoản" |
+| Cẩm nang thuê phòng (`CamNang.cshtml`) | "Checklist" | "Danh sách kiểm tra" |
 
 ## Quyết định của người dùng (21/10/2026)
 
@@ -58,4 +61,5 @@ Không còn mục nào chờ quyết định.
 - Test mới: `GuestStatusTextTests` (mỗi giá trị enum trạng thái phải có nhãn), `VietnameseUiStaticGuardTests` (không còn `aria-label` tiếng Anh, lớp bọc SweetAlert/DataTables/Select2, trang lỗi, menu).
 - Test cũ phải đổi theo chữ mới: `SessionDbErrorTests` (câu trên trang lỗi), `SePaySyncServiceTests` và `SePayTransactionClientTests` ("số request" → "số yêu cầu").
 - Kết quả chạy ngày 21/10/2026: `dotnet build` 0 lỗi; `has-pending-model-changes` PASS; Domain 135/135, Application 1770/1770, Infrastructure 604/604, Web 556/556 (523 cũ + 33 mới), đều PASS.
+- Rà lại sau khi gộp `thuan` (22/10/2026): đọc view, JS, controller, service, email do `thuan` thêm hoặc sửa và quét từ khóa tiếng Anh toàn ứng dụng; chỉ còn ba điểm ở bảng trên, đã sửa. Xem trang khách trên DB `_test` (máy tính và điện thoại 375 px, không tràn ngang); `dotnet build` 0 lỗi; Web 568/568 PASS; `ViewingStatusEmailTests` PASS. Trang cần đăng nhập (Lịch xem phòng, Tin phòng, Tổng quan khách) chỉ được đọc mã, chưa mở bằng trình duyệt.
 - Chưa kiểm: giao diện thật trên server chạy với tài khoản đăng nhập (chưa mở các trang giữ chỗ, lịch xem phòng, trang lỗi bằng trình duyệt); chưa thử Select2 trên màn Hợp đồng và Tài khoản đăng nhập trong app thật.

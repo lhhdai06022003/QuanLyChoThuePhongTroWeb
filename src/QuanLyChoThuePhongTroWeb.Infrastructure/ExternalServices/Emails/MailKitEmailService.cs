@@ -94,7 +94,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.Emails
                     body.AppendLine("Yêu cầu xem phòng này không còn hiệu lực; bạn không cần đến theo lịch trên.");
                     if (!string.IsNullOrWhiteSpace(notice.LastReason)) body.AppendLine($"Lý do: {notice.LastReason}");
                 }
-                body.AppendLine().AppendLine("Bạn có thể theo dõi trạng thái tại dashboard hoặc mục Lịch xem và đặt phòng.")
+                body.AppendLine().AppendLine("Bạn có thể theo dõi trạng thái tại Tổng quan tài khoản hoặc mục Lịch xem và đặt phòng.")
                     .AppendLine("Nếu cần hỗ trợ, vui lòng liên hệ nhân viên.")
                     .AppendLine().AppendLine("Trân trọng,\nBan quản lý nhà trọ");
                 var message = new MimeMessage();
