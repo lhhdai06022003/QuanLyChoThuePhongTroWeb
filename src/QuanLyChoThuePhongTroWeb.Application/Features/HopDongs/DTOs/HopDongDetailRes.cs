@@ -25,8 +25,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.DTOs
         // --- Thời hạn & Tài chính ---
         public DateTime ThoiDiemBatDau { get; set; }
         public DateTime? ThoiDiemKetThuc { get; set; }
-        public double TienCocPhong { get; set; }
-        public double TienThuePhong { get; set; }
+        public decimal TienCocPhong { get; set; }
+        public decimal TienThuePhong { get; set; }
 
         // --- Trạng thái ---
         public int TrangThaiHopDong { get; set; }

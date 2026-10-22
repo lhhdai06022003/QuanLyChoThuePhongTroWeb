@@ -1,42 +1,46 @@
-@model QuanLyChoThuePhongTroWeb.ViewModels.PublicRooms.PublicRoomCardModel
+@model QuanLyChoThuePhongTroWeb.ViewModels.PublicRooms.ViewingPageModel
 @{
     Layout = "_PublicRoomLayout";
-    ViewData["Title"] = $"Hẹn xem phòng {Model.Room.SoPhong}";
-    var room = Model.Room;
+    ViewData["Title"] = $"Hẹn xem phòng {Model.Room.Room.SoPhong}";
+    var room = Model.Room.Room;
 }
 
 <div class="guest-container guest-form-page">
     <a class="guest-back" href="/phong/@room.PhongTroId">← Về thông tin phòng</a>
     <div class="guest-form-grid">
         <div>
-            <p class="guest-kicker">Hẹn xem phòng</p>
-            <h1>Chọn ngày đến<br />xem phòng.</h1>
-            <p class="guest-form-lead">Bạn sẽ chọn khung giờ còn chỗ hoặc đề xuất thời gian khác. Email là bắt buộc để nhận thông báo nếu phòng được thuê trước ngày hẹn.</p>
+            <h1>Hẹn xem phòng @room.SoPhong</h1>
+            <p class="guest-form-lead">Chủ động chọn ngày giờ phù hợp với bạn và để lại số điện thoại. Nhân viên sẽ gọi để trao đổi và xác nhận trước khi bạn đến xem phòng.</p>
             <div class="guest-form-room">
                 <span>Phòng bạn muốn xem</span>
                 <strong>Phòng @room.SoPhong</strong>
                 <small>@room.TenChiNhanh · @room.DiaChi</small>
             </div>
         </div>
-        <div class="guest-viewing-form" role="group" aria-label="Thông tin hẹn xem phòng">
+        <form class="guest-viewing-form" method="post" aria-label="Thông tin hẹn xem phòng">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
             <h2>Thông tin lịch xem</h2>
-            <label for="viewingSlot">Khung giờ có sẵn</label>
-            <select id="viewingSlot" disabled><option>Chưa có khung giờ để chọn</option></select>
-            <label for="preferredTime">Thời gian mong muốn</label>
-            <input id="preferredTime" type="datetime-local" />
+            <label asp-for="PreferredTimeLocal">Ngày giờ bạn muốn xem phòng <span>*</span></label>
+            <input asp-for="PreferredTimeLocal" type="datetime-local" required />
+            <span asp-validation-for="PreferredTimeLocal" class="text-danger"></span>
+            <p class="guest-field-hint">Giờ Việt Nam (UTC+7). Chọn thời gian trong tương lai; nhân viên sẽ gọi để thống nhất và xác nhận lịch.</p>
             <div class="guest-form-divider"></div>
             <h2>Thông tin liên hệ</h2>
-            <label for="viewerName">Họ và tên <span>*</span></label>
-            <input id="viewerName" type="text" autocomplete="name" placeholder="Nguyễn Văn A" />
-            <label for="viewerPhone">Số điện thoại <span>*</span></label>
-            <input id="viewerPhone" type="tel" autocomplete="tel" inputmode="tel" placeholder="09..." />
-            <label for="viewerEmail">Email nhận thông báo <span>*</span></label>
-            <input id="viewerEmail" type="email" autocomplete="email" placeholder="ban@example.com" required />
-            <p class="guest-field-hint">Nếu phòng được thuê trước lịch hẹn, thông báo hủy lịch sẽ gửi đến địa chỉ này.</p>
-            <label for="viewerNote">Ghi chú cho nhân viên</label>
-            <textarea id="viewerNote" rows="3" placeholder="Bạn muốn hỏi thêm điều gì?"></textarea>
-            <button class="guest-button guest-button-primary guest-button-disabled" type="button" disabled>Gửi yêu cầu xem phòng</button>
+            <label asp-for="FullName">Họ và tên <span>*</span></label>
+            <input asp-for="FullName" type="text" autocomplete="name" placeholder="Nguyễn Văn A" required />
+            <span asp-validation-for="FullName" class="text-danger"></span>
+            <label asp-for="Phone">Số điện thoại <span>*</span></label>
+            <input asp-for="Phone" type="tel" autocomplete="tel" inputmode="tel" placeholder="09..." required />
+            <span asp-validation-for="Phone" class="text-danger"></span>
+            <label asp-for="Email">Email nhận thông báo <span>*</span></label>
+            <input asp-for="Email" type="email" autocomplete="email" placeholder="ban@example.com" required />
+            <span asp-validation-for="Email" class="text-danger"></span>
+            <p class="guest-field-hint">Email dùng để liên hệ thêm khi cần. Theo dõi trạng thái lịch tại mục Lịch xem và đặt phòng.</p>
+            <label asp-for="Note">Ghi chú cho nhân viên</label>
+            <textarea asp-for="Note" rows="3" placeholder="Bạn muốn hỏi thêm điều gì?"></textarea>
+            <button class="guest-button guest-button-primary" type="submit">Gửi yêu cầu xem phòng</button>
             <p class="guest-form-footnote">Bạn có thể hủy lịch trước giờ hẹn bắt đầu.</p>
-        </div>
+        </form>
     </div>
 </div>

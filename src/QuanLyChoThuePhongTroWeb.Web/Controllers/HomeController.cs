@@ -21,7 +21,7 @@ namespace QuanLyChoThuePhongTroWeb.Controllers
 
             if (User.Identity != null && User.Identity.IsAuthenticated)
             {
-                if (User.IsInRole("KhachThue"))
+                if (User.IsInRole("KhachThue") || User.IsInRole("KhachVangLai"))
                 {
                     return RedirectToAction("Index", "Dashboard", new { area = "KhachThue" });
                 }

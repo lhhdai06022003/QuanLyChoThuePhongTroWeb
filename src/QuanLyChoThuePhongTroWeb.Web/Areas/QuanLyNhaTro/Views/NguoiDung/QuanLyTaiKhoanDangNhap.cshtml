@@ -232,9 +232,16 @@
                                     </button>
                                 `;
                             }
+                            let branchBtn = '';
+                            if (row.role === 1) {
+                                branchBtn = `
+                                    <a class="btn btn-ghost-primary btn-sm" href="/QuanLyNhaTro/PhanCongChiNhanh?nguoiDungId=${data}" title="Phân công chi nhánh"><i class="ti ti-building-store me-1"></i>Chi nhánh</a>
+                                `;
+                            }
                             return `
                                 <div class="btn-list flex-nowrap justify-content-center">
                                     ${resetBtn}
+                                    ${branchBtn}
                                     <button class="btn btn-icon btn-ghost-warning btn-sm btn-edit" data-id="${data}" title="Sửa">
                                         <i class="ti ti-edit"></i>
                                     </button>

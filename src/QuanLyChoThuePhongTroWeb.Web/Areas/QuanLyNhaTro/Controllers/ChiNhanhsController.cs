@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
 {
     [Route("[controller]/[action]")]
+    [Authorize(Roles = "Admin")]
     public class ChiNhanhsController : AdminBaseController
     {
         private readonly IChiNhanhService _chiNhanhService;

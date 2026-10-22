@@ -3,7 +3,10 @@ using Microsoft.AspNetCore.Mvc;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels;
 using System;
 using System.Security.Claims;
+using System.Threading;
 using System.Threading.Tasks;
+using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services;
+using QuanLyChoThuePhongTroWeb.Web.Helpers;
 
 namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
 {
@@ -12,18 +15,28 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
     {
         private readonly ILichSuThanhToanService _lichSuThanhToanService;
         private readonly IPhongTroService _phongTroService;
+        private readonly IInvoiceLedgerService _ledgerService;
 
-        public LichSuThanhToanController(ILichSuThanhToanService lichSuThanhToanService, IPhongTroService phongTroService)
+        public LichSuThanhToanController(
+            ILichSuThanhToanService lichSuThanhToanService,
+            IPhongTroService phongTroService,
+            IInvoiceLedgerService ledgerService)
         {
             _lichSuThanhToanService = lichSuThanhToanService;
             _phongTroService = phongTroService;
+            _ledgerService = ledgerService;
+        }
+
+        public class HuyGhiNhanReq
+        {
+            public string? LyDo { get; set; }
         }
 
         [Route("QuanLyNhaTro/LichSuThanhToan")]
         [ApiExplorerSettings(IgnoreApi = true)]
         public async Task<IActionResult> Index()
         {
-            ViewBag.ListChiNhanh = await _phongTroService.GetDanhSachChiNhanhDropdownAsync();
+            ViewBag.ListChiNhanh = await _phongTroService.GetDanhSachChiNhanhDropdownAsync(CurrentActorId);
             return View();
         }
 
@@ -31,8 +44,14 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         public async Task<IActionResult> GetList(
             [FromForm] int chiNhanhId = 0, 
             [FromForm] int phuongThuc = -1, 
-            [FromForm] string dateRange = "")
+            [FromForm] string dateRange = "",
+            [FromForm] bool coTienThua = false)
         {
+            if (!TryGetActorId(out var actorId))
+            {
+                return Unauthorized(new { Message = "Người dùng chưa đăng nhập hoặc phiên làm việc đã hết hạn." });
+            }
+
             var form = Request.Form;
             var request = new DataTableRequest
             {
@@ -64,13 +83,18 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
                 }
             }
 
-            var data = await _lichSuThanhToanService.GetDanhSachThanhToanAsync(request, chiNhanhId, phuongThuc, tuNgay, denNgay);
+            var data = await _lichSuThanhToanService.GetDanhSachThanhToanAsync(actorId, request, chiNhanhId, phuongThuc, tuNgay, denNgay, coTienThua);
             return Ok(data);
         }
 
         [HttpGet("/LichSuThanhToan/GetStats")]
         public async Task<IActionResult> GetStats([FromQuery] int chiNhanhId = 0, [FromQuery] string dateRange = "")
         {
+            if (!TryGetActorId(out var actorId))
+            {
+                return Unauthorized(new { Message = "Người dùng chưa đăng nhập hoặc phiên làm việc đã hết hạn." });
+            }
+
             DateTime? tuNgay = null;
             DateTime? denNgay = null;
 
@@ -92,22 +116,31 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
                 }
             }
 
-            var stats = await _lichSuThanhToanService.GetThongKeThanhToanAsync(chiNhanhId, tuNgay, denNgay);
+            var stats = await _lichSuThanhToanService.GetThongKeThanhToanAsync(actorId, chiNhanhId, tuNgay, denNgay);
             return Ok(stats);
         }
 
+        // Hủy ghi nhận thanh toán: chỉ Admin, bắt buộc lý do; không hoàn tiền qua ngân hàng (spec thanh toán §20).
         [HttpDelete("/LichSuThanhToan/HuyThanhToan/{id}")]
-        public async Task<IActionResult> HuyThanhToan(int id)
+        public async Task<IActionResult> HuyThanhToan(int id, [FromBody] HuyGhiNhanReq req, CancellationToken ct)
         {
-            int userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "0");
-            var result = await _lichSuThanhToanService.HuyGiaoDichAsync(id, userId);
-
-            if (!result.IsSuccess)
+            if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId) || userId <= 0)
             {
-                return BadRequest(new { Message = result.ErrorMessage });
+                return Unauthorized(new { Message = "Người dùng chưa đăng nhập hoặc phiên làm việc đã hết hạn." });
             }
 
-            return Ok(new { Message = "Đã hủy giao dịch thanh toán thành công. Trạng thái hóa đơn đã được khôi phục về Chưa thanh toán." });
+            var result = await _ledgerService.VoidPaymentAsync(id, userId, req?.LyDo ?? string.Empty, ct);
+            if (!result.Success)
+            {
+                return this.ToErrorResult(result);
+            }
+
+            return Ok(new { Message = result.Message, data = result.Data });
+        }
+
+        private bool TryGetActorId(out int actorId)
+        {
+            return int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out actorId) && actorId > 0;
         }
     }
 }

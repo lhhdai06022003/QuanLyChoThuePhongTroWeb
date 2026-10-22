@@ -19,5 +19,7 @@ namespace QuanLyChoThuePhongTroWeb.Domain.Entities
         [ForeignKey("NguoiThueId")]
         public NguoiThue? NguoiThue { get; set; }
         public bool IsDeleted { get; set; } = false;
+        public KhachVangLai? KhachVangLai { get; set; }
+        public ICollection<NhanVienChiNhanh> NhanVienChiNhanhs { get; set; } = new List<NhanVienChiNhanh>();
     }
 }

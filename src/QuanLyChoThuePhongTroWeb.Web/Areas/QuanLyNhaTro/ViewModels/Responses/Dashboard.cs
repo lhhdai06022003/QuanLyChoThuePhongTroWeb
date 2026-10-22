@@ -21,8 +21,8 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Responses
         public int SoPhongDaThue { get; set; }
         public int SoPhongBaoTri { get; set; }
         public int TongSoHopDongHoatDong { get; set; }
-        public double DoanhThuThangNay { get; set; }
-        public double TongTienChoThu { get; set; }
+        public decimal DoanhThuThangNay { get; set; }
+        public decimal TongTienChoThu { get; set; }
         public int SoPhongChuaThanhToan { get; set; }
         public double TyLeLapDay { get; set; }
         public int SoHopDongSapHetHan { get; set; }
@@ -30,8 +30,8 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Responses
 
         // --- DỮ LIỆU BIỂU ĐỒ (12 Tháng của năm) ---
         public List<string> ChartLabels { get; set; } = new List<string>();
-        public List<double> ChartData { get; set; } = new List<double>();
-        public List<double> ChartDataChoThu { get; set; } = new List<double>(); // Doanh thu chờ thu để làm stacked chart
+        public List<decimal> ChartData { get; set; } = new List<decimal>();
+        public List<decimal> ChartDataChoThu { get; set; } = new List<decimal>(); // Doanh thu chờ thu để làm stacked chart
 
         // --- DỮ LIỆU TÌNH TRẠNG PHÒNG ---
         public List<string> RoomStatusLabels { get; set; } = new List<string>();

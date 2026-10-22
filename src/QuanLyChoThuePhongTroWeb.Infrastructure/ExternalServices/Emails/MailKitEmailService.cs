@@ -15,6 +15,102 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.Emails
 {
     public class MailKitEmailService : IEmailService
     {
+        public async Task<(bool IsSuccess, string ErrorMessage)> SendRoomDepositedNoticeAsync(
+            string toEmail, string recipientName, string roomNumber, string branchName)
+        {
+            var senderEmail = _configuration["EmailSettings:SenderEmail"];
+            var password = _configuration["EmailSettings:Password"];
+            if (string.IsNullOrWhiteSpace(senderEmail) || string.IsNullOrWhiteSpace(password))
+                return (false, "Chưa cấu hình tài khoản gửi email.");
+
+            try
+            {
+                var server = _configuration["EmailSettings:SmtpServer"] ?? "smtp.gmail.com";
+                var port = int.TryParse(_configuration["EmailSettings:Port"], out var parsed)
+                    ? parsed : 587;
+                var senderName = _configuration["EmailSettings:SenderName"] ??
+                    "Hệ thống Quản lý Nhà Trọ";
+                var message = new MimeMessage();
+                message.From.Add(new MailboxAddress(senderName, senderEmail));
+                message.To.Add(new MailboxAddress(recipientName, toEmail));
+                message.Subject = $"Thông báo phòng {roomNumber} đã có người đặt cọc";
+                message.Body = new TextPart("plain")
+                {
+                    Text = $"Xin chào {recipientName},\n\n" +
+                        $"Phòng {roomNumber} tại {branchName} đã có người đặt cọc. " +
+                        "Yêu cầu xem phòng hoặc giữ chỗ đang chờ của bạn có thể không tiếp tục được. " +
+                        "Vui lòng liên hệ nhân viên để được hỗ trợ hoặc xem phòng khác.\n\n" +
+                        "Trân trọng,\nBan quản lý nhà trọ"
+                };
+                using var client = new SmtpClient();
+                await client.ConnectAsync(server, port, SecureSocketOptions.StartTls);
+                await client.AuthenticateAsync(senderEmail, password);
+                await client.SendAsync(message);
+                await client.DisconnectAsync(true);
+                return (true, string.Empty);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Không gửi được email báo phòng {RoomNumber} tới {Email}",
+                    roomNumber, toEmail);
+                return (false, "Không gửi được email. Kiểm tra cấu hình SMTP và thử lại.");
+            }
+        }
+
+        public async Task<(bool IsSuccess, string ErrorMessage)> SendViewingStatusNoticeAsync(
+            QuanLyChoThuePhongTroWeb.Application.Features.Viewings.ViewingAdminRequestDto notice)
+        {
+            var subject = notice.Status switch
+            {
+                "DaXacNhanLich" => "Xác nhận lịch xem phòng",
+                "TuChoi" => "Từ chối yêu cầu xem phòng",
+                "DaHuy" => "Hủy lịch xem phòng",
+                _ => null
+            };
+            if (subject is null) return (false, "Trạng thái lịch xem chưa có thông báo email.");
+            var senderEmail = _configuration["EmailSettings:SenderEmail"];
+            var password = _configuration["EmailSettings:Password"];
+            if (string.IsNullOrWhiteSpace(senderEmail) || string.IsNullOrWhiteSpace(password) ||
+                senderEmail.StartsWith('<') || password.StartsWith('<'))
+                return (false, "Chưa cấu hình tài khoản gửi email SMTP.");
+            try
+            {
+                var when = new DateTimeOffset(notice.ConfirmedTimeUtc ?? notice.DesiredTimeUtc,
+                    TimeSpan.Zero).ToOffset(TimeSpan.FromHours(7));
+                var body = new StringBuilder()
+                    .AppendLine($"Xin chào {notice.GuestName},")
+                    .AppendLine().AppendLine($"{subject}: phòng {notice.RoomNumber} tại {notice.BranchName}.")
+                    .AppendLine($"Thời gian: {when:dd/MM/yyyy HH:mm} (giờ Việt Nam, UTC+7).");
+                if (notice.Status == "DaXacNhanLich")
+                    body.AppendLine("Lịch xem của bạn đã được nhân viên xác nhận. Vui lòng đến theo thời gian trên.");
+                else
+                {
+                    body.AppendLine("Yêu cầu xem phòng này không còn hiệu lực; bạn không cần đến theo lịch trên.");
+                    if (!string.IsNullOrWhiteSpace(notice.LastReason)) body.AppendLine($"Lý do: {notice.LastReason}");
+                }
+                body.AppendLine().AppendLine("Bạn có thể theo dõi trạng thái tại dashboard hoặc mục Lịch xem và đặt phòng.")
+                    .AppendLine("Nếu cần hỗ trợ, vui lòng liên hệ nhân viên.")
+                    .AppendLine().AppendLine("Trân trọng,\nBan quản lý nhà trọ");
+                var message = new MimeMessage();
+                message.From.Add(new MailboxAddress(_configuration["EmailSettings:SenderName"] ?? "Ban quản lý nhà trọ", senderEmail));
+                message.To.Add(new MailboxAddress(notice.GuestName, notice.Email));
+                message.Subject = $"{subject} — Phòng {notice.RoomNumber}";
+                message.Body = new TextPart("plain") { Text = body.ToString() };
+                var port = int.TryParse(_configuration["EmailSettings:Port"], out var parsed) ? parsed : 587;
+                using var client = new SmtpClient { Timeout = 15000 };
+                await client.ConnectAsync(_configuration["EmailSettings:SmtpServer"] ?? "smtp.gmail.com", port, SecureSocketOptions.StartTls);
+                await client.AuthenticateAsync(senderEmail, password);
+                await client.SendAsync(message);
+                await client.DisconnectAsync(true);
+                return (true, string.Empty);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Không gửi được email cho lịch xem {RequestId}", notice.Id);
+                return (false, "Không gửi được email. Kiểm tra cấu hình SMTP và thử lại.");
+            }
+        }
+
         private readonly IConfiguration _configuration;
         private readonly ILogger<MailKitEmailService> _logger;
 
@@ -51,13 +147,17 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.Emails
 
                 var bodyBuilder = new BodyBuilder();
 
-                string FormatVND(double amount)
+                string FormatVND(decimal amount)
                 {
                     return string.Format("{0:#,##0}", amount);
                 }
 
                 string memo = $"THANH TOAN {hoaDon.MaHoaDon}";
                 string qrUrl = $"https://img.vietqr.io/image/{bankId}-{accountNumber}-compact2.png?amount={hoaDon.TongTien}&addInfo={Uri.EscapeDataString(memo)}&accountName={Uri.EscapeDataString(accountName)}";
+
+                string hanThanhToanHtml = string.IsNullOrEmpty(hoaDon.HanThanhToan)
+                    ? ""
+                    : $"<p style='font-weight: bold; color: #d9001b;'>Hạn thanh toán: hết ngày {hoaDon.HanThanhToan}</p>";
 
                 var lineItemsHtml = new StringBuilder();
                 int stt = 1;
@@ -163,7 +263,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.Emails
                 </tr>
             </tbody>
         </table>
-        
+        {hanThanhToanHtml}
         <div class='qr-section'>
             <h3>Quét mã QR để chuyển khoản nhanh</h3>
             <img src='{qrUrl}' alt='VietQR' />
@@ -215,7 +315,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.Emails
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Lỗi hệ thống khi gửi email hóa đơn {MaHoaDon} đến {Email}", hoaDon.MaHoaDon, toEmail);
+                _logger.LogWarning(ex, "Lỗi hệ thống khi gửi email hóa đơn {MaHoaDon}", hoaDon.MaHoaDon);
                 return (false, "Lỗi hệ thống khi gửi email.");
             }
         }
@@ -243,7 +343,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.Emails
 
                 var bodyBuilder = new BodyBuilder();
 
-                string FormatVND(double amount)
+                string FormatVND(decimal amount)
                 {
                     return string.Format("{0:#,##0}", amount);
                 }

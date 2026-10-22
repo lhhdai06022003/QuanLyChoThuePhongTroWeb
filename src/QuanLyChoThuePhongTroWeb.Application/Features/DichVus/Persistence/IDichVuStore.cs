@@ -16,7 +16,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DichVus.Persistence
         void AddDichVu(DichVu entity);
         void UpdateDichVu(DichVu entity);
 
-        Task<DataTableResponse<DichVuChiNhanhRes>> GetPagedDichVuChiNhanhAsync(DataTableRequest request, int chiNhanhId, CancellationToken cancellationToken = default);
+        Task<DataTableResponse<DichVuChiNhanhRes>> GetPagedDichVuChiNhanhAsync(DataTableRequest request, int chiNhanhId, IReadOnlyCollection<int>? allowedBranchIds = null, CancellationToken cancellationToken = default);
         Task<DichVuChiNhanh?> GetDichVuChiNhanhByIdAsync(int id, CancellationToken cancellationToken = default);
         Task<bool> ExistsDichVuChiNhanhAsync(int chiNhanhId, int dichVuId, int excludeId = 0, CancellationToken cancellationToken = default);
         void AddDichVuChiNhanh(DichVuChiNhanh entity);

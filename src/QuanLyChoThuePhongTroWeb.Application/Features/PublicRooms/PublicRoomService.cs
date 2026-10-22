@@ -5,18 +5,18 @@ public sealed class PublicRoomService(IPublicRoomStore store) : IPublicRoomServi
     public async Task<IReadOnlyList<PublicRoomDto>> ListAsync(IReadOnlyCollection<int>? allowedRoomIds,
         CancellationToken cancellationToken = default)
     {
-        var allowed = AllowedIds(allowedRoomIds);
-        if (allowed.Count == 0)
+        var allowed = allowedRoomIds is null ? null : AllowedIds(allowedRoomIds);
+        if (allowed is { Count: 0 })
             return [];
 
         var available = await store.ListAvailableAsync(cancellationToken);
-        return available.Where(room => allowed.Contains(room.PhongTroId)).ToArray();
+        return allowed is null ? available : available.Where(room => allowed.Contains(room.PhongTroId)).ToArray();
     }
 
     public Task<PublicRoomDto?> GetAsync(int id, IReadOnlyCollection<int>? allowedRoomIds,
         CancellationToken cancellationToken = default)
     {
-        if (id <= 0 || !AllowedIds(allowedRoomIds).Contains(id))
+        if (id <= 0 || (allowedRoomIds is not null && !AllowedIds(allowedRoomIds).Contains(id)))
             return Task.FromResult<PublicRoomDto?>(null);
 
         return store.GetAvailableAsync(id, cancellationToken);

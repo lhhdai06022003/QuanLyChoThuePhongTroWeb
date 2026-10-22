@@ -1,16 +1,21 @@
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Identity;
 using QuanLyChoThuePhongTroWeb.Models;
 using QuanLyChoThuePhongTroWeb.Infrastructure;
 using QuanLyChoThuePhongTroWeb.Infrastructure.Persistence;
 using QuanLyChoThuePhongTroWeb.Web.Hubs;
 using System;
+using System.Runtime.ExceptionServices;
+using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Cấu hình Infrastructure & Persistence & Application
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddApplication();
+builder.Services.AddSingleton<QuanLyChoThuePhongTroWeb.Services.PrivateHoldEvidenceFiles>();
 
 // Add services to the container.
 builder.Services.AddControllersWithViews(options =>
@@ -44,12 +49,42 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.Cookie.HttpOnly = true;
         options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
         options.Cookie.SameSite = SameSiteMode.Lax;
+        options.Events = new CookieAuthenticationEvents
+        {
+            OnValidatePrincipal = async context =>
+            {
+                var idValue = context.Principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var roleValue = context.Principal?.FindFirst(ClaimTypes.Role)?.Value;
+                var isValid = false;
+                if (int.TryParse(idValue, out var nguoiDungId) && nguoiDungId > 0
+                    && roleValue != null
+                    && Enum.GetNames<AppRole>().Contains(roleValue, StringComparer.Ordinal))
+                {
+                    var sessionService = context.HttpContext.RequestServices.GetRequiredService<IUserSessionService>();
+                    try
+                    {
+                        isValid = await sessionService.IsSessionValidAsync(nguoiDungId, Enum.Parse<AppRole>(roleValue), context.HttpContext.RequestAborted);
+                    }
+                    catch (Exception ex)
+                    {
+                        context.RejectPrincipal();
+                        context.HttpContext.Items[Program.SessionCheckExceptionKey] = ExceptionDispatchInfo.Capture(ex);
+                        return;
+                    }
+                }
+                if (!isValid)
+                {
+                    context.RejectPrincipal();
+                    await context.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+                }
+            }
+        };
     });
 
 var app = builder.Build();
 
-// Cho phép chạy bản xem trước giao diện mà không đụng tới schema/database lúc khởi động.
-if (builder.Configuration.GetValue("Database:InitializeOnStartup", true))
+// Chỉ chạy migration/seed khi được bật rõ ràng; bản giao diện không tự thay đổi database.
+if (builder.Configuration.GetValue("Database:InitializeOnStartup", false))
 {
     using var scope = app.Services.CreateScope();
     var initializer = scope.ServiceProvider.GetRequiredService<IDatabaseInitializer>();
@@ -69,6 +104,20 @@ app.UseStaticFiles();
 app.UseRouting();
 
 app.UseAuthentication();
+
+app.Use(async (context, next) =>
+{
+    if (context.Items.TryGetValue(Program.SessionCheckExceptionKey, out var captured) && captured is ExceptionDispatchInfo edi)
+    {
+        context.Items.Remove(Program.SessionCheckExceptionKey);
+        if (context.Features.Get<IExceptionHandlerFeature>() == null)
+        {
+            edi.Throw();
+        }
+    }
+    await next();
+});
+
 app.UseAuthorization();
 
 app.MapControllerRoute(
@@ -82,4 +131,7 @@ app.MapHub<QuanLyChoThuePhongTroWeb.Hubs.ThongBaoHub>("/thongBaoHub");
 
 app.Run();
 
-public partial class Program { }
+public partial class Program
+{
+    private static readonly object SessionCheckExceptionKey = new();
+}

@@ -24,7 +24,7 @@
     </div>
     <div class="guest-room-body">
         <p class="room-card-branch">@room.TenChiNhanh</p>
-        <h3><a href="/phong/@room.PhongTroId">Phòng @room.SoPhong</a></h3>
+        <h3><a href="/phong/@room.PhongTroId">@(string.IsNullOrWhiteSpace(room.ListingTitle) ? $"Phòng {room.SoPhong}" : room.ListingTitle)</a></h3>
         <p class="room-card-address"><svg class="room-icon" aria-hidden="true"><use href="#room-location" /></svg><span>@room.DiaChi</span></p>
         <div class="guest-room-facts"><span><svg class="room-icon" aria-hidden="true"><use href="#room-area" /></svg>@room.DienTich.ToString("0.#") m²</span><span><svg class="room-icon" aria-hidden="true"><use href="#room-people" /></svg>Tối đa @room.SoNguoiToiDa người</span></div>
         <div class="guest-room-bottom">

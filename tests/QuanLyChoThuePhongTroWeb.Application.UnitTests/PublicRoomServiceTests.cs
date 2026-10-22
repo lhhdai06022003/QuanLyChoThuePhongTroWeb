@@ -41,6 +41,18 @@ public sealed class PublicRoomServiceTests
         Assert.Equal(0, store.GetCalls);
     }
 
+    [Fact]
+    public async Task MissingLegacyAllowlist_UsesPublishedRoomsFromStore()
+    {
+        var store = new FakeStore();
+        var service = new PublicRoomService(store);
+
+        var rooms = await service.ListAsync(null);
+
+        Assert.Equal(2, rooms.Count);
+        Assert.Equal(1, store.ListCalls);
+    }
+
     private sealed class FakeStore : IPublicRoomStore
     {
         private readonly PublicRoomDto[] rooms =

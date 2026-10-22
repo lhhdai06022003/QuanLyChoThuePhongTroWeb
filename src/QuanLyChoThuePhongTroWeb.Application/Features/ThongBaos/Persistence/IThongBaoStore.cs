@@ -12,7 +12,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.ThongBaos.Persistence
         Task<List<ThongBao>> LayDanhSachTheoNguoiDungAsync(int nguoiDungId, CancellationToken cancellationToken = default);
         Task<NguoiDung?> GetActiveNguoiDungByNguoiThueIdAsync(int nguoiThueId, CancellationToken cancellationToken = default);
         Task<List<int>> GetActiveUserIdsByRoleAsync(Role role, CancellationToken cancellationToken = default);
-        Task<ThongBao?> GetByIdAsync(int thongBaoId, CancellationToken cancellationToken = default);
+        Task<List<int>> GetRoomResponsibleUserIdsAsync(int phongTroId, CancellationToken cancellationToken = default);
         Task<ThongBao?> GetByIdAndUserAsync(int thongBaoId, int nguoiDungId, CancellationToken cancellationToken = default);
         Task<int> LaySoLuongChuaDocAsync(int nguoiDungId, CancellationToken cancellationToken = default);
         Task<List<ThongBao>> GetUnreadByUserAsync(int nguoiDungId, CancellationToken cancellationToken = default);

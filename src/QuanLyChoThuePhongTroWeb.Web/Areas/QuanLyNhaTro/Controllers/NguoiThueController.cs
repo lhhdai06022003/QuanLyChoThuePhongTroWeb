@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Logging;
+using QuanLyChoThuePhongTroWeb.Web.Helpers;
 using System;
 using System.Threading.Tasks;
 
@@ -28,28 +29,28 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         [HttpGet("/NguoiThue/GetAll")]
         public async Task<IActionResult> GetAll()
         {
-            var data = await _nguoiThueService.GetAllAsync();
+            var data = await _nguoiThueService.GetAllAsync(CurrentActorId);
             return Ok(data);
         }
 
         [HttpGet("/NguoiThue/GetAvailable")]
         public async Task<IActionResult> GetAvailable()
         {
-            var data = await _nguoiThueService.GetAvailableAsync();
+            var data = await _nguoiThueService.GetAvailableAsync(CurrentActorId);
             return Ok(data);
         }
 
         [HttpGet("/NguoiThue/GetCoHopDong")]
         public async Task<IActionResult> GetCoHopDong()
         {
-            var data = await _nguoiThueService.DanhSachNguoiThueCoHopDongAsync();
+            var data = await _nguoiThueService.DanhSachNguoiThueCoHopDongAsync(CurrentActorId);
             return Ok(data);
         }
 
         [HttpGet("/NguoiThue/GetById/{id}")]
         public async Task<IActionResult> GetById(int id)
         {
-            var data = await _nguoiThueService.GetByIdAsync(id);
+            var data = await _nguoiThueService.GetByIdForStaffAsync(CurrentActorId, id);
             if (data == null) return NotFound(new { Message = "Không tìm thấy người thuê" });
             return Ok(data);
         }
@@ -59,12 +60,8 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         {
             try
             {
-                var result = await _nguoiThueService.CreateAsync(request);
-                if (!result.IsSuccess)
-                {
-                    return BadRequest(new { Message = result.ErrorMessage });
-                }
-                return Ok(new { Message = "Thêm người thuê thành công!" });
+                var result = await _nguoiThueService.CreateAsync(CurrentActorId, request);
+                return result.Success ? Ok(new { Message = "Thêm người thuê thành công!" }) : this.ToErrorResult(result);
             }
             catch (Exception ex)
             {
@@ -80,12 +77,8 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             {
                 if (id != request.NguoiThueId) return BadRequest(new { Message = "ID không khớp." });
 
-                var result = await _nguoiThueService.UpdateAsync(id, request);
-                if (!result.IsSuccess)
-                {
-                    return BadRequest(new { Message = result.ErrorMessage });
-                }
-                return Ok(new { Message = "Cập nhật thành công!" });
+                var result = await _nguoiThueService.UpdateAsync(CurrentActorId, id, request);
+                return result.Success ? Ok(new { Message = "Cập nhật thành công!" }) : this.ToErrorResult(result);
             }
             catch (Exception ex)
             {
@@ -99,12 +92,8 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         {
             try
             {
-                var result = await _nguoiThueService.DeleteAsync(id);
-                if (!result.IsSuccess)
-                {
-                    return BadRequest(new { Message = result.ErrorMessage });
-                }
-                return Ok(new { Message = "Đã xóa người thuê." });
+                var result = await _nguoiThueService.DeleteAsync(CurrentActorId, id);
+                return result.Success ? Ok(new { Message = "Đã xóa người thuê." }) : this.ToErrorResult(result);
             }
             catch (Exception ex)
             {
@@ -116,21 +105,18 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         [HttpGet("/NguoiThue/SearchAutocomplete")]
         public async Task<IActionResult> SearchAutocomplete(string searchTerm = "")
         {
-            var data = await _nguoiThueService.SearchAutocompleteAsync(searchTerm);
+            var data = await _nguoiThueService.SearchAutocompleteAsync(CurrentActorId, searchTerm);
             return Ok(data);
         }
 
         [HttpPost("/NguoiThue/PhatSinhNgauNhien")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> PhatSinhNgauNhien()
         {
             try
             {
-                var result = await _nguoiThueService.PhatSinhNgauNhienAsync();
-                if (!result.IsSuccess)
-                {
-                    return BadRequest(new { success = false, message = result.ErrorMessage });
-                }
-                return Ok(new { success = true, message = result.ErrorMessage }); // note: service stores output message in ErrorMessage for simplicity
+                var result = await _nguoiThueService.PhatSinhNgauNhienAsync(CurrentActorId);
+                return result.Success ? Ok(new { success = true, message = result.Message }) : this.ToErrorResult(result);
             }
             catch (Exception ex)
             {

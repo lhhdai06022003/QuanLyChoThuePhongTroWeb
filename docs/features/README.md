@@ -2,19 +2,27 @@
 
 Tài liệu này liệt kê chức năng đã có trong mã nguồn hiện tại. Nội dung roadmap được tách riêng ở cuối để tránh nhầm một thiết kế dự kiến với tính năng đang vận hành.
 
-## Xem phòng công khai với schema cũ
+## Theo dõi module
 
-- `/phong` và `/phong/{id}` chỉ đọc thông tin phòng trống từ các bảng `phong_tro` và `chi_nhanh` hiện có. Phòng/chi nhánh đã xóa mềm không hiển thị.
-- Cấu hình `PublicRooms:RoomIds` là danh sách ID được phép công khai. Mặc định rỗng để không vô tình công khai mọi phòng trống. Cấu hình riêng của máy nằm trong `appsettings.json` và không đưa lên Git.
-- Lịch xem, giữ chỗ, chuyển tiền, chuyển hợp đồng từ giữ chỗ và hoàn tiền đang tạm dừng vì schema cũ không có bảng lưu các nghiệp vụ này. Phiên bản mã đầy đủ trước khi tạm dừng được giữ ở nhánh `codex/full-guest-features-backup`.
-- Database dùng migration cuối `20260802160246_ChangeChiTietHoaDonSoLuongToDouble`; không thêm bảng hoặc cột cho cổng phòng công khai.
+Các README sau mô tả **công việc dự kiến và người sở hữu**, tách khỏi danh mục chức năng đang vận hành ở phần dưới. Mỗi thư mục có `README.md`, `spec/`, `plan/`, `review/`. Ba thư mục sau chỉ có `.gitkeep`; tài liệu được viết khi module bắt đầu thực thi. Bốn module đầu thuộc kế hoạch 60 ngày; module cuối thuộc lộ trình vận hành (bước 2).
+
+| Module | Người phụ trách | Hiện trạng |
+| --- | --- | --- |
+| [Ảnh chỉ số, OCR và hóa đơn](anh-chi-so-hoa-don/README.md) | A | Nền database và hóa đơn cũ đã có; luồng mới chưa hoàn chỉnh |
+| [Thanh toán hóa đơn](thanh-toan-hoa-don/README.md) | A | VietQR và một phần Application Service đã có; Web chưa nối đủ |
+| [Phòng công khai và lịch xem](phong-cong-khai-lich-xem/README.md) | B | Có model/schema; chưa có luồng công khai/đặt lịch hoàn chỉnh |
+| [Khách vãng lai, giữ chỗ, cọc và hoàn tiền](khach-vang-lai-giu-cho/README.md) | B | Có model/schema; chưa có luồng Application/Web hoàn chỉnh |
+| [AI Assistant và Thông báo theo chi nhánh](ai-thong-bao-chi-nhanh/README.md) | — | Code xong, review đạt, thử tay đạt 06/10/2026; chưa merge |
+
+Quyền sở hữu file và lịch 60 ngày nằm trong [roadmap](../roadmap-60-ngay.md). Không đánh dấu hoàn thành chỉ vì đã có entity, migration hoặc thư mục tài liệu.
+
 
 ## Vai trò người dùng
 
 | Vai trò | Phạm vi hiện tại |
 | --- | --- |
 | Admin | Truy cập cổng quản lý, tài khoản, cấu hình nghiệp vụ và các thao tác quản trị |
-| NhanVien | Truy cập cổng quản lý theo các controller dùng AdminBaseController; chưa có entity phân công nhân viên theo chi nhánh |
+| NhanVien | Truy cập cổng quản lý theo các controller dùng AdminBaseController; entity phân công chi nhánh đã có nhưng luồng phân quyền mới chưa hoàn chỉnh |
 | KhachThue | Xem dữ liệu gắn với claim NguoiThueId: dashboard, hồ sơ, hợp đồng, hóa đơn, thanh toán, sự cố và thông báo |
 
 ## Cổng quản lý
@@ -62,7 +70,7 @@ Tài liệu này liệt kê chức năng đã có trong mã nguồn hiện tại
 - Chỉnh sửa, xem chi tiết và xóa mềm hóa đơn theo quy tắc hiện tại.
 - Ghi nhận thu tiền mặt hoặc chuyển khoản và người xác nhận.
 - Xuất Excel/PDF, gửi email kèm PDF và sinh VietQR.
-- Trạng thái hiện có chỉ gồm ChuaThanhToan và DaThanhToan; chưa có trạng thái nháp/duyệt.
+- Giao diện vận hành hiện chủ yếu dùng trạng thái thanh toán ChuaThanhToan/DaThanhToan; model trạng thái phát hành đã có nhưng luồng nháp/chốt chưa hoàn chỉnh.
 
 ### Lịch sử thanh toán
 
@@ -85,13 +93,15 @@ Tài liệu này liệt kê chức năng đã có trong mã nguồn hiện tại
 ### Thông báo thời gian thực
 
 - Lưu thông báo theo người dùng hoặc role.
-- Đếm chưa đọc, đánh dấu một/tất cả đã đọc và xóa thông báo.
+- Đếm chưa đọc, đánh dấu một/tất cả đã đọc và xóa thông báo; chỉ đánh dấu được thông báo của chính mình.
+- Sự cố mới chỉ gửi Admin và nhân viên được phân công chi nhánh của phòng.
 - SignalR hub tại /thongBaoHub đẩy cập nhật tới giao diện đang kết nối.
 
 ### Trợ lý AI
 
-- Widget và controller dành cho cổng quản lý.
-- Infrastructure gọi Gemini và cung cấp các công cụ truy vấn dữ liệu vận hành như phòng, hóa đơn, điện nước và doanh thu.
+- Widget có ở cả cổng quản lý và cổng khách thuê, mỗi cổng gọi endpoint riêng; lịch sử chat lưu theo tài khoản.
+- Admin và nhân viên dùng 9 công cụ quản lý; nhân viên chỉ thấy dữ liệu chi nhánh được phân công. Khách thuê dùng 3 công cụ chỉ đọc dữ liệu của mình.
+- Application điều phối tool calling (tối đa 3 vòng, 5 lời gọi mỗi vòng) và tự tính số liệu; Infrastructure chỉ lo gọi Gemini và truy vấn.
 - AI đọc dữ liệu qua service hạ tầng; không được xem là nguồn quyết định thanh toán hoặc thay thế validation nghiệp vụ.
 
 ## Cổng khách thuê
@@ -132,4 +142,4 @@ Các mục sau có tài liệu thiết kế hoặc thư mục khung nhưng chưa
 - Hóa đơn nháp và quy trình duyệt trước khi gửi.
 - Mobile app, IoT và CI workflow.
 
-Hai migration nền đã được thiết kế nhưng chưa tạo trong mã nguồn: Migration 1 thêm 7 bảng và Migration 2 thêm 15 bảng, đưa mô hình dự kiến từ 17 lên 39 bảng nghiệp vụ. Xem [roadmap 60 ngày](../roadmap-60-ngay.md), [spec hai migration](../superpowers/specs/2026-09-21-database-foundation-two-migrations-design.md) và hai kế hoạch triển khai trong [superpowers/plans](../superpowers/plans/).
+Migration 1 và Migration 2 đã có trong mã nguồn, lần lượt thêm 5 và 15 bảng; EF model và kiểm thử kỳ vọng 37 bảng nghiệp vụ. Lần đối chiếu này chưa xác minh lại database đang chạy. Xem [roadmap 60 ngày](../roadmap-60-ngay.md), [spec hai migration](../superpowers/specs/2026-09-21-database-foundation-two-migrations-design.md) và hai kế hoạch triển khai trong [superpowers/plans](../superpowers/plans/).

@@ -23,11 +23,11 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.DTOs
 
         public DateTime? ThoiDiemKetThuc { get; set; }
 
-        [Range(0, double.MaxValue, ErrorMessage = "Tiền cọc phòng phải lớn hơn hoặc bằng 0.")]
-        public double TienCocPhong { get; set; }
+        [Range(0, (double)decimal.MaxValue, ErrorMessage = "Tiền cọc phòng phải lớn hơn hoặc bằng 0.")]
+        public decimal TienCocPhong { get; set; }
 
-        [Range(1, double.MaxValue, ErrorMessage = "Tiền thuê phòng phải lớn hơn 0.")]
-        public double TienThuePhong { get; set; }
+        [Range(1, (double)decimal.MaxValue, ErrorMessage = "Tiền thuê phòng phải lớn hơn 0.")]
+        public decimal TienThuePhong { get; set; }
 
         public AppTrangThaiHopDong TrangThaiHopDong { get; set; } = AppTrangThaiHopDong.DangHoatDong;
 

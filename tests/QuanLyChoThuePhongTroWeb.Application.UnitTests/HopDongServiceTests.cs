@@ -17,6 +17,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
 {
     public class HopDongServiceTests
     {
+        private const int AdminId = 1;
+
         private class FakeApplicationTransaction : IApplicationTransaction
         {
             public bool Committed { get; private set; }
@@ -147,11 +149,21 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             public void UpdatePhongTro(PhongTro phongTro) => UpdatedRooms.Add(phongTro);
             public void RemoveTerms(IEnumerable<HopDongDieuKhoan> terms) { }
 
+            public HopDongFilterReq? LastFilter { get; private set; }
+            public HopDongDetailRes? Detail { get; set; }
+            public HopDongPrintRes? Print { get; set; }
+
+            public Task<DataTableResponse<HopDongRes>> GetDataTableResponseAsync(HopDongFilterReq request, CancellationToken cancellationToken = default)
+            {
+                LastFilter = request;
+                return Task.FromResult(new DataTableResponse<HopDongRes> { draw = request.Draw });
+            }
+
+            public Task<HopDongDetailRes?> GetDetailByIdAsync(int id, CancellationToken cancellationToken = default) => Task.FromResult(Detail);
+            public Task<HopDongPrintRes?> GetPrintDataAsync(int id, CancellationToken cancellationToken = default) => Task.FromResult(Print);
+
             // Not used
-            public Task<DataTableResponse<HopDongRes>> GetDataTableResponseAsync(HopDongFilterReq request, CancellationToken cancellationToken = default) => throw new NotImplementedException();
-            public Task<HopDongDetailRes?> GetDetailByIdAsync(int id, CancellationToken cancellationToken = default) => throw new NotImplementedException();
             public Task<HopDong?> GetByIdAsync(int id, CancellationToken cancellationToken = default) => throw new NotImplementedException();
-            public Task<HopDongPrintRes?> GetPrintDataAsync(int id, CancellationToken cancellationToken = default) => throw new NotImplementedException();
             public Task<IReadOnlyList<HopDong>> GetHopDongsByNguoiThueIdAsync(int nguoiThueId, CancellationToken cancellationToken = default) => throw new NotImplementedException();
             public Task<HopDongKhachThueDetailDto?> GetChiTietHopDongKhachThueAsync(int id, int nguoiThueId, CancellationToken cancellationToken = default) => throw new NotImplementedException();
             public Task<IReadOnlyList<HopDong>> GetExpiredActiveContractsAsync(DateTime nowUtc, CancellationToken cancellationToken = default) => throw new NotImplementedException();
@@ -161,7 +173,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
 
         private HopDongService CreateService(StubHopDongStore store, FakeUnitOfWork uow)
         {
-            return new HopDongService(store, uow, new FakePasswordService());
+            return new HopDongService(store, uow, new FakePasswordService(), new Fakes.FakeEmployeeAccessService { ScopeToReturn = new Common.Security.EmployeeAccessScope(AdminId, true) }, new Fakes.FakeTenantVisibilityStore());
         }
 
         [Fact]
@@ -181,7 +193,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
                 TienCocPhong = 3000000
             };
 
-            var (isSuccess, error) = await service.CreateAsync(input);
+            var outcome = await service.CreateAsync(AdminId, input);
+            var (isSuccess, error) = (outcome.Success, outcome.Message);
 
             Assert.False(isSuccess);
             Assert.Contains("kết thúc", error!);
@@ -203,7 +216,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
                 TienCocPhong = 3000000
             };
 
-            var (isSuccess, error) = await service.CreateAsync(input);
+            var outcome = await service.CreateAsync(AdminId, input);
+            var (isSuccess, error) = (outcome.Success, outcome.Message);
 
             Assert.False(isSuccess);
             Assert.Contains("hợp đồng hiệu lực", error!);
@@ -225,7 +239,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
                 TienCocPhong = 3000000
             };
 
-            var (isSuccess, error) = await service.CreateAsync(input);
+            var outcome = await service.CreateAsync(AdminId, input);
+            var (isSuccess, error) = (outcome.Success, outcome.Message);
 
             Assert.False(isSuccess);
             Assert.Contains("đứng tên", error!);
@@ -268,7 +283,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
                 NguoiDungCoOPhongKhong = true
             };
 
-            var (isSuccess, _) = await service.CreateAsync(input);
+            var outcome = await service.CreateAsync(AdminId, input);
+            var (isSuccess, _) = (outcome.Success, outcome.Message);
 
             Assert.True(isSuccess);
             Assert.True(uow.LastTransaction!.Committed);
@@ -293,7 +309,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             var uow = new FakeUnitOfWork();
             var service = CreateService(store, uow);
 
-            var (isSuccess, error) = await service.DeleteAsync(1);
+            var outcome = await service.DeleteAsync(AdminId, 1);
+            var (isSuccess, error) = (outcome.Success, outcome.Message);
 
             Assert.False(isSuccess);
             Assert.Contains("Hoạt động", error!);
@@ -306,7 +323,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             var uow = new FakeUnitOfWork();
             var service = CreateService(store, uow);
 
-            var (isSuccess, error) = await service.DeleteAsync(999);
+            var outcome = await service.DeleteAsync(AdminId, 999);
+            var (isSuccess, error) = (outcome.Success, outcome.Message);
 
             Assert.False(isSuccess);
             Assert.Contains("Không tìm thấy", error!);
@@ -336,7 +354,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             var uow = new FakeUnitOfWork();
             var service = CreateService(store, uow);
 
-            var (isSuccess, _) = await service.DeleteAsync(5);
+            var outcome = await service.DeleteAsync(AdminId, 5);
+            var (isSuccess, _) = (outcome.Success, outcome.Message);
 
             Assert.True(isSuccess);
             Assert.True(contract.IsDeleted);
@@ -370,7 +389,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
                 TrangThaiHopDong = (Application.Common.Enums.AppTrangThaiHopDong)(int)TrangThaiHopDong.DangHoatDong
             };
 
-            var (isSuccess, error) = await service.UpdateAsync(1, input);
+            var outcome = await service.UpdateAsync(AdminId, 1, input);
+            var (isSuccess, error) = (outcome.Success, outcome.Message);
 
             Assert.False(isSuccess);
             Assert.Contains("cốt lõi", error!);
@@ -407,10 +427,94 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
                 TrangThaiHopDong = (Application.Common.Enums.AppTrangThaiHopDong)(int)TrangThaiHopDong.DaHuy
             };
 
-            var (isSuccess, error) = await service.UpdateAsync(1, input);
+            var outcome = await service.UpdateAsync(AdminId, 1, input);
+            var (isSuccess, error) = (outcome.Success, outcome.Message);
 
             Assert.False(isSuccess);
             Assert.Contains("hóa đơn", error!);
+        }
+        // ---------- Phạm vi chi nhánh ----------
+
+        private const int StaffId = 7;
+
+        private static HopDongService CreateStaffService(StubHopDongStore store, int[] branches, Fakes.FakeTenantVisibilityStore? tenants = null) =>
+            new(store, new FakeUnitOfWork(), new FakePasswordService(),
+                new Fakes.FakeEmployeeAccessService { ScopeToReturn = new Common.Security.EmployeeAccessScope(StaffId, false, branches) },
+                tenants ?? new Fakes.FakeTenantVisibilityStore());
+
+        [Fact]
+        public async Task Staff_List_IsFilteredToAssignedBranches_AndOtherBranchFilterIsEmpty()
+        {
+            var store = new StubHopDongStore();
+            var service = CreateStaffService(store, new[] { 1 });
+
+            await service.DanhSachHopDongSideAsync(StaffId, new HopDongFilterReq { AllowedBranchIds = null });
+            Assert.Equal(new[] { 1 }, store.LastFilter!.AllowedBranchIds);
+
+            store = new StubHopDongStore();
+            service = CreateStaffService(store, new[] { 1 });
+            var page = await service.DanhSachHopDongSideAsync(StaffId, new HopDongFilterReq { ChiNhanhId = 2, Draw = 4 });
+            Assert.Null(store.LastFilter);
+            Assert.Equal(4, page.draw);
+        }
+
+        [Fact]
+        public async Task Admin_List_IsNotFiltered_EvenIfClientSendsBranches()
+        {
+            var store = new StubHopDongStore();
+            var service = CreateService(store, new FakeUnitOfWork());
+
+            await service.DanhSachHopDongSideAsync(AdminId, new HopDongFilterReq { AllowedBranchIds = new[] { 99 } });
+
+            Assert.Null(store.LastFilter!.AllowedBranchIds);
+        }
+
+        [Fact]
+        public async Task Staff_ReadContractOfOtherBranch_ReturnsNull()
+        {
+            var store = new StubHopDongStore
+            {
+                Detail = new HopDongDetailRes { HopDongId = 3, ChiNhanhId = 2 },
+                Print = new HopDongPrintRes { HopDongId = 3, ChiNhanhId = 2 }
+            };
+            var service = CreateStaffService(store, new[] { 1 });
+
+            Assert.Null(await service.GetByIdAsync(StaffId, 3));
+            Assert.Null(await service.GetPrintDataAsync(StaffId, 3));
+        }
+
+        [Fact]
+        public async Task Staff_WriteContractInOtherBranch_IsForbidden()
+        {
+            var room = new PhongTro { PhongTroId = 10, ChiNhanhId = 2, SoNguoiToiDa = 3 };
+            var store = new StubHopDongStore
+            {
+                Room = room,
+                ActiveContract = new HopDong { HopDongId = 5, PhongTroId = 10, TrangThaiHopDong = TrangThaiHopDong.DaKetThuc }
+            };
+            var service = CreateStaffService(store, new[] { 1 });
+            var input = new HopDongReq { PhongTroId = 10, NguoiThueId = 1, ThoiDiemBatDau = DateTime.UtcNow, HopDongId = 5 };
+
+            Assert.Equal(ServiceErrorKind.Forbidden, (await service.CreateAsync(StaffId, input)).ErrorKind);
+            Assert.Equal(ServiceErrorKind.Forbidden, (await service.UpdateAsync(StaffId, 5, input)).ErrorKind);
+            Assert.Equal(ServiceErrorKind.Forbidden, (await service.DeleteAsync(StaffId, 5)).ErrorKind);
+            Assert.Empty(store.AddedContracts);
+            Assert.Empty(store.UpdatedContracts);
+        }
+        [Fact]
+        public async Task Staff_CreateContract_WithTenantOfOtherBranch_IsForbidden()
+        {
+            var store = new StubHopDongStore { Room = new PhongTro { PhongTroId = 10, ChiNhanhId = 1, SoNguoiToiDa = 3 } };
+            var tenants = new Fakes.FakeTenantVisibilityStore();
+            tenants.Hidden.Add(42);
+            var service = CreateStaffService(store, new[] { 1 }, tenants);
+
+            var asSigner = await service.CreateAsync(StaffId, new HopDongReq { PhongTroId = 10, NguoiThueId = 42, ThoiDiemBatDau = DateTime.UtcNow });
+            var asMember = await service.CreateAsync(StaffId, new HopDongReq { PhongTroId = 10, NguoiThueId = 1, ThanhVienKhacIds = new List<int> { 42 }, ThoiDiemBatDau = DateTime.UtcNow });
+
+            Assert.Equal(ServiceErrorKind.Forbidden, asSigner.ErrorKind);
+            Assert.Equal(ServiceErrorKind.Forbidden, asMember.ErrorKind);
+            Assert.Empty(store.AddedContracts);
         }
     }
 }

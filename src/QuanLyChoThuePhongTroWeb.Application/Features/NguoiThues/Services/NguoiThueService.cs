@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Persistence;
+using QuanLyChoThuePhongTroWeb.Application.Abstractions.Security;
 using QuanLyChoThuePhongTroWeb.Application.Common.Models;
+using QuanLyChoThuePhongTroWeb.Application.Common.Security;
 using QuanLyChoThuePhongTroWeb.Application.Features.NguoiThues.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.NguoiThues.Persistence;
 using QuanLyChoThuePhongTroWeb.Domain.Entities;
@@ -11,13 +13,23 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.NguoiThues.Services
 {
     public class NguoiThueService : INguoiThueService
     {
+        private const string KhongTimThay = "Không tìm thấy người thuê.";
+
         private readonly INguoiThueStore _store;
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IEmployeeAccessService _access;
 
-        public NguoiThueService(INguoiThueStore store, IUnitOfWork unitOfWork)
+        public NguoiThueService(INguoiThueStore store, IUnitOfWork unitOfWork, IEmployeeAccessService access)
         {
             _store = store;
             _unitOfWork = unitOfWork;
+            _access = access;
+        }
+
+
+        private async Task<bool> IsVisibleAsync(EmployeeAccessScope scope, int nguoiThueId)
+        {
+            return scope.IsAdmin || await _store.IsVisibleAsync(nguoiThueId, scope.AllowedBranchIds!);
         }
 
         private static NguoiThueRes MapToRes(NguoiThue entity)
@@ -38,9 +50,12 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.NguoiThues.Services
             };
         }
 
-        public async Task<IEnumerable<NguoiThueRes>> GetAllAsync()
+        public async Task<IEnumerable<NguoiThueRes>> GetAllAsync(int actorId)
         {
-            var list = await _store.GetAllAsync();
+            var scope = await _access.GetScopeAsync(actorId);
+            if (scope == null) return new List<NguoiThueRes>();
+
+            var list = await _store.GetAllAsync(scope.AllowedBranchIds);
             var result = new List<NguoiThueRes>();
             foreach (var item in list)
             {
@@ -49,9 +64,12 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.NguoiThues.Services
             return result;
         }
 
-        public async Task<IEnumerable<NguoiThueRes>> GetAvailableAsync()
+        public async Task<IEnumerable<NguoiThueRes>> GetAvailableAsync(int actorId)
         {
-            var list = await _store.GetAvailableAsync();
+            var scope = await _access.GetScopeAsync(actorId);
+            if (scope == null) return new List<NguoiThueRes>();
+
+            var list = await _store.GetAvailableAsync(scope.AllowedBranchIds);
             var result = new List<NguoiThueRes>();
             foreach (var item in list)
             {
@@ -66,7 +84,24 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.NguoiThues.Services
             return entity == null ? null : MapToRes(entity);
         }
 
-        public async Task<(bool IsSuccess, string? ErrorMessage)> CreateAsync(NguoiThueReq input)
+        public async Task<NguoiThueRes?> GetByIdForStaffAsync(int actorId, int id)
+        {
+            var scope = await _access.GetScopeAsync(actorId);
+            if (scope == null || !await IsVisibleAsync(scope, id)) return null;
+
+            return await GetByIdAsync(id);
+        }
+
+        public async Task<ServiceResult> CreateAsync(int actorId, NguoiThueReq input)
+        {
+            // Người thuê mới chưa có hợp đồng nên không thuộc chi nhánh nào; chỉ cần actor hợp lệ.
+            if (await _access.GetScopeAsync(actorId) == null)
+                return ServiceResult.Forbidden("Bạn không có quyền thêm người thuê.");
+
+            return ServiceResult.FromTuple(await CreateCoreAsync(input));
+        }
+
+        private async Task<(bool IsSuccess, string? ErrorMessage)> CreateCoreAsync(NguoiThueReq input)
         {
             try
             {
@@ -99,13 +134,17 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.NguoiThues.Services
             }
         }
 
-        public async Task<(bool IsSuccess, string? ErrorMessage)> UpdateAsync(int id, NguoiThueUpdateDto input)
+        public async Task<ServiceResult> UpdateAsync(int actorId, int id, NguoiThueUpdateDto input)
         {
             var entity = await _store.GetByIdAsync(id);
-            if (entity == null) return (false, "Không tìm thấy người thuê.");
+            if (entity == null) return ServiceResult.NotFound(KhongTimThay);
+
+            var scope = await _access.GetScopeAsync(actorId);
+            if (scope == null || !await IsVisibleAsync(scope, id))
+                return ServiceResult.Forbidden("Bạn không có quyền cập nhật người thuê thuộc chi nhánh khác.");
 
             bool isDuplicate = await _store.ExistsDuplicateAsync(input.CCCD, input.SoDienThoai, input.Email, id);
-            if (isDuplicate) return (false, "CCCD, Số điện thoại hoặc Email bị trùng với khách khác.");
+            if (isDuplicate) return ServiceResult.Fail("CCCD, Số điện thoại hoặc Email bị trùng với khách khác.");
 
             entity.HoVaTen = input.HoVaTen;
             entity.Email = input.Email;
@@ -119,55 +158,66 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.NguoiThues.Services
             entity.NgayCapNhat = DateTime.UtcNow;
 
             await _unitOfWork.SaveChangesAsync();
-            return (true, string.Empty);
+            return ServiceResult.Ok();
         }
 
-        public async Task<(bool IsSuccess, string? ErrorMessage)> DeleteAsync(int id)
+        public async Task<ServiceResult> DeleteAsync(int actorId, int id)
         {
             var entity = await _store.GetByIdAsync(id);
-            if (entity == null) return (false, "Không tìm thấy người thuê.");
+            if (entity == null) return ServiceResult.NotFound(KhongTimThay);
+
+            var scope = await _access.GetScopeAsync(actorId);
+            if (scope == null || !await IsVisibleAsync(scope, id))
+                return ServiceResult.Forbidden("Bạn không có quyền xóa người thuê thuộc chi nhánh khác.");
 
             bool laDaiDienHopDongHoatDong = await _store.IsDaiDienHopDongHoatDongAsync(id);
             if (laDaiDienHopDongHoatDong)
             {
-                return (false, "Không thể xóa do người thuê đang là đại diện ký hợp đồng còn hiệu lực.");
+                return ServiceResult.Fail("Không thể xóa do người thuê đang là đại diện ký hợp đồng còn hiệu lực.");
             }
 
             bool laThanhVienHopDongHoatDong = await _store.IsThanhVienHopDongHoatDongAsync(id);
             if (laThanhVienHopDongHoatDong)
             {
-                return (false, "Không thể xóa do người thuê đang là thành viên ở chung trong một hợp đồng còn hiệu lực.");
+                return ServiceResult.Fail("Không thể xóa do người thuê đang là thành viên ở chung trong một hợp đồng còn hiệu lực.");
             }
 
             entity.IsDeleted = true;
             entity.NgayCapNhat = DateTime.UtcNow;
             await _unitOfWork.SaveChangesAsync();
 
-            return (true, string.Empty);
+            return ServiceResult.Ok();
         }
 
-        public async Task<IReadOnlyList<SelectOptionDto>> DanhSachNguoiThue()
+        public async Task<IReadOnlyList<SelectOptionDto>> DanhSachNguoiThue(int actorId)
         {
-            return await _store.GetDropdownListAsync();
+            var scope = await _access.GetScopeAsync(actorId);
+            return scope == null ? Array.Empty<SelectOptionDto>() : await _store.GetDropdownListAsync(scope.AllowedBranchIds);
         }
 
-        public async Task<IReadOnlyList<SelectOptionDto>> DanhSachNguoiThueChuaCoPhong()
+        public async Task<IReadOnlyList<SelectOptionDto>> DanhSachNguoiThueChuaCoPhong(int actorId)
         {
-            return await _store.GetDropdownChuaCoPhongAsync();
+            var scope = await _access.GetScopeAsync(actorId);
+            return scope == null ? Array.Empty<SelectOptionDto>() : await _store.GetDropdownChuaCoPhongAsync(scope.AllowedBranchIds);
         }
 
-        public async Task<IReadOnlyList<SelectOptionDto>> DanhSachNguoiThueCoHopDongAsync()
+        public async Task<IReadOnlyList<SelectOptionDto>> DanhSachNguoiThueCoHopDongAsync(int actorId)
         {
-            return await _store.GetDropdownCoHopDongAsync();
+            var scope = await _access.GetScopeAsync(actorId);
+            return scope == null ? Array.Empty<SelectOptionDto>() : await _store.GetDropdownCoHopDongAsync(scope.AllowedBranchIds);
         }
 
-        public async Task<IReadOnlyList<NguoiThueAutocompleteDto>> SearchAutocompleteAsync(string searchTerm)
+        public async Task<IReadOnlyList<NguoiThueAutocompleteDto>> SearchAutocompleteAsync(int actorId, string searchTerm)
         {
-            return await _store.SearchAutocompleteAsync(searchTerm);
+            var scope = await _access.GetScopeAsync(actorId);
+            return scope == null ? Array.Empty<NguoiThueAutocompleteDto>() : await _store.SearchAutocompleteAsync(searchTerm, scope.AllowedBranchIds);
         }
 
-        public async Task<(bool IsSuccess, string? ErrorMessage)> PhatSinhNgauNhienAsync()
+        public async Task<ServiceResult> PhatSinhNgauNhienAsync(int actorId)
         {
+            if ((await _access.GetScopeAsync(actorId))?.IsAdmin != true)
+                return ServiceResult.Forbidden("Chỉ Admin được phát sinh người thuê ngẫu nhiên.");
+
             var random = new Random();
 
             string[] hoList = { "Nguyễn", "Trần", "Lê", "Phạm", "Hoàng", "Huỳnh", "Phan", "Vũ", "Võ", "Đặng" };
@@ -196,7 +246,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.NguoiThues.Services
             }
 
             await _unitOfWork.SaveChangesAsync();
-            return (true, $"Đã thêm 10 người thuê ngẫu nhiên thành công: {string.Join(", ", addedTenants)}");
+            return ServiceResult.Ok($"Đã thêm 10 người thuê ngẫu nhiên thành công: {string.Join(", ", addedTenants)}");
         }
     }
 }

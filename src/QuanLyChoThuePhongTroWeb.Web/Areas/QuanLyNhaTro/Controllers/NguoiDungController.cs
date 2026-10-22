@@ -30,11 +30,16 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         {
             if (User.Identity != null && User.Identity.IsAuthenticated)
             {
-                if (User.IsInRole("KhachThue") && Url.IsLocalUrl(returnUrl) &&
-                    !returnUrl!.Contains("/QuanLyNhaTro", StringComparison.OrdinalIgnoreCase))
-                    return LocalRedirect(returnUrl);
+                if ((User.IsInRole("KhachThue") || User.IsInRole("KhachVangLai")) &&
+                    Url.IsLocalUrl(returnUrl) &&
+                    !returnUrl.Contains("/QuanLyNhaTro", StringComparison.OrdinalIgnoreCase))
+                    return Redirect(returnUrl);
 
                 if (User.IsInRole("KhachThue"))
+                {
+                    return RedirectToAction("Index", "Dashboard", new { area = "KhachThue" });
+                }
+                if (User.IsInRole("KhachVangLai"))
                 {
                     return RedirectToAction("Index", "Dashboard", new { area = "KhachThue" });
                 }
@@ -98,6 +103,15 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
                 return RedirectToAction("Index", "Dashboard", new { area = "KhachThue" });
             }
 
+            if (user.Role == QuanLyChoThuePhongTroWeb.Application.Common.Enums.AppRole.KhachVangLai)
+            {
+                if (Url.IsLocalUrl(returnUrl) &&
+                    !returnUrl.Contains("/QuanLyNhaTro", StringComparison.OrdinalIgnoreCase))
+                    return Redirect(returnUrl);
+
+                return RedirectToAction("Index", "Dashboard", new { area = "KhachThue" });
+            }
+
             if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
             {
                 return Redirect(returnUrl);
@@ -112,12 +126,14 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DangXuat()
         {
-            var isCustomer = User.Identity?.IsAuthenticated != true || User.IsInRole("KhachThue");
+            var isCustomer = User.Identity?.IsAuthenticated != true ||
+                User.IsInRole("KhachVangLai") || User.IsInRole("KhachThue");
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
             if (isCustomer) return Redirect("/phong");
             return RedirectToAction("DangNhap", "NguoiDung", new { area = "QuanLyNhaTro" });
         }
 
+        [Authorize(Roles = "Admin")]
         [Route("QuanLyNhaTro/QuanLyTaiKhoanDangNhap")]
         public IActionResult QuanLyTaiKhoanDangNhap()
         {
@@ -126,6 +142,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         }
 
         // 1. API: Lấy danh sách tài khoản
+        [Authorize(Roles = "Admin")]
         [HttpGet]
         [Route("QuanLyNhaTro/NguoiDung/GetAllApi")]
         public async Task<IActionResult> GetAllApi()
@@ -135,6 +152,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         }
 
         // 2. API: Lấy chi tiết tài khoản theo ID
+        [Authorize(Roles = "Admin")]
         [HttpGet]
         [Route("QuanLyNhaTro/NguoiDung/GetByIdApi/{id}")]
         public async Task<IActionResult> GetByIdApi(int id)
@@ -148,6 +166,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         }
 
         // 3. API: Thêm mới tài khoản
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         [Route("QuanLyNhaTro/NguoiDung/CreateApi")]
         public async Task<IActionResult> CreateApi([FromBody] QuanLyChoThuePhongTroWeb.Application.Features.NguoiDungs.DTOs.CreateNguoiDungReq nguoiDung)
@@ -175,6 +194,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         }
 
         // 4. API: Cập nhật tài khoản
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         [Route("QuanLyNhaTro/NguoiDung/EditApi/{id}")]
         public async Task<IActionResult> EditApi(int id, [FromBody] QuanLyChoThuePhongTroWeb.Application.Features.NguoiDungs.DTOs.EditNguoiDungReq dataGiaoDien)
@@ -202,6 +222,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         }
 
         // 5. API: Xóa mềm tài khoản
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         [Route("QuanLyNhaTro/NguoiDung/DeleteApi/{id}")]
         public async Task<IActionResult> DeleteApi(int id)
@@ -219,6 +240,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         }
 
         // 6. API: Đặt lại mật khẩu về số điện thoại
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         [Route("QuanLyNhaTro/NguoiDung/ResetPasswordToPhoneApi/{id}")]
         public async Task<IActionResult> ResetPasswordToPhoneApi(int id)

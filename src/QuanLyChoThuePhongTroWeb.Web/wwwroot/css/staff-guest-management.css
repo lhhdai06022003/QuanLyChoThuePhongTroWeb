@@ -1,0 +1,168 @@
+.guest-admin {
+    max-width: 1500px;
+}
+
+.guest-admin .page-title {
+    font-size: clamp(1.5rem, 2vw, 1.875rem);
+    line-height: 1.2;
+}
+
+.guest-admin-notice {
+    border-left: 3px solid var(--tblr-info);
+    margin-bottom: 1.25rem;
+}
+
+.guest-admin-stat {
+    min-height: 88px;
+    gap: .15rem;
+}
+
+.guest-admin-stat span {
+    color: var(--tblr-secondary);
+    font-size: .8125rem;
+}
+
+.guest-admin-stat strong {
+    font-size: 1.45rem;
+    line-height: 1.25;
+    font-variant-numeric: tabular-nums;
+}
+
+.guest-admin-table .card-header,
+.guest-admin-workflow .card-header {
+    min-height: 58px;
+}
+
+.guest-admin-table .table {
+    margin-bottom: 0;
+}
+
+.guest-admin-table .table th {
+    white-space: nowrap;
+    font-size: .75rem;
+    font-weight: 600;
+    color: var(--tblr-secondary);
+}
+
+.guest-admin-table .table td {
+    padding-top: .75rem;
+    padding-bottom: .75rem;
+}
+
+.guest-admin-table .badge {
+    white-space: nowrap;
+}
+
+.guest-admin-cover {
+    width: 56px;
+    height: 44px;
+    flex: 0 0 56px;
+    border-radius: 6px;
+    object-fit: cover;
+    border: 1px solid var(--tblr-border-color);
+}
+
+.guest-admin-cover-empty {
+    display: grid;
+    place-items: center;
+    background: var(--tblr-bg-surface-secondary);
+    color: var(--tblr-secondary);
+    font-size: 1.15rem;
+}
+
+.guest-admin-empty {
+    height: 180px;
+    text-align: center;
+    color: var(--tblr-secondary);
+}
+
+.guest-admin-empty i,
+.guest-admin-empty strong,
+.guest-admin-empty span {
+    display: block;
+}
+
+.guest-admin-empty i {
+    font-size: 1.6rem;
+    margin-bottom: .35rem;
+}
+
+.guest-admin-empty strong {
+    color: var(--tblr-body-color);
+    font-weight: 600;
+    margin-bottom: .2rem;
+}
+
+.guest-admin-empty span {
+    font-size: .875rem;
+}
+
+.guest-admin-proof {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    min-height: 70px;
+    padding: .875rem;
+    border: 1px dashed var(--tblr-border-color);
+    border-radius: 6px;
+    color: var(--tblr-secondary);
+    background: var(--tblr-bg-surface-secondary);
+}
+
+.guest-admin-proof i {
+    font-size: 1.3rem;
+}
+
+.guest-admin-mode {
+    font-size: .8125rem;
+    padding: .55rem .7rem;
+}
+
+.guest-admin-workflow-icon {
+    color: var(--tblr-primary);
+    font-size: 1.5rem;
+    line-height: 1;
+}
+
+.guest-admin-mail-meta {
+    display: grid;
+    grid-template-columns: 100px minmax(0, 1fr);
+    gap: .4rem 1rem;
+    margin-bottom: 1rem;
+}
+
+.guest-admin-mail-meta dt {
+    color: var(--tblr-secondary);
+    font-weight: 500;
+}
+
+.guest-admin-mail-meta dd {
+    margin: 0;
+    font-weight: 600;
+}
+
+.guest-admin-mail-body {
+    border: 1px solid var(--tblr-border-color);
+    border-radius: 6px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1rem;
+    line-height: 1.6;
+}
+
+.guest-admin-mail-body p:last-child {
+    margin-bottom: 0;
+}
+
+@media (max-width: 767px) {
+    .guest-admin {
+        padding-top: 1rem !important;
+    }
+
+    .guest-admin-table .table {
+        min-width: 720px;
+    }
+
+    .guest-admin-empty {
+        height: 150px;
+    }
+}

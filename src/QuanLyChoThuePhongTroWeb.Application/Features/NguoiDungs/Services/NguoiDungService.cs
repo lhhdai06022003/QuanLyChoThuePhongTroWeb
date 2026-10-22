@@ -83,8 +83,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.NguoiDungs.Services
                         TenDangNhap = user.TenDangNhap,
                         Role = (AppRole)(int)user.Role,
                         NguoiThueId = user.NguoiThueId,
-                        HoVaTen = user.NguoiThue?.HoVaTen,
-                        Email = user.NguoiThue?.Email,
+                        HoVaTen = user.NguoiThue?.HoVaTen ?? user.KhachVangLai?.HoTen,
+                        Email = user.NguoiThue?.Email ?? user.KhachVangLai?.Email,
                         IsActive = user.IsActive
                     };
                 }

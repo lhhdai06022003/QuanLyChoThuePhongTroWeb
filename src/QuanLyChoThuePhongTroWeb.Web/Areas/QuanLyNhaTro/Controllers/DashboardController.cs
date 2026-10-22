@@ -23,7 +23,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             int selectedYear = year ?? today.Year;
             int selectedMonth = month ?? today.Month;
 
-            var dto = await _dashboardService.GetDashboardDataAsync(branchId, selectedYear, selectedMonth);
+            var dto = await _dashboardService.GetDashboardDataAsync(CurrentActorId, branchId, selectedYear, selectedMonth);
             var model = DashboardViewModel.FromDto(dto);
             return View(model);
         }
@@ -31,7 +31,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         [HttpGet("/QuanLyNhaTro/Dashboard/GetAjaxData")]
         public async Task<IActionResult> GetAjaxData(int? branchId, int year, int month)
         {
-            var model = await _dashboardService.GetDashboardDataAsync(branchId, year, month);
+            var model = await _dashboardService.GetDashboardDataAsync(CurrentActorId, branchId, year, month);
             
             return Json(new
             {

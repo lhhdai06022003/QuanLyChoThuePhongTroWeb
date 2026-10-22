@@ -21,19 +21,25 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
             _context = context;
         }
 
-        public async Task<IReadOnlyList<SelectOptionDto>> GetChiNhanhDropdownAsync(CancellationToken cancellationToken = default)
+        public async Task<IReadOnlyList<SelectOptionDto>> GetChiNhanhDropdownAsync(IReadOnlyCollection<int>? allowedBranchIds = null, CancellationToken cancellationToken = default)
         {
-            return await _context.ChiNhanhs
-                .Where(c => !c.IsDeleted)
+            var query = _context.ChiNhanhs.Where(c => !c.IsDeleted);
+            if (allowedBranchIds != null)
+                query = query.Where(c => allowedBranchIds.Contains(c.ChiNhanhId));
+
+            return await query
                 .Select(c => new SelectOptionDto(c.ChiNhanhId.ToString(), c.TenChiNhanh))
                 .ToListAsync(cancellationToken);
         }
 
-        public async Task<IReadOnlyList<PhongTroListItemDto>> GetDanhSachPhongTroAsync(CancellationToken cancellationToken = default)
+        public async Task<IReadOnlyList<PhongTroListItemDto>> GetDanhSachPhongTroAsync(IReadOnlyCollection<int>? allowedBranchIds = null, CancellationToken cancellationToken = default)
         {
-            return await _context.PhongTros
+            var query = _context.PhongTros.Where(p => !p.IsDeleted);
+            if (allowedBranchIds != null)
+                query = query.Where(p => allowedBranchIds.Contains(p.ChiNhanhId));
+
+            return await query
                 .Include(p => p.ChiNhanh)
-                .Where(p => !p.IsDeleted)
                 .Select(p => new PhongTroListItemDto
                 {
                     PhongTroId = p.PhongTroId,
@@ -42,7 +48,14 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                     TangLau = p.TangLau,
                     GiaThue = p.GiaThue,
                     DienTich = p.DienTich,
-                    TrangThai = (int)p.TrangThai
+                    TrangThai = (int)p.TrangThai,
+                    DuocDangTin = p.DuocDangTin,
+                    ChiNhanhConHoatDong = !p.ChiNhanh.IsDeleted,
+                    SoAnhDangHoatDong = p.AnhPhongTros.Count(anh => anh.IsActive),
+                    AnhDaiDienUrl = p.AnhPhongTros.Where(anh => anh.IsActive)
+                        .OrderByDescending(anh => anh.LaAnhDaiDien)
+                        .ThenBy(anh => anh.ThuTuHienThi)
+                        .Select(anh => anh.Url).FirstOrDefault()
                 })
                 .OrderByDescending(p => p.PhongTroId)
                 .ToListAsync(cancellationToken);
@@ -83,10 +96,13 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 .CountAsync(x => x.HopDongId == hopDongActive.HopDongId && !x.IsDeleted && x.NgayChuyenDi == null, cancellationToken);
         }
 
-        public async Task<List<PhongTro>> GetDanhSachPhongTroConTrongAsync(CancellationToken cancellationToken = default)
+        public async Task<List<PhongTro>> GetDanhSachPhongTroConTrongAsync(IReadOnlyCollection<int>? allowedBranchIds = null, CancellationToken cancellationToken = default)
         {
-            return await _context.PhongTros
-                .Where(p => !p.IsDeleted)
+            var query = _context.PhongTros.Where(p => !p.IsDeleted);
+            if (allowedBranchIds != null)
+                query = query.Where(p => allowedBranchIds.Contains(p.ChiNhanhId));
+
+            return await query
                 .Select(p => new PhongTro
                 {
                     PhongTroId = p.PhongTroId,
@@ -98,7 +114,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 .ToListAsync(cancellationToken);
         }
 
-        public async Task<List<PhongCardRes>> GetSoDoPhongAsync(int chiNhanhId, CancellationToken cancellationToken = default)
+        public async Task<List<PhongCardRes>> GetSoDoPhongAsync(int chiNhanhId, IReadOnlyCollection<int>? allowedBranchIds = null, CancellationToken cancellationToken = default)
         {
             var today = DateTime.UtcNow;
             var in15Days = today.AddDays(15);
@@ -106,6 +122,9 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
             var query = _context.PhongTros
                 .Include(p => p.ChiNhanh)
                 .Where(p => !p.IsDeleted);
+
+            if (allowedBranchIds != null)
+                query = query.Where(p => allowedBranchIds.Contains(p.ChiNhanhId));
 
             if (chiNhanhId > 0)
                 query = query.Where(p => p.ChiNhanhId == chiNhanhId);
@@ -121,13 +140,20 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 .ToListAsync(cancellationToken);
 
             var hopDongIds = hopDongs.Select(h => h.HopDongId).ToList();
-            var unpaidInvoicesSums = await _context.HoaDons
+            // Số còn nợ (tổng trừ các khoản đã ghi nhận) của hóa đơn chưa trả đủ, kể cả trả một phần.
+            var unpaidRows = await _context.HoaDons
                 .Where(hd => hopDongIds.Contains(hd.HopDongId) &&
-                             hd.TrangThaiHoaDon == TrangThaiHoaDon.ChuaThanhToan &&
+                             hd.TrangThaiHoaDon != TrangThaiHoaDon.DaThanhToan &&
                              !hd.IsDeleted)
-                .GroupBy(hd => hd.HopDongId)
-                .Select(g => new { HopDongId = g.Key, Sum = g.Sum(hd => hd.TongTien) })
-                .ToDictionaryAsync(x => x.HopDongId, x => x.Sum, cancellationToken);
+                .Select(hd => new
+                {
+                    hd.HopDongId,
+                    ConLai = hd.TongTien - hd.LichSuThanhToans.Where(l => !l.IsDeleted).Sum(l => l.SoTienThanhToan)
+                })
+                .ToListAsync(cancellationToken);
+            var unpaidInvoicesSums = unpaidRows
+                .GroupBy(x => x.HopDongId)
+                .ToDictionary(g => g.Key, g => g.Sum(x => x.ConLai));
 
             var result = new List<PhongCardRes>();
 
@@ -135,7 +161,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
             {
                 var hopDong = hopDongs.FirstOrDefault(h => h.PhongTroId == p.PhongTroId);
 
-                double soTienNo = 0;
+                decimal soTienNo = 0m;
                 bool coNoTien = false;
                 if (hopDong != null)
                 {
@@ -242,7 +268,8 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                     .ThenInclude(h => h.PhongTro)
                 .Include(i => i.HopDong)
                     .ThenInclude(h => h.NguoiThue)
-                .Where(i => i.HopDong.PhongTroId == phongTroId && i.TrangThaiHoaDon == TrangThaiHoaDon.ChuaThanhToan && !i.IsDeleted)
+                .Include(i => i.LichSuThanhToans)
+                .Where(i => i.HopDong.PhongTroId == phongTroId && i.TrangThaiHoaDon != TrangThaiHoaDon.DaThanhToan && !i.IsDeleted)
                 .OrderByDescending(i => i.NgayTao)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -271,6 +298,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 thang = invoice.Thang,
                 nam = invoice.Nam,
                 tongTien = invoice.TongTien,
+                conLai = invoice.TongTien - invoice.LichSuThanhToans.Where(l => !l.IsDeleted).Sum(l => l.SoTienThanhToan),
                 tenPhong = invoice.HopDong.PhongTro.SoPhong,
                 tenNguoiThue = invoice.HopDong.NguoiThue.HoVaTen,
                 chiTiets = mappedDetails

@@ -10,7 +10,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.PhongTros.DTOs
         public int PhongTroId { get; set; }
         public string SoPhong { get; set; } = string.Empty;
         public int TangLau { get; set; }
-        public double GiaThue { get; set; }
+        public decimal GiaThue { get; set; }
         public double DienTich { get; set; }
         public int SoNguoiToiDa { get; set; }
 
@@ -32,7 +32,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.PhongTros.DTOs
         /// <summary>Phòng có hóa đơn chưa thanh toán</summary>
         public bool CoNoTien { get; set; }
         /// <summary>Tổng tiền nợ chưa thu</summary>
-        public double SoTienNo { get; set; }
+        public decimal SoTienNo { get; set; }
         /// <summary>Hợp đồng hết hạn trong vòng 15 ngày tới</summary>
         public bool SapHetHan { get; set; }
         /// <summary>Số ngày còn lại của hợp đồng</summary>

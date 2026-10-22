@@ -4,6 +4,7 @@ namespace QuanLyChoThuePhongTroWeb.Domain.Enums
     {
         Admin = 0,
         NhanVien = 1,
-        KhachThue = 2
+        KhachThue = 2,
+        KhachVangLai = 3
     }
 }

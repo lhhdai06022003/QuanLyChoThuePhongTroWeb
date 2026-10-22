@@ -1,6 +1,6 @@
 namespace QuanLyChoThuePhongTroWeb.Application.Features.PublicRooms;
 
-public sealed record PublicRoomSearch(double? MinPrice = null, double? MaxPrice = null,
+public sealed record PublicRoomSearch(decimal? MinPrice = null, decimal? MaxPrice = null,
     double? MinArea = null, string? Area = null, int? Occupants = null, string Sort = "mac-dinh");
 
 public static class PublicRoomDiscovery

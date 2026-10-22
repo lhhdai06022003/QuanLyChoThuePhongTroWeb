@@ -92,12 +92,17 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
             _context.DichVus.Update(entity);
         }
 
-        public async Task<DataTableResponse<DichVuChiNhanhRes>> GetPagedDichVuChiNhanhAsync(DataTableRequest request, int chiNhanhId, CancellationToken cancellationToken = default)
+        public async Task<DataTableResponse<DichVuChiNhanhRes>> GetPagedDichVuChiNhanhAsync(DataTableRequest request, int chiNhanhId, IReadOnlyCollection<int>? allowedBranchIds = null, CancellationToken cancellationToken = default)
         {
             var query = _context.DichVuChiNhanhs
                 .Include(x => x.DichVu)
                 .Include(x => x.ChiNhanh)
                 .Where(x => !x.IsDeleted);
+
+            if (allowedBranchIds != null)
+            {
+                query = query.Where(x => allowedBranchIds.Contains(x.ChiNhanhId));
+            }
 
             if (chiNhanhId > 0)
             {

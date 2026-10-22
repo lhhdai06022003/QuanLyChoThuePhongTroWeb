@@ -5,9 +5,11 @@ public sealed record PublicRoomDto(
     string SoPhong,
     string TenChiNhanh,
     string DiaChi,
-    double GiaThue,
+    decimal GiaThue,
     double DienTich,
     int SoNguoiToiDa,
     int TangLau,
     string MoTa,
-    string SoDienThoaiChiNhanh = "");
+    string SoDienThoaiChiNhanh = "",
+    IReadOnlyList<string>? ImageUrls = null,
+    string ListingTitle = "");

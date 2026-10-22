@@ -1,0 +1,786 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="app.diagrams.net" modified="2026-09-23T00:00:00.000Z" agent="Codex" version="20.0.0" type="device">
+  <diagram id="erd-physical" name="ERD Cơ sở dữ liệu">
+    <mxGraphModel dx="4340" dy="1400" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="4340" pageHeight="5490" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="&lt;b&gt;ERD cơ sở dữ liệu · 37 bảng · 67 quan hệ&lt;/b&gt;" style="text;html=1;align=left;verticalAlign=middle;fontSize=22;" vertex="1" parent="1">
+          <mxGeometry x="60" y="20" width="1500" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="fk_1" value="" style="edgeStyle=none;html=1;strokeColor=#333333;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERone;endFill=0;endSize=16;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.23077;exitY=1.00000;exitDx=0;exitDy=0;entryX=0.50000;entryY=0.00000;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_nguoi_thue" target="table_nguoi_dung">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2400" y="460" />
+              <mxPoint x="2400" y="700" />
+              <mxPoint x="2540" y="700" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_2" value="" style="edgeStyle=none;html=1;strokeColor=#333333;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.34615;exitY=1.00000;exitDx=0;exitDy=0;entryX=0.65385;entryY=0.00000;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_phong_tro" target="table_yeu_cau_su_co">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2460" y="1740" />
+              <mxPoint x="2460" y="1920" />
+              <mxPoint x="2620" y="1920" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_3" value="" style="edgeStyle=none;html=1;strokeColor=#333333;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.65385;exitY=1.00000;exitDx=0;exitDy=0;entryX=0.50000;entryY=0.00000;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_chi_nhanh" target="table_dich_vu_chi_nhanh">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1140" y="380" />
+              <mxPoint x="1060" y="380" />
+              <mxPoint x="1060" y="700" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_4" value="" style="edgeStyle=none;html=1;strokeColor=#333333;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.34615;exitY=1.00000;exitDx=0;exitDy=0;entryX=0.50000;entryY=0.00000;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_hop_dong" target="table_hop_dong_dieu_khoan">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1720" y="2280" />
+              <mxPoint x="1720" y="2520" />
+              <mxPoint x="1800" y="2520" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_5" value="" style="edgeStyle=none;html=1;strokeColor=#333333;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.50000;exitY=1.00000;exitDx=0;exitDy=0;entryX=0.50000;entryY=0.00000;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_dich_vu_dien_nuoc_cua_phong" target="table_anh_chi_so_dong_ho">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="320" y="2400" />
+              <mxPoint x="320" y="2520" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_6" value="" style="edgeStyle=none;html=1;strokeColor=#333333;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERone;endFill=0;endSize=16;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.50000;exitY=1.00000;exitDx=0;exitDy=0;entryX=0.65385;entryY=0.00000;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_minh_chung_thanh_toan_hoa_don" target="table_lich_su_thanh_toan">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1060" y="4120" />
+              <mxPoint x="1060" y="4360" />
+              <mxPoint x="1140" y="4360" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_7" value="" style="edgeStyle=none;html=1;strokeColor=#333333;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.50000;exitY=1.00000;exitDx=0;exitDy=0;entryX=0.50000;entryY=0.00000;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_yeu_cau_thanh_toan_hoa_don" target="table_minh_chung_thanh_toan_hoa_don">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1060" y="3480" />
+              <mxPoint x="1060" y="3740" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_8" value="" style="edgeStyle=none;html=1;strokeColor=#333333;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.65385;exitY=1.00000;exitDx=0;exitDy=0;entryX=0.50000;entryY=0.00000;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_hoa_don" target="table_yeu_cau_thanh_toan_hoa_don">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1140" y="3000" />
+              <mxPoint x="1060" y="3000" />
+              <mxPoint x="1060" y="3140" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_9" value="" style="edgeStyle=none;html=1;strokeColor=#333333;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.50000;exitY=1.00000;exitDx=0;exitDy=0;entryX=0.50000;entryY=0.00000;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_yeu_cau_xem_phong" target="table_lich_su_trang_thai_yeu_cau_xem_phong">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="3280" y="2940" />
+              <mxPoint x="3280" y="3140" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_10" value="" style="edgeStyle=none;html=1;strokeColor=#333333;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.50000;exitY=1.00000;exitDx=0;exitDy=0;entryX=0.65385;entryY=0.00000;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_khung_gio_xem_phong" target="table_yeu_cau_xem_phong">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="3280" y="2240" />
+              <mxPoint x="3280" y="2520" />
+              <mxPoint x="3360" y="2520" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_11" value="" style="edgeStyle=none;html=1;strokeColor=#333333;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.50000;exitY=1.00000;exitDx=0;exitDy=0;entryX=0.34615;entryY=0.00000;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_minh_chung_thanh_toan_giu_cho" target="table_giao_dich_giu_cho">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2540" y="4740" />
+              <mxPoint x="2460" y="4740" />
+              <mxPoint x="2460" y="4960" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_12" value="" style="edgeStyle=none;html=1;strokeColor=#333333;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.50000;exitY=1.00000;exitDx=0;exitDy=0;entryX=0.50000;entryY=0.00000;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_yeu_cau_thanh_toan_giu_cho" target="table_lich_su_trang_thai_yeu_cau_thanh_toan_giu_cho">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="3280" y="4060" />
+              <mxPoint x="3280" y="4360" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_13" value="" style="edgeStyle=none;html=1;strokeColor=#333333;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERone;endFill=0;endSize=16;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.50000;exitY=1.00000;exitDx=0;exitDy=0;entryX=0.65385;entryY=0.00000;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_yeu_cau_giu_cho" target="table_quyet_dinh_hoan_tien_giu_cho">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2540" y="3520" />
+              <mxPoint x="2540" y="3740" />
+              <mxPoint x="2620" y="3740" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_14" value="" style="edgeStyle=none;html=1;strokeColor=#333333;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.34615;exitY=1.00000;exitDx=0;exitDy=0;entryX=0.50000;entryY=0.00000;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_chi_nhanh" target="table_nhan_vien_chi_nhanh">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="980" y="380" />
+              <mxPoint x="780" y="380" />
+              <mxPoint x="780" y="1300" />
+              <mxPoint x="1060" y="1300" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_15" value="" style="edgeStyle=none;html=1;strokeColor=#333333;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=1.00000;exitY=0.72368;exitDx=0;exitDy=0;entryX=0.00000;entryY=0.50562;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_hop_dong" target="table_chi_tiet_thanh_vien_hop_dong">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2080" y="2160" />
+              <mxPoint x="2080" y="2640" />
+              <mxPoint x="2260" y="2640" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_16" value="" style="edgeStyle=none;html=1;strokeColor=#333333;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.50000;exitY=1.00000;exitDx=0;exitDy=0;entryX=0.50000;entryY=0.00000;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_dich_vu_chi_nhanh" target="table_dang_ky_dich_vu">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1060" y="960" />
+              <mxPoint x="1340" y="960" />
+              <mxPoint x="1340" y="1920" />
+              <mxPoint x="1060" y="1920" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_17" value="" style="edgeStyle=none;html=1;strokeColor=#333333;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.00000;exitY=0.50000;exitDx=0;exitDy=0;entryX=1.00000;entryY=0.54545;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_dich_vu" target="table_dich_vu_chi_nhanh">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1520" y="220" />
+              <mxPoint x="1340" y="220" />
+              <mxPoint x="1340" y="840" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_18" value="" style="edgeStyle=none;html=1;strokeColor=#333333;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.00000;exitY=0.79897;exitDx=0;exitDy=0;entryX=1.00000;entryY=0.52632;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_phong_tro" target="table_hop_dong">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2260" y="1640" />
+              <mxPoint x="2080" y="1640" />
+              <mxPoint x="2080" y="2100" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_19" value="" style="edgeStyle=none;html=1;strokeColor=#333333;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=1.00000;exitY=0.67442;exitDx=0;exitDy=0;entryX=0.00000;entryY=0.54545;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_hoa_don" target="table_chi_tiet_hoa_don">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1340" y="2840" />
+              <mxPoint x="1340" y="3280" />
+              <mxPoint x="1520" y="3280" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_20" value="" style="edgeStyle=none;html=1;strokeColor=#333333;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=1.00000;exitY=0.65116;exitDx=0;exitDy=0;entryX=0.00000;entryY=0.34884;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_dich_vu_dien_nuoc_cua_phong" target="table_hoa_don">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="600" y="2220" />
+              <mxPoint x="600" y="2700" />
+              <mxPoint x="780" y="2700" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_21" value="" style="edgeStyle=none;html=1;strokeColor=#333333;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.00000;exitY=0.52632;exitDx=0;exitDy=0;entryX=1.00000;entryY=0.34884;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_hop_dong" target="table_hoa_don">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1520" y="2100" />
+              <mxPoint x="1340" y="2100" />
+              <mxPoint x="1340" y="2700" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_22" value="" style="edgeStyle=none;html=1;strokeColor=#333333;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.00000;exitY=0.67442;exitDx=0;exitDy=0;entryX=1.00000;entryY=0.49793;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_hoa_don" target="table_lich_su_trang_thai_hoa_don">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="780" y="2840" />
+              <mxPoint x="600" y="2840" />
+              <mxPoint x="600" y="3280" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_23" value="" style="edgeStyle=none;html=1;strokeColor=#333333;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.00000;exitY=0.49470;exitDx=0;exitDy=0;entryX=1.00000;entryY=0.49327;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_yeu_cau_thanh_toan_hoa_don" target="table_lich_su_trang_thai_yeu_cau_thanh_toan_hoa_don">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="780" y="3300" />
+              <mxPoint x="600" y="3300" />
+              <mxPoint x="600" y="3880" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_24" value="" style="edgeStyle=none;html=1;strokeColor=#333333;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=1.00000;exitY=0.48969;exitDx=0;exitDy=0;entryX=0.00000;entryY=0.76336;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_phong_tro" target="table_khung_gio_xem_phong">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2820" y="1520" />
+              <mxPoint x="2820" y="2140" />
+              <mxPoint x="3000" y="2140" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_25" value="" style="edgeStyle=none;html=1;strokeColor=#333333;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.50000;exitY=1.00000;exitDx=0;exitDy=0;entryX=0.34615;entryY=0.00000;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_khach_vang_lai" target="table_yeu_cau_xem_phong">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="3280" y="1600" />
+              <mxPoint x="3000" y="1600" />
+              <mxPoint x="3000" y="2520" />
+              <mxPoint x="3200" y="2520" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_26" value="" style="edgeStyle=none;html=1;strokeColor=#333333;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.00000;exitY=0.57252;exitDx=0;exitDy=0;entryX=1.00000;entryY=0.49231;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_yeu_cau_thanh_toan_giu_cho" target="table_minh_chung_thanh_toan_giu_cho">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="3000" y="3920" />
+              <mxPoint x="2820" y="3920" />
+              <mxPoint x="2820" y="4540" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_27" value="" style="edgeStyle=none;html=1;strokeColor=#333333;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.00000;exitY=0.68120;exitDx=0;exitDy=0;entryX=1.00000;entryY=0.36923;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_yeu_cau_xem_phong" target="table_yeu_cau_giu_cho">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="3000" y="2800" />
+              <mxPoint x="2820" y="2800" />
+              <mxPoint x="2820" y="3280" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_28" value="" style="edgeStyle=none;html=1;strokeColor=#333333;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=1.00000;exitY=0.80000;exitDx=0;exitDy=0;entryX=0.00000;entryY=0.41985;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_yeu_cau_giu_cho" target="table_yeu_cau_thanh_toan_giu_cho">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2820" y="3420" />
+              <mxPoint x="2820" y="3880" />
+              <mxPoint x="3000" y="3880" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_29" value="" style="edgeStyle=none;html=1;strokeColor=#333333;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERone;endFill=0;endSize=16;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.00000;exitY=0.49231;exitDx=0;exitDy=0;entryX=1.00000;entryY=0.65327;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_yeu_cau_giu_cho" target="table_ap_dung_tien_giu_cho_vao_tien_coc">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2260" y="3320" />
+              <mxPoint x="2080" y="3320" />
+              <mxPoint x="2080" y="3900" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_30" value="" style="edgeStyle=none;html=1;strokeColor=#333333;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.00000;exitY=0.50000;exitDx=0;exitDy=0;entryX=1.00000;entryY=0.63636;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_quyet_dinh_hoan_tien_giu_cho" target="table_giao_dich_hoan_tien_giu_cho">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2260" y="3880" />
+              <mxPoint x="2260" y="4520" />
+              <mxPoint x="2080" y="4520" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_31" value="" style="edgeStyle=none;html=1;strokeColor=#333333;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=1.00000;exitY=0.23196;exitDx=0;exitDy=0;entryX=0.00000;entryY=0.68702;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_phong_tro" target="table_anh_phong_tro">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2820" y="1420" />
+              <mxPoint x="3000" y="1420" />
+              <mxPoint x="3000" y="1580" />
+              <mxPoint x="3740" y="1580" />
+              <mxPoint x="3740" y="2120" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_32" value="" style="edgeStyle=none;html=1;strokeColor=#333333;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.50000;exitY=1.00000;exitDx=0;exitDy=0;entryX=0.34615;entryY=0.00000;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_nguoi_thue" target="table_yeu_cau_su_co">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2540" y="460" />
+              <mxPoint x="2540" y="440" />
+              <mxPoint x="2260" y="440" />
+              <mxPoint x="2260" y="1920" />
+              <mxPoint x="2460" y="1920" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_33" value="" style="edgeStyle=none;html=1;strokeColor=#333333;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.00000;exitY=0.38660;exitDx=0;exitDy=0;entryX=1.00000;entryY=0.44944;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_phong_tro" target="table_dang_ky_dich_vu">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2260" y="1480" />
+              <mxPoint x="2080" y="1480" />
+              <mxPoint x="2080" y="1620" />
+              <mxPoint x="1360" y="1620" />
+              <mxPoint x="1360" y="2020" />
+              <mxPoint x="1340" y="2020" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_34" value="" style="edgeStyle=none;html=1;strokeColor=#333333;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.34615;exitY=1.00000;exitDx=0;exitDy=0;entryX=0.34615;entryY=0.00000;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_hoa_don" target="table_lich_su_thanh_toan">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="980" y="3000" />
+              <mxPoint x="780" y="3000" />
+              <mxPoint x="780" y="4360" />
+              <mxPoint x="980" y="4360" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_35" value="" style="edgeStyle=none;html=1;strokeColor=#333333;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=1.00000;exitY=0.74742;exitDx=0;exitDy=0;entryX=0.00000;entryY=0.35422;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_phong_tro" target="table_yeu_cau_xem_phong">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2820" y="1620" />
+              <mxPoint x="2980" y="1620" />
+              <mxPoint x="2980" y="2680" />
+              <mxPoint x="3000" y="2680" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_36" value="" style="edgeStyle=none;html=1;strokeColor=#333333;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.00000;exitY=0.80153;exitDx=0;exitDy=0;entryX=1.00000;entryY=0.49618;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_yeu_cau_thanh_toan_giu_cho" target="table_giao_dich_giu_cho">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="3000" y="3980" />
+              <mxPoint x="3000" y="5120" />
+              <mxPoint x="2820" y="5120" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_37" value="" style="edgeStyle=none;html=1;strokeColor=#333333;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=1.00000;exitY=0.61538;exitDx=0;exitDy=0;entryX=0.00000;entryY=0.68182;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_yeu_cau_giu_cho" target="table_lich_su_trang_thai_yeu_cau_giu_cho">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2820" y="3360" />
+              <mxPoint x="2820" y="3420" />
+              <mxPoint x="3740" y="3420" />
+              <mxPoint x="3740" y="3920" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_38" value="" style="edgeStyle=none;html=1;strokeColor=#333333;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.65385;exitY=1.00000;exitDx=0;exitDy=0;entryX=0.65385;entryY=0.00000;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_phong_tro" target="table_yeu_cau_giu_cho">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2620" y="1740" />
+              <mxPoint x="2840" y="1740" />
+              <mxPoint x="2840" y="2780" />
+              <mxPoint x="2620" y="2780" />
+              <mxPoint x="2620" y="3140" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_39" value="" style="edgeStyle=none;html=1;strokeColor=#333333;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.65385;exitY=1.00000;exitDx=0;exitDy=0;entryX=0.50000;entryY=0.00000;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_hop_dong" target="table_ap_dung_tien_giu_cho_vao_tien_coc">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1880" y="2280" />
+              <mxPoint x="1880" y="2540" />
+              <mxPoint x="1520" y="2540" />
+              <mxPoint x="1520" y="3740" />
+              <mxPoint x="1800" y="3740" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_40" value="" style="edgeStyle=none;html=1;strokeColor=#333333;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=1.00000;exitY=0.53942;exitDx=0;exitDy=0;entryX=0.00000;entryY=0.18041;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_chi_nhanh" target="table_phong_tro">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1340" y="240" />
+              <mxPoint x="1520" y="240" />
+              <mxPoint x="1520" y="1320" />
+              <mxPoint x="2240" y="1320" />
+              <mxPoint x="2240" y="1400" />
+              <mxPoint x="2260" y="1400" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_41" value="" style="edgeStyle=none;html=1;strokeColor=#333333;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.76923;exitY=1.00000;exitDx=0;exitDy=0;entryX=0.50000;entryY=0.00000;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_nguoi_thue" target="table_chi_tiet_thanh_vien_hop_dong">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2680" y="460" />
+              <mxPoint x="2860" y="460" />
+              <mxPoint x="2860" y="2520" />
+              <mxPoint x="2540" y="2520" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_42" value="" style="edgeStyle=none;html=1;strokeColor=#333333;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.00000;exitY=0.59278;exitDx=0;exitDy=0;entryX=1.00000;entryY=0.32558;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_phong_tro" target="table_dich_vu_dien_nuoc_cua_phong">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2260" y="1560" />
+              <mxPoint x="1360" y="1560" />
+              <mxPoint x="1360" y="1600" />
+              <mxPoint x="600" y="1600" />
+              <mxPoint x="600" y="2080" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_43" value="" style="edgeStyle=none;html=1;strokeColor=#333333;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.00000;exitY=0.52308;exitDx=0;exitDy=0;entryX=1.00000;entryY=0.26316;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_nguoi_thue" target="table_hop_dong">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2260" y="280" />
+              <mxPoint x="2100" y="280" />
+              <mxPoint x="2100" y="2020" />
+              <mxPoint x="2080" y="2020" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_44" value="" style="edgeStyle=none;html=1;strokeColor=#333333;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.00000;exitY=0.70539;exitDx=0;exitDy=0;entryX=1.00000;entryY=0.18462;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_khach_vang_lai" target="table_yeu_cau_giu_cho">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="3000" y="1500" />
+              <mxPoint x="2880" y="1500" />
+              <mxPoint x="2880" y="3220" />
+              <mxPoint x="2820" y="3220" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_45" value="" style="edgeStyle=none;html=1;strokeColor=#333333;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.50000;exitY=1.00000;exitDx=0;exitDy=0;entryX=0.50000;entryY=0.00000;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_dich_vu" target="table_chi_tiet_hoa_don">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1800" y="360" />
+              <mxPoint x="1500" y="360" />
+              <mxPoint x="1500" y="3140" />
+              <mxPoint x="1800" y="3140" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_46" value="" style="edgeStyle=none;html=1;strokeColor=#94a3b8;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.15385;exitY=1.00000;exitDx=0;exitDy=0;entryX=0.50000;entryY=0.00000;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_nguoi_dung" target="table_phong_tro">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2360" y="1000" />
+              <mxPoint x="2360" y="1300" />
+              <mxPoint x="2540" y="1300" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_47" value="" style="edgeStyle=none;html=1;strokeColor=#94a3b8;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERone;endFill=0;endSize=16;fontSize=11;labelBackgroundColor=#ffffff;exitX=1.00000;exitY=0.08299;exitDx=0;exitDy=0;entryX=0.00000;entryY=0.37344;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_nguoi_dung" target="table_khach_vang_lai">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2820" y="740" />
+              <mxPoint x="3000" y="740" />
+              <mxPoint x="3000" y="1420" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_48" value="" style="edgeStyle=none;html=1;strokeColor=#94a3b8;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.00000;exitY=0.41494;exitDx=0;exitDy=0;entryX=1.00000;entryY=0.50000;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_nguoi_dung" target="table_thong_bao">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2260" y="820" />
+              <mxPoint x="2080" y="820" />
+              <mxPoint x="2080" y="1440" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_49" value="NguoiDungId" style="edgeStyle=none;html=1;strokeColor=#94a3b8;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.00000;exitY=0.08299;exitDx=0;exitDy=0;entryX=1.00000;entryY=0.29046;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_nguoi_dung" target="table_nhan_vien_chi_nhanh">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2260" y="740" />
+              <mxPoint x="1360" y="740" />
+              <mxPoint x="1360" y="1400" />
+              <mxPoint x="1340" y="1400" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_50" value="NguoiPhanCongId" style="edgeStyle=none;html=1;strokeColor=#94a3b8;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.00000;exitY=0.16598;exitDx=0;exitDy=0;entryX=1.00000;entryY=0.53942;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_nguoi_dung" target="table_nhan_vien_chi_nhanh">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2260" y="760" />
+              <mxPoint x="1380" y="760" />
+              <mxPoint x="1380" y="1460" />
+              <mxPoint x="1340" y="1460" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_51" value="NguoiThuHoiId" style="edgeStyle=none;html=1;strokeColor=#94a3b8;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.00000;exitY=0.33195;exitDx=0;exitDy=0;entryX=1.00000;entryY=0.78838;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_nguoi_dung" target="table_nhan_vien_chi_nhanh">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2260" y="800" />
+              <mxPoint x="1400" y="800" />
+              <mxPoint x="1400" y="1520" />
+              <mxPoint x="1340" y="1520" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_52" value="NguoiPhuTrachId" style="edgeStyle=none;html=1;strokeColor=#94a3b8;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=1.00000;exitY=0.33195;exitDx=0;exitDy=0;entryX=0.00000;entryY=0.22901;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_nguoi_dung" target="table_khung_gio_xem_phong">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2820" y="800" />
+              <mxPoint x="2960" y="800" />
+              <mxPoint x="2960" y="2000" />
+              <mxPoint x="3000" y="2000" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_53" value="NguoiTaoId" style="edgeStyle=none;html=1;strokeColor=#94a3b8;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=1.00000;exitY=0.41494;exitDx=0;exitDy=0;entryX=0.00000;entryY=0.53435;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_nguoi_dung" target="table_khung_gio_xem_phong">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2820" y="820" />
+              <mxPoint x="2940" y="820" />
+              <mxPoint x="2940" y="2080" />
+              <mxPoint x="3000" y="2080" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_54" value="" style="edgeStyle=none;html=1;strokeColor=#94a3b8;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=1.00000;exitY=0.24896;exitDx=0;exitDy=0;entryX=0.00000;entryY=0.30534;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_nguoi_dung" target="table_anh_phong_tro">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2820" y="780" />
+              <mxPoint x="3720" y="780" />
+              <mxPoint x="3720" y="2020" />
+              <mxPoint x="3740" y="2020" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_55" value="" style="edgeStyle=none;html=1;strokeColor=#94a3b8;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.65385;exitY=1.00000;exitDx=0;exitDy=0;entryX=0.34615;entryY=0.00000;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_nguoi_dung" target="table_yeu_cau_giu_cho">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2620" y="1000" />
+              <mxPoint x="2620" y="980" />
+              <mxPoint x="2220" y="980" />
+              <mxPoint x="2220" y="3140" />
+              <mxPoint x="2460" y="3140" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_56" value="" style="edgeStyle=none;html=1;strokeColor=#94a3b8;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=1.00000;exitY=0.58091;exitDx=0;exitDy=0;entryX=0.00000;entryY=0.49180;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_nguoi_dung" target="table_lich_su_trang_thai_yeu_cau_xem_phong">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2820" y="860" />
+              <mxPoint x="2920" y="860" />
+              <mxPoint x="2920" y="3280" />
+              <mxPoint x="3000" y="3280" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_57" value="" style="edgeStyle=none;html=1;strokeColor=#94a3b8;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.84615;exitY=1.00000;exitDx=0;exitDy=0;entryX=0.34615;entryY=0.00000;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_nguoi_dung" target="table_quyet_dinh_hoan_tien_giu_cho">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2720" y="1000" />
+              <mxPoint x="2900" y="1000" />
+              <mxPoint x="2900" y="3500" />
+              <mxPoint x="2460" y="3500" />
+              <mxPoint x="2460" y="3740" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_58" value="NguoiGuiId" style="edgeStyle=none;html=1;strokeColor=#94a3b8;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.00000;exitY=0.49793;exitDx=0;exitDy=0;entryX=1.00000;entryY=0.34884;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_nguoi_dung" target="table_anh_chi_so_dong_ho">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2260" y="840" />
+              <mxPoint x="2120" y="840" />
+              <mxPoint x="2120" y="2260" />
+              <mxPoint x="620" y="2260" />
+              <mxPoint x="620" y="2720" />
+              <mxPoint x="600" y="2720" />
+              <mxPoint x="600" y="2700" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_59" value="NguoiXacNhanId" style="edgeStyle=none;html=1;strokeColor=#94a3b8;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.00000;exitY=0.58091;exitDx=0;exitDy=0;entryX=1.00000;entryY=0.67442;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_nguoi_dung" target="table_anh_chi_so_dong_ho">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2260" y="860" />
+              <mxPoint x="2140" y="860" />
+              <mxPoint x="2140" y="2500" />
+              <mxPoint x="640" y="2500" />
+              <mxPoint x="640" y="2820" />
+              <mxPoint x="600" y="2820" />
+              <mxPoint x="600" y="2840" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_60" value="" style="edgeStyle=none;html=1;strokeColor=#94a3b8;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.50000;exitY=1.00000;exitDx=0;exitDy=0;entryX=0.50000;entryY=0.00000;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_nguoi_dung" target="table_minh_chung_thanh_toan_giu_cho">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2540" y="1000" />
+              <mxPoint x="2200" y="1000" />
+              <mxPoint x="2200" y="4360" />
+              <mxPoint x="2540" y="4360" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_61" value="" style="edgeStyle=none;html=1;strokeColor=#94a3b8;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=1.00000;exitY=0.74689;exitDx=0;exitDy=0;entryX=0.00000;entryY=0.19084;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_nguoi_dung" target="table_yeu_cau_thanh_toan_giu_cho">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2820" y="900" />
+              <mxPoint x="3560" y="900" />
+              <mxPoint x="3560" y="3760" />
+              <mxPoint x="3000" y="3760" />
+              <mxPoint x="3000" y="3820" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_62" value="" style="edgeStyle=none;html=1;strokeColor=#94a3b8;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.00000;exitY=0.66390;exitDx=0;exitDy=0;entryX=1.00000;entryY=0.35176;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_nguoi_dung" target="table_ap_dung_tien_giu_cho_vao_tien_coc">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2260" y="880" />
+              <mxPoint x="2160" y="880" />
+              <mxPoint x="2160" y="3840" />
+              <mxPoint x="2080" y="3840" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_63" value="" style="edgeStyle=none;html=1;strokeColor=#94a3b8;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.34615;exitY=1.00000;exitDx=0;exitDy=0;entryX=0.65385;entryY=0.00000;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_nguoi_dung" target="table_giao_dich_giu_cho">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2460" y="1000" />
+              <mxPoint x="2460" y="1280" />
+              <mxPoint x="2180" y="1280" />
+              <mxPoint x="2180" y="4720" />
+              <mxPoint x="2620" y="4720" />
+              <mxPoint x="2620" y="4960" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_64" value="" style="edgeStyle=none;html=1;strokeColor=#94a3b8;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=1.00000;exitY=0.66390;exitDx=0;exitDy=0;entryX=0.00000;entryY=0.31818;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_nguoi_dung" target="table_lich_su_trang_thai_yeu_cau_giu_cho">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2820" y="880" />
+              <mxPoint x="3700" y="880" />
+              <mxPoint x="3700" y="3840" />
+              <mxPoint x="3740" y="3840" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_65" value="" style="edgeStyle=none;html=1;strokeColor=#94a3b8;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=1.00000;exitY=0.91286;exitDx=0;exitDy=0;entryX=0.00000;entryY=0.49180;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_nguoi_dung" target="table_lich_su_trang_thai_yeu_cau_thanh_toan_giu_cho">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2820" y="940" />
+              <mxPoint x="3580" y="940" />
+              <mxPoint x="3580" y="4040" />
+              <mxPoint x="2980" y="4040" />
+              <mxPoint x="2980" y="4500" />
+              <mxPoint x="3000" y="4500" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_66" value="" style="edgeStyle=none;html=1;strokeColor=#94a3b8;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.00000;exitY=0.91286;exitDx=0;exitDy=0;entryX=1.00000;entryY=0.36364;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_nguoi_dung" target="table_giao_dich_hoan_tien_giu_cho">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2260" y="940" />
+              <mxPoint x="1480" y="940" />
+              <mxPoint x="1480" y="4360" />
+              <mxPoint x="2080" y="4360" />
+              <mxPoint x="2080" y="4460" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fk_67" value="" style="edgeStyle=none;html=1;strokeColor=#94a3b8;strokeWidth=1.5;startArrow=ERone;startFill=0;startSize=16;endArrow=ERmany;endFill=0;endSize=20;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.00000;exitY=0.82988;exitDx=0;exitDy=0;entryX=1.00000;entryY=0.49470;entryDx=0;entryDy=0;" edge="1" parent="1" source="table_nguoi_dung" target="table_lich_su_thanh_toan">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2260" y="920" />
+              <mxPoint x="1420" y="920" />
+              <mxPoint x="1420" y="4520" />
+              <mxPoint x="1340" y="4520" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="table_chi_nhanh" value="&lt;b&gt;ChiNhanh (chi_nhanh)&lt;/b&gt;&lt;hr&gt;+ ChiNhanhId (PK) : integer&lt;br&gt;+ DiaChi : text&lt;br&gt;+ IsDeleted : boolean&lt;br&gt;+ MaChiNhanh : character varying(10)&lt;br&gt;+ MoTa : text&lt;br&gt;+ NgayCapNhat : timestamp with time zone?&lt;br&gt;+ NgayTao : timestamp with time zone&lt;br&gt;+ SoDienThoai : text&lt;br&gt;+ TenChiNhanh : text" style="verticalAlign=top;align=left;overflow=hidden;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;spacingLeft=10;spacingTop=5;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="800" y="110" width="520" height="241" as="geometry" />
+        </mxCell>
+        <mxCell id="table_nguoi_thue" value="&lt;b&gt;NguoiThue (nguoi_thue)&lt;/b&gt;&lt;hr&gt;+ NguoiThueId (PK) : integer&lt;br&gt;+ CCCD : text&lt;br&gt;+ Email : text&lt;br&gt;+ GhiChu : text?&lt;br&gt;+ HoVaTen : text&lt;br&gt;+ IsDeleted : boolean&lt;br&gt;+ NgayCapCCCD : timestamp with time zone?&lt;br&gt;+ NgayCapNhat : timestamp with time zone?&lt;br&gt;+ NgaySinh : timestamp with time zone?&lt;br&gt;+ NgayTao : timestamp with time zone&lt;br&gt;+ NoiCapCCCD : text?&lt;br&gt;+ QueQuan : text?&lt;br&gt;+ SoDienThoai : text" style="verticalAlign=top;align=left;overflow=hidden;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;spacingLeft=10;spacingTop=5;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="2280" y="110" width="520" height="325" as="geometry" />
+        </mxCell>
+        <mxCell id="table_nguoi_dung" value="&lt;b&gt;NguoiDung (nguoi_dung)&lt;/b&gt;&lt;hr&gt;+ NguoiDungId (PK) : integer&lt;br&gt;+ IsActive : boolean&lt;br&gt;+ IsDeleted : boolean&lt;br&gt;+ LanDangNhapCuoi : timestamp with time zone?&lt;br&gt;+ MatKhauHash : text&lt;br&gt;+ NgayTao : timestamp with time zone&lt;br&gt;+ NguoiThueId (FK) : integer?&lt;br&gt;+ Role : integer&lt;br&gt;+ TenDangNhap : text" style="verticalAlign=top;align=left;overflow=hidden;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;spacingLeft=10;spacingTop=5;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="2280" y="720" width="520" height="241" as="geometry" />
+        </mxCell>
+        <mxCell id="table_phong_tro" value="&lt;b&gt;PhongTro (phong_tro)&lt;/b&gt;&lt;hr&gt;+ PhongTroId (PK) : integer&lt;br&gt;+ ChiNhanhId (FK) : integer&lt;br&gt;+ DienTich : double precision&lt;br&gt;+ DuocDangTin : boolean&lt;br&gt;+ GiaThue : numeric(18,2)&lt;br&gt;+ IsDeleted : boolean&lt;br&gt;+ MaCongKhai : character varying(50)?&lt;br&gt;+ MoTa : text&lt;br&gt;+ NgayCapNhat : timestamp with time zone?&lt;br&gt;+ NgayTao : timestamp with time zone&lt;br&gt;+ NguoiDangTinId (FK) : integer?&lt;br&gt;+ SoNguoiToiDa : integer&lt;br&gt;+ SoPhong : text&lt;br&gt;+ TangLau : integer&lt;br&gt;+ TieuDeDangTin : character varying(255)?&lt;br&gt;+ TrangThai : integer" style="verticalAlign=top;align=left;overflow=hidden;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;spacingLeft=10;spacingTop=5;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="2280" y="1330" width="520" height="388" as="geometry" />
+        </mxCell>
+        <mxCell id="table_khach_vang_lai" value="&lt;b&gt;KhachVangLai (khach_vang_lai)&lt;/b&gt;&lt;hr&gt;+ KhachVangLaiId (PK) : integer&lt;br&gt;+ DaXacMinhEmail : boolean&lt;br&gt;+ Email : character varying(150)?&lt;br&gt;+ EmailNormalized : character varying(150)?&lt;br&gt;+ HoTen : character varying(100)&lt;br&gt;+ NgayCapNhat : timestamp with time zone?&lt;br&gt;+ NgayTao : timestamp with time zone&lt;br&gt;+ NguoiDungId (FK) : integer&lt;br&gt;+ SoDienThoai : character varying(20)" style="verticalAlign=top;align=left;overflow=hidden;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;spacingLeft=10;spacingTop=5;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="3020" y="1330" width="520" height="241" as="geometry" />
+        </mxCell>
+        <mxCell id="table_nhan_vien_chi_nhanh" value="&lt;b&gt;NhanVienChiNhanh (nhan_vien_chi_nhanh)&lt;/b&gt;&lt;hr&gt;+ NhanVienChiNhanhId (PK) : integer&lt;br&gt;+ ChiNhanhId (FK) : integer&lt;br&gt;+ IsActive : boolean&lt;br&gt;+ LyDo : character varying(500)?&lt;br&gt;+ NgayPhanCong : timestamp with time zone&lt;br&gt;+ NgayThuHoi : timestamp with time zone?&lt;br&gt;+ NguoiDungId (FK) : integer&lt;br&gt;+ NguoiPhanCongId (FK) : integer&lt;br&gt;+ NguoiThuHoiId (FK) : integer?" style="verticalAlign=top;align=left;overflow=hidden;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;spacingLeft=10;spacingTop=5;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="800" y="1330" width="520" height="241" as="geometry" />
+        </mxCell>
+        <mxCell id="table_anh_phong_tro" value="&lt;b&gt;AnhPhongTro (anh_phong_tro)&lt;/b&gt;&lt;hr&gt;+ AnhPhongTroId (PK) : integer&lt;br&gt;+ ChuThich : character varying(255)?&lt;br&gt;+ IsActive : boolean&lt;br&gt;+ LaAnhDaiDien : boolean&lt;br&gt;+ NgayTaiLen : timestamp with time zone&lt;br&gt;+ NguoiTaiLenId (FK) : integer&lt;br&gt;+ PhongTroId (FK) : integer&lt;br&gt;+ PublicId : character varying(200)&lt;br&gt;+ ThuTuHienThi : integer&lt;br&gt;+ Url : character varying(500)" style="verticalAlign=top;align=left;overflow=hidden;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;spacingLeft=10;spacingTop=5;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="3760" y="1940" width="520" height="262" as="geometry" />
+        </mxCell>
+        <mxCell id="table_yeu_cau_su_co" value="&lt;b&gt;YeuCauSuCo (yeu_cau_su_co)&lt;/b&gt;&lt;hr&gt;+ Id (PK) : integer&lt;br&gt;+ ChiPhiSuaChua : numeric(18,2)&lt;br&gt;+ CongVaoHoaDon : boolean&lt;br&gt;+ GhiChuAdmin : text?&lt;br&gt;+ HinhAnhUrl : text?&lt;br&gt;+ IsDeleted : boolean&lt;br&gt;+ LyDoTuChoi : text?&lt;br&gt;+ MoTa : text&lt;br&gt;+ NgayGui : timestamp with time zone&lt;br&gt;+ NgayXuLy : timestamp with time zone?&lt;br&gt;+ NguoiThueId (FK) : integer&lt;br&gt;+ PhongTroId (FK) : integer&lt;br&gt;+ TieuDe : character varying(255)&lt;br&gt;+ TrangThai : integer" style="verticalAlign=top;align=left;overflow=hidden;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;spacingLeft=10;spacingTop=5;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="2280" y="1940" width="520" height="346" as="geometry" />
+        </mxCell>
+        <mxCell id="table_thong_bao" value="&lt;b&gt;ThongBao (thong_bao)&lt;/b&gt;&lt;hr&gt;+ Id (PK) : integer&lt;br&gt;+ CreatedAt : timestamp with time zone&lt;br&gt;+ IsRead : boolean&lt;br&gt;+ LinhVuc : character varying(100)?&lt;br&gt;+ LinkDieuHuong : text?&lt;br&gt;+ NguoiDungId (FK) : integer?&lt;br&gt;+ NoiDung : text&lt;br&gt;+ TieuDe : character varying(255)" style="verticalAlign=top;align=left;overflow=hidden;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;spacingLeft=10;spacingTop=5;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="1540" y="1330" width="520" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="table_hop_dong" value="&lt;b&gt;HopDong (hop_dong)&lt;/b&gt;&lt;hr&gt;+ HopDongId (PK) : integer&lt;br&gt;+ IsDeleted : boolean&lt;br&gt;+ MaHopDong : text&lt;br&gt;+ NgayCapNhat : timestamp with time zone?&lt;br&gt;+ NgayTao : timestamp with time zone&lt;br&gt;+ NguoiThueId (FK) : integer&lt;br&gt;+ PhongTroId (FK) : integer&lt;br&gt;+ ThoiDiemBatDau : timestamp with time zone&lt;br&gt;+ ThoiDiemKetThuc : timestamp with time zone?&lt;br&gt;+ TienCocPhong : numeric(18,2)&lt;br&gt;+ TienThuePhong : numeric(18,2)&lt;br&gt;+ TrangThaiHopDong : integer" style="verticalAlign=top;align=left;overflow=hidden;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;spacingLeft=10;spacingTop=5;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="1540" y="1940" width="520" height="304" as="geometry" />
+        </mxCell>
+        <mxCell id="table_dich_vu" value="&lt;b&gt;DichVu (dich_vu)&lt;/b&gt;&lt;hr&gt;+ DichVuId (PK) : integer&lt;br&gt;+ DonVi : text&lt;br&gt;+ GhiChu : text&lt;br&gt;+ IsDeleted : boolean&lt;br&gt;+ LoaiDichVu : integer&lt;br&gt;+ NgayCapNhat : timestamp with time zone?&lt;br&gt;+ NgayTao : timestamp with time zone&lt;br&gt;+ TenDichVu : text" style="verticalAlign=top;align=left;overflow=hidden;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;spacingLeft=10;spacingTop=5;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="1540" y="110" width="520" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="table_dich_vu_chi_nhanh" value="&lt;b&gt;DichVuChiNhanh (dich_vu_chi_nhanh)&lt;/b&gt;&lt;hr&gt;+ DichVuChiNhanhId (PK) : integer&lt;br&gt;+ ChiNhanhId (FK) : integer&lt;br&gt;+ DichVuId (FK) : integer&lt;br&gt;+ GiaDichVu : numeric(18,2)&lt;br&gt;+ IsDeleted : boolean&lt;br&gt;+ MacDinh : boolean&lt;br&gt;+ NgayCapNhat : timestamp with time zone?&lt;br&gt;+ NgayTao : timestamp with time zone" style="verticalAlign=top;align=left;overflow=hidden;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;spacingLeft=10;spacingTop=5;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="800" y="720" width="520" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="table_hop_dong_dieu_khoan" value="&lt;b&gt;HopDongDieuKhoan (hop_dong_dieu_khoan)&lt;/b&gt;&lt;hr&gt;+ Id (PK) : integer&lt;br&gt;+ HopDongId (FK) : integer&lt;br&gt;+ NoiDung : text&lt;br&gt;+ ThuTu : integer&lt;br&gt;+ TieuDe : character varying(255)" style="verticalAlign=top;align=left;overflow=hidden;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;spacingLeft=10;spacingTop=5;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="1540" y="2550" width="520" height="157" as="geometry" />
+        </mxCell>
+        <mxCell id="table_chi_tiet_thanh_vien_hop_dong" value="&lt;b&gt;ChiTietThanhVienHopDong (chi_tiet_thanh_vien_hop_dong)&lt;/b&gt;&lt;hr&gt;+ ChiTietThanhVienHopDongId (PK) : integer&lt;br&gt;+ HopDongId (FK) : integer&lt;br&gt;+ IsDeleted : boolean&lt;br&gt;+ NgayChuyenDi : timestamp with time zone?&lt;br&gt;+ NgayVao : timestamp with time zone&lt;br&gt;+ NguoiThueId (FK) : integer" style="verticalAlign=top;align=left;overflow=hidden;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;spacingLeft=10;spacingTop=5;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="2280" y="2550" width="520" height="178" as="geometry" />
+        </mxCell>
+        <mxCell id="table_dieu_khoan_mau" value="&lt;b&gt;DieuKhoanMau (dieu_khoan_mau)&lt;/b&gt;&lt;hr&gt;+ DieuKhoanMauId (PK) : integer&lt;br&gt;+ IsDeleted : boolean&lt;br&gt;+ NgayCapNhat : timestamp with time zone?&lt;br&gt;+ NgayTao : timestamp with time zone&lt;br&gt;+ NoiDung : text&lt;br&gt;+ TieuDe : character varying(255)" style="verticalAlign=top;align=left;overflow=hidden;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;spacingLeft=10;spacingTop=5;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="3020" y="110" width="520" height="178" as="geometry" />
+        </mxCell>
+        <mxCell id="table_dang_ky_dich_vu" value="&lt;b&gt;DangKyDichVu (dang_ky_dich_vu)&lt;/b&gt;&lt;hr&gt;+ DangKyDichVuId (PK) : integer&lt;br&gt;+ DichVuChiNhanhId (FK) : integer&lt;br&gt;+ NgayBatDau : timestamp with time zone&lt;br&gt;+ NgayKetThuc : timestamp with time zone?&lt;br&gt;+ PhongTroId (FK) : integer&lt;br&gt;+ SoLuong : integer" style="verticalAlign=top;align=left;overflow=hidden;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;spacingLeft=10;spacingTop=5;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="800" y="1940" width="520" height="178" as="geometry" />
+        </mxCell>
+        <mxCell id="table_dich_vu_dien_nuoc_cua_phong" value="&lt;b&gt;DichVuDienNuocCuaPhong (dich_vu_dien_nuoc_cua_phong)&lt;/b&gt;&lt;hr&gt;+ DichVuDienNuocCuaPhongId (PK) : integer&lt;br&gt;+ ChiSoDienCu : numeric(18,3)&lt;br&gt;+ ChiSoDienMoi : numeric(18,3)&lt;br&gt;+ ChiSoNuocCu : numeric(18,3)&lt;br&gt;+ ChiSoNuocMoi : numeric(18,3)&lt;br&gt;+ DonGiaDien : numeric(18,2)&lt;br&gt;+ DonGiaNuoc : numeric(18,2)&lt;br&gt;+ GhiChuDuyet : text?&lt;br&gt;+ IsDeleted : boolean&lt;br&gt;+ Nam : integer&lt;br&gt;+ NgayCapNhat : timestamp with time zone?&lt;br&gt;+ NgayDuyet : timestamp with time zone?&lt;br&gt;+ NgayTao : timestamp with time zone&lt;br&gt;+ NguoiDuyetId : integer?&lt;br&gt;+ NguoiTaoId : integer?&lt;br&gt;+ PhongTroId (FK) : integer&lt;br&gt;+ Thang : integer&lt;br&gt;+ TrangThaiGhiNhan : integer" style="verticalAlign=top;align=left;overflow=hidden;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;spacingLeft=10;spacingTop=5;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="60" y="1940" width="520" height="430" as="geometry" />
+        </mxCell>
+        <mxCell id="table_hoa_don" value="&lt;b&gt;HoaDon (hoa_don)&lt;/b&gt;&lt;hr&gt;+ HoaDonId (PK) : integer&lt;br&gt;+ ChoPhepThanhToanMotPhan : boolean&lt;br&gt;+ DichVuDienNuocCuaPhongId (FK) : integer?&lt;br&gt;+ HanThanhToan : timestamp with time zone?&lt;br&gt;+ HopDongId (FK) : integer&lt;br&gt;+ IsDeleted : boolean&lt;br&gt;+ MaHoaDon : text&lt;br&gt;+ Nam : integer&lt;br&gt;+ NgayCapNhat : timestamp with time zone?&lt;br&gt;+ NgayChot : timestamp with time zone?&lt;br&gt;+ NgayGui : timestamp with time zone?&lt;br&gt;+ NgayTao : timestamp with time zone&lt;br&gt;+ NguoiChotId : integer?&lt;br&gt;+ SoTienThanhToanToiThieu : numeric(18,2)?&lt;br&gt;+ Thang : integer&lt;br&gt;+ TongTien : numeric(18,2)&lt;br&gt;+ TrangThaiHoaDon : integer&lt;br&gt;+ TrangThaiPhatHanh : integer" style="verticalAlign=top;align=left;overflow=hidden;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;spacingLeft=10;spacingTop=5;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="800" y="2550" width="520" height="430" as="geometry" />
+        </mxCell>
+        <mxCell id="table_yeu_cau_thanh_toan_hoa_don" value="&lt;b&gt;YeuCauThanhToanHoaDon (yeu_cau_thanh_toan_hoa_don)&lt;/b&gt;&lt;hr&gt;+ YeuCauThanhToanHoaDonId (PK) : integer&lt;br&gt;+ HanThanhToan : timestamp with time zone?&lt;br&gt;+ HoaDonId (FK) : integer&lt;br&gt;+ IsDeleted : boolean&lt;br&gt;+ MaYeuCau : character varying(50)&lt;br&gt;+ NgayCapNhat : timestamp with time zone?&lt;br&gt;+ NgayTao : timestamp with time zone&lt;br&gt;+ NguoiTaoId : integer?&lt;br&gt;+ NoiDungChuyenKhoan : text&lt;br&gt;+ SoTien : numeric(18,2)&lt;br&gt;+ TrangThai : integer" style="verticalAlign=top;align=left;overflow=hidden;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;spacingLeft=10;spacingTop=5;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="800" y="3160" width="520" height="283" as="geometry" />
+        </mxCell>
+        <mxCell id="table_anh_chi_so_dong_ho" value="&lt;b&gt;AnhChiSoDongHo (anh_chi_so_dong_ho)&lt;/b&gt;&lt;hr&gt;+ AnhChiSoDongHoId (PK) : integer&lt;br&gt;+ DichVuDienNuocCuaPhongId (FK) : integer&lt;br&gt;+ DoTinCay : double precision?&lt;br&gt;+ DuocChonLamChiSoChinhThuc : boolean&lt;br&gt;+ GhiChuXacNhan : character varying(1000)?&lt;br&gt;+ GiaTriAIGoiY : numeric(18,3)?&lt;br&gt;+ GiaTriXacNhan : numeric(18,3)?&lt;br&gt;+ IsDeleted : boolean&lt;br&gt;+ LoaiDongHo : integer&lt;br&gt;+ NgayGui : timestamp with time zone&lt;br&gt;+ NgayXacNhan : timestamp with time zone?&lt;br&gt;+ NgayXuLy : timestamp with time zone?&lt;br&gt;+ NguoiGuiId (FK) : integer?&lt;br&gt;+ NguoiXacNhanId (FK) : integer?&lt;br&gt;+ PublicId : character varying(255)?&lt;br&gt;+ ThongBaoLoi : character varying(1000)?&lt;br&gt;+ TrangThaiXuLy : integer&lt;br&gt;+ Url : character varying(2048)" style="verticalAlign=top;align=left;overflow=hidden;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;spacingLeft=10;spacingTop=5;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="60" y="2550" width="520" height="430" as="geometry" />
+        </mxCell>
+        <mxCell id="table_chi_tiet_hoa_don" value="&lt;b&gt;ChiTietHoaDon (chi_tiet_hoa_don)&lt;/b&gt;&lt;hr&gt;+ ChiTietHoaDonId (PK) : integer&lt;br&gt;+ DichVuId (FK) : integer?&lt;br&gt;+ DonGia : numeric(18,2)&lt;br&gt;+ HoaDonId (FK) : integer&lt;br&gt;+ IsDeleted : boolean&lt;br&gt;+ SoLuong : numeric(18,3)&lt;br&gt;+ TenDichVu : text&lt;br&gt;+ TongTien : numeric(18,2)" style="verticalAlign=top;align=left;overflow=hidden;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;spacingLeft=10;spacingTop=5;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="1540" y="3160" width="520" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="table_lich_su_trang_thai_hoa_don" value="&lt;b&gt;LichSuTrangThaiHoaDon (lich_su_trang_thai_hoa_don)&lt;/b&gt;&lt;hr&gt;+ LichSuTrangThaiHoaDonId (PK) : integer&lt;br&gt;+ HoaDonId (FK) : integer&lt;br&gt;+ LyDo : text?&lt;br&gt;+ NgayThucHien : timestamp with time zone&lt;br&gt;+ NguoiThucHienId : integer?&lt;br&gt;+ TrangThaiPhatHanhCu : integer?&lt;br&gt;+ TrangThaiPhatHanhMoi : integer&lt;br&gt;+ TrangThaiThanhToanCu : integer?&lt;br&gt;+ TrangThaiThanhToanMoi : integer" style="verticalAlign=top;align=left;overflow=hidden;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;spacingLeft=10;spacingTop=5;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="60" y="3160" width="520" height="241" as="geometry" />
+        </mxCell>
+        <mxCell id="table_lich_su_thanh_toan" value="&lt;b&gt;LichSuThanhToan (lich_su_thanh_toan)&lt;/b&gt;&lt;hr&gt;+ LichSuThanhToanId (PK) : integer&lt;br&gt;+ GhiChu : text&lt;br&gt;+ HoaDonId (FK) : integer&lt;br&gt;+ IsDeleted : boolean&lt;br&gt;+ MaGiaoDich : text&lt;br&gt;+ MinhChungThanhToanHoaDonId (FK) : integer?&lt;br&gt;+ NgayThanhToan : timestamp with time zone&lt;br&gt;+ NgayXacNhan : timestamp with time zone?&lt;br&gt;+ NguoiXacNhanId (FK) : integer?&lt;br&gt;+ PhuongThucThanhToan : integer&lt;br&gt;+ SoTienThanhToan : numeric(18,2)" style="verticalAlign=top;align=left;overflow=hidden;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;spacingLeft=10;spacingTop=5;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="800" y="4380" width="520" height="283" as="geometry" />
+        </mxCell>
+        <mxCell id="table_minh_chung_thanh_toan_hoa_don" value="&lt;b&gt;MinhChungThanhToanHoaDon (minh_chung_thanh_toan_hoa_don)&lt;/b&gt;&lt;hr&gt;+ MinhChungThanhToanHoaDonId (PK) : integer&lt;br&gt;+ HinhAnhUrl : text&lt;br&gt;+ IsDeleted : boolean&lt;br&gt;+ LyDoTuChoi : text?&lt;br&gt;+ MaGiaoDichNganHang : character varying(100)?&lt;br&gt;+ NgayChuyenKhaiBao : timestamp with time zone&lt;br&gt;+ NgayDoiChieu : timestamp with time zone?&lt;br&gt;+ NgayTao : timestamp with time zone&lt;br&gt;+ NguoiDoiChieuId : integer?&lt;br&gt;+ PublicId : character varying(255)?&lt;br&gt;+ SoTienKhaiBao : numeric(18,2)&lt;br&gt;+ TrangThaiDoiChieu : integer&lt;br&gt;+ YeuCauThanhToanHoaDonId (FK) : integer" style="verticalAlign=top;align=left;overflow=hidden;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;spacingLeft=10;spacingTop=5;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="800" y="3770" width="520" height="325" as="geometry" />
+        </mxCell>
+        <mxCell id="table_lich_su_trang_thai_yeu_cau_thanh_toan_hoa_don" value="&lt;b&gt;LichSuTrangThaiYeuCauThanhToanHoaDon (lich_su_trang_thai_yeu_cau_thanh_toan_hoa_don)&lt;/b&gt;&lt;hr&gt;+ LichSuTrangThaiYeuCauThanhToanHoaDonId (PK) : integer&lt;br&gt;+ LyDo : text?&lt;br&gt;+ NgayThucHien : timestamp with time zone&lt;br&gt;+ NguoiThucHienId : integer?&lt;br&gt;+ TrangThaiCu : integer?&lt;br&gt;+ TrangThaiMoi : integer&lt;br&gt;+ YeuCauThanhToanHoaDonId (FK) : integer" style="verticalAlign=top;align=left;overflow=hidden;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;spacingLeft=10;spacingTop=5;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="60" y="3770" width="520" height="223" as="geometry" />
+        </mxCell>
+        <mxCell id="table_khung_gio_xem_phong" value="&lt;b&gt;KhungGioXemPhong (khung_gio_xem_phong)&lt;/b&gt;&lt;hr&gt;+ KhungGioXemPhongId (PK) : integer&lt;br&gt;+ IsActive : boolean&lt;br&gt;+ NgayCapNhat : timestamp with time zone?&lt;br&gt;+ NgayTao : timestamp with time zone&lt;br&gt;+ NguoiPhuTrachId (FK) : integer?&lt;br&gt;+ NguoiTaoId (FK) : integer&lt;br&gt;+ PhongTroId (FK) : integer&lt;br&gt;+ SoLuongToiDa : integer&lt;br&gt;+ ThoiGianBatDau : timestamp with time zone&lt;br&gt;+ ThoiGianKetThuc : timestamp with time zone" style="verticalAlign=top;align=left;overflow=hidden;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;spacingLeft=10;spacingTop=5;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="3020" y="1940" width="520" height="262" as="geometry" />
+        </mxCell>
+        <mxCell id="table_yeu_cau_xem_phong" value="&lt;b&gt;YeuCauXemPhong (yeu_cau_xem_phong)&lt;/b&gt;&lt;hr&gt;+ YeuCauXemPhongId (PK) : integer&lt;br&gt;+ Email : character varying(150)?&lt;br&gt;+ GhiChu : character varying(1000)?&lt;br&gt;+ HinhThucXacNhan : integer?&lt;br&gt;+ HoTen : character varying(100)&lt;br&gt;+ KhachVangLaiId (FK) : integer?&lt;br&gt;+ KhungGioXemPhongId (FK) : integer?&lt;br&gt;+ NgayCapNhat : timestamp with time zone?&lt;br&gt;+ NgayTao : timestamp with time zone&lt;br&gt;+ NguonTao : integer&lt;br&gt;+ PhongTroId (FK) : integer&lt;br&gt;+ SoDienThoai : character varying(20)&lt;br&gt;+ ThoiGianMongMuon : timestamp with time zone&lt;br&gt;+ ThoiGianXacNhan : timestamp with time zone?&lt;br&gt;+ TrangThai : integer" style="verticalAlign=top;align=left;overflow=hidden;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;spacingLeft=10;spacingTop=5;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="3020" y="2550" width="520" height="367" as="geometry" />
+        </mxCell>
+        <mxCell id="table_lich_su_trang_thai_yeu_cau_xem_phong" value="&lt;b&gt;LichSuTrangThaiYeuCauXemPhong (lich_su_trang_thai_yeu_cau_xem_phong)&lt;/b&gt;&lt;hr&gt;+ LichSuTrangThaiYeuCauXemPhongId (PK) : integer&lt;br&gt;+ LoaiTacNhan : integer&lt;br&gt;+ LyDo : character varying(500)?&lt;br&gt;+ NgayThucHien : timestamp with time zone&lt;br&gt;+ NguoiThucHienId (FK) : integer?&lt;br&gt;+ TrangThaiSau : integer&lt;br&gt;+ TrangThaiTruoc : integer?&lt;br&gt;+ YeuCauXemPhongId (FK) : integer" style="verticalAlign=top;align=left;overflow=hidden;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;spacingLeft=10;spacingTop=5;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="3020" y="3160" width="520" height="244" as="geometry" />
+        </mxCell>
+        <mxCell id="table_yeu_cau_giu_cho" value="&lt;b&gt;YeuCauGiuCho (yeu_cau_giu_cho)&lt;/b&gt;&lt;hr&gt;+ YeuCauGiuChoId (PK) : integer&lt;br&gt;+ HanKyHopDong : timestamp with time zone?&lt;br&gt;+ HanThanhToan : timestamp with time zone?&lt;br&gt;+ KhachVangLaiId (FK) : integer&lt;br&gt;+ LyDoTuChoiHoacHuy : character varying(500)?&lt;br&gt;+ NgayCapNhat : timestamp with time zone?&lt;br&gt;+ NgayDuyet : timestamp with time zone?&lt;br&gt;+ NgayTao : timestamp with time zone&lt;br&gt;+ NguoiDuyetId (FK) : integer?&lt;br&gt;+ PhongTroId (FK) : integer&lt;br&gt;+ SoTienGiuCho : numeric(18,2)?&lt;br&gt;+ TrangThai : integer&lt;br&gt;+ YeuCauXemPhongId (FK) : integer?" style="verticalAlign=top;align=left;overflow=hidden;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;spacingLeft=10;spacingTop=5;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="2280" y="3160" width="520" height="325" as="geometry" />
+        </mxCell>
+        <mxCell id="table_yeu_cau_thanh_toan_giu_cho" value="&lt;b&gt;YeuCauThanhToanGiuCho (yeu_cau_thanh_toan_giu_cho)&lt;/b&gt;&lt;hr&gt;+ YeuCauThanhToanGiuChoId (PK) : integer&lt;br&gt;+ HanThanhToan : timestamp with time zone&lt;br&gt;+ MaYeuCau : character varying(50)&lt;br&gt;+ NgayCapNhat : timestamp with time zone?&lt;br&gt;+ NgayTao : timestamp with time zone&lt;br&gt;+ NguoiTaoId (FK) : integer&lt;br&gt;+ NoiDungChuyenKhoan : character varying(100)&lt;br&gt;+ SoTien : numeric(18,2)&lt;br&gt;+ TrangThai : integer&lt;br&gt;+ YeuCauGiuChoId (FK) : integer" style="verticalAlign=top;align=left;overflow=hidden;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;spacingLeft=10;spacingTop=5;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="3020" y="3770" width="520" height="262" as="geometry" />
+        </mxCell>
+        <mxCell id="table_lich_su_trang_thai_yeu_cau_giu_cho" value="&lt;b&gt;LichSuTrangThaiYeuCauGiuCho (lich_su_trang_thai_yeu_cau_giu_cho)&lt;/b&gt;&lt;hr&gt;+ LichSuTrangThaiYeuCauGiuChoId (PK) : integer&lt;br&gt;+ LoaiTacNhan : integer&lt;br&gt;+ LyDo : character varying(500)?&lt;br&gt;+ NgayThucHien : timestamp with time zone&lt;br&gt;+ NguoiThucHienId (FK) : integer?&lt;br&gt;+ TrangThaiSau : integer&lt;br&gt;+ TrangThaiTruoc : integer?&lt;br&gt;+ YeuCauGiuChoId (FK) : integer" style="verticalAlign=top;align=left;overflow=hidden;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;spacingLeft=10;spacingTop=5;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="3760" y="3770" width="520" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="table_minh_chung_thanh_toan_giu_cho" value="&lt;b&gt;MinhChungThanhToanGiuCho (minh_chung_thanh_toan_giu_cho)&lt;/b&gt;&lt;hr&gt;+ MinhChungThanhToanGiuChoId (PK) : integer&lt;br&gt;+ GhiChuKhachHang : character varying(500)?&lt;br&gt;+ LyDoTuChoi : character varying(500)?&lt;br&gt;+ MaGiaoDichNganHang : character varying(100)?&lt;br&gt;+ NgayChuyenTien : timestamp with time zone&lt;br&gt;+ NgayDoiChieu : timestamp with time zone?&lt;br&gt;+ NgayTao : timestamp with time zone&lt;br&gt;+ NguoiDoiChieuId (FK) : integer?&lt;br&gt;+ PublicIdHinhAnh : character varying(200)?&lt;br&gt;+ SoTienKhaiBao : numeric(18,2)&lt;br&gt;+ TrangThai : integer&lt;br&gt;+ UrlHinhAnh : character varying(500)&lt;br&gt;+ YeuCauThanhToanGiuChoId (FK) : integer" style="verticalAlign=top;align=left;overflow=hidden;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;spacingLeft=10;spacingTop=5;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="2280" y="4380" width="520" height="325" as="geometry" />
+        </mxCell>
+        <mxCell id="table_giao_dich_giu_cho" value="&lt;b&gt;GiaoDichGiuCho (giao_dich_giu_cho)&lt;/b&gt;&lt;hr&gt;+ GiaoDichGiuChoId (PK) : integer&lt;br&gt;+ GhiChu : character varying(500)?&lt;br&gt;+ MaGiaoDich : character varying(100)&lt;br&gt;+ MinhChungThanhToanGiuChoId (FK) : integer?&lt;br&gt;+ NgayThucNhan : timestamp with time zone&lt;br&gt;+ NgayXacNhan : timestamp with time zone&lt;br&gt;+ NguoiXacNhanId (FK) : integer&lt;br&gt;+ PhuongThuc : integer&lt;br&gt;+ SoTienThucNhan : numeric(18,2)&lt;br&gt;+ YeuCauThanhToanGiuChoId (FK) : integer" style="verticalAlign=top;align=left;overflow=hidden;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;spacingLeft=10;spacingTop=5;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="2280" y="4990" width="520" height="262" as="geometry" />
+        </mxCell>
+        <mxCell id="table_lich_su_trang_thai_yeu_cau_thanh_toan_giu_cho" value="&lt;b&gt;LichSuTrangThaiYeuCauThanhToanGiuCho (lich_su_trang_thai_yeu_cau_thanh_toan_giu_cho)&lt;/b&gt;&lt;hr&gt;+ LichSuTrangThaiYeuCauThanhToanGiuChoId (PK) : integer&lt;br&gt;+ LoaiTacNhan : integer&lt;br&gt;+ LyDo : character varying(500)?&lt;br&gt;+ NgayThucHien : timestamp with time zone&lt;br&gt;+ NguoiThucHienId (FK) : integer?&lt;br&gt;+ TrangThaiSau : integer&lt;br&gt;+ TrangThaiTruoc : integer?&lt;br&gt;+ YeuCauThanhToanGiuChoId (FK) : integer" style="verticalAlign=top;align=left;overflow=hidden;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;spacingLeft=10;spacingTop=5;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="3020" y="4380" width="520" height="244" as="geometry" />
+        </mxCell>
+        <mxCell id="table_quyet_dinh_hoan_tien_giu_cho" value="&lt;b&gt;QuyetDinhHoanTienGiuCho (quyet_dinh_hoan_tien_giu_cho)&lt;/b&gt;&lt;hr&gt;+ QuyetDinhHoanTienGiuChoId (PK) : integer&lt;br&gt;+ GhiChu : character varying(500)?&lt;br&gt;+ LyDo : character varying(500)&lt;br&gt;+ NgayQuyetDinh : timestamp with time zone&lt;br&gt;+ NguoiQuyetDinhId (FK) : integer&lt;br&gt;+ SoTienHoanDuyet : numeric(18,2)&lt;br&gt;+ TrangThai : integer&lt;br&gt;+ YeuCauGiuChoId (FK) : integer" style="verticalAlign=top;align=left;overflow=hidden;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;spacingLeft=10;spacingTop=5;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="2280" y="3770" width="520" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="table_ap_dung_tien_giu_cho_vao_tien_coc" value="&lt;b&gt;ApDungTienGiuChoVaoTienCoc (ap_dung_tien_giu_cho_vao_tien_coc)&lt;/b&gt;&lt;hr&gt;+ ApDungTienGiuChoVaoTienCocId (PK) : integer&lt;br&gt;+ GhiChu : character varying(500)?&lt;br&gt;+ HopDongId (FK) : integer&lt;br&gt;+ NgayApDung : timestamp with time zone&lt;br&gt;+ NguoiThucHienId (FK) : integer&lt;br&gt;+ SoTienApDung : numeric(18,2)&lt;br&gt;+ YeuCauGiuChoId (FK) : integer" style="verticalAlign=top;align=left;overflow=hidden;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;spacingLeft=10;spacingTop=5;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="1540" y="3770" width="520" height="199" as="geometry" />
+        </mxCell>
+        <mxCell id="table_giao_dich_hoan_tien_giu_cho" value="&lt;b&gt;GiaoDichHoanTienGiuCho (giao_dich_hoan_tien_giu_cho)&lt;/b&gt;&lt;hr&gt;+ GiaoDichHoanTienGiuChoId (PK) : integer&lt;br&gt;+ GhiChu : character varying(500)?&lt;br&gt;+ MaGiaoDichHoan : character varying(100)&lt;br&gt;+ NgayHoan : timestamp with time zone&lt;br&gt;+ NguoiXacNhanId (FK) : integer&lt;br&gt;+ QuyetDinhHoanTienGiuChoId (FK) : integer&lt;br&gt;+ SoTienHoan : numeric(18,2)&lt;br&gt;+ UrlHinhAnhMinhChung : character varying(500)?" style="verticalAlign=top;align=left;overflow=hidden;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;spacingLeft=10;spacingTop=5;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="1540" y="4380" width="520" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="legend" value="PK = khóa chính; FK = khóa ngoại; ? = cho phép NULL; đường xám = FK tham chiếu người dùng" style="text;html=1;align=left;verticalAlign=middle;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="60" y="5425" width="1800" height="30" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -14,7 +14,7 @@ namespace QuanLyChoThuePhongTroWeb.Domain.Entities
         public ChiNhanh ChiNhanh { get; set; }
         public string SoPhong { get; set; }
         public int TangLau { get; set; }
-        public double GiaThue { get; set; }
+        public decimal GiaThue { get; set; }
         public double DienTich { get; set; }
         public int SoNguoiToiDa { get; set; }
         public TrangThaiPhong TrangThai { get; set; }
@@ -22,7 +22,14 @@ namespace QuanLyChoThuePhongTroWeb.Domain.Entities
         public DateTime NgayTao { get; set; } = DateTime.UtcNow;
         public DateTime? NgayCapNhat { get; set; }
         public bool IsDeleted { get; set; } = false;
+        public bool DuocDangTin { get; set; } = false;
+        public string? TieuDeDangTin { get; set; }
+        public string? MaCongKhai { get; set; }
+        public int? NguoiDangTinId { get; set; }
+        [ForeignKey("NguoiDangTinId")]
+        public NguoiDung? NguoiDangTin { get; set; }
         public ICollection<HopDong> HopDongs { get; set; }
         public ICollection<DangKyDichVu> DangKyDichVus { get; set; }
+        public ICollection<AnhPhongTro> AnhPhongTros { get; set; } = new List<AnhPhongTro>();
     }
 }

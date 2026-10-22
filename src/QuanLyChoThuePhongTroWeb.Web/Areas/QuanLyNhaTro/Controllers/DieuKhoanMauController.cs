@@ -27,7 +27,9 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             return Ok(data);
         }
 
+        // Thư viện điều khoản dùng chung cho mọi chi nhánh: chỉ Admin được sửa.
         [HttpPost("/DieuKhoanMau/Create")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Create([FromBody] DieuKhoanMauReq request)
         {
             if (!ModelState.IsValid) return BadRequest(new { message = "Dữ liệu không hợp lệ" });
@@ -39,6 +41,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         }
 
         [HttpPut("/DieuKhoanMau/Update/{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Update(int id, [FromBody] DieuKhoanMauReq request)
         {
             if (!ModelState.IsValid) return BadRequest(new { message = "Dữ liệu không hợp lệ" });
@@ -51,6 +54,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         }
 
         [HttpDelete("/DieuKhoanMau/Delete/{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int id)
         {
             var result = await _dieuKhoanMauService.DeleteAsync(id);

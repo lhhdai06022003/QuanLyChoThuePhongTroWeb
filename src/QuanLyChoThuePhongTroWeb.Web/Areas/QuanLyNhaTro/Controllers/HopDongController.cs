@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels;
 using Microsoft.Extensions.Logging;
+using QuanLyChoThuePhongTroWeb.Web.Helpers;
 
 namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
 {
@@ -34,9 +35,9 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         [ApiExplorerSettings(IgnoreApi = true)]
         public async Task<IActionResult> QuanLyHopDong()
         {
-             ViewBag.ListChiNhanh = await _phongTroService.GetDanhSachChiNhanhDropdownAsync();
-             ViewBag.ListPhongTro = await _phongTroService.DanhSachPhongTroConTrong(); 
-             ViewBag.ListNguoiThue = await _nguoiThueService.DanhSachNguoiThue();
+             ViewBag.ListChiNhanh = await _phongTroService.GetDanhSachChiNhanhDropdownAsync(CurrentActorId);
+             ViewBag.ListPhongTro = await _phongTroService.DanhSachPhongTroConTrong(CurrentActorId);
+             ViewBag.ListNguoiThue = await _nguoiThueService.DanhSachNguoiThue(CurrentActorId);
              ViewBag.ListDieuKhoanMau = await _dieuKhoanMauService.GetAllAsync();
             return View(); // Trả về view Index của chức năng quản lý hợp đồng
         }
@@ -65,14 +66,14 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             request.SortDirection = tableParams.SortDirection;
             request.SortColumnName = tableParams.SortColumnName;
 
-            var data = await _hopDongService.DanhSachHopDongSideAsync(request);
+            var data = await _hopDongService.DanhSachHopDongSideAsync(CurrentActorId, request);
             return Ok(data);
         }
 
         [HttpGet("/HopDong/GetById/{id}")]
         public async Task<IActionResult> GetById(int id)
         {
-            var data = await _hopDongService.GetByIdAsync(id);
+            var data = await _hopDongService.GetByIdAsync(CurrentActorId, id);
             if (data == null) return NotFound(new { message = "Không tìm thấy hợp đồng." });
             return Ok(data);
         }
@@ -81,12 +82,8 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         public async Task<IActionResult> Create([FromBody] HopDongReq request)
         {
             // ModelState đã được tự động kiểm tra nhờ [ApiController]
-            var result = await _hopDongService.CreateAsync(request);
-            if (!result.IsSuccess)
-            {
-                return BadRequest(new { Message = result.ErrorMessage });
-            }
-            return Ok(new { Message = "Thêm mới hợp đồng thành công!" });
+            var result = await _hopDongService.CreateAsync(CurrentActorId, request);
+            return result.Success ? Ok(new { Message = "Thêm mới hợp đồng thành công!" }) : this.ToErrorResult(result);
         }
 
         [HttpPut("/HopDong/Update/{id}")]
@@ -94,29 +91,21 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         {
             if (id != request.HopDongId) return BadRequest(new { Message = "ID không khớp." });
 
-            var result = await _hopDongService.UpdateAsync(id, request);
-            if (!result.IsSuccess)
-            {
-                return BadRequest(new { Message = result.ErrorMessage });
-            }
-            return Ok(new { Message = "Cập nhật hợp đồng thành công!" });
+            var result = await _hopDongService.UpdateAsync(CurrentActorId, id, request);
+            return result.Success ? Ok(new { Message = "Cập nhật hợp đồng thành công!" }) : this.ToErrorResult(result);
         }
 
         [HttpDelete("/HopDong/Delete/{id}")]
         public async Task<IActionResult> Delete(int id)
         {
-            var result = await _hopDongService.DeleteAsync(id);
-            if (!result.IsSuccess)
-            {
-                return BadRequest(new { Message = result.ErrorMessage });
-            }
-            return Ok(new { Message = "Đã xóa hợp đồng thành công." });
+            var result = await _hopDongService.DeleteAsync(CurrentActorId, id);
+            return result.Success ? Ok(new { Message = "Đã xóa hợp đồng thành công." }) : this.ToErrorResult(result);
         }
 
         [HttpGet("/HopDong/Print/{id}")]
         public async Task<IActionResult> Print(int id)
         {
-            var data = await _hopDongService.GetPrintDataAsync(id);
+            var data = await _hopDongService.GetPrintDataAsync(CurrentActorId, id);
             if (data == null) return NotFound(new { message = "Không tìm thấy hợp đồng." });
             return View(data);
         }
@@ -124,7 +113,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         [HttpGet("/HopDong/DownloadWord/{id}")]
         public async Task<IActionResult> DownloadWord(int id)
         {
-            var data = await _hopDongService.GetPrintDataAsync(id);
+            var data = await _hopDongService.GetPrintDataAsync(CurrentActorId, id);
             if (data == null) return NotFound(new { message = "Không tìm thấy hợp đồng." });
 
             try

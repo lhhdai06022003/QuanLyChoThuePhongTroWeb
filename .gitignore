@@ -380,9 +380,7 @@ secrets.json
 **/sent_invoice_reminders.json
 **/sent_contract_alerts.json
 **/sent_*.json
-/wwwroot/uploads/
 **/wwwroot/uploads/
-**/private-proofs/
 
 # Local database and backup files
 *.db
@@ -397,4 +395,14 @@ secrets.json
 .agent/
 .agents/
 AGENTS.md
-!/AGENTS.md
+
+# Unit test results and coverage reports
+**/TestResults/**
+**/coverage/**
+**/*.trx
+**/*.coverlet/**
+**/*.cobertura.xml
+**/*.lcov
+**/*.htmlcov/
+
+docs/KeHoachHienTai/

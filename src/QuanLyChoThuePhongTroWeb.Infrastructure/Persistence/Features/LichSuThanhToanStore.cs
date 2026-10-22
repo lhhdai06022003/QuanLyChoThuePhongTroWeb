@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using QuanLyChoThuePhongTroWeb.Application.Common.Models;
+using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Payments;
 using QuanLyChoThuePhongTroWeb.Application.Features.LichSuThanhToans.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.LichSuThanhToans.Persistence;
 using QuanLyChoThuePhongTroWeb.Domain.Entities;
@@ -23,10 +24,20 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
         }
 
         public async Task<DataTableResponse<LichSuThanhToanGiaoDichRes>> GetDanhSachThanhToanAsync(
-            DataTableRequest request, int chiNhanhId, int phuongThuc, DateTime? tuNgay, DateTime? denNgay, CancellationToken cancellationToken = default)
+            DataTableRequest request, int chiNhanhId, int phuongThuc, DateTime? tuNgay, DateTime? denNgay, bool chiCoTienThua = false, IReadOnlyCollection<int>? allowedBranchIds = null, CancellationToken cancellationToken = default)
         {
             var query = _context.LichSuThanhToans
                 .Where(l => !l.IsDeleted);
+
+            if (chiCoTienThua)
+            {
+                query = query.Where(l => l.GhiChu.StartsWith(PaymentNoteTags.TienThuaPrefix));
+            }
+
+            if (allowedBranchIds != null)
+            {
+                query = query.Where(l => allowedBranchIds.Contains(l.HoaDon.HopDong.PhongTro.ChiNhanhId));
+            }
 
             if (chiNhanhId > 0)
             {
@@ -92,10 +103,15 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
             };
         }
 
-        public async Task<ThongKeThanhToanRes> GetThongKeThanhToanAsync(int chiNhanhId, DateTime? tuNgay, DateTime? denNgay, CancellationToken cancellationToken = default)
+        public async Task<ThongKeThanhToanRes> GetThongKeThanhToanAsync(int chiNhanhId, DateTime? tuNgay, DateTime? denNgay, IReadOnlyCollection<int>? allowedBranchIds = null, CancellationToken cancellationToken = default)
         {
             var query = _context.LichSuThanhToans
                 .Where(l => !l.IsDeleted);
+
+            if (allowedBranchIds != null)
+            {
+                query = query.Where(l => allowedBranchIds.Contains(l.HoaDon.HopDong.PhongTro.ChiNhanhId));
+            }
 
             if (chiNhanhId > 0)
             {
@@ -133,13 +149,6 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
             };
         }
 
-        public async Task<LichSuThanhToan?> GetByIdWithHoaDonAsync(int id, CancellationToken cancellationToken = default)
-        {
-            return await _context.LichSuThanhToans
-                .Include(l => l.HoaDon)
-                .FirstOrDefaultAsync(l => l.LichSuThanhToanId == id && !l.IsDeleted, cancellationToken);
-        }
-
         public async Task<IReadOnlyList<LichSuThanhToan>> GetLichSuByNguoiThueIdAsync(int nguoiThueId, CancellationToken cancellationToken = default)
         {
             return await _context.LichSuThanhToans
@@ -147,16 +156,6 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 .Where(ls => ls.HoaDon.HopDong.NguoiThueId == nguoiThueId && !ls.IsDeleted)
                 .OrderByDescending(ls => ls.NgayThanhToan)
                 .ToListAsync(cancellationToken);
-        }
-
-        public void UpdateLichSu(LichSuThanhToan lichSu)
-        {
-            _context.LichSuThanhToans.Update(lichSu);
-        }
-
-        public void UpdateHoaDon(HoaDon hoaDon)
-        {
-            _context.HoaDons.Update(hoaDon);
         }
     }
 }

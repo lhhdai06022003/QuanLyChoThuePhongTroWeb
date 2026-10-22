@@ -1,5 +1,6 @@
 @{
     var currentPath = Context.Request.Path.Value ?? string.Empty;
+    var isDashboardPage = currentPath.StartsWith("/KhachThue/Dashboard", StringComparison.OrdinalIgnoreCase);
     var isRequestsPage = currentPath.StartsWith("/tai-khoan/yeu-cau-phong", StringComparison.OrdinalIgnoreCase);
     var isSavedPage = currentPath == "/phong/da-luu";
     var isGuidePage = currentPath == "/phong/cam-nang";
@@ -38,6 +39,10 @@
                 <a href="/phong/da-luu" aria-current="@(isSavedPage ? "page" : null)" class="room-saved-nav"><svg class="room-icon" aria-hidden="true"><use href="#room-heart" /></svg>Đã lưu <span class="room-nav-count" data-saved-count hidden>0</span></a>
                 @if (User.Identity?.IsAuthenticated == true)
                 {
+                    @if (User.IsInRole("KhachThue") || User.IsInRole("KhachVangLai"))
+                    {
+                        <a href="/KhachThue/Dashboard" aria-current="@(isDashboardPage ? "page" : null)">Tổng quan tài khoản</a>
+                    }
                     <a href="/tai-khoan/yeu-cau-phong" aria-current="@(isRequestsPage ? "page" : null)">Lịch xem và đặt phòng</a>
                     <span class="guest-signed-in"><strong>@User.Identity.Name</strong></span>
                     <form method="post" asp-area="QuanLyNhaTro" asp-controller="NguoiDung" asp-action="DangXuat">@Html.AntiForgeryToken()<button class="guest-nav-button" type="submit">Đăng xuất</button></form>

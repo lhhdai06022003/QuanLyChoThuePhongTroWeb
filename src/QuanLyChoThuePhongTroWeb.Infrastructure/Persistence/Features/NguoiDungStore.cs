@@ -21,6 +21,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
         public async Task<NguoiDung?> GetActiveByUsernameAsync(string username, CancellationToken cancellationToken = default)
         {
             return await _context.NguoiDungs
+                .Include(x => x.KhachVangLai)
                 .FirstOrDefaultAsync(x => x.TenDangNhap == username && !x.IsDeleted, cancellationToken);
         }
 

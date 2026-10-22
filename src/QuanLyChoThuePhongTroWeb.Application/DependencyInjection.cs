@@ -14,6 +14,12 @@ using QuanLyChoThuePhongTroWeb.Application.Features.YeuCauSuCos.Services;
 using QuanLyChoThuePhongTroWeb.Application.Features.ThongBaos.Services;
 using QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.Services;
 using QuanLyChoThuePhongTroWeb.Application.Features.PublicRooms;
+using QuanLyChoThuePhongTroWeb.Application.Features.GuestAccounts;
+using QuanLyChoThuePhongTroWeb.Application.Features.Viewings;
+using QuanLyChoThuePhongTroWeb.Application.Features.Reservations;
+using QuanLyChoThuePhongTroWeb.Application.Features.ReservationPayments;
+using QuanLyChoThuePhongTroWeb.Application.Features.ReservationSettlement;
+using QuanLyChoThuePhongTroWeb.Application.Features.RoomDepositedNotices;
 
 namespace QuanLyChoThuePhongTroWeb.Application
 {
@@ -28,6 +34,16 @@ namespace QuanLyChoThuePhongTroWeb.Application
 
             // Phase 6.2 services
             services.AddScoped<IPhongTroService, PhongTroService>();
+            services.AddScoped<IPublicRoomService, PublicRoomService>();
+            services.AddScoped<IGuestRegistrationService, GuestRegistrationService>();
+            services.AddScoped<IViewingRequestService, ViewingRequestService>();
+            services.AddScoped<IViewingSlotAdminService, ViewingSlotAdminService>();
+            services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.PublicRooms.IRoomListingService, QuanLyChoThuePhongTroWeb.Application.Features.PublicRooms.RoomListingService>();
+            services.AddScoped<IViewingAdminRequestService, ViewingAdminRequestService>();
+            services.AddScoped<IReservationService, ReservationService>();
+            services.AddScoped<IReservationPaymentService, ReservationPaymentService>();
+            services.AddScoped<IReservationSettlementService, ReservationSettlementService>();
+            services.AddScoped<IRoomNoticeService, RoomNoticeService>();
             services.AddScoped<INguoiThueService, NguoiThueService>();
             services.AddScoped<INguoiDungService, NguoiDungService>();
 
@@ -35,22 +51,42 @@ namespace QuanLyChoThuePhongTroWeb.Application
             services.AddScoped<IHopDongService, HopDongService>();
             services.AddScoped<IThanhVienHopDongService, ThanhVienHopDongService>();
             services.AddScoped<IDienNuocService, DienNuocService>();
+            services.AddScoped<IMeterReadingWorkflowService, MeterReadingWorkflowService>();
+            services.AddScoped<IMeterImagePortalService, MeterImagePortalService>();
 
             // Phase 6.4 services
             services.AddScoped<IHoaDonCalculatorService, HoaDonCalculatorService>();
             services.AddScoped<IHoaDonService, HoaDonService>();
+            services.AddScoped<IInvoiceIssuanceService, InvoiceIssuanceService>();
+            services.AddScoped<IInvoicePublicationService, InvoicePublicationService>();
+            services.AddScoped<IInvoiceViewService, InvoiceViewService>();
+            services.AddScoped<IInvoicePaymentConfirmationService, InvoicePaymentConfirmationService>();
+            services.AddScoped<IInvoicePaymentRequestService, InvoicePaymentRequestService>();
+            services.AddScoped<IInvoiceLedgerService, InvoiceLedgerService>();
+            services.AddScoped<Features.HoaDons.Payments.InvoicePaymentTransaction>();
+            services.AddSingleton<Features.HoaDons.Payments.IPaymentCodeGenerator, Features.HoaDons.Payments.PaymentCodeGenerator>();
             services.AddScoped<ILichSuThanhToanService, LichSuThanhToanService>();
 
             // Phase 6.5 services
             services.AddScoped<IYeuCauSuCoService, YeuCauSuCoService>();
             services.AddScoped<IThongBaoService, ThongBaoService>();
             services.AddScoped<IDashboardService, DashboardService>();
-            services.AddScoped<IPublicRoomService, PublicRoomService>();
+
+            // AI assistant
+            services.AddScoped<Features.AiAssistants.Services.IAiAssistantService, Features.AiAssistants.Services.AiAssistantService>();
+            services.AddScoped<Features.AiAssistants.Tools.AiToolExecutor>();
 
             // Phase 8 Background Job Use Cases
             services.AddScoped<Features.HopDongs.UseCases.IContractAutoCloseUseCase, Features.HopDongs.UseCases.ContractAutoCloseUseCase>();
             services.AddScoped<Features.HopDongs.UseCases.IContractExpiryAlertUseCase, Features.HopDongs.UseCases.ContractExpiryAlertUseCase>();
             services.AddScoped<Features.HoaDons.UseCases.IInvoiceReminderUseCase, Features.HoaDons.UseCases.InvoiceReminderUseCase>();
+
+            // Security & Employee Access Services
+            services.AddScoped<Abstractions.Security.IEmployeeAccessService, Features.NhanViens.Services.EmployeeAccessService>();
+            services.AddScoped<Features.NhanViens.Services.IEmployeeBranchAssignmentService, Features.NhanViens.Services.EmployeeBranchAssignmentService>();
+            services.AddScoped<Features.NguoiDungs.Services.IUserSessionService, Features.NguoiDungs.Services.UserSessionService>();
+
+            Microsoft.Extensions.DependencyInjection.Extensions.ServiceCollectionDescriptorExtensions.TryAddSingleton(services, System.TimeProvider.System);
 
             return services;
         }

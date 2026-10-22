@@ -9,11 +9,12 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.DTOs
         public string MaHopDong { get; set; } = string.Empty;
         public DateTime ThoiDiemBatDau { get; set; }
         public DateTime? ThoiDiemKetThuc { get; set; }
-        public double TienCocPhong { get; set; }
-        public double TienThuePhong { get; set; }
+        public decimal TienCocPhong { get; set; }
+        public decimal TienThuePhong { get; set; }
         public DateTime NgayTao { get; set; }
 
         // Thông tin Bên A (Chi nhánh/Quản lý)
+        public int ChiNhanhId { get; set; }
         public string TenChiNhanh { get; set; } = string.Empty;
         public string DiaChiChiNhanh { get; set; } = string.Empty;
         public string SoDienThoaiChiNhanh { get; set; } = string.Empty;
@@ -37,7 +38,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.DTOs
     public class HopDongDichVuPrintRes
     {
         public string TenDichVu { get; set; } = string.Empty;
-        public double DonGia { get; set; }
+        public decimal DonGia { get; set; }
         public string DonViTinh { get; set; } = string.Empty;
     }
 

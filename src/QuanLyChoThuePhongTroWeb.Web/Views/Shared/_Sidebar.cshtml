@@ -41,7 +41,10 @@
             <ul class="navbar-nav pt-lg-3">
                 @foreach (var item in Model)
                 {
-                    @await Html.PartialAsync("_MenuItem", item)
+                    if (item.IsVisibleFor(User))
+                    {
+                        @await Html.PartialAsync("_MenuItem", item)
+                    }
                 }
             </ul>
         </div>

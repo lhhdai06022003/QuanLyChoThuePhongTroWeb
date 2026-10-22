@@ -2,7 +2,8 @@
 @model MenuItem
 
 @{
-    var hasChild = Model.Children != null && Model.Children.Any();
+    var visibleChildren = Model.Children?.Where(c => c.IsVisibleFor(User)).ToList();
+    var hasChild = visibleChildren != null && visibleChildren.Any();
     var currentPath = Context.Request.Path.Value ?? "";
 
     // Kiểm tra xem menu item hiện tại có trùng khớp với URL đang truy cập hay không
@@ -19,11 +20,16 @@
         return false;
     }
 
-    var isAnyChildActive = hasChild && Model.Children.Any(child => IsActiveUrl(child.Url));
+    var isAnyChildActive = hasChild && visibleChildren!.Any(child => IsActiveUrl(child.Url));
     var isParentActive = !hasChild && IsActiveUrl(Model.Url);
+    var hasOriginalChildren = Model.Children != null && Model.Children.Any();
+    var isVisible = Model.IsVisibleFor(User) && !(hasOriginalChildren && !hasChild);
 }
 
-@if (hasChild)
+@if (!isVisible)
+{
+}
+else if (hasChild)
 {
     <li class="nav-item dropdown @(isAnyChildActive ? "active" : "")">
         <a class="nav-link dropdown-toggle" href="#navbar-menu-@Model.Name.GetHashCode()" data-bs-toggle="dropdown" data-bs-auto-close="false" role="button" aria-expanded="@(isAnyChildActive ? "true" : "false")">
@@ -37,7 +43,7 @@
         <div class="dropdown-menu @(isAnyChildActive ? "show" : "")" data-bs-popper="@(isAnyChildActive ? "static" : "")">
             <div class="dropdown-menu-columns">
                 <div class="dropdown-menu-column">
-                    @foreach (var child in Model.Children)
+                    @foreach (var child in visibleChildren!)
                     {
                         var isChildActive = IsActiveUrl(child.Url);
                         <a class="dropdown-item py-2 @(isChildActive ? "active" : "")" href="@child.Url">

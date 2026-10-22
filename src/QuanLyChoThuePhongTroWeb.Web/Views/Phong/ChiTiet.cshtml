@@ -1,7 +1,7 @@
 @model QuanLyChoThuePhongTroWeb.ViewModels.PublicRooms.PublicRoomCardModel
 @{
     Layout = "_PublicRoomLayout";
-    ViewData["Title"] = $"Phòng {Model.Room.SoPhong}";
+    ViewData["Title"] = string.IsNullOrWhiteSpace(Model.Room.ListingTitle) ? $"Phòng {Model.Room.SoPhong}" : Model.Room.ListingTitle;
     var room = Model.Room;
     var cover = Model.Images.FirstOrDefault();
     var contactDigits = new string((room.SoDienThoaiChiNhanh ?? string.Empty).Where(char.IsDigit).ToArray());
@@ -18,7 +18,7 @@
     <div class="guest-detail-title">
         <div>
             <p class="guest-kicker">@room.TenChiNhanh</p>
-            <h1>Phòng @room.SoPhong</h1>
+            <h1>@(string.IsNullOrWhiteSpace(room.ListingTitle) ? $"Phòng {room.SoPhong}" : room.ListingTitle)</h1>
             <p>@room.DiaChi</p>
         </div>
         <span class="guest-detail-room-number">Phòng @room.SoPhong</span>

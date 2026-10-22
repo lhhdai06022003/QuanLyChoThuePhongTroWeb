@@ -1,0 +1,102 @@
+@model QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.ViewingAdminPageModel
+@{ ViewData["Title"] = "Lịch xem phòng"; }
+
+<div class="container-xl py-4 guest-admin">
+    @if (TempData["ViewingAdminMessage"] is string message)
+    {
+        <div class="alert @(TempData["ViewingAdminWarning"] is true ? "alert-warning" : "alert-info")" role="status">@message</div>
+    }
+    <div class="mb-4">
+        <h1 class="page-title mb-2">Lịch xem phòng</h1>
+        <p class="text-secondary mb-0">Khách chủ động đề xuất thời gian. Gọi liên hệ để thống nhất lịch và xác nhận trước khi khách đến.</p>
+    </div>
+    <div class="card guest-admin-table">
+        <div class="card-header"><h2 class="card-title">Yêu cầu xem phòng của khách</h2></div>
+        <div class="table-responsive">
+            <table class="table table-vcenter card-table">
+                <thead><tr><th>Phòng muốn xem</th><th>Khách và liên hệ</th><th>Thời gian mong muốn</th><th>Trạng thái</th><th>Ghi chú</th><th>Xử lý lịch</th></tr></thead>
+                <tbody>
+                @if (Model.Requests.Count == 0)
+                {
+                    <tr><td class="guest-admin-empty" colspan="6">Chưa có yêu cầu xem phòng. Khách có thể gửi ngày giờ mong muốn từ trang chi tiết phòng.</td></tr>
+                }
+                @foreach (var request in Model.Requests)
+                {
+                    var desired = new DateTimeOffset(request.DesiredTimeUtc, TimeSpan.Zero).ToOffset(TimeSpan.FromHours(7));
+                    var confirmed = request.ConfirmedTimeUtc.HasValue
+                        ? new DateTimeOffset(request.ConfirmedTimeUtc.Value, TimeSpan.Zero).ToOffset(TimeSpan.FromHours(7))
+                        : (DateTimeOffset?)null;
+                    var status = request.Status switch
+                    {
+                        "ChoNhanVienXuLy" => "Chờ gọi xác nhận", "DaXacNhanLich" => "Đã xác nhận",
+                        "DaXemPhong" => "Đã xem phòng", "DaHuy" => "Đã hủy", "TuChoi" => "Đã từ chối",
+                        _ => "Đang xử lý"
+                    };
+                    <tr>
+                        <td><strong>Phòng @request.RoomNumber</strong><br /><small>@request.BranchName</small>
+                            @if (request.RoomRented) { <div class="badge bg-red-lt mt-1">Phòng đã có người thuê</div> }
+                        </td>
+                        <td><strong>@request.GuestName</strong><br /><a href="tel:@request.Phone">@request.Phone</a><br /><small>@request.Email</small></td>
+                        <td>@desired.ToString("dd/MM/yyyy HH:mm")<br /><small class="text-secondary">Giờ Việt Nam (UTC+7)</small>
+                            @if (confirmed.HasValue) { <div class="mt-1">Đã xác nhận: @confirmed.Value.ToString("dd/MM/yyyy HH:mm")</div> }
+                        </td>
+                        <td><span class="badge @(request.Status == "DaHuy" ? "bg-secondary-lt" : request.Status == "ChoNhanVienXuLy" ? "bg-yellow-lt" : "bg-blue-lt")">@status</span></td>
+                        <td>@request.Note</td>
+                        <td>
+                            @if (request.RoomRented && (request.Status is "ChoNhanVienXuLy" or "DaXacNhanLich"))
+                            {
+                                <form method="post" asp-action="XuLyYeuCau">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="requestId" value="@request.Id" />
+                                    <input type="hidden" name="action" value="CancelBecauseRented" />
+                                    <button class="btn btn-outline-danger btn-sm" type="submit">Hủy lịch — phòng đã thuê</button>
+                                    <p class="text-secondary small mt-1 mb-0">Email thông báo sẽ được gửi sau khi hủy.</p>
+                                </form>
+                            }
+                            else if (!request.RoomRented && (request.Status is "ChoNhanVienXuLy" or "DaXacNhanLich"))
+                            {
+                                @if (request.Status == "ChoNhanVienXuLy")
+                                {
+                                    <form method="post" asp-action="XuLyYeuCau" class="d-flex gap-1 mb-2">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="requestId" value="@request.Id" />
+                                        <input type="hidden" name="action" value="Confirm" />
+                                        <input class="form-control form-control-sm" type="datetime-local" name="confirmedTimeLocal" value="@desired.ToString("yyyy-MM-ddTHH:mm")" required aria-label="Ngày giờ đã thống nhất với khách" />
+                                        <button class="btn btn-primary btn-sm" type="submit">Xác nhận lịch</button>
+                                    </form>
+                                }
+                                <form method="post" asp-action="XuLyYeuCau" class="d-flex gap-1">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="requestId" value="@request.Id" />
+                                    <input type="hidden" name="action" value="Reject" />
+                                    <input class="form-control form-control-sm" name="reason" maxlength="500" required placeholder="Lý do từ chối" aria-label="Lý do từ chối" />
+                                    <button class="btn btn-outline-danger btn-sm" type="submit">Từ chối</button>
+                                </form>
+                            }
+                            @if (request.Status == "DaXacNhanLich" && request.ConfirmedTimeUtc <= DateTime.UtcNow)
+                            {
+                                <form method="post" asp-action="XuLyYeuCau" class="mt-2">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="requestId" value="@request.Id" />
+                                    <input type="hidden" name="action" value="MarkViewed" />
+                                    <button class="btn btn-outline-primary btn-sm" type="submit">Đã xem phòng</button>
+                                </form>
+                            }
+                            @if (request.Status is "DaXacNhanLich" or "TuChoi" or "DaHuy")
+                            {
+                                <form method="post" asp-action="GuiLaiEmail" class="mt-2">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="requestId" value="@request.Id" />
+                                    <button class="btn btn-outline-secondary btn-sm" type="submit">Gửi lại email</button>
+                                    <p class="text-secondary small mt-1 mb-0">Dùng khi khách chưa nhận được email; mỗi lần bấm sẽ gửi lại thông báo trạng thái hiện tại.</p>
+                                </form>
+                            }
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+@section Styles { <link rel="stylesheet" href="~/css/staff-guest-management.css" asp-append-version="true" /> }

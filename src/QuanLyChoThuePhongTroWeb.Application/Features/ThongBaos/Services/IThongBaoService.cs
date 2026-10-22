@@ -13,7 +13,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.ThongBaos.Services
         Task<ServiceResult> GuiChoNguoiDungAsync(int nguoiDungId, string tieuDe, string noiDung, string? linhVuc = null, string? linkDieuHuong = null, CancellationToken cancellationToken = default);
         Task<ServiceResult> GuiChoKhachThueAsync(int nguoiThueId, string tieuDe, string noiDung, string? linhVuc = null, string? linkDieuHuong = null, CancellationToken cancellationToken = default);
         Task<ServiceResult> GuiChoQuyenAsync(AppRole role, string tieuDe, string noiDung, string? linhVuc = null, string? linkDieuHuong = null, CancellationToken cancellationToken = default);
-        Task<ServiceResult> DanhDauDaDocAsync(int thongBaoId, CancellationToken cancellationToken = default);
+        Task<ServiceResult> GuiChoNguoiPhuTrachPhongAsync(int phongTroId, string tieuDe, string noiDung, string? linhVuc = null, string? linkDieuHuong = null, CancellationToken cancellationToken = default);
+        Task<ServiceResult> DanhDauDaDocAsync(int thongBaoId, int nguoiDungId, CancellationToken cancellationToken = default);
         Task<ServiceResult> DanhDauTatCaDaDocAsync(int nguoiDungId, CancellationToken cancellationToken = default);
         Task<int> LaySoLuongChuaDocAsync(int nguoiDungId, CancellationToken cancellationToken = default);
         Task<DataTableResponse<ThongBaoRes>> LayDanhSachPhanTrangAsync(DataTableRequest request, int nguoiDungId, bool? chuaDoc, CancellationToken cancellationToken = default);

@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Persistence;
+using QuanLyChoThuePhongTroWeb.Application.Abstractions.Security;
 using QuanLyChoThuePhongTroWeb.Application.Common.Models;
+using QuanLyChoThuePhongTroWeb.Application.Common.Security;
 using QuanLyChoThuePhongTroWeb.Application.Features.PhongTros.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.PhongTros.Persistence;
 using QuanLyChoThuePhongTroWeb.Domain.Entities;
@@ -13,30 +15,49 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.PhongTros.Services
 {
     public class PhongTroService : IPhongTroService
     {
+        private const string KhongTimThayPhong = "Không tìm thấy phòng trọ!";
+        private const string ChiAdmin = "Chỉ Admin được thêm, xóa hoặc phát sinh phòng trọ.";
+
         private readonly IPhongTroStore _store;
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IEmployeeAccessService _access;
 
-        public PhongTroService(IPhongTroStore store, IUnitOfWork unitOfWork)
+        public PhongTroService(IPhongTroStore store, IUnitOfWork unitOfWork, IEmployeeAccessService access)
         {
             _store = store;
             _unitOfWork = unitOfWork;
+            _access = access;
         }
 
-        public async Task<IReadOnlyList<SelectOptionDto>> GetDanhSachChiNhanhDropdownAsync()
+
+        private async Task<bool> IsAdminAsync(int actorId)
         {
-            return await _store.GetChiNhanhDropdownAsync();
+            return (await _access.GetScopeAsync(actorId))?.IsAdmin == true;
         }
 
-        public async Task<IReadOnlyList<PhongTroListItemDto>> GetDanhSachPhongTroAsync()
+        public async Task<IReadOnlyList<SelectOptionDto>> GetDanhSachChiNhanhDropdownAsync(int actorId)
         {
-            return await _store.GetDanhSachPhongTroAsync();
+            var scope = await _access.GetScopeAsync(actorId);
+            if (scope == null) return Array.Empty<SelectOptionDto>();
+
+            return await _store.GetChiNhanhDropdownAsync(scope.AllowedBranchIds);
         }
 
-        public async Task<ServiceResult> GetPhongTroByIdAsync(int id)
+        public async Task<IReadOnlyList<PhongTroListItemDto>> GetDanhSachPhongTroAsync(int actorId)
         {
+            var scope = await _access.GetScopeAsync(actorId);
+            if (scope == null) return Array.Empty<PhongTroListItemDto>();
+
+            return await _store.GetDanhSachPhongTroAsync(scope.AllowedBranchIds);
+        }
+
+        public async Task<ServiceResult> GetPhongTroByIdAsync(int actorId, int id)
+        {
+            var scope = await _access.GetScopeAsync(actorId);
             var phong = await _store.GetByIdAsync(id);
-            if (phong == null)
-                return ServiceResult.Fail("Không tìm thấy phòng trọ!");
+            // Phòng của chi nhánh khác trả "không tìm thấy" để không lộ việc phòng tồn tại.
+            if (phong == null || scope == null || !scope.CanAccessBranch(phong.ChiNhanhId))
+                return ServiceResult.NotFound(KhongTimThayPhong);
 
             var res = new PhongTroRes
             {
@@ -55,8 +76,11 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.PhongTros.Services
             return ServiceResult.Ok("Thành công", res);
         }
 
-        public async Task<ServiceResult> ThemPhongTroAsync(PhongTroReq model)
+        public async Task<ServiceResult> ThemPhongTroAsync(int actorId, PhongTroReq model)
         {
+            if (!await IsAdminAsync(actorId))
+                return ServiceResult.Forbidden(ChiAdmin);
+
             if (string.IsNullOrWhiteSpace(model.SoPhong))
                 return ServiceResult.Fail("Số phòng không được để trống!");
 
@@ -87,14 +111,19 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.PhongTros.Services
             return ServiceResult.Ok("Thêm phòng trọ thành công!");
         }
 
-        public async Task<ServiceResult> CapNhatPhongTroAsync(PhongTroReq model)
+        public async Task<ServiceResult> CapNhatPhongTroAsync(int actorId, PhongTroReq model)
         {
             if (model.PhongTroId <= 0)
                 return ServiceResult.Fail("ID không hợp lệ!");
 
+            var scope = await _access.GetScopeAsync(actorId);
             var phongTonTai = await _store.GetByIdAsync(model.PhongTroId);
             if (phongTonTai == null)
-                return ServiceResult.Fail("Dữ liệu không tồn tại hoặc đã bị xóa!");
+                return ServiceResult.NotFound("Dữ liệu không tồn tại hoặc đã bị xóa!");
+
+            // Kiểm cả chi nhánh hiện tại và chi nhánh mới: nhân viên không được chuyển phòng sang chi nhánh khác.
+            if (scope == null || !scope.CanAccessBranch(phongTonTai.ChiNhanhId) || !scope.CanAccessBranch(model.ChiNhanhId))
+                return ServiceResult.Forbidden("Bạn không có quyền cập nhật phòng trọ tại chi nhánh này.");
 
             bool isExist = await _store.ExistsSoPhongAsync(model.SoPhong, model.ChiNhanhId, model.PhongTroId);
             if (isExist)
@@ -145,11 +174,14 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.PhongTros.Services
             return ServiceResult.Ok("Cập nhật phòng trọ thành công!");
         }
 
-        public async Task<ServiceResult> XoaPhongTroAsync(int id)
+        public async Task<ServiceResult> XoaPhongTroAsync(int actorId, int id)
         {
+            if (!await IsAdminAsync(actorId))
+                return ServiceResult.Forbidden(ChiAdmin);
+
             var phong = await _store.GetByIdAsync(id);
             if (phong == null)
-                return ServiceResult.Fail("Không tìm thấy phòng trọ!");
+                return ServiceResult.NotFound(KhongTimThayPhong);
 
             if (phong.TrangThai == TrangThaiPhong.DaThue)
             {
@@ -170,9 +202,12 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.PhongTros.Services
             return ServiceResult.Ok("Xóa phòng trọ thành công!");
         }
 
-        public async Task<List<PhongTroOptionDto>> DanhSachPhongTroConTrong()
+        public async Task<List<PhongTroOptionDto>> DanhSachPhongTroConTrong(int actorId)
         {
-            var list = await _store.GetDanhSachPhongTroConTrongAsync();
+            var scope = await _access.GetScopeAsync(actorId);
+            if (scope == null) return new List<PhongTroOptionDto>();
+
+            var list = await _store.GetDanhSachPhongTroConTrongAsync(scope.AllowedBranchIds);
             return list.Select(p => new PhongTroOptionDto
             {
                 PhongTroId = p.PhongTroId,
@@ -183,23 +218,39 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.PhongTros.Services
             }).ToList();
         }
 
-        public async Task<List<PhongCardRes>> GetSoDoPhongAsync(int chiNhanhId)
+        public async Task<List<PhongCardRes>> GetSoDoPhongAsync(int actorId, int chiNhanhId)
         {
-            return await _store.GetSoDoPhongAsync(chiNhanhId);
+            var scope = await _access.GetScopeAsync(actorId);
+            if (scope == null || (chiNhanhId > 0 && !scope.CanAccessBranch(chiNhanhId)))
+                return new List<PhongCardRes>();
+
+            return await _store.GetSoDoPhongAsync(chiNhanhId, scope.AllowedBranchIds);
         }
 
-        public async Task<QuickContractDto?> GetQuickContractAsync(int phongTroId)
+        public async Task<QuickContractDto?> GetQuickContractAsync(int actorId, int phongTroId)
         {
-            return await _store.GetQuickContractAsync(phongTroId);
+            return await CanAccessRoomAsync(actorId, phongTroId) ? await _store.GetQuickContractAsync(phongTroId) : null;
         }
 
-        public async Task<UnpaidInvoiceDto?> GetUnpaidInvoiceAsync(int phongTroId)
+        public async Task<UnpaidInvoiceDto?> GetUnpaidInvoiceAsync(int actorId, int phongTroId)
         {
-            return await _store.GetUnpaidInvoiceAsync(phongTroId);
+            return await CanAccessRoomAsync(actorId, phongTroId) ? await _store.GetUnpaidInvoiceAsync(phongTroId) : null;
         }
 
-        public async Task<ServiceResult> PhatSinhNgauNhienAsync()
+        private async Task<bool> CanAccessRoomAsync(int actorId, int phongTroId)
         {
+            var scope = await _access.GetScopeAsync(actorId);
+            if (scope == null) return false;
+
+            var phong = await _store.GetByIdAsync(phongTroId);
+            return phong != null && scope.CanAccessBranch(phong.ChiNhanhId);
+        }
+
+        public async Task<ServiceResult> PhatSinhNgauNhienAsync(int actorId)
+        {
+            if (!await IsAdminAsync(actorId))
+                return ServiceResult.Forbidden(ChiAdmin);
+
             var chiNhanhs = await _store.GetAllActiveChiNhanhsAsync();
             if (!chiNhanhs.Any())
             {

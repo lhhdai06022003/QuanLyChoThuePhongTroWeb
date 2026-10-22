@@ -1,0 +1,128 @@
+@model QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.ReservationAdminDetailModel
+@{
+    ViewData["Title"] = "Chi tiết giữ chỗ";
+    var reservation = Model.Reservation;
+}
+
+<div class="container-xl py-4 guest-admin">
+    <a asp-area="QuanLyNhaTro" asp-controller="GiuCho" asp-action="Index">← Yêu cầu giữ chỗ</a>
+    <h1 class="page-title mt-3">Phòng @reservation.RoomNumber · yêu cầu #@reservation.Id</h1>
+    <p>Khách: @reservation.GuestName · Trạng thái: @reservation.Status</p>
+    @if (reservation.Status is "DangGiuCho" or "DaChuyenHopDong")
+    {
+        <a class="btn btn-outline-primary mb-3" asp-area="QuanLyNhaTro" asp-controller="GiuCho" asp-action="ThongBaoDatCoc" asp-route-roomId="@reservation.RoomId">Xem trước email báo phòng đã có người cọc</a>
+    }
+    @if (TempData["ReservationAdminMessage"] is string message)
+    {
+        <div class="alert alert-info" role="status">@message</div>
+    }
+    <div class="card mb-4"><div class="card-body">
+        <p>Số tiền giữ chỗ được duyệt: @(reservation.HoldAmount?.ToString("N0") ?? "Chờ duyệt") ₫</p>
+        <p>Tiền đã đối soát: @reservation.ConfirmedAmount.ToString("N0") ₫</p>
+        <p>Mã nội dung chuyển khoản: @reservation.PaymentCode</p>
+        <p>Trạng thái thanh toán: @reservation.PaymentStatus</p>
+    </div></div>
+    @if (reservation.Status == "DangGiuCho" &&
+        reservation.ContractDeadlineUtc is { } deadlineUtc && deadlineUtc <= DateTime.UtcNow)
+    {
+        <div class="card mb-4"><div class="card-header"><h2 class="card-title">Đã quá hạn ký hợp đồng</h2></div>
+            <div class="card-body">
+                <p>Khách đã nộp tiền. Nhân viên chọn gia hạn hoặc hủy giữ chỗ; nếu hủy, tiếp tục quyết định hoàn tiền bên dưới.</p>
+                <form method="post" asp-area="QuanLyNhaTro" asp-controller="GiuCho" asp-action="GiaHanKyHopDong" class="row g-2 align-items-end mb-3">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="reservationId" value="@reservation.Id" />
+                    <div class="col-md-5"><label class="form-label">Hạn ký mới</label><input class="form-control" type="datetime-local" name="newDeadlineLocal" required /></div>
+                    <div class="col-md-4"><button class="btn btn-primary" type="submit">Gia hạn ký hợp đồng</button></div>
+                </form>
+                <form method="post" asp-area="QuanLyNhaTro" asp-controller="GiuCho" asp-action="HuyQuaHanKy" class="row g-2 align-items-end">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="reservationId" value="@reservation.Id" />
+                    <div class="col-md-8"><label class="form-label">Lý do hủy</label><input class="form-control" name="reason" maxlength="500" required /></div>
+                    <div class="col-md-4"><button class="btn btn-outline-danger" type="submit">Hủy giữ chỗ</button></div>
+                </form>
+            </div>
+        </div>
+    }
+    <div class="card mb-4">
+        <div class="card-header"><h2 class="card-title">Minh chứng khách gửi</h2></div>
+        <div class="card-body">
+            @if (Model.Evidence.Count == 0)
+            {
+                <p>Chưa có ảnh minh chứng. Vẫn có thể đối soát khoản thực nhận từ sao kê ngân hàng.</p>
+            }
+            @foreach (var evidence in Model.Evidence)
+            {
+                <div class="mb-3">
+                    <strong>#@evidence.Id · @evidence.Status</strong> — @evidence.ClaimedAmount.ToString("N0") ₫
+                    <a href="/tai-khoan/yeu-cau-phong/minh-chung/@evidence.Id" target="_blank" rel="noopener">Xem ảnh riêng tư</a>
+                    @if (!string.IsNullOrWhiteSpace(evidence.BankReference))
+                    {
+                        <span>· Mã khách khai: @evidence.BankReference</span>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+    @if (reservation.PaymentRequestId.HasValue)
+    {
+        <div class="card"><div class="card-header"><h2 class="card-title">Đối soát khoản thực nhận</h2></div>
+            <div class="card-body">
+                <p>Kiểm tra giao dịch trong tài khoản ngân hàng trước khi xác nhận. Nhập thời điểm tiền thực vào tài khoản theo sao kê; ảnh khách gửi không quyết định khoản tiền đúng hạn. Có thể ghi nhiều giao dịch; mỗi mã giao dịch chỉ được dùng một lần.</p>
+                <form method="post" asp-area="QuanLyNhaTro" asp-controller="GiuCho" asp-action="XacNhanTien" class="row g-3">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="reservationId" value="@reservation.Id" />
+                    <input type="hidden" name="paymentRequestId" value="@reservation.PaymentRequestId.Value" />
+                    <div class="col-md-3"><label class="form-label">Minh chứng (nếu có)</label><select class="form-select" name="evidenceId"><option value="">Không gắn ảnh</option>
+                        @foreach (var evidence in Model.Evidence.Where(e => e.Status == "ChoXacNhan"))
+                        {
+                            <option value="@evidence.Id">#@evidence.Id · @evidence.ClaimedAmount.ToString("N0") ₫</option>
+                        }
+                    </select></div>
+                    <div class="col-md-3"><label class="form-label">Mã giao dịch ngân hàng</label><input class="form-control" name="bankReference" maxlength="100" required /></div>
+                    <div class="col-md-3"><label class="form-label">Tiền thực nhận (₫)</label><input class="form-control" name="actualAmount" type="number" min="1" step="1" required /></div>
+                    <div class="col-md-3"><label class="form-label">Thời điểm thực nhận</label><input class="form-control" name="receivedAtLocal" type="datetime-local" required /></div>
+                    <div class="col-md-3"><button class="btn btn-primary mt-md-4" type="submit">Xác nhận thực nhận</button></div>
+                </form>
+            </div>
+        </div>
+    }
+    @if (Model.Settlement is { } settlement && settlement.ConfirmedAmount > 0)
+    {
+        <div class="card mt-4"><div class="card-header"><h2 class="card-title">Áp dụng vào cọc hợp đồng và hoàn tiền</h2></div>
+            <div class="card-body">
+                <p>Đã xác nhận: @settlement.ConfirmedAmount.ToString("N0") ₫ · Đã áp dụng cọc: @settlement.AppliedToContractDeposit.ToString("N0") ₫ · Đã hoàn: @settlement.RefundedAmount.ToString("N0") ₫</p>
+                <p>Phải hoàn tối thiểu theo tiền dư/đến muộn: @settlement.MandatoryRefundAmount.ToString("N0") ₫</p>
+                @if (reservation.Status == "DangGiuCho" && settlement.AppliedToContractDeposit == 0)
+                {
+                    <form method="post" asp-area="QuanLyNhaTro" asp-controller="GiuCho" asp-action="ApDungCoc" class="row g-2 align-items-end mb-4">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="reservationId" value="@reservation.Id" />
+                        <div class="col-md-3"><label class="form-label">Mã ID hợp đồng</label><input class="form-control" name="contractId" type="number" min="1" required /></div>
+                        <div class="col-md-3"><label class="form-label">Tiền áp dụng vào cọc (₫)</label><input class="form-control" name="amount" type="number" min="1" step="1" required /></div>
+                        <div class="col-md-3"><button class="btn btn-primary mt-md-4" type="submit">Áp dụng vào cọc</button></div>
+                    </form>
+                }
+                <form method="post" asp-area="QuanLyNhaTro" asp-controller="GiuCho" asp-action="QuyetDinhHoan" class="row g-2 align-items-end mb-4">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="reservationId" value="@reservation.Id" />
+                    <div class="col-md-3"><label class="form-label">Số tiền hoàn được duyệt (₫)</label><input class="form-control" name="amount" type="number" min="0" step="1" value="@(settlement.ApprovedRefundAmount ?? settlement.MandatoryRefundAmount)" required /></div>
+                    <div class="col-md-6"><label class="form-label">Lý do</label><input class="form-control" name="reason" maxlength="500" required /></div>
+                    <div class="col-md-3"><button class="btn btn-outline-primary mt-md-4" type="submit">Lưu quyết định hoàn</button></div>
+                </form>
+                @if (settlement.RefundDecisionId.HasValue &&
+                    settlement.ApprovedRefundAmount > settlement.RefundedAmount)
+                {
+                    <form method="post" asp-area="QuanLyNhaTro" asp-controller="GiuCho" asp-action="XacNhanHoan" class="row g-2 align-items-end">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="reservationId" value="@reservation.Id" />
+                        <div class="col-md-3"><label class="form-label">Số tiền đã chuyển hoàn (₫)</label><input class="form-control" name="amount" type="number" min="1" step="1" required /></div>
+                        <div class="col-md-6"><label class="form-label">Mã giao dịch hoàn</label><input class="form-control" name="bankReference" maxlength="100" required /></div>
+                        <div class="col-md-3"><button class="btn btn-outline-primary mt-md-4" type="submit">Xác nhận đã hoàn</button></div>
+                    </form>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@section Styles { <link rel="stylesheet" href="~/css/staff-guest-management.css" asp-append-version="true" /> }

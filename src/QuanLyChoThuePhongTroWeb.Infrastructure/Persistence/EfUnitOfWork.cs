@@ -1,12 +1,15 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Persistence;
 
 namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence
 {
     public class EfUnitOfWork : IUnitOfWork
     {
+        private const string UniqueViolationSqlState = "23505";
+
         private readonly ApplicationDbContext _context;
 
         public EfUnitOfWork(ApplicationDbContext context)
@@ -14,9 +17,16 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence
             _context = context;
         }
 
-        public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
-            return _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                return await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: UniqueViolationSqlState } pg)
+            {
+                throw new UniqueConstraintViolationException(pg.ConstraintName, ex);
+            }
         }
 
         public async Task<IApplicationTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default)

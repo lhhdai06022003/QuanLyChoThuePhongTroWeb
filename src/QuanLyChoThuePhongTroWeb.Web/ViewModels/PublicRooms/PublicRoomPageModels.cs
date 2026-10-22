@@ -10,8 +10,8 @@ public sealed record PublicRoomListModel(
     int TotalCount,
     int Page,
     int PageSize,
-    double? GiaTu,
-    double? GiaDen,
+    decimal? GiaTu,
+    decimal? GiaDen,
     double? DienTichTu,
     string? KhuVuc,
     int? SoNguoi = null,
@@ -19,5 +19,5 @@ public sealed record PublicRoomListModel(
     IReadOnlyList<PublicRoomAreaOption>? Areas = null,
     PublicRoomCardModel? HeroRoom = null);
 
-public sealed record PublicRoomAreaOption(string Name, int Count, double MinPrice);
+public sealed record PublicRoomAreaOption(string Name, int Count, decimal MinPrice);
 public sealed record PublicRoomComparisonModel(IReadOnlyList<PublicRoomCardModel> Rooms, int UnavailableCount);

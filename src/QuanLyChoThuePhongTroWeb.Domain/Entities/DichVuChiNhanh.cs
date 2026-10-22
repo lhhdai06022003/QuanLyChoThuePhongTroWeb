@@ -18,7 +18,7 @@ namespace QuanLyChoThuePhongTroWeb.Domain.Entities
         [ForeignKey("DichVuId")]
         public DichVu DichVu { get; set; }
 
-        public double GiaDichVu { get; set; }
+        public decimal GiaDichVu { get; set; }
         public bool MacDinh { get; set; } = false;
 
         public DateTime NgayTao { get; set; } = DateTime.UtcNow;

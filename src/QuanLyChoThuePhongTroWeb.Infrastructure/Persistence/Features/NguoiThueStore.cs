@@ -12,7 +12,7 @@ using QuanLyChoThuePhongTroWeb.Domain.Enums;
 
 namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
 {
-    public class NguoiThueStore : INguoiThueStore
+    public class NguoiThueStore : INguoiThueStore, ITenantVisibilityStore
     {
         private readonly ApplicationDbContext _context;
 
@@ -21,18 +21,48 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
             _context = context;
         }
 
-        public async Task<IEnumerable<NguoiThue>> GetAllAsync(CancellationToken cancellationToken = default)
+        // Quy tắc nhìn thấy người thuê theo chi nhánh, dùng chung cho mọi truy vấn để không lệch nhau:
+        // chưa có hợp đồng nào (đứng tên hay ở ghép), hoặc có hợp đồng (kể cả đã kết thúc) thuộc chi nhánh được phép.
+        private static IQueryable<NguoiThue> ApplyVisibility(IQueryable<NguoiThue> query, IReadOnlyCollection<int>? allowedBranchIds)
         {
-            return await _context.NguoiThues
-                .Where(x => !x.IsDeleted)
+            if (allowedBranchIds == null)
+            {
+                return query;
+            }
+
+            return query.Where(x =>
+                (!x.HopDongs.Any(h => !h.IsDeleted) &&
+                 !x.ChiTietThanhVienHopDongs.Any(tv => !tv.IsDeleted && !tv.HopDong.IsDeleted))
+                || x.HopDongs.Any(h => !h.IsDeleted && allowedBranchIds.Contains(h.PhongTro.ChiNhanhId))
+                || x.ChiTietThanhVienHopDongs.Any(tv => !tv.IsDeleted && !tv.HopDong.IsDeleted && allowedBranchIds.Contains(tv.HopDong.PhongTro.ChiNhanhId)));
+        }
+
+        public async Task<bool> AreAllVisibleAsync(IReadOnlyCollection<int> nguoiThueIds, IReadOnlyCollection<int> allowedBranchIds, CancellationToken cancellationToken = default)
+        {
+            var ids = nguoiThueIds.Distinct().ToList();
+            if (ids.Count == 0) return true;
+
+            var visible = await ApplyVisibility(_context.NguoiThues.Where(x => ids.Contains(x.NguoiThueId) && !x.IsDeleted), allowedBranchIds)
+                .CountAsync(cancellationToken);
+            return visible == ids.Count;
+        }
+
+        public async Task<bool> IsVisibleAsync(int nguoiThueId, IReadOnlyCollection<int> allowedBranchIds, CancellationToken cancellationToken = default)
+        {
+            return await ApplyVisibility(_context.NguoiThues.Where(x => x.NguoiThueId == nguoiThueId && !x.IsDeleted), allowedBranchIds)
+                .AnyAsync(cancellationToken);
+        }
+
+        public async Task<IEnumerable<NguoiThue>> GetAllAsync(IReadOnlyCollection<int>? allowedBranchIds = null, CancellationToken cancellationToken = default)
+        {
+            return await ApplyVisibility(_context.NguoiThues.Where(x => !x.IsDeleted), allowedBranchIds)
                 .OrderByDescending(x => x.NgayTao)
                 .ToListAsync(cancellationToken);
         }
 
-        public async Task<IEnumerable<NguoiThue>> GetAvailableAsync(CancellationToken cancellationToken = default)
+        public async Task<IEnumerable<NguoiThue>> GetAvailableAsync(IReadOnlyCollection<int>? allowedBranchIds = null, CancellationToken cancellationToken = default)
         {
-            return await _context.NguoiThues
-                .Where(x => !x.IsDeleted)
+            return await ApplyVisibility(_context.NguoiThues.Where(x => !x.IsDeleted), allowedBranchIds)
                 .Where(x => !x.HopDongs.Any(h => h.TrangThaiHopDong == TrangThaiHopDong.DangHoatDong))
                 .Where(x => !x.ChiTietThanhVienHopDongs.Any(tv => tv.NgayChuyenDi == null && tv.HopDong.TrangThaiHopDong == TrangThaiHopDong.DangHoatDong))
                 .OrderByDescending(x => x.NgayTao)
@@ -72,38 +102,34 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 .AnyAsync(tv => tv.NguoiThueId == nguoiThueId && tv.NgayChuyenDi == null && !tv.IsDeleted && tv.HopDong.TrangThaiHopDong == TrangThaiHopDong.DangHoatDong, cancellationToken);
         }
 
-        public async Task<IReadOnlyList<SelectOptionDto>> GetDropdownListAsync(CancellationToken cancellationToken = default)
+        public async Task<IReadOnlyList<SelectOptionDto>> GetDropdownListAsync(IReadOnlyCollection<int>? allowedBranchIds = null, CancellationToken cancellationToken = default)
         {
-            return await _context.NguoiThues
-                .Where(p => !p.IsDeleted)
+            return await ApplyVisibility(_context.NguoiThues.Where(p => !p.IsDeleted), allowedBranchIds)
                 .Select(p => new SelectOptionDto(p.NguoiThueId.ToString(), p.HoVaTen + " - " + p.CCCD))
                 .ToListAsync(cancellationToken);
         }
 
-        public async Task<IReadOnlyList<SelectOptionDto>> GetDropdownChuaCoPhongAsync(CancellationToken cancellationToken = default)
+        public async Task<IReadOnlyList<SelectOptionDto>> GetDropdownChuaCoPhongAsync(IReadOnlyCollection<int>? allowedBranchIds = null, CancellationToken cancellationToken = default)
         {
-            return await _context.NguoiThues
-                .Where(x => !x.IsDeleted)
+            return await ApplyVisibility(_context.NguoiThues.Where(x => !x.IsDeleted), allowedBranchIds)
                 .Where(x => !x.HopDongs.Any(h => h.TrangThaiHopDong == TrangThaiHopDong.DangHoatDong))
                 .Where(x => !x.ChiTietThanhVienHopDongs.Any(tv => tv.NgayChuyenDi == null && tv.HopDong.TrangThaiHopDong == TrangThaiHopDong.DangHoatDong))
                 .Select(p => new SelectOptionDto(p.NguoiThueId.ToString(), p.HoVaTen + " - " + p.CCCD))
                 .ToListAsync(cancellationToken);
         }
 
-        public async Task<IReadOnlyList<SelectOptionDto>> GetDropdownCoHopDongAsync(CancellationToken cancellationToken = default)
+        public async Task<IReadOnlyList<SelectOptionDto>> GetDropdownCoHopDongAsync(IReadOnlyCollection<int>? allowedBranchIds = null, CancellationToken cancellationToken = default)
         {
-            return await _context.NguoiThues
-                .Where(x => !x.IsDeleted)
+            return await ApplyVisibility(_context.NguoiThues.Where(x => !x.IsDeleted), allowedBranchIds)
                 .Where(x => x.HopDongs.Any())
                 .Select(p => new SelectOptionDto(p.NguoiThueId.ToString(), p.HoVaTen + " - " + p.CCCD))
                 .ToListAsync(cancellationToken);
         }
 
-        public async Task<IReadOnlyList<NguoiThueAutocompleteDto>> SearchAutocompleteAsync(string searchTerm, CancellationToken cancellationToken = default)
+        public async Task<IReadOnlyList<NguoiThueAutocompleteDto>> SearchAutocompleteAsync(string searchTerm, IReadOnlyCollection<int>? allowedBranchIds = null, CancellationToken cancellationToken = default)
         {
             searchTerm = (searchTerm ?? "").Trim().ToLower();
-            return await _context.NguoiThues
-                .Where(x => !x.IsDeleted)
+            return await ApplyVisibility(_context.NguoiThues.Where(x => !x.IsDeleted), allowedBranchIds)
                 .Where(x => !x.HopDongs.Any(h => h.TrangThaiHopDong == TrangThaiHopDong.DangHoatDong && !h.IsDeleted))
                 .Where(x => !x.ChiTietThanhVienHopDongs.Any(tv => tv.NgayChuyenDi == null && !tv.IsDeleted && tv.HopDong.TrangThaiHopDong == TrangThaiHopDong.DangHoatDong))
                 .Where(x =>

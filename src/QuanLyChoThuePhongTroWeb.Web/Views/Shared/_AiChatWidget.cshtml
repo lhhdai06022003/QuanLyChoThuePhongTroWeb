@@ -1,3 +1,20 @@
+@using System.Security.Claims
+@using QuanLyChoThuePhongTroWeb.Application.Features.AiAssistants.Tools
+@{
+    // Chỉ hiển thị widget cho đúng cổng và đúng vai trò; mỗi người dùng có khóa lịch sử riêng.
+    var aiUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    var aiPortal = ViewData["AiChatPortal"] as string;
+    var aiIsTenant = aiPortal == "KhachThue" && User.IsInRole("KhachThue");
+    var aiIsManager = aiPortal == "QuanLyNhaTro" && (User.IsInRole("Admin") || User.IsInRole("NhanVien"));
+    if (string.IsNullOrEmpty(aiUserId) || !(aiIsTenant || aiIsManager))
+    {
+        return;
+    }
+
+    var aiEndpoint = aiIsTenant ? "/KhachThue/AiAssistant/Chat" : "/QuanLyNhaTro/AiAssistant/Chat";
+    var aiStorageKey = "ai_chat_history_" + aiUserId;
+    var aiSuggestions = AiPrompts.Suggestions(aiIsTenant ? AiCallerRole.KhachThue : AiCallerRole.NhanVien);
+}
 <div class="ai-chat-wrapper">
     <!-- Floating Action Button (FAB) -->
     <button type="button" class="btn-ai-fab shadow-lg" id="btnAiOpenChat" title="Trò chuyện với Trợ lý AI">
@@ -32,10 +49,14 @@
         <div class="ai-chat-body" id="aiChatBody">
             <div class="ai-message ai-message-model">
                 <div class="ai-msg-bubble">
-                    Xin chào! Tôi là **Trợ lý AI Vận Hành**.
-                    
-                    Tôi có thể hỗ trợ gì cho bạn hôm nay?
+                    Xin chào! Tôi là <strong>Trợ lý AI Vận Hành</strong>.<br/><br/>Tôi có thể hỗ trợ gì cho bạn hôm nay?
                 </div>
+            </div>
+            <div id="aiSuggestions" class="d-flex flex-wrap gap-1">
+                @foreach (var suggestion in aiSuggestions)
+                {
+                    <button type="button" class="btn btn-sm btn-outline-primary btn-ai-suggest" data-prompt="@suggestion">@suggestion</button>
+                }
             </div>
         </div>
 
@@ -53,7 +74,7 @@
         <!-- Chat Footer (Input) -->
         <div class="ai-chat-footer p-2 border-top border-light-subtle bg-body">
             <form id="frmAiChat" class="d-flex align-items-center gap-1.5 m-0">
-                <input type="text" id="txtAiMessage" class="form-control ai-input" placeholder="Hỏi tôi bất cứ điều gì..." autocomplete="off" required />
+                <input type="text" id="txtAiMessage" class="form-control ai-input" placeholder="Hỏi tôi bất cứ điều gì..." autocomplete="off" maxlength="1000" required />
                 <button type="submit" class="btn btn-primary btn-icon ai-btn-send" id="btnAiSend" title="Gửi">
                     <i class="fa-solid fa-paper-plane"></i>
                 </button>
@@ -322,6 +343,17 @@
         const input = document.getElementById("txtAiMessage");
         const body = document.getElementById("aiChatBody");
         const typingIndicator = document.getElementById("aiTypingIndicator");
+        const suggestionsEl = document.getElementById("aiSuggestions");
+        const endpoint = @Json.Serialize(aiEndpoint);
+        const storageKey = @Json.Serialize(aiStorageKey);
+        const MAX_MESSAGE_LENGTH = 1000;
+
+        // Xóa lịch sử của khóa cũ hoặc của người dùng khác còn sót trong tab này
+        Object.keys(sessionStorage).forEach(function (k) {
+            if (k === "ai_chat_history" || (k.indexOf("ai_chat_history_") === 0 && k !== storageKey)) {
+                sessionStorage.removeItem(k);
+            }
+        });
 
         // Tải lịch sử trò chuyện từ sessionStorage
         loadChatHistory();
@@ -344,17 +376,13 @@
 
         // Reset chat
         resetBtn.addEventListener("click", function () {
-            sessionStorage.removeItem("ai_chat_history");
-            body.innerHTML = `
-                <div class="ai-message ai-message-model">
-                    <div class="ai-msg-bubble">
-                        Xin chào! Tôi là **Trợ lý AI Vận Hành**.
-
-                        Tôi có thể hỗ trợ gì cho bạn hôm nay?
-                    </div>
-                </div>
-            `;
-            formatAllMessages();
+            sessionStorage.removeItem(storageKey);
+            // Giữ lại lời chào đầu tiên, xóa các tin nhắn còn lại và hiện lại gợi ý
+            const messages = body.querySelectorAll(".ai-message");
+            messages.forEach((el, index) => {
+                if (index > 0) el.remove();
+            });
+            showSuggestions(true);
         });
 
         // Submit câu hỏi
@@ -374,7 +402,24 @@
             });
         });
 
+        function showSuggestions(show) {
+            if (!suggestionsEl) return;
+            suggestionsEl.classList.toggle("d-none", !show);
+            if (show) {
+                // Đưa gợi ý xuống cuối khung chat
+                body.appendChild(suggestionsEl);
+            }
+        }
+
         function sendMessage(text) {
+            if (text.length > MAX_MESSAGE_LENGTH) {
+                appendMessage("model", "Câu hỏi tối đa 1.000 ký tự.");
+                scrollToBottom();
+                return;
+            }
+
+            showSuggestions(false);
+
             // Append tin nhắn của User
             appendMessage("user", text);
             input.value = "";
@@ -385,10 +430,10 @@
             scrollToBottom();
 
             // Lấy lịch sử hiện tại
-            const history = getSessionHistory();
+            const history = getSessionHistory().slice(-10);
 
             // Gọi API
-            fetch("/QuanLyNhaTro/AiAssistant/Chat", {
+            fetch(endpoint, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -424,7 +469,12 @@
             
             const bubble = document.createElement("div");
             bubble.className = "ai-msg-bubble";
-            bubble.innerHTML = parseMarkdown(text);
+            if (role === "user") {
+                // Tin nhắn của người dùng luôn là văn bản thuần
+                bubble.textContent = text;
+            } else {
+                bubble.innerHTML = parseMarkdown(text);
+            }
             
             msgDiv.appendChild(bubble);
             body.appendChild(msgDiv);
@@ -436,7 +486,7 @@
 
         // Lấy lịch sử chat từ sessionStorage
         function getSessionHistory() {
-            const histStr = sessionStorage.getItem("ai_chat_history");
+            const histStr = sessionStorage.getItem(storageKey);
             return histStr ? JSON.parse(histStr) : [];
         }
 
@@ -449,38 +499,38 @@
             if (hist.length > 16) {
                 hist.splice(0, 2);
             }
-            sessionStorage.setItem("ai_chat_history", JSON.stringify(hist));
+            sessionStorage.setItem(storageKey, JSON.stringify(hist));
         }
 
         // Tải lịch sử khi load trang
         function loadChatHistory() {
             const hist = getSessionHistory();
             if (hist && hist.length > 0) {
+                // Lịch sử khôi phục cũng đi qua appendMessage (escape HTML trong parseMarkdown)
                 hist.forEach(msg => {
                     appendMessage(msg.role, msg.message);
                 });
+                showSuggestions(false);
                 scrollToBottom();
-            } else {
-                formatAllMessages();
             }
         }
 
-        // Định dạng Markdown cho tin nhắn tĩnh ban đầu
-        function formatAllMessages() {
-            document.querySelectorAll(".ai-msg-bubble").forEach(el => {
-                // Chỉ parse nếu chưa parse
-                if (el.innerHTML.includes("**") || el.innerHTML.includes("<ul>")) {
-                    el.innerHTML = parseMarkdown(el.textContent.trim());
-                }
-            });
+        // Escape HTML để mọi văn bản (kể cả do AI trả về) không thể chèn thẻ
+        function escapeHtml(text) {
+            return String(text)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#39;");
         }
 
-        // Hàm parse Markdown sang HTML đơn giản
+        // Hàm parse Markdown sang HTML đơn giản (escape trước, chỉ sinh các thẻ được hỗ trợ)
         function parseMarkdown(text) {
             if (!text) return "";
-            
+
             // Xử lý xuống dòng
-            let html = text.replace(/\r\n/g, "\n").replace(/\n/g, "<br/>");
+            let html = escapeHtml(text).replace(/\r\n/g, "\n").replace(/\n/g, "<br/>");
             
             // In đậm: **text**
             html = html.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");

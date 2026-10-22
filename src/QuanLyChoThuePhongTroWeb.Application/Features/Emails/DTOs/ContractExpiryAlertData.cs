@@ -12,6 +12,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.Emails.DTOs
         public string TenNguoiThue { get; set; } = string.Empty;
         public DateTime ThoiDiemKetThuc { get; set; }
         public int SoNgayConLai { get; set; }
-        public double TienThuePhong { get; set; }
+        public decimal TienThuePhong { get; set; }
     }
 }
