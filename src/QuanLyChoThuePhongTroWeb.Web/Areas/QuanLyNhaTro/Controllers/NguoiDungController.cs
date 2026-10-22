@@ -48,7 +48,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
                 }
                 if (User.IsInRole("KhachVangLai"))
                 {
-                    return Redirect("/tai-khoan/yeu-cau-phong");
+                    return RedirectToAction("Index", "Dashboard", new { area = "KhachThue" });
                 }
                 return RedirectToAction("Index", "Dashboard", new { area = "QuanLyNhaTro" });
             }
@@ -119,7 +119,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
                     !returnUrl.Contains("/QuanLyNhaTro", StringComparison.OrdinalIgnoreCase))
                     return Redirect(returnUrl);
 
-                return Redirect("/tai-khoan/yeu-cau-phong");
+                return RedirectToAction("Index", "Dashboard", new { area = "KhachThue" });
             }
 
             if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
@@ -145,7 +145,10 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DangXuat()
         {
+            var isCustomer = User.Identity?.IsAuthenticated != true ||
+                User.IsInRole("KhachVangLai") || User.IsInRole("KhachThue");
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            if (isCustomer) return Redirect("/phong");
             return RedirectToAction("DangNhap", "NguoiDung", new { area = "QuanLyNhaTro" });
         }
 

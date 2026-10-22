@@ -40,14 +40,17 @@
                         _ => "Đang xử lý"
                     };
                     <div class="guest-cancel-preview">
-                        <strong>Phòng @viewing.RoomNumber · @status</strong>
+                        <div class="guest-request-heading">
+                            <strong>Phòng @viewing.RoomNumber</strong>
+                            <span class="guest-status @(viewing.Status is "DaXacNhanLich" or "DaXemPhong" ? "guest-status-success" : viewing.Status is "DaHuy" or "TuChoi" ? "guest-status-muted" : "guest-status-warning")">@status</span>
+                        </div>
                         <p>@due.ToString("dd/MM/yyyy HH:mm")</p>
                         @if (viewing.CanCancel)
                         {
                             <p>Bạn có thể hủy trước giờ hẹn bắt đầu.</p>
                             <form method="post" action="/tai-khoan/yeu-cau-phong/lich-xem/@viewing.Id/huy">
                                 @Html.AntiForgeryToken()
-                                <button class="guest-button guest-button-outline" type="submit">Hủy lịch xem</button>
+                                <button class="guest-button guest-button-danger" type="submit">Hủy lịch xem</button>
                             </form>
                         }
                         @if (viewing.Status is "DaXacNhanLich" or "DaXemPhong")
@@ -82,7 +85,10 @@
                         _ => reservation.Status
                     };
                     <div class="guest-cancel-preview">
-                        <strong>Phòng @reservation.RoomNumber · @reservationStatus</strong>
+                        <div class="guest-request-heading">
+                            <strong>Phòng @reservation.RoomNumber</strong>
+                            <span class="guest-status @(reservation.Status is "DangGiuCho" or "DaChuyenHopDong" ? "guest-status-success" : reservation.Status is "DaHuy" or "HetHan" or "TuChoi" ? "guest-status-muted" : "guest-status-warning")">@reservationStatus</span>
+                        </div>
                         @if (reservation.HoldAmount.HasValue)
                         {
                             <p>Số tiền giữ chỗ: @reservation.HoldAmount.Value.ToString("N0") ₫</p>
@@ -155,7 +161,7 @@
                         {
                             <form method="post" action="/tai-khoan/yeu-cau-phong/giu-cho/@reservation.Id/huy">
                                 @Html.AntiForgeryToken()
-                                <button class="guest-button guest-button-outline" type="submit">Hủy yêu cầu giữ chỗ</button>
+                                <button class="guest-button guest-button-danger" type="submit">Hủy yêu cầu giữ chỗ</button>
                             </form>
                         }
                     </div>

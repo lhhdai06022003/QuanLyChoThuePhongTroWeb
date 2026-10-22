@@ -11,8 +11,8 @@ using QuanLyChoThuePhongTroWeb.Web.IntegrationTests.Fixtures;
 
 namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests;
 
-// Khách vãng lai không vào được cổng khách thuê và không bị vòng lặp chuyển hướng
-// (AccessDeniedPath trỏ về trang đăng nhập).
+// Khách vãng lai không vào được cổng khách thuê (trừ /KhachThue/Dashboard, mở cho cả hai loại khách)
+// và không bị vòng lặp chuyển hướng (AccessDeniedPath trỏ về trang đăng nhập).
 [Collection(WebTestCollection.Name)]
 public sealed class GuestTenantPortalAccessTests(CustomWebApplicationFactory factory)
 {
@@ -29,7 +29,7 @@ public sealed class GuestTenantPortalAccessTests(CustomWebApplicationFactory fac
             var client = CreateClient();
             await LoginAsync(client, username, null);
 
-            var denied = await client.GetAsync("/KhachThue/Dashboard");
+            var denied = await client.GetAsync("/KhachThue/HoaDon");
             Assert.Equal(HttpStatusCode.Redirect, denied.StatusCode);
             var loginLocation = denied.Headers.Location?.ToString();
             Assert.NotNull(loginLocation);

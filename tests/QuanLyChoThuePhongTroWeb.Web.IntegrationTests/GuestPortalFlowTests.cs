@@ -14,6 +14,46 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests;
 [Collection(WebTestCollection.Name)]
 public sealed class GuestPortalFlowTests(CustomWebApplicationFactory factory)
 {
+    [Fact]
+    public async Task AnonymousHomeOpensPublicRoomsWithoutLogin()
+    {
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var home = await client.GetAsync("/");
+        Assert.Equal(HttpStatusCode.Redirect, home.StatusCode);
+        Assert.Equal("/phong", home.Headers.Location?.ToString());
+        foreach (var path in new[] { "/phong", "/phong/cam-nang", "/phong/da-luu" })
+        {
+            var page = await client.GetAsync(path);
+            Assert.Equal(HttpStatusCode.OK, page.StatusCode);
+            Assert.DoesNotContain("id=\"loginForm\"", await page.Content.ReadAsStringAsync());
+        }
+    }
+
+    [Theory]
+    [InlineData("/phong")]
+    [InlineData("/phong/10/hen-xem")]
+    [InlineData("/phong/10/giu-cho?viewingId=12")]
+    [InlineData("/tai-khoan/yeu-cau-phong")]
+    public async Task PortalUsesExistingLoginViewAndPreservesReturnUrl(string returnUrl)
+    {
+        using var client = factory.CreateClient();
+        var html = await client.GetStringAsync("/QuanLyNhaTro/DangNhap?returnUrl=" +
+            WebUtility.UrlEncode(returnUrl));
+        Assert.Contains("id=\"loginForm\"", html);
+        Assert.Contains("id=\"txtTenDangNhap\"", html);
+        Assert.Contains("id=\"txtMatKhau\"", html);
+        Assert.DoesNotContain("guest-account-form", html);
+        Assert.Equal(returnUrl, Hidden(html, "returnUrl"));
+
+        var invalidLogin = await client.PostAsync("/QuanLyNhaTro/DangNhap",
+            Form(("__RequestVerificationToken", Token(html)), ("returnUrl", returnUrl)));
+        Assert.Equal(HttpStatusCode.OK, invalidLogin.StatusCode);
+        var invalidHtml = await invalidLogin.Content.ReadAsStringAsync();
+        Assert.Contains("id=\"loginForm\"", invalidHtml);
+        Assert.DoesNotContain("guest-account-form", invalidHtml);
+        Assert.Equal(returnUrl, Hidden(invalidHtml, "returnUrl"));
+    }
+
     [Theory]
     [InlineData(false, false)]
     [InlineData(true, false)]
@@ -87,20 +127,31 @@ public sealed class GuestPortalFlowTests(CustomWebApplicationFactory factory)
 
             var viewingPath = $"/phong/{roomId}/hen-xem";
             var anonymousResponse = await client.GetAsync(viewingPath);
-            Assert.Equal(HttpStatusCode.Redirect, anonymousResponse.StatusCode);
-            Assert.Contains(viewingPath,
-                WebUtility.UrlDecode(anonymousResponse.Headers.Location!.ToString()));
-
-            var loginLocation = anonymousResponse.Headers.Location;
+            Assert.Equal(HttpStatusCode.OK, anonymousResponse.StatusCode);
+            var promptHtml = await anonymousResponse.Content.ReadAsStringAsync();
+            Assert.Contains("data-login-continue", promptHtml);
+            Assert.DoesNotContain("id=\"loginForm\"", promptHtml);
+            Assert.DoesNotContain("name=\"PreferredTimeLocal\"", promptHtml);
+            var blockedViewing = await client.PostAsync(viewingPath, Form());
+            Assert.Equal(HttpStatusCode.Redirect, blockedViewing.StatusCode);
+            var loginLocation = new Uri(LoginContinueLink(promptHtml), UriKind.Relative);
+            Assert.Contains(viewingPath, WebUtility.UrlDecode(loginLocation.ToString()));
             if (!useExistingTenant)
             {
-                var registerHtml = await (await client.GetAsync("/dang-ky-khach"))
+                var anonymousLoginHtml = await (await client.GetAsync(loginLocation))
+                    .Content.ReadAsStringAsync();
+                var registerLink = Regex.Match(anonymousLoginHtml,
+                    "href=\"(/dang-ky-khach[^\"]*)\"");
+                Assert.True(registerLink.Success);
+                var registerUrl = WebUtility.HtmlDecode(registerLink.Groups[1].Value);
+                Assert.Contains(viewingPath, WebUtility.UrlDecode(registerUrl));
+                var registerHtml = await (await client.GetAsync(registerUrl))
                     .Content.ReadAsStringAsync();
                 var registerResponse = await client.PostAsync("/dang-ky-khach",
                     Form(("__RequestVerificationToken", Token(registerHtml)),
                         ("Username", username), ("Password", "GuestTest123!"),
                         ("FullName", "Khách kiểm thử"), ("Phone", "0912345678"),
-                        ("Email", email), ("ReturnUrl", viewingPath)));
+                        ("Email", email), ("ReturnUrl", Hidden(registerHtml, "ReturnUrl"))));
                 Assert.Equal(HttpStatusCode.Redirect, registerResponse.StatusCode);
                 loginLocation = registerResponse.Headers.Location;
             }
@@ -127,6 +178,9 @@ public sealed class GuestPortalFlowTests(CustomWebApplicationFactory factory)
                 Assert.False(await db.KhachVangLais.AnyAsync(g =>
                     g.NguoiDung.TenDangNhap == username));
             }
+            var viewingForm = await viewingPage.Content.ReadAsStringAsync();
+            Assert.DoesNotContain("name=\"SlotId\"", viewingForm);
+            Assert.Contains("name=\"PreferredTimeLocal\"", viewingForm);
             if (bookBeforeViewing)
             {
                 var directBookingPage = await client.GetAsync($"/phong/{roomId}/giu-cho");
@@ -184,11 +238,18 @@ public sealed class GuestPortalFlowTests(CustomWebApplicationFactory factory)
             var logoutResponse = await client.PostAsync("/QuanLyNhaTro/DangXuat",
                 Form(("__RequestVerificationToken", Token(requestsHtml))));
             Assert.Equal(HttpStatusCode.Redirect, logoutResponse.StatusCode);
+            Assert.Equal("/phong", logoutResponse.Headers.Location?.ToString());
 
             var holdPath = $"/phong/{roomId}/giu-cho?source=rooms";
             anonymousResponse = await client.GetAsync(holdPath);
-            Assert.Equal(HttpStatusCode.Redirect, anonymousResponse.StatusCode);
-            loginHtml = await (await client.GetAsync(anonymousResponse.Headers.Location))
+            Assert.Equal(HttpStatusCode.OK, anonymousResponse.StatusCode);
+            var holdPromptHtml = await anonymousResponse.Content.ReadAsStringAsync();
+            Assert.Contains("data-login-continue", holdPromptHtml);
+            Assert.DoesNotContain("id=\"loginForm\"", holdPromptHtml);
+            Assert.Contains(holdPath, WebUtility.UrlDecode(LoginContinueLink(holdPromptHtml)));
+            var blockedHold = await client.PostAsync(holdPath, Form());
+            Assert.Equal(HttpStatusCode.Redirect, blockedHold.StatusCode);
+            loginHtml = await (await client.GetAsync(LoginContinueLink(holdPromptHtml)))
                 .Content.ReadAsStringAsync();
             loginResponse = await client.PostAsync("/QuanLyNhaTro/DangNhap",
                 Form(("__RequestVerificationToken", Token(loginHtml)),
@@ -325,6 +386,13 @@ public sealed class GuestPortalFlowTests(CustomWebApplicationFactory factory)
             if (tenantId.HasValue)
                 await db.NguoiThues.Where(t => t.NguoiThueId == tenantId.Value).ExecuteDeleteAsync();
         }
+    }
+
+    private static string LoginContinueLink(string html)
+    {
+        var match = Regex.Match(html, "<a\\b(?=[^>]*\\bdata-login-continue)[^>]*\\bhref=\"([^\"]+)\"");
+        Assert.True(match.Success);
+        return WebUtility.HtmlDecode(match.Groups[1].Value);
     }
 
     private static FormUrlEncodedContent Form(params (string Key, string Value)[] fields) =>

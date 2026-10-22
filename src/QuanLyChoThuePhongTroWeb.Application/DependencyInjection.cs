@@ -39,6 +39,7 @@ namespace QuanLyChoThuePhongTroWeb.Application
             services.AddScoped<IGuestRegistrationService, GuestRegistrationService>();
             services.AddScoped<IViewingRequestService, ViewingRequestService>();
             services.AddScoped<IViewingSlotAdminService, ViewingSlotAdminService>();
+            services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.PublicRooms.IRoomListingService, QuanLyChoThuePhongTroWeb.Application.Features.PublicRooms.RoomListingService>();
             services.AddScoped<IViewingAdminRequestService, ViewingAdminRequestService>();
             services.AddScoped<IReservationService, ReservationService>();
             services.AddScoped<IReservationPaymentService, ReservationPaymentService>();

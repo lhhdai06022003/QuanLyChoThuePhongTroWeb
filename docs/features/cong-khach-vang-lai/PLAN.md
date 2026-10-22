@@ -1,5 +1,46 @@
 # Cổng khách vãng lai Implementation Plan
 
+## Đợt mở rộng tìm phòng — 16/10/2026
+
+Spec: `SPEC.md`, mục Mở rộng tìm và chọn phòng. Thực hiện trực tiếp trên worktree `codex/khachvanglai-master-schema`, giữ các thay đổi giao diện chưa commit từ đợt trước.
+
+### 1. Tìm kiếm và sắp xếp
+
+- [x] Viết/run test đỏ `Application.UnitTests/PublicRoomDiscoveryTests.cs` cho lọc kết hợp, không dấu, giá ngược/âm, tie-break sắp xếp trước phân trang.
+- [x] Thêm `Application/Features/PublicRooms/PublicRoomDiscovery.cs`: `Normalize(PublicRoomSearch)` và `Apply(IEnumerable<PublicRoomDto>, PublicRoomSearch)`, không phụ thuộc EF/ASP.NET.
+- [x] Nối `PhongController.Index`, mở rộng `PublicRoomListModel` với bộ lọc/sắp xếp, lựa chọn khu nhà và ảnh hero từ phòng công khai.
+- [x] Chạy test xanh; kiểm tra HTTP lọc + phân trang giữ tham số.
+
+### 2. Yêu thích và so sánh
+
+- [x] Viết/run test đỏ cho module `wwwroot/js/guest-room-selection.mjs`: dữ liệu hỏng, ID trùng/sai, giới hạn 3/50, storage bị chặn.
+- [x] GET trang đã lưu, GET dữ liệu công khai theo tối đa 50 ID, GET so sánh tối đa 3 ID trong `PhongController`; ViewModels không chứa entity/điện thoại riêng.
+- [x] Module browser chỉ lưu ID, render bằng DOM an toàn, cập nhật nút/trạng thái/đa tab, xử lý phòng không còn công khai và lỗi mạng.
+- [x] HTTP test đảm bảo phòng ẩn/đã thuê không xuất hiện trong dữ liệu yêu thích/so sánh. Dùng `_Test` riêng.
+
+### 3. Cẩm nang và giao diện
+
+- [x] Thêm trang Razor cẩm nang với nội dung theo SPEC; checklist có thể tích, FAQ dùng details/summary.
+- [x] Tách thẻ phòng dùng chung, thiết kế Index/chi tiết/header/footer và các tiện ích mới. Font Inter + Manrope, xanh #066fd1, navy #152842, nền #f4f7fc, trắng #fff, chữ #374151, viền #dde5ef.
+- [x] Bổ sung guest-discovery.css theo nhóm thành phần, tái sử dụng CSS form hẹn/giữ chỗ/đặt cọc và giữ ReturnUrl.
+
+### 4. Kiểm chứng và bàn giao
+
+- [x] Build solution; test Application discovery, module JS, HTTP discovery và GuestPortalFlow/SessionRevalidation.
+- [x] Rà desktop/mobile, bàn phím, yêu thích sau reload, so sánh/chia sẻ, lọc rỗng, lỗi storage/mạng; lưu ảnh giao diện.
+- [x] Review cuối, sửa lỗi cụ thể và chạy lại gate liên quan. Không chạy migration/seed trên DB chính; không đổi schema. Giữ thay đổi để người dùng review, không tự push đợt mới.
+
+Review focus: URL lọc không mất tham số; so sánh không lộ phòng ẩn; dữ liệu localStorage không gây XSS; lỗi/quota storage không làm vỡ trang; menu/thanh so sánh không che nội dung trên điện thoại.
+
+### Kết quả kiểm chứng
+
+- Application: 14/14 kiểm thử discovery/area đạt; JavaScript: 8/8 đạt; Web HTTP: 8/8 đạt, gồm GuestPortalFlow và SessionRevalidation. Build solution: 0 lỗi, 26 cảnh báo.
+- HTTP xác nhận sắp xếp trước phân trang, giữ tham số khi chuyển trang, loại phòng ẩn và đã thuê khỏi dữ liệu công khai. Trang đã lưu tải lại 2 phòng đúng; trình duyệt chặn phòng so sánh thứ tư, sắp xếp giá tăng đưa phòng rẻ nhất lên đầu; FAQ và checklist hoạt động.
+- Review cuối tìm và sửa lỗi quota: localStorage đọc được nhưng không ghi được vẫn phải khôi phục các ID chuyển qua URL dự phòng. Test tái hiện đạt, reviewer xác nhận đã giải quyết.
+- Rà viewport desktop và 390px: không tràn ngang tài liệu; bảng so sánh cuộn riêng. Đã lưu ảnh preview; không gửi yêu cầu hẹn/giữ chỗ hoặc chuyển tiền trên DB chính.
+- Ruling: giữ CSS form cũ và thêm file discovery riêng — hạn chế rủi ro thay đổi các form nghiệp vụ đang hoạt động; CSS mới được giới hạn trong layout cổng khách và kiểm tra thứ tự selector.
+- Ruling: khi storage bị chặn, bộ nhớ tạm chỉ đảm bảo trên trang đang mở và đường dẫn dự phòng — giao diện thông báo đúng giới hạn này, không hứa đồng bộ thiết bị/tài khoản.
+- Không sửa schema/migration/DbContext/entity; server preview dùng QuanLyPhongTroDb, initialize/seed và background jobs tắt. Chưa commit/push đợt thay đổi mới.
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Cho khách đăng ký, xem phòng, đặt lịch, giữ chỗ và theo dõi khoản cọc/hoàn với dữ liệu thật trên schema `master` hiện có.
@@ -140,3 +181,35 @@ Các quy tắc chính đã được chốt trong SPEC. Cần xác nhận ranh gi
 - [x] Trang `/` đưa khách chưa đăng nhập và khách vãng lai tới `/phong`.
 - [x] Cổng khách thuê chỉ cho role `KhachThue`; khách vãng lai bị từ chối được đưa về `/tai-khoan/yeu-cau-phong` kèm thông báo, không lặp chuyển hướng (`GuestTenantPortalAccessTests`).
 - [ ] Gộp tài khoản khi khách vãng lai ký hợp đồng: hiện `HopDongService` tạo thêm tài khoản khách thuê (tên đăng nhập = email, mật khẩu = SĐT) và giữ tài khoản khách vãng lai, có thể trùng tên đăng nhập. Cần spec riêng trước khi làm.
+## Đồng bộ giao diện với admin — 10/10/2026
+
+- [x] Đối chiếu admin: Inter, logo SYSTEM RENTAL, màu primary Tabler `#066fd1`, nền `#f9fafb`, thẻ trắng `#ffffff`, chữ `#374151`, đường viền `#e5e7eb`, chữ phụ `#606b7a`. CSS lấy các token Tabler hiện có thay vì giữ bảng màu xanh ngọc cũ.
+- [x] Thiết kế: header chung → nội dung căn trái → bộ lọc/phòng; form dùng hai cột thông tin và thao tác, chuyển một cột trên điện thoại. Ảnh phòng là điểm nhấn, bỏ hình trang trí cũ; chỉ đánh số khi biểu diễn thứ tự xem phòng/hẹn xem/giữ chỗ.
+- [x] Thống nhất danh sách, chi tiết, hẹn xem, giữ chỗ, đặt cọc/minh chứng, theo dõi yêu cầu, đăng ký và đăng nhập từ cổng khách. Trang đăng nhập quản trị thông thường giữ giao diện hiện có.
+- [x] Trạng thái dùng nhãn có chữ; hủy dùng nút cảnh báo. Focus bàn phím rõ, hỗ trợ reduced motion. Sửa header bị co và che menu trên điện thoại.
+- [x] Header đăng ký/đăng nhập giữ ReturnUrl nội bộ, kể cả khi đăng ký có lỗi và hiển thị lại. Kiểm thử HTTP đi theo link đăng ký thật từ header.
+- [x] Build solution: 0 lỗi, 26 cảnh báo; bộ GuestPortalFlowTests/SessionRevalidationTests: 7/7 đạt trên `_Test`. Review xác nhận không còn lỗi cụ thể trong sửa ReturnUrl.
+- [x] Rà trình duyệt desktop 1366px và điện thoại 390px. Các form có đăng nhập được rà từ HTML Razor xuất bởi kiểm thử `_Test`, không tạo yêu cầu trên DB chính. Preview dùng QuanLyPhongTroDb, tắt initialize/seed và background jobs.
+- [x] Không sửa entity, DbContext, schema hoặc migration.
+
+## Dùng đăng nhập gốc — 16/10/2026
+
+- [x] Theo yêu cầu mới, bỏ nhánh Razor riêng cho cổng khách; DangNhap.cshtml trở về nguyên trạng giao diện có sẵn. Không tạo controller, service hay chức năng xác thực mới.
+- [x] Gỡ partial _GuestLogin, script khach-vang-lai-auth và CSS chỉ dành cho form riêng; giữ trang đăng ký và các tiện ích tìm phòng.
+- [x] Giữ endpoint /QuanLyNhaTro/DangNhap, antiforgery và ReturnUrl của trang phòng. Thêm 4 ca kiểm thử GET/POST không hợp lệ đảm bảo cùng form gốc và giữ tham số, kể cả viewingId.
+- [x] Test đỏ ban đầu: 4/4 không tìm thấy loginForm. Sau sửa: 12/12 HTTP (login regression, guest flow, session, discovery) đạt trên _Test. Build Web thành công; không thay đổi schema/database chính.
+
+## Khám phá phòng không bắt đăng nhập — 16/10/2026
+
+- [x] Khách chưa đăng nhập mở `/` vào `/phong`; danh sách, thông tin/ảnh, cẩm nang và phòng đã lưu được xem công khai. Khách đăng xuất trở về danh sách phòng; luồng nhân viên giữ nguyên.
+- [x] GET hẹn xem/đặt phòng của khách chưa đăng nhập chỉ hiển thị tóm tắt phòng và lời nhắc. Chỉ nút Đăng nhập mở form gốc; ReturnUrl giữ đúng thao tác và query string.
+- [x] POST gửi yêu cầu, dữ liệu lịch và trang tài khoản vẫn kiểm tra đăng nhập/quyền khách; trang nhắc công khai không tải khung giờ hay dữ liệu riêng.
+- [x] Tái hiện lỗi trước sửa bằng 4 ca đỏ. Sau sửa và rà cuối: 13/13 HTTP tests đạt trên DB `_Test`, gồm luồng hai loại khách, login gốc, root công khai, session và discovery. `git diff --check` đạt; không đổi Domain/Infrastructure, schema hoặc migration.
+- [x] Review không phát hiện lỗi cần sửa. Kiểm tra trình duyệt bản chạy mới: `/` → `/phong` → chi tiết phòng → lời nhắc hẹn xem → bấm Đăng nhập mở đúng form gốc với ReturnUrl. Preview dùng QuanLyPhongTroDb, tắt initialize/seed và background jobs; không gửi yêu cầu trên DB chính.
+
+## Sửa lưu tin và tải ảnh — 22/10/2026
+
+- Nối modal Tin phòng với POST có antiforgery; dùng tiêu đề, mô tả, cờ đăng tin và bảng anh_phong_tro hiện có. Không đổi schema/migration.
+- Tải JPEG/PNG/WebP lên Cloudinary có sẵn; kiểm chữ ký tệp, tối đa 5 MB/ảnh và 10 ảnh đang hoạt động/phòng. Ảnh mới bổ sung vào ảnh cũ, ảnh đầu làm đại diện nếu chưa có.
+- Giới hạn theo chi nhánh, khóa bản ghi phòng khi lưu để bảo vệ giới hạn ảnh/ảnh đại diện; lỗi tải/lưu không ghi tin dở và dọn ảnh tải dở.
+- Test HTTP chỉ dùng DB Test và fake storage; kiểm tải thật qua multipart, CSRF, sai nội dung ảnh, giới hạn 10 ảnh, phòng ngoài phạm vi và hiển thị ảnh ở trang công khai.

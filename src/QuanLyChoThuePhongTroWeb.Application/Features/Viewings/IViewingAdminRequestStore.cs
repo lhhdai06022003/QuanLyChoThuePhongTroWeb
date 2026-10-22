@@ -5,6 +5,8 @@ public interface IViewingAdminRequestStore
     Task<IReadOnlyList<ViewingAdminRequestDto>> ListAsync(
         IReadOnlyCollection<int>? branchIds,
         CancellationToken cancellationToken = default);
+    Task<ViewingAdminRequestDto?> GetNotificationAsync(int requestId,
+        CancellationToken cancellationToken = default);
     Task<int?> GetBranchIdAsync(int requestId,
         CancellationToken cancellationToken = default);
     Task<ViewingAdminError> UpdateAsync(int actorId, int requestId,

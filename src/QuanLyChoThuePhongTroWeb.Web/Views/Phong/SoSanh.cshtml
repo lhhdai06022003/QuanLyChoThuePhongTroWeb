@@ -1,0 +1,64 @@
+@model QuanLyChoThuePhongTroWeb.ViewModels.PublicRooms.PublicRoomComparisonModel
+@{
+    Layout = "_PublicRoomLayout";
+    ViewData["Title"] = "So sánh phòng";
+    var rows = new (string Label, Func<QuanLyChoThuePhongTroWeb.Application.Features.PublicRooms.PublicRoomDto, string> Value)[]
+    {
+        ("Giá thuê / tháng", r => r.GiaThue.ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("vi-VN")) + " ₫"),
+        ("Diện tích", r => r.DienTich.ToString("0.#") + " m²"),
+        ("Số người tối đa", r => r.SoNguoiToiDa + " người"),
+        ("Tầng", r => r.TangLau.ToString()),
+        ("Khu nhà", r => r.TenChiNhanh),
+        ("Địa chỉ", r => r.DiaChi)
+    };
+}
+<section class="guest-container room-collection-page">
+    <nav class="guest-breadcrumb" aria-label="Đường dẫn trang"><a href="/phong">Tìm phòng</a><span aria-hidden="true">/</span><span aria-current="page">So sánh phòng</span></nav>
+    <div class="room-page-heading"><div><h1>Chọn phòng bằng những điều quan trọng</h1><p>Đặt tối đa 3 phòng cạnh nhau để đối chiếu trước khi quyết định đi xem.</p></div><button class="guest-button guest-button-outline" type="button" data-copy-page hidden><svg class="room-icon" aria-hidden="true"><use href="#room-copy" /></svg>Sao chép liên kết</button></div>
+    @if (Model.UnavailableCount > 0)
+    {
+        <div class="guest-preview-notice" role="status">@Model.UnavailableCount phòng trong liên kết không còn công khai hoặc không còn trống nên không được hiển thị.</div>
+    }
+    @if (Model.Rooms.Count == 0)
+    {
+        <div class="guest-empty"><svg class="room-placeholder-icon" aria-hidden="true"><use href="#room-compare" /></svg><h2>Chưa có phòng để so sánh</h2><p>Chọn “So sánh phòng này” ở 2–3 căn phòng bạn quan tâm.</p><a class="guest-button guest-button-primary" href="/phong">Chọn phòng</a></div>
+    }
+    else
+    {
+        @if (Model.Rooms.Count == 1)
+        {
+            <p class="room-storage-note">Bạn đang xem một phòng. <a href="/phong">Chọn thêm phòng</a> để so sánh.</p>
+        }
+        <p class="room-mobile-hint">Vuốt ngang bảng để xem các phòng.</p>
+        <div class="room-comparison-scroll" tabindex="0" role="region" aria-label="Bảng so sánh phòng">
+            <table class="room-comparison-table">
+                <caption class="visually-hidden">Thông tin công khai hiện tại của @Model.Rooms.Count phòng</caption>
+                <thead><tr><th scope="col">Thông tin phòng</th>
+                    @foreach (var item in Model.Rooms)
+                    {
+                        <th scope="col" data-comparison-room="@item.Room.PhongTroId">
+                            @if (item.Images.FirstOrDefault() is { } image)
+                            {
+                                <a href="/phong/@item.Room.PhongTroId"><img src="@image" alt="Phòng @item.Room.SoPhong" /></a>
+                            }
+                            else
+                            {
+                                <span class="room-comparison-placeholder"><svg class="room-placeholder-icon" aria-hidden="true"><use href="#room-home" /></svg></span>
+                            }
+                            <a href="/phong/@item.Room.PhongTroId">Phòng @item.Room.SoPhong</a>
+                            <button type="button" class="room-text-button" data-remove-comparison="@item.Room.PhongTroId" hidden>Bỏ phòng này</button>
+                        </th>
+                    }
+                </tr></thead>
+                <tbody>
+                    @foreach (var row in rows)
+                    {
+                        <tr><th scope="row">@row.Label</th>@foreach (var item in Model.Rooms) { <td>@row.Value(item.Room)</td> }</tr>
+                    }
+                    <tr><th scope="row">Bước tiếp theo</th>@foreach (var item in Model.Rooms) { <td><a class="guest-button guest-button-primary" href="/phong/@item.Room.PhongTroId/hen-xem">Hẹn xem phòng</a><a class="room-detail-link" href="/phong/@item.Room.PhongTroId">Xem thông tin đầy đủ</a></td> }</tr>
+                </tbody>
+            </table>
+        </div>
+        <p class="room-storage-note">Giá trên là tiền thuê phòng. Các khoản điện, nước, dịch vụ và tiền giữ chỗ cần được xác nhận với nhân viên.</p>
+    }
+</section>

@@ -16,15 +16,15 @@ namespace QuanLyChoThuePhongTroWeb.Controllers
 
         public IActionResult Index()
         {
-            // Trang mở đầu là danh sách phòng công khai; chỉ nhân viên và khách thuê vào cổng riêng.
-            if (User.Identity == null || !User.Identity.IsAuthenticated || User.IsInRole("KhachVangLai"))
-            {
+            if (User.Identity?.IsAuthenticated != true)
                 return Redirect("/phong");
-            }
 
-            if (User.IsInRole("KhachThue"))
+            if (User.Identity != null && User.Identity.IsAuthenticated)
             {
-                return RedirectToAction("Index", "Dashboard", new { area = "KhachThue" });
+                if (User.IsInRole("KhachThue") || User.IsInRole("KhachVangLai"))
+                {
+                    return RedirectToAction("Index", "Dashboard", new { area = "KhachThue" });
+                }
             }
             return RedirectToAction("Index", "Dashboard", new { area = "QuanLyNhaTro" });
         }

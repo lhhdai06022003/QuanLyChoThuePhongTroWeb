@@ -51,7 +51,7 @@ public sealed class PublicRoomStore(ApplicationDbContext context, TimeProvider c
             .ThenBy(image => image.ThuTuHienThi)
             .Take(10)
             .Select(image => image.Url)
-            .ToArray());
+            .ToArray(), room.TieuDeDangTin ?? "");
 
     private static bool IsSafeImageUrl(string? url) =>
         !string.IsNullOrWhiteSpace(url) &&

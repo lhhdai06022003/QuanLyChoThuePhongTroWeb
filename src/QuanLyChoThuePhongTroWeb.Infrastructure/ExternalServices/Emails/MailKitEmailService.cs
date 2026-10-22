@@ -63,6 +63,60 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.Emails
             }
         }
 
+        public async Task<(bool IsSuccess, string ErrorMessage)> SendViewingStatusNoticeAsync(
+            QuanLyChoThuePhongTroWeb.Application.Features.Viewings.ViewingAdminRequestDto notice)
+        {
+            var subject = notice.Status switch
+            {
+                "DaXacNhanLich" => "Xác nhận lịch xem phòng",
+                "TuChoi" => "Từ chối yêu cầu xem phòng",
+                "DaHuy" => "Hủy lịch xem phòng",
+                _ => null
+            };
+            if (subject is null) return (false, "Trạng thái lịch xem chưa có thông báo email.");
+            var senderEmail = _configuration["EmailSettings:SenderEmail"];
+            var password = _configuration["EmailSettings:Password"];
+            if (string.IsNullOrWhiteSpace(senderEmail) || string.IsNullOrWhiteSpace(password) ||
+                senderEmail.StartsWith('<') || password.StartsWith('<'))
+                return (false, "Chưa cấu hình tài khoản gửi email SMTP.");
+            try
+            {
+                var when = new DateTimeOffset(notice.ConfirmedTimeUtc ?? notice.DesiredTimeUtc,
+                    TimeSpan.Zero).ToOffset(TimeSpan.FromHours(7));
+                var body = new StringBuilder()
+                    .AppendLine($"Xin chào {notice.GuestName},")
+                    .AppendLine().AppendLine($"{subject}: phòng {notice.RoomNumber} tại {notice.BranchName}.")
+                    .AppendLine($"Thời gian: {when:dd/MM/yyyy HH:mm} (giờ Việt Nam, UTC+7).");
+                if (notice.Status == "DaXacNhanLich")
+                    body.AppendLine("Lịch xem của bạn đã được nhân viên xác nhận. Vui lòng đến theo thời gian trên.");
+                else
+                {
+                    body.AppendLine("Yêu cầu xem phòng này không còn hiệu lực; bạn không cần đến theo lịch trên.");
+                    if (!string.IsNullOrWhiteSpace(notice.LastReason)) body.AppendLine($"Lý do: {notice.LastReason}");
+                }
+                body.AppendLine().AppendLine("Bạn có thể theo dõi trạng thái tại dashboard hoặc mục Lịch xem và đặt phòng.")
+                    .AppendLine("Nếu cần hỗ trợ, vui lòng liên hệ nhân viên.")
+                    .AppendLine().AppendLine("Trân trọng,\nBan quản lý nhà trọ");
+                var message = new MimeMessage();
+                message.From.Add(new MailboxAddress(_configuration["EmailSettings:SenderName"] ?? "Ban quản lý nhà trọ", senderEmail));
+                message.To.Add(new MailboxAddress(notice.GuestName, notice.Email));
+                message.Subject = $"{subject} — Phòng {notice.RoomNumber}";
+                message.Body = new TextPart("plain") { Text = body.ToString() };
+                var port = int.TryParse(_configuration["EmailSettings:Port"], out var parsed) ? parsed : 587;
+                using var client = new SmtpClient { Timeout = 15000 };
+                await client.ConnectAsync(_configuration["EmailSettings:SmtpServer"] ?? "smtp.gmail.com", port, SecureSocketOptions.StartTls);
+                await client.AuthenticateAsync(senderEmail, password);
+                await client.SendAsync(message);
+                await client.DisconnectAsync(true);
+                return (true, string.Empty);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Không gửi được email cho lịch xem {RequestId}", notice.Id);
+                return (false, "Không gửi được email. Kiểm tra cấu hình SMTP và thử lại.");
+            }
+        }
+
         private readonly IConfiguration _configuration;
         private readonly ILogger<MailKitEmailService> _logger;
         private readonly OnlinePaymentOptions _onlinePaymentOptions;

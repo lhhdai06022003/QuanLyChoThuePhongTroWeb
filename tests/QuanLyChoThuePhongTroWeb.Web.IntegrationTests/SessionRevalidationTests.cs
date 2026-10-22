@@ -83,7 +83,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
                     loginResponse.Headers.TryGetValues("Set-Cookie", out var cookies) &&
                     cookies.Any(c => c.Contains(".AspNetCore.Cookies")),
                     "Đăng nhập tài khoản khách vãng lai phải tạo cookie xác thực.");
-                Assert.Equal("/tai-khoan/yeu-cau-phong", loginResponse.Headers.Location?.ToString());
+                Assert.Equal("/KhachThue/Dashboard", loginResponse.Headers.Location?.ToString());
 
                 var afterLoginResponse = await client.GetAsync("/tai-khoan/yeu-cau-phong");
                 Assert.Equal(HttpStatusCode.OK, afterLoginResponse.StatusCode);

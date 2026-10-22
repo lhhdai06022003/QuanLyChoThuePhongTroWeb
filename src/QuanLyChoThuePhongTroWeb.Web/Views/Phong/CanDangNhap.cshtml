@@ -1,0 +1,32 @@
+@model QuanLyChoThuePhongTroWeb.ViewModels.PublicRooms.PublicRoomLoginPromptModel
+@{
+    Layout = "_PublicRoomLayout";
+    ViewData["Title"] = $"Tiếp tục {Model.ActionName}";
+    ViewData["GuestReturnUrl"] = Model.ReturnUrl;
+    var room = Model.Room.Room;
+}
+<div class="guest-container guest-form-page">
+    <a class="guest-back" href="/phong/@room.PhongTroId">← Về thông tin phòng</a>
+    <div class="guest-form-grid">
+        <section>
+            <h1>Đăng nhập khi bạn sẵn sàng</h1>
+            <p class="guest-form-lead">Bạn có thể xem thông tin và ảnh phòng, tìm kiếm, lưu yêu thích và so sánh mà không cần đăng nhập.</p>
+            <p class="guest-form-lead">Để @Model.ActionName, hãy bấm “Đăng nhập” bên cạnh. Tài khoản giúp xác định người gửi và theo dõi yêu cầu của bạn.</p>
+            <p class="guest-field-hint">Sau khi đăng nhập, bạn sẽ quay lại đúng trang này để tiếp tục. Chưa có yêu cầu nào được gửi ở bước này.</p>
+        </section>
+        <aside class="guest-booking-summary" aria-label="Phòng đang chọn">
+            @if (Model.Room.Images.FirstOrDefault() is { } image)
+            {
+                <img class="guest-booking-cover" src="@image" alt="Ảnh phòng @room.SoPhong" />
+            }
+            <div class="guest-booking-content">
+                <h2>Phòng @room.SoPhong</h2>
+                <p>@room.TenChiNhanh · @room.DiaChi</p>
+                <p>@room.DienTich.ToString("0.#") m² · Tối đa @room.SoNguoiToiDa người</p>
+                <p class="guest-booking-price"><strong>@room.GiaThue.ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("vi-VN")) ₫</strong> / tháng</p>
+                <a class="guest-button guest-button-primary" data-login-continue asp-area="QuanLyNhaTro" asp-controller="NguoiDung" asp-action="DangNhap" asp-route-returnUrl="@Model.ReturnUrl">Đăng nhập</a>
+                <a class="guest-button guest-button-outline" href="/phong">Tiếp tục tìm phòng</a>
+            </div>
+        </aside>
+    </div>
+</div>
