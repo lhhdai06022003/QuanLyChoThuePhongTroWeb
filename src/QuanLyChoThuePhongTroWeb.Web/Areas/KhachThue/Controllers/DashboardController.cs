@@ -1,56 +1,48 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using QuanLyChoThuePhongTroWeb.Application.Features.Reservations;
+using QuanLyChoThuePhongTroWeb.Application.Features.Viewings;
+using QuanLyChoThuePhongTroWeb.ViewModels;
 
-using System.Threading.Tasks;
-using System.Linq;
-using QuanLyChoThuePhongTroWeb.Models;
+namespace QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers;
 
-namespace QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers
+[Area("KhachThue")]
+[Authorize(Roles = "KhachThue,KhachVangLai")]
+public class DashboardController(
+    INguoiThueService nguoiThueService,
+    IHoaDonService hoaDonService,
+    IViewingRequestService viewingRequests,
+    IReservationService reservations) : Controller
 {
-    [Area("KhachThue")]
-    [Authorize]
-    public class DashboardController : Controller
+    public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {
-        private readonly INguoiThueService _nguoiThueService;
-        private readonly IHoaDonService _hoaDonService;
+        if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var actorId))
+            return Forbid();
 
-        public DashboardController(INguoiThueService nguoiThueService, IHoaDonService hoaDonService)
+        var model = new CustomerDashboardViewModel
         {
-            _nguoiThueService = nguoiThueService;
-            _hoaDonService = hoaDonService;
+            CustomerName = User.Identity?.Name ?? "Khách",
+            Viewings = (await viewingRequests.ListMineAsync(actorId, cancellationToken)).Take(5).ToArray(),
+            Reservations = (await reservations.ListMineAsync(actorId, cancellationToken)).Take(5).ToArray()
+        };
+
+        if (User.IsInRole("KhachThue") &&
+            int.TryParse(User.FindFirstValue("NguoiThueId"), out var tenantId))
+        {
+            var tenant = await nguoiThueService.GetByIdAsync(tenantId);
+            model.HasTenantProfile = tenant is not null;
+            model.CustomerName = tenant?.HoVaTen ?? model.CustomerName;
+            if (model.HasTenantProfile)
+            {
+                var invoices = await hoaDonService.GetHoaDonsByNguoiThueIdAsync(tenantId);
+                model.OutstandingInvoiceAmount = invoices
+                    .Where(h => h.TrangThaiPhatHanhValue == 3 &&
+                        h.TrangThaiHoaDonValue != (int)AppTrangThaiHoaDon.DaThanhToan)
+                    .Sum(h => h.ConLai);
+            }
         }
 
-        public async Task<IActionResult> Index()
-        {
-            if (!User.IsInRole("KhachThue"))
-            {
-                return Content("LỖI HỆ THỐNG: Truy cập bị từ chối. Tài khoản của bạn không có quyền Khách Thuê.");
-            }
-
-            // Lấy ID người thuê từ Claims
-            var nguoiThueIdClaim = User.FindFirst("NguoiThueId");
-            if (nguoiThueIdClaim == null)
-            {
-                return Content("LỖI HỆ THỐNG: Tài khoản của bạn được gán Role Khách Thuê nhưng không được liên kết với hồ sơ người thuê nào (NguoiThueId bị trống trong database). Vui lòng liên hệ Admin.");
-            }
-
-            int nguoiThueId = int.Parse(nguoiThueIdClaim.Value);
-
-            var nguoiThue = await _nguoiThueService.GetByIdAsync(nguoiThueId);
-            ViewBag.NguoiThueName = nguoiThue?.HoVaTen ?? "Khách";
-            ViewBag.NguoiThueId = nguoiThueId;
-
-            // Lấy hóa đơn chưa thanh toán
-            var hoaDons = await _hoaDonService.GetHoaDonsByNguoiThueIdAsync(nguoiThueId);
-            // Còn nợ của hóa đơn đã gửi chưa trả đủ (kể cả trả một phần); bỏ qua hóa đơn đã hủy.
-            decimal tongTienChuaThanhToan = hoaDons
-                .Where(h => h.TrangThaiPhatHanhValue == 3 && h.TrangThaiHoaDonValue != (int)AppTrangThaiHoaDon.DaThanhToan)
-                .Sum(h => h.ConLai);
-            
-            ViewBag.TongTienChuaThanhToan = tongTienChuaThanhToan;
-
-            return View();
-        }
+        return View(model);
     }
 }

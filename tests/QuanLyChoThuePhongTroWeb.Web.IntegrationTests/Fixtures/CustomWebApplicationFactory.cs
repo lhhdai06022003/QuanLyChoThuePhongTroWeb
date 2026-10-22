@@ -176,6 +176,15 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests.Fixtures
 
         public class FakeEmailService : IEmailService
         {
+            public ConcurrentQueue<QuanLyChoThuePhongTroWeb.Application.Features.Viewings.ViewingAdminRequestDto> ViewingEmailCalls { get; } = new();
+            public Task<(bool IsSuccess, string ErrorMessage)> SendViewingStatusNoticeAsync(
+                QuanLyChoThuePhongTroWeb.Application.Features.Viewings.ViewingAdminRequestDto notice)
+            {
+                ViewingEmailCalls.Enqueue(notice);
+                if (ThrowForAddress.ContainsKey(notice.Email)) throw new InvalidOperationException("Fake SMTP unavailable");
+                return Task.FromResult(ResultByAddress.TryGetValue(notice.Email, out var result) ? result : (true, string.Empty));
+            }
+
             public record InvoiceEmailCall(string ToEmail, string MaHoaDon, string HanThanhToan);
 
             public ConcurrentQueue<InvoiceEmailCall> InvoiceEmailCalls { get; } = new();

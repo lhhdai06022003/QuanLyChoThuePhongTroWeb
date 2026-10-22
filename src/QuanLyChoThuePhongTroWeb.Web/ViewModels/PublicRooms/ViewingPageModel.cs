@@ -1,6 +1,5 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
-using QuanLyChoThuePhongTroWeb.Application.Features.Viewings;
 
 namespace QuanLyChoThuePhongTroWeb.ViewModels.PublicRooms;
 
@@ -9,10 +8,7 @@ public sealed class ViewingPageModel
     [ValidateNever]
     public PublicRoomCardModel Room { get; set; } = null!;
 
-    [ValidateNever]
-    public IReadOnlyList<ViewingSlotDto> Slots { get; set; } = [];
-
-    public int? SlotId { get; set; }
+    [Required(ErrorMessage = "Vui lòng chọn ngày giờ muốn xem phòng.")]
     public DateTime? PreferredTimeLocal { get; set; }
 
     [Required(ErrorMessage = "Vui lòng nhập họ tên.")]

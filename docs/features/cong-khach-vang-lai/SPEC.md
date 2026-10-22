@@ -16,7 +16,7 @@ Domain có role `KhachVangLai=3`; Application và kiểm tra cookie phải hỗ 
 ## Phòng công khai và lịch xem
 
 1. Chỉ hiển thị phòng chưa xóa, thuộc chi nhánh chưa xóa, `DuocDangTin=true`, đang trống và chưa có giữ chỗ hoạt động. Danh sách lọc giá, diện tích, khu vực và phân trang; chi tiết hiển thị gallery ảnh đang hoạt động. Kiểm tra lại điều kiện trước mọi thao tác ghi.
-2. Nhân viên có quyền chi nhánh tạo khung giờ với sức chứa. Khách đã đăng nhập nhập tên, số điện thoại, **email bắt buộc**, chọn khung giờ hoặc thời gian mong muốn trong tương lai. Chọn khung còn chỗ được xác nhận ngay; giờ đề xuất chờ nhân viên. Service kiểm tra sức chứa trong thao tác ghi để không vượt suất cuối.
+2. Khách bắt buộc đăng nhập, nhập tên, số điện thoại, email và tự chọn ngày giờ mong muốn trong tương lai. Tất cả lịch mới chờ nhân viên gọi và xác nhận. Bỏ tạo/chọn khung giờ có sẵn. Nhân viên thấy phòng/chi nhánh, họ tên, số điện thoại, email, giờ mong muốn và trạng thái; có thể hủy lịch đang chờ hoặc đã xác nhận khi phòng đã có người thuê. Hủy chỉ tác động lịch xem, không tác động giữ chỗ/tiền cọc. Dùng trạng thái DaHuy và bảng lịch sử hiện có; không sửa schema, không xóa dữ liệu khung giờ/lịch cũ.
 3. Khách chỉ xem và hủy lịch của mình **trước giờ hẹn bắt đầu**; nhân viên chỉ xử lý lịch thuộc chi nhánh được phân công. Ghi trạng thái, người xử lý, thời điểm và lý do trong các bảng lịch sử hiện có.
 4. Khi phòng đã có người đặt cọc, nhân viên **bấm gửi thủ công**: xem trước người nhận là khách có lịch xem sắp tới, yêu cầu giữ chỗ mới, hoặc giữ chỗ đã duyệt nhưng chưa trả đủ tiền của cùng phòng; xác nhận mỗi lần gửi. Gửi email riêng, không lộ thông tin khách khác; hiển thị lỗi nếu SMTP không gửi được. Do schema không có nhật ký email, không hứa chống gửi lặp tuyệt đối qua nhiều lần bấm.
 
@@ -38,13 +38,36 @@ Domain có role `KhachVangLai=3`; Application và kiểm tra cookie phải hỗ 
 - GET công khai chỉ trả dữ liệu được phép đăng. Mọi POST dùng antiforgery và kiểm tra role, chủ yêu cầu, quyền chi nhánh ở server; không tin ID/phòng/giá từ form. Ảnh minh chứng không được để chung gallery công khai.
 - Dùng PostgreSQL `_test` hoặc `_integration_test` cho test EF/HTTP theo `AGENTS.md`; không chạy fixtures trên `QuanLyPhongTroDb`.
 - Kiểm thử role khách, tranh chấp suất cuối, hai nhân viên duyệt cùng phòng, file sai loại, mã giao dịch trùng, hủy sau khi chuyển tiền, áp dụng/hoàn đồng thời và truy cập chéo tài khoản/chi nhánh.
-- Giữ kiểu chữ, màu và bố cục `/phong` đang có. Khi chức năng thực hoạt động, nút gửi/duyệt tương ứng được mở và báo kết quả từ dữ liệu thật; không báo đã đặt cọc chỉ vì có ảnh minh chứng.
-- Mỗi thẻ phòng có nút **Hẹn xem phòng** và **Đặt phòng**. Khách chưa đăng nhập được đưa tới trang đăng nhập, sau đó quay lại đúng đường dẫn đã chọn (kể cả tham số lịch xem); đăng ký từ trang đăng nhập cũng giữ đường dẫn này.
+- Đồng bộ giao diện khách với admin: font Inter, màu primary Tabler, nền xám nhạt và thẻ trắng; các trang xem phòng, hẹn xem, giữ chỗ, đặt cọc và đăng ký dùng cùng thành phần. **Đăng nhập dùng giao diện và chức năng có sẵn tại `/QuanLyNhaTro/DangNhap`, không tạo form hoặc luồng đăng nhập riêng cho khách.** Giữ ReturnUrl để tiếp tục trang phòng sau đăng nhập. Khi chức năng thực hoạt động, nút gửi/duyệt tương ứng được mở và báo kết quả từ dữ liệu thật; không báo đã đặt cọc chỉ vì có ảnh minh chứng.
+- Mỗi thẻ phòng có nút **Hẹn xem phòng** và **Đặt phòng**. Khách chưa đăng nhập thấy bước nhắc trong cổng phòng, không tự chuyển tới đăng nhập. Chỉ bấm **Đăng nhập** mới mở trang đăng nhập có sẵn; sau đó quay lại đúng đường dẫn đã chọn (kể cả tham số lịch xem). Bước nhắc chỉ hiển thị dữ liệu phòng công khai, không lấy lịch hay gửi yêu cầu; POST vẫn bắt buộc role khách. Trang gốc `/` và đăng xuất của khách về `/phong`; xem danh sách/chi tiết/ảnh/yêu thích/so sánh/cẩm nang không cần đăng nhập. Đăng ký từ trang đăng nhập cũng giữ đường dẫn tiếp tục.
 - Tài khoản **KhachThue** hiện có cũng được hẹn xem và đặt phòng trên các trang riêng dùng layout công khai. Đăng nhập xác định chủ yêu cầu, không đưa khách về Dashboard khi đang tiếp tục thao tác phòng. Khi gửi yêu cầu đầu tiên, nếu chưa có hồ sơ `khach_vang_lai`, dùng thông tin người thuê liên kết để lưu hồ sơ trong bảng hiện có cùng giao dịch yêu cầu; không đổi role, không tạo hồ sơ khi chỉ mở trang, không đổi schema.
 - Mục **Lịch xem và đặt phòng** có nút hủy lịch trước giờ hẹn và đường dẫn tới trang đặt cọc riêng của từng yêu cầu. Trang đặt cọc hiển thị số tiền được duyệt, tiền đã xác nhận, hạn, thông tin chuyển khoản, form minh chứng và kết quả xử lý; chỉ chủ yêu cầu được truy cập.
+
+## Mở rộng tìm và chọn phòng — 16/10/2026
+
+Người dùng chọn nhóm tìm phòng nâng cao, yêu thích, so sánh và cẩm nang, tham khảo GoPlus. Giữ nguyên schema master và các quy tắc đặt lịch/giữ chỗ đã chốt.
+
+- Tìm theo khu vực không dấu, khoảng giá, diện tích tối thiểu và số người; sắp xếp mặc định/giá tăng/giá giảm/diện tích giảm trước khi phân trang. Chọn nhanh khu nhà và ngân sách từ dữ liệu thực. Khoảng giá nhập ngược được chuẩn hóa và hiển thị lại đúng; giá trị âm bỏ qua.
+- Khách chưa đăng nhập lưu tối đa 50 ID phòng yêu thích trên trình duyệt; không đồng bộ tài khoản/thiết bị. Trang đã lưu lấy lại thông tin công khai hiện tại, báo phòng không còn công khai và cho xóa từng phòng/xóa danh sách. Hỏng/bị chặn localStorage vẫn dùng tạm trong phiên, có thông báo rõ.
+- So sánh tối đa 3 phòng theo giá thuê, diện tích, sức chứa, tầng và địa chỉ; chia sẻ đường dẫn so sánh bằng ID. Không lộ dữ liệu phòng đã ẩn/đã thuê/ngoài danh sách cho phép. Dữ liệu từ trình duyệt không quyết định giá hoặc quyền giữ chỗ.
+- Cẩm nang viết riêng: chọn ngân sách, checklist đi xem, quy trình hẹn/giữ chỗ/chuyển tiền và câu hỏi thường gặp theo chính sách đã chốt. Không sao chép bài của GoPlus, không tự đặt mức phí hay cam kết hoàn mới.
+- Giao diện: giữ nhận diện xanh dương, nền sáng và form thống nhất; thêm hero dùng ảnh phòng thật, thẻ phòng có lưu/so sánh và thanh so sánh. Không dùng ảnh giả làm ảnh phòng thật hoặc bịa tiện nghi/đánh giá/số lượt yêu thích.
 
 ## Logic còn cần chủ dự án trả lời
 
 1. Chính sách quên mật khẩu/đổi email của tài khoản khách chưa được yêu cầu trong phạm vi tính năng này; cần chốt nếu muốn mở thêm chức năng tự phục vụ.
 
 **Đã xác nhận:** phải đăng nhập để đặt lịch; email lịch xem bắt buộc; khung còn chỗ xác nhận ngay, giờ đề xuất chờ nhân viên; nhân viên duyệt số tiền và hạn; nhân viên đối soát tiền; mức hoàn do nhân viên quyết định với khoản đúng mức giữ chỗ; gửi email thủ công sau khi xem trước, gồm cả giữ chỗ đã duyệt nhưng chưa trả đủ; tiền giữ chỗ áp dụng vào **cọc hợp đồng**; cho nhiều giao dịch cộng dồn, bắt buộc hoàn phần dư/tiền đến muộn; hủy lịch trước giờ bắt đầu; quá hạn ký do nhân viên xử lý; CCCD khi lập hợp đồng.
+
+## Bổ sung email và dashboard — 22/10/2026
+
+- Xác nhận, từ chối và hủy lịch do phòng đã thuê tự động gửi email qua IEmailService/MailKit hiện có tới email khách đã nhập khi đăng ký lịch xem. Thư có phòng, chi nhánh, ngày giờ Việt Nam, trạng thái và lý do từ chối/hủy.
+- Chỉ gửi sau khi cập nhật lịch thành công. Lỗi SMTP không hoàn tác trạng thái; nhân viên thấy cảnh báo và có nút gửi lại email sau kiểm tra quyền chi nhánh. Mỗi lần gửi lại dùng trạng thái/lý do hiện tại trong DB; không ghi thêm schema nhật ký email và không cam kết gửi đúng một lần.
+- Cả khách thuê và khách vãng lai đã đăng ký có dashboard riêng hiển thị lịch xem, yêu cầu giữ chỗ và tiền đã được nhân viên xác nhận. Chỉ lấy dữ liệu của tài khoản đăng nhập; khách vãng lai chưa có hợp đồng không thấy các tổng quan hợp đồng/hóa đơn giả định.
+
+## Sửa lưu tin và tải ảnh — 22/10/2026
+
+- Nối modal Tin phòng với POST có antiforgery; dùng tiêu đề, mô tả, cờ đăng tin và bảng anh_phong_tro hiện có. Không đổi schema/migration.
+- Tải JPEG/PNG/WebP lên Cloudinary có sẵn; kiểm chữ ký tệp, tối đa 5 MB/ảnh và 10 ảnh đang hoạt động/phòng. Ảnh mới bổ sung vào ảnh cũ, ảnh đầu làm đại diện nếu chưa có.
+- Giới hạn theo chi nhánh, khóa bản ghi phòng khi lưu để bảo vệ giới hạn ảnh/ảnh đại diện; lỗi tải/lưu không ghi tin dở và dọn ảnh tải dở.
+- Test HTTP chỉ dùng DB Test và fake storage; kiểm tải thật qua multipart, CSRF, sai nội dung ảnh, giới hạn 10 ảnh, phòng ngoài phạm vi và hiển thị ảnh ở trang công khai.

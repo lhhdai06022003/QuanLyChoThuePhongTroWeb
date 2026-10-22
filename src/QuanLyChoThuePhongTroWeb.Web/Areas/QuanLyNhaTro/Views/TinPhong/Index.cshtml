@@ -4,6 +4,10 @@
 }
 
 <div class="container-xl py-4 guest-admin">
+    @if (TempData["ListingMessage"] is string message)
+    {
+        <div class="alert @(TempData["ListingWarning"] is true ? "alert-warning" : "alert-success")" role="status">@message</div>
+    }
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
         <div>
             <h1 class="page-title mb-2">Tin phòng công khai</h1>
@@ -52,10 +56,10 @@
                                     <a class="btn btn-outline-secondary btn-sm" href="/phong/@room.RoomId" target="_blank" rel="noopener">Xem tin</a>
                                 }
                                 <button class="btn btn-outline-primary btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#listingPreviewModal"
-                                        data-listing-open data-room="@room.RoomNumber" data-branch="@room.BranchName"
+                                        data-listing-open data-room-id="@room.RoomId" data-title="@room.Title" data-description="@room.Description" data-room="@room.RoomNumber" data-branch="@room.BranchName"
                                         data-price="@room.MonthlyRent.ToString("N0")" data-images="@room.ImageCount"
                                         data-ready="@(room.RoomStatus == 0 ? "true" : "false")"
-                                        data-visible="@(room.IsVisible ? "true" : "false")">Chỉnh sửa tin</button>
+                                        data-visible="@(room.Published ? "true" : "false")">Chỉnh sửa tin</button>
                             </div>
                         </td>
                     </tr>
@@ -71,7 +75,9 @@
 </div>
 
 <div class="modal modal-blur fade" id="listingPreviewModal" tabindex="-1" aria-labelledby="listingPreviewTitle" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content">
+    <div class="modal-dialog modal-dialog-centered modal-lg"><form class="modal-content" id="listingForm" method="post" action="@Url.Action("LuuTin", "TinPhong", new { area = "QuanLyNhaTro" })" enctype="multipart/form-data">
+        @Html.AntiForgeryToken()
+        <input type="hidden" id="listingRoomId" name="RoomId" />
         <div class="modal-header">
             <h2 class="modal-title" id="listingPreviewTitle">Chỉnh sửa tin phòng</h2>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
@@ -81,28 +87,28 @@
             <div class="row g-3">
                 <div class="col-md-7">
                     <label class="form-label" for="listingTitle">Tiêu đề tin</label>
-                    <input class="form-control" id="listingTitle" type="text" placeholder="Ví dụ: Phòng sáng thoáng gần trung tâm" />
+                    <input class="form-control" id="listingTitle" name="Title" type="text" required maxlength="255" placeholder="Ví dụ: Phòng sáng thoáng gần trung tâm" />
                 </div>
                 <div class="col-md-5">
                     <label class="form-label" for="listingVisibility">Hiển thị tin</label>
-                    <select class="form-select" id="listingVisibility"><option value="true">Đăng công khai</option><option value="false">Ẩn tin</option></select>
+                    <select class="form-select" id="listingVisibility" name="Publish"><option value="true">Đăng công khai</option><option value="false">Ẩn tin</option></select>
                 </div>
                 <div class="col-12">
                     <label class="form-label" for="listingDescription">Mô tả phòng</label>
-                    <textarea class="form-control" id="listingDescription" rows="3" placeholder="Điểm nổi bật, nội thất, tiện ích... "></textarea>
+                    <textarea class="form-control" id="listingDescription" name="Description" rows="3" maxlength="10000" placeholder="Điểm nổi bật, nội thất, tiện ích... "></textarea>
                 </div>
                 <div class="col-12">
                     <label class="form-label" for="listingPhotos">Ảnh phòng</label>
-                    <input class="form-control" id="listingPhotos" type="file" accept="image/jpeg,image/png,image/webp" multiple />
-                    <div class="form-hint mt-1" id="listingPhotoHint">Chọn ảnh JPEG, PNG hoặc WebP.</div>
+                    <input class="form-control" id="listingPhotos" name="Photos" type="file" accept="image/jpeg,image/png,image/webp" multiple />
+                    <div class="form-hint mt-1" id="listingPhotoHint">Chọn ảnh JPEG, PNG hoặc WebP, tối đa 5 MB/ảnh và 10 ảnh/phòng. Ảnh mới được thêm vào ảnh hiện có.</div>
                 </div>
             </div>
         </div>
         <div class="modal-footer">
             <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button>
-            <button type="button" class="btn btn-primary" disabled>Lưu tin và ảnh</button>
+            <button type="submit" class="btn btn-primary" id="listingSave">Lưu tin và ảnh</button>
         </div>
-    </div></div>
+    </form></div>
 </div>
 
 @section Styles { <link rel="stylesheet" href="~/css/staff-guest-management.css" asp-append-version="true" /> }

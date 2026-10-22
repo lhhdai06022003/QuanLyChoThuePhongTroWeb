@@ -1,112 +1,83 @@
 @model QuanLyChoThuePhongTroWeb.ViewModels.PublicRooms.PublicRoomListModel
 @{
     Layout = "_PublicRoomLayout";
-    ViewData["Title"] = "Tìm phòng";
-    var pageCount = (int)Math.Ceiling((double)Model.TotalCount / Model.PageSize);
+    ViewData["Title"] = "Tìm nơi ở của bạn";
+    var pages = (int)Math.Ceiling((double)Model.TotalCount / Model.PageSize);
     var culture = System.Globalization.CultureInfo.InvariantCulture;
+    var hasFilter = Model.GiaTu.HasValue || Model.GiaDen.HasValue || Model.DienTichTu.HasValue || Model.SoNguoi.HasValue || !string.IsNullOrWhiteSpace(Model.KhuVuc);
+    string PageUrl(int page) => Url.Action("Index", "Phong", new { page, giaTu = Model.GiaTu, giaDen = Model.GiaDen, dienTichTu = Model.DienTichTu, khuVuc = Model.KhuVuc, soNguoi = Model.SoNguoi, sapXep = Model.SapXep })!;
+    string BudgetUrl(decimal? from, decimal? to) => Url.Action("Index", "Phong", new { giaTu = from, giaDen = to, dienTichTu = Model.DienTichTu, khuVuc = Model.KhuVuc, soNguoi = Model.SoNguoi, sapXep = Model.SapXep })!;
 }
-
-<section class="guest-intro">
-    <div class="guest-container guest-intro-grid">
-        <div>
-            <p class="guest-kicker">Một chỗ ở hợp nhịp sống</p>
-            <h1>Tìm căn phòng vừa với bạn.</h1>
-            <p class="guest-intro-copy">Tìm theo khu vực, xem ảnh, diện tích và giá thuê để chọn căn phòng phù hợp với mình.</p>
+<div class="guest-container room-discovery">
+    <section class="room-hero" aria-labelledby="discovery-heading">
+        <div class="room-hero-copy">
+            <span class="room-hero-label"><svg class="room-icon" aria-hidden="true"><use href="#room-home" /></svg>Không gian cho cuộc sống của bạn</span>
+            <h1 id="discovery-heading">Tìm nơi ở<br />thật vừa với bạn.</h1>
+            <p>Khám phá phòng trống, lưu những căn ưng ý và hẹn một buổi đến xem. Mọi lựa chọn bắt đầu từ đây.</p>
+            <a class="room-hero-link" href="/phong/cam-nang">Lần đầu thuê phòng? Xem cẩm nang</a>
         </div>
-        <div class="guest-intro-mark" aria-hidden="true"><span class="mark-door"></span><span class="mark-window"></span><span class="mark-number">P</span></div>
-    </div>
-</section>
+        @if (Model.HeroRoom is { } hero)
+        {
+            <a class="room-hero-photo" href="/phong/@hero.Room.PhongTroId" aria-label="Xem phòng @hero.Room.SoPhong tại @hero.Room.TenChiNhanh">
+                <img src="@hero.Images[0]" alt="Không gian thực tế phòng @hero.Room.SoPhong" fetchpriority="high" />
+                <div class="room-hero-photo-caption"><span>Khám phá căn phòng này</span><strong>Phòng @hero.Room.SoPhong · @hero.Room.TenChiNhanh</strong><span>@hero.Room.DienTich.ToString("0.#") m² · @hero.Room.GiaThue.ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("vi-VN")) ₫ / tháng</span></div>
+            </a>
+        }
+        else
+        {
+            <div class="room-hero-empty"><svg aria-hidden="true"><use href="#room-home" /></svg><p>Chọn phòng theo nhu cầu.<br />Đến xem để cảm nhận.</p></div>
+        }
+    </section>
 
-<section class="guest-container guest-listing" aria-labelledby="room-results-heading">
-    <form method="get" action="/phong" class="guest-filter" aria-label="Lọc phòng">
-        <div class="guest-filter-title">Lọc nhanh</div>
-        <label class="guest-filter-area">
-            <span>Khu vực</span>
-            <input type="search" name="khuVuc" value="@Model.KhuVuc" maxlength="100" placeholder="Ví dụ: Gò Vấp, Thủ Đức" autocomplete="address-level2" />
-        </label>
-        <label>
-            <span>Giá từ</span>
-            <input type="number" name="giaTu" min="0" step="100000" value="@(Model.GiaTu?.ToString(culture))" inputmode="numeric" placeholder="Ví dụ 2000000" />
-        </label>
-        <label>
-            <span>Giá đến</span>
-            <input type="number" name="giaDen" min="0" step="100000" value="@(Model.GiaDen?.ToString(culture))" inputmode="numeric" placeholder="Không giới hạn" />
-        </label>
-        <label>
-            <span>Diện tích từ (m²)</span>
-            <input type="number" name="dienTichTu" min="0" step="1" value="@(Model.DienTichTu?.ToString(culture))" inputmode="decimal" placeholder="Không giới hạn" />
-        </label>
-        <button class="guest-button guest-button-primary" type="submit">Xem phòng phù hợp</button>
+    <form method="get" action="/phong" id="room-search-form" class="room-search-panel" aria-label="Lọc phòng">
+        <div class="room-search-main">
+            <label class="room-search-location"><span>Bạn muốn ở đâu?</span><div><svg class="room-icon" aria-hidden="true"><use href="#room-search" /></svg><input type="search" name="khuVuc" value="@Model.KhuVuc" maxlength="100" placeholder="Khu vực, tên đường, khu nhà…" list="room-area-options" autocomplete="address-level2" /></div></label>
+            <datalist id="room-area-options">@foreach (var area in Model.Areas ?? []) { <option value="@area.Name"></option> }</datalist>
+            <label><span>Giá thuê từ (₫/tháng)</span><input type="number" name="giaTu" min="0" step="100000" value="@Model.GiaTu?.ToString(culture)" placeholder="Không giới hạn" inputmode="numeric" /></label>
+            <label><span>Đến (₫/tháng)</span><input type="number" name="giaDen" min="0" step="100000" value="@Model.GiaDen?.ToString(culture)" placeholder="Không giới hạn" inputmode="numeric" /></label>
+            <button class="guest-button guest-button-primary" type="submit"><svg class="room-icon" aria-hidden="true"><use href="#room-search" /></svg>Tìm phòng</button>
+        </div>
+        <details class="room-extra-filters" open="@(Model.DienTichTu.HasValue || Model.SoNguoi.HasValue)">
+            <summary>Thêm bộ lọc diện tích và số người</summary>
+            <div><label><span>Diện tích tối thiểu (m²)</span><input type="number" name="dienTichTu" min="0" step="1" value="@Model.DienTichTu?.ToString(culture)" placeholder="Ví dụ: 25" inputmode="decimal" /></label><label><span>Số người cần ở</span><input type="number" name="soNguoi" min="1" step="1" value="@Model.SoNguoi" placeholder="Ví dụ: 2" inputmode="numeric" /></label></div>
+        </details>
     </form>
 
-    <div class="guest-results-head">
-        <div>
-            <h2 id="room-results-heading">Phòng đang có</h2>
-            <p>@Model.TotalCount phòng phù hợp với bộ lọc</p>
-        </div>
-        @if (Model.GiaTu.HasValue || Model.GiaDen.HasValue || Model.DienTichTu.HasValue || !string.IsNullOrWhiteSpace(Model.KhuVuc))
-        {
-            <a class="guest-clear" href="/phong">Xóa bộ lọc</a>
-        }
-    </div>
+    <div class="room-quick-filters" aria-label="Chọn nhanh ngân sách"><span>Tìm nhanh</span><a href="@BudgetUrl(null, 3000000)">Đến 3 triệu</a><a href="@BudgetUrl(3000000, 5000000)">3–5 triệu</a><a href="@BudgetUrl(5000000, null)">Từ 5 triệu</a><a href="/phong/da-luu"><svg class="room-icon" aria-hidden="true"><use href="#room-heart" /></svg>Phòng đã lưu</a></div>
 
-    @if (Model.Items.Count == 0)
-    {
-        <div class="guest-empty">
-            <span class="guest-empty-mark" aria-hidden="true">⌂</span>
-            <h3>Chưa có phòng phù hợp</h3>
-            <p>Thử đổi khu vực hoặc nới khoảng giá, diện tích để xem thêm lựa chọn.</p>
-            <a class="guest-button guest-button-outline" href="/phong">Xem tất cả phòng</a>
+    <section class="room-results" aria-labelledby="room-results-heading">
+        <div class="room-results-heading">
+            <div><h2 id="room-results-heading">@(hasFilter ? "Phòng phù hợp với bạn" : "Khám phá phòng đang trống")</h2><p>@Model.TotalCount phòng đang công khai · Chọn phòng để xem thông tin đầy đủ</p></div>
+            <div class="room-sort-controls"><label for="room-sort">Sắp xếp</label><select name="sapXep" id="room-sort" form="room-search-form" data-room-sort>
+                <option value="mac-dinh" selected="@(Model.SapXep == "mac-dinh")">Mặc định</option><option value="gia-tang" selected="@(Model.SapXep == "gia-tang")">Giá thấp đến cao</option><option value="gia-giam" selected="@(Model.SapXep == "gia-giam")">Giá cao đến thấp</option><option value="dien-tich-giam" selected="@(Model.SapXep == "dien-tich-giam")">Diện tích lớn trước</option>
+            </select><noscript><button type="submit" form="room-search-form" class="guest-button guest-button-outline">Áp dụng</button></noscript></div>
         </div>
-    }
-    else
-    {
-        <div class="guest-room-grid">
-            @foreach (var item in Model.Items)
-            {
-                var room = item.Room;
-                var image = item.Images.FirstOrDefault();
-                <article class="guest-room-card">
-                    <a class="guest-room-visual" href="/phong/@room.PhongTroId" aria-label="Xem chi tiết phòng @room.SoPhong">
-                        @if (image is not null)
-                        {
-                            <img src="@image" alt="Ảnh phòng @room.SoPhong" loading="lazy" />
-                        }
-                        else
-                        {
-                            <span class="guest-room-no-image"><span class="guest-room-no-image-icon" aria-hidden="true">⌂</span><span>Ảnh phòng đang được cập nhật</span></span>
-                        }
-                        <span class="guest-room-number">@room.SoPhong</span>
-                    </a>
-                    <div class="guest-room-body">
-                        <p class="guest-room-location">@room.TenChiNhanh · @room.DiaChi</p>
-                        <h3><a href="/phong/@room.PhongTroId">Phòng @room.SoPhong</a></h3>
-                        <div class="guest-room-facts"><span>@room.DienTich.ToString("0.#") m²</span><span>Tối đa @room.SoNguoiToiDa người</span></div>
-                        <div class="guest-room-bottom">
-                            <p><strong>@room.GiaThue.ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("vi-VN")) ₫</strong><span>/ tháng</span></p>
-                            <a href="/phong/@room.PhongTroId" aria-label="Xem chi tiết phòng @room.SoPhong">Xem phòng <span aria-hidden="true">↗</span></a>
-                        </div>
-                        <div class="guest-room-actions" aria-label="Đăng ký phòng @room.SoPhong">
-                            <a class="guest-button guest-button-outline" href="/phong/@room.PhongTroId/hen-xem">Hẹn xem phòng</a>
-                            <a class="guest-button guest-button-primary" href="/phong/@room.PhongTroId/giu-cho">Đặt phòng</a>
-                        </div>
-                    </div>
-                </article>
-            }
-        </div>
-        @if (pageCount > 1)
+        @if (hasFilter)
         {
-            <nav class="guest-pagination" aria-label="Trang phòng">
-                @if (Model.Page > 1)
-                {
-                    <a asp-controller="Phong" asp-action="Index" asp-route-page="@(Model.Page - 1)" asp-route-giaTu="@Model.GiaTu" asp-route-giaDen="@Model.GiaDen" asp-route-dienTichTu="@Model.DienTichTu" asp-route-khuVuc="@Model.KhuVuc">Trang trước</a>
-                }
-                <span>Trang @Model.Page / @pageCount</span>
-                @if (Model.Page < pageCount)
-                {
-                    <a asp-controller="Phong" asp-action="Index" asp-route-page="@(Model.Page + 1)" asp-route-giaTu="@Model.GiaTu" asp-route-giaDen="@Model.GiaDen" asp-route-dienTichTu="@Model.DienTichTu" asp-route-khuVuc="@Model.KhuVuc">Trang sau</a>
-                }
-            </nav>
+            <div class="room-active-filters"><span>Đang lọc: @(Model.KhuVuc ?? "Mọi khu vực")@if (Model.GiaTu.HasValue || Model.GiaDen.HasValue) { <text> · @(Model.GiaTu?.ToString("N0") ?? "0")–@(Model.GiaDen?.ToString("N0") ?? "không giới hạn") ₫</text> }@if (Model.DienTichTu.HasValue) { <text> · Từ @Model.DienTichTu m²</text> }@if (Model.SoNguoi.HasValue) { <text> · @Model.SoNguoi người</text> }</span><a href="/phong">Xóa bộ lọc</a></div>
         }
+        @if (Model.Items.Count == 0)
+        {
+            <div class="guest-empty"><svg class="room-placeholder-icon" aria-hidden="true"><use href="#room-search" /></svg><h3>Chưa có phòng phù hợp</h3><p>Thử đổi khu vực hoặc nới khoảng giá, diện tích để xem thêm lựa chọn.</p><a class="guest-button guest-button-primary" href="/phong">Xem tất cả phòng</a></div>
+        }
+        else
+        {
+            <div class="guest-room-grid">@foreach (var item in Model.Items) { <partial name="_PublicRoomCard" model="item" /> }</div>
+            @if (pages > 1)
+            {
+                <nav class="guest-pagination" aria-label="Trang phòng">@if (Model.Page > 1) { <a href="@PageUrl(Model.Page - 1)">Trang trước</a> }<span>Trang @Model.Page / @pages</span>@if (Model.Page < pages) { <a href="@PageUrl(Model.Page + 1)">Trang sau</a> }</nav>
+            }
+        }
+    </section>
+
+    @if (Model.Areas is { Count: > 0 })
+    {
+        <section class="room-area-section" aria-labelledby="room-area-heading"><div class="room-section-heading"><div><h2 id="room-area-heading">Khám phá theo khu nhà</h2><p>Bắt đầu từ vị trí bạn muốn gắn bó.</p></div></div><div class="room-area-grid">
+            @foreach (var area in Model.Areas)
+            {
+                <a href="@Url.Action("Index", "Phong", new { khuVuc = area.Name, giaTu = Model.GiaTu, giaDen = Model.GiaDen, dienTichTu = Model.DienTichTu, soNguoi = Model.SoNguoi, sapXep = Model.SapXep })"><svg class="room-icon" aria-hidden="true"><use href="#room-location" /></svg><strong>@area.Name</strong><span>@area.Count phòng · Từ @area.MinPrice.ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("vi-VN")) ₫/tháng</span></a>
+            }
+        </div></section>
     }
-</section>
+    <section class="room-guide-teaser"><div><span>Cẩm nang thuê phòng</span><h2>Một quyết định tốt<br />bắt đầu từ việc xem kỹ.</h2><p>Tính ngân sách, chuẩn bị buổi xem phòng và hiểu rõ từng bước đặt cọc.</p><a class="guest-button guest-button-outline" href="/phong/cam-nang">Đọc cẩm nang</a></div><ol><li><strong>Xác định ngân sách</strong><span>Tính cả chi phí ngoài tiền thuê.</span></li><li><strong>Đến xem phòng thực tế</strong><span>Kiểm tra không gian và hỏi những điều cần thiết.</span></li><li><strong>Đặt cọc đúng quy trình</strong><span>Chờ duyệt, chuyển đúng nội dung và giữ minh chứng.</span></li></ol></section>
+</div>

@@ -1,41 +1,43 @@
+@model QuanLyChoThuePhongTroWeb.ViewModels.CustomerDashboardViewModel
 @{
-    ViewBag.Title = "Tổng quan";
+    ViewData["Title"] = "Tổng quan";
+    Layout = Model.HasTenantProfile ? "_LayoutKhachThue" : "_PublicRoomLayout";
 }
 
 <div class="page-header d-print-none">
     <div class="container-xl">
         <div class="row g-2 align-items-center">
             <div class="col">
-                <div class="page-pretitle">Tổng quan</div>
-                <h2 class="page-title d-flex align-items-center"><i class="ti ti-home me-2 text-primary"></i> Xin chào người thuê @ViewBag.NguoiThueName</h2>
+                <div class="page-pretitle">Tổng quan tài khoản</div>
+                <h1 class="page-title">Xin chào @Model.CustomerName</h1>
+                <p class="text-secondary mt-2">Theo dõi lịch xem phòng, yêu cầu giữ chỗ và tiền đặt cọc của bạn.</p>
             </div>
+            <div class="col-auto"><a class="btn btn-primary" href="/phong">Tìm phòng</a></div>
         </div>
     </div>
 </div>
 
 <div class="page-body">
     <div class="container-xl">
-        <div class="row row-deck row-cards">
-            <div class="col-sm-6 col-lg-3">
-                <div class="card">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center">
-                            <div class="subheader">Tình trạng hợp đồng</div>
-                        </div>
-                        <div class="h1 mb-3">Đang hoạt động</div>
-                    </div>
+        @if (Model.HasTenantProfile)
+        {
+            <div class="row row-cards mb-4">
+                <div class="col-sm-6">
+                    <div class="card"><div class="card-body">
+                        <div class="subheader">Hóa đơn chưa thanh toán</div>
+                        <div class="h1 my-3">@Model.OutstandingInvoiceAmount.ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("vi-VN")) VNĐ</div>
+                        <a href="/KhachThue/HoaDon">Xem hóa đơn và thanh toán</a>
+                    </div></div>
+                </div>
+                <div class="col-sm-6">
+                    <div class="card"><div class="card-body">
+                        <h2 class="card-title">Hợp đồng thuê phòng</h2>
+                        <p class="text-secondary">Xem hợp đồng và thông tin thuê phòng của bạn.</p>
+                        <a href="/KhachThue/HopDong">Xem hợp đồng</a>
+                    </div></div>
                 </div>
             </div>
-            <div class="col-sm-6 col-lg-3">
-                <div class="card">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center">
-                            <div class="subheader">Hóa đơn chưa thanh toán</div>
-                        </div>
-                        <div class="h1 mb-3">@string.Format("{0:#,##0} VNĐ", ViewBag.TongTienChuaThanhToan ?? 0)</div>
-                    </div>
-                </div>
-            </div>
-        </div>
+        }
+        <partial name="_CustomerRequestSummary" model="Model" />
     </div>
 </div>

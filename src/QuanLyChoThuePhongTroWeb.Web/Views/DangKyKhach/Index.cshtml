@@ -2,13 +2,14 @@
 @{
     Layout = "_PublicRoomLayout";
     ViewData["Title"] = "Đăng ký tài khoản";
+    ViewData["GuestReturnUrl"] = Model.ReturnUrl;
 }
 
 <div class="guest-container guest-form-page guest-account-page">
     <div class="guest-account-intro">
-        <p class="guest-kicker">Đăng ký tài khoản</p>
-        <h1>Tài khoản cho<br /><em>chỗ ở mới.</em></h1>
+        <h1>Tạo tài khoản tìm phòng</h1>
         <p>Dùng tài khoản để hẹn xem phòng, gửi yêu cầu giữ chỗ và theo dõi tiền cọc.</p>
+        <partial name="_GuestAccountBenefits" />
     </div>
     <form class="guest-viewing-form guest-account-form" method="post" asp-action="Index" aria-label="Thông tin đăng ký">
         @Html.AntiForgeryToken()

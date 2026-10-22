@@ -37,8 +37,7 @@ public sealed class ViewingRequestService(IViewingRequestStore store, TimeProvid
     {
         var nowUtc = clock.GetUtcNow().UtcDateTime;
         if (actorId <= 0 || input is null || input.RoomId <= 0 ||
-            input.SlotId.HasValue == input.PreferredTimeUtc.HasValue ||
-            input.SlotId is <= 0 ||
+            input.SlotId.HasValue || !input.PreferredTimeUtc.HasValue ||
             input.PreferredTimeUtc is { } preferred &&
                 (preferred.Kind != DateTimeKind.Utc || preferred <= nowUtc) ||
             string.IsNullOrWhiteSpace(input.FullName) || input.FullName.Trim().Length > 100 ||

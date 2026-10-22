@@ -9,7 +9,10 @@ public sealed record ListingPreviewItem(
     int RoomStatus,
     bool IsVisible,
     int ImageCount,
-    string? CoverUrl);
+    string? CoverUrl,
+    string Title = "",
+    string Description = "",
+    bool Published = false);
 
 public sealed record ListingPreviewPage(IReadOnlyList<ListingPreviewItem> Rooms)
 {

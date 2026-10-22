@@ -37,6 +37,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.GuestAccounts.IGuestAccountStore, Persistence.Features.GuestAccounts.GuestAccountStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.Viewings.IViewingRequestStore, Persistence.Features.Viewings.ViewingRequestStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.Viewings.IViewingSlotAdminStore, Persistence.Features.Viewings.ViewingSlotAdminStore>();
+            services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.PublicRooms.IRoomListingStore, Persistence.Features.RoomListingStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.Viewings.IViewingAdminRequestStore, Persistence.Features.Viewings.ViewingAdminRequestStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.Reservations.IReservationStore, Persistence.Features.Reservations.ReservationStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.ReservationPayments.IReservationPaymentStore, Persistence.Features.ReservationPayments.ReservationPaymentStore>();

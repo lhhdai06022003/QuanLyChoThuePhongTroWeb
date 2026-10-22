@@ -1,0 +1,98 @@
+@model QuanLyChoThuePhongTroWeb.ViewModels.CustomerDashboardViewModel
+@{
+    var vietnameseCulture = System.Globalization.CultureInfo.GetCultureInfo("vi-VN");
+}
+<div class="d-flex justify-content-between align-items-center gap-3 mb-3">
+    <p class="text-secondary mb-0">Tối đa 5 yêu cầu gần nhất mỗi loại. Thời gian hiển thị theo giờ Việt Nam (UTC+7).</p>
+    <a href="/tai-khoan/yeu-cau-phong" class="btn btn-outline-primary">Xem tất cả yêu cầu</a>
+</div>
+<div class="row row-cards">
+    <section class="col-lg-6" aria-labelledby="dashboard-viewings-title">
+        <div class="card h-100">
+            <div class="card-header"><h2 class="card-title" id="dashboard-viewings-title">Lịch xem phòng</h2></div>
+            @if (Model.Viewings.Count == 0)
+            {
+                <div class="card-body"><p class="text-secondary">Bạn chưa có lịch xem phòng.</p><a href="/phong">Tìm phòng và đặt lịch xem</a></div>
+            }
+            else
+            {
+                <ul class="list-group list-group-flush">
+                    @foreach (var viewing in Model.Viewings)
+                    {
+                        var (label, color) = viewing.Status switch
+                        {
+                            "ChoChonLich" => ("Chờ chọn lịch", "yellow"),
+                            "ChoNhanVienXuLy" => ("Chờ nhân viên xác nhận", "yellow"),
+                            "DaXacNhanLich" => ("Đã xác nhận lịch", "green"),
+                            "DaXemPhong" => ("Đã xem phòng", "blue"),
+                            "TuChoi" => ("Từ chối lịch xem", "red"),
+                            "DaHuy" => ("Đã hủy lịch xem", "secondary"),
+                            _ => ("Đang xử lý", "secondary")
+                        };
+                        <li class="list-group-item p-3" data-dashboard-viewing="@viewing.Id">
+                            <div class="d-flex flex-wrap justify-content-between gap-2 mb-2">
+                                <a href="/phong/@viewing.RoomId" class="fw-bold">Phòng @viewing.RoomNumber</a>
+                                <span class="badge bg-@color-lt">@label</span>
+                            </div>
+                            <div>Giờ mong muốn: @viewing.DesiredTimeUtc.AddHours(7).ToString("dd/MM/yyyy HH:mm")</div>
+                            @if (viewing.ConfirmedTimeUtc is { } confirmedTime)
+                            {
+                                <div class="fw-semibold">Giờ đã xác nhận: @confirmedTime.AddHours(7).ToString("dd/MM/yyyy HH:mm")</div>
+                            }
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+    </section>
+    <section class="col-lg-6" aria-labelledby="dashboard-reservations-title">
+        <div class="card h-100">
+            <div class="card-header"><h2 class="card-title" id="dashboard-reservations-title">Giữ chỗ và đặt cọc</h2></div>
+            @if (Model.Reservations.Count == 0)
+            {
+                <div class="card-body"><p class="text-secondary">Bạn chưa có yêu cầu giữ chỗ.</p><a href="/phong">Tìm phòng để gửi yêu cầu</a></div>
+            }
+            else
+            {
+                <ul class="list-group list-group-flush">
+                    @foreach (var reservation in Model.Reservations)
+                    {
+                        var (label, color) = reservation.Status switch
+                        {
+                            "MoiTao" => ("Chờ nhân viên duyệt", "yellow"),
+                            "ChoThanhToan" => ("Đã duyệt · Chờ chuyển khoản", "yellow"),
+                            "ChoXacNhanTien" => ("Đã báo chuyển · Chờ xác nhận tiền", "blue"),
+                            "DangGiuCho" when reservation.ConfirmedAmount > 0 => ("Đã nhận tiền giữ chỗ", "green"),
+                            "DangGiuCho" => ("Đang giữ chỗ", "green"),
+                            "DaChuyenHopDong" => ("Đã chuyển sang hợp đồng", "green"),
+                            "TuChoi" => ("Từ chối yêu cầu", "red"),
+                            "HetHan" => ("Yêu cầu hết hạn", "secondary"),
+                            "DaHuy" => ("Đã hủy yêu cầu", "secondary"),
+                            _ => ("Đang xử lý", "secondary")
+                        };
+                        <li class="list-group-item p-3" data-dashboard-reservation="@reservation.Id">
+                            <div class="d-flex flex-wrap justify-content-between gap-2 mb-2">
+                                <a href="/phong/@reservation.RoomId" class="fw-bold">Phòng @reservation.RoomNumber</a>
+                                <span class="badge bg-@color-lt">@label</span>
+                            </div>
+                            @if (reservation.HoldAmount is { } holdAmount)
+                            {
+                                <div>Số tiền giữ chỗ: @holdAmount.ToString("N0", vietnameseCulture) VNĐ</div>
+                            }
+                            <div>Số tiền đã xác nhận: <strong>@reservation.ConfirmedAmount.ToString("N0", vietnameseCulture) VNĐ</strong></div>
+                            @if (reservation.PaymentDeadlineUtc is { } paymentDeadline)
+                            {
+                                <div>Hạn chuyển khoản: @paymentDeadline.AddHours(7).ToString("dd/MM/yyyy HH:mm")</div>
+                            }
+                            @if (reservation.ContractDeadlineUtc is { } contractDeadline)
+                            {
+                                <div>Hạn ký hợp đồng: @contractDeadline.AddHours(7).ToString("dd/MM/yyyy HH:mm")</div>
+                            }
+                            <a class="d-inline-block mt-2" href="/tai-khoan/yeu-cau-phong/giu-cho/@reservation.Id/dat-coc">Xem yêu cầu và thông tin đặt cọc</a>
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+    </section>
+</div>

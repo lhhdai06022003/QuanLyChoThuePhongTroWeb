@@ -43,7 +43,7 @@ public sealed class ViewingRequestServiceTests
     }
 
     [Fact]
-    public async Task Submit_FullSlot_ReturnsClearConflict()
+    public async Task Submit_LegacySlotWithoutPreferredTime_IsRejected()
     {
         var store = new FakeStore { NextResult = new ViewingCreateResult(null, ViewingCreateError.SlotFull) };
         var service = new ViewingRequestService(store, new FixedTimeProvider(Now));
@@ -53,7 +53,7 @@ public sealed class ViewingRequestServiceTests
         var result = await service.SubmitAsync(3, input);
 
         Assert.False(result.Success);
-        Assert.Contains("hết chỗ", result.Message);
+        Assert.Equal(0, store.Calls);
     }
 
     private sealed class FakeStore : IViewingRequestStore

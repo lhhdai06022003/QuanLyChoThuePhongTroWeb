@@ -1,0 +1,11 @@
+@{
+    Layout = "_PublicRoomLayout";
+    ViewData["Title"] = "Phòng đã lưu";
+}
+<section class="guest-container room-collection-page">
+    <nav class="guest-breadcrumb" aria-label="Đường dẫn trang"><a href="/phong">Tìm phòng</a><span aria-hidden="true">/</span><span aria-current="page">Phòng đã lưu</span></nav>
+    <div class="room-page-heading"><div><h1>Những căn phòng bạn thích</h1><p>Lưu lại để cân nhắc, chọn vài phòng để so sánh trước khi hẹn xem.</p></div><button type="button" class="room-text-button" data-clear-saved hidden>Xóa danh sách đã lưu</button></div>
+    <p class="room-storage-note">Danh sách được lưu trên trình duyệt này. Giá và tình trạng phòng được kiểm tra lại mỗi lần bạn mở trang.</p>
+    <div data-saved-rooms aria-busy="true"><p role="status">Đang kiểm tra các phòng đã lưu…</p></div>
+    <noscript><div class="guest-preview-notice">Hãy bật JavaScript để xem danh sách lưu trên trình duyệt. Bạn vẫn có thể <a href="/phong">tìm phòng</a> bình thường.</div></noscript>
+</section>

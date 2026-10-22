@@ -11,4 +11,5 @@ public sealed record PublicRoomDto(
     int TangLau,
     string MoTa,
     string SoDienThoaiChiNhanh = "",
-    IReadOnlyList<string>? ImageUrls = null);
+    IReadOnlyList<string>? ImageUrls = null,
+    string ListingTitle = "");
