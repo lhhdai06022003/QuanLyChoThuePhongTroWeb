@@ -32,7 +32,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers
             var nguoiThueIdClaim = User.FindFirst("NguoiThueId");
             if (nguoiThueIdClaim == null)
             {
-                return Content("LỖI HỆ THỐNG: Tài khoản của bạn được gán Role Khách Thuê nhưng không được liên kết với hồ sơ người thuê nào (NguoiThueId bị trống trong database). Vui lòng liên hệ Admin.");
+                return Content("LỖI HỆ THỐNG: Tài khoản của bạn được gán vai trò Khách Thuê nhưng không được liên kết với hồ sơ người thuê nào (NguoiThueId bị trống trong cơ sở dữ liệu). Vui lòng liên hệ Admin.");
             }
 
             int nguoiThueId = int.Parse(nguoiThueIdClaim.Value);

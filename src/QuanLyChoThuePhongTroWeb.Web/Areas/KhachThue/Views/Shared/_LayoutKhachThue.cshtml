@@ -86,9 +86,15 @@
     <script>
         if (typeof Swal !== 'undefined') {
             const originalFire = Swal.fire;
+            // Chữ nút mặc định của SweetAlert2 là OK / Cancel; hộp thoại nào tự đặt chữ nút thì giữ nguyên.
+            const nutMacDinh = { confirmButtonText: 'Đóng', cancelButtonText: 'Hủy bỏ' };
             Swal.fire = function(...args) {
+                if (typeof args[0] === 'string') {
+                    // Dạng rút gọn Swal.fire(tiêu đề, nội dung, biểu tượng): đổi sang object để đặt chữ nút, giữ nguyên giao diện.
+                    return originalFire.call(this, Object.assign({}, nutMacDinh, { title: args[0], text: args[1], icon: args[2] }));
+                }
                 if (args.length === 1 && typeof args[0] === 'object') {
-                    let options = args[0];
+                    let options = args[0] = Object.assign({}, nutMacDinh, args[0]);
                     options.customClass = options.customClass || {};
                     options.customClass.popup = (options.customClass.popup || '') + ' swal2-custom-popup';
                     if (!options.confirmButtonColor) {
@@ -104,6 +110,17 @@
     </script>
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script>
+        // Cảnh báo lỗi mặc định của DataTables là tiếng Anh ("DataTables warning: ..."); đổi sang thông báo tiếng Việt, chi tiết kỹ thuật ghi ra console.
+        if ($.fn.dataTable) {
+            $.fn.dataTable.ext.errMode = function (settings, techNote, message) {
+                console.error(message);
+                if (typeof window.showError === 'function') {
+                    window.showError('Không tải được dữ liệu bảng. Vui lòng tải lại trang.');
+                }
+            };
+        }
+    </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.12/signalr.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     <script src="~/js/thongbao.js" asp-append-version="true"></script>

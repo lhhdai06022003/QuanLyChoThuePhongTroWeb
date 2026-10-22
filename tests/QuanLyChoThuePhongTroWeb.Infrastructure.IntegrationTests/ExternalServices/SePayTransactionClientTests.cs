@@ -375,7 +375,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.ExternalServi
             var result = await Create(handler, logger: logger).GetIncomingPageAsync(From, To, 1);
 
             Assert.False(result.Success);
-            Assert.Equal("SePay đang giới hạn số request, thử lại sau ít phút.", result.Message);
+            Assert.Equal("SePay đang giới hạn số yêu cầu, thử lại sau ít phút.", result.Message);
             Assert.Equal(4, handler.Requests.Count);
             var entry = Assert.Single(logger.Entries);
             Assert.Equal(LogLevel.Warning, entry.Level);

@@ -1,3 +1,4 @@
+@using QuanLyChoThuePhongTroWeb.Web.Helpers
 @model QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.ViewingAdminPageModel
 @{
     ViewData["Title"] = "Lịch xem phòng";
@@ -45,7 +46,7 @@
                             <td>Phòng @request.RoomNumber</td>
                             <td>@request.GuestName<br /><small>@request.Phone · @request.Email</small></td>
                             <td>@(confirmed?.ToString("dd/MM/yyyy HH:mm") ?? desired.ToString("dd/MM/yyyy HH:mm"))</td>
-                            <td>@request.Status</td>
+                            <td>@GuestStatusText.Viewing(request.Status)</td>
                             <td>@request.Note</td>
                             <td>
                                 @if (request.Status == "ChoNhanVienXuLy")

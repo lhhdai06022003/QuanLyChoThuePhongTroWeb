@@ -226,7 +226,7 @@
             renderHoatDong(res.recentActivities);
         }).fail(function (xhr) {
             console.error('Không tải được dữ liệu Dashboard:', xhr);
-            window.showError('Không tải được dữ liệu Dashboard. Vui lòng thử lại.');
+            window.showError('Không tải được dữ liệu Bảng điều khiển. Vui lòng thử lại.');
         }).always(function () {
             $selects.prop('disabled', false);
             $('#dashboardLoading').addClass('d-none');

@@ -91,13 +91,13 @@ namespace QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers
                     {
                         if (file.Length > MaxFileSize)
                         {
-                            return Json(new { success = false, message = $"Kích thước file {file.FileName} vượt quá 5MB." });
+                            return Json(new { success = false, message = $"Kích thước tệp {file.FileName} vượt quá 5MB." });
                         }
 
                         var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
                         if (!AllowedExtensions.Contains(ext))
                         {
-                            return Json(new { success = false, message = $"Chỉ chấp nhận file ảnh (.jpg, .png, .gif, .webp). Lỗi ở file {file.FileName}." });
+                            return Json(new { success = false, message = $"Chỉ chấp nhận tệp ảnh (.jpg, .png, .gif, .webp). Lỗi ở tệp {file.FileName}." });
                         }
                     }
 

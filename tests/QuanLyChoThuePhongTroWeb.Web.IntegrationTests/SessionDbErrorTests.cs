@@ -149,7 +149,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
                 //    src/QuanLyChoThuePhongTroWeb.Web/Views/Shared/Error.cshtml).
                 Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
                 var body = await response.Content.ReadAsStringAsync();
-                Assert.Contains("An error occurred", body, StringComparison.OrdinalIgnoreCase);
+                Assert.Contains("Đã xảy ra lỗi khi xử lý yêu cầu của bạn", body, StringComparison.OrdinalIgnoreCase);
 
                 // 3) Không được đăng xuất: catch trong OnValidatePrincipal chỉ RejectPrincipal, không
                 //    SignOutAsync, nên không có Set-Cookie xóa cookie xác thực tên thật .AspNetCore.Cookies.

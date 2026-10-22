@@ -161,7 +161,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.AiAssistants.Services
             switch (result.ErrorKind)
             {
                 case AiModelErrorKind.NotConfigured:
-                    return ServiceResult.Fail("Lỗi cấu hình: Chưa thiết lập Gemini API Key trong hệ thống.");
+                    return ServiceResult.Fail("Lỗi cấu hình: Chưa thiết lập khóa API Gemini trong hệ thống.");
                 case AiModelErrorKind.HttpError:
                     return ServiceResult.Fail($"Trợ lý AI tạm thời không phản hồi (HTTP {result.HttpStatusCode}). Vui lòng thử lại sau.");
                 default:

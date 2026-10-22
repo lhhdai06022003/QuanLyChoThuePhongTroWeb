@@ -62,7 +62,7 @@ public sealed class SePayTransactionClient(HttpClient httpClient, SePayOptions o
                     if (attempt >= MaxRetries)
                     {
                         logger.LogWarning("SePay API vẫn trả mã 429 sau {Retries} lần thử lại", MaxRetries);
-                        return ServiceResult<SePayTransactionPage>.Fail("SePay đang giới hạn số request, thử lại sau ít phút.");
+                        return ServiceResult<SePayTransactionPage>.Fail("SePay đang giới hạn số yêu cầu, thử lại sau ít phút.");
                     }
 
                     await Task.Delay(RetryDelay(response), ct);

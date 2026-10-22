@@ -193,7 +193,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         public async Task WhenALaterPageFails_TheEarlierRowsAreKept_AndTheRunIsNotComplete()
         {
             _client.Enqueue(new[] { Tx("a1", "R1") }, hasMore: true);
-            _client.EnqueueFailure("SePay đang giới hạn số request, thử lại sau ít phút.");
+            _client.EnqueueFailure("SePay đang giới hạn số yêu cầu, thử lại sau ít phút.");
 
             var result = await Service().SyncAsync(AdminId, Range());
 
@@ -201,7 +201,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             var data = result.Data!;
             Assert.Equal("a1", Assert.Single(data.Rows).SePayApiId);
             Assert.False(data.HoanTat);
-            Assert.Equal("SePay đang giới hạn số request, thử lại sau ít phút.", data.LoiDongBo);
+            Assert.Equal("SePay đang giới hạn số yêu cầu, thử lại sau ít phút.", data.LoiDongBo);
             Assert.Equal(2, _client.Calls.Count);
         }
 

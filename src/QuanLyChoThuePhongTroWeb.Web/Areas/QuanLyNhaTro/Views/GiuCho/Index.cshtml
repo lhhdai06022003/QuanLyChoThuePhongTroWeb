@@ -1,3 +1,4 @@
+@using QuanLyChoThuePhongTroWeb.Web.Helpers
 @model IReadOnlyList<QuanLyChoThuePhongTroWeb.Application.Features.Reservations.ReservationDto>
 @{
     ViewData["Title"] = "Giữ chỗ phòng";
@@ -29,7 +30,7 @@
                         <tr>
                             <td><strong>@reservation.RoomNumber</strong><br /><a asp-area="QuanLyNhaTro" asp-controller="GiuCho" asp-action="ChiTiet" asp-route-id="@reservation.Id">Xem #@reservation.Id</a></td>
                             <td>@reservation.GuestName</td>
-                            <td>@reservation.Status</td>
+                            <td>@GuestStatusText.Reservation(reservation.Status)</td>
                             <td>@(reservation.HoldAmount?.ToString("N0") ?? "Chờ duyệt")</td>
                             <td>@reservation.ConfirmedAmount.ToString("N0") ₫</td>
                             <td>@(reservation.PaymentDeadlineUtc.HasValue ? new DateTimeOffset(reservation.PaymentDeadlineUtc.Value, TimeSpan.Zero).ToOffset(TimeSpan.FromHours(7)).ToString("dd/MM/yyyy HH:mm") : "—")</td>

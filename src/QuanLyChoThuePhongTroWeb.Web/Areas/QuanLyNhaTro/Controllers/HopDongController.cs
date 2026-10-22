@@ -125,7 +125,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Lỗi xảy ra khi sinh tệp Word cho hợp đồng {HopDongId}", id);
-                return BadRequest(new { message = "Đã xảy ra lỗi hệ thống khi tải file hợp đồng. Vui lòng thử lại sau." });
+                return BadRequest(new { message = "Đã xảy ra lỗi hệ thống khi tải tệp hợp đồng. Vui lòng thử lại sau." });
             }
         }
     }

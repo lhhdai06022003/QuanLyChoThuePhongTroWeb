@@ -254,7 +254,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.PhongTros.Services
             var chiNhanhs = await _store.GetAllActiveChiNhanhsAsync();
             if (!chiNhanhs.Any())
             {
-                return ServiceResult.Fail("Không tìm thấy chi nhánh nào trong database. Vui lòng thêm chi nhánh trước!");
+                return ServiceResult.Fail("Không tìm thấy chi nhánh nào trong cơ sở dữ liệu. Vui lòng thêm chi nhánh trước!");
             }
 
             var random = new Random();

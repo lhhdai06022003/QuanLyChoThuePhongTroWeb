@@ -194,7 +194,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
 
             if (!ModelState.IsValid)
             {
-                return Json(new { success = false, message = "Dữ liệu form gửi lên không hợp lệ." });
+                return Json(new { success = false, message = "Dữ liệu biểu mẫu gửi lên không hợp lệ." });
             }
 
             try

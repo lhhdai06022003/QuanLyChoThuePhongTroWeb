@@ -1,3 +1,4 @@
+@using QuanLyChoThuePhongTroWeb.Web.Helpers
 @model QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.ReservationAdminDetailModel
 @{
     ViewData["Title"] = "Chi tiết giữ chỗ";
@@ -7,7 +8,7 @@
 <div class="container-xl py-4 guest-admin">
     <a asp-area="QuanLyNhaTro" asp-controller="GiuCho" asp-action="Index">← Yêu cầu giữ chỗ</a>
     <h1 class="page-title mt-3">Phòng @reservation.RoomNumber · yêu cầu #@reservation.Id</h1>
-    <p>Khách: @reservation.GuestName · Trạng thái: @reservation.Status</p>
+    <p>Khách: @reservation.GuestName · Trạng thái: @GuestStatusText.Reservation(reservation.Status)</p>
     @if (reservation.Status is "DangGiuCho" or "DaChuyenHopDong")
     {
         <a class="btn btn-outline-primary mb-3" asp-area="QuanLyNhaTro" asp-controller="GiuCho" asp-action="ThongBaoDatCoc" asp-route-roomId="@reservation.RoomId">Xem trước email báo phòng đã có người cọc</a>
@@ -20,7 +21,7 @@
         <p>Số tiền giữ chỗ được duyệt: @(reservation.HoldAmount?.ToString("N0") ?? "Chờ duyệt") ₫</p>
         <p>Tiền đã đối soát: @reservation.ConfirmedAmount.ToString("N0") ₫</p>
         <p>Mã nội dung chuyển khoản: @reservation.PaymentCode</p>
-        <p>Trạng thái thanh toán: @reservation.PaymentStatus</p>
+        <p>Trạng thái thanh toán: @GuestStatusText.Payment(reservation.PaymentStatus)</p>
     </div></div>
     @if (reservation.Status == "DangGiuCho" &&
         reservation.ContractDeadlineUtc is { } deadlineUtc && deadlineUtc <= DateTime.UtcNow)
@@ -53,7 +54,7 @@
             @foreach (var evidence in Model.Evidence)
             {
                 <div class="mb-3">
-                    <strong>#@evidence.Id · @evidence.Status</strong> — @evidence.ClaimedAmount.ToString("N0") ₫
+                    <strong>#@evidence.Id · @GuestStatusText.Evidence(evidence.Status)</strong> — @evidence.ClaimedAmount.ToString("N0") ₫
                     <a href="/tai-khoan/yeu-cau-phong/minh-chung/@evidence.Id" target="_blank" rel="noopener">Xem ảnh riêng tư</a>
                     @if (!string.IsNullOrWhiteSpace(evidence.BankReference))
                     {

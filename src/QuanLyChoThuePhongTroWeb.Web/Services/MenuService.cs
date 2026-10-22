@@ -10,7 +10,7 @@ namespace QuanLyChoThuePhongTroWeb.Services
             {
                 new MenuItem
                 {
-                    Name = "Dashboard",
+                    Name = "Bảng điều khiển",
                     Icon = "ti ti-layout-dashboard",
                     Url = "/Home/Index"
                 },

@@ -17,6 +17,7 @@ Các README sau mô tả **công việc dự kiến và người sở hữu**, t
 | [Hóa đơn tự động](hoa-don-tu-dong/plan.md) | — | Code xong đợt A–D và lượt dọn code, review ĐẠT 11/10/2026 ([review](hoa-don-tu-dong/review.md)); đã gộp `master` (commit `c11946c`) |
 | [Kiểm tra chỉ số theo hợp đồng và duyệt hóa đơn trước khi gửi](duyet-hoa-don-tu-dong/README.md) | — | Code xong 13 task trên nhánh `feature/duyet-hoa-don-tu-dong` (13/10/2026), review cuối và sửa xong 14/10/2026; chờ thử tay và gộp `master` |
 | [Thanh toán trực tuyến hóa đơn](thanh-toan-truc-tuyen/README.md) | — | Đợt 1 (VietQR + SePay) code xong cả 5 phần 16–18/10/2026 trên nhánh `feature/thanh-toan-truc-tuyen` (chưa gộp `master`): webhook ghi sổ, thông báo/Telegram/email biên lai, panel khách + biên lai web, cổng quản lý + đồng bộ bù, hướng dẫn thiết lập; đã thử tay 20/10/2026 (tương đối ổn), riêng đồng bộ bù chưa xác nhận nên cờ ghi sổ vẫn tắt; đợt 2 VNPay chưa có spec |
+| [Việt hóa giao diện](viet-hoa-giao-dien/README.md) | — | Đã khảo sát và sửa chữ tiếng Anh còn sót (nút hộp thoại, Select2, DataTables, trang lỗi, nhãn trạng thái màn nhân viên) trên nhánh `feature/viet-hoa-giao-dien` (chưa gộp `master`); còn chờ người dùng duyệt việc sửa `Program.cs` cho thông báo lỗi framework |
 
 Quyền sở hữu file và lịch 60 ngày nằm trong [roadmap](../roadmap-60-ngay.md). Không đánh dấu hoàn thành chỉ vì đã có entity, migration hoặc thư mục tài liệu.
 
