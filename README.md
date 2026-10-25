@@ -1,21 +1,23 @@
 # Quản lý cho thuê phòng trọ
 
-Ứng dụng ASP.NET Core MVC .NET 8 quản lý nhiều chi nhánh nhà trọ, có cổng quản lý và cổng khách thuê. Mã nguồn được tổ chức theo Clean Architecture bốn tầng, dùng PostgreSQL và Entity Framework Core 8.
+Ứng dụng ASP.NET Core MVC .NET 8 quản lý nhiều chi nhánh nhà trọ, có cổng quản lý, cổng khách thuê và cổng khách vãng lai (xem phòng công khai, hẹn xem, giữ chỗ). Mã nguồn được tổ chức theo Clean Architecture bốn tầng, dùng PostgreSQL và Entity Framework Core 8.
 
 Roadmap mô tả công việc dự kiến, không phải danh sách tính năng đã hoàn thành.
 
 ## Chức năng hiện có
 
-- Quản lý chi nhánh, phòng trọ, người thuê, tài khoản và các vai trò Admin, NhanVien, KhachThue.
+- Quản lý chi nhánh, phòng trọ, người thuê, tài khoản và các vai trò Admin, NhanVien, KhachThue, KhachVangLai; nhân viên chỉ làm việc trong chi nhánh được phân công.
 - Hợp đồng, thành viên ở ghép, dịch vụ đăng ký và bản sao điều khoản hợp đồng.
-- Giá dịch vụ theo chi nhánh, chỉ số điện nước, tính hóa đơn và lịch sử thanh toán.
-- Xuất hóa đơn PDF/Excel, hợp đồng Word và sinh VietQR.
+- Giá dịch vụ theo chi nhánh, chỉ số điện nước kèm ảnh đồng hồ và OCR, tính hóa đơn và lịch sử thanh toán.
+- Hóa đơn phát hành theo luồng nháp → chờ duyệt → chốt → gửi; chỉ số đáng tin cậy thì tự tạo hóa đơn nháp.
+- Xuất hóa đơn PDF/Excel, hợp đồng Word, sinh VietQR; webhook SePay tự ghi sổ thanh toán (mặc định tắt) kèm thông báo Telegram và email biên lai.
 - Dashboard, email, báo sự cố kèm hình ảnh Cloudinary và thông báo SignalR.
 - Trợ lý Gemini với các công cụ truy vấn dữ liệu vận hành.
 - Tác vụ nền kết thúc hợp đồng, cảnh báo hết hạn và nhắc hóa đơn; bật/tắt theo cấu hình.
 - Khách thuê xem hồ sơ, hợp đồng, hóa đơn, lịch sử thanh toán và báo sự cố.
+- Khách vãng lai xem phòng công khai (lọc, lưu, so sánh), đăng ký tài khoản, hẹn xem, giữ chỗ, đặt cọc, nộp ảnh minh chứng và theo dõi khoản hoàn; nhân viên đăng tin phòng kèm ảnh, xác nhận lịch xem và đối soát tiền giữ chỗ.
 
-Cổng khách vãng lai và API phiên bản v1 mới có thư mục khung. Đăng phòng công khai, lịch xem, giữ chỗ, OCR chỉ số, duyệt hóa đơn nháp và quy trình gửi ảnh chuyển khoản là hướng phát triển. Enum hóa đơn hiện chỉ có ChuaThanhToan và DaThanhToan; chưa có quy trình duyệt nháp.
+API phiên bản v1 và CI workflow mới có thư mục khung (chỉ có `.gitkeep`). Chưa có: gộp tài khoản khi khách vãng lai ký hợp đồng, xóa hoặc sắp xếp ảnh tin phòng, thanh toán VNPay. Trạng thái phát hành hóa đơn gồm Nhap, ChoDuyet, DaChot, DaGui, DaHuy; trạng thái thanh toán gồm ChuaThanhToan, DaThanhToan, ThanhToanMotPhan. Danh mục và hiện trạng chi tiết: [docs/features/README.md](docs/features/README.md).
 
 ## Cấu trúc và luồng xử lý
 
@@ -75,6 +77,8 @@ Mở URL được in trong terminal và đường dẫn /QuanLyNhaTro/DangNhap. 
 | ContractAlertSettings | Bật cảnh báo, email quản lý và các mốc ngày |
 | DashboardSettings:ChotDienNuocDay | Ngày chốt điện nước; file mẫu đang đặt 25 |
 | EmailSettings, Cloudinary, Gemini, VietQRSettings | Thông tin các tích hợp |
+| SePay, Telegram | Webhook thanh toán và thông báo; mặc định tắt (`SePay:Enabled`, `Telegram:Enabled`); hướng dẫn: [thiết lập thanh toán trực tuyến](docs/features/thanh-toan-truc-tuyen/huong-dan-thiet-lap.md) |
+| PublicRooms:RoomIds | Danh sách phòng được phép hiện ở `/phong`; không khai báo thì hiện mọi phòng đăng tin hợp lệ |
 
 Tắt BackgroundJobs:Enabled khi cần chạy môi trường phát triển không có tác vụ tự động. Tùy chọn này không tắt migrations/seed lúc khởi động.
 

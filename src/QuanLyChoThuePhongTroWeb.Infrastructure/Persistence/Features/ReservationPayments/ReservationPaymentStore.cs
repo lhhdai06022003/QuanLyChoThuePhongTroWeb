@@ -139,8 +139,12 @@ public sealed class ReservationPaymentStore(ApplicationDbContext context)
                     cancellationToken);
             if (payment is null)
                 return PaymentError.NotFound;
-            if (receivedAtUtc < payment.NgayTao ||
-                receivedAtUtc > nowUtc.AddMinutes(5))
+            // Ô nhập chỉ chọn đến phút: so với phút duyệt để giao dịch trong cùng phút duyệt vẫn hợp lệ.
+            var requestedMinute = payment.NgayTao.AddTicks(
+                -(payment.NgayTao.Ticks % TimeSpan.TicksPerMinute));
+            if (receivedAtUtc < requestedMinute)
+                return PaymentError.ReceivedBeforeRequest;
+            if (receivedAtUtc > nowUtc.AddMinutes(5))
                 return PaymentError.InvalidState;
             if (await context.GiaoDichGiuChos.AsNoTracking()
                     .AnyAsync(g => g.MaGiaoDich == bankReference ||

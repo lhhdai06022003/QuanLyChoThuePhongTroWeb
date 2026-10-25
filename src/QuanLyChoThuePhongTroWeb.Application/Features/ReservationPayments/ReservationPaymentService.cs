@@ -117,6 +117,8 @@ public sealed class ReservationPaymentService(IReservationPaymentStore store,
             PaymentError.DuplicateTransaction => ServiceResult.Fail("Mã giao dịch hoặc minh chứng đã được xác nhận."),
             PaymentError.InvalidState => ServiceResult.Fail("Yêu cầu hoặc minh chứng không hợp lệ."),
             PaymentError.Conflict => ServiceResult.Fail("Giao dịch vừa thay đổi, vui lòng tải lại."),
+            PaymentError.ReceivedBeforeRequest => ServiceResult.Fail(
+                "Thời điểm thực nhận sớm hơn lúc duyệt giữ chỗ. Nhập đúng thời điểm tiền vào tài khoản theo sao kê ngân hàng."),
             _ => ServiceResult.NotFound("Không tìm thấy yêu cầu thanh toán.")
         };
     }

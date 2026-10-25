@@ -324,6 +324,9 @@ public sealed class GuestPortalFlowTests(CustomWebApplicationFactory factory)
                 await depositResponse.Content.ReadAsStringAsync());
             Assert.Contains("Thông tin chuyển khoản", depositHtml);
             Assert.Contains("name=\"paymentRequestId\"", depositHtml);
+            Assert.Contains("200.000 ₫", depositHtml);
+            Assert.DoesNotContain("200,000", depositHtml);
+            Assert.Contains("200.000 ₫", WebUtility.HtmlDecode(mineHtml));
             var missingEvidenceResponse = await client.PostAsync(
                 "/tai-khoan/yeu-cau-phong/minh-chung",
                 Form(("__RequestVerificationToken", Token(depositHtml))));

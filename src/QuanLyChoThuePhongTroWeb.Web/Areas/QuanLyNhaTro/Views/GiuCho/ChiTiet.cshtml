@@ -18,8 +18,8 @@
         <div class="alert alert-info" role="status">@message</div>
     }
     <div class="card mb-4"><div class="card-body">
-        <p>Số tiền giữ chỗ được duyệt: @(reservation.HoldAmount?.ToString("N0") ?? "Chờ duyệt") ₫</p>
-        <p>Tiền đã đối soát: @reservation.ConfirmedAmount.ToString("N0") ₫</p>
+        <p>Số tiền giữ chỗ được duyệt: @(reservation.HoldAmount is { } holdAmount ? VndFormat.Money(holdAmount) : "Chờ duyệt")</p>
+        <p>Tiền đã đối soát: @VndFormat.Money(reservation.ConfirmedAmount)</p>
         <p>Mã nội dung chuyển khoản: @reservation.PaymentCode</p>
         <p>Trạng thái thanh toán: @GuestStatusText.Payment(reservation.PaymentStatus)</p>
     </div></div>
@@ -54,7 +54,7 @@
             @foreach (var evidence in Model.Evidence)
             {
                 <div class="mb-3">
-                    <strong>#@evidence.Id · @GuestStatusText.Evidence(evidence.Status)</strong> — @evidence.ClaimedAmount.ToString("N0") ₫
+                    <strong>#@evidence.Id · @GuestStatusText.Evidence(evidence.Status)</strong> — @VndFormat.Money(evidence.ClaimedAmount)
                     <a href="/tai-khoan/yeu-cau-phong/minh-chung/@evidence.Id" target="_blank" rel="noopener">Xem ảnh riêng tư</a>
                     @if (!string.IsNullOrWhiteSpace(evidence.BankReference))
                     {
@@ -74,9 +74,9 @@
                     <input type="hidden" name="reservationId" value="@reservation.Id" />
                     <input type="hidden" name="paymentRequestId" value="@reservation.PaymentRequestId.Value" />
                     <div class="col-md-3"><label class="form-label">Minh chứng (nếu có)</label><select class="form-select" name="evidenceId"><option value="">Không gắn ảnh</option>
-                        @foreach (var evidence in Model.Evidence.Where(e => e.Status == "ChoXacNhan"))
+                        @foreach (var evidence in Model.PendingEvidence)
                         {
-                            <option value="@evidence.Id">#@evidence.Id · @evidence.ClaimedAmount.ToString("N0") ₫</option>
+                            <option value="@evidence.Id" selected="@(evidence.Id == Model.DefaultEvidenceId)">#@evidence.Id · @VndFormat.Money(evidence.ClaimedAmount)</option>
                         }
                     </select></div>
                     <div class="col-md-3"><label class="form-label">Mã giao dịch ngân hàng</label><input class="form-control" name="bankReference" maxlength="100" required /></div>
@@ -91,8 +91,8 @@
     {
         <div class="card mt-4"><div class="card-header"><h2 class="card-title">Áp dụng vào cọc hợp đồng và hoàn tiền</h2></div>
             <div class="card-body">
-                <p>Đã xác nhận: @settlement.ConfirmedAmount.ToString("N0") ₫ · Đã áp dụng cọc: @settlement.AppliedToContractDeposit.ToString("N0") ₫ · Đã hoàn: @settlement.RefundedAmount.ToString("N0") ₫</p>
-                <p>Phải hoàn tối thiểu theo tiền dư/đến muộn: @settlement.MandatoryRefundAmount.ToString("N0") ₫</p>
+                <p>Đã xác nhận: @VndFormat.Money(settlement.ConfirmedAmount) · Đã áp dụng cọc: @VndFormat.Money(settlement.AppliedToContractDeposit) · Đã hoàn: @VndFormat.Money(settlement.RefundedAmount)</p>
+                <p>Phải hoàn tối thiểu theo tiền dư/đến muộn: @VndFormat.Money(settlement.MandatoryRefundAmount)</p>
                 @if (reservation.Status == "DangGiuCho" && settlement.AppliedToContractDeposit == 0)
                 {
                     <form method="post" asp-area="QuanLyNhaTro" asp-controller="GiuCho" asp-action="ApDungCoc" class="row g-2 align-items-end mb-4">

@@ -453,9 +453,15 @@ public sealed class ReservationStoreTests(PostgreSqlFixture fixture)
                         "hold-payment-proofs/" + suffix, 200000m, now,
                         "BANK-" + suffix, null), now);
                 Assert.NotNull(evidenceId);
+                // Thời điểm thực nhận nhập theo phút: trước phút duyệt bị từ chối riêng, cùng phút duyệt vẫn hợp lệ.
+                var approvedMinute = now.AddTicks(-(now.Ticks % TimeSpan.TicksPerMinute));
+                Assert.Equal(PaymentError.ReceivedBeforeRequest,
+                    await paymentStore.ConfirmReceivedAsync(staffUserId.Value,
+                        hold.PaymentRequestId.Value, evidenceId, "BANK-" + suffix,
+                        200000m, approvedMinute.AddSeconds(-1), now));
                 Assert.Equal(PaymentError.None, await paymentStore.ConfirmReceivedAsync(
                     staffUserId.Value, hold.PaymentRequestId.Value, evidenceId,
-                    "BANK-" + suffix, 200000m, now, now));
+                    "BANK-" + suffix, 200000m, approvedMinute, now));
                 Assert.Equal(PaymentError.DuplicateTransaction,
                     await paymentStore.ConfirmReceivedAsync(staffUserId.Value,
                         hold.PaymentRequestId.Value, evidenceId, "BANK-" + suffix,

@@ -31,8 +31,8 @@
                             <td><strong>@reservation.RoomNumber</strong><br /><a asp-area="QuanLyNhaTro" asp-controller="GiuCho" asp-action="ChiTiet" asp-route-id="@reservation.Id">Xem #@reservation.Id</a></td>
                             <td>@reservation.GuestName</td>
                             <td>@GuestStatusText.Reservation(reservation.Status)</td>
-                            <td>@(reservation.HoldAmount?.ToString("N0") ?? "Chờ duyệt")</td>
-                            <td>@reservation.ConfirmedAmount.ToString("N0") ₫</td>
+                            <td>@(reservation.HoldAmount is { } holdAmount ? VndFormat.Money(holdAmount) : "Chờ duyệt")</td>
+                            <td>@VndFormat.Money(reservation.ConfirmedAmount)</td>
                             <td>@(reservation.PaymentDeadlineUtc.HasValue ? new DateTimeOffset(reservation.PaymentDeadlineUtc.Value, TimeSpan.Zero).ToOffset(TimeSpan.FromHours(7)).ToString("dd/MM/yyyy HH:mm") : "—")</td>
                             <td>@(reservation.ContractDeadlineUtc.HasValue ? new DateTimeOffset(reservation.ContractDeadlineUtc.Value, TimeSpan.Zero).ToOffset(TimeSpan.FromHours(7)).ToString("dd/MM/yyyy HH:mm") : "—")</td>
                         </tr>

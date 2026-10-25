@@ -1,3 +1,4 @@
+@using QuanLyChoThuePhongTroWeb.Web.Helpers
 @model QuanLyChoThuePhongTroWeb.ViewModels.PublicRooms.GuestRequestsPageModel
 @{
     Layout = "_PublicRoomLayout";
@@ -91,7 +92,7 @@
                         </div>
                         @if (reservation.HoldAmount.HasValue)
                         {
-                            <p>Số tiền giữ chỗ: @reservation.HoldAmount.Value.ToString("N0") ₫</p>
+                            <p>Số tiền giữ chỗ: @VndFormat.Money(reservation.HoldAmount.Value)</p>
                         }
                         @if (reservation.PaymentDeadlineUtc.HasValue)
                         {
@@ -103,20 +104,20 @@
                             var contractDeadline = new DateTimeOffset(reservation.ContractDeadlineUtc.Value, TimeSpan.Zero).ToOffset(TimeSpan.FromHours(7));
                             <p>Hạn ký hợp đồng: @contractDeadline.ToString("dd/MM/yyyy HH:mm")</p>
                         }
-                        <p>Tiền đã xác nhận: @reservation.ConfirmedAmount.ToString("N0") ₫</p>
+                        <p>Tiền đã xác nhận: @VndFormat.Money(reservation.ConfirmedAmount)</p>
                         @if (Model.Settlements.FirstOrDefault(s => s.ReservationId == reservation.Id) is { } settlement)
                         {
                             @if (settlement.AppliedToContractDeposit > 0)
                             {
-                                <p>Đã trừ vào cọc hợp đồng #@settlement.ContractId: @settlement.AppliedToContractDeposit.ToString("N0") ₫</p>
+                                <p>Đã trừ vào cọc hợp đồng #@settlement.ContractId: @VndFormat.Money(settlement.AppliedToContractDeposit)</p>
                             }
                             @if (settlement.ApprovedRefundAmount.HasValue)
                             {
-                                <p>Hoàn đã duyệt: @settlement.ApprovedRefundAmount.Value.ToString("N0") ₫ · Đã hoàn thực tế: @settlement.RefundedAmount.ToString("N0") ₫</p>
+                                <p>Hoàn đã duyệt: @VndFormat.Money(settlement.ApprovedRefundAmount.Value) · Đã hoàn thực tế: @VndFormat.Money(settlement.RefundedAmount)</p>
                             }
                             @if (settlement.MandatoryRefundAmount > 0)
                             {
-                                <p>Phần cần hoàn tối thiểu: @settlement.MandatoryRefundAmount.ToString("N0") ₫</p>
+                                <p>Phần cần hoàn tối thiểu: @VndFormat.Money(settlement.MandatoryRefundAmount)</p>
                             }
                         }
                         @if (reservation.PaymentRequestId.HasValue)
@@ -145,7 +146,7 @@
                             }
                             @foreach (var evidence in Model.Evidence.Where(e => e.PaymentRequestId == reservation.PaymentRequestId))
                             {
-                                <p>Minh chứng #@evidence.Id · @evidence.ClaimedAmount.ToString("N0") ₫ · @(evidence.Status switch
+                                <p>Minh chứng #@evidence.Id · @VndFormat.Money(evidence.ClaimedAmount) ·@(evidence.Status switch
                                     {
                                         "ChoXacNhan" => "Chờ nhân viên xác nhận",
                                         "DaXacNhan" => "Đã đối soát",

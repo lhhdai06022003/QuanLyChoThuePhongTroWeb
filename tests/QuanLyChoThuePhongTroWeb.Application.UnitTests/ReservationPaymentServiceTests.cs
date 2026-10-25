@@ -98,6 +98,23 @@ public sealed class ReservationPaymentServiceTests
         Assert.False(result.Success);
     }
 
+    [Fact]
+    public async Task ConfirmReceived_BeforeApproval_ExplainsReceivedTime()
+    {
+        var store = new FakeStore { BranchId = 3, ConfirmResult = PaymentError.ReceivedBeforeRequest };
+        var access = new FakeEmployeeAccessService
+        {
+            ScopeToReturn = new EmployeeAccessScope(20, false, [3])
+        };
+        var service = CreateService(store, new FakeProofStorage(), access);
+
+        var result = await service.ConfirmReceivedAsync(20, 15, 41, "BANK-1",
+            200000m, Now.AddHours(-1));
+
+        Assert.False(result.Success);
+        Assert.Contains("sớm hơn lúc duyệt giữ chỗ", result.Message);
+    }
+
     private static EvidenceSubmission Submission(UploadFile image) =>
         new(15, image, 200000m, Now.AddHours(-1), "BANK-1", null);
 
@@ -116,6 +133,8 @@ public sealed class ReservationPaymentServiceTests
     {
         public int? NextEvidenceId { get; set; } = 1;
         public PaymentEvidenceAccess? Access { get; set; }
+        public int? BranchId { get; set; }
+        public PaymentError ConfirmResult { get; set; } = PaymentError.NotFound;
         public List<EvidenceRecord> Added { get; } = [];
 
         public Task<int?> AddEvidenceAsync(int actorId, EvidenceRecord evidence,
@@ -137,12 +156,12 @@ public sealed class ReservationPaymentServiceTests
             Task.FromResult<IReadOnlyList<PaymentEvidenceDto>>([]);
 
         public Task<int?> GetPaymentBranchIdAsync(int paymentRequestId,
-            CancellationToken cancellationToken = default) => Task.FromResult<int?>(null);
+            CancellationToken cancellationToken = default) => Task.FromResult(BranchId);
 
         public Task<PaymentError> ConfirmReceivedAsync(int actorId, int paymentRequestId,
             int? evidenceId, string bankReference, decimal actualAmount,
             DateTime receivedAtUtc, DateTime nowUtc,
             CancellationToken cancellationToken = default) =>
-            Task.FromResult(PaymentError.NotFound);
+            Task.FromResult(ConfirmResult);
     }
 }

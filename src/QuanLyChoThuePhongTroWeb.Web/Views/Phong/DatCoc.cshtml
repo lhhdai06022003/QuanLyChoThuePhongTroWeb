@@ -1,3 +1,4 @@
+@using QuanLyChoThuePhongTroWeb.Web.Helpers
 @model QuanLyChoThuePhongTroWeb.ViewModels.PublicRooms.GuestDepositPageModel
 @{
     Layout = "_PublicRoomLayout";
@@ -20,11 +21,11 @@
             <h2>Số tiền giữ chỗ được duyệt</h2>
             @if (reservation.HoldAmount is { } holdAmount)
             {
-                <strong>@holdAmount.ToString("N0") ₫</strong>
-                <p>Đã xác nhận: @reservation.ConfirmedAmount.ToString("N0") ₫</p>
+                <strong>@VndFormat.Money(holdAmount)</strong>
+                <p>Đã xác nhận: @VndFormat.Money(reservation.ConfirmedAmount)</p>
                 @if (canUpload)
                 {
-                    <p>Còn cần chuyển: <strong class="guest-payment-remaining">@remaining.ToString("N0") ₫</strong></p>
+                    <p>Còn cần chuyển: <strong class="guest-payment-remaining">@VndFormat.Money(remaining)</strong></p>
                 }
                 @if (reservation.PaymentDeadlineUtc is { } paymentDeadline)
                 {
@@ -86,12 +87,12 @@
             {
                 @if (settlement.AppliedToContractDeposit > 0)
                 {
-                    <p>Đã áp dụng vào cọc hợp đồng: @settlement.AppliedToContractDeposit.ToString("N0") ₫</p>
+                    <p>Đã áp dụng vào cọc hợp đồng: @VndFormat.Money(settlement.AppliedToContractDeposit)</p>
                 }
                 @if (settlement.ApprovedRefundAmount is { } refund)
                 {
-                    <p>Hoàn đã duyệt: @refund.ToString("N0") ₫</p>
-                    <p>Đã hoàn thực tế: @settlement.RefundedAmount.ToString("N0") ₫</p>
+                    <p>Hoàn đã duyệt: @VndFormat.Money(refund)</p>
+                    <p>Đã hoàn thực tế: @VndFormat.Money(settlement.RefundedAmount)</p>
                 }
             }
         </section>
@@ -137,7 +138,7 @@
                         _ => evidence.Status
                     };
                     <div class="guest-evidence-item">
-                        <div><strong>@evidence.ClaimedAmount.ToString("N0") ₫</strong><p>@status</p></div>
+                        <div><strong>@VndFormat.Money(evidence.ClaimedAmount)</strong><p>@status</p></div>
                         <a class="guest-section-link" href="/tai-khoan/yeu-cau-phong/minh-chung/@evidence.Id" target="_blank" rel="noopener">Xem ảnh</a>
                     </div>
                 }

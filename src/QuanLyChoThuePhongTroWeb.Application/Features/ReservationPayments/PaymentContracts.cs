@@ -24,7 +24,8 @@ public enum PaymentError
     NotFound,
     InvalidState,
     DuplicateTransaction,
-    Conflict
+    Conflict,
+    ReceivedBeforeRequest
 }
 
 public static class ReservationPaymentMarkers

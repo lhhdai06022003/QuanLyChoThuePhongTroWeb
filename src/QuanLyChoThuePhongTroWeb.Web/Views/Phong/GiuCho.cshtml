@@ -1,3 +1,4 @@
+@using QuanLyChoThuePhongTroWeb.Web.Helpers
 @model QuanLyChoThuePhongTroWeb.ViewModels.PublicRooms.ReservationPageModel
 @{
     Layout = "_PublicRoomLayout";
@@ -27,7 +28,7 @@
                 <h2>Phòng @room.SoPhong</h2>
                 <p>@room.TenChiNhanh · @room.DiaChi</p>
                 <p>@room.DienTich.ToString("0.#") m² · Tối đa @room.SoNguoiToiDa người</p>
-                <p class="guest-booking-price"><strong>@room.GiaThue.ToString("N0") ₫</strong> / tháng</p>
+                <p class="guest-booking-price"><strong>@VndFormat.Money(room.GiaThue)</strong> / tháng</p>
                 @if (Model.ViewingId.HasValue)
                 {
                     <p>Đặt phòng từ lịch xem #@Model.ViewingId.Value.</p>

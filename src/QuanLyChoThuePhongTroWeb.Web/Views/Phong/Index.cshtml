@@ -54,7 +54,7 @@
         </div>
         @if (hasFilter)
         {
-            <div class="room-active-filters"><span>Đang lọc: @(Model.KhuVuc ?? "Mọi khu vực")@if (Model.GiaTu.HasValue || Model.GiaDen.HasValue) { <text> · @(Model.GiaTu?.ToString("N0") ?? "0")–@(Model.GiaDen?.ToString("N0") ?? "không giới hạn") ₫</text> }@if (Model.DienTichTu.HasValue) { <text> · Từ @Model.DienTichTu m²</text> }@if (Model.SoNguoi.HasValue) { <text> · @Model.SoNguoi người</text> }</span><a href="/phong">Xóa bộ lọc</a></div>
+            <div class="room-active-filters"><span>Đang lọc: @(Model.KhuVuc ?? "Mọi khu vực")@if (Model.GiaTu.HasValue || Model.GiaDen.HasValue) { <text> · @(Model.GiaTu?.ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("vi-VN")) ?? "0")–@(Model.GiaDen?.ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("vi-VN")) ?? "không giới hạn") ₫</text> }@if (Model.DienTichTu.HasValue) { <text> · Từ @Model.DienTichTu m²</text> }@if (Model.SoNguoi.HasValue) { <text> · @Model.SoNguoi người</text> }</span><a href="/phong">Xóa bộ lọc</a></div>
         }
         @if (Model.Items.Count == 0)
         {

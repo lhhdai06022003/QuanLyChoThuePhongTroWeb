@@ -1,3 +1,4 @@
+@using QuanLyChoThuePhongTroWeb.Web.Helpers
 @model QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.ListingPreviewPage
 @{
     ViewData["Title"] = "Tin phòng công khai";
@@ -45,7 +46,7 @@
                                 <span><strong>Phòng @room.RoomNumber</strong><small class="d-block text-secondary">@room.BranchName · @room.Area.ToString("0.#") m²</small></span>
                             </div>
                         </td>
-                        <td class="text-nowrap"><strong>@room.MonthlyRent.ToString("N0") ₫</strong><small class="d-block text-secondary">mỗi tháng</small></td>
+                        <td class="text-nowrap"><strong>@VndFormat.Money(room.MonthlyRent)</strong><small class="d-block text-secondary">mỗi tháng</small></td>
                         <td>@room.ImageCount / 10 ảnh</td>
                         <td><span class="badge @(room.RoomStatus == 0 ? "bg-green-lt" : "bg-secondary-lt")">@roomStatus</span></td>
                         <td><span class="badge @(room.IsVisible ? "bg-blue-lt" : "bg-secondary-lt")">@(room.IsVisible ? "Đang hiển thị" : "Chưa hiển thị")</span></td>
@@ -57,7 +58,7 @@
                                 }
                                 <button class="btn btn-outline-primary btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#listingPreviewModal"
                                         data-listing-open data-room-id="@room.RoomId" data-title="@room.Title" data-description="@room.Description" data-room="@room.RoomNumber" data-branch="@room.BranchName"
-                                        data-price="@room.MonthlyRent.ToString("N0")" data-images="@room.ImageCount"
+                                        data-price="@VndFormat.Number(room.MonthlyRent)" data-images="@room.ImageCount"
                                         data-ready="@(room.RoomStatus == 0 ? "true" : "false")"
                                         data-visible="@(room.Published ? "true" : "false")">Chỉnh sửa tin</button>
                             </div>
