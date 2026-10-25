@@ -119,6 +119,15 @@
 
 @section Scripts {
     <script>
+        function escapeHtml(unsafe) {
+            return (unsafe || "").toString()
+                 .replace(/&/g, "&amp;")
+                 .replace(/</g, "&lt;")
+                 .replace(/>/g, "&gt;")
+                 .replace(/"/g, "&quot;")
+                 .replace(/'/g, "&#039;");
+        }
+
         $(document).ready(function () {
             $('#hopDongTable').DataTable({
                 "ajax": {
@@ -126,16 +135,16 @@
                     "dataSrc": ""
                 },
                 "columns": [
-                    { "data": "maHopDong" },
+                    { "data": "maHopDong", "render": $.fn.dataTable.render.text() },
                     { 
                         "data": null,
                         "render": function (data, type, row) {
-                            return '<div class="font-weight-bold">Phòng ' + row.soPhong + '</div>' +
-                                   '<div class="text-muted">' + row.tenChiNhanh + '</div>';
+                            return '<div class="font-weight-bold">Phòng ' + escapeHtml(row.soPhong) + '</div>' +
+                                   '<div class="text-muted">' + escapeHtml(row.tenChiNhanh) + '</div>';
                         }
                     },
-                    { "data": "thoiDiemBatDau" },
-                    { "data": "thoiDiemKetThuc" },
+                    { "data": "thoiDiemBatDau", "render": $.fn.dataTable.render.text() },
+                    { "data": "thoiDiemKetThuc", "render": $.fn.dataTable.render.text() },
                     { 
                         "data": "tienThuePhong",
                         "render": function (data) {
@@ -158,7 +167,7 @@
                     { 
                         "data": "hopDongId",
                         "render": function (data, type, row) {
-                            return '<button type="button" class="btn btn-primary btn-sm" onclick="showChiTiet(' + data + ', \'' + row.soPhong + '\')"><i class="ti ti-eye me-1"></i> Xem chi tiết</button>';
+                            return '<button type="button" class="btn btn-primary btn-sm" onclick="showChiTiet(' + data + ', ' + escapeHtml(JSON.stringify(row.soPhong || '')) + ')"><i class="ti ti-eye me-1"></i> Xem chi tiết</button>';
                         }
                     }
                 ],
@@ -211,9 +220,9 @@
                         mHtml += `
                             <tr>
                                 <td class="text-center">${idx + 1}</td>
-                                <td class="font-weight-bold">${m.hoVaTen}</td>
-                                <td class="text-center">${m.soDienThoai || '-'}</td>
-                                <td class="text-center">${m.cccd || '-'}</td>
+                                <td class="font-weight-bold">${escapeHtml(m.hoVaTen)}</td>
+                                <td class="text-center">${escapeHtml(m.soDienThoai) || '-'}</td>
+                                <td class="text-center">${escapeHtml(m.cccd) || '-'}</td>
                                 <td class="text-center">${m.ngayVao}</td>
                             </tr>`;
                     });
@@ -229,10 +238,10 @@
                         sHtml += `
                             <tr>
                                 <td class="text-center">${idx + 1}</td>
-                                <td class="font-weight-bold">${s.tenDichVu}</td>
+                                <td class="font-weight-bold">${escapeHtml(s.tenDichVu)}</td>
                                 <td class="text-right">${formatVND(s.donGia)}</td>
                                 <td class="text-center">${s.soLuong}</td>
-                                <td class="text-center">${s.donVi || '-'}</td>
+                                <td class="text-center">${escapeHtml(s.donVi) || '-'}</td>
                             </tr>`;
                     });
                     $('#qcServiceCount').text(res.services.length);

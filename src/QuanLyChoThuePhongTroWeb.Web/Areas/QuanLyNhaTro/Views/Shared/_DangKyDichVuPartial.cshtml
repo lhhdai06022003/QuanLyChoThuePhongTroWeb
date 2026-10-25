@@ -289,6 +289,15 @@
             return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n || 0);
         }
 
+        function escapeHtml(unsafe) {
+            return (unsafe || "").toString()
+                 .replace(/&/g, "&amp;")
+                 .replace(/</g, "&lt;")
+                 .replace(/>/g, "&gt;")
+                 .replace(/"/g, "&quot;")
+                 .replace(/'/g, "&#039;");
+        }
+
         // Lấy ngày bắt đầu mặc định
         let defaultStartDate = getContractStartDate();
 
@@ -330,11 +339,11 @@
                             </div>
                             <div class="dkdv-info">
                                 <div class="dkdv-name">
-                                    ${item.tenDichVu}
+                                    ${escapeHtml(item.tenDichVu)}
                                     <span class="dkdv-badge-included"><i class="ti ti-lock" style="font-size:0.6rem;"></i> Luôn bao gồm</span>
                                 </div>
                                 <div class="dkdv-detail">
-                                    <i class="ti ti-tag"></i> ${item.donVi}
+                                    <i class="ti ti-tag"></i> ${escapeHtml(item.donVi)}
                                 </div>
                             </div>
                         </div>
@@ -346,7 +355,7 @@
                                        data-date-id="${item.dichVuChiNhanhId}" 
                                        value="${ngayBatDauStr}">
                             </div>
-                            <div class="dkdv-price dkdv-price-default">${formatVNDShort(item.giaDichVu)}/${item.donVi}</div>
+                            <div class="dkdv-price dkdv-price-default">${formatVNDShort(item.giaDichVu)}/${escapeHtml(item.donVi)}</div>
                         </div>
                     </div>
                 `;
@@ -386,9 +395,9 @@
                                        ${checkedAttr}>
                             </div>
                             <div class="dkdv-info">
-                                <div class="dkdv-name">${item.tenDichVu}</div>
+                                <div class="dkdv-name">${escapeHtml(item.tenDichVu)}</div>
                                 <div class="dkdv-detail">
-                                    <i class="ti ti-tag"></i> ${item.donVi}
+                                    <i class="ti ti-tag"></i> ${escapeHtml(item.donVi)}
                                 </div>
                             </div>
                         </div>
@@ -405,7 +414,7 @@
                                        data-date-id="${item.dichVuChiNhanhId}" 
                                        value="${ngayBatDauStr}">
                             </div>
-                            <div class="dkdv-price">${formatVNDShort(item.giaDichVu)}/${item.donVi}</div>
+                            <div class="dkdv-price">${formatVNDShort(item.giaDichVu)}/${escapeHtml(item.donVi)}</div>
                         </div>
                     </div>
                 `;

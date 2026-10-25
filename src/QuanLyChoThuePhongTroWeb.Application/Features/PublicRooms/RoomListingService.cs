@@ -8,7 +8,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.PublicRooms;
 
 public sealed record RoomListingDto(int RoomId, int BranchId, string RoomNumber, string BranchName,
     decimal MonthlyRent, double Area, int Status, bool BranchActive, bool Published,
-    string Title, string Description, int ImageCount, string? CoverUrl);
+    string Title, string Description, int ImageCount, string? CoverUrl, bool HasActiveHold);
 public sealed record ListingPhoto(string Url, string PublicId);
 public sealed record SaveRoomListing(int RoomId, string Title, string Description, bool Publish,
     IReadOnlyList<UploadFile> Photos);

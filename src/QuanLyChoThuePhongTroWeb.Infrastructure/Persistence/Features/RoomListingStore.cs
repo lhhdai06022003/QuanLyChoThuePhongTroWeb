@@ -5,10 +5,11 @@ using QuanLyChoThuePhongTroWeb.Domain.Enums;
 
 namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features;
 
-public sealed class RoomListingStore(ApplicationDbContext context) : IRoomListingStore
+public sealed class RoomListingStore(ApplicationDbContext context, TimeProvider clock) : IRoomListingStore
 {
     public async Task<IReadOnlyList<RoomListingDto>> ListAsync(IReadOnlyCollection<int>? branchIds, CancellationToken ct)
     {
+        var activeHolds = ActiveRoomHolds.Query(context, clock.GetUtcNow().UtcDateTime);
         var query = context.PhongTros.AsNoTracking().Where(p => !p.IsDeleted && !p.ChiNhanh.IsDeleted);
         if (branchIds is not null) query = query.Where(p => branchIds.Contains(p.ChiNhanhId));
         return await query.OrderBy(p => p.ChiNhanhId).ThenBy(p => p.SoPhong)
@@ -16,14 +17,15 @@ public sealed class RoomListingStore(ApplicationDbContext context) : IRoomListin
                 p.GiaThue, p.DienTich, (int)p.TrangThai, !p.ChiNhanh.IsDeleted, p.DuocDangTin,
                 p.TieuDeDangTin ?? "", p.MoTa ?? "", p.AnhPhongTros.Count(a => a.IsActive),
                 p.AnhPhongTros.Where(a => a.IsActive).OrderByDescending(a => a.LaAnhDaiDien)
-                    .ThenBy(a => a.ThuTuHienThi).Select(a => a.Url).FirstOrDefault())).ToListAsync(ct);
+                    .ThenBy(a => a.ThuTuHienThi).Select(a => a.Url).FirstOrDefault(),
+                activeHolds.Any(h => h.PhongTroId == p.PhongTroId))).ToListAsync(ct);
     }
 
     public Task<RoomListingDto?> GetAsync(int roomId, CancellationToken ct) =>
         context.PhongTros.AsNoTracking().Where(p => p.PhongTroId == roomId && !p.IsDeleted && !p.ChiNhanh.IsDeleted)
             .Select(p => new RoomListingDto(p.PhongTroId, p.ChiNhanhId, p.SoPhong, p.ChiNhanh.TenChiNhanh,
                 p.GiaThue, p.DienTich, (int)p.TrangThai, !p.ChiNhanh.IsDeleted, p.DuocDangTin,
-                p.TieuDeDangTin ?? "", p.MoTa ?? "", p.AnhPhongTros.Count(a => a.IsActive), null))
+                p.TieuDeDangTin ?? "", p.MoTa ?? "", p.AnhPhongTros.Count(a => a.IsActive), null, false))
             .SingleOrDefaultAsync(ct);
 
     public async Task<bool> SaveAsync(int actorId, int branchId, SaveRoomListing request,

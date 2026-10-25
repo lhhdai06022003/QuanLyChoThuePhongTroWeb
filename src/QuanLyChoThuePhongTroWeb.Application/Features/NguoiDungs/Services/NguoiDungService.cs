@@ -140,6 +140,12 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.NguoiDungs.Services
 
             var domainRole = (Role)(int)req.Role;
 
+            // Tài khoản khách vãng lai cần hồ sơ KhachVangLai, chỉ tạo qua trang khách tự đăng ký.
+            if (domainRole == Role.KhachVangLai)
+            {
+                return ServiceResult.Fail("Tài khoản khách vãng lai do khách tự đăng ký, không tạo ở màn quản lý tài khoản.");
+            }
+
             if (domainRole == Role.KhachThue && req.NguoiThueId.HasValue)
             {
                 var activeTenantMatch = await _store.ExistsActiveTenantAccountAsync(req.NguoiThueId.Value);
@@ -209,6 +215,11 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.NguoiDungs.Services
             }
 
             var domainRole = (Role)(int)role;
+
+            if (domainRole == Role.KhachVangLai && existingUser.Role != Role.KhachVangLai)
+            {
+                return ServiceResult.Fail("Không thể chuyển tài khoản sang khách vãng lai; quyền này chỉ có khi khách tự đăng ký.");
+            }
 
             if (domainRole == Role.KhachThue && nguoiThueId.HasValue)
             {

@@ -37,10 +37,11 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
                     return RedirectGuestFromTenantPortal();
                 }
 
+                // Chỉ quay lại trang dành cho khách: URL quản lý ngoài /QuanLyNhaTro
+                // (ví dụ /PhongTros/SoDoPhong) từ chối khách rồi về đây, quay lại sẽ lặp vô hạn.
                 if ((User.IsInRole("KhachThue") || User.IsInRole("KhachVangLai")) &&
-                    Url.IsLocalUrl(returnUrl) &&
-                    !returnUrl.Contains("/QuanLyNhaTro", StringComparison.OrdinalIgnoreCase))
-                    return Redirect(returnUrl);
+                    IsCustomerReturnUrl(returnUrl))
+                    return Redirect(returnUrl!);
 
                 if (User.IsInRole("KhachThue"))
                 {
@@ -103,9 +104,9 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
 
             if (user.Role == QuanLyChoThuePhongTroWeb.Application.Common.Enums.AppRole.KhachThue)
             {
-                if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl) && !returnUrl.Contains("/QuanLyNhaTro", StringComparison.OrdinalIgnoreCase))
+                if (IsCustomerReturnUrl(returnUrl))
                 {
-                    return Redirect(returnUrl);
+                    return Redirect(returnUrl!);
                 }
                 return RedirectToAction("Index", "Dashboard", new { area = "KhachThue" });
             }
@@ -115,9 +116,8 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
                 if (IsTenantPortalUrl(returnUrl))
                     return RedirectGuestFromTenantPortal();
 
-                if (Url.IsLocalUrl(returnUrl) &&
-                    !returnUrl.Contains("/QuanLyNhaTro", StringComparison.OrdinalIgnoreCase))
-                    return Redirect(returnUrl);
+                if (IsCustomerReturnUrl(returnUrl))
+                    return Redirect(returnUrl!);
 
                 return RedirectToAction("Index", "Dashboard", new { area = "KhachThue" });
             }
@@ -132,6 +132,19 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
 
         private static bool IsTenantPortalUrl(string? returnUrl) =>
             returnUrl != null && returnUrl.StartsWith("/KhachThue", StringComparison.OrdinalIgnoreCase);
+
+        // Khu vực khách (khách thuê, khách vãng lai) được phép mở; URL khác thuộc cổng quản lý.
+        private static readonly string[] CustomerPathPrefixes = { "/phong", "/tai-khoan", "/KhachThue" };
+
+        private bool IsCustomerReturnUrl(string? returnUrl)
+        {
+            if (string.IsNullOrEmpty(returnUrl) || !Url.IsLocalUrl(returnUrl))
+                return false;
+            var path = returnUrl.Split('?', '#')[0];
+            return CustomerPathPrefixes.Any(prefix =>
+                path.Equals(prefix, StringComparison.OrdinalIgnoreCase) ||
+                path.StartsWith(prefix + "/", StringComparison.OrdinalIgnoreCase));
+        }
 
         private IActionResult RedirectGuestFromTenantPortal()
         {

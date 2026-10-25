@@ -49,7 +49,7 @@
                         <td class="text-nowrap"><strong>@VndFormat.Money(room.MonthlyRent)</strong><small class="d-block text-secondary">mỗi tháng</small></td>
                         <td>@room.ImageCount / 10 ảnh</td>
                         <td><span class="badge @(room.RoomStatus == 0 ? "bg-green-lt" : "bg-secondary-lt")">@roomStatus</span></td>
-                        <td><span class="badge @(room.IsVisible ? "bg-blue-lt" : "bg-secondary-lt")">@(room.IsVisible ? "Đang hiển thị" : "Chưa hiển thị")</span></td>
+                        <td><span class="badge @(room.IsVisible ? "bg-blue-lt" : room.Published && room.OnHold ? "bg-orange-lt" : "bg-secondary-lt")">@(room.IsVisible ? "Đang hiển thị" : room.Published && room.OnHold ? "Ẩn — đang giữ chỗ" : "Chưa hiển thị")</span></td>
                         <td class="text-end">
                             <div class="d-flex justify-content-end flex-wrap gap-2">
                                 @if (room.IsVisible)

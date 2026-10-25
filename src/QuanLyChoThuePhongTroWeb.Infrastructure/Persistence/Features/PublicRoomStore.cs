@@ -27,18 +27,14 @@ public sealed class PublicRoomStore(ApplicationDbContext context, TimeProvider c
 
     private IQueryable<PhongTro> AvailableRooms()
     {
-        var nowUtc = clock.GetUtcNow().UtcDateTime;
+        var activeHolds = ActiveRoomHolds.Query(context, clock.GetUtcNow().UtcDateTime);
         return context.PhongTros.AsNoTracking()
             .AsSplitQuery()
             .Include(room => room.ChiNhanh)
             .Include(room => room.AnhPhongTros)
             .Where(room => !room.IsDeleted && !room.ChiNhanh.IsDeleted &&
                 room.DuocDangTin && room.TrangThai == TrangThaiPhong.Trong &&
-                !context.YeuCauGiuChos.Any(hold => hold.PhongTroId == room.PhongTroId &&
-                    (hold.TrangThai == TrangThaiYeuCauGiuCho.ChoThanhToan &&
-                        hold.HanThanhToan > nowUtc ||
-                     hold.TrangThai == TrangThaiYeuCauGiuCho.ChoXacNhanTien ||
-                     hold.TrangThai == TrangThaiYeuCauGiuCho.DangGiuCho)));
+                !activeHolds.Any(hold => hold.PhongTroId == room.PhongTroId));
     }
 
     private static PublicRoomDto ToDto(PhongTro room) => new(

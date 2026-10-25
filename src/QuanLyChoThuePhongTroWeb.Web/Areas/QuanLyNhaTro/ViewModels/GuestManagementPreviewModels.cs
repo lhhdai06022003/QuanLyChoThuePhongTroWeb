@@ -12,7 +12,8 @@ public sealed record ListingPreviewItem(
     string? CoverUrl,
     string Title = "",
     string Description = "",
-    bool Published = false);
+    bool Published = false,
+    bool OnHold = false);
 
 public sealed record ListingPreviewPage(IReadOnlyList<ListingPreviewItem> Rooms)
 {

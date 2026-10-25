@@ -463,6 +463,15 @@
             return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n || 0);
         }
 
+        function escapeHtml(unsafe) {
+            return (unsafe || "").toString()
+                 .replace(/&/g, "&amp;")
+                 .replace(/</g, "&lt;")
+                 .replace(/>/g, "&gt;")
+                 .replace(/"/g, "&quot;")
+                 .replace(/'/g, "&#039;");
+        }
+
         // ========== VIEW TOGGLE ==========
         $('#btnGridView').click(function () {
             $(this).addClass('active');
@@ -545,7 +554,7 @@
                     if (r.coNoTien) badges += `<div class="room-badge badge-debt" title="Nợ ${formatVND(r.soTienNo)}"><i class="ti ti-alert-circle"></i></div>`;
                     if (r.sapHetHan) badges += `<div class="room-badge badge-expiring" title="Còn ${r.soNgayConLai} ngày"><i class="ti ti-hourglass"></i></div>`;
 
-                    let tenant = r.tenNguoiThue ? `<div class="room-tenant"><i class="ti ti-user"></i> ${r.tenNguoiThue}</div>` : '';
+                    let tenant = r.tenNguoiThue ? `<div class="room-tenant"><i class="ti ti-user"></i> ${escapeHtml(r.tenNguoiThue)}</div>` : '';
                     let meta = '';
                     if (r.trangThai === 1 && r.soNgayConLai !== null) meta = `<div class="room-meta"><i class="ti ti-calendar"></i> Còn ${r.soNgayConLai} ngày</div>`;
                     if (r.coNoTien) meta += `<div class="room-meta text-danger"><i class="ti ti-alert-circle"></i> Nợ: ${formatVND(r.soTienNo)}</div>`;
@@ -573,7 +582,7 @@
                             <div class="room-header" onclick="showDetail(${r.phongTroId})">
                                 <div class="room-status-icon ${iconClass}"><i class="ti ${iconTi}"></i></div>
                                 <div>
-                                    <div class="room-number">${r.soPhong}</div>
+                                    <div class="room-number">${escapeHtml(r.soPhong)}</div>
                                     <div class="room-price">${formatVND(r.giaThue)}/tháng</div>
                                 </div>
                             </div>
@@ -701,9 +710,9 @@
                         mHtml += `
                             <tr>
                                 <td class="text-center">${idx + 1}</td>
-                                <td class="font-weight-bold">${m.hoVaTen}</td>
-                                <td class="text-center">${m.soDienThoai || '-'}</td>
-                                <td class="text-center">${m.cccd || '-'}</td>
+                                <td class="font-weight-bold">${escapeHtml(m.hoVaTen)}</td>
+                                <td class="text-center">${escapeHtml(m.soDienThoai) || '-'}</td>
+                                <td class="text-center">${escapeHtml(m.cccd) || '-'}</td>
                                 <td class="text-center">${m.ngayVao}</td>
                             </tr>`;
                     });
@@ -719,10 +728,10 @@
                         sHtml += `
                             <tr>
                                 <td class="text-center">${idx + 1}</td>
-                                <td class="font-weight-bold">${s.tenDichVu}</td>
+                                <td class="font-weight-bold">${escapeHtml(s.tenDichVu)}</td>
                                 <td class="text-right">${formatVND(s.donGia)}</td>
                                 <td class="text-center">${s.soLuong}</td>
-                                <td class="text-center">${s.donVi || '-'}</td>
+                                <td class="text-center">${escapeHtml(s.donVi) || '-'}</td>
                             </tr>`;
                     });
                     $('#qcServiceCount').text(res.services.length);
@@ -779,10 +788,10 @@
                         dHtml += `
                             <tr>
                                 <td class="text-center">${idx + 1}</td>
-                                <td>${d.tenDichVu}</td>
+                                <td>${escapeHtml(d.tenDichVu)}</td>
                                 <td class="text-right">${formatVND(d.donGia)}</td>
                                 <td class="text-center">${d.soLuong}</td>
-                                <td class="text-center">${d.donVi || '-'}</td>
+                                <td class="text-center">${escapeHtml(d.donVi) || '-'}</td>
                                 <td class="text-right font-weight-bold">${formatVND(d.tongTien)}</td>
                             </tr>`;
                     });
@@ -892,7 +901,7 @@
             $('#detailRoomName').text(`Phòng ${r.soPhong} - ${r.trangThaiText}`);
 
             let html = `
-                <div class="detail-row"><span class="detail-label">Chi nhánh:</span> <span class="detail-value">${r.tenChiNhanh}</span></div>
+                <div class="detail-row"><span class="detail-label">Chi nhánh:</span> <span class="detail-value">${escapeHtml(r.tenChiNhanh)}</span></div>
                 <div class="detail-row"><span class="detail-label">Giá thuê:</span> <span class="detail-value text-danger font-weight-bold">${formatVND(r.giaThue)}/tháng</span></div>
                 <div class="detail-row"><span class="detail-label">Diện tích:</span> <span class="detail-value">${r.dienTich} m²</span></div>
                 <div class="detail-row"><span class="detail-label">Tầng:</span> <span class="detail-value">${r.tangLau}</span></div>
@@ -900,8 +909,8 @@
 
             if (r.trangThai === 1 && r.tenNguoiThue) {
                 html += `<h6 class="font-weight-bold"><i class="ti ti-user"></i> Thông tin người thuê</h6>
-                    <div class="detail-row"><span class="detail-label">Họ tên:</span> <span class="detail-value">${r.tenNguoiThue}</span></div>
-                    <div class="detail-row"><span class="detail-label">SĐT:</span> <span class="detail-value">${r.sdtNguoiThue || 'N/A'}</span></div>`;
+                    <div class="detail-row"><span class="detail-label">Họ tên:</span> <span class="detail-value">${escapeHtml(r.tenNguoiThue)}</span></div>
+                    <div class="detail-row"><span class="detail-label">SĐT:</span> <span class="detail-value">${escapeHtml(r.sdtNguoiThue) || 'N/A'}</span></div>`;
                 if (r.ngayHetHan) html += `<div class="detail-row"><span class="detail-label">Hết hạn HĐ:</span> <span class="detail-value">${new Date(r.ngayHetHan).toLocaleDateString('vi-VN')}</span></div>`;
                 if (r.sapHetHan) html += `<div class="alert alert-warning mt-2 py-2"><i class="ti ti-hourglass"></i> <strong>Cảnh báo:</strong> Hợp đồng sắp hết hạn (còn ${r.soNgayConLai} ngày)!</div>`;
                 if (r.coNoTien) html += `<div class="alert alert-danger mt-2 py-2"><i class="ti ti-alert-triangle"></i> <strong>Nợ tiền:</strong> Phòng này đang nợ <strong>${formatVND(r.soTienNo)}</strong>!</div>`;
@@ -925,8 +934,8 @@
                 "columns": [
                     { "data": null, "className": "text-center align-middle", "orderable": false, "searchable": false,
                         "render": (d,t,r,m) => m.row + m.settings._iDisplayStart + 1 },
-                    { "data": "tenChiNhanh", "className": "align-middle" },
-                    { "data": "soPhong", "className": "align-middle", "render": d => `<span class="font-weight-bold text-primary">${d}</span>` },
+                    { "data": "tenChiNhanh", "className": "align-middle", "render": $.fn.dataTable.render.text() },
+                    { "data": "soPhong", "className": "align-middle", "render": d => `<span class="font-weight-bold text-primary">${escapeHtml(d)}</span>` },
                     { "data": "tangLau", "className": "text-center align-middle" },
                     { "data": "giaThue", "className": "text-end align-middle", "render": d => formatVND(d) },
                     { "data": "dienTich", "className": "text-center align-middle", "render": d => d + " m²" },

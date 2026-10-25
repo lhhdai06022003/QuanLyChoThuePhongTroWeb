@@ -69,6 +69,78 @@ public sealed class GuestTenantPortalAccessTests(CustomWebApplicationFactory fac
         }
     }
 
+    // URL quản lý không nằm dưới /QuanLyNhaTro: trang đăng nhập không được trả khách về lại đó.
+    [Theory]
+    [InlineData(Role.KhachVangLai, "/PhongTros/SoDoPhong")]
+    [InlineData(Role.KhachVangLai, "/HoaDon/ExportPdf/1")]
+    [InlineData(Role.KhachThue, "/PhongTros/SoDoPhong")]
+    [InlineData(Role.KhachThue, "/HopDong/Print/1")]
+    public async Task Customer_OpeningStaffUrlOutsideStaffArea_IsSentToDashboardWithoutLoop(
+        Role role, string staffUrl)
+    {
+        var username = $"kh_staff_{Guid.NewGuid():N}"[..20];
+        await SeedGuestAsync(username, role);
+        try
+        {
+            var client = CreateClient();
+            await LoginAsync(client, username, null);
+
+            var denied = await client.GetAsync(staffUrl);
+            Assert.Equal(HttpStatusCode.Redirect, denied.StatusCode);
+            var loginLocation = denied.Headers.Location?.ToString();
+            Assert.NotNull(loginLocation);
+            Assert.Contains("/QuanLyNhaTro/DangNhap", loginLocation, StringComparison.OrdinalIgnoreCase);
+
+            var fromLogin = await client.GetAsync(loginLocation);
+            Assert.Equal(HttpStatusCode.Redirect, fromLogin.StatusCode);
+            Assert.Equal("/KhachThue/Dashboard", fromLogin.Headers.Location?.ToString());
+        }
+        finally
+        {
+            await CleanupUserAsync(username);
+        }
+    }
+
+    [Theory]
+    [InlineData(Role.KhachVangLai)]
+    [InlineData(Role.KhachThue)]
+    public async Task Customer_LoggingInWithStaffReturnUrl_IsSentToDashboard(Role role)
+    {
+        var username = $"kh_rstaff_{Guid.NewGuid():N}"[..20];
+        await SeedGuestAsync(username, role);
+        try
+        {
+            var client = CreateClient();
+
+            var response = await LoginAsync(client, username, "/PhongTros/SoDoPhong");
+
+            Assert.Equal("/KhachThue/Dashboard", response.Headers.Location?.ToString());
+        }
+        finally
+        {
+            await CleanupUserAsync(username);
+        }
+    }
+
+    [Fact]
+    public async Task Guest_LoggingInWithLookalikePublicPrefix_IsNotSentThere()
+    {
+        var username = $"kvl_like_{Guid.NewGuid():N}"[..20];
+        await SeedGuestAsync(username);
+        try
+        {
+            var client = CreateClient();
+
+            var response = await LoginAsync(client, username, "/phongtros/SoDoPhong");
+
+            Assert.Equal("/KhachThue/Dashboard", response.Headers.Location?.ToString());
+        }
+        finally
+        {
+            await CleanupUserAsync(username);
+        }
+    }
+
     private HttpClient CreateClient() =>
         factory.CreateClient(new WebApplicationFactoryClientOptions
         {
@@ -93,7 +165,7 @@ public sealed class GuestTenantPortalAccessTests(CustomWebApplicationFactory fac
         return response;
     }
 
-    private async Task SeedGuestAsync(string username)
+    private async Task SeedGuestAsync(string username, Role role = Role.KhachVangLai)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -102,7 +174,7 @@ public sealed class GuestTenantPortalAccessTests(CustomWebApplicationFactory fac
         {
             TenDangNhap = username,
             MatKhauHash = passwords.HashPassword(Password),
-            Role = Role.KhachVangLai,
+            Role = role,
             IsActive = true,
             NgayTao = DateTime.UtcNow
         });

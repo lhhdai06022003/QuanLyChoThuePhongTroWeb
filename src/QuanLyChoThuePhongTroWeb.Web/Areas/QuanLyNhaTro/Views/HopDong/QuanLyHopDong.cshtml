@@ -540,9 +540,9 @@
                             return meta.row + meta.settings._iDisplayStart + 1;
                         }
                     },
-                    { "data": "maHopDong", "name": "maHopDong", "className": "font-weight-bold text-primary align-middle" },
-                    { "data": "soPhong", "name": "SoPhong", "orderable": true, "className": "align-middle" },
-                    { "data": "tenNguoiThue", "orderable": false, "className": "align-middle" },
+                    { "data": "maHopDong", "name": "maHopDong", "className": "font-weight-bold text-primary align-middle", "render": $.fn.dataTable.render.text() },
+                    { "data": "soPhong", "name": "SoPhong", "orderable": true, "className": "align-middle", "render": $.fn.dataTable.render.text() },
+                    { "data": "tenNguoiThue", "orderable": false, "className": "align-middle", "render": $.fn.dataTable.render.text() },
                     {
                         "data": "thoiDiemBatDau",
                         "name": "thoiDiemBatDau",

@@ -146,6 +146,15 @@
             return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n || 0);
         }
 
+        function escapeHtml(unsafe) {
+            return (unsafe || "").toString()
+                 .replace(/&/g, "&amp;")
+                 .replace(/</g, "&lt;")
+                 .replace(/>/g, "&gt;")
+                 .replace(/"/g, "&quot;")
+                 .replace(/'/g, "&#039;");
+        }
+
         function loadData() {
             let chiNhanhId = $('#filterChiNhanh').val();
             $.get(`/PhongTros/GetSoDoPhong?chiNhanhId=${chiNhanhId}`, function(data) {
@@ -194,7 +203,7 @@
                     badges += `<div class="room-badge badge-expiring" title="Còn ${r.soNgayConLai} ngày"><i class="ti ti-hourglass"></i></div>`;
                 }
 
-                let tenant = r.tenNguoiThue ? `<div class="room-tenant"><i class="ti ti-user"></i> ${r.tenNguoiThue}</div>` : '';
+                let tenant = r.tenNguoiThue ? `<div class="room-tenant"><i class="ti ti-user"></i> ${escapeHtml(r.tenNguoiThue)}</div>` : '';
                 let meta = '';
                 if (r.trangThai === 1 && r.soNgayConLai !== null) {
                     meta = `<div class="room-meta"><i class="ti ti-calendar"></i> Còn ${r.soNgayConLai} ngày</div>`;
@@ -206,7 +215,7 @@
                 html += `
                     <div class="room-card ${cssClass}" data-id="${r.phongTroId}" onclick="showDetail(${r.phongTroId})">
                         <div class="room-badges">${badges}</div>
-                        <div class="room-number">${r.soPhong}</div>
+                        <div class="room-number">${escapeHtml(r.soPhong)}</div>
                         <div class="room-price">${formatVND(r.giaThue)}/tháng</div>
                         ${tenant}
                         <div class="room-meta"><i class="ti ti-ruler"></i> ${r.dienTich} m² · Tầng ${r.tangLau}</div>
@@ -232,7 +241,7 @@
                 <div class="datagrid">
                     <div class="datagrid-item">
                         <div class="datagrid-title">Chi nhánh</div>
-                        <div class="datagrid-content">${r.tenChiNhanh}</div>
+                        <div class="datagrid-content">${escapeHtml(r.tenChiNhanh)}</div>
                     </div>
                     <div class="datagrid-item">
                         <div class="datagrid-title">Giá thuê</div>
@@ -260,11 +269,11 @@
                     <div class="datagrid">
                         <div class="datagrid-item">
                             <div class="datagrid-title">Họ tên</div>
-                            <div class="datagrid-content fw-bold">${r.tenNguoiThue}</div>
+                            <div class="datagrid-content fw-bold">${escapeHtml(r.tenNguoiThue)}</div>
                         </div>
                         <div class="datagrid-item">
                             <div class="datagrid-title">SĐT</div>
-                            <div class="datagrid-content">${r.sdtNguoiThue || 'N/A'}</div>
+                            <div class="datagrid-content">${escapeHtml(r.sdtNguoiThue) || 'N/A'}</div>
                         </div>
                 `;
                 if (r.ngayHetHan) {

@@ -120,6 +120,15 @@
 
 @section Scripts {
     <script>
+        function escapeHtml(unsafe) {
+            return (unsafe || "").toString()
+                 .replace(/&/g, "&amp;")
+                 .replace(/</g, "&lt;")
+                 .replace(/>/g, "&gt;")
+                 .replace(/"/g, "&quot;")
+                 .replace(/'/g, "&#039;");
+        }
+
         $(document).ready(function () {
             let currentNguoiThueId = 0;
 
@@ -150,18 +159,18 @@
                     {
                         "data": "hoVaTen",
                         "render": function(data) {
-                            return `<span class="font-weight-bold text-primary">${data}</span>`;
+                            return `<span class="font-weight-bold text-primary">${escapeHtml(data)}</span>`;
                         }
                     },
                     // THÊM MỚI: Hiển thị Email trên bảng. Nếu null thì hiển thị chữ "Chưa có" màu xám
                     { 
                         "data": "email",
                         "render": function(data) {
-                            return data ? data : `<span class="text-muted font-italic">Chưa có</span>`;
+                            return data ? escapeHtml(data) : `<span class="text-muted font-italic">Chưa có</span>`;
                         }
                     },
-                    { "data": "soDienThoai" },
-                    { "data": "cccd" },
+                    { "data": "soDienThoai", "render": $.fn.dataTable.render.text() },
+                    { "data": "cccd", "render": $.fn.dataTable.render.text() },
                     {
                         "data": "ngaySinh",
                         "render": function(data) {
@@ -170,7 +179,7 @@
                             return date.toLocaleDateString('vi-VN');
                         }
                     },
-                    { "data": "queQuan" },
+                    { "data": "queQuan", "render": $.fn.dataTable.render.text() },
                     {
                         "data": "nguoiThueId",
                         "className": "text-center align-middle",

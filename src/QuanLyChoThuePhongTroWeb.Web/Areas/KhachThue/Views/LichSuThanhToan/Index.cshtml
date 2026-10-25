@@ -41,6 +41,15 @@
 
 @section Scripts {
     <script>
+        function escapeHtml(unsafe) {
+            return (unsafe || "").toString()
+                 .replace(/&/g, "&amp;")
+                 .replace(/</g, "&lt;")
+                 .replace(/>/g, "&gt;")
+                 .replace(/"/g, "&quot;")
+                 .replace(/'/g, "&#039;");
+        }
+
         $(document).ready(function () {
             $('#lichSuTable').DataTable({
                 "ajax": {
@@ -55,17 +64,17 @@
                             return meta.row + 1;
                         }
                     },
-                    { "data": "maGiaoDich", "className": "font-weight-bold" },
+                    { "data": "maGiaoDich", "className": "font-weight-bold", "render": $.fn.dataTable.render.text() },
                     { 
                         "data": "maHoaDon",
                         "render": function (data) {
-                            return '<span class="text-primary font-weight-bold">' + data + '</span>';
+                            return '<span class="text-primary font-weight-bold">' + escapeHtml(data) + '</span>';
                         }
                     },
                     { 
                         "data": "soPhong",
                         "render": function (data) {
-                            return 'Phòng ' + data;
+                            return 'Phòng ' + escapeHtml(data);
                         }
                     },
                     { 
@@ -87,12 +96,12 @@
                             return '';
                         }
                     },
-                    { "data": "ngayThanhToan" },
+                    { "data": "ngayThanhToan", "render": $.fn.dataTable.render.text() },
                     { 
                         "data": "ghiChu",
                         "className": "text-muted text-wrap",
                         "render": function (data) {
-                            return data || '-';
+                            return escapeHtml(data) || '-';
                         }
                     }
                 ],

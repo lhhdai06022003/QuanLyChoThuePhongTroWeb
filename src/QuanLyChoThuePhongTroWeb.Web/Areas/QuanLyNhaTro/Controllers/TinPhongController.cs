@@ -15,9 +15,10 @@ public sealed class TinPhongController(IRoomListingService listings, IConfigurat
         var rooms = await listings.ListAsync(CurrentActorId, ct);
         var items = rooms.Select(room => new ListingPreviewItem(room.RoomId, room.RoomNumber,
             room.BranchName, room.MonthlyRent, room.Area, room.Status,
-            room.Status == 0 && room.Published && room.BranchActive &&
+            room.Status == 0 && room.Published && room.BranchActive && !room.HasActiveHold &&
                 (publishedIds is null || publishedIds.Contains(room.RoomId)),
-            room.ImageCount, room.CoverUrl, room.Title, room.Description, room.Published)).ToArray();
+            room.ImageCount, room.CoverUrl, room.Title, room.Description, room.Published,
+            room.HasActiveHold)).ToArray();
         return View(new ListingPreviewPage(items));
     }
 
