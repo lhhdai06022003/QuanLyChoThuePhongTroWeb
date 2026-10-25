@@ -39,7 +39,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
         public FakeProofStorage Storage { get; } = new();
         public RecordingVietQr VietQr { get; } = new();
         public FixedTimeProvider Time { get; } = new(new DateTimeOffset(Now));
-        public QueueCodeGenerator Codes { get; } = new();
+        public PaymentCodeGenerator Codes { get; } = new();
         public InvoicePaymentOptions Options { get; } = new();
         public VietQrSettings VietQrSettings { get; } = new() { BankId = "MB", AccountNumber = "0123456789", AccountName = "NHA TRO" };
 
@@ -60,7 +60,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
             Access.StaffBranches[OtherStaffId] = new HashSet<int> { OtherBranch };
 
             Transaction = new InvoicePaymentTransaction(Store, UnitOfWork, Notifier, NullLogger<InvoicePaymentTransaction>.Instance, Time);
-            Requests = new InvoicePaymentRequestService(Store, Transaction, Codes, Storage, VietQr, VietQrSettings, Options, NullLogger<InvoicePaymentRequestService>.Instance);
+            Requests = new InvoicePaymentRequestService(Store, Storage, NullLogger<InvoicePaymentRequestService>.Instance);
             Confirmation = new InvoicePaymentConfirmationService(Store, Transaction, Access, Storage, Options, NullLogger<InvoicePaymentConfirmationService>.Instance);
             Ledger = new InvoiceLedgerService(Store, Transaction, Access, Codes, Options);
         }
@@ -289,6 +289,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
         public List<string> Deleted { get; } = new();
         public bool ThrowOnUpload { get; set; }
         public bool ThrowOnDelete { get; set; }
+        public bool ThrowOnRead { get; set; }
         // Chạy sau khi tải ảnh, trước khi service ghi minh chứng (mô phỏng thay đổi đồng thời).
         public Action? AfterUpload { get; set; }
 
@@ -307,6 +308,11 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
 
         public Task<MeterImageReadResult> ReadAsync(string publicId, string url, CancellationToken cancellationToken = default)
         {
+            if (ThrowOnRead)
+            {
+                throw new InvalidOperationException("Cloudinary down");
+            }
+
             return Task.FromResult(new MeterImageReadResult(new byte[] { 1, 2, 3 }, "image/jpeg"));
         }
 
@@ -335,15 +341,5 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
         }
 
         public byte[] GenerateQRCodePNGBytes(string payload) => new byte[] { 0x89, 0x50 };
-    }
-
-    // Trả lần lượt các mã đã xếp hàng, hết hàng thì sinh mã thật.
-    public class QueueCodeGenerator : IPaymentCodeGenerator
-    {
-        private readonly PaymentCodeGenerator _real = new();
-        public Queue<string> RequestCodes { get; } = new();
-
-        public string NewRequestCode(int hoaDonId) => RequestCodes.Count > 0 ? RequestCodes.Dequeue() : _real.NewRequestCode(hoaDonId);
-        public string NewLedgerCode(string prefix, DateTime nowUtc) => _real.NewLedgerCode(prefix, nowUtc);
     }
 }

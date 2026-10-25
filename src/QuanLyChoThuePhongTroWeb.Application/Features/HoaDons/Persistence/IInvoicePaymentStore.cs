@@ -21,7 +21,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence
         Task<MinhChungThanhToanHoaDon?> GetProofAsync(int minhChungId, CancellationToken ct = default);
         Task<LichSuThanhToan?> GetLedgerEntryAsync(int lichSuThanhToanId, CancellationToken ct = default);
         Task<decimal> GetTongTienDaThanhToanHoaDonAsync(int hoaDonId, CancellationToken ct = default);
-        Task<bool> ExistsMaYeuCauAsync(string maYeuCau, CancellationToken ct = default);
         // So khớp không phân biệt hoa thường, chỉ với khoản ghi nhận chưa xóa mềm.
         Task<bool> ExistsMaGiaoDichAsync(string maGiaoDich, CancellationToken ct = default);
         // Kể cả khoản đã xóa mềm, chỉ trong hóa đơn này, không phân biệt hoa thường: giao dịch ngân hàng đã
@@ -29,9 +28,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence
         Task<bool> ExistsMaGiaoDichForInvoiceIncludingDeletedAsync(int hoaDonId, string maGiaoDich, CancellationToken ct = default);
         // Mọi hóa đơn, kể cả khoản đã xóa mềm, không phân biệt hoa thường: dùng khi đồng bộ bù chỉ đối chiếu (chưa biết hóa đơn nào).
         Task<bool> ExistsMaGiaoDichIncludingDeletedAsync(string maGiaoDich, CancellationToken ct = default);
-        Task<bool> ExistsPendingProofMaGiaoDichAsync(string maGiaoDich, int? exceptMinhChungId, CancellationToken ct = default);
 
-        void AddRequest(YeuCauThanhToanHoaDon yeuCau);
         void AddLedgerEntry(LichSuThanhToan lichSu);
         void AddNotification(ThongBao thongBao);
 
@@ -45,7 +42,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence
         // ----- Đọc trước khóa và read model (không tracking) -----
 
         Task<InvoicePaymentTarget?> GetTargetByHoaDonAsync(int hoaDonId, CancellationToken ct = default);
-        Task<InvoicePaymentTarget?> GetTargetByYeuCauAsync(int yeuCauId, CancellationToken ct = default);
         Task<InvoicePaymentTarget?> GetTargetByMinhChungAsync(int minhChungId, CancellationToken ct = default);
         Task<InvoicePaymentTarget?> GetTargetByLedgerEntryAsync(int lichSuThanhToanId, CancellationToken ct = default);
         // Khớp chính xác, không phân biệt hoa thường; mọi trạng thái.

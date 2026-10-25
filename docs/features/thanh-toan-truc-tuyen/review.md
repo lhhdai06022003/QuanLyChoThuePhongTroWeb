@@ -1,7 +1,7 @@
 # Review và kiểm chứng: Thanh toán trực tuyến — đợt 1 (VietQR + SePay)
 
 - **Nhánh:** `feature/thanh-toan-truc-tuyen`. **Spec:** [spec.md](spec.md). **Kế hoạch:** [plan.md](plan.md).
-- **Cập nhật lần cuối:** 20/10/2026.
+- **Cập nhật lần cuối:** 25/10/2026 (dọn mã cũ và ba khuyến nghị nhỏ của phần 4, mục 3.1).
 - **Kết luận:** đợt 1 code xong cả 5 phần, test tự động PASS (Infrastructure cần một lần chạy lại vì một test đếm cả bảng FAIL lẻ), **không đổi schema**; người dùng đã thử tay trên SePay Test mode (báo "tương đối ổn", 20/10/2026). **Chưa kiểm chứng:** đồng bộ bù, giao dịch thật, và nhiều chi tiết giao diện trên server thật.
 
 ## 1. Nguồn bằng chứng và giới hạn
@@ -34,12 +34,34 @@ Reviewer ra phán quyết CAN SUA vì tài liệu và comment khẳng định đ
 
 Sau khi sửa, toàn bộ test được chạy lại và PASS (theo báo cáo phiên; số liệu ở mục 4).
 
-### Khuyến nghị của reviewer (không chặn, chưa làm)
+### Khuyến nghị của reviewer (không chặn)
 
-- `SePaySyncService.cs` dòng ~95: một trang mà mọi phần tử sai định dạng vẫn kết thúc "hoàn tất", dù `CanhBao` vẫn báo số giao dịch sai định dạng.
-- Chế độ chỉ đối chiếu chưa có link tới hóa đơn cho dòng "Chưa ghi sổ".
-- Nút `btn-sm` trong modal lịch sử dưới 44px trên điện thoại.
+Ba mục đầu đã làm ngày 25/10/2026 (mục 3.1); mục cuối vẫn để sau.
+
+- `SePaySyncService.cs`: một trang mà mọi phần tử sai định dạng vẫn kết thúc "hoàn tất", dù `CanhBao` vẫn báo số giao dịch sai định dạng. **Đã sửa.**
+- Chế độ chỉ đối chiếu chưa có link tới hóa đơn cho dòng "Chưa ghi sổ". **Đã sửa** (thêm cho cả dòng "Thiếu mã tham chiếu").
+- Nút `btn-sm` trong modal lịch sử dưới 44px trên điện thoại. **Đã sửa.**
 - Chốt chặn "Nghi trùng, kiểm tay": người dùng chọn **để sau** (xem [plan.md](plan.md) mục 5).
+
+### 3.1 Dọn mã và sửa khuyến nghị (25/10/2026, cùng nhánh, chưa commit)
+
+Người dùng yêu cầu làm trên chính nhánh `feature/thanh-toan-truc-tuyen`. Không đổi schema.
+
+- **Dọn mã khách tự tạo lượt/nộp minh chứng** (spec §8): `InvoicePaymentRequestService` và `IInvoicePaymentRequestService` chỉ còn `GetProofImageAsync`. Gỡ thêm những gì chỉ phục vụ các method đã gỡ: `PaymentPanelDto`, `SubmitPaymentProofRequest`, `PaymentCodeGenerator.NewRequestCode`, `InvoicePaymentPolicy.ResolveRequestAmount`, và bốn method của `IInvoicePaymentStore` (`ExistsMaYeuCauAsync`, `ExistsPendingProofMaGiaoDichAsync`, `AddRequest`, `GetTargetByYeuCauAsync`) cùng bản cài ở Infrastructure và fake. Giữ Domain (`YeuCauThanhToanHoaDon.Tao`, `NopMinhChung`) và entity vì còn lượt cũ trong dữ liệu và test dựng dữ liệu bằng chúng. Giữ các tùy chọn `InvoicePaymentOptions` (vẫn có chỗ dùng khác).
+- **Test:** gỡ các test của method đã gỡ (tạo/hủy lượt, nộp minh chứng, khung thanh toán cũ, QR theo lượt, `ResolveRequestAmount`, sinh mã lượt, hai test đồng thời tạo lượt); `InvoicePaymentRequestServiceTests` còn 3 ca đọc ảnh minh chứng (thêm ca không tồn tại và kho ảnh lỗi). Hai test Infrastructure còn cần dữ liệu cũ được viết lại để vẫn kiểm cùng hành vi qua đường còn lại: ghi `HetHan` dù thao tác thất bại (nay qua thu thủ công trên hóa đơn đã thu đủ) và đối chiếu trọn luồng từ minh chứng cũ.
+- **Phân trang đồng bộ bù:** trang không có phần tử hợp lệ nhưng có phần tử sai định dạng và API báo còn trang thì đọc tiếp; trang không có gì cả mà báo còn trang vẫn coi là hết (test cũ giữ nguyên) và vẫn chặn ở 100 trang. 2 test mới.
+- **Link hóa đơn:** `TransferCodeParser.ExtractInvoiceId` (chỉ nhận đúng `TTPTHD{1–9 chữ số}`); dòng `Chưa ghi sổ` và `Thiếu mã tham chiếu` gắn `HoaDonId`/`MaHoaDon` khi hóa đơn có thật, giao diện đã có sẵn cột link. Dòng `Đã có` không có link. Test: 14 ca parser, 6 ca đồng bộ.
+- **Nút trên điện thoại:** `hoadon.css`, `#chiTietModal .btn-list .btn` cao tối thiểu 44px (trước đó quy tắc điện thoại còn thu nhỏ nút xuống padding 0.25rem, chữ 12px).
+
+| Lệnh | Kết quả | Ghi chú |
+| --- | --- | --- |
+| `dotnet build QuanLyChoThuePhongTroWeb.sln` | PASS | 0 lỗi |
+| `dotnet test QuanLyChoThuePhongTroWeb.sln` (một lượt, DB `quanlyphongtro_test`) | PASS | Domain 135/135; Application 1774/1774; Infrastructure 613/613; Web 579/579 |
+| `dotnet ef migrations has-pending-model-changes` | PASS | "No changes have been made to the model since the last migration." |
+| `git diff --check` | PASS | chỉ có cảnh báo LF/CRLF |
+| Đo nút trên app thật (`web-test-db`, hóa đơn có lịch sử thanh toán, viewport giả lập 375px) | PASS | cả hai nút "Biên lai" và "Gửi lại biên lai" cao 44px, chữ 13px; ảnh chụp màn hình lúc giả lập không dùng được nên chỉ có số đo |
+
+Chưa kiểm: link hóa đơn và đọc tiếp phân trang chỉ có test đơn vị (fake client), chưa chạy với API SePay thật (đồng bộ bù vẫn chưa thử tay, mục 6); màn Giao dịch SePay chưa mở trên app thật.
 
 ### Các điểm reviewer đã xác minh ở phần 4
 

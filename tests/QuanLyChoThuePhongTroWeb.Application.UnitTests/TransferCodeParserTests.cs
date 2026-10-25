@@ -92,5 +92,31 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             // Chữ số Ả Rập-Ấn Độ: \d của .NET khớp nhưng int.Parse thì không, nên mẫu chỉ nhận 0-9.
             Assert.Null(TransferCodeParser.Extract(null, "TTPTHD١٠٥", null));
         }
+
+        [Theory]
+        [InlineData("TTPTHD105", 105)]
+        [InlineData("TTPTHD00105", 105)]
+        [InlineData("TTPTHD123456789", 123456789)]
+        [InlineData("TTPTHD1", 1)]
+        public void ExtractInvoiceId_InvoiceCode_ReturnsTheId(string code, int expected)
+        {
+            Assert.Equal(expected, TransferCodeParser.ExtractInvoiceId(code));
+        }
+
+        [Theory]
+        [InlineData(null)]
+        [InlineData("")]
+        [InlineData("DH42")]
+        [InlineData("TTPTHD")]
+        [InlineData("TTPTHD0")]
+        [InlineData("TTPTHD1234567890")]
+        [InlineData("TTPTHD105X")]
+        [InlineData("XTTPTHD105")]
+        [InlineData("ttpthd105")]
+        [InlineData("TTPTHD١٠٥")]
+        public void ExtractInvoiceId_NotAnInvoiceCode_ReturnsNull(string? code)
+        {
+            Assert.Null(TransferCodeParser.ExtractInvoiceId(code));
+        }
     }
 }

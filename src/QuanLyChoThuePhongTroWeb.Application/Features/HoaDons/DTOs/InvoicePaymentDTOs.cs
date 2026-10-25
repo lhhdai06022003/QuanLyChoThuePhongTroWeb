@@ -1,31 +1,10 @@
 using System;
 using System.Collections.Generic;
 using QuanLyChoThuePhongTroWeb.Application.Common.Enums;
-using QuanLyChoThuePhongTroWeb.Application.Common.Files;
 
 namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs
 {
-    // ---------- Khách thuê ----------
-
-    // Khung "Thanh toán" trong modal hóa đơn của khách (spec §27.1).
-    public class PaymentPanelDto
-    {
-        public int HoaDonId { get; set; }
-        public string MaHoaDon { get; set; } = string.Empty;
-        public decimal TongTien { get; set; }
-        public decimal DaThu { get; set; }
-        public decimal ConLai { get; set; }
-        public bool ChoPhepThanhToanMotPhan { get; set; }
-        public decimal? SoTienThanhToanToiThieu { get; set; }
-        public bool CoTheTaoLuot { get; set; }
-        public string? LyDoKhongTheTao { get; set; }
-        // Lượt đang hoạt động, hoặc lượt gần nhất (để báo hết hạn/lý do từ chối).
-        public PaymentRequestDto? LuotGanNhat { get; set; }
-        public DateTime ServerNowUtc { get; set; }
-        public string BankId { get; set; } = string.Empty;
-        public string AccountNumber { get; set; } = string.Empty;
-        public string AccountName { get; set; } = string.Empty;
-    }
+    // ---------- Lượt thanh toán (khách xem, nhân viên đối chiếu) ----------
 
     public class PaymentRequestDto
     {
@@ -67,14 +46,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs
         public string TrangThaiMoi { get; set; } = string.Empty;
         public string NguoiThucHien { get; set; } = string.Empty;
         public string LyDo { get; set; } = string.Empty;
-    }
-
-    public class SubmitPaymentProofRequest
-    {
-        public int YeuCauId { get; set; }
-        public UploadFile? File { get; set; }
-        public string? MaGiaoDichNganHang { get; set; }
-        public DateTime NgayChuyenUtc { get; set; }
     }
 
     // ---------- Đối chiếu (nhân viên/Admin) ----------

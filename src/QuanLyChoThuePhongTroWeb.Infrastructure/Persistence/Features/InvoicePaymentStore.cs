@@ -79,11 +79,6 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 .SumAsync(l => l.SoTienThanhToan, ct);
         }
 
-        public async Task<bool> ExistsMaYeuCauAsync(string maYeuCau, CancellationToken ct = default)
-        {
-            return await _context.YeuCauThanhToanHoaDons.AnyAsync(y => y.MaYeuCau == maYeuCau, ct);
-        }
-
         public async Task<bool> ExistsMaGiaoDichAsync(string maGiaoDich, CancellationToken ct = default)
         {
             var upper = maGiaoDich.Trim().ToUpperInvariant();
@@ -103,22 +98,6 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
             var upper = maGiaoDich.Trim().ToUpperInvariant();
             return await _context.LichSuThanhToans
                 .AnyAsync(l => l.MaGiaoDich.ToUpper() == upper, ct);
-        }
-
-        public async Task<bool> ExistsPendingProofMaGiaoDichAsync(string maGiaoDich, int? exceptMinhChungId, CancellationToken ct = default)
-        {
-            var upper = maGiaoDich.Trim().ToUpperInvariant();
-            return await _context.MinhChungThanhToanHoaDons
-                .AnyAsync(m => !m.IsDeleted &&
-                               m.TrangThaiDoiChieu == TrangThaiMinhChungThanhToan.ChoXacNhan &&
-                               m.MaGiaoDichNganHang != null &&
-                               m.MaGiaoDichNganHang.ToUpper() == upper &&
-                               (exceptMinhChungId == null || m.MinhChungThanhToanHoaDonId != exceptMinhChungId), ct);
-        }
-
-        public void AddRequest(YeuCauThanhToanHoaDon yeuCau)
-        {
-            _context.YeuCauThanhToanHoaDons.Add(yeuCau);
         }
 
         public void AddLedgerEntry(LichSuThanhToan lichSu)
@@ -196,11 +175,6 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 .Where(h => h.HoaDonId == hoaDonId)
                 .Select(TargetProjection)
                 .FirstOrDefaultAsync(ct);
-        }
-
-        public Task<InvoicePaymentTarget?> GetTargetByYeuCauAsync(int yeuCauId, CancellationToken ct = default)
-        {
-            return GetTargetByRequestAsync(y => y.YeuCauThanhToanHoaDonId == yeuCauId, ct);
         }
 
         public Task<InvoicePaymentTarget?> GetTargetByMinhChungAsync(int minhChungId, CancellationToken ct = default)

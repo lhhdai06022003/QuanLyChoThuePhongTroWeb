@@ -92,7 +92,9 @@ public sealed class SePaySyncService(
                 }
             }
 
-            if (!data.HasMore || data.Items.Count == 0)
+            // Trang không có phần tử nào (kể cả phần tử sai định dạng) mà vẫn báo còn trang thì coi là hết, tránh đọc vô ích.
+            // Trang chỉ có phần tử sai định dạng thì phải đọc tiếp, nếu không các trang sau bị bỏ sót mà vẫn báo hoàn tất.
+            if (!data.HasMore || (data.Items.Count == 0 && data.SoGiaoDichSaiDinhDang == 0))
             {
                 completed = true;
                 break;
@@ -148,8 +150,10 @@ public sealed class SePaySyncService(
 
         if (maThamChieu == null)
         {
+            var (hoaDonId, maHoaDon) = await FindInvoiceAsync(maChuyenKhoan, ct);
             return Row(item, maChuyenKhoan, null, SePaySyncRowStatus.ThieuMaThamChieu,
-                "Không chống trùng được với webhook. Nếu là tiền hóa đơn, xử lý bằng Thu thủ công. Kiểm lịch sử thanh toán của hóa đơn trước khi Thu thủ công.");
+                "Không chống trùng được với webhook. Nếu là tiền hóa đơn, xử lý bằng Thu thủ công. Kiểm lịch sử thanh toán của hóa đơn trước khi Thu thủ công.",
+                hoaDonId, maHoaDon);
         }
 
         // SePayId = 0 và có ReferenceCode nên DedupKey luôn là SEPAY-{mã}, cùng khóa với webhook; không bao giờ là SEPAY-ID-0.
@@ -172,13 +176,33 @@ public sealed class SePaySyncService(
         // Chưa kiểm referenceCode (webhook) = reference_number (API): chỉ đối chiếu, tuyệt đối không ghi sổ.
         if (!options.SyncRecordEnabled)
         {
-            return await store.ExistsMaGiaoDichIncludingDeletedAsync(transfer.DedupKey, ct)
-                ? Row(item, maChuyenKhoan, maThamChieu, SePaySyncRowStatus.DaCo, null)
-                : Row(item, maChuyenKhoan, maThamChieu, SePaySyncRowStatus.ChuaGhiSo, "Chế độ chỉ đối chiếu (SePay:SyncRecordEnabled = false). Kiểm lịch sử thanh toán của hóa đơn trước khi Thu thủ công.");
+            if (await store.ExistsMaGiaoDichIncludingDeletedAsync(transfer.DedupKey, ct))
+            {
+                return Row(item, maChuyenKhoan, maThamChieu, SePaySyncRowStatus.DaCo, null);
+            }
+
+            // Dòng chưa ghi sổ cần Admin xử lý tay nên kèm link tới hóa đơn mà mã chuyển khoản trỏ tới.
+            var (invoiceId, invoiceCode) = await FindInvoiceAsync(maChuyenKhoan, ct);
+            return Row(item, maChuyenKhoan, maThamChieu, SePaySyncRowStatus.ChuaGhiSo,
+                "Chế độ chỉ đối chiếu (SePay:SyncRecordEnabled = false). Kiểm lịch sử thanh toán của hóa đơn trước khi Thu thủ công.",
+                invoiceId, invoiceCode);
         }
 
         var outcome = await ingestion.IngestAsync(transfer, ct);
         return FromOutcome(item, maChuyenKhoan, maThamChieu, outcome);
+    }
+
+    // Chỉ để Admin bấm sang hóa đơn: mã chuyển khoản là dữ liệu ngoài nên chỉ nhận khi đúng dạng TTPTHD{Id} và hóa đơn có thật.
+    private async Task<(int? HoaDonId, string? MaHoaDon)> FindInvoiceAsync(string? maChuyenKhoan, CancellationToken ct)
+    {
+        var hoaDonId = TransferCodeParser.ExtractInvoiceId(maChuyenKhoan);
+        if (hoaDonId == null)
+        {
+            return (null, null);
+        }
+
+        var invoice = await store.GetInvoiceSnapshotAsync(hoaDonId.Value, ct);
+        return invoice == null ? (null, null) : (invoice.HoaDonId, invoice.MaHoaDon);
     }
 
     private static SePaySyncRow FromOutcome(SePayApiTransaction item, string? maChuyenKhoan, string? maThamChieu, TransferOutcome outcome)

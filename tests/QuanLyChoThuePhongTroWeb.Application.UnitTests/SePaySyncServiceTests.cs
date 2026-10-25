@@ -271,6 +271,34 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         }
 
         [Fact]
+        public async Task APageOfOnlyMalformedTransactions_DoesNotEndTheRun_WhileThereAreMorePages()
+        {
+            _client.Enqueue(Array.Empty<SePayApiTransaction>(), hasMore: true, malformed: 3);
+            _client.Enqueue(new[] { Tx("a1", "R1") }, hasMore: false);
+
+            var data = await SyncOkAsync();
+
+            Assert.Equal(new[] { 1, 2 }, _client.Calls.Select(c => c.Page));
+            Assert.Single(data.Rows);
+            Assert.True(data.HoanTat);
+            Assert.Equal("3 giao dịch SePay trả về sai định dạng, không xử lý.", data.CanhBao);
+        }
+
+        [Fact]
+        public async Task PagesOfOnlyMalformedTransactions_ThatKeepClaimingMore_StopAtTheMaximumAndAreNotComplete()
+        {
+            _client.Fallback = _ => ServiceResult<SePayTransactionPage>.Ok(
+                new SePayTransactionPage(Array.Empty<SePayApiTransaction>(), HasMore: true, SoGiaoDichSaiDinhDang: 1));
+
+            var data = await SyncOkAsync();
+
+            Assert.Equal(SePaySyncService.MaxPages, _client.Calls.Count);
+            Assert.False(data.HoanTat);
+            Assert.Equal("Dừng ở trang 100: thu hẹp khoảng ngày rồi đồng bộ lại.", data.LoiDongBo);
+            Assert.Equal("100 giao dịch SePay trả về sai định dạng, không xử lý.", data.CanhBao);
+        }
+
+        [Fact]
         public async Task WithoutMalformedTransactions_ThereIsNoWarning()
         {
             _client.Enqueue(new[] { Tx() }, hasMore: false);
@@ -551,6 +579,80 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
 
             Assert.Equal(SePaySyncRowStatus.BoQua, rows[0].TrangThai);
             Assert.Equal(SePaySyncRowStatus.ThieuMaThamChieu, rows[1].TrangThai);
+            Assert.Empty(_ingestion.Transfers);
+        }
+
+        // Admin xử lý tay dòng "Chưa ghi sổ" nên cần bấm sang đúng hóa đơn mà mã chuyển khoản trỏ tới.
+        [Fact]
+        public async Task CheckOnlyMode_LinksAnUnrecordedTransactionToTheInvoiceItsCodePointsTo()
+        {
+            _options.SyncRecordEnabled = false;
+            var h = new PaymentTestHarness();
+            h.AddSentInvoice();
+            _client.Enqueue(new[] { Tx("a", "FT-NEW") }, hasMore: false);
+            var service = new SePaySyncService(_client, _ingestion, _access, _options, h.Store, _log);
+
+            var row = Assert.Single((await service.SyncAsync(AdminId, Range())).Data!.Rows);
+
+            Assert.Equal(SePaySyncRowStatus.ChuaGhiSo, row.TrangThai);
+            Assert.Equal(7, row.HoaDonId);
+            Assert.Equal("HD-7", row.MaHoaDon);
+        }
+
+        [Fact]
+        public async Task CheckOnlyMode_DoesNotLinkATransactionAlreadyInTheLedger()
+        {
+            _options.SyncRecordEnabled = false;
+            var h = new PaymentTestHarness();
+            h.AddSentInvoice();
+            h.AddSePayLedger(7, 1_000_000m, "FT-ACTIVE", PaymentTestHarness.Now.AddDays(-1));
+            _client.Enqueue(new[] { Tx("a", "FT-ACTIVE") }, hasMore: false);
+            var service = new SePaySyncService(_client, _ingestion, _access, _options, h.Store, _log);
+
+            var row = Assert.Single((await service.SyncAsync(AdminId, Range())).Data!.Rows);
+
+            Assert.Equal(SePaySyncRowStatus.DaCo, row.TrangThai);
+            Assert.Null(row.HoaDonId);
+        }
+
+        [Theory]
+        [InlineData("Nguyen Van A TTPTHD404", null)]
+        [InlineData("Nguyen Van A TTPTHD7", "DH42")]
+        [InlineData("chuyen tien phong", null)]
+        public async Task CheckOnlyMode_DoesNotLink_WhenTheInvoiceDoesNotExist_OrTheCodeIsNotAnInvoiceCode(string content, string? code)
+        {
+            _options.SyncRecordEnabled = false;
+            var h = new PaymentTestHarness();
+            h.AddSentInvoice();
+            _client.Enqueue(new[] { Tx("a", "FT-NEW", content: content, code: code) }, hasMore: false);
+            var service = new SePaySyncService(_client, _ingestion, _access, _options, h.Store, _log);
+
+            var row = Assert.Single((await service.SyncAsync(AdminId, Range())).Data!.Rows);
+
+            Assert.Equal(SePaySyncRowStatus.ChuaGhiSo, row.TrangThai);
+            Assert.Null(row.HoaDonId);
+            Assert.Null(row.MaHoaDon);
+        }
+
+        [Fact]
+        public async Task MissingReference_IsLinkedToTheInvoiceItsCodePointsTo_InBothModes()
+        {
+            var h = new PaymentTestHarness();
+            h.AddSentInvoice();
+            var service = new SePaySyncService(_client, _ingestion, _access, _options, h.Store, _log);
+
+            foreach (var syncRecordEnabled in new[] { false, true })
+            {
+                _options.SyncRecordEnabled = syncRecordEnabled;
+                _client.Enqueue(new[] { Tx("a", reference: null) }, hasMore: false);
+
+                var row = Assert.Single((await service.SyncAsync(AdminId, Range())).Data!.Rows);
+
+                Assert.Equal(SePaySyncRowStatus.ThieuMaThamChieu, row.TrangThai);
+                Assert.Equal(7, row.HoaDonId);
+                Assert.Equal("HD-7", row.MaHoaDon);
+            }
+
             Assert.Empty(_ingestion.Transfers);
         }
 

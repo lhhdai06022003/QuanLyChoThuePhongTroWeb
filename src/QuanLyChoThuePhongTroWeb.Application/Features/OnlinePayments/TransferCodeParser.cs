@@ -11,6 +11,11 @@ public static class TransferCodeParser
         @"TTPT\s*HD\s*([0-9]{1,9})(?![0-9])",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
+    // Đúng dạng mã hóa đơn đã chuẩn hóa (TTPTHD + 1–9 chữ số), không phải tiền tố khác hay trường code tự do.
+    private static readonly Regex InvoiceCodeExact = new(
+        @"^TTPTHD([0-9]{1,9})$",
+        RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
     // Trả mã đã chuẩn hóa (bỏ khoảng trắng, viết hoa), ví dụ "TTPTHD105"; null nếu không có.
     // Ưu tiên trường code của SePay; chỉ khi trường này rỗng mới tìm trong content rồi description.
     public static string? Extract(string? code, string? content, string? description)
@@ -32,5 +37,17 @@ public static class TransferCodeParser
 
         var match = InvoiceCodePattern.Match(text);
         return match.Success ? "TTPTHD" + match.Groups[1].Value : null;
+    }
+
+    // HoaDonId trong mã đã chuẩn hóa của Extract (ví dụ "TTPTHD105" -> 105); null nếu không phải mã hóa đơn hoặc id bằng 0.
+    public static int? ExtractInvoiceId(string? transferCode)
+    {
+        if (string.IsNullOrEmpty(transferCode))
+        {
+            return null;
+        }
+
+        var match = InvoiceCodeExact.Match(transferCode);
+        return match.Success && int.TryParse(match.Groups[1].Value, out var id) && id > 0 ? id : null;
     }
 }

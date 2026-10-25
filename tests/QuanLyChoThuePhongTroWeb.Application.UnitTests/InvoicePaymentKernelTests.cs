@@ -9,50 +9,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
 {
     public class InvoicePaymentKernelTests
     {
-        // ---------- InvoicePaymentPolicy.ResolveRequestAmount (spec §10) ----------
-
-        [Fact]
-        public void ResolveRequestAmount_NoAmount_UsesRemaining()
-        {
-            var (soTien, error) = InvoicePaymentPolicy.ResolveRequestAmount(1_500_000m, false, null, null);
-
-            Assert.Null(error);
-            Assert.Equal(1_500_000m, soTien);
-        }
-
-        [Theory]
-        [InlineData(500_000, true, 300_000, null)]
-        [InlineData(300_000, true, 300_000, null)]
-        [InlineData(200_000, true, 300_000, "tối thiểu")]
-        [InlineData(500_000, false, null, "không cho phép thanh toán một phần")]
-        [InlineData(2_500_000, true, 300_000, "vượt số còn lại")]
-        [InlineData(500_000.5, true, 300_000, "số nguyên")]
-        [InlineData(0, true, 300_000, "số nguyên")]
-        public void ResolveRequestAmount_PartialRules(decimal yeuCau, bool choPhep, int? toiThieu, string? expectedError)
-        {
-            var (_, error) = InvoicePaymentPolicy.ResolveRequestAmount(2_000_000m, choPhep, toiThieu, yeuCau);
-
-            if (expectedError == null)
-            {
-                Assert.Null(error);
-            }
-            else
-            {
-                Assert.Contains(expectedError, error);
-            }
-        }
-
-        [Fact]
-        public void ResolveRequestAmount_RemainingBelowMinimum_MustPayExactRemaining()
-        {
-            var (_, partialError) = InvoicePaymentPolicy.ResolveRequestAmount(200_000m, true, 300_000m, 100_000m);
-            var (exact, exactError) = InvoicePaymentPolicy.ResolveRequestAmount(200_000m, true, 300_000m, 200_000m);
-
-            Assert.Contains("đúng 200.000đ", partialError);
-            Assert.Null(exactError);
-            Assert.Equal(200_000m, exact);
-        }
-
         // ---------- InvoicePaymentPolicy.DecideRecording (spec §13.2) ----------
 
         [Theory]
@@ -201,11 +157,9 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
 
             for (var i = 0; i < 200; i++)
             {
-                Assert.Matches(new Regex("^TT42[A-HJ-NP-Z2-9]{6}$"), generator.NewRequestCode(42));
+                Assert.Matches(new Regex("^TM-20261004-[A-HJ-NP-Z2-9]{8}$"),
+                    generator.NewLedgerCode("TM", new DateTime(2026, 10, 3, 18, 0, 0, DateTimeKind.Utc)));
             }
-
-            Assert.Matches(new Regex("^TM-20261004-[A-HJ-NP-Z2-9]{8}$"),
-                generator.NewLedgerCode("TM", new DateTime(2026, 10, 3, 18, 0, 0, DateTimeKind.Utc)));
         }
     }
 }

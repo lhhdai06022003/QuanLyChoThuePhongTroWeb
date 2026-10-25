@@ -6,9 +6,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Payments
 {
     public interface IPaymentCodeGenerator
     {
-        // TT{HoaDonId}{6 ký tự}; dùng làm nội dung chuyển khoản (spec §10.1).
-        string NewRequestCode(int hoaDonId);
-
         // {prefix}-{yyyyMMdd}-{8 ký tự}, ví dụ TM-20261003-AB12CD34 cho tiền mặt (spec §18).
         string NewLedgerCode(string prefix, DateTime nowUtc);
     }
@@ -17,11 +14,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Payments
     {
         // Bỏ O, I, 0, 1 để khách đọc và gõ lại không nhầm.
         private const string Alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-
-        public string NewRequestCode(int hoaDonId)
-        {
-            return $"TT{hoaDonId}{RandomChars(6)}";
-        }
 
         public string NewLedgerCode(string prefix, DateTime nowUtc)
         {

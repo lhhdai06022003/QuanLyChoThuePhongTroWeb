@@ -40,54 +40,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Payments
                 : null;
         }
 
-        // Số tiền khách được tạo cho lượt (spec §10, mục 3–6). soTienYeuCau null nghĩa là trả đúng số còn lại.
-        public static (decimal SoTien, string? Error) ResolveRequestAmount(
-            decimal conLai,
-            bool choPhepMotPhan,
-            decimal? soTienToiThieu,
-            decimal? soTienYeuCau)
-        {
-            if (conLai <= 0)
-            {
-                return (0, "Hóa đơn không còn số tiền cần thanh toán.");
-            }
-
-            if (!soTienYeuCau.HasValue || soTienYeuCau.Value == conLai)
-            {
-                return (conLai, null);
-            }
-
-            var soTien = soTienYeuCau.Value;
-            var amountError = ValidateWholeAmount(soTien, "Số tiền thanh toán");
-            if (amountError != null)
-            {
-                return (0, amountError);
-            }
-
-            if (soTien > conLai)
-            {
-                return (0, $"Số tiền vượt số còn lại của hóa đơn ({FormatVnd(conLai)}đ).");
-            }
-
-            if (!choPhepMotPhan)
-            {
-                return (0, "Hóa đơn này không cho phép thanh toán một phần, vui lòng thanh toán đúng số còn lại.");
-            }
-
-            var toiThieu = soTienToiThieu ?? 0;
-            if (conLai < toiThieu)
-            {
-                return (0, $"Số còn lại nhỏ hơn mức tối thiểu nên phải thanh toán đúng {FormatVnd(conLai)}đ.");
-            }
-
-            if (soTien < toiThieu)
-            {
-                return (0, $"Số tiền thanh toán tối thiểu là {FormatVnd(toiThieu)}đ.");
-            }
-
-            return (soTien, null);
-        }
-
         // Bảng rẽ nhánh spec §13.2. soTienLuot null dùng cho thu thủ công (§18), khi đó không có chênh lệch.
         // Kiểm vượt nợ trước để không bao giờ ghi ledger vượt TongTien.
         public static RecordingDecision DecideRecording(decimal thucNhan, decimal? soTienLuot, decimal conLai, bool isAdmin)

@@ -1,5 +1,4 @@
 using System;
-using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -63,13 +62,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             public Task DeleteAsync(string publicId, CancellationToken cancellationToken = default) => Task.CompletedTask;
         }
 
-        private class FakeVietQr : IVietQRService
-        {
-            public string GenerateVietQRString(string bankIdOrBin, string accountNumber, decimal amount, string memo) => "QR";
-            public byte[] GenerateQRCodePNGBytes(string payload) => new byte[] { 9 };
-        }
-
-        private sealed record Services(InvoiceLedgerService Ledger, InvoicePaymentRequestService Requests, InvoicePaymentConfirmationService Confirmation);
+        private sealed record Services(InvoiceLedgerService Ledger, InvoicePaymentConfirmationService Confirmation);
 
         private static Services CreateServices(ApplicationDbContext ctx)
         {
@@ -81,7 +74,6 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             var transaction = new InvoicePaymentTransaction(store, new EfUnitOfWork(ctx), new NoOpNotifier(), NullLogger<InvoicePaymentTransaction>.Instance);
             return new Services(
                 new InvoiceLedgerService(store, transaction, access, codes, options),
-                new InvoicePaymentRequestService(store, transaction, codes, storage, new FakeVietQr(), new VietQrSettings(), options, NullLogger<InvoicePaymentRequestService>.Instance),
                 new InvoicePaymentConfirmationService(store, transaction, access, storage, options, NullLogger<InvoicePaymentConfirmationService>.Instance));
         }
 
@@ -256,36 +248,6 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
         }
 
         [Fact]
-        public async Task TwoRequestCreations_Concurrent_CreateSingleRequest()
-        {
-            var seeded = await SeedSentInvoiceAsync("tao_luot");
-
-            var results = await RunBlockedAsync(new[] { seeded.InvoiceId },
-                s => s.Requests.CreateAsync(seeded.InvoiceId, seeded.NguoiThueId, seeded.TenantUserId, null),
-                s => s.Requests.CreateAsync(seeded.InvoiceId, seeded.NguoiThueId, seeded.TenantUserId, null));
-
-            Assert.Equal(1, results.Count(r => r.Success));
-
-            await using var verifyCtx = _fixture.CreateDbContext();
-            var request = Assert.Single(await verifyCtx.YeuCauThanhToanHoaDons.Where(y => y.HoaDonId == seeded.InvoiceId).ToListAsync());
-            Assert.Equal(request.MaYeuCau, request.NoiDungChuyenKhoan);
-            Assert.Equal(1_500_000m, request.SoTien);
-            Assert.Equal(1, await verifyCtx.LichSuTrangThaiYeuCauThanhToanHoaDons.CountAsync(l => l.YeuCauThanhToanHoaDonId == request.YeuCauThanhToanHoaDonId));
-        }
-
-        // Khách đã trả phòng vẫn thanh toán được hóa đơn của mình (spec §4.1, nghiệm thu 12).
-        [Fact]
-        public async Task TerminatedContract_TenantCanStillCreateRequest()
-        {
-            var seeded = await SeedSentInvoiceAsync("thanh_ly", trangThaiHopDong: TrangThaiHopDong.DaKetThuc);
-
-            await using var ctx = _fixture.CreateDbContext();
-            var result = await CreateServices(ctx).Requests.CreateAsync(seeded.InvoiceId, seeded.NguoiThueId, seeded.TenantUserId, null);
-
-            Assert.True(result.Success, result.Message);
-        }
-
-        [Fact]
         public async Task ConfirmAndManualCollection_Concurrent_NeverExceedTotal()
         {
             var seeded = await SeedSentInvoiceAsync("xn_thu", choPhepMotPhan: true);
@@ -361,17 +323,31 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             Assert.Equal(1, await context.LichSuThanhToans.AsNoTracking().CountAsync(l => l.MaGiaoDich == dupCode));
         }
 
+        // Lượt chờ thanh toán đã quá hạn được ghi HetHan dù thao tác đang chạy trong khung thất bại (thu thủ công trên hóa đơn đã thu đủ).
         [Fact]
         public async Task ExpiredRequest_IsPersistedAsHetHan_EvenWhenOperationFails()
         {
             var seeded = await SeedSentInvoiceAsync("het_han");
             var request = await SeedRequestAsync(seeded, 1_500_000m, DateTime.UtcNow.AddHours(-30));
+            await using (var ctx = _fixture.CreateDbContext())
+            {
+                ctx.LichSuThanhToans.Add(new LichSuThanhToan
+                {
+                    HoaDonId = seeded.InvoiceId,
+                    MaGiaoDich = $"TM-HETHAN-{Guid.NewGuid():N}"[..24],
+                    SoTienThanhToan = 1_500_000m,
+                    PhuongThucThanhToan = PhuongThucThanhToan.TienMat
+                });
+                var invoice = await ctx.HoaDons.FirstAsync(h => h.HoaDonId == seeded.InvoiceId);
+                invoice.TrangThaiHoaDon = TrangThaiHoaDon.DaThanhToan;
+                await ctx.SaveChangesAsync();
+            }
 
             await using (var ctx = _fixture.CreateDbContext())
             {
-                var result = await CreateServices(ctx).Requests.CancelAsync(request.YeuCauThanhToanHoaDonId, seeded.NguoiThueId, seeded.TenantUserId);
+                var result = await CreateServices(ctx).Ledger.CollectManuallyAsync(Cash(seeded.InvoiceId, 1_000_000m), seeded.ActorId);
                 Assert.False(result.Success);
-                Assert.Contains("hết hạn", result.Message);
+                Assert.Equal("Hóa đơn này đã được thanh toán đủ.", result.Message);
             }
 
             await using var verifyCtx = _fixture.CreateDbContext();
@@ -385,41 +361,19 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             Assert.Null(history.NguoiThucHienId);
         }
 
+        // Lượt cũ có minh chứng đã nộp (khách không còn tự nộp, spec thanh toán trực tuyến §8): nhân viên vẫn đối chiếu xong được.
         [Fact]
-        public async Task SubmitConfirmFlow_PersistsProofLedgerAndNotifications()
+        public async Task ConfirmFlow_OfALegacyProof_PersistsLedgerAndNotifications()
         {
             var seeded = await SeedSentInvoiceAsync("tron_luong");
-            int yeuCauId;
-            await using (var ctx = _fixture.CreateDbContext())
-            {
-                var created = await CreateServices(ctx).Requests.CreateAsync(seeded.InvoiceId, seeded.NguoiThueId, seeded.TenantUserId, null);
-                Assert.True(created.Success, created.Message);
-                yeuCauId = created.Data!.YeuCauId;
-            }
+            var request = await SeedRequestAsync(seeded, 1_500_000m, DateTime.UtcNow.AddMinutes(-10), withProof: true);
+            var proofId = request.MinhChungThanhToanHoaDons.Single().MinhChungThanhToanHoaDonId;
 
             await using (var ctx = _fixture.CreateDbContext())
             {
-                var bytes = new byte[] { 0xFF, 0xD8, 0xFF, 0xE0, 0, 0, 0, 0, 0, 0, 0, 0 };
-                var submitted = await CreateServices(ctx).Requests.SubmitProofAsync(new SubmitPaymentProofRequest
-                {
-                    YeuCauId = yeuCauId,
-                    File = new UploadFile(new MemoryStream(bytes), "a.jpg", "image/jpeg", bytes.Length),
-                    NgayChuyenUtc = DateTime.UtcNow.AddMinutes(-3)
-                }, seeded.NguoiThueId, seeded.TenantUserId);
-                Assert.True(submitted.Success, submitted.Message);
-            }
-
-            await using (var verifyCtx = _fixture.CreateDbContext())
-            {
-                var proof = await verifyCtx.MinhChungThanhToanHoaDons.SingleAsync(m => m.YeuCauThanhToanHoaDonId == yeuCauId);
-                Assert.StartsWith("payment-proofs/", proof.PublicId);
-                // Nhân viên được phân công nhận thông báo; Admin (nếu có trong DB) cũng nhận.
-                Assert.True(await verifyCtx.ThongBaos.AnyAsync(t => t.NguoiDungId == seeded.ActorId && t.LinhVuc == "HoaDon"));
-
-                await using var ctx = _fixture.CreateDbContext();
                 var confirmed = await CreateServices(ctx).Confirmation.ConfirmAsync(new ConfirmPaymentRequest
                 {
-                    MinhChungId = proof.MinhChungThanhToanHoaDonId,
+                    MinhChungId = proofId,
                     SoTienThucNhan = 1_500_000m,
                     NgayGiaoDichUtc = DateTime.UtcNow.AddMinutes(-2)
                 }, seeded.ActorId);
@@ -455,7 +409,6 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             var target = await store.GetTargetByMaYeuCauAsync($"  {request.MaYeuCau.ToLowerInvariant()} ");
             Assert.Equal(seeded.InvoiceId, target!.HoaDonId);
             Assert.Equal(seeded.ChiNhanhId, target.ChiNhanhId);
-            Assert.True(await store.ExistsPendingProofMaGiaoDichAsync("ft-q1", null));
 
             var waiting = await store.GetReviewQueueAsync(new ReviewQueueQuery { ChiNhanhId = seeded.ChiNhanhId, ChiChoAdmin = true, Length = 10 });
             var row = Assert.Single(waiting.Rows);

@@ -28,7 +28,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
         public List<int> AdminUserIds { get; } = new();
         public Dictionary<int, List<int>> StaffUserIdsByBranch { get; } = new();
         public Dictionary<int, int> TenantUserIdByHopDong { get; } = new();
-        public HashSet<string> TakenRequestCodes { get; } = new();
         public Dictionary<int, string> UserNames { get; } = new();
 
         public int LockCalls { get; private set; }
@@ -138,11 +137,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
             return Task.FromResult(Ledger.Where(l => l.HoaDonId == hoaDonId && !l.IsDeleted).Sum(l => l.SoTienThanhToan));
         }
 
-        public Task<bool> ExistsMaYeuCauAsync(string maYeuCau, CancellationToken ct = default)
-        {
-            return Task.FromResult(TakenRequestCodes.Contains(maYeuCau) || Requests.Any(r => r.MaYeuCau == maYeuCau));
-        }
-
         public Task<bool> ExistsMaGiaoDichAsync(string maGiaoDich, CancellationToken ct = default)
         {
             return Task.FromResult(Ledger.Any(l => !l.IsDeleted && string.Equals(l.MaGiaoDich, maGiaoDich.Trim(), StringComparison.OrdinalIgnoreCase)));
@@ -158,15 +152,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
             return Task.FromResult(Ledger.Any(l => string.Equals(l.MaGiaoDich, maGiaoDich.Trim(), StringComparison.OrdinalIgnoreCase)));
         }
 
-        public Task<bool> ExistsPendingProofMaGiaoDichAsync(string maGiaoDich, int? exceptMinhChungId, CancellationToken ct = default)
-        {
-            return Task.FromResult(Proofs.Any(p => !p.IsDeleted &&
-                p.TrangThaiDoiChieu == TrangThaiMinhChungThanhToan.ChoXacNhan &&
-                string.Equals(p.MaGiaoDichNganHang, maGiaoDich.Trim(), StringComparison.OrdinalIgnoreCase) &&
-                p.MinhChungThanhToanHoaDonId != exceptMinhChungId));
-        }
-
-        public void AddRequest(YeuCauThanhToanHoaDon yeuCau) => Requests.Add(yeuCau);
         public void AddLedgerEntry(LichSuThanhToan lichSu) => Ledger.Add(lichSu);
         public void AddNotification(ThongBao thongBao) => Notifications.Add(thongBao);
 
@@ -189,12 +174,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
         public Task<InvoicePaymentTarget?> GetTargetByHoaDonAsync(int hoaDonId, CancellationToken ct = default)
         {
             return Task.FromResult(BuildTarget(hoaDonId, null));
-        }
-
-        public Task<InvoicePaymentTarget?> GetTargetByYeuCauAsync(int yeuCauId, CancellationToken ct = default)
-        {
-            var request = Requests.FirstOrDefault(r => r.YeuCauThanhToanHoaDonId == yeuCauId && !r.IsDeleted);
-            return Task.FromResult(request == null ? null : BuildTarget(request.HoaDonId, request));
         }
 
         public Task<InvoicePaymentTarget?> GetTargetByMinhChungAsync(int minhChungId, CancellationToken ct = default)

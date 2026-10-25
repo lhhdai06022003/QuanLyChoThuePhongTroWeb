@@ -61,6 +61,7 @@ Thứ tự bắt buộc: phần 1 trước (các phần sau dùng cùng ghi sổ
 ## 4. Việc phát sinh ngoài kế hoạch gốc
 
 - Sau khi thử tay (20/10/2026): sửa giao diện responsive của modal chi tiết hóa đơn ở ba màn (khách thuê, quản lý, lịch sử thanh toán). Chỉ đổi view, CSS và JS; ghi ở báo cáo ngày 2026-10-20.
+- 25/10/2026, làm trên nhánh này theo yêu cầu của người dùng (không tạo nhánh mới): dọn mã khách tự tạo lượt/nộp minh chứng không còn ai gọi (service, DTO, chính sách số tiền, bộ sinh mã lượt, bốn method store, test và fake tương ứng; giữ Domain và entity vì còn lượt cũ) và làm ba khuyến nghị nhỏ của review phần 4. Không đổi schema. Chi tiết ở [README.md](README.md) và [review.md](review.md) mục 3.
 
 ## 5. Việc để sau (chưa có spec hoặc chưa làm)
 
@@ -68,5 +69,5 @@ Thứ tự bắt buộc: phần 1 trước (các phần sau dùng cùng ghi sổ
 - Thử tay đồng bộ bù và thử với giao dịch thật (mới thử trên Test mode).
 - Đợt 2 VNPay: cần spec riêng (spec §12).
 - Docker: spec riêng khi cần deploy (spec §14).
-- Dọn các method cũ trong `InvoicePaymentRequestService`, outbox thông báo, lưu giao dịch không khớp (cần đổi schema, spec §14).
+- Outbox thông báo, lưu giao dịch không khớp (cần đổi schema, spec §14). Dọn các method cũ trong `InvoicePaymentRequestService` đã làm ngày 25/10/2026 (mục 4).
 - Gộp nhánh vào `master`: chờ người dùng quyết định.

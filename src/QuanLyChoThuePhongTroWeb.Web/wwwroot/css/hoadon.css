@@ -503,9 +503,14 @@ html[data-bs-theme="dark"] .swal2-popup .swal2-styled.swal2-confirm {
         gap: 0.25rem;
     }
 
+    /* Vùng chạm tối thiểu 44px (Tabler .btn-sm chỉ cao ~28px) */
     #chiTietModal .btn-list .btn {
-        padding: 0.25rem 0.5rem;
-        font-size: 0.75rem;
+        min-height: 44px;
+        padding: 0.25rem 0.75rem;
+        font-size: 0.8125rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
     }
 }
 
