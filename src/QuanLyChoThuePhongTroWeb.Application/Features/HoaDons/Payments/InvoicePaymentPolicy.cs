@@ -33,6 +33,12 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Payments
         // Báo lỗi khi mã giao dịch nhập tay hoặc khách khai trùng một dòng sổ SePay chưa xóa (spec thanh toán trực tuyến §5.4).
         public const string SePayAlreadyRecordedMessage = "Mã giao dịch này đã được hệ thống ghi nhận tự động qua SePay.";
 
+        // Tiền tố MaGiaoDich của dòng sổ do IPN VNPay ghi (spec VNPay §6).
+        public const string VnPayMaGiaoDichPrefix = "VNPAY-";
+
+        // Báo lỗi khi mã giao dịch nhập tay hoặc khách khai trùng một dòng sổ VNPay chưa xóa (spec VNPay §6.1).
+        public const string VnPayAlreadyRecordedMessage = "Mã giao dịch này đã được hệ thống ghi nhận tự động qua VNPay.";
+
         public static string? ValidateWholeAmount(decimal soTien, string tenTruong)
         {
             return soTien <= 0 || !InvoiceMoney.IsWholeVnd(soTien)
@@ -131,6 +137,43 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Payments
 
             var reference = maGiaoDich[SePayMaGiaoDichPrefix.Length..];
             return string.IsNullOrWhiteSpace(reference) ? null : reference;
+        }
+
+        // Khóa MaGiaoDich của dòng sổ do VNPay ghi từ vnp_TransactionNo: "VNPAY-" + mã bỏ mọi khoảng trắng, viết hoa
+        // (cùng cách SePayLedgerKey).
+        public static string VnPayLedgerKey(string transactionNo)
+        {
+            return VnPayMaGiaoDichPrefix + new string(transactionNo.Where(c => !char.IsWhiteSpace(c)).ToArray()).ToUpperInvariant();
+        }
+
+        // Dòng sổ do IPN VNPay ghi: MaGiaoDich bắt đầu "VNPAY-", không phân biệt hoa thường.
+        public static bool IsVnPayKey(string? maGiaoDich)
+        {
+            return maGiaoDich != null && maGiaoDich.StartsWith(VnPayMaGiaoDichPrefix, StringComparison.OrdinalIgnoreCase);
+        }
+
+        // Mã giao dịch VNPay của dòng VNPAY-{X} là X, đúng như đã lưu. Không phải khóa VNPay hoặc X rỗng thì null.
+        public static string? VnPayReference(string? maGiaoDich)
+        {
+            if (!IsVnPayKey(maGiaoDich))
+            {
+                return null;
+            }
+
+            var reference = maGiaoDich![VnPayMaGiaoDichPrefix.Length..];
+            return string.IsNullOrWhiteSpace(reference) ? null : reference;
+        }
+
+        // Dòng hệ thống tự ghi từ cổng thanh toán trực tuyến (SePay hoặc VNPay).
+        public static bool IsSystemRecordedKey(string? maGiaoDich)
+        {
+            return IsSePayKey(maGiaoDich) || IsVnPayKey(maGiaoDich);
+        }
+
+        // Mã tham chiếu hiển thị của dòng tự ghi: mã ngân hàng của SePay hoặc vnp_TransactionNo của VNPay.
+        public static string? AutoPaymentReference(string? maGiaoDich)
+        {
+            return SePayBankReference(maGiaoDich) ?? VnPayReference(maGiaoDich);
         }
 
         public static string? ValidateMaGiaoDich(string? maGiaoDich)

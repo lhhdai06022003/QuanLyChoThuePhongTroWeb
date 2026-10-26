@@ -43,7 +43,9 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Payments
         // Cùng tiền tố [CHO-ADMIN] để IsWaitingAdmin và hàng đợi "chờ Admin" nhận ra.
         public static string ChoAdminTrungSePay(string maGiaoDichSePay, decimal thucNhan, string? ghiChu)
         {
-            var text = $"{ChoAdminPrefix} Hóa đơn đã nhận chuyển khoản tự động {maGiaoDichSePay} sau khi khách nộp minh chứng; thực nhận {InvoicePaymentPolicy.FormatVnd(thucNhan)}, cần Admin kiểm trùng.";
+            // Dòng VNPAY-… dùng câu chữ riêng cho kênh VNPay (spec VNPay §6.1).
+            var cumDaNhan = InvoicePaymentPolicy.IsVnPayKey(maGiaoDichSePay) ? "đã nhận thanh toán VNPay tự động" : "đã nhận chuyển khoản tự động";
+            var text = $"{ChoAdminPrefix} Hóa đơn {cumDaNhan} {maGiaoDichSePay} sau khi khách nộp minh chứng; thực nhận {InvoicePaymentPolicy.FormatVnd(thucNhan)}, cần Admin kiểm trùng.";
             return string.IsNullOrWhiteSpace(ghiChu) ? text : $"{text} {ghiChu.Trim()}";
         }
 

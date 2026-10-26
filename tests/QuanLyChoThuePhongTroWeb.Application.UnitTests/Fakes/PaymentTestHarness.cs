@@ -143,6 +143,28 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
             return ledger;
         }
 
+        // Dòng sổ do IPN VNPay ghi: khóa VNPAY-{vnp_TransactionNo}, hệ thống xác nhận (NguoiXacNhanId null), ghi lúc recordedAtUtc.
+        public LichSuThanhToan AddVnPayLedger(int hoaDonId, decimal soTien, string transactionNo, DateTime recordedAtUtc, bool isDeleted = false)
+        {
+            var ledger = new LichSuThanhToan
+            {
+                HoaDonId = hoaDonId,
+                MaGiaoDich = InvoicePaymentPolicy.VnPayLedgerKey(transactionNo),
+                SoTienThanhToan = soTien,
+                PhuongThucThanhToan = PhuongThucThanhToan.ChuyenKhoan,
+                NgayThanhToan = recordedAtUtc,
+                NgayXacNhan = recordedAtUtc,
+                NguoiXacNhanId = null,
+                IsDeleted = isDeleted
+            };
+            Store.Ledger.Add(ledger);
+            Store.AssignIds();
+            var hoaDon = Store.Invoices[hoaDonId];
+            var tong = Store.Ledger.Where(l => l.HoaDonId == hoaDonId && !l.IsDeleted).Sum(l => l.SoTienThanhToan);
+            hoaDon.TrangThaiHoaDon = tong == 0 ? TrangThaiHoaDon.ChuaThanhToan : tong == hoaDon.TongTien ? TrangThaiHoaDon.DaThanhToan : TrangThaiHoaDon.ThanhToanMotPhan;
+            return ledger;
+        }
+
         public static UploadFile JpegFile(string fileName = "bienlai.jpg")
         {
             var bytes = new byte[] { 0xFF, 0xD8, 0xFF, 0xE0, 0, 0x10, 0x4A, 0x46, 0x49, 0x46, 0, 1, 2, 3 };

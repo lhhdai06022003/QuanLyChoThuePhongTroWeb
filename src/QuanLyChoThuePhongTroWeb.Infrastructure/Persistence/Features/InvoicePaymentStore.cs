@@ -464,12 +464,13 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
 
         public async Task<string?> FindSystemSePayEntryRecordedAfterAsync(int hoaDonId, DateTime sinceUtc, CancellationToken ct = default)
         {
-            var prefix = InvoicePaymentPolicy.SePayMaGiaoDichPrefix;
+            var sePayPrefix = InvoicePaymentPolicy.SePayMaGiaoDichPrefix;
+            var vnPayPrefix = InvoicePaymentPolicy.VnPayMaGiaoDichPrefix;
             return await _context.LichSuThanhToans
                 .AsNoTracking()
                 .Where(l => l.HoaDonId == hoaDonId &&
                             !l.IsDeleted &&
-                            l.MaGiaoDich.StartsWith(prefix) &&
+                            (l.MaGiaoDich.StartsWith(sePayPrefix) || l.MaGiaoDich.StartsWith(vnPayPrefix)) &&
                             l.NguoiXacNhanId == null &&
                             l.NgayXacNhan != null &&
                             l.NgayXacNhan >= sinceUtc)

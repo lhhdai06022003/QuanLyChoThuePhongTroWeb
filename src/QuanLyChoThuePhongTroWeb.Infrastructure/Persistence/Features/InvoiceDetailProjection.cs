@@ -95,7 +95,8 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                     NguoiXacNhan = ls.NguoiXacNhan?.TenDangNhap ?? "",
                     GhiChu = PaymentNoteTags.ToDisplayText(ls.GhiChu),
                     LaSePay = InvoicePaymentPolicy.IsSePayKey(ls.MaGiaoDich),
-                    MaThamChieu = InvoicePaymentPolicy.SePayBankReference(ls.MaGiaoDich)
+                    LaVnPay = InvoicePaymentPolicy.IsVnPayKey(ls.MaGiaoDich),
+                    MaThamChieu = InvoicePaymentPolicy.AutoPaymentReference(ls.MaGiaoDich)
                 }).ToList()
             };
         }

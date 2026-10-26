@@ -399,7 +399,7 @@ Kịch bản §11.3 chạy được hoàn toàn trên sandbox; chỉ TC04 (deepl
 
 - Tab "Thẻ ATM / Visa / MasterCard (VNPay)" là **kênh phụ**; chuyển khoản QR vẫn là mặc định. Thẻ có phí giao dịch và chạy thật cần đăng ký merchant; đồ án dùng sandbox.
 - IPN `GET /api/webhooks/payment/vnpay-ipn` và ReturnUrl; xác thực HMAC-SHA512; `vnp_TxnRef = HD{HoaDonId}_{Ticks}`; khóa chống trùng `VNPAY-{vnp_TransactionNo}`; ghi sổ qua cùng `InvoicePaymentTransaction`, cùng thông báo §6.
-- Spec riêng sau khi đợt 1 xong.
+- Spec riêng: [thanh-toan-vnpay/spec.md](../thanh-toan-vnpay/spec.md) (đã duyệt 25/10/2026).
 
 ## 13. Điều chỉnh so với tài liệu gốc của người dùng
 

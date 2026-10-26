@@ -227,17 +227,27 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                     return ServiceResult<ConfirmPaymentResult>.Fail(InvoicePaymentPolicy.SePayAlreadyRecordedMessage);
                 }
 
+                // Tương tự cho dòng VNPay chưa xóa (spec VNPay §6.1).
+                if (await IsRecordedByVnPayAsync(scope.Store, maGiaoDich, ct) ||
+                    await IsRecordedByVnPayAsync(scope.Store, minhChung.MaGiaoDichNganHang, ct))
+                {
+                    return ServiceResult<ConfirmPaymentResult>.Fail(InvoicePaymentPolicy.VnPayAlreadyRecordedMessage);
+                }
+
                 // 2. Hóa đơn nhận chuyển khoản tự động sau khi khách nộp minh chứng: có thể cùng khoản tiền với minh chứng này.
                 // Nhân viên không tự xác nhận; Admin phải ghi chú kết quả kiểm trùng.
                 var maSePay = await scope.Store.FindSystemSePayEntryRecordedAfterAsync(hoaDon.HoaDonId, minhChung.NgayTao, ct);
                 if (maSePay != null)
                 {
+                    // Dòng tự ghi có thể của SePay (chuyển khoản) hoặc VNPay (thanh toán thẻ): câu chữ riêng cho VNPay.
+                    var laVnPay = InvoicePaymentPolicy.IsVnPayKey(maSePay);
+                    var cumDaNhan = laVnPay ? "đã nhận thanh toán VNPay tự động" : "đã nhận chuyển khoản tự động";
                     if (!isAdmin)
                     {
                         yeuCau.GhiChuyenAdmin(actorId, scope.NowUtc, PaymentNoteTags.ChoAdminTrungSePay(maSePay, thucNhan, ghiChu));
                         await scope.NotifyAdminsAsync(
                             "Thanh toán cần Admin kiểm trùng",
-                            $"Lượt {yeuCau.MaYeuCau} (hóa đơn {hoaDon.MaHoaDon}): hóa đơn đã nhận chuyển khoản tự động {maSePay} sau khi khách nộp minh chứng; thực nhận khai {Vnd(thucNhan)}đ. Kiểm trùng trước khi xác nhận.",
+                            $"Lượt {yeuCau.MaYeuCau} (hóa đơn {hoaDon.MaHoaDon}): hóa đơn {cumDaNhan} {maSePay} sau khi khách nộp minh chứng; thực nhận khai {Vnd(thucNhan)}đ. Kiểm trùng trước khi xác nhận.",
                             link);
 
                         return ServiceResult<ConfirmPaymentResult>.Ok(new ConfirmPaymentResult
@@ -246,13 +256,13 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                             ChenhLech = 0,
                             ConLai = scope.ConLai,
                             TrangThaiHoaDon = InvoiceStatusLabels.ThanhToan(hoaDon.TrangThaiHoaDon),
-                            Message = "Hóa đơn đã nhận chuyển khoản tự động sau khi khách nộp minh chứng, đã chuyển Admin kiểm trùng."
+                            Message = $"Hóa đơn {cumDaNhan} sau khi khách nộp minh chứng, đã chuyển Admin kiểm trùng."
                         }, "Đã chuyển Admin xử lý.");
                     }
 
                     if (ghiChu == null)
                     {
-                        return ServiceResult<ConfirmPaymentResult>.Fail("Hóa đơn đã nhận chuyển khoản tự động sau khi khách nộp minh chứng, vui lòng ghi chú kết quả kiểm trùng.");
+                        return ServiceResult<ConfirmPaymentResult>.Fail($"Hóa đơn {cumDaNhan} sau khi khách nộp minh chứng, vui lòng ghi chú kết quả kiểm trùng.");
                     }
                 }
 
@@ -538,6 +548,12 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
         {
             return !string.IsNullOrWhiteSpace(maGiaoDich) &&
                 await store.ExistsMaGiaoDichAsync(InvoicePaymentPolicy.SePayLedgerKey(maGiaoDich), ct);
+        }
+
+        private static async Task<bool> IsRecordedByVnPayAsync(IInvoicePaymentStore store, string? maGiaoDich, CancellationToken ct)
+        {
+            return !string.IsNullOrWhiteSpace(maGiaoDich) &&
+                await store.ExistsMaGiaoDichAsync(InvoicePaymentPolicy.VnPayLedgerKey(maGiaoDich), ct);
         }
 
         private static string Vnd(decimal soTien) => InvoicePaymentPolicy.FormatVnd(soTien);

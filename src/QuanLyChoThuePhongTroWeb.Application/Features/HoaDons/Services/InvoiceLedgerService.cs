@@ -127,6 +127,12 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                     return ServiceResult<ManualCollectionResult>.Fail(InvoicePaymentPolicy.SePayAlreadyRecordedMessage);
                 }
 
+                // Tương tự cho dòng VNPay chưa xóa (spec VNPay §6.1).
+                if (maGiaoDich != null && await scope.Store.ExistsMaGiaoDichAsync(InvoicePaymentPolicy.VnPayLedgerKey(maGiaoDich), ct))
+                {
+                    return ServiceResult<ManualCollectionResult>.Fail(InvoicePaymentPolicy.VnPayAlreadyRecordedMessage);
+                }
+
                 string? maLuotDaHuy = null;
                 if (active?.TrangThai == TrangThaiYeuCauThanhToan.ChoThanhToan)
                 {

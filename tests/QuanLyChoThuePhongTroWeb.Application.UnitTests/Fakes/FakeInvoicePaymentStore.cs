@@ -350,7 +350,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
         {
             return Task.FromResult(Ledger
                 .Where(l => l.HoaDonId == hoaDonId && !l.IsDeleted &&
-                            l.MaGiaoDich.StartsWith(InvoicePaymentPolicy.SePayMaGiaoDichPrefix, StringComparison.Ordinal) &&
+                            (l.MaGiaoDich.StartsWith(InvoicePaymentPolicy.SePayMaGiaoDichPrefix, StringComparison.Ordinal) ||
+                             l.MaGiaoDich.StartsWith(InvoicePaymentPolicy.VnPayMaGiaoDichPrefix, StringComparison.Ordinal)) &&
                             l.NguoiXacNhanId == null && l.NgayXacNhan != null && l.NgayXacNhan >= sinceUtc)
                 .OrderBy(l => l.NgayXacNhan).ThenBy(l => l.LichSuThanhToanId)
                 .Select(l => l.MaGiaoDich)

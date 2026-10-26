@@ -88,6 +88,10 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure
             services.AddSingleton(sePayOptions);
             services.AddSingleton<QuanLyChoThuePhongTroWeb.Application.Features.OnlinePayments.ISePayWebhookVerifier, ExternalServices.Payments.SePayWebhookVerifier>();
 
+            var vnPayOptions = configuration.GetSection(QuanLyChoThuePhongTroWeb.Application.Common.Configurations.VnPayOptions.SectionName).Get<QuanLyChoThuePhongTroWeb.Application.Common.Configurations.VnPayOptions>() ?? new QuanLyChoThuePhongTroWeb.Application.Common.Configurations.VnPayOptions();
+            vnPayOptions.Validate();
+            services.AddSingleton(vnPayOptions);
+
             var telegramOptions = configuration.GetSection(QuanLyChoThuePhongTroWeb.Application.Common.Configurations.TelegramOptions.SectionName).Get<QuanLyChoThuePhongTroWeb.Application.Common.Configurations.TelegramOptions>() ?? new QuanLyChoThuePhongTroWeb.Application.Common.Configurations.TelegramOptions();
             telegramOptions.Validate();
             services.AddSingleton(telegramOptions);

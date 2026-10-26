@@ -7,7 +7,7 @@ using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence;
 
 namespace QuanLyChoThuePhongTroWeb.Application.Features.OnlinePayments;
 
-// Recorded: tin thu tiền tới chat chung và chat của chi nhánh, email biên lai tới khách (chỉ dòng SePay).
+// Recorded: tin thu tiền tới chat chung và chat của chi nhánh, email biên lai tới khách (chỉ dòng SePay hoặc VNPay).
 // WrongAccount, Unmatched, InvoiceNotPayable, AlreadyPaid: cảnh báo Telegram, không gửi email.
 // Lỗi từng chat hoặc từng email chỉ log Warning kèm hóa đơn và khoản; không log địa chỉ email hay nội dung chuyển khoản.
 public sealed class PaymentNotificationDispatcher(
@@ -108,11 +108,10 @@ public sealed class PaymentNotificationDispatcher(
         }
     }
 
-    // Chỉ tự gửi biên lai cho dòng SePay còn hiệu lực; thu thủ công không tự gửi (spec §6.3).
+    // Chỉ tự gửi biên lai cho dòng SePay hoặc VNPay còn hiệu lực; thu thủ công không tự gửi (spec §6.3).
     private async Task SendReceiptEmailAsync(TransferOutcome outcome, PaymentReceiptSnapshot receipt, CancellationToken ct)
     {
-        if (receipt.IsDeleted ||
-            !receipt.MaGiaoDich.StartsWith(InvoicePaymentPolicy.SePayMaGiaoDichPrefix, StringComparison.OrdinalIgnoreCase))
+        if (receipt.IsDeleted || !InvoicePaymentPolicy.IsSystemRecordedKey(receipt.MaGiaoDich))
         {
             return;
         }

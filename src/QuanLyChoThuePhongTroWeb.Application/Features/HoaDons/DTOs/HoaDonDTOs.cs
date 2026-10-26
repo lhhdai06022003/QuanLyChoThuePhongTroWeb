@@ -106,7 +106,10 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs
         public string GhiChu { get; set; } = string.Empty;
         // Dòng do SePay ghi (webhook hoặc đồng bộ bù): MaGiaoDich bắt đầu "SEPAY-".
         public bool LaSePay { get; set; }
-        // Mã tham chiếu ngân hàng; chỉ có với dòng SePay ghi theo mã tham chiếu (SEPAY-ID-{id} và dòng thủ công thì null).
+        // Dòng do IPN VNPay ghi: MaGiaoDich bắt đầu "VNPAY-".
+        public bool LaVnPay { get; set; }
+        // Mã tham chiếu: mã ngân hàng của dòng SePay ghi theo mã tham chiếu (SEPAY-ID-{id} và dòng thủ công thì null)
+        // hoặc vnp_TransactionNo của dòng VNPay.
         public string? MaThamChieu { get; set; }
     }
 

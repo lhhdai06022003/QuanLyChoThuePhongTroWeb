@@ -103,7 +103,7 @@ public sealed class InvoiceReceiptService(
 
         var data = PaymentNotificationFormatter.BuildReceiptEmail(
             receipt,
-            InvoicePaymentPolicy.SePayBankReference(receipt.MaGiaoDich),
+            InvoicePaymentPolicy.AutoPaymentReference(receipt.MaGiaoDich),
             onlinePaymentOptions.BuildUrl($"/KhachThue/HoaDon/BienLai/{receipt.LichSuThanhToanId}"));
 
         try
@@ -149,7 +149,8 @@ public sealed class InvoiceReceiptService(
         PhuongThuc = PaymentNotificationFormatter.PaymentMethodLabel(receipt.MaGiaoDich, receipt.PhuongThucThanhToan),
         MaGiaoDich = receipt.MaGiaoDich,
         // SEPAY-ID-{id} là khóa chống trùng, không phải mã ngân hàng; dòng thu thủ công không có mã tham chiếu.
-        MaThamChieu = InvoicePaymentPolicy.SePayBankReference(receipt.MaGiaoDich),
+        // Dòng VNPAY-{X} có mã tham chiếu X (vnp_TransactionNo).
+        MaThamChieu = InvoicePaymentPolicy.AutoPaymentReference(receipt.MaGiaoDich),
         TongTien = receipt.TongTien,
         SoTienLanNay = receipt.SoTienThanhToan,
         LuyKeDaThanhToan = receipt.LuyKeDaThanhToan,

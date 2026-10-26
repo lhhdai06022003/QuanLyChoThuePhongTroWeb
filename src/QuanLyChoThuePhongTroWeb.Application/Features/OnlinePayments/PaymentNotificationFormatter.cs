@@ -12,6 +12,7 @@ public static class PaymentNotificationFormatter
 {
     private const int MaxOriginalContentLength = 200;
     private const string VietnamDateTimeFormat = "dd/MM/yyyy HH:mm:ss";
+    private const string VnPayMethodName = "Thẻ ATM / Visa / MasterCard";
 
     private const string IconSuccess = "✅";
     private const string IconPartial = "⚠️";
@@ -42,9 +43,19 @@ public static class PaymentNotificationFormatter
         var daThuDu = outcome.TienThua > 0 || outcome.ConLai == 0;
 
         var gateway = transfer.Gateway?.Trim();
-        var kenh = string.IsNullOrEmpty(gateway)
-            ? "Chuyển khoản VietQR"
-            : $"Chuyển khoản VietQR ({EscapeHtml(gateway)})";
+        string kenh;
+        if (transfer.Kenh == OnlinePaymentChannel.VnPay)
+        {
+            kenh = string.IsNullOrEmpty(gateway)
+                ? $"{VnPayMethodName} (VNPay)"
+                : $"{VnPayMethodName} (VNPay, {EscapeHtml(gateway)})";
+        }
+        else
+        {
+            kenh = string.IsNullOrEmpty(gateway)
+                ? "Chuyển khoản VietQR"
+                : $"Chuyển khoản VietQR ({EscapeHtml(gateway)})";
+        }
 
         var lines = new List<string>
         {
@@ -73,6 +84,21 @@ public static class PaymentNotificationFormatter
     public static string FormatAlertTelegram(TransferOutcome outcome, TransferAlertContext? context)
     {
         var transfer = outcome.Transfer;
+        if (transfer.Kenh == OnlinePaymentChannel.VnPay)
+        {
+            var vnPayLines = new[]
+            {
+                $"{IconAlert} THANH TOÁN VNPAY CẦN HOÀN TIỀN",
+                $"Lý do: {EscapeHtml(VnPayAlertReason(outcome, context))}",
+                $"Số tiền: +{Vnd(transfer.TransferAmount)} VNĐ",
+                $"Mã GD VNPay: {EscapeHtml(transfer.ReferenceCode?.Trim())} · Mã đơn: {EscapeHtml(transfer.Description?.Trim())}",
+                $"Thời gian: {VietnamTime(transfer.TransactionDateUtc)}",
+                "Gợi ý: Hoàn tiền cho khách trên trang merchant VNPay"
+            };
+
+            return string.Join("\n", vnPayLines);
+        }
+
         var lines = new[]
         {
             $"{IconAlert} CHUYỂN KHOẢN CẦN XỬ LÝ TAY",
@@ -142,6 +168,14 @@ public static class PaymentNotificationFormatter
         }
     }
 
+    // Cảnh báo VNPay: hóa đơn đã trả đủ thì không nhắc "khách chuyển thêm" (khách trả bằng thẻ, cần hoàn tiền).
+    private static string VnPayAlertReason(TransferOutcome outcome, TransferAlertContext? context)
+    {
+        return outcome.Kind == TransferOutcomeKind.AlreadyPaid
+            ? $"Hóa đơn {InvoiceLabel(outcome)} đã trả đủ"
+            : AlertReason(outcome, context);
+    }
+
     private static string InvoiceLabel(TransferOutcome outcome)
     {
         return outcome.MaHoaDon ?? "#HD" + outcome.HoaDonId;
@@ -150,6 +184,11 @@ public static class PaymentNotificationFormatter
     // Dùng chung với biên lai web và panel thanh toán của khách thuê (cùng nhãn phương thức với email biên lai).
     internal static string PaymentMethodLabel(string maGiaoDich, PhuongThucThanhToan phuongThuc)
     {
+        if (InvoicePaymentPolicy.IsVnPayKey(maGiaoDich))
+        {
+            return $"{VnPayMethodName} (VNPay)";
+        }
+
         if (maGiaoDich.StartsWith(InvoicePaymentPolicy.SePayMaGiaoDichPrefix, StringComparison.OrdinalIgnoreCase))
         {
             return "Chuyển khoản 24/7 (VietQR, tự động)";

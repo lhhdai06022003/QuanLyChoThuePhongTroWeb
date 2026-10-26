@@ -10,7 +10,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.OnlinePayments;
 
 // Ghi sổ hóa đơn khi có tiền vào với mã TTPTHD{HoaDonId} (spec thanh toán trực tuyến §5).
 // Không có actorId và không kiểm phân quyền chi nhánh: chỉ được gọi từ IBankTransferIngestionService,
-// nơi webhook đã xác thực chữ ký SePay hoặc đồng bộ bù đã kiểm Admin. Hệ thống được xử lý như Admin
+// nơi webhook đã xác thực chữ ký SePay hoặc đồng bộ bù đã kiểm Admin, và từ IVnPayPaymentService, nơi IPN đã
+// kiểm chữ ký VNPay (kênh VNPay: transfer.Kenh == VnPay, chỉ khác câu chữ ghi chú và thông báo). Hệ thống được xử lý như Admin
 // (ghi đủ nợ, phần dư gắn thẻ tiền thừa) và không xét cấu hình trả một phần, giống thu thủ công.
 public sealed class InvoiceTransferHandler(InvoicePaymentTransaction transaction) : IIncomingTransferHandler
 {
@@ -122,7 +123,7 @@ public sealed class InvoiceTransferHandler(InvoicePaymentTransaction transaction
         var active = await scope.Store.GetActiveRequestAsync(hoaDon.HoaDonId, scope.NowUtc, ct);
         if (active?.TrangThai == TrangThaiYeuCauThanhToan.ChoThanhToan)
         {
-            active.Huy(null, scope.NowUtc, "Đã nhận chuyển khoản tự động");
+            active.Huy(null, scope.NowUtc, IsVnPay(transfer) ? "Đã nhận thanh toán VNPay tự động" : "Đã nhận chuyển khoản tự động");
             maLuotDaHuy = active.MaYeuCau;
         }
         else if (active?.TrangThai == TrangThaiYeuCauThanhToan.DangDoiChieu)
@@ -147,7 +148,9 @@ public sealed class InvoiceTransferHandler(InvoicePaymentTransaction transaction
         // 8. Lưu, đọc lại tổng đã thu và tính lại trạng thái hóa đơn.
         var lyDo = AutoInvoiceHistoryTags.TaoLyDo(
             AutoInvoiceHistoryTags.TuDong,
-            $"SePay ghi nhận {InvoicePaymentPolicy.FormatVnd(decision.SoTienGhiNhan)}đ, {Reference(transfer)}");
+            IsVnPay(transfer)
+                ? $"VNPay ghi nhận {InvoicePaymentPolicy.FormatVnd(decision.SoTienGhiNhan)}đ, TXN {Clean(transfer.ReferenceCode)}"
+                : $"SePay ghi nhận {InvoicePaymentPolicy.FormatVnd(decision.SoTienGhiNhan)}đ, {Reference(transfer)}");
         await scope.ApplyLedgerChangeAsync(Truncate(lyDo, InvoicePaymentPolicy.MaxLyDoLength));
 
         // Thông báo trong app (spec §6.4): tạo trong cùng transaction, khung đẩy SignalR sau commit.
@@ -183,11 +186,17 @@ public sealed class InvoiceTransferHandler(InvoicePaymentTransaction transaction
             ? await scope.Store.GetReviewerUserIdsAsync(target.ChiNhanhId, ct)
             : admins;
 
+        var vnPay = IsVnPay(transfer);
         var tieuDe = Truncate(
-            $"Đã nhận chuyển khoản {Vnd(transfer.TransferAmount)}đ — {invoice?.TenPhong ?? string.Empty}", MaxTitleLength);
+            vnPay
+                ? $"Đã nhận thanh toán VNPay {Vnd(transfer.TransferAmount)}đ — {invoice?.TenPhong ?? string.Empty}"
+                : $"Đã nhận chuyển khoản {Vnd(transfer.TransferAmount)}đ — {invoice?.TenPhong ?? string.Empty}", MaxTitleLength);
 
+        var kenhGhiNhan = vnPay
+            ? $"qua VNPay (TXN {Clean(transfer.ReferenceCode)})"
+            : $"qua chuyển khoản tự động ({Reference(transfer)})";
         var noiDungNhanVien =
-            $"Hóa đơn {hoaDon.MaHoaDon}: ghi nhận {Vnd(decision.SoTienGhiNhan)}đ qua chuyển khoản tự động ({Reference(transfer)}), " +
+            $"Hóa đơn {hoaDon.MaHoaDon}: ghi nhận {Vnd(decision.SoTienGhiNhan)}đ {kenhGhiNhan}, " +
             $"đã thu {Vnd(scope.DaThu)}/{Vnd(hoaDon.TongTien)}đ, còn lại {Vnd(scope.ConLai)}đ.";
         if (conMinhChungChoDoiChieu)
         {
@@ -195,7 +204,9 @@ public sealed class InvoiceTransferHandler(InvoicePaymentTransaction transaction
         }
 
         var noiDungAdmin = decision.Kind == RecordingKind.Overpay
-            ? noiDungNhanVien + $" Khách chuyển dư {Vnd(decision.ChenhLech)}đ, cần xử lý ngoài hệ thống."
+            ? noiDungNhanVien + (vnPay
+                ? $" Khách trả dư {Vnd(decision.ChenhLech)}đ qua VNPay, cần xử lý ngoài hệ thống."
+                : $" Khách chuyển dư {Vnd(decision.ChenhLech)}đ, cần xử lý ngoài hệ thống.")
             : noiDungNhanVien;
 
         var linkQuanLy = $"/QuanLyNhaTro/QuanLyHoaDon?hoaDonId={hoaDon.HoaDonId}";
@@ -260,7 +271,9 @@ public sealed class InvoiceTransferHandler(InvoicePaymentTransaction transaction
     // Thẻ [TIEN-THUA:n] đặt đầu chuỗi nên không bị cắt. Nội dung từ ngân hàng đã bỏ [ ] nên không giả được thẻ hệ thống.
     private static string BuildNote(IncomingBankTransfer transfer, RecordingDecision decision)
     {
-        var note = $"[SEPAY] {Clean(transfer.Gateway)} · {Reference(transfer)} · ND: {Clean(transfer.Content)}";
+        var note = IsVnPay(transfer)
+            ? $"[VNPAY] {Clean(transfer.Gateway)} · {Clean(transfer.CardType)} · TXN {Clean(transfer.ReferenceCode)} · REF {Clean(transfer.Description)}"
+            : $"[SEPAY] {Clean(transfer.Gateway)} · {Reference(transfer)} · ND: {Clean(transfer.Content)}";
         if (decision.Kind == RecordingKind.Overpay)
         {
             note = PaymentNoteTags.TienThua(decision.ChenhLech, note);
@@ -270,6 +283,8 @@ public sealed class InvoiceTransferHandler(InvoicePaymentTransaction transaction
     }
 
     private static string Vnd(decimal soTien) => InvoicePaymentPolicy.FormatVnd(soTien);
+
+    private static bool IsVnPay(IncomingBankTransfer transfer) => transfer.Kenh == OnlinePaymentChannel.VnPay;
 
     // Mã tham chiếu ngân hàng; giao dịch không có thì dùng id SePay.
     private static string Reference(IncomingBankTransfer transfer)

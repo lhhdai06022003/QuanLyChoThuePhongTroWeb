@@ -23,10 +23,19 @@ public sealed record IncomingBankTransfer(
     // (spec thanh toán trực tuyến §4.3). Kết quả ghi sổ vẫn phát đủ thông báo như webhook.
     public bool LaDongBoBu { get; init; }
 
+    // Kênh báo tiền vào. Với VNPay: ReferenceCode = vnp_TransactionNo, Gateway = vnp_BankCode, Description = vnp_TxnRef,
+    // Content = vnp_OrderInfo, SePayId = 0.
+    public OnlinePaymentChannel Kenh { get; init; } = OnlinePaymentChannel.SePay;
+
+    // vnp_CardType; chỉ dùng cho ghi chú dòng sổ VNPay.
+    public string? CardType { get; init; }
+
     // Giá trị ghi vào LichSuThanhToan.MaGiaoDich. Thiếu mã tham chiếu thì dùng id SePay; đồng bộ bù
     // không gọi ingest cho giao dịch thiếu mã tham chiếu. Vẫn có thể ghi đôi khi bật SePay:SyncRecordEnabled
     // nếu webhook thiếu referenceCode (SEPAY-ID-…) còn API có reference_number cho cùng giao dịch (spec §5.2).
-    public string DedupKey => string.IsNullOrWhiteSpace(ReferenceCode)
-        ? $"SEPAY-ID-{SePayId}"
-        : InvoicePaymentPolicy.SePayLedgerKey(ReferenceCode);
+    public string DedupKey => Kenh == OnlinePaymentChannel.VnPay
+        ? InvoicePaymentPolicy.VnPayLedgerKey(ReferenceCode ?? string.Empty)
+        : string.IsNullOrWhiteSpace(ReferenceCode)
+            ? $"SEPAY-ID-{SePayId}"
+            : InvoicePaymentPolicy.SePayLedgerKey(ReferenceCode);
 }

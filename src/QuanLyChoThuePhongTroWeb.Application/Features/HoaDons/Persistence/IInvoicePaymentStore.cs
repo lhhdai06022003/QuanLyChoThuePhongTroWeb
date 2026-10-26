@@ -55,7 +55,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence
         Task<PaymentRequestSnapshot?> GetRequestSnapshotAsync(int yeuCauId, CancellationToken ct = default);
         Task<ReviewQueuePage> GetReviewQueueAsync(ReviewQueueQuery query, CancellationToken ct = default);
 
-        // Dòng sổ chưa xóa, MaGiaoDich bắt đầu "SEPAY-", NguoiXacNhanId == null (hệ thống ghi), NgayXacNhan != null
+        // Dòng sổ chưa xóa, MaGiaoDich bắt đầu "SEPAY-" hoặc "VNPAY-" (spec VNPay §6.1; giữ tên cũ), NguoiXacNhanId == null (hệ thống ghi), NgayXacNhan != null
         // và NgayXacNhan >= sinceUtc. Trả MaGiaoDich của dòng có NgayXacNhan sớm nhất (rồi Id nhỏ nhất); không có thì
         // null (spec thanh toán trực tuyến §5.4).
         Task<string?> FindSystemSePayEntryRecordedAfterAsync(int hoaDonId, DateTime sinceUtc, CancellationToken ct = default);
