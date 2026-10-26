@@ -2,6 +2,7 @@ using System.Data;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features.GuestAccounts;
+using QuanLyChoThuePhongTroWeb.Application.Features.OnlinePayments;
 using QuanLyChoThuePhongTroWeb.Application.Features.Reservations;
 using QuanLyChoThuePhongTroWeb.Domain.Entities;
 using QuanLyChoThuePhongTroWeb.Domain.Enums;
@@ -225,7 +226,8 @@ public sealed class ReservationStore(ApplicationDbContext context) : IReservatio
                 NguoiThucHienId = actorId,
                 NgayThucHien = nowUtc
             });
-            var code = "GC" + Guid.NewGuid().ToString("N")[..12].ToUpperInvariant();
+            // Mã gắn với giữ chỗ để webhook SePay/IPN VNPay tra ra yêu cầu thanh toán (spec giữ chỗ §6.1), không phụ thuộc cờ.
+            var code = ReservationTransferHandler.TransferCode(reservationId);
             var payment = new YeuCauThanhToanGiuCho
             {
                 YeuCauGiuChoId = reservationId,

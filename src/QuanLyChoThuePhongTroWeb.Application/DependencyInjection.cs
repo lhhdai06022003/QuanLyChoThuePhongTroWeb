@@ -70,6 +70,9 @@ namespace QuanLyChoThuePhongTroWeb.Application
             services.AddScoped<Features.OnlinePayments.InvoiceTransferHandler>();
             services.AddScoped<Features.OnlinePayments.IIncomingTransferHandler>(sp => sp.GetRequiredService<Features.OnlinePayments.InvoiceTransferHandler>());
             services.AddScoped<Features.OnlinePayments.IVnPayPaymentService, Features.OnlinePayments.VnPayPaymentService>();
+            services.AddScoped<Features.OnlinePayments.ReservationTransferHandler>();
+            services.AddScoped<Features.OnlinePayments.IIncomingTransferHandler>(sp => sp.GetRequiredService<Features.OnlinePayments.ReservationTransferHandler>());
+            services.AddScoped<Features.OnlinePayments.IReservationVnPayService, Features.OnlinePayments.ReservationVnPayService>();
             services.AddScoped<Features.OnlinePayments.IncomingTransferClassifier>();
             services.AddScoped<Features.OnlinePayments.IBankTransferIngestionService, Features.OnlinePayments.BankTransferIngestionService>();
             services.AddScoped<Features.OnlinePayments.IPaymentOutcomePublisher, Features.OnlinePayments.PaymentOutcomePublisher>();

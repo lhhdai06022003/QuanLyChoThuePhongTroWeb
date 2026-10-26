@@ -12,5 +12,9 @@ namespace QuanLyChoThuePhongTroWeb.Application.Abstractions.Notifications
         // Có cài mặc định để các bản cài đặt khác (test) không phải sửa.
         Task SendInvoicePaymentUpdatedAsync(int nguoiDungId, InvoicePaymentUpdatedEvent payload, CancellationToken cancellationToken = default) =>
             Task.CompletedTask;
+
+        // Sự kiện "GiuChoThanhToanCapNhat" khi tiền giữ chỗ được ghi tự động (spec giữ chỗ §8). Có cài mặc định như trên.
+        Task SendReservationPaymentUpdatedAsync(int nguoiDungId, ReservationPaymentUpdatedEvent payload, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
     }
 }

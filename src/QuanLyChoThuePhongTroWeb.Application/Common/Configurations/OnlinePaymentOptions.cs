@@ -8,6 +8,9 @@ namespace QuanLyChoThuePhongTroWeb.Application.Common.Configurations
         // URL công khai của web (ví dụ https://ten-mien-ngrok), dùng cho link trong email. Trống thì không chèn link.
         public string PublicBaseUrl { get; set; } = string.Empty;
 
+        // Thanh toán trực tuyến tiền giữ chỗ (spec giữ chỗ §11, P8). Mặc định tắt: không ghi tự động tiền giữ chỗ.
+        public bool ReservationEnabled { get; set; }
+
         public void Validate()
         {
             if (string.IsNullOrWhiteSpace(PublicBaseUrl))

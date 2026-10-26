@@ -56,6 +56,9 @@ public static partial class VnPayProtocol
     [GeneratedRegex(@"^HD([0-9]{1,9})_([0-9]+)\z", RegexOptions.CultureInvariant)]
     private static partial Regex TxnRefPattern();
 
+    [GeneratedRegex(@"^GC([0-9]{1,9})_([0-9]+)\z", RegexOptions.CultureInvariant)]
+    private static partial Regex ReservationTxnRefPattern();
+
     [GeneratedRegex(@"\s+", RegexOptions.CultureInvariant)]
     private static partial Regex SpacesPattern();
 
@@ -154,6 +157,29 @@ public static partial class VnPayProtocol
             && int.TryParse(match.Groups[1].Value, NumberStyles.None, CultureInfo.InvariantCulture, out hoaDonId)
             && hoaDonId > 0;
     }
+
+    // vnp_TxnRef của tiền giữ chỗ: GC{YeuCauGiuChoId}_{Ticks}. Khác tiền tố "HD" nên IPN phân nhánh được theo mã đơn.
+    public static string BuildReservationTxnRef(int yeuCauGiuChoId, DateTime utcNow)
+    {
+        return string.Create(CultureInfo.InvariantCulture, $"GC{yeuCauGiuChoId}_{utcNow.Ticks}");
+    }
+
+    // YeuCauGiuChoId là 1-9 chữ số ASCII và là số nguyên dương; phân biệt hoa thường.
+    public static bool TryParseReservationTxnRef(string? txnRef, out int yeuCauGiuChoId)
+    {
+        yeuCauGiuChoId = 0;
+        if (string.IsNullOrEmpty(txnRef))
+        {
+            return false;
+        }
+
+        var match = ReservationTxnRefPattern().Match(txnRef);
+        return match.Success
+            && int.TryParse(match.Groups[1].Value, NumberStyles.None, CultureInfo.InvariantCulture, out yeuCauGiuChoId)
+            && yeuCauGiuChoId > 0;
+    }
+
+    public static bool IsReservationTxnRef(string? txnRef) => TryParseReservationTxnRef(txnRef, out _);
 
     public static string FormatVietnamTime(DateTime utc)
     {

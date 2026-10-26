@@ -25,10 +25,14 @@ public enum PaymentError
     InvalidState,
     DuplicateTransaction,
     Conflict,
-    ReceivedBeforeRequest
+    ReceivedBeforeRequest,
+    SystemRecorded
 }
 
 public static class ReservationPaymentMarkers
 {
     public const string LateRefundRequired = "LATE_REFUND_REQUIRED";
+
+    // Mã nhân viên nhập tay trùng khóa SEPAY-/VNPAY- mà hệ thống đã ghi tự động.
+    public const string SystemRecordedMessage = "Mã giao dịch này đã được hệ thống ghi nhận tự động.";
 }

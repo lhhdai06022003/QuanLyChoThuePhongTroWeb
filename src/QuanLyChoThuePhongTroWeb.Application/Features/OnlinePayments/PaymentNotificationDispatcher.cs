@@ -4,6 +4,7 @@ using QuanLyChoThuePhongTroWeb.Application.Abstractions.Services;
 using QuanLyChoThuePhongTroWeb.Application.Common.Configurations;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Payments;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence;
+using QuanLyChoThuePhongTroWeb.Application.Features.ReservationPayments;
 
 namespace QuanLyChoThuePhongTroWeb.Application.Features.OnlinePayments;
 
@@ -21,6 +22,14 @@ public sealed class PaymentNotificationDispatcher(
     public async Task DispatchAsync(PaymentNotificationWorkItem item, CancellationToken ct = default)
     {
         var outcome = item.Outcome;
+
+        // Tiền giữ chỗ tự ghi (TTPTGC) không có hóa đơn nên đi nhánh riêng.
+        if (outcome.Kind == TransferOutcomeKind.Recorded && outcome.GiuCho is not null)
+        {
+            await DispatchReservationRecordedAsync(outcome, outcome.GiuCho, ct);
+            return;
+        }
+
         switch (outcome.Kind)
         {
             case TransferOutcomeKind.Recorded:
@@ -62,6 +71,64 @@ public sealed class PaymentNotificationDispatcher(
         }
 
         await SendReceiptEmailAsync(outcome, receipt, ct);
+    }
+
+    // Tin thu tiền giữ chỗ tới chat chung và chat của chi nhánh, email báo khách. Lỗi từng kênh chỉ log Warning.
+    private async Task DispatchReservationRecordedAsync(TransferOutcome outcome, SystemReservationRecordResult giuCho, CancellationToken ct)
+    {
+        if (telegramOptions.IsConfigured)
+        {
+            var text = ReservationPaymentNotificationFormatter.FormatTelegram(outcome);
+            foreach (var chatId in telegramOptions.ResolveChatIds(giuCho.ChiNhanhId))
+            {
+                try
+                {
+                    var (isSuccess, errorMessage) = await telegram.SendMessageAsync(chatId, text, ct);
+                    if (!isSuccess)
+                    {
+                        logger.LogWarning("Không gửi được tin Telegram: giữ chỗ {YeuCauGiuChoId}, giao dịch {GiaoDichGiuChoId}: {ErrorMessage}",
+                            giuCho.YeuCauGiuChoId, giuCho.GiaoDichGiuChoId, errorMessage);
+                    }
+                }
+                catch (OperationCanceledException) when (ct.IsCancellationRequested)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning(ex, "Không gửi được tin Telegram: giữ chỗ {YeuCauGiuChoId}, giao dịch {GiaoDichGiuChoId}",
+                        giuCho.YeuCauGiuChoId, giuCho.GiaoDichGiuChoId);
+                }
+            }
+        }
+
+        var toEmail = giuCho.EmailKhach?.Trim();
+        if (string.IsNullOrEmpty(toEmail) || !MailAddress.TryCreate(toEmail, out _))
+        {
+            logger.LogWarning("Khách giữ chỗ không có email hợp lệ để báo đã nhận tiền: giữ chỗ {YeuCauGiuChoId}, giao dịch {GiaoDichGiuChoId}",
+                giuCho.YeuCauGiuChoId, giuCho.GiaoDichGiuChoId);
+            return;
+        }
+
+        try
+        {
+            var (isSuccess, errorMessage) = await email.SendReservationPaymentNoticeAsync(
+                toEmail, ReservationPaymentNotificationFormatter.BuildEmail(outcome));
+            if (!isSuccess)
+            {
+                logger.LogWarning("Không gửi được email báo tiền giữ chỗ: giữ chỗ {YeuCauGiuChoId}, giao dịch {GiaoDichGiuChoId}: {ErrorMessage}",
+                    giuCho.YeuCauGiuChoId, giuCho.GiaoDichGiuChoId, errorMessage);
+            }
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Không gửi được email báo tiền giữ chỗ: giữ chỗ {YeuCauGiuChoId}, giao dịch {GiaoDichGiuChoId}",
+                giuCho.YeuCauGiuChoId, giuCho.GiaoDichGiuChoId);
+        }
     }
 
     private async Task DispatchAlertAsync(TransferOutcome outcome, CancellationToken ct)

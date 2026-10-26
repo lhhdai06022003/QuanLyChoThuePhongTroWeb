@@ -20,6 +20,7 @@ public sealed class PaymentOutcomePublisher(
         {
             case TransferOutcomeKind.Recorded:
                 await SendInvoicePaymentUpdatedAsync(outcome);
+                await SendReservationPaymentUpdatedAsync(outcome);
                 await EnqueueAsync(outcome, ct);
                 break;
 
@@ -56,6 +57,28 @@ public sealed class PaymentOutcomePublisher(
         {
             logger.LogWarning(ex, "Không gửi được sự kiện cập nhật thanh toán cho {GiaoDich}, hóa đơn {HoaDonId}, khoản {LichSuThanhToanId}",
                 outcome.Transfer.LogLabel, outcome.HoaDonId, outcome.LichSuThanhToanId);
+        }
+    }
+
+    // Tiền giữ chỗ được ghi tự động: báo trang đặt cọc của khách (spec giữ chỗ §8). Giao dịch hóa đơn không có GiuCho.
+    private async Task SendReservationPaymentUpdatedAsync(TransferOutcome outcome)
+    {
+        if (outcome.GiuCho is not { } giuCho)
+        {
+            return;
+        }
+
+        try
+        {
+            await notifier.SendReservationPaymentUpdatedAsync(
+                giuCho.GuestUserId,
+                new ReservationPaymentUpdatedEvent(giuCho.YeuCauGiuChoId, giuCho.DaNhanSau, outcome.ConLai, giuCho.TrangThaiGiuCho),
+                CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Không gửi được sự kiện cập nhật tiền giữ chỗ cho {GiaoDich}, giữ chỗ {YeuCauGiuChoId}, giao dịch {GiaoDichGiuChoId}",
+                outcome.Transfer.LogLabel, giuCho.YeuCauGiuChoId, giuCho.GiaoDichGiuChoId);
         }
     }
 

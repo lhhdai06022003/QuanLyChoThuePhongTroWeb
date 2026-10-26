@@ -63,6 +63,41 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.Emails
             }
         }
 
+        public async Task<(bool IsSuccess, string ErrorMessage)> SendReservationPaymentNoticeAsync(
+            string toEmail, ReservationPaymentNoticeEmail data)
+        {
+            var senderEmail = _configuration["EmailSettings:SenderEmail"];
+            var password = _configuration["EmailSettings:Password"];
+            if (string.IsNullOrWhiteSpace(senderEmail) || string.IsNullOrWhiteSpace(password))
+                return (false, "Chưa cấu hình tài khoản gửi email.");
+
+            try
+            {
+                var server = _configuration["EmailSettings:SmtpServer"] ?? "smtp.gmail.com";
+                var port = int.TryParse(_configuration["EmailSettings:Port"], out var parsed)
+                    ? parsed : 587;
+                var senderName = _configuration["EmailSettings:SenderName"] ??
+                    "Hệ thống Quản lý Nhà Trọ";
+                var message = new MimeMessage();
+                message.From.Add(new MailboxAddress(senderName, senderEmail));
+                message.To.Add(new MailboxAddress(data.TenNguoiNhan, toEmail));
+                message.Subject = data.TieuDe;
+                message.Body = new TextPart("plain") { Text = data.NoiDung };
+                using var client = new SmtpClient();
+                await client.ConnectAsync(server, port, SecureSocketOptions.StartTls);
+                await client.AuthenticateAsync(senderEmail, password);
+                await client.SendAsync(message);
+                await client.DisconnectAsync(true);
+                return (true, string.Empty);
+            }
+            catch (Exception ex)
+            {
+                // Không log địa chỉ email hay nội dung thông báo.
+                _logger.LogWarning(ex, "Không gửi được email báo tiền giữ chỗ");
+                return (false, "Không gửi được email. Kiểm tra cấu hình SMTP và thử lại.");
+            }
+        }
+
         public async Task<(bool IsSuccess, string ErrorMessage)> SendViewingStatusNoticeAsync(
             QuanLyChoThuePhongTroWeb.Application.Features.Viewings.ViewingAdminRequestDto notice)
         {

@@ -11,7 +11,8 @@ namespace QuanLyChoThuePhongTroWeb.Controllers.Api;
 [AllowAnonymous]
 [IgnoreAntiforgeryToken]
 [Route("api/webhooks/payment/vnpay-ipn")]
-public sealed class VnPayIpnController(VnPayOptions options, IVnPayPaymentService vnPay) : ControllerBase
+public sealed class VnPayIpnController(
+    VnPayOptions options, IVnPayPaymentService vnPay, IReservationVnPayService reservationVnPay) : ControllerBase
 {
     [HttpGet("")]
     public async Task<IActionResult> Receive(CancellationToken cancellationToken)
@@ -23,7 +24,13 @@ public sealed class VnPayIpnController(VnPayOptions options, IVnPayPaymentServic
         }
 
         var query = Request.Query.ToDictionary(q => q.Key, q => q.Value.ToString(), StringComparer.Ordinal);
-        var result = await vnPay.HandleIpnAsync(query, cancellationToken);
+
+        // Mã đơn GC{id}_{ticks} là tiền giữ chỗ, HD{id}_{ticks} là hóa đơn; chữ ký vẫn do từng service kiểm.
+        var isReservation = query.TryGetValue(VnPayProtocol.TxnRefKey, out var txnRef)
+            && VnPayProtocol.IsReservationTxnRef(txnRef);
+        var result = isReservation
+            ? await reservationVnPay.HandleIpnAsync(query, cancellationToken)
+            : await vnPay.HandleIpnAsync(query, cancellationToken);
 
         // VNPay đọc RspCode/Message đúng hoa thường này, luôn HTTP 200. Dùng JsonSerializer mặc định để không bị đổi sang camelCase.
         return Content(JsonSerializer.Serialize(new { result.RspCode, result.Message }), "application/json");

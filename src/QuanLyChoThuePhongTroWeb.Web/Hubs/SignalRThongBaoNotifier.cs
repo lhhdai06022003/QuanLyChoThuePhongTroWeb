@@ -33,5 +33,14 @@ namespace QuanLyChoThuePhongTroWeb.Web.Hubs
                 new { hoaDonId = payload.HoaDonId, conLai = payload.ConLai, trangThai = payload.TrangThai },
                 cancellationToken);
         }
+
+        // Chưa có trang nào nghe sự kiện này (trang đặt cọc của khách nghe ở phần sau của đợt giữ chỗ).
+        public async Task SendReservationPaymentUpdatedAsync(int nguoiDungId, ReservationPaymentUpdatedEvent payload, CancellationToken cancellationToken = default)
+        {
+            await _hubContext.Clients.User(nguoiDungId.ToString()).SendAsync(
+                "GiuChoThanhToanCapNhat",
+                new { yeuCauGiuChoId = payload.YeuCauGiuChoId, daNhan = payload.DaNhan, conLai = payload.ConLai, trangThai = payload.TrangThai },
+                cancellationToken);
+        }
     }
 }

@@ -1,3 +1,5 @@
+using QuanLyChoThuePhongTroWeb.Application.Features.ReservationPayments;
+
 namespace QuanLyChoThuePhongTroWeb.Application.Features.OnlinePayments;
 
 public enum TransferOutcomeKind
@@ -47,6 +49,8 @@ public sealed record TransferOutcome
     public string? MaLuotDaHuy { get; init; }
     // Hóa đơn còn lượt khách đã nộp minh chứng chờ nhân viên đối chiếu: cần kiểm trùng trước khi xác nhận.
     public bool ConMinhChungChoDoiChieu { get; init; }
+    // Chỉ có khi giao dịch giữ chỗ được ghi (Kind == Recorded, mã TTPTGC). Khi đó HoaDonId luôn null.
+    public SystemReservationRecordResult? GiuCho { get; init; }
     // Lý do của InvoiceNotPayable và Failed, để log và thông báo.
     public string? LyDo { get; init; }
 }

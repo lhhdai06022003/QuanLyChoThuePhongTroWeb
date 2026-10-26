@@ -16,7 +16,17 @@ public static class TransferCodeParser
         @"^TTPTHD([0-9]{1,9})$",
         RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
-    // Trả mã đã chuẩn hóa (bỏ khoảng trắng, viết hoa), ví dụ "TTPTHD105"; null nếu không có.
+    // Mẫu của giữ chỗ: TTPTGC{YeuCauGiuChoId}, cùng quy tắc với mã hóa đơn.
+    private static readonly Regex ReservationCodePattern = new(
+        @"TTPT\s*GC\s*([0-9]{1,9})(?![0-9])",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+    // Đúng dạng mã giữ chỗ đã chuẩn hóa (TTPTGC + 1–9 chữ số).
+    private static readonly Regex ReservationCodeExact = new(
+        @"^TTPTGC([0-9]{1,9})$",
+        RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+    // Trả mã đã chuẩn hóa (bỏ khoảng trắng, viết hoa), ví dụ "TTPTHD105" hoặc "TTPTGC57"; null nếu không có.
     // Ưu tiên trường code của SePay; chỉ khi trường này rỗng mới tìm trong content rồi description.
     public static string? Extract(string? code, string? content, string? description)
     {
@@ -35,8 +45,27 @@ public static class TransferCodeParser
             return null;
         }
 
-        var match = InvoiceCodePattern.Match(text);
-        return match.Success ? "TTPTHD" + match.Groups[1].Value : null;
+        // Nội dung có cả hai loại mã thì lấy mã xuất hiện trước.
+        var invoice = InvoiceCodePattern.Match(text);
+        var reservation = ReservationCodePattern.Match(text);
+        if (invoice.Success && (!reservation.Success || invoice.Index < reservation.Index))
+        {
+            return "TTPTHD" + invoice.Groups[1].Value;
+        }
+
+        return reservation.Success ? "TTPTGC" + reservation.Groups[1].Value : null;
+    }
+
+    // YeuCauGiuChoId trong mã đã chuẩn hóa của Extract (ví dụ "TTPTGC57" -> 57); null nếu không phải mã giữ chỗ hoặc id bằng 0.
+    public static int? ExtractReservationId(string? transferCode)
+    {
+        if (string.IsNullOrEmpty(transferCode))
+        {
+            return null;
+        }
+
+        var match = ReservationCodeExact.Match(transferCode);
+        return match.Success && int.TryParse(match.Groups[1].Value, out var id) && id > 0 ? id : null;
     }
 
     // HoaDonId trong mã đã chuẩn hóa của Extract (ví dụ "TTPTHD105" -> 105); null nếu không phải mã hóa đơn hoặc id bằng 0.

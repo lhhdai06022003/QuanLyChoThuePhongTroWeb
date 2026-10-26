@@ -214,13 +214,21 @@ public sealed class SePaySyncService(
             TransferOutcomeKind.Unmatched => (SePaySyncRowStatus.KhongKhopMa, null),
             TransferOutcomeKind.InvoiceNotPayable => (SePaySyncRowStatus.HoaDonKhongNhanTien, outcome.LyDo),
             TransferOutcomeKind.AlreadyPaid => (SePaySyncRowStatus.HoaDonKhongNhanTien, "Hóa đơn đã thu đủ"),
-            TransferOutcomeKind.Ignored => (SePaySyncRowStatus.BoQua, "Số tiền không hợp lệ"),
+            TransferOutcomeKind.Ignored => (SePaySyncRowStatus.BoQua, IgnoredNote(outcome)),
             TransferOutcomeKind.WrongAccount => (SePaySyncRowStatus.BoQua, "Tiền vào tài khoản khác"),
             // Failed (và loại kết quả mới chưa biết): coi là lỗi ghi sổ để Admin đồng bộ lại.
             _ => (SePaySyncRowStatus.LoiGhiSo, "Lỗi hệ thống, bấm Đồng bộ lại")
         };
 
         return Row(item, maChuyenKhoan, maThamChieu, mapped.Status, mapped.Note, outcome.HoaDonId, outcome.MaHoaDon);
+    }
+
+    // Giao dịch mã giữ chỗ (TTPTGC) bị bỏ qua vì đồng bộ bù không ghi tiền giữ chỗ: hiện lý do của bộ xử lý giữ chỗ.
+    // Các trường hợp khác giữ câu cũ.
+    private static string IgnoredNote(TransferOutcome outcome)
+    {
+        var isReservation = outcome.Code?.StartsWith(ReservationTransferHandler.ReservationPrefix, StringComparison.OrdinalIgnoreCase) == true;
+        return isReservation && !string.IsNullOrEmpty(outcome.LyDo) ? outcome.LyDo : "Số tiền không hợp lệ";
     }
 
     // "Ghi 1.500.000đ, còn lại 500.000đ" và ", tiền thừa 100.000đ" khi khách chuyển dư.

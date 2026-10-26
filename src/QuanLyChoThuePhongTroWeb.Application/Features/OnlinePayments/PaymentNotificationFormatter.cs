@@ -14,21 +14,21 @@ public static class PaymentNotificationFormatter
     private const string VietnamDateTimeFormat = "dd/MM/yyyy HH:mm:ss";
     private const string VnPayMethodName = "Thẻ ATM / Visa / MasterCard";
 
-    private const string IconSuccess = "✅";
-    private const string IconPartial = "⚠️";
-    private const string IconBranch = "\U0001F3E2";
-    private const string IconRoom = "\U0001F3E0";
+    internal const string IconSuccess = "✅";
+    internal const string IconPartial = "⚠️";
+    internal const string IconBranch = "\U0001F3E2";
+    internal const string IconRoom = "\U0001F3E0";
     private const string IconPeriod = "\U0001F4C5";
-    private const string IconTenant = "\U0001F464";
-    private const string IconReceived = "\U0001F4B0";
-    private const string IconProgress = "\U0001F4CA";
+    internal const string IconTenant = "\U0001F464";
+    internal const string IconReceived = "\U0001F4B0";
+    internal const string IconProgress = "\U0001F4CA";
     private const string IconStatus = "\U0001F4CC";
-    private const string IconMissing = "❗";
-    private const string IconChannel = "\U0001F4B3";
-    private const string IconReference = "\U0001F9FE";
-    private const string IconTime = "\U0001F552";
+    internal const string IconMissing = "❗";
+    internal const string IconChannel = "\U0001F4B3";
+    internal const string IconReference = "\U0001F9FE";
+    internal const string IconTime = "\U0001F552";
     private const string IconSurplus = "\U0001F4A1";
-    private const string IconAlert = "\U0001F514";
+    internal const string IconAlert = "\U0001F514";
 
     // Telegram HTML chỉ cần thay ba ký tự này; & phải thay trước.
     public static string EscapeHtml(string? value)
@@ -42,20 +42,7 @@ public static class PaymentNotificationFormatter
         var transfer = outcome.Transfer;
         var daThuDu = outcome.TienThua > 0 || outcome.ConLai == 0;
 
-        var gateway = transfer.Gateway?.Trim();
-        string kenh;
-        if (transfer.Kenh == OnlinePaymentChannel.VnPay)
-        {
-            kenh = string.IsNullOrEmpty(gateway)
-                ? $"{VnPayMethodName} (VNPay)"
-                : $"{VnPayMethodName} (VNPay, {EscapeHtml(gateway)})";
-        }
-        else
-        {
-            kenh = string.IsNullOrEmpty(gateway)
-                ? "Chuyển khoản VietQR"
-                : $"Chuyển khoản VietQR ({EscapeHtml(gateway)})";
-        }
+        var kenh = ChannelLabel(transfer);
 
         var lines = new List<string>
         {
@@ -78,6 +65,22 @@ public static class PaymentNotificationFormatter
         }
 
         return string.Join("\n", lines);
+    }
+
+    // Nhãn kênh trong tin Telegram (đã mã hóa HTML), dùng chung cho tin hóa đơn và tin giữ chỗ.
+    internal static string ChannelLabel(IncomingBankTransfer transfer)
+    {
+        var gateway = transfer.Gateway?.Trim();
+        if (transfer.Kenh == OnlinePaymentChannel.VnPay)
+        {
+            return string.IsNullOrEmpty(gateway)
+                ? $"{VnPayMethodName} (VNPay)"
+                : $"{VnPayMethodName} (VNPay, {EscapeHtml(gateway)})";
+        }
+
+        return string.IsNullOrEmpty(gateway)
+            ? "Chuyển khoản VietQR"
+            : $"Chuyển khoản VietQR ({EscapeHtml(gateway)})";
     }
 
     // context có khi hóa đơn xác định được (chi nhánh, hóa đơn thay thế).
@@ -198,7 +201,7 @@ public static class PaymentNotificationFormatter
     }
 
     // Mã tham chiếu ngân hàng; giao dịch không có thì dùng id SePay.
-    private static string TransferReference(IncomingBankTransfer transfer)
+    internal static string TransferReference(IncomingBankTransfer transfer)
     {
         var reference = transfer.ReferenceCode?.Trim();
         return string.IsNullOrEmpty(reference) ? $"ID {transfer.SePayId}" : reference;

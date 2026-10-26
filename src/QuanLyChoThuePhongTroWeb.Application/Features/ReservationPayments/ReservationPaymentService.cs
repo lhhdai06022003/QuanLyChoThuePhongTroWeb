@@ -4,6 +4,7 @@ using QuanLyChoThuePhongTroWeb.Application.Abstractions.Services;
 using QuanLyChoThuePhongTroWeb.Application.Common.Configurations;
 using QuanLyChoThuePhongTroWeb.Application.Common.Files;
 using QuanLyChoThuePhongTroWeb.Application.Common.Models;
+using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Payments;
 
 namespace QuanLyChoThuePhongTroWeb.Application.Features.ReservationPayments;
 
@@ -100,6 +101,9 @@ public sealed class ReservationPaymentService(IReservationPaymentStore store,
             receivedAtUtc <= DateTime.UnixEpoch ||
             receivedAtUtc > clock.GetUtcNow().UtcDateTime.AddMinutes(5))
             return ServiceResult.Fail("Mã giao dịch, số tiền hoặc thời điểm thực nhận không hợp lệ.");
+        // Mã SEPAY-/VNPAY- là khóa hệ thống tự ghi; nhân viên không nhập tay để khỏi ghi trùng khoản đã tự động.
+        if (InvoicePaymentPolicy.IsSystemRecordedKey(bankReference.Trim()))
+            return ServiceResult.Fail(InvoicePaymentPolicy.SystemPrefixMessage);
         var branchId = await store.GetPaymentBranchIdAsync(paymentRequestId,
             cancellationToken);
         if (!branchId.HasValue)
@@ -117,6 +121,7 @@ public sealed class ReservationPaymentService(IReservationPaymentStore store,
             PaymentError.DuplicateTransaction => ServiceResult.Fail("Mã giao dịch hoặc minh chứng đã được xác nhận."),
             PaymentError.InvalidState => ServiceResult.Fail("Yêu cầu hoặc minh chứng không hợp lệ."),
             PaymentError.Conflict => ServiceResult.Fail("Giao dịch vừa thay đổi, vui lòng tải lại."),
+            PaymentError.SystemRecorded => ServiceResult.Fail(ReservationPaymentMarkers.SystemRecordedMessage),
             PaymentError.ReceivedBeforeRequest => ServiceResult.Fail(
                 "Thời điểm thực nhận sớm hơn lúc duyệt giữ chỗ. Nhập đúng thời điểm tiền vào tài khoản theo sao kê ngân hàng."),
             _ => ServiceResult.NotFound("Không tìm thấy yêu cầu thanh toán.")
