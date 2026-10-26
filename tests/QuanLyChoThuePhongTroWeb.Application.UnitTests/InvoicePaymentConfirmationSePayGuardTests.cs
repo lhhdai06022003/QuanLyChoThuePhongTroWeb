@@ -471,8 +471,9 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.True(result.Success, result.Message);
         }
 
+        // T4 (26/10/2026): mã có tiền tố SEPAY- bị chặn ngay ở bước kiểm dữ liệu nhập, trước cả kiểm trùng.
         [Fact]
-        public async Task ManualCollection_WithExactSePayKeyTyped_IsStillRejectedAsAlreadyRecorded()
+        public async Task ManualCollection_WithExactSePayKeyTyped_IsStillRejected_ByTheSystemPrefixRule()
         {
             _h.AddSentInvoice();
             _h.AddSePayLedger(7, 500_000m, "FT26ABC", BeforeTheProof);
@@ -480,7 +481,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             var result = await _h.Ledger.CollectManuallyAsync(Transfer(1_500_000m, "SEPAY-FT26ABC"), Staff);
 
             Assert.False(result.Success);
-            Assert.Equal("Mã giao dịch đã được ghi nhận.", result.Message);
+            Assert.Equal(InvoicePaymentPolicy.SystemPrefixMessage, result.Message);
+            Assert.Single(_h.Store.Ledger);
         }
 
         // ---------- Khóa SEPAY- dùng chung ----------

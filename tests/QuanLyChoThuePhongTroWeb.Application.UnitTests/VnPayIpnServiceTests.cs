@@ -437,18 +437,44 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.Equal(reason, outcome.LyDo);
         }
 
+        // T2 (người dùng chọn 26/10/2026): hóa đơn không có trong DB trả 01 "Order not found", không cảnh báo hoàn tiền.
         [Fact]
-        public async Task UnknownInvoice_Returns02_AndQueuesAnAlert()
+        public async Task UnknownInvoice_Returns01_LogsAWarning_AndQueuesNothing()
         {
             _h.AddSentInvoice();
 
             var result = await _service.HandleIpnAsync(Query(q => q["vnp_TxnRef"] = VnPayProtocol.BuildTxnRef(999, Now)));
 
+            Assert.Equal(VnPayIpnResult.OrderNotFound, result);
+            AssertNothingHappened();
+            Assert.Contains(_log.Entries, e => e.Level == LogLevel.Warning && e.Message.Contains("999"));
+        }
+
+        [Fact]
+        public async Task UnknownInvoice_WithAFailedTransaction_StillReturns00()
+        {
+            var result = await _service.HandleIpnAsync(Query(q =>
+            {
+                q["vnp_TxnRef"] = VnPayProtocol.BuildTxnRef(999, Now);
+                q["vnp_ResponseCode"] = "24";
+            }));
+
+            Assert.Equal(VnPayIpnResult.Confirmed, result);
+            AssertNothingHappened();
+        }
+
+        [Fact]
+        public async Task SoftDeletedInvoice_StillReturns02_AndQueuesAnAlert()
+        {
+            var hoaDon = _h.AddSentInvoice();
+            hoaDon.IsDeleted = true;
+
+            var result = await _service.HandleIpnAsync(Query());
+
             Assert.Equal(VnPayIpnResult.AlreadyConfirmed, result);
+            Assert.Empty(_h.Store.Ledger);
             var outcome = Assert.Single(_queue.Items).Outcome;
             Assert.Equal(TransferOutcomeKind.InvoiceNotPayable, outcome.Kind);
-            Assert.Equal("Không tìm thấy hóa đơn", outcome.LyDo);
-            Assert.Empty(_h.Store.Ledger);
         }
 
         // ---------- Lỗi hệ thống ----------

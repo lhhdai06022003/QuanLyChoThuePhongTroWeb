@@ -811,5 +811,24 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             // Lớp w-sm-auto mà các nút VNPay dùng phải có sẵn.
             Assert.Matches(@"\.w-sm-auto\s*\{\s*width:\s*auto\s*!important;", css);
         }
+
+        // Ở 375 px, bảng danh sách hóa đơn 6 cột từng kéo cả trang rộng 718 px (site.css ép .table-responsive overflow visible);
+        // mở modal thì Bootstrap đệm padding-right 343px và modal chi tiết (cả panel thanh toán) chỉ còn 32 px.
+        // Bảng phải cuộn ngang trong khung của nó.
+        [Fact]
+        public async Task TenantInvoiceList_ScrollsInsideItsOwnBox_SoTheDetailModalKeepsTheFullWidth()
+        {
+            var css = await StaticAsync("/css/hoadon.css");
+            var rule = Regex.Match(css, @"\.table-responsive\.kt-hoadon-list-scroll\s*\{([^}]*)\}");
+            Assert.True(rule.Success, "Thiếu rule .table-responsive.kt-hoadon-list-scroll");
+            Assert.Contains("overflow-x: auto !important", rule.Groups[1].Value);
+
+            var seed = await SeedAsync();
+            using var host = WithVnPay(enabled: true);
+            var (tenant, _) = await LoginAsync(NewClient(host), seed.Tenant, "/KhachThue/HoaDon");
+            var html = await (await tenant.GetAsync("/KhachThue/HoaDon")).Content.ReadAsStringAsync();
+
+            Assert.Matches(@"<div class=""table-responsive kt-hoadon-list-scroll"">\s*<table[^>]*id=""hoaDonTable""", html);
+        }
     }
 }

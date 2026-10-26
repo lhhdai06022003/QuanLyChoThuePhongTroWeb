@@ -171,7 +171,7 @@ VNPay chỉ gọi IPN qua HTTPS nên cần tunnel ở mục 4 (domain ngrok tĩn
 
 ### 9.4 Mở trang bằng địa chỉ nào
 
-Mở web trên trình duyệt bằng `http://localhost:5009` ở máy đang chạy web. Trang kết quả (ReturnUrl) được dựng theo địa chỉ đang mở và cookie đăng nhập gắn với địa chỉ đó, nên khi VNPay đưa khách về, trình duyệt vẫn giữ phiên đăng nhập. Web không đọc forwarded headers (không sửa `Program.cs`), nên nếu mở web qua domain ngrok thì ReturnUrl dựng ra là `http://{domain}` (không phải https). `vnp_IpAddr` là IP kết nối của khách; qua ngrok sẽ là IP của tunnel (spec VNPay §13). Chưa thử sandbox có chấp nhận hai điểm này không; khi chạy V01, nếu VNPay báo lỗi tham số thì ghi lại mã lỗi và báo agent, không tự sửa code.
+Mở web trên trình duyệt bằng `http://localhost:5009` ở máy đang chạy web. Trang kết quả (ReturnUrl) được dựng theo địa chỉ đang mở và cookie đăng nhập gắn với địa chỉ đó, nên khi VNPay đưa khách về, trình duyệt vẫn giữ phiên đăng nhập. Web không đọc forwarded headers (không sửa `Program.cs`), nên nếu mở web qua domain ngrok thì ReturnUrl dựng ra là `http://{domain}` (không phải https). `vnp_IpAddr` là IP kết nối của khách; qua ngrok sẽ là IP của tunnel (spec VNPay §13). Đã thử trên sandbox 26/10/2026 (V01, mở web và tạo link qua domain ngrok): VNPay chấp nhận cả hai điểm này. Vẫn nên mở bằng `localhost:5009` như trên; chạy thật cần xem lại.
 
 ### 9.5 Kiểm nhanh
 
@@ -202,6 +202,7 @@ Kèm kiểm cổng quản lý (tương ứng 6.8): chi tiết hóa đơn → l�
 
 Khi IPN chưa được trả `00` hoặc `02` (ví dụ tunnel tắt, web lỗi), VNPay gọi lại tối đa 10 lần, cách nhau 5 phút (spec VNPay §5.2). Nếu trong thời gian đó nhân viên dùng **Thu thủ công** với mã giao dịch VNPay thô (`vnp_TransactionNo`, không có tiền tố `VNPAY-`), lần gọi lại sau thấy hóa đơn đã đủ tiền nên không ghi sổ và gửi Telegram "THANH TOÁN VNPAY CẦN HOÀN TIỀN" **sai**: khách không bị trừ thêm, hệ thống chỉ không nhận ra đó là cùng một giao dịch.
 
+- Mã có tiền tố `VNPAY-` hoặc `SEPAY-` bị từ chối khi thu thủ công; chỉ nhập mã gốc.
 - Chỉ thu thủ công khi chắc VNPay đã ngừng gọi lại (kiểm trên trang merchant sandbox, hoặc đợi hơn 50 phút kể từ lúc khách trả).
 - Đã nhận cảnh báo này sau khi thu thủ công: đối chiếu lịch sử thanh toán của hóa đơn trước, nếu mã giao dịch đã có ở đó thì **không hoàn tiền**.
 

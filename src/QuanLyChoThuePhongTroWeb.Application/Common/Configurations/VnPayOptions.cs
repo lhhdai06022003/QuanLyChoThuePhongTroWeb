@@ -31,6 +31,13 @@ namespace QuanLyChoThuePhongTroWeb.Application.Common.Configurations
                 throw new System.InvalidOperationException("Cấu hình VnPay:PaymentUrl phải là URL tuyệt đối dùng https.");
             }
 
+            // VnPayProtocol.BuildPaymentUrl nối "?" + tham số đã ký ngay sau PaymentUrl, nên PaymentUrl không được có sẵn query
+            // hoặc fragment (URL VNPay cấp không có).
+            if (PaymentUrl.Contains('?') || PaymentUrl.Contains('#'))
+            {
+                throw new System.InvalidOperationException("Cấu hình VnPay:PaymentUrl không được chứa '?' hoặc '#'.");
+            }
+
             if (ExpireMinutes < 5 || ExpireMinutes > 60)
             {
                 throw new System.InvalidOperationException("Cấu hình VnPay:ExpireMinutes phải nằm trong khoảng từ 5 đến 60.");

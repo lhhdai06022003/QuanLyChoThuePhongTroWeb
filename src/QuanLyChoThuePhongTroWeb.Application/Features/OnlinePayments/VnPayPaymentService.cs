@@ -55,6 +55,14 @@ public sealed class VnPayPaymentService(
             return VnPayIpnResult.Confirmed;
         }
 
+        // 4b. Giao dịch thành công cho hóa đơn không có trong DB (hóa đơn đã xóa mềm hoặc đã hủy thì vẫn có): "Order not found"
+        // theo VNPay, không cảnh báo hoàn tiền; VNPay gọi lại tối đa 10 lần rồi dừng. Hóa đơn đã xóa mềm/hủy đi tiếp tới bước 6.
+        if (await store.GetTargetByHoaDonAsync(hoaDonId, ct) == null)
+        {
+            logger.LogWarning("IPN VNPay: hóa đơn {HoaDonId} không tồn tại, trả 01", hoaDonId);
+            return VnPayIpnResult.OrderNotFound;
+        }
+
         // 5. Số tiền: chuỗi chữ số ASCII, dương, chia hết cho 100 (VNPay nhân 100).
         if (!long.TryParse(Read(query, VnPayProtocol.AmountKey), NumberStyles.None, CultureInfo.InvariantCulture, out var rawAmount)
             || rawAmount <= 0
@@ -142,6 +150,8 @@ public sealed class VnPayPaymentService(
             case TransferOutcomeKind.Recorded:
                 return VnPayIpnResult.Confirmed;
 
+            // InvoiceNotPayable gồm cả "không tìm thấy hóa đơn" của handler; với VNPay nhánh đó chỉ còn khi hóa đơn biến mất
+            // giữa bước 4b và lúc khóa dòng (không có xóa cứng nên không mong đợi).
             case TransferOutcomeKind.Duplicate:
             case TransferOutcomeKind.InvoiceNotPayable:
             case TransferOutcomeKind.AlreadyPaid:

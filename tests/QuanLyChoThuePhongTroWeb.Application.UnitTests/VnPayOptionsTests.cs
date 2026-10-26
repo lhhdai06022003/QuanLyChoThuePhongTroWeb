@@ -65,6 +65,18 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.Contains("VnPay:PaymentUrl", ex.Message);
         }
 
+        // BuildPaymentUrl luôn nối "?" sau PaymentUrl: URL có sẵn query hoặc fragment bị chặn lúc khởi động.
+        [Theory]
+        [InlineData("https://sandbox.vnpayment.vn/paymentv2/vpcpay.html?lang=vn")]
+        [InlineData("https://sandbox.vnpayment.vn/paymentv2/vpcpay.html?")]
+        [InlineData("https://sandbox.vnpayment.vn/paymentv2/vpcpay.html#top")]
+        public void PaymentUrl_WithAQueryOrFragment_Throws(string url)
+        {
+            var ex = Assert.Throws<InvalidOperationException>(() => new VnPayOptions { PaymentUrl = url }.Validate());
+
+            Assert.Equal("Cấu hình VnPay:PaymentUrl không được chứa '?' hoặc '#'.", ex.Message);
+        }
+
         [Theory]
         [InlineData(4)]
         [InlineData(61)]

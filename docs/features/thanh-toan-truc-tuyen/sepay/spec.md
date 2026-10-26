@@ -389,7 +389,7 @@ Mục tiêu: chạy trọn luồng ghi sổ → biên lai → email → Telegram
    - `Telegram:*` = bot thật (miễn phí); `EmailSettings` = Gmail App Password; `OnlinePayment:PublicBaseUrl` = URL tunnel.
 3. **Tunnel: ngrok với domain tĩnh miễn phí** (người dùng chọn 16/10), để URL webhook trên SePay và `PublicBaseUrl` chỉ khai báo một lần.
    - Người dùng tự đăng ký ngrok, cài (`winget install ngrok.ngrok`), chạy `ngrok config add-authtoken ...`, lấy domain tĩnh trên dashboard.
-   - Mở tunnel bằng lệnh viết trong `huong-dan-thiet-lap.md`: `ngrok http --url={domain-tĩnh} 5009`. URL webhook dán vào SePay là `https://{domain-tĩnh}/api/webhooks/payment/sepay`, `PublicBaseUrl` là `https://{domain-tĩnh}`.
+   - Mở tunnel bằng lệnh viết trong `huong-dan-thiet-lap.md`: `ngrok http 5009 --url=https://{domain-tĩnh}`. URL webhook dán vào SePay là `https://{domain-tĩnh}/api/webhooks/payment/sepay`, `PublicBaseUrl` là `https://{domain-tĩnh}`.
    - Tunnel mở cả trang web ra Internet: chỉ bật khi thử, tắt ngay sau đó, dùng mật khẩu Admin mạnh.
 4. **Không có script phụ trợ** (người dùng quyết định 16/10/2026). Thử luồng webhook không cần tài khoản đã nằm trong test xUnit (`SePayWebhookTests`, `SePayWebhookBehaviourTests`: tự ký HMAC, gửi trùng, gửi song song). Thử thật dùng Test send / Simulate của SePay Test mode qua tunnel. Hướng dẫn thao tác tay chỉ viết dạng lệnh và bước trong `huong-dan-thiet-lap.md`.
 

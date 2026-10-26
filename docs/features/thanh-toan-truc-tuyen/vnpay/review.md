@@ -8,7 +8,7 @@
   - Lần thử sandbox đầu tiên: IPN không tới vì chưa khai IPN URL (mục 8 ý 7).
   - Sandbox, 26/10/2026: V01, V02 PASS, có log ngrok đối chiếu; V07 (cách encode chữ ký) PASS theo V01; V03–V06 PASS theo người dùng báo.
   - Cookie khi VNPay chuyển về: đạt ở V01/V02 (trang kết quả cần đăng nhập, log ngrok trả 200, không phải 302 về trang đăng nhập). SignalR tự tải lại trang "đang ghi nhận": đạt ở V04 theo người dùng báo.
-  - **Chưa kiểm chứng:** giao diện 375 px, sáng và tối, trên trình duyệt thật.
+  - Giao diện 375 px sáng/tối đã kiểm 26/10/2026 trên trình duyệt giả lập: phần VNPay đạt; phát hiện lỗi có từ trước làm modal chi tiết hóa đơn bị bóp còn 32 px ở 375 px (mục 7).
 
 ## 1. Nguồn bằng chứng và giới hạn
 
@@ -44,14 +44,14 @@
 | Từ | Mục | Trạng thái |
 | --- | --- | --- |
 | Phần 1 | T1: log dùng chung ghi "SePay 0" cho VNPay | **Đã làm** ở phần 2, qua `IncomingBankTransfer.LogLabel` (Publisher, Dispatcher, và cả Worker theo Q1) |
-| Phần 1 | T2: trả `01` cho hóa đơn không tồn tại (hiện trả `02` + cảnh báo hoàn tiền, đúng spec) | **Chưa làm**; chỉ làm nếu nghiệm thu với VNPay đòi |
+| Phần 1 | T2: trả `01` cho hóa đơn không tồn tại (hiện trả `02` + cảnh báo hoàn tiền, đúng spec) | **Đã làm** 26/10/2026 (người dùng chọn): IPN thành công cho hóa đơn không có trong DB trả `01`, log Warning, không cảnh báo hoàn tiền; hóa đơn đã xóa mềm/hủy vẫn `02` + cảnh báo; IPN không thành công vẫn `00` (spec §5.2 bước 4b) |
 | Phần 1 | T3: cảnh báo việc thu thủ công bằng mã TXN thô trong lúc VNPay còn gọi lại IPN | **Đã làm**: hướng dẫn mục 9.7 |
-| Phần 1 (có từ đợt 1) | T4: thu thủ công chưa cấm mã bắt đầu bằng `VNPAY-`/`SEPAY-` | **Chưa làm** |
+| Phần 1 (có từ đợt 1) | T4: thu thủ công chưa cấm mã bắt đầu bằng `VNPAY-`/`SEPAY-` | **Đã làm** 26/10/2026 (người dùng chọn): `InvoicePaymentPolicy.ValidateMaGiaoDich` từ chối tiền tố (không phân biệt hoa thường) ở thu thủ công và xác nhận minh chứng cũ, báo nhập mã gốc (spec §6.1) |
 | Phần 2 | Race: trang kết quả có thể báo nhầm `KhongGhiNhan` khi IPN commit giữa hai lần đọc | **Đã sửa** 26/10/2026: đọc lại sổ trước khi kết luận; thêm test `Success_WhenTheIpnCommitsBetweenTheLedgerAndInvoiceReads_IsDaGhiNhan` |
 | Phần 2 | Hướng dẫn 9.4 khẳng định "Sandbox chấp nhận cả hai" dù chưa thử | **Đã sửa**: đổi thành "chưa thử", kèm việc cần làm nếu VNPay báo lỗi tham số |
 | Phần 2 | Trạng thái cũ trong README/plan | **Đã sửa** |
-| Phần 2 | VNPay có hạn mức số tiền tối thiểu mỗi giao dịch, chưa đối chiếu với tài liệu | **Để sau**; nếu V01–V07 gặp thì thêm kiểm ở `CreatePaymentUrlAsync`, cần người dùng xác nhận |
-| Phần 2 | `VnPayProtocol.BuildPaymentUrl` luôn nối `?`, sai nếu `PaymentUrl` đã có sẵn query | **Để sau**; URL mặc định của sandbox và production không có query |
+| Phần 2 | VNPay có hạn mức số tiền tối thiểu mỗi giao dịch, chưa đối chiếu với tài liệu | **Không làm** (người dùng xác nhận 26/10/2026 trường hợp này không xảy ra). Tài liệu chính thức `pay.html` không nêu hạn mức tối thiểu/tối đa, chỉ quy định `vnp_Amount` là số 1–12 chữ số đã nhân 100 |
+| Phần 2 | `VnPayProtocol.BuildPaymentUrl` luôn nối `?`, sai nếu `PaymentUrl` đã có sẵn query | **Đã làm** 26/10/2026 (người dùng chọn): `VnPayOptions.Validate()` báo lỗi khi khởi động nếu `PaymentUrl` chứa `?` hoặc `#`; không đổi cách dựng URL đã chạy đúng ở V01 |
 
 ## 4. Kết quả test
 
@@ -68,6 +68,11 @@
 | `dotnet test tests/QuanLyChoThuePhongTroWeb.Web.IntegrationTests` sau khi sửa fixture (một mình, `appsettings.json` vẫn bật VNPay) | PASS 657/657 | 26/10/2026. Cùng mã sản phẩm với lượt toàn solution ở trên, nên Domain, Application, Infrastructure lấy kết quả PASS của lượt đó |
 | `dotnet ef migrations has-pending-model-changes` | PASS: "No changes have been made to the model since the last migration." | 26/10/2026, mã hiện tại |
 | `git diff --check` | PASS (chỉ cảnh báo LF/CRLF) | 26/10/2026 |
+| Sau khi sửa T2, T4, `PaymentUrl` (26/10/2026): `dotnet build` | PASS, 0 lỗi | |
+| `dotnet test` Application | PASS 2092/2092 | Có sửa kỳ vọng 2 test cũ theo quyết định của người dùng: `VnPayIpnServiceTests.UnknownInvoice_*` (02 → 01) và `InvoicePaymentConfirmationSePayGuardTests.ManualCollection_WithExactSePayKeyTyped_*` (câu báo trùng → câu báo tiền tố); thêm `InvoiceManualCodePrefixTests`, 2 ca IPN, 3 ca `VnPayOptionsTests` |
+| `dotnet test QuanLyChoThuePhongTroWeb.sln` | Domain 135, Application 2092, Infrastructure 621 PASS; Web FAIL hàng loạt | Web: timeout DB ở `ThongBaoChiNhanhTests` rồi FAIL dây chuyền (mục 8 ý 10). Trong đó có 1 lỗi thật: `VnPayIpnScenarioTests` còn kỳ vọng T2 cũ, đã sửa thành `TxnRefOfAnInvoiceThatDoesNotExist_Returns01_WithoutARefundAlert` |
+| `dotnet test` Web chạy một mình | FAIL 555/1210 | Cùng lỗi timeout DB ở `ThongBaoChiNhanhTests`, không do code |
+| Web lọc `VnPay|TenantOnlinePayment|SePay|HoaDon|Invoice|LichSu|Payment` | PASS 384/384 | Kiểm các thay đổi thanh toán; **chưa có lượt Web đầy đủ PASS** sau lần sửa này |
 
 ### Test theo spec §11
 
@@ -109,10 +114,10 @@
 | [../huong-dan-thiet-lap.md](../huong-dan-thiet-lap.md) mục 9 | Đủ 9.1–9.8. V01–V07 khớp spec §11.3, viết chi tiết hơn (V03 có cách dựng tình huống, V04 tắt/bật ngrok). Khóa cấu hình ở 9.3 khớp §10 |
 | `docs/features/README.md`, `AGENTS.md` | Khớp trạng thái hiện tại và đường dẫn mới `thanh-toan-truc-tuyen/vnpay/` |
 
-**Lệch tìm thấy, chưa sửa (spec đã được người dùng duyệt):**
+**Lệch tìm thấy, đã sửa 26/10/2026 (người dùng duyệt):**
 
-1. Spec §13 ghi về `vnp_IpAddr` qua ngrok: "Sandbox chấp nhận; chạy thật cần xem lại". Câu này giống câu reviewer đã bắt bỏ ở hướng dẫn 9.4: chưa có giao dịch sandbox nào để chứng minh. Nên sửa thành "chưa thử trên sandbox".
-2. Lệnh ngrok viết hai kiểu: spec §12 (và spec SePay) dùng `ngrok http --url={domain-tĩnh} 5009`, còn hướng dẫn mục 4 và 9.2 dùng `ngrok http 5009 --url=https://{domain-tĩnh}`. Cả hai đều là cú pháp ngrok v3, nhưng nên thống nhất theo hướng dẫn.
+1. Spec §13 ghi về `vnp_IpAddr` qua ngrok: "Sandbox chấp nhận; chạy thật cần xem lại". Đã sửa spec §13 và hướng dẫn 9.4 thành "đã thử ở V01": lần tạo link 18:42:52 đi qua domain ngrok (log ngrok) nên `vnp_IpAddr` là IP tunnel, ReturnUrl là `http://{domain}`, và VNPay chấp nhận.
+2. Lệnh ngrok viết hai kiểu: spec §12 (và spec SePay) dùng `ngrok http --url={domain-tĩnh} 5009`, còn hướng dẫn mục 4 và 9.2 dùng `ngrok http 5009 --url=https://{domain-tĩnh}`. Đã sửa hai spec theo kiểu của hướng dẫn.
 
 ## 7. Thử tay (spec §11.3)
 
@@ -124,7 +129,7 @@
 | V02 | **PASS** (18:52, hóa đơn 13). Log ngrok: VNPay gọi IPN với `vnp_ResponseCode=24`, web trả `00 Confirm Success` mà không ghi sổ (đúng dòng 4 bảng §5.2); khách về trang kết quả với mã `24`. Người dùng báo trang hiện đã hủy |
 | V03–V06 | **PASS theo người dùng báo** (26/10/2026). Agent không đối chiếu được: log ngrok chỉ còn request trong khoảng 18:42–18:52, trong đó chỉ có V01 và V02 |
 | V07 (cách encode chữ ký) | **PASS theo V01**: VNPay chấp nhận link do `VnPayProtocol` ký, và IPN của VNPay qua được bước kiểm chữ ký (không trả `97`). Mới có một giao dịch, nội dung đơn ASCII |
-| Giao diện 375 px, sáng và tối (panel hai tab, trang kết quả) | CHƯA CHẠY. Mới kiểm tĩnh: không màu cứng, nút `btn-lg w-100`, tab `min-height: 44px` |
+| Giao diện 375 px, sáng và tối (panel hai tab, trang kết quả) | **Đã kiểm 26/10/2026** trên trình duyệt trong app, giả lập 375×812 (Android), DB phát triển, hóa đơn tháng 4 còn nợ 2.444.500đ, `VnPay:Enabled` bật. Panel (sau khi bỏ phần đệm lỗi, xem dưới): không tràn ngang, hai tab xếp dọc rộng 347 px cao 44 px, nút "Thanh toán qua VNPay" 347×48 px; tối (`localStorage.tablerTheme = dark`, đã trả lại) đọc được. Trang kết quả: chỉ kiểm trạng thái "Không xác thực" (không có chữ ký VNPay để dựng trạng thái khác), sáng/tối không tràn, nút 240×48 px. **Phát hiện:** (1) bảng danh sách hóa đơn khách `#hoaDonTable` rộng 682 px làm trang rộng 718 px; khi mở modal, Bootstrap bù "thanh cuộn" `padding-right: 343px` nên modal chi tiết (cả panel thanh toán) chỉ còn rộng 32 px; lỗi có từ trước VNPay. **Đã sửa 26/10/2026** (người dùng chọn): khung bảng gắn class `kt-hoadon-list-scroll`, `hoadon.css` cho riêng class này `overflow-x: auto !important` (thắng rule `overflow: visible !important` của `site.css`); kiểm lại 375 px: trang 375 px, bảng cuộn trong khung (302/682 px), modal rộng 375 px, padding 0; khách vuốt ngang trong bảng để tới nút "Xem chi tiết". Test `TenantInvoiceList_ScrollsInsideItsOwnBox_SoTheDetailModalKeepsTheFullWidth`; Web lọc thanh toán khách 96/96 PASS. Chưa sửa (người dùng để sau): (2) tab đang chọn chỉ khác bằng nền `#f9fafb` và viền nhạt ở chế độ sáng; chữ tab không chọn ở chế độ tối `#6b7280` trên `#1f2937` tương phản khoảng 3:1; (3) DataTables của trang này còn chữ tiếng Anh ("Show 10 entries", "Search:", "Previous/Next") |
 
 ## 8. Rủi ro và việc còn mở
 
@@ -132,8 +137,9 @@
 2. **ReturnUrl và cookie:** web không đọc forwarded headers. Mở qua domain ngrok thì ReturnUrl dựng ra là `http://`; nên mở bằng `http://localhost:5009` (hướng dẫn 9.4).
 3. **Không đối soát bù** (Q4): IPN bị lỡ sau 10 lần gọi lại thì giao dịch không được ghi. Admin phải thu thủ công, và lưu ý mục 9.7.
 4. **Hàng đợi thông báo nằm trong bộ nhớ** như đợt 1: khởi động lại có thể mất tin, bù bằng "Gửi lại biên lai".
-5. T2, T4, hạn mức tối thiểu của VNPay, `BuildPaymentUrl` nối `?`: xem mục 3.
+5. T2, T4, `BuildPaymentUrl` đã làm; hạn mức tối thiểu không làm theo người dùng (mục 3).
 6. ~~Test Web phụ thuộc `appsettings.json` của máy chạy test~~: **đã sửa** 26/10/2026, `CustomWebApplicationFactory` cố định `VnPayOptions` (mục 4).
 7. **Thử sandbox lần đầu, 26/10/2026, 18:08–18:09:** VNPay báo thành công (trang kết quả nhận `vnp_ResponseCode=00`, giao dịch hiện trên dashboard VNPay) nhưng hóa đơn chưa được ghi sổ. Log ngrok không có request nào tới `/api/webhooks/payment/vnpay-ipn`, nghĩa là VNPay chưa gọi IPN, do chưa khai IPN URL trên cổng merchant sandbox. Sau khi người dùng khai URL, lần thử 18:42 ghi sổ đúng (V01, mục 7).
 8. **Giao dịch sandbox lỡ IPN lúc 18:08** (`HD12_639286096935264636`) đã trả tiền trên VNPay nhưng không ghi sổ. Nếu sau này VNPay gọi lại IPN cho giao dịch đó, hóa đơn 12 đã trả đủ nên hệ thống sẽ trả `02` và gửi Telegram "cần hoàn tiền". Đây là hành vi đúng; với tiền sandbox thì bỏ qua.
 9. Phần 2 đã commit 26/10/2026 (cùng gộp thư mục tài liệu, review.md, sửa fixture); chưa push.
+10. **DB test bị phình:** từ 26/10/2026 cả lượt Web chạy một mình cũng FAIL hàng loạt. Test đầu tiên FAIL là truy vấn đọc của `ThongBaoChiNhanhTests` (đếm `thong_bao` theo nội dung) hết thời gian 30 giây; sau đó factory dùng chung hỏng nên các test sau FAIL trong 1 ms. Bảng `thong_bao` của DB test rất lớn (đợt 1 ghi khoảng 31 triệu dòng) và mỗi lượt test lại thêm vào. Không do code; cần người dùng quyết cách dọn DB test (mục 4).

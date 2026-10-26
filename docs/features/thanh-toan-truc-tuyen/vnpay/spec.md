@@ -129,6 +129,7 @@ Giữ nguyên đợt 1 §3.3: SignalR `HoaDonThanhToanCapNhat` cho khách; panel
 | 2 | `vnp_TmnCode` khác cấu hình | không ghi, log Warning | `97` |
 | 3 | `vnp_TxnRef` không đúng dạng `HD{1–9 chữ số}_{số}` | không ghi | `01` (không tìm thấy đơn) |
 | 4 | `vnp_ResponseCode ≠ 00` hoặc `vnp_TransactionStatus ≠ 00` (giao dịch không thành công) | không ghi, không thông báo | `00` (đã nhận kết quả) |
+| 4b | Giao dịch thành công nhưng hóa đơn `HD{id}` không có trong DB (hóa đơn đã xóa mềm hoặc đã hủy vẫn có, đi tiếp bước 6) | không ghi, không cảnh báo hoàn tiền, log Warning | `01` (T2, người dùng chọn 26/10/2026; VNPay gọi lại tối đa 10 lần rồi dừng) |
 | 5 | `vnp_Amount` không chia hết cho 100 hoặc ≤ 0 | không ghi, log Warning | `04` |
 | 6 | Ghi sổ theo §6: `Recorded` | đã ghi, gửi thông báo | `00` |
 | 6 | `Duplicate` | không ghi | `02` |
@@ -177,6 +178,7 @@ Kết quả không ghi (`InvoiceNotPayable`, `AlreadyPaid`) lưu khóa trong b�
 
 - Mã giao dịch nhân viên nhập (thu thủ công, xác nhận minh chứng cũ) hoặc khách khai trên minh chứng, mà sổ đã có dòng chưa xóa `VNPAY-{mã}` → báo lỗi "Mã giao dịch này đã được hệ thống ghi nhận tự động qua VNPay.", không ghi.
 - Kiểm "hóa đơn có dòng hệ thống tự ghi sau thời điểm khách nộp minh chứng" (bắt nhân viên chuyển Admin) tính cả dòng `VNPAY-`.
+- Mã nhân viên nhập tay (thu thủ công, xác nhận minh chứng cũ) bắt đầu bằng `VNPAY-` hoặc `SEPAY-` (không phân biệt hoa thường) bị từ chối: "Mã bắt đầu bằng SEPAY- hoặc VNPAY- dành cho thanh toán hệ thống ghi tự động. Vui lòng nhập mã giao dịch gốc (không có tiền tố)." Dòng nhập tay không bao giờ trông như dòng hệ thống ghi (T4, người dùng chọn 26/10/2026).
 
 ## 7. Thông báo
 
@@ -251,7 +253,7 @@ Thêm vào `appsettings.example.json` (giá trị mẫu, không secret thật):
 }
 ```
 
-`Validate()`: `Enabled = true` thì bắt buộc `TmnCode`, `HashSecret`; `PaymentUrl` là URL tuyệt đối https; `ExpireMinutes` trong 5–60.
+`Validate()`: `Enabled = true` thì bắt buộc `TmnCode`, `HashSecret`; `PaymentUrl` là URL tuyệt đối https, không chứa `?` hoặc `#` (link được dựng bằng cách nối `?` + tham số đã ký); `ExpireMinutes` trong 5–60.
 
 Không ghi đè `appsettings.json` của người dùng. URL IPN khai báo phía VNPay: `https://{domain-ngrok}/api/webhooks/payment/vnpay-ipn`.
 
@@ -289,7 +291,7 @@ Không ghi đè `appsettings.json` của người dùng. URL IPN khai báo phía
 
 - Đăng ký sandbox tại `http://sandbox.vnpayment.vn/devreg/`, lấy `TmnCode` và `HashSecret`, điền vào `appsettings.json` máy phát triển.
 - Khai URL IPN `https://{domain-ngrok}/api/webhooks/payment/vnpay-ipn` theo hướng dẫn của VNPay cho tài khoản sandbox.
-- Mở tunnel ngrok như đợt 1 (`ngrok http --url={domain-tĩnh} 5009`); VNPay yêu cầu IPN dùng HTTPS.
+- Mở tunnel ngrok như đợt 1 (`ngrok http 5009 --url=https://{domain-tĩnh}`); VNPay yêu cầu IPN dùng HTTPS.
 - Lấy thông tin thẻ test VNPay cấp khi đăng ký.
 - Agent viết thêm mục VNPay vào `docs/features/thanh-toan-truc-tuyen/huong-dan-thiet-lap.md` (từng bước, không script).
 
@@ -299,7 +301,7 @@ Không ghi đè `appsettings.json` của người dùng. URL IPN khai báo phía
 - Không đối soát bù: IPN bị lỡ sau 10 lần gọi lại (ví dụ tunnel tắt) thì giao dịch không được ghi. Admin đối chiếu trên trang merchant VNPay rồi dùng "Thu thủ công" với mã giao dịch VNPay.
 - Không lưu đơn VNPay đã tạo: không có danh sách "link đã tạo", không kiểm số tiền với đơn (§5.2).
 - Khách mở hai link VNPay và trả cả hai, hoặc trả QR rồi trả VNPay: khoản sau ghi phần còn nợ (nếu có) và đánh dấu tiền thừa, hoặc không ghi và cảnh báo hoàn tiền. Hoàn tiền làm tay trên trang merchant.
-- `vnp_IpAddr` lấy IP kết nối; qua ngrok sẽ là IP của tunnel vì không cấu hình forwarded headers (không sửa `Program.cs`). Sandbox chấp nhận; chạy thật cần xem lại.
+- `vnp_IpAddr` lấy IP kết nối; qua ngrok sẽ là IP của tunnel vì không cấu hình forwarded headers (không sửa `Program.cs`). Đã thử trên sandbox 26/10/2026 (V01, tạo link qua domain ngrok nên `vnp_IpAddr` là IP tunnel và ReturnUrl là `http://{domain}`): VNPay chấp nhận. Chạy thật cần xem lại.
 - Hàng đợi thông báo trong bộ nhớ như đợt 1; khởi động lại có thể mất tin, bù bằng "Gửi lại biên lai".
 
 ## 14. Chia việc
@@ -325,3 +327,4 @@ Hai lượt `/ship` (Q13), chi tiết ở [plan.md](plan.md):
 | 26/10/2026 | Người dùng duyệt các ca spec chưa nói (B1–B5', ghi ở plan §3 Kết quả): `vnp_TransactionNo` rỗng → `99`; `vnp_Amount` không hợp lệ → `04`; câu chữ riêng cho kênh VNPay. Phần 1 xong. |
 | 26/10/2026 | Người dùng duyệt các ca spec chưa nói ở phần 2 (X1–X5, ghi ở plan §4 Kết quả): X1 trang "Đã ghi nhận" hiện số đã ghi sổ, kèm dòng "VNPay báo bạn đã trả …" nếu khác `vnp_Amount / 100` (§4.3); X2 thêm trạng thái "không ghi nhận" khi `00` nhưng hóa đơn không còn nhận khoản này hoặc dòng đã bị hủy ghi nhận (§4.3); X3 mã `07` dùng mô tả riêng, IPN không đổi; X4 từ chối tạo link khi số còn lại không nguyên (§4.2); X5 không tab VNPay khi chủ trọ chưa cấu hình tài khoản nhận tiền (§4.1). Phần 2 code xong, chưa thử sandbox. |
 | 26/10/2026 | Sau review phần 2: trang kết quả đọc lại sổ trước khi kết luận "không ghi nhận"; fixture Web test cố định `VnPayOptions` tắt. Thử sandbox V01–V07 đạt ([review.md](review.md) mục 7). Gộp hồ sơ vào `thanh-toan-truc-tuyen/vnpay/`. Phần 2 commit. |
+| 26/10/2026 | Người dùng chọn cách xử lý các việc còn mở: T2 IPN thành công cho hóa đơn không có trong DB trả `01`, không cảnh báo hoàn tiền (§5.2 bước 4b); T4 mã nhập tay mang tiền tố `VNPAY-`/`SEPAY-` bị từ chối (§6.1); `PaymentUrl` không chứa `?`/`#` (§10); §13 ghi kết quả thử sandbox V01; lệnh ngrok thống nhất `ngrok http 5009 --url=https://{domain-tĩnh}` (§12). Hạn mức số tiền: tài liệu VNPay không nêu tối thiểu/tối đa, người dùng xác nhận không xảy ra nên không kiểm. |

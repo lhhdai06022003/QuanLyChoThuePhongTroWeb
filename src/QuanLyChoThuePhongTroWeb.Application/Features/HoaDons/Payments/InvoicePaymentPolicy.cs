@@ -176,11 +176,21 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Payments
             return SePayBankReference(maGiaoDich) ?? VnPayReference(maGiaoDich);
         }
 
+        // Báo lỗi khi mã nhập tay mang tiền tố của dòng sổ hệ thống tự ghi (T4, người dùng chọn 26/10/2026).
+        public const string SystemPrefixMessage =
+            "Mã bắt đầu bằng " + SePayMaGiaoDichPrefix + " hoặc " + VnPayMaGiaoDichPrefix
+            + " dành cho thanh toán hệ thống ghi tự động. Vui lòng nhập mã giao dịch gốc (không có tiền tố).";
+
+        // Mã giao dịch nhân viên nhập tay (thu thủ công, xác nhận minh chứng): tối đa MaxMaGiaoDichLength ký tự và không được
+        // mang tiền tố SEPAY-/VNPAY- (không phân biệt hoa thường), để dòng nhập tay không bao giờ trông như dòng hệ thống ghi.
         public static string? ValidateMaGiaoDich(string? maGiaoDich)
         {
-            return maGiaoDich != null && maGiaoDich.Length > MaxMaGiaoDichLength
-                ? $"Mã giao dịch tối đa {MaxMaGiaoDichLength} ký tự."
-                : null;
+            if (maGiaoDich != null && maGiaoDich.Length > MaxMaGiaoDichLength)
+            {
+                return $"Mã giao dịch tối đa {MaxMaGiaoDichLength} ký tự.";
+            }
+
+            return IsSePayKey(maGiaoDich) || IsVnPayKey(maGiaoDich) ? SystemPrefixMessage : null;
         }
 
         // Định dạng tiền kiểu Việt Nam (1.900.000), không phụ thuộc culture của máy chủ.

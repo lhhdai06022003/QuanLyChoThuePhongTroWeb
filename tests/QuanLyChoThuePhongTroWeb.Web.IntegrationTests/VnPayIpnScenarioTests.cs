@@ -197,8 +197,9 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             Assert.Empty(await LedgerAsync(seeded.InvoiceId));
         }
 
+        // T2 (người dùng chọn 26/10/2026): hóa đơn không có trong DB → 01 "Order not found", không Telegram "cần hoàn tiền".
         [Fact]
-        public async Task TxnRefOfAnInvoiceThatDoesNotExist_Returns02_AndRaisesARefundAlert()
+        public async Task TxnRefOfAnInvoiceThatDoesNotExist_Returns01_WithoutARefundAlert()
         {
             var transactionNo = NewTransactionNo();
             using var host = EnabledHost();
@@ -206,9 +207,9 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             var (status, body) = await GetAsync(host, SignedQuery(999_999_999, transactionNo));
 
             Assert.Equal(HttpStatusCode.OK, status);
-            Assert.Equal("{\"RspCode\":\"02\",\"Message\":\"Order already confirmed\"}", body);
-            var text = Assert.Single(TelegramFor(transactionNo));
-            Assert.Contains("THANH TOÁN VNPAY CẦN HOÀN TIỀN", text);
+            Assert.Equal("{\"RspCode\":\"01\",\"Message\":\"Order not found\"}", body);
+            Assert.Empty(TelegramFor(transactionNo));
+            Assert.Empty(await LedgerAsync(999_999_999));
         }
 
         // ---------- Mã hóa query kiểu VNPay ----------

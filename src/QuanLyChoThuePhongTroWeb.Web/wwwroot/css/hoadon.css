@@ -125,6 +125,13 @@
     }
 }
 
+/* Danh sách hóa đơn cổng khách: site.css ép .table-responsive overflow visible (để dropdown không bị cắt), nên bảng 6 cột
+   kéo cả trang rộng hơn màn hình điện thoại; khi mở modal, Bootstrap tưởng phần rộng thêm là thanh cuộn và đệm padding-right
+   làm modal chi tiết bị bóp. Bảng này không có dropdown nên cuộn ngang ngay trong khung. */
+.table-responsive.kt-hoadon-list-scroll {
+    overflow-x: auto !important;
+}
+
 /* Hai tab chọn kiểu thanh toán (QR / VNPay): nhãn dài xuống dòng được, vùng bấm đủ 44px trên điện thoại */
 .kt-pay-tabs .nav-link {
     min-height: 44px;
