@@ -29,9 +29,10 @@ namespace QuanLyChoThuePhongTroWeb.Domain.Entities
 
         public DateTime NgayThucNhan { get; set; }
 
-        public int NguoiXacNhanId { get; set; }
+        // null: dòng do hệ thống tự ghi từ SePay/VNPay, không có nhân viên xác nhận.
+        public int? NguoiXacNhanId { get; set; }
         [ForeignKey("NguoiXacNhanId")]
-        public NguoiDung NguoiXacNhan { get; set; }
+        public NguoiDung? NguoiXacNhan { get; set; }
 
         public DateTime NgayXacNhan { get; set; } = DateTime.UtcNow;
 

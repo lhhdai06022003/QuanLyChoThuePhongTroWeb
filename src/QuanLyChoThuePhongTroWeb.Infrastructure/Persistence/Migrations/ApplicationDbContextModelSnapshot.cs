@@ -574,7 +574,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Migrations
                     b.Property<DateTime>("NgayXacNhan")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int>("NguoiXacNhanId")
+                    b.Property<int?>("NguoiXacNhanId")
                         .HasColumnType("integer");
 
                     b.Property<int>("PhuongThuc")
@@ -2053,8 +2053,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Migrations
                     b.HasOne("QuanLyChoThuePhongTroWeb.Domain.Entities.NguoiDung", "NguoiXacNhan")
                         .WithMany()
                         .HasForeignKey("NguoiXacNhanId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("QuanLyChoThuePhongTroWeb.Domain.Entities.YeuCauThanhToanGiuCho", "YeuCauThanhToanGiuCho")
                         .WithMany("GiaoDichGiuChos")

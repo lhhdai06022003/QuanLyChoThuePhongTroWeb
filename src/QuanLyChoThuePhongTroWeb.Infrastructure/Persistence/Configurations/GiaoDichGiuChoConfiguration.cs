@@ -31,6 +31,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Configurations
             builder.HasOne(g => g.NguoiXacNhan)
                 .WithMany()
                 .HasForeignKey(g => g.NguoiXacNhanId)
+                .IsRequired(false)
                 .OnDelete(DeleteBehavior.Restrict);
 
             builder.HasIndex(g => g.MaGiaoDich)
