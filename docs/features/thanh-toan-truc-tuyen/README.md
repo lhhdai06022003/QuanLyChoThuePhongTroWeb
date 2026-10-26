@@ -9,7 +9,7 @@
 | Tính năng | Kênh | Hiện trạng |
 | --- | --- | --- |
 | [SePay](sepay/README.md) (đợt 1) | Chuyển khoản VietQR, webhook SePay `POST /api/webhooks/payment/sepay` | Code xong 5 phần 16–18/10/2026, đã có trong `master`; thử tay 20/10/2026 trên SePay Test mode; đồng bộ bù chưa xác nhận |
-| [VNPay](vnpay/README.md) (đợt 2) | Thẻ ATM / Visa / MasterCard, IPN `GET /api/webhooks/payment/vnpay-ipn` | Phần 1 commit `74e5c81`; phần 2 reviewer CHOT và đã commit 26/10/2026; sandbox V01–V07 PASS 26/10/2026 |
+| [VNPay](vnpay/README.md) (đợt 2) | Thẻ ATM / Visa / MasterCard, IPN `GET /api/webhooks/payment/vnpay-ipn` | Phần 1 commit `74e5c81`; phần 2 reviewer CHOT, commit `0f326ad`; sandbox V01–V07 PASS 26/10/2026; việc còn mở sau sandbox xong ở `3de7181`; chưa push |
 
 ## Hồ sơ
 

@@ -61,7 +61,7 @@ public static partial class VnPayProtocol
 
     // Chỉ tham số bắt đầu "vnp_" (Ordinal) có giá trị khác rỗng, bỏ vnp_SecureHash và vnp_SecureHashType; sắp theo tên
     // (Ordinal); nối "key=" + UrlEncode(value) bằng "&". Tên tham số không encode.
-    // Cách encode chưa xác nhận trên sandbox (spec VNPay §5.3): mọi chỗ encode chỉ nằm trong hàm này.
+    // Cách encode đã xác nhận trên sandbox 26/10/2026 (spec VNPay §5.3); mọi chỗ encode chỉ nằm trong hàm này.
     public static string BuildSignData(IReadOnlyDictionary<string, string> parameters)
     {
         return string.Join("&", parameters

@@ -64,7 +64,7 @@ Panel `/KhachThue/HoaDon/ThanhToan/{hoaDonId}` (đợt 1 §3.2) có hai tab khi 
    - Ghi chú: "Nếu bạn vừa chuyển khoản QR cho hóa đơn này, hãy chờ hệ thống xác nhận trước khi thanh toán thẻ để không trả hai lần."
    - Nút **Thanh toán qua VNPay**.
 
-`VnPay:Enabled = false` thì không hiện tab, panel giống đợt 1. Số còn lại = 0 thì ẩn cả hai tab như đợt 1 (chỉ hiện biên lai).
+`VnPay:Enabled = false` thì không hiện tab, panel giống đợt 1. Số còn lại = 0 thì ẩn cả hai tab như đợt 1 (chỉ hiện biên lai). Chủ trọ chưa cấu hình tài khoản nhận tiền VietQR thì panel không hiện tab nào, kể cả VNPay, chỉ hiện lý do như đợt 1 (X5).
 
 ### 4.2 Tạo link thanh toán
 
@@ -72,7 +72,8 @@ Panel `/KhachThue/HoaDon/ThanhToan/{hoaDonId}` (đợt 1 §3.2) có hai tab khi 
 - Server kiểm lại ngay lúc bấm:
   - hóa đơn thuộc khách (claim `NguoiThueId`); không thuộc thì `NotFound`;
   - hóa đơn nhận tiền được (`DaGui`, chưa xóa, tổng tiền là số nguyên), cùng điều kiện với ghi sổ đợt 1 §5.1 bước 2;
-  - số còn lại > 0.
+  - số còn lại > 0;
+  - số còn lại là số nguyên; tổng tiền hoặc số còn lại lẻ thì báo "Hóa đơn có số tiền lẻ, vui lòng liên hệ quản lý để lập lại hóa đơn." (X4).
 - Đạt thì trả `{ success: true, url }`, trình duyệt chuyển sang `url`. Không đạt thì trả lỗi tiếng Việt và panel tải lại.
 - Không ghi gì vào DB khi tạo link.
 
@@ -86,9 +87,10 @@ Panel `/KhachThue/HoaDon/ThanhToan/{hoaDonId}` (đợt 1 §3.2) có hai tab khi 
 | --- | --- |
 | Sai chữ ký, thiếu tham số, hóa đơn không thuộc khách | "Không xác thực được kết quả từ VNPay." Không hiện số tiền hay mã hóa đơn. Nút về danh sách hóa đơn. |
 | `vnp_ResponseCode = 24` (khách hủy) | "Bạn đã hủy thanh toán." Nút quay lại hóa đơn. |
-| Mã khác `00` | "Thanh toán chưa thành công" kèm mô tả theo bảng mã lỗi VNPay (§5.5). Nút quay lại hóa đơn. |
-| `00` và sổ đã có dòng `VNPAY-{vnp_TransactionNo}` chưa xóa | "Đã ghi nhận thanh toán", số tiền, nút **Xem biên lai**. |
-| `00` nhưng sổ chưa có dòng đó (IPN chưa tới) | "VNPay báo thanh toán thành công, hệ thống đang ghi nhận." Trang lắng nghe `HoaDonThanhToanCapNhat` (SignalR sẵn có) và có nút "Kiểm tra lại"; khi đã ghi nhận thì hiện như dòng trên. |
+| Mã khác `00` | "Thanh toán chưa thành công" kèm mô tả theo bảng mã lỗi VNPay (§5.5); mã `07` dùng câu riêng "Giao dịch đang được VNPay kiểm tra (mã 07)…" (X3). Nút quay lại hóa đơn. |
+| `00` và sổ đã có dòng `VNPAY-{vnp_TransactionNo}` chưa xóa | "Đã ghi nhận thanh toán", số tiền đã ghi sổ của dòng đó, nút **Xem biên lai**. Số đã ghi sổ khác `vnp_Amount / 100` (có tiền thừa, §6 bước 4) thì thêm dòng "VNPay báo bạn đã trả {số tiền}" (X1). |
+| `00` nhưng sổ không có dòng đó và sẽ không bao giờ có: hóa đơn đã xóa, không còn `DaGui`, số còn lại ≤ 0, hoặc dòng `VNPAY-{vnp_TransactionNo}` đã bị hủy ghi nhận | "VNPay báo đã thanh toán nhưng hóa đơn không còn nhận khoản này. Chủ trọ sẽ kiểm tra và liên hệ với bạn." Trước khi kết luận, đọc lại sổ một lần để không báo nhầm khi IPN vừa ghi xong (X2). |
+| `00` nhưng sổ chưa có dòng đó (IPN chưa tới) | "VNPay báo thanh toán thành công, hệ thống đang ghi nhận." Trang lắng nghe `HoaDonThanhToanCapNhat` (SignalR sẵn có) và có nút "Kiểm tra lại"; khi đã ghi nhận thì hiện như dòng "Đã ghi nhận". |
 
 ### 4.4 Sau khi ghi sổ
 
@@ -142,7 +144,7 @@ Giữ nguyên đợt 1 §3.3: SignalR `HoaDonThanhToanCapNhat` cho khách; panel
 
 - HMAC-SHA512 với khóa `VnPay:HashSecret`, kết quả dạng hex.
 - Chuỗi ký: các tham số `vnp_*` có giá trị khác rỗng, trừ `vnp_SecureHash` và `vnp_SecureHashType`, sắp xếp theo tên tăng dần (so sánh thứ tự byte), nối dạng `key=value&key=value`, giá trị URL-encode.
-- **Chưa chắc chắn:** tài liệu VNPay có mẫu code dùng URL-encode (PHP, Java, .NET) và mẫu không encode (NodeJS). Spec chọn cách của mẫu .NET (`WebUtility.UrlEncode`, dấu cách thành `+`). Phải thử một giao dịch trên sandbox; nếu VNPay báo sai chữ ký thì sửa cách encode và ghi lại vào spec.
+- **Cách encode:** tài liệu VNPay có mẫu code dùng URL-encode (PHP, Java, .NET) và mẫu không encode (NodeJS). Spec chọn cách của mẫu .NET (`WebUtility.UrlEncode`, dấu cách thành `+`). **Đã xác nhận trên sandbox 26/10/2026** (V01, V07): VNPay chấp nhận link do hệ thống ký, và IPN của VNPay qua được bước kiểm chữ ký. Mới thử một giao dịch, nội dung đơn chỉ có ký tự ASCII.
 - So chữ ký bằng phép so sánh thời gian hằng (`CryptographicOperations.FixedTimeEquals`), không phân biệt hoa thường.
 - Cùng một bộ ký dùng cho tạo link, IPN và trang kết quả.
 
@@ -328,3 +330,4 @@ Hai lượt `/ship` (Q13), chi tiết ở [plan.md](plan.md):
 | 26/10/2026 | Người dùng duyệt các ca spec chưa nói ở phần 2 (X1–X5, ghi ở plan §4 Kết quả): X1 trang "Đã ghi nhận" hiện số đã ghi sổ, kèm dòng "VNPay báo bạn đã trả …" nếu khác `vnp_Amount / 100` (§4.3); X2 thêm trạng thái "không ghi nhận" khi `00` nhưng hóa đơn không còn nhận khoản này hoặc dòng đã bị hủy ghi nhận (§4.3); X3 mã `07` dùng mô tả riêng, IPN không đổi; X4 từ chối tạo link khi số còn lại không nguyên (§4.2); X5 không tab VNPay khi chủ trọ chưa cấu hình tài khoản nhận tiền (§4.1). Phần 2 code xong, chưa thử sandbox. |
 | 26/10/2026 | Sau review phần 2: trang kết quả đọc lại sổ trước khi kết luận "không ghi nhận"; fixture Web test cố định `VnPayOptions` tắt. Thử sandbox V01–V07 đạt ([review.md](review.md) mục 7). Gộp hồ sơ vào `thanh-toan-truc-tuyen/vnpay/`. Phần 2 commit. |
 | 26/10/2026 | Người dùng chọn cách xử lý các việc còn mở: T2 IPN thành công cho hóa đơn không có trong DB trả `01`, không cảnh báo hoàn tiền (§5.2 bước 4b); T4 mã nhập tay mang tiền tố `VNPAY-`/`SEPAY-` bị từ chối (§6.1); `PaymentUrl` không chứa `?`/`#` (§10); §13 ghi kết quả thử sandbox V01; lệnh ngrok thống nhất `ngrok http 5009 --url=https://{domain-tĩnh}` (§12). Hạn mức số tiền: tài liệu VNPay không nêu tối thiểu/tối đa, người dùng xác nhận không xảy ra nên không kiểm. |
+| 26/10/2026 | Đưa các quyết định X1–X5 (trước chỉ ghi ở dòng lịch sử trên và plan §4) vào thân spec: §4.1 (X5), §4.2 (X4), bảng §4.3 (X1, X2, X3). §5.3 ghi cách encode chữ ký đã xác nhận trên sandbox. Không đổi hành vi. |

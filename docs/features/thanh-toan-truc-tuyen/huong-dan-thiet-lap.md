@@ -194,7 +194,7 @@ Chưa thấy như vậy thì chưa thử tiếp: kiểm tunnel còn mở, web đ
 | V04 | Tắt ngrok → hoàn tất VNPay → trang "đang ghi nhận" → bật lại ngrok, chờ VNPay gọi lại IPN (tối đa 5 phút) | Trang tự đổi sang "Đã ghi nhận thanh toán", hoặc bấm **Kiểm tra lại** |
 | V05 | Ở trang kết quả, sửa một tham số trên thanh địa chỉ (ví dụ `vnp_Amount`) rồi tải lại | "Không xác thực được kết quả từ VNPay." |
 | V06 | Đặt `VnPay:Enabled = false`, chạy lại web | Panel không có tab; URL IPN và trang kết quả trả 404 |
-| V07 | Lần đầu thử | Nếu VNPay báo **sai chữ ký** (cách encode ở spec VNPay §5.3 chưa xác nhận trên sandbox), dừng và báo lại, không tự sửa code |
+| V07 | Lần đầu thử | VNPay không báo **sai chữ ký** (cách encode ở spec VNPay §5.3 đã xác nhận trên sandbox 26/10/2026 qua V01). Nếu VNPay báo sai chữ ký (ví dụ sau khi đổi `HashSecret` hoặc chạy thật), dừng và báo lại, không tự sửa code |
 
 Kèm kiểm cổng quản lý (tương ứng 6.8): chi tiết hóa đơn → lịch sử thanh toán, dòng VNPay có nhãn **VNPay** và `TXN {mã giao dịch}`; nút **Biên lai** và **Gửi lại biên lai** dùng được như các dòng khác.
 
