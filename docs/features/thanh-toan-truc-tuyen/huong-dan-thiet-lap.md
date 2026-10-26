@@ -1,8 +1,8 @@
-# Hướng dẫn thiết lập và thử tay — thanh toán trực tuyến đợt 1 (VietQR + SePay)
+# Hướng dẫn thiết lập và thử tay — thanh toán trực tuyến (VietQR + SePay, VNPay)
 
 Tài liệu này dành cho người chạy thử trên máy phát triển. Mọi giá trị bí mật (token, secret, mật khẩu) chỉ điền vào `src/QuanLyChoThuePhongTroWeb.Web/appsettings.json` của máy mình. File đó không được commit; không chép secret vào tài liệu, log hay tin nhắn. Không có script phụ trợ: các bước dưới đây làm tay, lệnh nào cần chạy thì ghi sẵn.
 
-Spec: [spec.md](spec.md) (§10 cấu hình, §11.3 kịch bản thử tay, §11.4 sandbox).
+Spec: [spec SePay](sepay/spec.md) (§10 cấu hình, §11.3 kịch bản thử tay, §11.4 sandbox). VNPay (đợt 2): mục 9 và [spec VNPay](vnpay/spec.md).
 
 ## 0. Chuẩn bị
 
@@ -133,4 +133,79 @@ Khi cờ tắt, dòng **Chưa ghi sổ** hoặc **Thiếu mã tham chiếu** kh�
 
 - Tắt ngrok.
 - Muốn tắt hẳn: `SePay:Enabled = false` (webhook trả 404), `Telegram:Enabled = false`.
+- Không commit `appsettings.json`.
+
+## 9. VNPay sandbox (đợt 2)
+
+Khách thuê trả hóa đơn bằng thẻ ATM nội địa, Visa, MasterCard qua trang VNPay. Tiền về thì VNPay gọi IPN, hệ thống ghi sổ và gửi thông báo giống SePay. Spec: [vnpay/spec.md](vnpay/spec.md). Chuẩn bị ở mục 0, Telegram ở mục 2, email ở mục 3, ngrok ở mục 4 áp dụng nguyên cho VNPay. Chưa có giao dịch nào thử trên sandbox VNPay; các bước dưới là việc người dùng tự làm.
+
+### 9.1 Đăng ký sandbox
+
+Mở `http://sandbox.vnpayment.vn/devreg/`, đăng ký merchant thử nghiệm. VNPay gửi email gồm:
+
+- **TmnCode** (mã website) và **HashSecret** (chuỗi bí mật tạo chữ ký);
+- đường vào trang quản trị merchant sandbox (để khai URL IPN và xem giao dịch);
+- thông tin thẻ test (ngân hàng, số thẻ, tên chủ thẻ, ngày phát hành, mật khẩu OTP).
+
+Giữ email đó ở nơi riêng tư. Không chép TmnCode, HashSecret hay số thẻ vào tài liệu, log hoặc commit.
+
+### 9.2 Khai URL IPN
+
+Trên trang quản trị merchant sandbox, khai URL IPN theo hướng dẫn VNPay cho tài khoản sandbox:
+
+`https://{domain-tĩnh}/api/webhooks/payment/vnpay-ipn`
+
+VNPay chỉ gọi IPN qua HTTPS nên cần tunnel ở mục 4 (domain ngrok tĩnh, `ngrok http 5009 --url=https://{domain-tĩnh}`). VNPay gọi IPN theo URL khai ở phía merchant, không theo tham số trong link thanh toán.
+
+### 9.3 Cấu hình `appsettings.json`
+
+| Khóa | Giá trị |
+| --- | --- |
+| `VnPay:Enabled` | `true` |
+| `VnPay:TmnCode` | TmnCode trong email VNPay |
+| `VnPay:HashSecret` | HashSecret trong email VNPay |
+| `VnPay:PaymentUrl` | giữ mặc định sandbox `https://sandbox.vnpayment.vn/paymentv2/vpcpay.html` |
+| `VnPay:ExpireMinutes` | `15` (hợp lệ từ 5 đến 60; là thời gian link còn hiệu lực) |
+
+`VnPay:Enabled = true` mà thiếu TmnCode hoặc HashSecret thì web không khởi động. Sửa xong phải chạy lại web.
+
+### 9.4 Mở trang bằng địa chỉ nào
+
+Mở web trên trình duyệt bằng `http://localhost:5009` ở máy đang chạy web. Trang kết quả (ReturnUrl) được dựng theo địa chỉ đang mở và cookie đăng nhập gắn với địa chỉ đó, nên khi VNPay đưa khách về, trình duyệt vẫn giữ phiên đăng nhập. Web không đọc forwarded headers (không sửa `Program.cs`), nên nếu mở web qua domain ngrok thì ReturnUrl dựng ra là `http://{domain}` (không phải https). `vnp_IpAddr` là IP kết nối của khách; qua ngrok sẽ là IP của tunnel (spec VNPay §13). Chưa thử sandbox có chấp nhận hai điểm này không; khi chạy V01, nếu VNPay báo lỗi tham số thì ghi lại mã lỗi và báo agent, không tự sửa code.
+
+### 9.5 Kiểm nhanh
+
+Mở `https://{domain-tĩnh}/api/webhooks/payment/vnpay-ipn` trên trình duyệt (không tham số):
+
+- `VnPay:Enabled = true`: trả `{"RspCode":"97","Message":"Invalid signature"}`;
+- `VnPay:Enabled = false`: trả 404.
+
+Chưa thấy như vậy thì chưa thử tiếp: kiểm tunnel còn mở, web đã chạy lại sau khi sửa `appsettings.json`.
+
+### 9.6 Kịch bản thử tay (spec VNPay §11.3)
+
+Đăng nhập cổng khách thuê, mở hóa đơn **Đã gửi** còn nợ, mở panel **Thanh toán**: có hai tab, "Chuyển khoản QR" (mặc định) và "Thẻ ATM / Visa / MasterCard (VNPay)". Bấm **Thanh toán qua VNPay**, trên trang VNPay chọn ngân hàng NCB và nhập thẻ test ở email.
+
+| # | Làm gì | Kết quả đúng |
+| --- | --- | --- |
+| V01 | Trả đủ bằng thẻ test | Trang kết quả "Đã ghi nhận thanh toán" kèm số tiền và nút **Xem biên lai**; hóa đơn "Đã thanh toán"; email biên lai; Telegram; thông báo cho nhân viên |
+| V02 | Bấm **Hủy** trên trang VNPay | Trang kết quả "Bạn đã hủy thanh toán."; không có dòng mới trong lịch sử thanh toán |
+| V03 | Mở link VNPay (chưa nhập thẻ) → Simulate SePay đủ số còn lại → quay lại hoàn tất VNPay trong 15 phút | Trang kết quả "VNPay báo đã thanh toán nhưng hóa đơn không còn nhận khoản này…"; không ghi sổ; Telegram "THANH TOÁN VNPAY CẦN HOÀN TIỀN" |
+| V04 | Tắt ngrok → hoàn tất VNPay → trang "đang ghi nhận" → bật lại ngrok, chờ VNPay gọi lại IPN (tối đa 5 phút) | Trang tự đổi sang "Đã ghi nhận thanh toán", hoặc bấm **Kiểm tra lại** |
+| V05 | Ở trang kết quả, sửa một tham số trên thanh địa chỉ (ví dụ `vnp_Amount`) rồi tải lại | "Không xác thực được kết quả từ VNPay." |
+| V06 | Đặt `VnPay:Enabled = false`, chạy lại web | Panel không có tab; URL IPN và trang kết quả trả 404 |
+| V07 | Lần đầu thử | Nếu VNPay báo **sai chữ ký** (cách encode ở spec VNPay §5.3 chưa xác nhận trên sandbox), dừng và báo lại, không tự sửa code |
+
+Kèm kiểm cổng quản lý (tương ứng 6.8): chi tiết hóa đơn → lịch sử thanh toán, dòng VNPay có nhãn **VNPay** và `TXN {mã giao dịch}`; nút **Biên lai** và **Gửi lại biên lai** dùng được như các dòng khác.
+
+### 9.7 Cảnh báo khi thu thủ công trong lúc VNPay còn gọi lại IPN
+
+Khi IPN chưa được trả `00` hoặc `02` (ví dụ tunnel tắt, web lỗi), VNPay gọi lại tối đa 10 lần, cách nhau 5 phút (spec VNPay §5.2). Nếu trong thời gian đó nhân viên dùng **Thu thủ công** với mã giao dịch VNPay thô (`vnp_TransactionNo`, không có tiền tố `VNPAY-`), lần gọi lại sau thấy hóa đơn đã đủ tiền nên không ghi sổ và gửi Telegram "THANH TOÁN VNPAY CẦN HOÀN TIỀN" **sai**: khách không bị trừ thêm, hệ thống chỉ không nhận ra đó là cùng một giao dịch.
+
+- Chỉ thu thủ công khi chắc VNPay đã ngừng gọi lại (kiểm trên trang merchant sandbox, hoặc đợi hơn 50 phút kể từ lúc khách trả).
+- Đã nhận cảnh báo này sau khi thu thủ công: đối chiếu lịch sử thanh toán của hóa đơn trước, nếu mã giao dịch đã có ở đó thì **không hoàn tiền**.
+
+### 9.8 Sau khi thử
+
+- Đặt `VnPay:Enabled = false` và chạy lại web, tắt ngrok.
 - Không commit `appsettings.json`.

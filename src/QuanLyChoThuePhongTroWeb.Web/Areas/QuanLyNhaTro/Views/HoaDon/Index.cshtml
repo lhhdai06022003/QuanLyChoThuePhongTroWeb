@@ -1097,9 +1097,12 @@
                                 </thead><tbody>`;
                         res.lichSuThanhToans.forEach(ls => {
                             // Dòng SePay ghi: nhãn SePay và mã tham chiếu ngân hàng (không có mã thì hiện khóa chống trùng).
+                            // Dòng VNPay ghi: nhãn VNPay và mã giao dịch VNPay (vnp_TransactionNo).
                             const maGiaoDichHtml = ls.laSePay
                                 ? `<span class="badge bg-green-lt me-1">SePay</span>${escapeHtml(ls.maThamChieu ? 'REF ' + ls.maThamChieu : ls.maGiaoDich)}`
-                                : escapeHtml(ls.maGiaoDich);
+                                : ls.laVnPay
+                                    ? `<span class="badge bg-blue-lt me-1">VNPay</span>${escapeHtml(ls.maThamChieu ? 'TXN ' + ls.maThamChieu : ls.maGiaoDich)}`
+                                    : escapeHtml(ls.maGiaoDich);
                             html += `<tr>
                                 <td>${maGiaoDichHtml}</td>
                                 <td class="text-end fw-medium text-success hd-num">${formatVND(ls.soTienThanhToan)}</td>

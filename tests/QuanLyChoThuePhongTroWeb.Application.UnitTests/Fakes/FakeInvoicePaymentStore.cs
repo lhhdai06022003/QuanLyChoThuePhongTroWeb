@@ -35,6 +35,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
         public bool LockedOutsideTransaction { get; private set; }
         // Mô phỏng thay đổi đồng thời ngay lúc lấy được khóa.
         public Action<HoaDon>? OnLock { get; set; }
+        // Mô phỏng giao dịch khác commit ngay trước khi đọc snapshot hóa đơn.
+        public Action? OnInvoiceSnapshot { get; set; }
 
         public IEnumerable<MinhChungThanhToanHoaDon> Proofs => Requests.SelectMany(r => r.MinhChungThanhToanHoaDons);
 
@@ -219,6 +221,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
 
         public Task<PaymentInvoiceSnapshot?> GetInvoiceSnapshotAsync(int hoaDonId, CancellationToken ct = default)
         {
+            OnInvoiceSnapshot?.Invoke();
             if (!Invoices.TryGetValue(hoaDonId, out var hd) || !Meta.TryGetValue(hoaDonId, out var meta))
             {
                 return Task.FromResult<PaymentInvoiceSnapshot?>(null);

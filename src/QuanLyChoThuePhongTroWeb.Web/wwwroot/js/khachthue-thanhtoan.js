@@ -111,7 +111,37 @@
             return html + '<div class="alert alert-secondary mb-0">' + esc(p.lyDoKhongTheThanhToan || 'Hiện chưa thể thanh toán hóa đơn này.') + '</div>';
         }
 
-        return html + renderTransfer(p);
+        // VNPay bật thì hai tab (QR mặc định); tắt thì giữ nguyên khối chuyển khoản QR.
+        return html + (p.vnPayEnabled ? renderTabs(p) : renderTransfer(p));
+    }
+
+    // Hai tab chọn kiểu thanh toán (spec VNPay §4.1). Nhãn tab là chuỗi cố định của giao diện.
+    function renderTabs(p) {
+        return '<ul class="nav nav-tabs nav-fill kt-pay-tabs mb-3" role="tablist">' +
+            '  <li class="nav-item" role="presentation">' +
+            '    <button type="button" class="nav-link active" id="ktPayTabQrBtn" data-bs-toggle="tab" data-bs-target="#ktPayTabQr" role="tab" aria-controls="ktPayTabQr" aria-selected="true">' +
+            '<i class="ti ti-qrcode me-1"></i> Chuyển khoản QR</button>' +
+            '  </li>' +
+            '  <li class="nav-item" role="presentation">' +
+            '    <button type="button" class="nav-link" id="ktPayTabVnPayBtn" data-bs-toggle="tab" data-bs-target="#ktPayTabVnPay" role="tab" aria-controls="ktPayTabVnPay" aria-selected="false">' +
+            '<i class="ti ti-credit-card me-1"></i> Thẻ ATM / Visa / MasterCard (VNPay)</button>' +
+            '  </li>' +
+            '</ul>' +
+            '<div class="tab-content">' +
+            '  <div class="tab-pane fade show active" id="ktPayTabQr" role="tabpanel" aria-labelledby="ktPayTabQrBtn">' + renderTransfer(p) + '</div>' +
+            '  <div class="tab-pane fade" id="ktPayTabVnPay" role="tabpanel" aria-labelledby="ktPayTabVnPayBtn">' + renderVnPay(p) + '</div>' +
+            '</div>';
+    }
+
+    // Số tiền luôn là số còn lại, chỉ đọc; link thanh toán do server tạo khi bấm nút (khachthue-vnpay.js).
+    function renderVnPay(p) {
+        return '' +
+            '<div class="qr-details-list p-3 rounded mb-3">' +
+            copyRow('Số tiền sẽ thanh toán', '<strong class="text-danger hd-num fs-3">' + vnd(p.conLai) + '</strong>', null, '') +
+            '</div>' +
+            '<div class="alert alert-info d-block py-2 mb-3"><i class="ti ti-info-circle me-1"></i> Bạn sẽ được chuyển sang trang VNPay. Không đóng trình duyệt cho tới khi VNPay đưa bạn về trang kết quả.</div>' +
+            '<div class="alert alert-warning d-block py-2 mb-3"><i class="ti ti-alert-triangle me-1"></i> Nếu bạn vừa chuyển khoản QR cho hóa đơn này, hãy chờ hệ thống xác nhận trước khi thanh toán thẻ để không trả hai lần.</div>' +
+            '<button type="button" class="btn btn-primary btn-lg w-100 w-sm-auto" id="ktPayVnPay"><i class="ti ti-credit-card me-1"></i> Thanh toán qua VNPay</button>';
     }
 
     function renderLegacyProof(proof) {
@@ -236,12 +266,27 @@
 
         $box.find('#ktPayRecheck').on('click', function () {
             $(this).prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Đang kiểm tra...');
-            if (typeof current.onRecheck === 'function') {
-                current.onRecheck();
-            } else {
-                load(current.hoaDonId, current.container, current.onRecheck);
-            }
+            reloadPanel();
         });
+
+        // Việc tạo link và chuyển sang VNPay nằm ở khachthue-vnpay.js; lỗi thì panel tải lại để hiện số tiền mới nhất.
+        $box.find('#ktPayVnPay').on('click', function () {
+            if (!window.KtVnPay) {
+                toast('error', 'Không tải được chức năng thanh toán VNPay, vui lòng tải lại trang.', 3000);
+                return;
+            }
+
+            window.KtVnPay.start(current.hoaDonId, $(this), reloadPanel);
+        });
+    }
+
+    // Làm mới khung thanh toán: việc do trang truyền vào (nếu có), không thì tải lại chính khung này.
+    function reloadPanel() {
+        if (typeof current.onRecheck === 'function') {
+            current.onRecheck();
+        } else {
+            load(current.hoaDonId, current.container, current.onRecheck);
+        }
     }
 
     window.KtThanhToan = { load: load, watch: watch };

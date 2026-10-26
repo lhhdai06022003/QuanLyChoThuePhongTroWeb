@@ -30,7 +30,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         {
             var publisher = new PaymentOutcomePublisher(_h.Notifier, _queue, new FakeTransferAlertDeduplicator(), NullLogger<PaymentOutcomePublisher>.Instance);
             var options = new VnPayOptions { Enabled = true, TmnCode = TmnCode, HashSecret = Secret };
-            _service = new VnPayPaymentService(options, new InvoiceTransferHandler(_h.Transaction), publisher, _h.Time, new CapturingLogger<VnPayPaymentService>());
+            _service = new VnPayPaymentService(options, _h.Store, new InvoiceTransferHandler(_h.Transaction), publisher, _h.Time, new CapturingLogger<VnPayPaymentService>());
         }
 
         private static Dictionary<string, string> Query(Action<Dictionary<string, string>>? tweak = null)

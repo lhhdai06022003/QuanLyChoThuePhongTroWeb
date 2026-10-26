@@ -4,7 +4,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Common.Configurations
     {
         public const string SectionName = "VnPay";
 
-        // Tắt thì endpoint IPN trả 404.
+        // Tắt thì không hiện tab VNPay; endpoint tạo link, IPN và trang kết quả trả 404.
         public bool Enabled { get; set; }
 
         public string TmnCode { get; set; } = string.Empty;

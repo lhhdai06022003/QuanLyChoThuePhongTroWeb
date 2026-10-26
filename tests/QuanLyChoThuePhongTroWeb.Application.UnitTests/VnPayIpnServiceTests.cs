@@ -39,7 +39,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         private VnPayPaymentService Create(IPaymentOutcomePublisher publisher)
         {
             var options = new VnPayOptions { Enabled = true, TmnCode = TmnCode, HashSecret = Secret };
-            return new VnPayPaymentService(options, new InvoiceTransferHandler(_h.Transaction), publisher, _h.Time, _log);
+            return new VnPayPaymentService(options, _h.Store, new InvoiceTransferHandler(_h.Transaction), publisher, _h.Time, _log);
         }
 
         // Query IPN hợp lệ của hóa đơn 7 (2.000.000đ); tweak sửa tham số trước khi ký.

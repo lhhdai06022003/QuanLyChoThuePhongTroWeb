@@ -38,4 +38,10 @@ public sealed record IncomingBankTransfer(
         : string.IsNullOrWhiteSpace(ReferenceCode)
             ? $"SEPAY-ID-{SePayId}"
             : InvoicePaymentPolicy.SePayLedgerKey(ReferenceCode);
+
+    // Nhãn dùng trong log: kênh và khóa chống trùng ("SePay 92704 (SEPAY-FT26ABC)", "VNPay VNPAY-14123456").
+    // Chỉ chứa mã giao dịch, không chứa Content hay Description.
+    public string LogLabel => Kenh == OnlinePaymentChannel.VnPay
+        ? $"VNPay {DedupKey}"
+        : $"SePay {SePayId} ({DedupKey})";
 }

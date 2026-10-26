@@ -40,8 +40,8 @@ public sealed class PaymentNotificationDispatcher(
     {
         if (outcome.LichSuThanhToanId is not int lichSuThanhToanId)
         {
-            logger.LogWarning("Không có khoản thanh toán để gửi thông báo cho SePay {SePayId}, hóa đơn {HoaDonId}",
-                outcome.Transfer.SePayId, outcome.HoaDonId);
+            logger.LogWarning("Không có khoản thanh toán để gửi thông báo cho {GiaoDich}, hóa đơn {HoaDonId}",
+                outcome.Transfer.LogLabel, outcome.HoaDonId);
             return;
         }
 

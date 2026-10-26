@@ -12,6 +12,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Notifications;
 using QuanLyChoThuePhongTroWeb.Application.Common.Configurations;
+using QuanLyChoThuePhongTroWeb.Application.Common.Models;
 using QuanLyChoThuePhongTroWeb.Application.Features.OnlinePayments;
 using QuanLyChoThuePhongTroWeb.Domain.Entities;
 using QuanLyChoThuePhongTroWeb.Domain.Enums;
@@ -69,6 +70,12 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
                 LastQuery = query;
                 return Task.FromResult(VnPayIpnResult.UnknownError);
             }
+
+            public Task<ServiceResult<string>> CreatePaymentUrlAsync(int hoaDonId, int nguoiThueId, string clientIp, string returnUrl, CancellationToken ct = default)
+                => throw new NotSupportedException();
+
+            public Task<VnPayReturnResult> GetReturnResultAsync(IReadOnlyDictionary<string, string> query, int nguoiThueId, CancellationToken ct = default)
+                => throw new NotSupportedException();
         }
 
         private WebApplicationFactory<Program> WithVnPay(bool enabled, Action<IServiceCollection>? configure = null)

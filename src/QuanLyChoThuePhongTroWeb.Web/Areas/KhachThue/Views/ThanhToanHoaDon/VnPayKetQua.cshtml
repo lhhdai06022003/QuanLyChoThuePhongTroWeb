@@ -1,0 +1,44 @@
+@model QuanLyChoThuePhongTroWeb.Models.ThanhToan.VnPayKetQuaViewModel
+@{
+    ViewBag.Title = "Kết quả thanh toán VNPay";
+}
+@section Styles {
+    <link rel="stylesheet" href="~/css/hoadon.css" asp-append-version="true" />
+}
+
+@* Trang kết quả sau khi thanh toán ở VNPay. Chỉ hiển thị, không ghi sổ; chỉ in giá trị đã mã hóa bởi Razor, không in tham số query. *@
+<div class="card">
+    <div class="card-body">
+        <div class="empty">
+            <div class="empty-icon"><i class="ti @Model.Icon @Model.MauIcon"></i></div>
+            <p class="empty-title">@Model.TieuDe</p>
+            @if (!string.IsNullOrEmpty(Model.SoTien))
+            {
+                <p class="h2 text-success hd-num mb-2">@Model.SoTien</p>
+            }
+            @if (!string.IsNullOrEmpty(Model.ThongDiep))
+            {
+                <p class="empty-subtitle text-secondary">@Model.ThongDiep</p>
+            }
+            <div class="empty-action d-flex flex-column flex-sm-row justify-content-center gap-2">
+                @if (!string.IsNullOrEmpty(Model.BienLaiUrl))
+                {
+                    <a href="@Model.BienLaiUrl" class="btn btn-primary btn-lg w-100 w-sm-auto"><i class="ti ti-receipt me-1"></i> Xem biên lai</a>
+                }
+                @if (Model.DangGhiNhan)
+                {
+                    <button type="button" id="ktVnPayRecheck" class="btn btn-outline-secondary btn-lg w-100 w-sm-auto"><i class="ti ti-refresh me-1"></i> Kiểm tra lại</button>
+                }
+                <a href="@Model.QuayLaiUrl" class="btn @(string.IsNullOrEmpty(Model.BienLaiUrl) && !Model.DangGhiNhan ? "btn-primary" : "btn-outline-secondary") btn-lg w-100 w-sm-auto"><i class="ti ti-arrow-left me-1"></i> @Model.QuayLaiText</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @if (Model.DangGhiNhan)
+    {
+        <script src="~/js/khachthue-vnpay.js" asp-append-version="true"></script>
+        <script>KtVnPay.watchResult(@Model.HoaDonId);</script>
+    }
+}

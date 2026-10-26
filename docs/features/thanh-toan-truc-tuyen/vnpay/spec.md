@@ -2,7 +2,7 @@
 
 - **Trạng thái:** đã duyệt (25/10/2026). Quyết định ở §2 (Q11–Q13 chốt cùng ngày khi duyệt); kế hoạch ở [plan.md](plan.md).
 - **Nhánh:** `feature/thanh-toan-truc-tuyen` (người dùng chọn làm tiếp trên nhánh này, 25/10/2026).
-- **Nối tiếp:** [thanh toán trực tuyến đợt 1](../thanh-toan-truc-tuyen/spec.md), cụ thể là §12 (định hướng VNPay). Spec này dùng lại cách ghi sổ (§5), khóa chống trùng, thông báo (§6), biên lai (§3.4) của đợt 1.
+- **Nối tiếp:** [thanh toán trực tuyến đợt 1](../sepay/spec.md), cụ thể là §12 (định hướng VNPay). Spec này dùng lại cách ghi sổ (§5), khóa chống trùng, thông báo (§6), biên lai (§3.4) của đợt 1.
 - **Schema:** không đổi. Kiểm bằng `has-pending-model-changes` trước khi bàn giao.
 - **Nguồn kỹ thuật:** tài liệu VNPay sandbox `https://sandbox.vnpayment.vn/apis/docs/thanh-toan-pay/pay.html` (đọc ngày 25/10/2026). Chỗ tài liệu không thống nhất có ghi ở §5.3; phải thử trên sandbox trước khi coi là đúng.
 
@@ -311,10 +311,10 @@ Hai lượt `/ship` (Q13), chi tiết ở [plan.md](plan.md):
 
 ## 15. Điều kiện nghiệm thu
 
-- [ ] §11.1, §11.2 PASS; `dotnet build` không lỗi; `has-pending-model-changes` không có thay đổi.
-- [ ] V01–V07 chạy đúng trên sandbox VNPay (người dùng thử tay).
-- [ ] Hướng dẫn thiết lập VNPay sandbox trong `huong-dan-thiet-lap.md`.
-- [ ] `README.md` module, `docs/features/README.md` và mục Hiện trạng trong `AGENTS.md` được cập nhật.
+- [x] §11.1, §11.2 PASS; `dotnet build` không lỗi; `has-pending-model-changes` không có thay đổi (26/10/2026, chi tiết ở [review.md](review.md) mục 4).
+- [x] V01–V07 chạy đúng trên sandbox VNPay (người dùng thử tay 26/10/2026; [review.md](review.md) mục 7).
+- [x] Hướng dẫn thiết lập VNPay sandbox trong `huong-dan-thiet-lap.md` (mục 9, 26/10/2026).
+- [x] `README.md` module, `docs/features/README.md` và mục Hiện trạng trong `AGENTS.md` được cập nhật (26/10/2026).
 
 ## 16. Lịch sử thay đổi
 
@@ -323,3 +323,5 @@ Hai lượt `/ship` (Q13), chi tiết ở [plan.md](plan.md):
 | 25/10/2026 | Bản nháp đầu, theo 10 quyết định của người dùng (§2). |
 | 25/10/2026 | Người dùng duyệt: chặn ghi trùng dòng `VNPAY-` (Q11), link hết hạn 15 phút (Q12), chia 2 lượt `/ship` (Q13). |
 | 26/10/2026 | Người dùng duyệt các ca spec chưa nói (B1–B5', ghi ở plan §3 Kết quả): `vnp_TransactionNo` rỗng → `99`; `vnp_Amount` không hợp lệ → `04`; câu chữ riêng cho kênh VNPay. Phần 1 xong. |
+| 26/10/2026 | Người dùng duyệt các ca spec chưa nói ở phần 2 (X1–X5, ghi ở plan §4 Kết quả): X1 trang "Đã ghi nhận" hiện số đã ghi sổ, kèm dòng "VNPay báo bạn đã trả …" nếu khác `vnp_Amount / 100` (§4.3); X2 thêm trạng thái "không ghi nhận" khi `00` nhưng hóa đơn không còn nhận khoản này hoặc dòng đã bị hủy ghi nhận (§4.3); X3 mã `07` dùng mô tả riêng, IPN không đổi; X4 từ chối tạo link khi số còn lại không nguyên (§4.2); X5 không tab VNPay khi chủ trọ chưa cấu hình tài khoản nhận tiền (§4.1). Phần 2 code xong, chưa thử sandbox. |
+| 26/10/2026 | Sau review phần 2: trang kết quả đọc lại sổ trước khi kết luận "không ghi nhận"; fixture Web test cố định `VnPayOptions` tắt. Thử sandbox V01–V07 đạt ([review.md](review.md) mục 7). Gộp hồ sơ vào `thanh-toan-truc-tuyen/vnpay/`. Phần 2 commit. |

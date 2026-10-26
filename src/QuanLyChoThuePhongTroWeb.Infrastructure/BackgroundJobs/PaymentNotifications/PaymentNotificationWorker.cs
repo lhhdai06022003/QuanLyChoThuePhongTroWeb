@@ -38,8 +38,8 @@ public sealed class PaymentNotificationWorker(
                 }
                 catch (Exception ex)
                 {
-                    logger.LogWarning(ex, "Không gửi được thông báo thanh toán: SePay {SePayId}, hóa đơn {HoaDonId}, khoản {LichSuThanhToanId}",
-                        item.Outcome.Transfer.SePayId, item.Outcome.HoaDonId, item.Outcome.LichSuThanhToanId);
+                    logger.LogWarning(ex, "Không gửi được thông báo thanh toán: {GiaoDich}, hóa đơn {HoaDonId}, khoản {LichSuThanhToanId}",
+                        item.Outcome.Transfer.LogLabel, item.Outcome.HoaDonId, item.Outcome.LichSuThanhToanId);
                 }
             }
         }

@@ -3,7 +3,7 @@
 - **Trạng thái:** đã duyệt (16/10/2026). Đợt 1 code xong cả 5 phần (18/10/2026); còn thử tay đồng bộ bù. Lịch sử thay đổi ở §16; kế hoạch ở [plan.md](plan.md), kiểm chứng ở [review.md](review.md).
 - **Nhánh:** `feature/thanh-toan-truc-tuyen` (từ `master` = `6b551fe`).
 - **Nguồn yêu cầu:** tài liệu "Đặc tả kỹ thuật & nghiệp vụ: phân hệ thanh toán hóa đơn, biên lai điện tử & thông báo tự động" v1.0 của người dùng; các điểm điều chỉnh có ghi ở §13.
-- **Nối tiếp:** [thanh toán hóa đơn](../thanh-toan-hoa-don/spec.md) (luồng lượt + minh chứng + đối chiếu tay). Spec này hiện thực hướng nâng cấp số 1 ở §35 của spec đó: tự khớp giao dịch ngân hàng qua webhook.
+- **Nối tiếp:** [thanh toán hóa đơn](../../thanh-toan-hoa-don/spec.md) (luồng lượt + minh chứng + đối chiếu tay). Spec này hiện thực hướng nâng cấp số 1 ở §35 của spec đó: tự khớp giao dịch ngân hàng qua webhook.
 - **Schema:** không đổi. Kiểm bằng `has-pending-model-changes` trước khi bàn giao.
 
 ## 1. Mục tiêu
@@ -399,7 +399,7 @@ Kịch bản §11.3 chạy được hoàn toàn trên sandbox; chỉ TC04 (deepl
 
 - Tab "Thẻ ATM / Visa / MasterCard (VNPay)" là **kênh phụ**; chuyển khoản QR vẫn là mặc định. Thẻ có phí giao dịch và chạy thật cần đăng ký merchant; đồ án dùng sandbox.
 - IPN `GET /api/webhooks/payment/vnpay-ipn` và ReturnUrl; xác thực HMAC-SHA512; `vnp_TxnRef = HD{HoaDonId}_{Ticks}`; khóa chống trùng `VNPAY-{vnp_TransactionNo}`; ghi sổ qua cùng `InvoicePaymentTransaction`, cùng thông báo §6.
-- Spec riêng: [thanh-toan-vnpay/spec.md](../thanh-toan-vnpay/spec.md) (đã duyệt 25/10/2026).
+- Spec riêng: [vnpay/spec.md](../vnpay/spec.md) (đã duyệt 25/10/2026).
 
 ## 13. Điều chỉnh so với tài liệu gốc của người dùng
 
@@ -429,7 +429,7 @@ Kịch bản §11.3 chạy được hoàn toàn trên sandbox; chỉ TC04 (deepl
 - Docker (Dockerfile + compose gồm web, PostgreSQL, tùy chọn tunnel; lưu key Data Protection; secret qua biến môi trường) không làm trong nhánh này; spec riêng khi cần deploy demo (người dùng chọn 16/10).
 - Outbox cho thông báo và lưu giao dịch không khớp — cần đổi schema, làm spec riêng. (Dọn mã tạo lượt/nộp minh chứng không còn dùng đã làm ngày 25/10/2026.)
 - Chốt chặn "Nghi trùng, kiểm tay" (đồng bộ bù không tự ghi khi hóa đơn đã có dòng `SEPAY-ID-…`, không đổi schema): người dùng chọn để sau (20/10/2026), làm trước khi bật `SePay:SyncRecordEnabled`. Quy tắc so khớp chưa thiết kế, cần người dùng duyệt (xem §5.2).
-- Spec này thay một phần luồng ở [thanh toán hóa đơn](../thanh-toan-hoa-don/spec.md): trên nhánh này khách không còn tự tạo lượt và nộp minh chứng (§8); luồng đối chiếu minh chứng cũ của nhân viên vẫn còn cho các lượt tồn đọng.
+- Spec này thay một phần luồng ở [thanh toán hóa đơn](../../thanh-toan-hoa-don/spec.md): trên nhánh này khách không còn tự tạo lượt và nộp minh chứng (§8); luồng đối chiếu minh chứng cũ của nhân viên vẫn còn cho các lượt tồn đọng.
 
 ## 15. Điều kiện nghiệm thu
 

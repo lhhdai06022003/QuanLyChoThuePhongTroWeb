@@ -1,15 +1,21 @@
 using System.Globalization;
 using Microsoft.Extensions.Logging;
 using QuanLyChoThuePhongTroWeb.Application.Common.Configurations;
+using QuanLyChoThuePhongTroWeb.Application.Common.Models;
+using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Payments;
+using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence;
+using QuanLyChoThuePhongTroWeb.Domain.Enums;
 
 namespace QuanLyChoThuePhongTroWeb.Application.Features.OnlinePayments;
 
 // IPN VNPay (spec VNPay §5.2). Không có actorId và không kiểm phân quyền chi nhánh: tin cậy duy nhất nhờ chữ ký
 // HMAC-SHA512 và vnp_TmnCode; sau đó ghi sổ bằng InvoiceTransferHandler như Admin (giống webhook SePay).
-// Không log tham số vnp_* khi sai chữ ký; không bao giờ log vnp_SecureHash, HashSecret hay vnp_OrderInfo.
+// Tạo link (§4.2) và trang kết quả (§4.3) chỉ đọc: không mở transaction, không khóa, không ghi; chỉ IPN được ghi sổ.
+// Không log tham số vnp_* khi sai chữ ký; không bao giờ log vnp_SecureHash, HashSecret, URL thanh toán hay vnp_OrderInfo.
 public sealed class VnPayPaymentService(
     VnPayOptions options,
+    IInvoicePaymentStore store,
     InvoiceTransferHandler handler,
     IPaymentOutcomePublisher publisher,
     TimeProvider time,
@@ -148,6 +154,178 @@ public sealed class VnPayPaymentService(
                 logger.LogWarning("IPN VNPay: kết quả ghi sổ không mong đợi {Kind}, hóa đơn {HoaDonId}", outcome.Kind, outcome.HoaDonId);
                 return VnPayIpnResult.UnknownError;
         }
+    }
+
+    public async Task<ServiceResult<string>> CreatePaymentUrlAsync(
+        int hoaDonId, int nguoiThueId, string clientIp, string returnUrl, CancellationToken ct = default)
+    {
+        const string notFoundMessage = "Không tìm thấy hóa đơn.";
+
+        var target = await store.GetTargetByHoaDonAsync(hoaDonId, ct);
+        if (target == null || !target.KhachXemDuoc(nguoiThueId))
+        {
+            return ServiceResult<string>.NotFound(notFoundMessage);
+        }
+
+        var invoice = await store.GetInvoiceSnapshotAsync(hoaDonId, ct);
+        if (invoice == null)
+        {
+            return ServiceResult<string>.NotFound(notFoundMessage);
+        }
+
+        // Cùng lý do và câu chữ với panel QR (TenantPaymentPanelService), không gồm điều kiện tài khoản VietQR.
+        var conLai = invoice.TongTien - invoice.DaThu;
+        if (invoice.IsDeleted || invoice.TrangThaiPhatHanh != TrangThaiPhatHanhHoaDon.DaGui)
+        {
+            return ServiceResult<string>.Fail("Hóa đơn không còn ở trạng thái nhận thanh toán.");
+        }
+
+        if (conLai <= 0)
+        {
+            return ServiceResult<string>.Fail("Hóa đơn đã được thanh toán đủ.");
+        }
+
+        // vnp_Amount phải là số nguyên: tổng tiền hoặc số còn lại lẻ (dữ liệu cũ) thì không tạo link.
+        if (!InvoiceMoney.IsWholeVnd(invoice.TongTien) || !InvoiceMoney.IsWholeVnd(conLai))
+        {
+            return ServiceResult<string>.Fail("Hóa đơn có số tiền lẻ, vui lòng liên hệ quản lý để lập lại hóa đơn.");
+        }
+
+        var nowUtc = time.GetUtcNow().UtcDateTime;
+        var txnRef = VnPayProtocol.BuildTxnRef(hoaDonId, nowUtc);
+        var parameters = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            [VnPayProtocol.VersionKey] = VnPayProtocol.Version,
+            [VnPayProtocol.CommandKey] = VnPayProtocol.PayCommand,
+            [VnPayProtocol.TmnCodeKey] = options.TmnCode.Trim(),
+            [VnPayProtocol.AmountKey] = decimal.ToInt64(conLai * 100m).ToString(CultureInfo.InvariantCulture),
+            [VnPayProtocol.CurrCodeKey] = VnPayProtocol.CurrCode,
+            [VnPayProtocol.TxnRefKey] = txnRef,
+            [VnPayProtocol.OrderInfoKey] = VnPayProtocol.BuildOrderInfo(invoice.MaHoaDon),
+            [VnPayProtocol.OrderTypeKey] = VnPayProtocol.OrderType,
+            [VnPayProtocol.LocaleKey] = VnPayProtocol.Locale,
+            [VnPayProtocol.ReturnUrlKey] = returnUrl,
+            [VnPayProtocol.IpAddrKey] = clientIp,
+            [VnPayProtocol.CreateDateKey] = VnPayProtocol.FormatVietnamTime(nowUtc),
+            [VnPayProtocol.ExpireDateKey] = VnPayProtocol.FormatVietnamTime(nowUtc.AddMinutes(options.ExpireMinutes))
+        };
+
+        logger.LogInformation("Tạo link VNPay cho hóa đơn {HoaDonId}, mã đơn {TxnRef}", hoaDonId, txnRef);
+        return ServiceResult<string>.Ok(VnPayProtocol.BuildPaymentUrl(options.PaymentUrl, parameters, options.HashSecret));
+    }
+
+    public async Task<VnPayReturnResult> GetReturnResultAsync(
+        IReadOnlyDictionary<string, string> query, int nguoiThueId, CancellationToken ct = default)
+    {
+        // Mọi trường hợp không tin được đều trả cùng một kết quả, không kèm dữ liệu hóa đơn.
+        if (!VnPayProtocol.Verify(query, options.HashSecret)
+            || !string.Equals(Read(query, VnPayProtocol.TmnCodeKey), options.TmnCode.Trim(), StringComparison.Ordinal)
+            || !VnPayProtocol.TryParseTxnRef(Read(query, VnPayProtocol.TxnRefKey), out var hoaDonId))
+        {
+            logger.LogInformation("Trang kết quả VNPay: không xác thực được tham số trả về");
+            return VnPayReturnResult.Unverified;
+        }
+
+        var target = await store.GetTargetByHoaDonAsync(hoaDonId, ct);
+        if (target == null || !target.KhachXemDuoc(nguoiThueId))
+        {
+            logger.LogInformation("Trang kết quả VNPay: không xác thực được tham số trả về");
+            return VnPayReturnResult.Unverified;
+        }
+
+        var responseCode = Read(query, VnPayProtocol.ResponseCodeKey)?.Trim();
+        if (string.IsNullOrEmpty(responseCode))
+        {
+            return VnPayReturnResult.Unverified;
+        }
+
+        if (responseCode == VnPayProtocol.CancelledCode)
+        {
+            return new VnPayReturnResult { TrangThai = VnPayReturnStatus.DaHuy, HoaDonId = hoaDonId };
+        }
+
+        if (responseCode != VnPayProtocol.SuccessCode)
+        {
+            return new VnPayReturnResult
+            {
+                TrangThai = VnPayReturnStatus.KhongThanhCong,
+                HoaDonId = hoaDonId,
+                MoTaLoi = VnPayResponseCodes.Describe(responseCode)
+            };
+        }
+
+        // Không có khóa chống trùng thì IPN cũng không ghi được (cùng điều kiện bước 5b của IPN).
+        var transactionNo = Read(query, VnPayProtocol.TransactionNoKey)?.Trim();
+        if (string.IsNullOrEmpty(transactionNo))
+        {
+            return VnPayReturnResult.Unverified;
+        }
+
+        var ledgerKey = InvoicePaymentPolicy.VnPayLedgerKey(transactionNo);
+        if (ledgerKey.Length > InvoicePaymentPolicy.MaxMaGiaoDichLength)
+        {
+            return VnPayReturnResult.Unverified;
+        }
+
+        var recorded = await FindActiveLedgerRowAsync(hoaDonId, ledgerKey, ct);
+        if (recorded == null && await WillNeverBeRecordedAsync(hoaDonId, ledgerKey, ct))
+        {
+            // IPN có thể commit giữa lần đọc sổ ở trên và lần đọc hóa đơn (hóa đơn vừa trả đủ, khóa vừa tồn tại):
+            // đọc sổ lại lần cuối để không báo nhầm "không ghi nhận".
+            recorded = await FindActiveLedgerRowAsync(hoaDonId, ledgerKey, ct);
+            if (recorded == null)
+            {
+                return new VnPayReturnResult { TrangThai = VnPayReturnStatus.KhongGhiNhan, HoaDonId = hoaDonId };
+            }
+        }
+
+        if (recorded == null)
+        {
+            return new VnPayReturnResult { TrangThai = VnPayReturnStatus.DangGhiNhan, HoaDonId = hoaDonId };
+        }
+
+        // Số đã ghi sổ nhỏ hơn số khách trả khi có tiền thừa (spec VNPay §6, bước 4): cho khách biết cả hai.
+        var paid = ReadPaidAmount(query);
+        return new VnPayReturnResult
+        {
+            TrangThai = VnPayReturnStatus.DaGhiNhan,
+            HoaDonId = hoaDonId,
+            LichSuThanhToanId = recorded.LichSuThanhToanId,
+            SoTien = recorded.SoTienThanhToan,
+            SoTienVnPayBao = paid.HasValue && paid.Value != recorded.SoTienThanhToan ? paid : null
+        };
+    }
+
+    private async Task<PaymentLedgerRowSnapshot?> FindActiveLedgerRowAsync(int hoaDonId, string ledgerKey, CancellationToken ct)
+    {
+        var rows = await store.GetActiveLedgerRowsAsync(hoaDonId, ct);
+        return rows.FirstOrDefault(r => string.Equals(r.MaGiaoDich, ledgerKey, StringComparison.OrdinalIgnoreCase));
+    }
+
+    // IPN sẽ không ghi dòng này: hóa đơn không còn nhận tiền (IPN trả 02), hoặc dòng đã bị hủy ghi nhận
+    // (bước 1 của §6 tính cả dòng xóa mềm).
+    private async Task<bool> WillNeverBeRecordedAsync(int hoaDonId, string ledgerKey, CancellationToken ct)
+    {
+        var invoice = await store.GetInvoiceSnapshotAsync(hoaDonId, ct);
+        if (invoice == null
+            || invoice.IsDeleted
+            || invoice.TrangThaiPhatHanh != TrangThaiPhatHanhHoaDon.DaGui
+            || invoice.TongTien - invoice.DaThu <= 0)
+        {
+            return true;
+        }
+
+        return await store.ExistsMaGiaoDichForInvoiceIncludingDeletedAsync(hoaDonId, ledgerKey, ct);
+    }
+
+    // vnp_Amount / 100 khi là chuỗi chữ số dương chia hết cho 100; ngược lại null.
+    private static decimal? ReadPaidAmount(IReadOnlyDictionary<string, string> query)
+    {
+        return long.TryParse(Read(query, VnPayProtocol.AmountKey), NumberStyles.None, CultureInfo.InvariantCulture, out var raw)
+            && raw > 0
+            && raw % 100 == 0
+                ? raw / 100m
+                : null;
     }
 
     private static string? Read(IReadOnlyDictionary<string, string> query, string key)

@@ -125,6 +125,12 @@
     }
 }
 
+/* Hai tab chọn kiểu thanh toán (QR / VNPay): nhãn dài xuống dòng được, vùng bấm đủ 44px trên điện thoại */
+.kt-pay-tabs .nav-link {
+    min-height: 44px;
+    white-space: normal;
+}
+
 .kt-bank-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));

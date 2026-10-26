@@ -120,6 +120,10 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests.Fixtures
                 // Webhook SePay: cấu hình cố định, không phụ thuộc appsettings.json của máy chạy test.
                 services.RemoveAll<SePayOptions>();
                 services.AddSingleton(SePayOptionsInstance);
+                // VNPay mặc định tắt, không phụ thuộc appsettings.json của máy chạy test (bật để thử sandbox thì test vẫn thấy tắt).
+                // Test cần bật tự thay VnPayOptions qua WithWebHostBuilder.
+                services.RemoveAll<VnPayOptions>();
+                services.AddSingleton(new VnPayOptions { Enabled = false });
                 services.RemoveAll<VietQrSettings>();
                 services.AddSingleton(new VietQrSettings { BankId = "MB", AccountNumber = TestBankAccount, AccountName = "NHA TRO TEST" });
 

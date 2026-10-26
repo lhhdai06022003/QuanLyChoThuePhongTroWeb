@@ -102,7 +102,7 @@ Số liệu ngày 18/10/2026 (135/1770/604/523) là của tester phần 4; ngày
 
 ## 6. Thử tay (spec §11.3)
 
-Theo [huong-dan-thiet-lap.md](huong-dan-thiet-lap.md) §6; người dùng báo "tương đối ổn" ngày 20/10/2026, **chỉ trên SePay Test mode**, không ghi chi tiết từng kịch bản:
+Theo [huong-dan-thiet-lap.md](../huong-dan-thiet-lap.md) §6; người dùng báo "tương đối ổn" ngày 20/10/2026, **chỉ trên SePay Test mode**, không ghi chi tiết từng kịch bản:
 
 - Đã thử: 6.1–6.5 (TC01, TC02, E01–E03, TC05), Telegram và email biên lai thật, 6.7 (TC04, deeplink trên điện thoại), 6.8–6.9 (nút Biên lai/Gửi lại biên lai, in A5).
 - Chưa xác nhận: 6.6 đồng bộ bù (chưa kiểm `referenceCode` = `reference_number`, múi giờ và host sandbox của API v2); cờ `SePay:SyncRecordEnabled` vẫn tắt.

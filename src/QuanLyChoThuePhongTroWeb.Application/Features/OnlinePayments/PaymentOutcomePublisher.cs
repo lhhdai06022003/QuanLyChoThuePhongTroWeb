@@ -7,7 +7,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.OnlinePayments;
 // WrongAccount, Unmatched, InvoiceNotPayable, AlreadyPaid: đưa cảnh báo Telegram vào hàng đợi, mỗi giao dịch một lần
 // trong 24 giờ (spec §5.3); riêng giao dịch của đồng bộ bù (LaDongBoBu) không cảnh báo vì Admin đang xem bảng kết quả.
 // Duplicate, Ignored, Failed: không làm gì.
-// Mọi lỗi chỉ log Warning kèm mã giao dịch SePay, hóa đơn và khoản; không log nội dung chuyển khoản.
+// Mọi lỗi chỉ log Warning kèm kênh và khóa chống trùng của giao dịch, hóa đơn và khoản; không log nội dung chuyển khoản.
 public sealed class PaymentOutcomePublisher(
     IThongBaoNotifier notifier,
     IPaymentNotificationQueue queue,
@@ -54,8 +54,8 @@ public sealed class PaymentOutcomePublisher(
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Không gửi được sự kiện cập nhật thanh toán cho SePay {SePayId}, hóa đơn {HoaDonId}, khoản {LichSuThanhToanId}",
-                outcome.Transfer.SePayId, outcome.HoaDonId, outcome.LichSuThanhToanId);
+            logger.LogWarning(ex, "Không gửi được sự kiện cập nhật thanh toán cho {GiaoDich}, hóa đơn {HoaDonId}, khoản {LichSuThanhToanId}",
+                outcome.Transfer.LogLabel, outcome.HoaDonId, outcome.LichSuThanhToanId);
         }
     }
 
@@ -65,14 +65,14 @@ public sealed class PaymentOutcomePublisher(
         {
             if (!deduplicator.TryRegister(outcome.DedupKey))
             {
-                logger.LogInformation("Bỏ qua cảnh báo lặp cho SePay {SePayId} → {Kind}", outcome.Transfer.SePayId, outcome.Kind);
+                logger.LogInformation("Bỏ qua cảnh báo lặp cho {GiaoDich} → {Kind}", outcome.Transfer.LogLabel, outcome.Kind);
                 return;
             }
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Không kiểm tra được cảnh báo lặp cho SePay {SePayId}, hóa đơn {HoaDonId}",
-                outcome.Transfer.SePayId, outcome.HoaDonId);
+            logger.LogWarning(ex, "Không kiểm tra được cảnh báo lặp cho {GiaoDich}, hóa đơn {HoaDonId}",
+                outcome.Transfer.LogLabel, outcome.HoaDonId);
             return;
         }
 
@@ -85,14 +85,14 @@ public sealed class PaymentOutcomePublisher(
         {
             if (!await queue.EnqueueAsync(new PaymentNotificationWorkItem(outcome), ct))
             {
-                logger.LogWarning("Hàng đợi thông báo thanh toán đầy, bỏ tin Telegram và email của SePay {SePayId}, hóa đơn {HoaDonId}, khoản {LichSuThanhToanId}",
-                    outcome.Transfer.SePayId, outcome.HoaDonId, outcome.LichSuThanhToanId);
+                logger.LogWarning("Hàng đợi thông báo thanh toán đầy, bỏ tin Telegram và email của {GiaoDich}, hóa đơn {HoaDonId}, khoản {LichSuThanhToanId}",
+                    outcome.Transfer.LogLabel, outcome.HoaDonId, outcome.LichSuThanhToanId);
             }
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Không đưa được thông báo vào hàng đợi cho SePay {SePayId}, hóa đơn {HoaDonId}, khoản {LichSuThanhToanId}",
-                outcome.Transfer.SePayId, outcome.HoaDonId, outcome.LichSuThanhToanId);
+            logger.LogWarning(ex, "Không đưa được thông báo vào hàng đợi cho {GiaoDich}, hóa đơn {HoaDonId}, khoản {LichSuThanhToanId}",
+                outcome.Transfer.LogLabel, outcome.HoaDonId, outcome.LichSuThanhToanId);
         }
     }
 }
