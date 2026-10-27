@@ -33,6 +33,53 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
             return Task.FromResult(NextResult);
         }
 
+        public ReservationPaymentSnapshot? Snapshot { get; set; } = DefaultSnapshot();
+        public ReservationTransactionSnapshot? Transaction { get; set; }
+        public bool DedupKeyExists { get; set; }
+
+        public Task<ReservationPaymentSnapshot?> GetGuestPaymentSnapshotAsync(int reservationId, int actorId, CancellationToken cancellationToken = default)
+        {
+            if (Snapshot != null && Snapshot.YeuCauGiuChoId == reservationId && Snapshot.NguoiDungId == actorId)
+            {
+                return Task.FromResult<ReservationPaymentSnapshot?>(Snapshot);
+            }
+            return Task.FromResult<ReservationPaymentSnapshot?>(null);
+        }
+
+        public Task<ReservationTransactionSnapshot?> FindActiveTransactionAsync(int reservationId, string ledgerKey, CancellationToken cancellationToken = default)
+        {
+            if (Transaction != null && Transaction.MaGiaoDich == ledgerKey)
+            {
+                return Task.FromResult<ReservationTransactionSnapshot?>(Transaction);
+            }
+            return Task.FromResult<ReservationTransactionSnapshot?>(null);
+        }
+
+        public Task<bool> ExistsTransactionByDedupKeyAsync(string dedupKey, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(DedupKeyExists);
+        }
+
+        public static ReservationPaymentSnapshot DefaultSnapshot(
+            int reservationId = 5,
+            int actorId = 700,
+            string maYeuCau = "TTPTGC5",
+            decimal soTienGiuCho = 1_000_000m,
+            decimal daNhan = 0m,
+            DateTime? hanThanhToanUtc = null,
+            QuanLyChoThuePhongTroWeb.Domain.Enums.TrangThaiYeuCauGiuCho trangThai = QuanLyChoThuePhongTroWeb.Domain.Enums.TrangThaiYeuCauGiuCho.ChoThanhToan,
+            string soPhong = "P101") =>
+            new(
+                reservationId,
+                actorId,
+                maYeuCau,
+                soTienGiuCho,
+                daNhan,
+                hanThanhToanUtc ?? new DateTime(2026, 10, 4, 3, 0, 0, DateTimeKind.Utc),
+                trangThai,
+                soPhong
+            );
+
         // Kết quả Recorded mặc định: giữ chỗ #5 của phòng P101, giữ chỗ 1.000.000đ, đã nhận đủ trong lần này.
         public static SystemReservationRecordResult Recorded(
             decimal soTienGiuCho = 1_000_000m, decimal daNhanTruoc = 0m, decimal daNhanSau = 1_000_000m,

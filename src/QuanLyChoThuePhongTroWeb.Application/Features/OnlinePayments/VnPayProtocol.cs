@@ -137,6 +137,36 @@ public static partial class VnPayProtocol
         return info.Length > MaxOrderInfoLength ? info[..MaxOrderInfoLength].TrimEnd() : info;
     }
 
+    // vnp_OrderInfo cho giữ chỗ (D4): "Thanh toan giu cho phong " + số phòng đã bỏ dấu tiếng Việt, chỉ giữ chữ cái, chữ số, '-', '_' và dấu cách.
+    // Gộp khoảng trắng liên tiếp, cắt MaxOrderInfoLength.
+    public static string BuildReservationOrderInfo(string? soPhong)
+    {
+        const string prefix = "Thanh toan giu cho phong";
+
+        var builder = new StringBuilder();
+        foreach (var c in (soPhong ?? string.Empty).Normalize(NormalizationForm.FormD))
+        {
+            if (CharUnicodeInfo.GetUnicodeCategory(c) == UnicodeCategory.NonSpacingMark)
+            {
+                continue;
+            }
+
+            var ch = c switch { 'đ' => 'd', 'Đ' => 'D', _ => c };
+            if (ch is (>= 'A' and <= 'Z') or (>= 'a' and <= 'z') or (>= '0' and <= '9') or '-' or '_')
+            {
+                builder.Append(ch);
+            }
+            else if (char.IsWhiteSpace(ch))
+            {
+                builder.Append(' ');
+            }
+        }
+
+        var code = SpacesPattern().Replace(builder.ToString(), " ").Trim();
+        var info = code.Length == 0 ? "Thanh toan giu cho" : prefix + " " + code;
+        return info.Length > MaxOrderInfoLength ? info[..MaxOrderInfoLength].TrimEnd() : info;
+    }
+
     // vnp_TxnRef: HD{HoaDonId}_{Ticks}. Mỗi lần tạo link có một mã khác nhau (VNPay không cho trùng mã trong ngày).
     public static string BuildTxnRef(int hoaDonId, DateTime utcNow)
     {

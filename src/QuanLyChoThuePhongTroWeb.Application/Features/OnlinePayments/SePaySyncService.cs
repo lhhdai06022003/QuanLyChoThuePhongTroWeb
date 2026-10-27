@@ -5,6 +5,8 @@ using QuanLyChoThuePhongTroWeb.Application.Common.Models;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Payments;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence;
 
+using QuanLyChoThuePhongTroWeb.Application.Features.ReservationPayments;
+
 namespace QuanLyChoThuePhongTroWeb.Application.Features.OnlinePayments;
 
 // Đồng bộ bù giao dịch tiền vào qua API SePay khi webhook bị lỡ (spec thanh toán trực tuyến §4.3, §5.2). Chỉ Admin, fail closed.
@@ -19,7 +21,8 @@ public sealed class SePaySyncService(
     IEmployeeAccessService access,
     SePayOptions options,
     IInvoicePaymentStore store,
-    ILogger<SePaySyncService> logger) : ISePaySyncService
+    ILogger<SePaySyncService> logger,
+    IReservationAutoPaymentStore? reservationStore = null) : ISePaySyncService
 {
     public const int DefaultRangeDays = 3;
     public const int MaxRangeDays = 31;
@@ -176,6 +179,21 @@ public sealed class SePaySyncService(
         // Chưa kiểm referenceCode (webhook) = reference_number (API): chỉ đối chiếu, tuyệt đối không ghi sổ.
         if (!options.SyncRecordEnabled)
         {
+            var isReservation = maChuyenKhoan != null && maChuyenKhoan.StartsWith("TTPTGC", StringComparison.OrdinalIgnoreCase);
+            if (isReservation && reservationStore != null)
+            {
+                if (await reservationStore.ExistsTransactionByDedupKeyAsync(transfer.DedupKey, ct))
+                {
+                    return Row(item, maChuyenKhoan, maThamChieu, SePaySyncRowStatus.DaCo, null);
+                }
+
+                var reservationId = TransferCodeParser.ExtractReservationId(maChuyenKhoan);
+                return Row(item, maChuyenKhoan, maThamChieu, SePaySyncRowStatus.ChuaGhiSo,
+                    "Giao dịch giữ chỗ: kiểm màn Giữ chỗ trước khi xác nhận tay.",
+                    reservationId,
+                    reservationId.HasValue ? $"GC#{reservationId}" : null);
+            }
+
             if (await store.ExistsMaGiaoDichIncludingDeletedAsync(transfer.DedupKey, ct))
             {
                 return Row(item, maChuyenKhoan, maThamChieu, SePaySyncRowStatus.DaCo, null);

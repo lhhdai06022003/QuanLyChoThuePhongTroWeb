@@ -45,6 +45,76 @@
         </div>
     }
     <div class="card mb-4">
+        <div class="card-header"><h2 class="card-title">Lịch sử giao dịch giữ chỗ</h2></div>
+        <div class="card-body">
+            @if (Model.Transactions.Count == 0)
+            {
+                <p class="text-secondary mb-0">Chưa có giao dịch tiền nào được ghi nhận cho yêu cầu này.</p>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-vcenter">
+                        <thead>
+                            <tr>
+                                <th>Thời gian nhận (VN)</th>
+                                <th>Số tiền</th>
+                                <th>Mã giao dịch</th>
+                                <th>Người xác nhận</th>
+                                <th>Ghi chú</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var tx in Model.Transactions)
+                            {
+                                <tr>
+                                    <td>@VietnamTime.Format(tx.ReceivedAtUtc, "dd/MM/yyyy HH:mm")</td>
+                                    <td><strong>@VndFormat.Money(tx.SoTien)</strong></td>
+                                    <td>
+                                        @if (tx.LaSePay)
+                                        {
+                                            <span class="badge bg-success-lt me-1">SePay</span>
+                                            <span>@(tx.MaThamChieu ?? tx.MaGiaoDich)</span>
+                                        }
+                                        else if (tx.LaVnPay)
+                                        {
+                                            <span class="badge bg-primary-lt me-1">VNPay</span>
+                                            <span>@(tx.MaThamChieu ?? tx.MaGiaoDich)</span>
+                                        }
+                                        else
+                                        {
+                                            <span>@tx.MaGiaoDich</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (string.IsNullOrEmpty(tx.NguoiXacNhan))
+                                        {
+                                            <span class="text-secondary">@(tx.LaSePay ? "Hệ thống (SePay)" : tx.LaVnPay ? "Hệ thống (VNPay)" : "Hệ thống")</span>
+                                        }
+                                        else
+                                        {
+                                            <span>@tx.NguoiXacNhan</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (tx.CanHoan)
+                                        {
+                                            <span class="badge bg-warning-lt me-1">Cần hoàn</span>
+                                        }
+                                        @if (!string.IsNullOrWhiteSpace(tx.GhiChu) && !tx.CanHoan)
+                                        {
+                                            <span class="text-secondary">@tx.GhiChu</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+    <div class="card mb-4">
         <div class="card-header"><h2 class="card-title">Minh chứng khách gửi</h2></div>
         <div class="card-body">
             @if (Model.Evidence.Count == 0)

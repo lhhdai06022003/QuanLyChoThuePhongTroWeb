@@ -52,5 +52,75 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.Empty(queue.Items);
             Assert.Empty(h.Store.Ledger);
         }
+
+        [Fact]
+        public async Task ReconcileMode_WhenReservationTransactionAlreadyExists_ReturnsDaCo()
+        {
+            var h = new PaymentTestHarness();
+            var reservationStore = new FakeReservationAutoPaymentStore { DedupKeyExists = true };
+            var thongBao = new FakeThongBaoService();
+            var queue = new RecordingPaymentNotificationQueue();
+            var handler = new ReservationTransferHandler(
+                reservationStore, thongBao, new OnlinePaymentOptions { ReservationEnabled = true },
+                h.Time, new CapturingLogger<ReservationTransferHandler>());
+            var classifier = new IncomingTransferClassifier(
+                new IIncomingTransferHandler[] { new InvoiceTransferHandler(h.Transaction), handler },
+                new VietQrSettings { AccountNumber = BankAccount });
+            var publisher = new PaymentOutcomePublisher(
+                h.Notifier, queue, new FakeTransferAlertDeduplicator(), new CapturingLogger<PaymentOutcomePublisher>());
+            var ingestion = new BankTransferIngestionService(classifier, publisher, new CapturingLogger<BankTransferIngestionService>());
+            var client = new FakeSePayTransactionClient();
+            client.Enqueue(new[]
+            {
+                new SePayApiTransaction("tx-1", TxTime, BankAccount, null, "in", 1_000_000m, "TTPTGC5", "FT26ABC", null, "MBBank")
+            }, hasMore: false);
+            var service = new SePaySyncService(
+                client, ingestion, h.Access, new SePayOptions { ApiToken = "api-token-secret", SyncRecordEnabled = false },
+                h.Store, new CapturingLogger<SePaySyncService>(), reservationStore);
+
+            var result = await service.SyncAsync(PaymentTestHarness.AdminId,
+                new SePaySyncRequest(new DateTime(2026, 10, 15, 17, 0, 0, DateTimeKind.Utc), new DateTime(2026, 10, 18, 16, 59, 59, DateTimeKind.Utc)));
+
+            Assert.True(result.Success);
+            var row = Assert.Single(result.Data!.Rows);
+            Assert.Equal(SePaySyncRowStatus.DaCo, row.TrangThai);
+            Assert.Null(row.GhiChu);
+        }
+
+        [Fact]
+        public async Task ReconcileMode_WhenReservationTransactionNotYetRecorded_ReturnsChuaGhiSoWithReservationLink()
+        {
+            var h = new PaymentTestHarness();
+            var reservationStore = new FakeReservationAutoPaymentStore { DedupKeyExists = false };
+            var thongBao = new FakeThongBaoService();
+            var queue = new RecordingPaymentNotificationQueue();
+            var handler = new ReservationTransferHandler(
+                reservationStore, thongBao, new OnlinePaymentOptions { ReservationEnabled = true },
+                h.Time, new CapturingLogger<ReservationTransferHandler>());
+            var classifier = new IncomingTransferClassifier(
+                new IIncomingTransferHandler[] { new InvoiceTransferHandler(h.Transaction), handler },
+                new VietQrSettings { AccountNumber = BankAccount });
+            var publisher = new PaymentOutcomePublisher(
+                h.Notifier, queue, new FakeTransferAlertDeduplicator(), new CapturingLogger<PaymentOutcomePublisher>());
+            var ingestion = new BankTransferIngestionService(classifier, publisher, new CapturingLogger<BankTransferIngestionService>());
+            var client = new FakeSePayTransactionClient();
+            client.Enqueue(new[]
+            {
+                new SePayApiTransaction("tx-1", TxTime, BankAccount, null, "in", 1_000_000m, "TTPTGC5", "FT26ABC", null, "MBBank")
+            }, hasMore: false);
+            var service = new SePaySyncService(
+                client, ingestion, h.Access, new SePayOptions { ApiToken = "api-token-secret", SyncRecordEnabled = false },
+                h.Store, new CapturingLogger<SePaySyncService>(), reservationStore);
+
+            var result = await service.SyncAsync(PaymentTestHarness.AdminId,
+                new SePaySyncRequest(new DateTime(2026, 10, 15, 17, 0, 0, DateTimeKind.Utc), new DateTime(2026, 10, 18, 16, 59, 59, DateTimeKind.Utc)));
+
+            Assert.True(result.Success);
+            var row = Assert.Single(result.Data!.Rows);
+            Assert.Equal(SePaySyncRowStatus.ChuaGhiSo, row.TrangThai);
+            Assert.Equal("Giao dịch giữ chỗ: kiểm màn Giữ chỗ trước khi xác nhận tay.", row.GhiChu);
+            Assert.Equal(5, row.HoaDonId);
+            Assert.Equal("GC#5", row.MaHoaDon);
+        }
     }
 }

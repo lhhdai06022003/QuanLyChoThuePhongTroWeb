@@ -16,4 +16,6 @@ public interface IReservationPaymentStore
         int? evidenceId, string bankReference, decimal actualAmount,
         DateTime receivedAtUtc, DateTime nowUtc,
         CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<ReservationTransactionAdminDto>> ListTransactionsForReservationAsync(int reservationId,
+        CancellationToken cancellationToken = default);
 }

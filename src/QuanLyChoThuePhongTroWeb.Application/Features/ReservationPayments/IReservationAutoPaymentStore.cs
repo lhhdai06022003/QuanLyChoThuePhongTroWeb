@@ -11,4 +11,13 @@ public interface IReservationAutoPaymentStore
     Task<SystemReservationRecordResult> RecordSystemTransferAsync(string maYeuCau, string maGiaoDich,
         decimal soTienThucNhan, DateTime ngayThucNhanUtc, string lyDoLichSu, DateTime nowUtc,
         CancellationToken cancellationToken = default);
+
+    // Đọc thông tin giữ chỗ để khách thanh toán (actorId là KhachVangLai.NguoiDungId). Trả về null nếu không tồn tại hoặc không thuộc khách.
+    Task<ReservationPaymentSnapshot?> GetGuestPaymentSnapshotAsync(int reservationId, int actorId, CancellationToken cancellationToken = default);
+
+    // Tìm dòng giao dịch giữ chỗ theo khóa đối soát (VNPAY-..., SEPAY-...).
+    Task<ReservationTransactionSnapshot?> FindActiveTransactionAsync(int reservationId, string ledgerKey, CancellationToken cancellationToken = default);
+
+    // Kiểm tra dòng giao dịch giữ chỗ có MaGiaoDich trùng khóa dedupKey (SEPAY-..., VNPAY-...) không. Dùng đối chiếu màn SePay (A8).
+    Task<bool> ExistsTransactionByDedupKeyAsync(string dedupKey, CancellationToken cancellationToken = default);
 }

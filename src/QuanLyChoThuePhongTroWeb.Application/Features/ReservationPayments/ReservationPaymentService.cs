@@ -141,6 +141,15 @@ public sealed class ReservationPaymentService(IReservationPaymentStore store,
             await store.ListForReservationAsync(reservationId, cancellationToken);
     }
 
+    public async Task<IReadOnlyList<ReservationTransactionAdminDto>> ListTransactionsForReservationAsync(
+        int actorId, int reservationId, int branchId,
+        CancellationToken cancellationToken = default)
+    {
+        var scope = await employeeAccess.GetScopeAsync(actorId, cancellationToken);
+        return scope is null || !scope.CanAccessBranch(branchId) ? [] :
+            await store.ListTransactionsForReservationAsync(reservationId, cancellationToken);
+    }
+
     // Đọc ảnh qua server để kiểm quyền thay vì lộ URL Cloudinary; khách chủ yêu cầu hoặc nhân viên cùng chi nhánh.
     public async Task<ServiceResult<MeterImageReadResult>> GetEvidenceImageAsync(
         int actorId, int evidenceId, CancellationToken cancellationToken = default)

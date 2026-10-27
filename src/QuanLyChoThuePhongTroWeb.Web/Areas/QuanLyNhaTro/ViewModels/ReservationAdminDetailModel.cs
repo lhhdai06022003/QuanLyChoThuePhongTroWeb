@@ -4,10 +4,14 @@ using QuanLyChoThuePhongTroWeb.Application.Features.ReservationSettlement;
 
 namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels;
 
-public sealed record ReservationAdminDetailModel(ReservationDto Reservation,
+public sealed record ReservationAdminDetailModel(
+    ReservationDto Reservation,
     IReadOnlyList<PaymentEvidenceDto> Evidence,
-    SettlementSummaryDto? Settlement)
+    SettlementSummaryDto? Settlement,
+    IReadOnlyList<ReservationTransactionAdminDto>? Transactions = null)
 {
+    public IReadOnlyList<ReservationTransactionAdminDto> Transactions { get; } = Transactions ?? [];
+
     // Minh chứng chờ đối soát theo thứ tự store trả (mới nhất trước).
     public IReadOnlyList<PaymentEvidenceDto> PendingEvidence { get; } =
         Evidence.Where(e => e.Status == "ChoXacNhan").ToList();

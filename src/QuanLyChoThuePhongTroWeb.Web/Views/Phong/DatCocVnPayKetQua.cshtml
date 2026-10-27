@@ -1,0 +1,51 @@
+@model QuanLyChoThuePhongTroWeb.ViewModels.PublicRooms.ReservationVnPayKetQuaViewModel
+@{
+    Layout = "_PublicRoomLayout";
+    ViewData["Title"] = "Kết quả thanh toán VNPay";
+}
+
+<div class="guest-container guest-form-page py-4">
+    <a class="guest-back" href="@Model.QuayLaiUrl">← @Model.QuayLaiText</a>
+    
+    <div class="card mt-3 shadow-sm border-0">
+        <div class="card-body p-4 p-md-5 text-center">
+            <div class="mb-3">
+                <i class="ti @Model.Icon @Model.MauIcon" style="font-size: 3.5rem;"></i>
+            </div>
+            <h1 class="h2 mb-2">@Model.TieuDe</h1>
+            @if (!string.IsNullOrEmpty(Model.SoTien))
+            {
+                <div class="h1 text-success fw-bold my-3">@Model.SoTien</div>
+            }
+            @if (!string.IsNullOrEmpty(Model.ThongDiep))
+            {
+                <p class="text-secondary fs-4 mb-4">@Model.ThongDiep</p>
+            }
+            <div class="d-flex flex-column flex-sm-row justify-content-center gap-2 mt-4">
+                @if (!string.IsNullOrEmpty(Model.DatCocUrl))
+                {
+                    <a href="@Model.DatCocUrl" class="btn btn-primary btn-lg"><i class="ti ti-file-text me-1"></i> Xem chi tiết đặt cọc</a>
+                }
+                @if (Model.DangGhiNhan)
+                {
+                    <button type="button" id="guestVnPayRecheck" class="btn btn-outline-secondary btn-lg"><i class="ti ti-refresh me-1"></i> Kiểm tra lại</button>
+                }
+                <a href="@Model.QuayLaiUrl" class="btn btn-outline-secondary btn-lg"><i class="ti ti-arrow-left me-1"></i> @Model.QuayLaiText</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <link rel="stylesheet" href="~/Theme/tabler/dist/css/tabler-icons.min.css" asp-append-version="true" />
+    @if (Model.DangGhiNhan)
+    {
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.12/signalr.min.js"></script>
+        <script src="~/js/guest-dat-coc.js" asp-append-version="true"></script>
+        <script>
+            if (window.GuestDatCoc) {
+                window.GuestDatCoc.watchResult(@Model.ReservationId);
+            }
+        </script>
+    }
+}

@@ -8,13 +8,16 @@
     var waitingPayment = reservation.Status is "ChoThanhToan" or "ChoXacNhanTien";
     var canUpload = waitingPayment && reservation.PaymentRequestId.HasValue &&
         reservation.PaymentDeadlineUtc > DateTime.UtcNow;
+    var isTtptgc = reservation.PaymentCode?.StartsWith("TTPTGC", StringComparison.OrdinalIgnoreCase) == true;
 }
+
+<link rel="stylesheet" href="~/Theme/tabler/dist/css/tabler-icons.min.css" asp-append-version="true" />
 
 <div class="guest-container guest-form-page guest-payment-page">
     <a class="guest-back" href="/tai-khoan/yeu-cau-phong">← Lịch xem và đặt phòng</a>
     <div class="guest-payment-heading">
         <h1>Đặt cọc phòng @reservation.RoomNumber</h1>
-        <p>Theo dõi tiền giữ chỗ của yêu cầu #@reservation.Id. Tiền được ghi nhận sau khi nhân viên kiểm tra giao dịch ngân hàng.</p>
+        <p>Theo dõi và thanh toán tiền giữ chỗ của yêu cầu #@reservation.Id. Tiền được tự động cập nhật hoặc ghi nhận sau khi nhân viên đối soát.</p>
     </div>
     <div class="guest-payment-grid">
         <section class="guest-payment-summary" aria-label="Thông tin đặt cọc">
@@ -25,7 +28,7 @@
                 <p>Đã xác nhận: @VndFormat.Money(reservation.ConfirmedAmount)</p>
                 @if (canUpload)
                 {
-                    <p>Còn cần chuyển: <strong class="guest-payment-remaining">@VndFormat.Money(remaining)</strong></p>
+                    <p>Còn cần chuyển: <strong class="guest-payment-remaining text-primary">@VndFormat.Money(remaining)</strong></p>
                 }
                 @if (reservation.PaymentDeadlineUtc is { } paymentDeadline)
                 {
@@ -43,28 +46,128 @@
 
             @if (waitingPayment)
             {
-                <div class="guest-bank-details">
-                    <h2>Thông tin chuyển khoản</h2>
-                    @if (Model.Bank is { } bank)
+                <div class="guest-bank-details mt-3">
+                    <h2>Phương thức thanh toán</h2>
+
+                    @if (canUpload && remaining > 0)
                     {
-                        <p><span>Ngân hàng</span><strong>@bank.BankId</strong></p>
-                        <p><span>Số tài khoản</span><strong>@bank.AccountNumber</strong></p>
-                        <p><span>Chủ tài khoản</span><strong>@bank.AccountName</strong></p>
-                        <p><span>Nội dung</span><strong>@reservation.PaymentCode</strong></p>
+                        <ul class="nav nav-tabs card-header-tabs mb-3" role="tablist">
+                            <li class="nav-item">
+                                <button class="nav-link guest-pay-tab-btn active fw-bold" data-tab-target="#tab-vietqr" type="button">
+                                    <i class="ti ti-qrcode me-1"></i> Chuyển khoản QR
+                                </button>
+                            </li>
+                            @if (Model.VnPayEnabled && isTtptgc)
+                            {
+                                <li class="nav-item">
+                                    <button class="nav-link guest-pay-tab-btn fw-bold" data-tab-target="#tab-vnpay" type="button">
+                                        <i class="ti ti-credit-card me-1"></i> Thẻ ATM / Visa (VNPay)
+                                    </button>
+                                </li>
+                            }
+                        </ul>
+
+                        <div class="guest-pay-tab-panel active" id="tab-vietqr">
+                            @if (Model.Bank is { } bank)
+                            {
+                                <div class="text-center p-3 bg-light rounded mb-3">
+                                    <img src="/tai-khoan/yeu-cau-phong/giu-cho/@reservation.Id/dat-coc/qr" alt="Mã VietQR đặt cọc phòng @reservation.RoomNumber" class="img-fluid rounded border bg-white p-2" style="max-width: 220px;" />
+                                    <div class="mt-2">
+                                        <a href="/tai-khoan/yeu-cau-phong/giu-cho/@reservation.Id/dat-coc/qr?taiVe=true" class="btn btn-sm btn-outline-primary">
+                                            <i class="ti ti-download me-1"></i> Tải ảnh QR
+                                        </a>
+                                    </div>
+                                </div>
+
+                                <div class="p-2 border rounded bg-white">
+                                    <p class="d-flex justify-content-between align-items-center mb-2">
+                                        <span>Ngân hàng:</span>
+                                        <strong>@bank.BankId</strong>
+                                    </p>
+                                    <p class="d-flex justify-content-between align-items-center mb-2">
+                                        <span>Số tài khoản:</span>
+                                        <span>
+                                            <strong class="me-2">@bank.AccountNumber</strong>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 guest-copy-btn" data-copy="@bank.AccountNumber" title="Sao chép số tài khoản">Sao chép</button>
+                                        </span>
+                                    </p>
+                                    <p class="d-flex justify-content-between align-items-center mb-2">
+                                        <span>Chủ tài khoản:</span>
+                                        <strong>@bank.AccountName</strong>
+                                    </p>
+                                    <p class="d-flex justify-content-between align-items-center mb-2">
+                                        <span>Số tiền:</span>
+                                        <span>
+                                            <strong class="text-primary me-2">@VndFormat.Money(remaining)</strong>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 guest-copy-btn" data-copy="@remaining.ToString("0")" title="Sao chép số tiền">Sao chép</button>
+                                        </span>
+                                    </p>
+                                    <p class="d-flex justify-content-between align-items-center mb-0">
+                                        <span>Nội dung CK:</span>
+                                        <span>
+                                            <strong class="text-danger me-2">@reservation.PaymentCode</strong>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 guest-copy-btn" data-copy="@reservation.PaymentCode" title="Sao chép nội dung">Sao chép</button>
+                                        </span>
+                                    </p>
+                                </div>
+
+                                @if (Model.Deeplinks?.Count > 0)
+                                {
+                                    <div class="mt-3">
+                                        <label class="form-label text-secondary small mb-1">Mở app ngân hàng để chuyển nhanh:</label>
+                                        <div class="d-flex flex-wrap gap-1">
+                                            @foreach (var dl in Model.Deeplinks)
+                                            {
+                                                <a href="@dl.Url" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">@dl.TenNganHang</a>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <p>Vui lòng liên hệ nhân viên để nhận tài khoản chuyển tiền. Hiện chưa có thông tin ngân hàng.</p>
+                                <p><span>Nội dung chuyển khoản: </span><strong>@reservation.PaymentCode</strong></p>
+                            }
+                        </div>
+
+                        @if (Model.VnPayEnabled && isTtptgc)
+                        {
+                            <div class="guest-pay-tab-panel" id="tab-vnpay" style="display: none;">
+                                <div class="p-3 border rounded bg-white text-center">
+                                    <div class="mb-3">
+                                        <i class="ti ti-credit-card text-primary" style="font-size: 2.5rem;"></i>
+                                    </div>
+                                    <h3 class="mb-1">Cổng thanh toán VNPay</h3>
+                                    <p class="text-secondary small mb-3">Hỗ trợ thẻ ATM nội địa (napas), Visa, MasterCard, JCB hoặc quét VNPAY-QR.</p>
+                                    <div class="h2 text-primary fw-bold mb-3">@VndFormat.Money(remaining)</div>
+                                    <button type="button" id="btnGuestVnPay" class="btn btn-primary btn-lg w-100">
+                                        <i class="ti ti-lock me-1"></i> Thanh toán ngay qua VNPay
+                                    </button>
+                                    <p class="text-muted small mt-2 mb-0">Thanh toán an toàn, bảo mật tiêu chuẩn quốc tế.</p>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else if (remaining <= 0)
+                    {
+                        <div class="guest-preview-notice">Bạn đã thanh toán đủ số tiền giữ chỗ.</div>
                     }
                     else
                     {
-                        <p>Vui lòng liên hệ nhân viên để nhận tài khoản chuyển tiền. Hiện chưa có thông tin ngân hàng.</p>
-                        <p><span>Nội dung chuyển khoản</span><strong>@reservation.PaymentCode</strong></p>
+                        <div class="p-2 border rounded bg-white">
+                            <p><span>Nội dung chuyển khoản: </span><strong>@reservation.PaymentCode</strong></p>
+                        </div>
                     }
                 </div>
+
                 @if (canUpload)
                 {
-                    <p class="guest-field-hint">Ghi đúng nội dung chuyển khoản. Ảnh minh chứng chỉ thông báo bạn đã chuyển; nhân viên sẽ đối soát số tiền thực nhận.</p>
+                    <p class="guest-field-hint mt-3">Ghi đúng nội dung chuyển khoản để hệ thống tự động ghi nhận tức thì. Nếu chuyển ngoài giờ hoặc thanh toán thủ công, bạn có thể tải ảnh minh chứng bên dưới để nhân viên đối soát.</p>
                 }
                 else
                 {
-                    <p class="guest-field-hint">Đã qua hạn chuyển tiền. Liên hệ nhân viên trước khi chuyển thêm.</p>
+                    <p class="guest-field-hint mt-3">Đã qua hạn chuyển tiền. Liên hệ nhân viên trước khi chuyển thêm.</p>
                 }
             }
             else if (reservation.Status == "DangGiuCho")
@@ -102,8 +205,8 @@
                 <form class="guest-viewing-form" method="post" enctype="multipart/form-data" action="/tai-khoan/yeu-cau-phong/minh-chung">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="paymentRequestId" value="@reservation.PaymentRequestId" />
-                    <h2>Gửi minh chứng chuyển tiền</h2>
-                    <p class="guest-field-hint">Sau khi chuyển khoản, tải ảnh biên nhận để nhân viên đối soát.</p>
+                    <h2>Gửi minh chứng chuyển tiền (tùy chọn)</h2>
+                    <p class="guest-field-hint">Nếu đã chuyển khoản ngân hàng hoặc nộp tiền nhưng chưa thấy cập nhật, tải ảnh biên nhận để nhân viên đối soát.</p>
                     <label for="claimedAmount">Số tiền đã chuyển (₫)</label>
                     <input id="claimedAmount" name="claimedAmount" type="number" min="1" step="1" value="@(remaining > 0 ? remaining : (decimal?)null)" required />
                     <label for="transferTimeLocal">Thời gian chuyển</label>
@@ -146,3 +249,15 @@
         </section>
     </div>
 </div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.12/signalr.min.js"></script>
+    <script src="~/js/guest-dat-coc.js" asp-append-version="true"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            if (window.GuestDatCoc) {
+                window.GuestDatCoc.init(@reservation.Id);
+            }
+        });
+    </script>
+}

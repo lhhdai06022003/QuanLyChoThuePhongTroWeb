@@ -68,7 +68,8 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.Emails
         {
             var senderEmail = _configuration["EmailSettings:SenderEmail"];
             var password = _configuration["EmailSettings:Password"];
-            if (string.IsNullOrWhiteSpace(senderEmail) || string.IsNullOrWhiteSpace(password))
+            if (string.IsNullOrWhiteSpace(senderEmail) || string.IsNullOrWhiteSpace(password) ||
+                senderEmail.StartsWith('<') || password.StartsWith('<'))
                 return (false, "Chưa cấu hình tài khoản gửi email.");
 
             try

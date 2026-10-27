@@ -193,22 +193,12 @@ namespace QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers
         }
 
         // Địa chỉ trang kết quả theo host của request hiện tại (spec VNPay §5.1).
-        private string BuildReturnUrl()
-        {
-            return $"{Request.Scheme}://{Request.Host}{Request.PathBase}/KhachThue/HoaDon/ThanhToan/VnPay/KetQua";
-        }
+        private string BuildReturnUrl() =>
+            PaymentWebHelper.BuildAbsoluteUrl(Request, "/KhachThue/HoaDon/ThanhToan/VnPay/KetQua");
 
         // IP kết nối của khách (spec VNPay §13). Thiếu hoặc IPv6 loopback thì dùng 127.0.0.1 vì VNPay chỉ nhận IPv4 hoặc IPv6 đầy đủ.
-        private string ClientIp()
-        {
-            var address = HttpContext.Connection.RemoteIpAddress;
-            if (address == null || (IPAddress.IsLoopback(address) && address.AddressFamily == AddressFamily.InterNetworkV6))
-            {
-                return "127.0.0.1";
-            }
-
-            return address.IsIPv4MappedToIPv6 ? address.MapToIPv4().ToString() : address.ToString();
-        }
+        private string ClientIp() =>
+            PaymentWebHelper.ResolveClientIp(HttpContext);
 
         private bool TryGetTenant(out int nguoiThueId, out int userId)
         {

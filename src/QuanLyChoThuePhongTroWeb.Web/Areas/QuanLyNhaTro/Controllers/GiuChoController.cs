@@ -67,7 +67,9 @@ public sealed class GiuChoController(IReservationService reservations,
             await payments.ListForReservationAsync(CurrentActorId, id,
                 reservation.BranchId, cancellationToken),
             await settlements.GetForStaffAsync(CurrentActorId, id,
-                cancellationToken)));
+                cancellationToken),
+            await payments.ListTransactionsForReservationAsync(CurrentActorId, id,
+                reservation.BranchId, cancellationToken)));
     }
 
     [HttpPost]

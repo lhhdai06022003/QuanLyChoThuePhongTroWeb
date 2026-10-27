@@ -76,6 +76,10 @@
 
     function invoiceCell(row) {
         if (!row.hoaDonId) return '';
+        if (row.maChuyenKhoan && row.maChuyenKhoan.indexOf('TTPTGC') === 0) {
+            var gcLabel = row.maHoaDon || ('#GC' + row.hoaDonId);
+            return '<a href="/QuanLyNhaTro/GiuCho/ChiTiet/' + encodeURIComponent(row.hoaDonId) + '">' + esc(gcLabel) + '</a>';
+        }
         var label = row.maHoaDon || ('#HD' + row.hoaDonId);
         return '<a href="/QuanLyNhaTro/QuanLyHoaDon?hoaDonId=' + encodeURIComponent(row.hoaDonId) + '">' + esc(label) + '</a>';
     }

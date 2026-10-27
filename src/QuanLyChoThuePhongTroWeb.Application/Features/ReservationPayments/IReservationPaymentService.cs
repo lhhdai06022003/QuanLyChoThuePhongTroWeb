@@ -15,6 +15,8 @@ public interface IReservationPaymentService
         CancellationToken cancellationToken = default);
     Task<IReadOnlyList<PaymentEvidenceDto>> ListForReservationAsync(int actorId,
         int reservationId, int branchId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<ReservationTransactionAdminDto>> ListTransactionsForReservationAsync(int actorId,
+        int reservationId, int branchId, CancellationToken cancellationToken = default);
     Task<ServiceResult<MeterImageReadResult>> GetEvidenceImageAsync(int actorId,
         int evidenceId, CancellationToken cancellationToken = default);
 }

@@ -115,6 +115,44 @@ public sealed class ReservationPaymentServiceTests
         Assert.Contains("sớm hơn lúc duyệt giữ chỗ", result.Message);
     }
 
+    [Fact]
+    public async Task ListTransactionsForReservation_AllowedBranch_ReturnsTransactions()
+    {
+        var store = new FakeStore
+        {
+            Transactions =
+            [
+                new ReservationTransactionAdminDto(1, 10, "SEPAY-123", 500000m, Now, null, null, true, false, "123", false)
+            ]
+        };
+        var access = new FakeEmployeeAccessService { ScopeToReturn = new EmployeeAccessScope(7, false, [1, 2]) };
+        var service = CreateService(store, new FakeProofStorage(), access);
+
+        var list = await service.ListTransactionsForReservationAsync(7, 5, 1);
+
+        var item = Assert.Single(list);
+        Assert.Equal("SEPAY-123", item.MaGiaoDich);
+        Assert.True(item.LaSePay);
+    }
+
+    [Fact]
+    public async Task ListTransactionsForReservation_DisallowedBranch_ReturnsEmpty()
+    {
+        var store = new FakeStore
+        {
+            Transactions =
+            [
+                new ReservationTransactionAdminDto(1, 10, "SEPAY-123", 500000m, Now, null, null, true, false, "123", false)
+            ]
+        };
+        var access = new FakeEmployeeAccessService { ScopeToReturn = new EmployeeAccessScope(7, false, [2]) }; // branchId 1 not allowed
+        var service = CreateService(store, new FakeProofStorage(), access);
+
+        var list = await service.ListTransactionsForReservationAsync(7, 5, 1);
+
+        Assert.Empty(list);
+    }
+
     private static EvidenceSubmission Submission(UploadFile image) =>
         new(15, image, 200000m, Now.AddHours(-1), "BANK-1", null);
 
@@ -163,5 +201,11 @@ public sealed class ReservationPaymentServiceTests
             DateTime receivedAtUtc, DateTime nowUtc,
             CancellationToken cancellationToken = default) =>
             Task.FromResult(ConfirmResult);
+
+        public List<ReservationTransactionAdminDto> Transactions { get; set; } = [];
+
+        public Task<IReadOnlyList<ReservationTransactionAdminDto>> ListTransactionsForReservationAsync(
+            int reservationId, CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<ReservationTransactionAdminDto>>(Transactions);
     }
 }

@@ -210,3 +210,45 @@ Khi IPN chưa được trả `00` hoặc `02` (ví dụ tunnel tắt, web lỗi)
 
 - Đặt `VnPay:Enabled = false` và chạy lại web, tắt ngrok.
 - Không commit `appsettings.json`.
+
+---
+
+## 10. Thanh toán giữ chỗ trực tuyến (VietQR + SePay, VNPay)
+
+Spec: [spec giữ chỗ](giu-cho/spec.md). Kế hoạch: [plan.md](giu-cho/plan.md).
+
+### 10.1 Cấu hình trong `appsettings.json`
+
+| Khóa | Giá trị |
+| --- | --- |
+| `OnlinePayment:ReservationEnabled` | `true` (mặc định tắt; bật để tự động ghi sổ tiền giữ chỗ) |
+| `VnPay:Enabled` | `true` (nếu thử thanh toán thẻ qua VNPay) |
+| `SePay:Enabled` | `true` (nếu thử webhook SePay) |
+| `Telegram:Enabled` | `true` (nhận cảnh báo tiền về và tiền cần hoàn) |
+
+### 10.2 Luồng hoạt động
+
+1. Khi nhân viên duyệt yêu cầu giữ chỗ: sinh mã chuyển khoản chuẩn dạng `TTPTGC{Id}`.
+2. Khách mở trang đặt cọc (`/tai-khoan/yeu-cau-phong/giu-cho/{id}/dat-coc`):
+   - Tab 1: **Chuyển khoản QR**: Hiện mã VietQR động theo số còn lại, các thông tin tài khoản kèm nút sao chép, lưới deeplink 12 app ngân hàng.
+   - Tab 2: **Thẻ ATM / Visa (VNPay)** (chỉ hiện khi `VnPay:Enabled = true` và mã dạng `TTPTGC`): Bấm nút chuyển sang cổng thanh toán VNPay.
+3. Khi tiền về qua SePay webhook hoặc VNPay IPN:
+   - Hệ thống tự động ghi sổ vào `giao_dich_giu_cho` với khóa chống trùng `SEPAY-{ref}` / `VNPAY-{vnp_TransactionNo}`.
+   - Cập nhật số tiền đã nhận và trạng thái yêu cầu (`DangGiuCho` khi đủ tiền, `ChoXacNhanTien` khi nhận một phần).
+   - Nếu yêu cầu đã hủy/hết hạn/chuyển hợp đồng: ghi nhận với ghi chú `LATE_REFUND_REQUIRED` (cần hoàn lại).
+   - Bắn sự kiện SignalR `GiuChoThanhToanCapNhat` tới khách để trình duyệt tự động cập nhật / tải lại trang.
+   - Gửi cảnh báo Telegram và email biên nhận cho khách.
+4. Màn chi tiết giữ chỗ quản lý (`/QuanLyNhaTro/GiuCho/ChiTiet/{id}`): Hiển thị bảng lịch sử giao dịch với badge kênh (SePay/VNPay/Cần hoàn), người xử lý (Hệ thống/Nhân viên), mã tham chiếu.
+5. Màn Giao dịch SePay: Đối chiếu dòng giữ chỗ, hiển thị trạng thái `Đã có` và link tới trang giữ chỗ `GC#{id}`.
+
+### 10.3 Kịch bản thử tay giữ chỗ (G01–G07)
+
+| # | Kịch bản | Thao tác | Kết quả đúng |
+| --- | --- | --- | --- |
+| G01 | Chuyển khoản đủ qua SePay | Mô phỏng webhook SePay với nội dung `TTPTGC{Id}` và số tiền = tiền giữ chỗ | Yêu cầu chuyển `DangGiuCho`; Telegram "THU TIỀN GIỮ CHỖ — GIỮ CHỖ ĐÃ CÓ HIỆU LỰC"; trang khách tự tải lại |
+| G02 | Chuyển khoản thiếu qua SePay | Mô phỏng webhook SePay với số tiền < tiền giữ chỗ | Yêu cầu giữ `ChoXacNhanTien`; Telegram "THU TIỀN GIỮ CHỖ (MỘT PHẦN)"; trang khách tự tải lại số còn lại |
+| G03 | Tiền về khi yêu cầu đã hủy | Hủy giữ chỗ → mô phỏng webhook SePay đến sau | Ghi sổ với ghi chú `LATE_REFUND_REQUIRED`; Telegram "TIỀN GIỮ CHỖ CẦN HOÀN"; quản lý hiện badge "Cần hoàn" |
+| G04 | Thanh toán VNPay đủ qua thẻ test | Khách bấm "Thanh toán ngay qua VNPay" → nhập thẻ test sandbox | Chuyển sang trang kết quả "Đã ghi nhận thanh toán"; yêu cầu chuyển `DangGiuCho`; email xác nhận |
+| G05 | Khách hủy trên trang VNPay | Bấm "Hủy" trên cổng thanh toán VNPay | Trở về trang kết quả "Bạn đã hủy thanh toán"; không ghi sổ |
+| G06 | VNPay về khi yêu cầu đã hết hạn | Chờ hết hạn → hoàn tất VNPay | Trang kết quả báo "cần hoàn lại"; ghi chú `LATE_REFUND_REQUIRED`; Telegram cảnh báo cần hoàn |
+| G07 | Realtime SignalR trên trang Đặt cọc | Mở trang Đặt cọc trên tab 1 → gửi webhook SePay ở tab 2 | Trang Đặt cọc tự động tải lại hoặc cập nhật số tiền mà không cần bấm F5 |

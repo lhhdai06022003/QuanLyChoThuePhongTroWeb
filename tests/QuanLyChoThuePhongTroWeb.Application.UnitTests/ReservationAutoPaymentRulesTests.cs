@@ -77,6 +77,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             var item = Assert.Single(queue.Items);
             var telegram = PaymentNotificationFormatter.FormatAlertTelegram(item.Outcome, null);
             Assert.Contains("Không nhận ra mã thanh toán hợp lệ (TTPTGC5)", telegram);
+            Assert.Contains("Gợi ý: Vào Giữ chỗ → Chi tiết → Xác nhận tiền", telegram);
         }
 
         // X5 (cờ bật) + P4: mã TTPTGC có nhưng không có yêu cầu tương ứng (mã cũ GC…) -> Unmatched có lý do, cũng ra cảnh báo.

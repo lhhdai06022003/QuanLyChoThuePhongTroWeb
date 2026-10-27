@@ -1,20 +1,29 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using QuanLyChoThuePhongTroWeb.Application.Abstractions.Services;
+using QuanLyChoThuePhongTroWeb.Application.Common.Configurations;
+using QuanLyChoThuePhongTroWeb.Application.Features.OnlinePayments;
 using QuanLyChoThuePhongTroWeb.Application.Features.PublicRooms;
 using QuanLyChoThuePhongTroWeb.Application.Features.Viewings;
 using QuanLyChoThuePhongTroWeb.Application.Features.Reservations;
 using QuanLyChoThuePhongTroWeb.Application.Features.ReservationPayments;
 using QuanLyChoThuePhongTroWeb.Application.Features.ReservationSettlement;
 using QuanLyChoThuePhongTroWeb.ViewModels.PublicRooms;
+using QuanLyChoThuePhongTroWeb.Web.Helpers;
 
 namespace QuanLyChoThuePhongTroWeb.Controllers;
 
 [Route("phong")]
-public sealed class PhongController(IPublicRoomService rooms, IViewingRequestService viewings,
+public sealed class PhongController(
+    IPublicRoomService rooms,
+    IViewingRequestService viewings,
     IReservationService reservations,
     IReservationPaymentService payments,
     IReservationSettlementService settlements,
-    IConfiguration configuration) : Controller
+    IConfiguration configuration,
+    IReservationVnPayService reservationVnPay,
+    VnPayOptions vnPayOptions,
+    IVietQRService vietQrService) : Controller
 {
     private const int PageSize = 9;
 
@@ -220,8 +229,107 @@ public sealed class PhongController(IPublicRoomService rooms, IViewingRequestSer
             .Where(item => item.PaymentRequestId == reservation.PaymentRequestId).ToArray();
         var settlement = (await settlements.ListMineAsync(actorId, cancellationToken))
             .SingleOrDefault(item => item.ReservationId == reservationId);
-        return View(new GuestDepositPageModel(reservation, evidence,
-            settlement, GetBankInfo()));
+
+        var bankSettings = configuration.GetSection("VietQRSettings")
+            .Get<VietQrSettings>();
+        var bankInfo = GetBankInfo();
+        var remaining = Math.Max(0, (reservation.HoldAmount ?? 0) - reservation.ConfirmedAmount);
+
+        IReadOnlyList<BankDeeplinkDto>? deeplinks = null;
+        if (bankSettings != null && bankInfo != null && remaining > 0 && !string.IsNullOrWhiteSpace(reservation.PaymentCode))
+        {
+            deeplinks = VietQrDeeplinks.BuildAll(bankSettings, remaining, reservation.PaymentCode);
+        }
+
+        return View(new GuestDepositPageModel(
+            reservation,
+            evidence,
+            settlement,
+            bankInfo,
+            vnPayOptions.Enabled,
+            deeplinks));
+    }
+
+    [Authorize(Roles = "KhachVangLai,KhachThue")]
+    [HttpGet("/tai-khoan/yeu-cau-phong/giu-cho/{reservationId:int}/dat-coc/qr")]
+    public async Task<IActionResult> DatCocQr(int reservationId, [FromQuery] bool taiVe, CancellationToken cancellationToken)
+    {
+        var actorId = int.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value,
+            out var idNguoiDung) ? idNguoiDung : 0;
+        if (actorId <= 0)
+        {
+            return Unauthorized();
+        }
+
+        var reservation = (await reservations.ListMineAsync(actorId, cancellationToken))
+            .SingleOrDefault(item => item.Id == reservationId);
+        if (reservation is null)
+        {
+            return NotFound();
+        }
+
+        var bank = configuration.GetSection("VietQRSettings")
+            .Get<VietQrSettings>();
+        if (bank is null || string.IsNullOrWhiteSpace(bank.BankId) || string.IsNullOrWhiteSpace(bank.AccountNumber) ||
+            bank.BankId.StartsWith('<') || bank.AccountNumber.StartsWith('<'))
+        {
+            return NotFound();
+        }
+
+        var remaining = Math.Max(0, (reservation.HoldAmount ?? 0) - reservation.ConfirmedAmount);
+        var memo = reservation.PaymentCode ?? $"TTPTGC{reservation.Id}";
+        var payload = vietQrService.GenerateVietQRString(bank.BankId, bank.AccountNumber, remaining, memo);
+        var bytes = vietQrService.GenerateQRCodePNGBytes(payload);
+        var fileName = $"vietqr-dat-coc-phong-{reservation.RoomNumber}.png";
+
+        return taiVe ? File(bytes, "image/png", fileName) : File(bytes, "image/png");
+    }
+
+    [Authorize(Roles = "KhachVangLai,KhachThue")]
+    [HttpPost("/tai-khoan/yeu-cau-phong/giu-cho/{reservationId:int}/dat-coc/vnpay")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DatCocVnPay(int reservationId, CancellationToken cancellationToken)
+    {
+        if (!vnPayOptions.Enabled)
+        {
+            return NotFound();
+        }
+
+        var actorId = int.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value,
+            out var idNguoiDung) ? idNguoiDung : 0;
+        if (actorId <= 0)
+        {
+            return Unauthorized(new { success = false, message = "Bạn cần đăng nhập để thực hiện thanh toán." });
+        }
+
+        var clientIp = PaymentWebHelper.ResolveClientIp(HttpContext);
+        var returnUrl = PaymentWebHelper.BuildAbsoluteUrl(Request, "/tai-khoan/yeu-cau-phong/giu-cho/dat-coc/vnpay/ket-qua");
+
+        var result = await reservationVnPay.CreatePaymentUrlAsync(reservationId, actorId, clientIp, returnUrl, cancellationToken);
+        return result.Success
+            ? Ok(new { success = true, url = result.Data })
+            : this.ToErrorResult(result);
+    }
+
+    [Authorize(Roles = "KhachVangLai,KhachThue")]
+    [HttpGet("/tai-khoan/yeu-cau-phong/giu-cho/dat-coc/vnpay/ket-qua")]
+    public async Task<IActionResult> DatCocVnPayKetQua(CancellationToken cancellationToken)
+    {
+        if (!vnPayOptions.Enabled)
+        {
+            return NotFound();
+        }
+
+        var actorId = int.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value,
+            out var idNguoiDung) ? idNguoiDung : 0;
+        if (actorId <= 0)
+        {
+            return View("DatCocVnPayKetQua", ReservationVnPayKetQuaViewModel.From(ReservationVnPayReturnResult.Unverified));
+        }
+
+        var query = Request.Query.ToDictionary(q => q.Key, q => q.Value.ToString(), StringComparer.Ordinal);
+        var result = await reservationVnPay.GetReturnResultAsync(query, actorId, cancellationToken);
+        return View("DatCocVnPayKetQua", ReservationVnPayKetQuaViewModel.From(result));
     }
 
     private GuestBankInfo? GetBankInfo()

@@ -1,8 +1,11 @@
 using System.Globalization;
 using Microsoft.Extensions.Logging;
 using QuanLyChoThuePhongTroWeb.Application.Common.Configurations;
+using QuanLyChoThuePhongTroWeb.Application.Common.Models;
+using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Payments;
 using QuanLyChoThuePhongTroWeb.Application.Features.ReservationPayments;
+using QuanLyChoThuePhongTroWeb.Domain.Enums;
 
 namespace QuanLyChoThuePhongTroWeb.Application.Features.OnlinePayments;
 
@@ -156,6 +159,165 @@ public sealed class ReservationVnPayService(
                 logger.LogWarning("IPN VNPay giữ chỗ: kết quả ghi sổ không mong đợi {Kind}, giữ chỗ {YeuCauGiuChoId}", outcome.Kind, yeuCauGiuChoId);
                 return VnPayIpnResult.UnknownError;
         }
+    }
+
+    public async Task<ServiceResult<string>> CreatePaymentUrlAsync(
+        int actorId, int reservationId, string clientIp, string returnUrl, CancellationToken ct = default)
+    {
+        const string notFoundMessage = "Không tìm thấy yêu cầu giữ chỗ.";
+
+        if (!onlinePayment.ReservationEnabled || !options.Enabled)
+        {
+            return ServiceResult<string>.NotFound(notFoundMessage);
+        }
+
+        var snapshot = await store.GetGuestPaymentSnapshotAsync(reservationId, actorId, ct);
+        if (snapshot == null)
+        {
+            return ServiceResult<string>.NotFound(notFoundMessage);
+        }
+
+        if (snapshot.TrangThaiGiuCho is not (TrangThaiYeuCauGiuCho.ChoThanhToan or TrangThaiYeuCauGiuCho.ChoXacNhanTien))
+        {
+            return ServiceResult<string>.Fail("Yêu cầu giữ chỗ không còn ở trạng thái nhận thanh toán.");
+        }
+
+        if (!snapshot.MaYeuCau.StartsWith("TTPTGC", StringComparison.OrdinalIgnoreCase))
+        {
+            return ServiceResult<string>.Fail("Yêu cầu này chỉ nhận chuyển khoản, vui lòng liên hệ nhân viên.");
+        }
+
+        var nowUtc = time.GetUtcNow().UtcDateTime;
+        if (snapshot.HanThanhToanUtc.HasValue && snapshot.HanThanhToanUtc.Value < nowUtc.AddMinutes(5))
+        {
+            return ServiceResult<string>.Fail("Sắp hết hạn thanh toán, vui lòng liên hệ nhân viên.");
+        }
+
+        var conLai = snapshot.SoTienGiuCho - snapshot.DaNhan;
+        if (conLai <= 0)
+        {
+            return ServiceResult<string>.Fail("Yêu cầu giữ chỗ đã được thanh toán đủ.");
+        }
+
+        if (!InvoiceMoney.IsWholeVnd(snapshot.SoTienGiuCho) || !InvoiceMoney.IsWholeVnd(conLai))
+        {
+            return ServiceResult<string>.Fail("Số tiền giữ chỗ có số tiền lẻ, vui lòng liên hệ nhân viên.");
+        }
+
+        var expireMinutes = options.ExpireMinutes > 0 ? options.ExpireMinutes : 15;
+        var expireDate = nowUtc.AddMinutes(expireMinutes);
+        if (snapshot.HanThanhToanUtc.HasValue && snapshot.HanThanhToanUtc.Value < expireDate)
+        {
+            expireDate = snapshot.HanThanhToanUtc.Value;
+        }
+
+        var txnRef = VnPayProtocol.BuildReservationTxnRef(reservationId, nowUtc);
+        var parameters = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            [VnPayProtocol.VersionKey] = VnPayProtocol.Version,
+            [VnPayProtocol.CommandKey] = VnPayProtocol.PayCommand,
+            [VnPayProtocol.TmnCodeKey] = options.TmnCode.Trim(),
+            [VnPayProtocol.AmountKey] = decimal.ToInt64(conLai * 100m).ToString(CultureInfo.InvariantCulture),
+            [VnPayProtocol.CurrCodeKey] = VnPayProtocol.CurrCode,
+            [VnPayProtocol.TxnRefKey] = txnRef,
+            [VnPayProtocol.OrderInfoKey] = VnPayProtocol.BuildReservationOrderInfo(snapshot.SoPhong),
+            [VnPayProtocol.OrderTypeKey] = VnPayProtocol.OrderType,
+            [VnPayProtocol.LocaleKey] = VnPayProtocol.Locale,
+            [VnPayProtocol.ReturnUrlKey] = returnUrl,
+            [VnPayProtocol.IpAddrKey] = clientIp,
+            [VnPayProtocol.CreateDateKey] = VnPayProtocol.FormatVietnamTime(nowUtc),
+            [VnPayProtocol.ExpireDateKey] = VnPayProtocol.FormatVietnamTime(expireDate)
+        };
+
+        logger.LogInformation("Tạo link VNPay cho giữ chỗ {ReservationId}, mã đơn {TxnRef}", reservationId, txnRef);
+        return ServiceResult<string>.Ok(VnPayProtocol.BuildPaymentUrl(options.PaymentUrl, parameters, options.HashSecret));
+    }
+
+    public async Task<ReservationVnPayReturnResult> GetReturnResultAsync(
+        IReadOnlyDictionary<string, string> query, int actorId, CancellationToken ct = default)
+    {
+        if (!VnPayProtocol.Verify(query, options.HashSecret)
+            || !string.Equals(Read(query, VnPayProtocol.TmnCodeKey), options.TmnCode.Trim(), StringComparison.Ordinal)
+            || !VnPayProtocol.TryParseReservationTxnRef(Read(query, VnPayProtocol.TxnRefKey), out var reservationId))
+        {
+            logger.LogInformation("Trang kết quả VNPay giữ chỗ: không xác thực được tham số trả về");
+            return ReservationVnPayReturnResult.Unverified;
+        }
+
+        var snapshot = await store.GetGuestPaymentSnapshotAsync(reservationId, actorId, ct);
+        if (snapshot == null)
+        {
+            logger.LogInformation("Trang kết quả VNPay giữ chỗ: giữ chỗ {ReservationId} không thuộc người xem", reservationId);
+            return ReservationVnPayReturnResult.Unverified;
+        }
+
+        var responseCode = Read(query, VnPayProtocol.ResponseCodeKey)?.Trim();
+        if (string.IsNullOrEmpty(responseCode))
+        {
+            return ReservationVnPayReturnResult.Unverified;
+        }
+
+        if (responseCode == VnPayProtocol.CancelledCode)
+        {
+            return new ReservationVnPayReturnResult { TrangThai = VnPayReturnStatus.DaHuy, YeuCauGiuChoId = reservationId };
+        }
+
+        if (responseCode != VnPayProtocol.SuccessCode)
+        {
+            return new ReservationVnPayReturnResult
+            {
+                TrangThai = VnPayReturnStatus.KhongThanhCong,
+                YeuCauGiuChoId = reservationId,
+                MoTaLoi = VnPayResponseCodes.Describe(responseCode)
+            };
+        }
+
+        var transactionNo = Read(query, VnPayProtocol.TransactionNoKey)?.Trim();
+        if (string.IsNullOrEmpty(transactionNo))
+        {
+            return ReservationVnPayReturnResult.Unverified;
+        }
+
+        var ledgerKey = InvoicePaymentPolicy.VnPayLedgerKey(transactionNo);
+        if (ledgerKey.Length > InvoicePaymentPolicy.MaxMaGiaoDichLength)
+        {
+            return ReservationVnPayReturnResult.Unverified;
+        }
+
+        var transaction = await store.FindActiveTransactionAsync(reservationId, ledgerKey, ct);
+        if (transaction == null && !onlinePayment.ReservationEnabled)
+        {
+            transaction = await store.FindActiveTransactionAsync(reservationId, ledgerKey, ct);
+            if (transaction == null)
+            {
+                return new ReservationVnPayReturnResult { TrangThai = VnPayReturnStatus.KhongGhiNhan, YeuCauGiuChoId = reservationId };
+            }
+        }
+
+        if (transaction == null)
+        {
+            return new ReservationVnPayReturnResult { TrangThai = VnPayReturnStatus.DangGhiNhan, YeuCauGiuChoId = reservationId };
+        }
+
+        var paid = ReadPaidAmount(query);
+        return new ReservationVnPayReturnResult
+        {
+            TrangThai = VnPayReturnStatus.DaGhiNhan,
+            YeuCauGiuChoId = reservationId,
+            GiaoDichGiuChoId = transaction.GiaoDichGiuChoId,
+            SoTien = transaction.SoTienThucNhan,
+            SoTienVnPayBao = paid.HasValue && paid.Value != transaction.SoTienThucNhan ? paid : null,
+            CanHoan = string.Equals(transaction.GhiChu, ReservationPaymentMarkers.LateRefundRequired, StringComparison.Ordinal)
+        };
+    }
+
+    private static decimal? ReadPaidAmount(IReadOnlyDictionary<string, string> query)
+    {
+        return long.TryParse(Read(query, VnPayProtocol.AmountKey), NumberStyles.None, CultureInfo.InvariantCulture, out var raw)
+            && raw > 0
+            && raw % 100 == 0
+                ? raw / 100m
+                : null;
     }
 
     private static string? Read(IReadOnlyDictionary<string, string> query, string key)

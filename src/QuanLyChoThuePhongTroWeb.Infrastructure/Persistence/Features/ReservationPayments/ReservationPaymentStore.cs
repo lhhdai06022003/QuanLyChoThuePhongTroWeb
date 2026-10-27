@@ -407,4 +407,97 @@ public sealed class ReservationPaymentStore(ApplicationDbContext context)
 
         return new ReceiptOutcome(row, previousTotal, !(active && onTime), becameHolding);
     }
+
+    public async Task<ReservationPaymentSnapshot?> GetGuestPaymentSnapshotAsync(
+        int reservationId, int actorId, CancellationToken cancellationToken = default)
+    {
+        var hold = await context.YeuCauGiuChos.AsNoTracking()
+            .Include(y => y.PhongTro)
+            .Include(y => y.YeuCauThanhToanGiuChos)
+            .ThenInclude(p => p.GiaoDichGiuChos)
+            .Where(y => y.YeuCauGiuChoId == reservationId && y.KhachVangLai.NguoiDungId == actorId)
+            .SingleOrDefaultAsync(cancellationToken);
+
+        if (hold == null)
+        {
+            return null;
+        }
+
+        var payment = hold.YeuCauThanhToanGiuChos
+            .OrderByDescending(p => p.YeuCauThanhToanGiuChoId)
+            .FirstOrDefault();
+
+        var daNhan = hold.YeuCauThanhToanGiuChos
+            .SelectMany(p => p.GiaoDichGiuChos)
+            .Sum(g => g.SoTienThucNhan);
+
+        return new ReservationPaymentSnapshot(
+            hold.YeuCauGiuChoId,
+            actorId,
+            payment?.MaYeuCau ?? string.Empty,
+            hold.SoTienGiuCho ?? 0m,
+            daNhan,
+            payment?.HanThanhToan ?? hold.HanThanhToan,
+            hold.TrangThai,
+            hold.PhongTro?.SoPhong ?? string.Empty
+        );
+    }
+
+    public async Task<ReservationTransactionSnapshot?> FindActiveTransactionAsync(
+        int reservationId, string ledgerKey, CancellationToken cancellationToken = default)
+    {
+        return await context.GiaoDichGiuChos.AsNoTracking()
+            .Where(g => g.YeuCauThanhToanGiuCho.YeuCauGiuChoId == reservationId
+                && g.MaGiaoDich == ledgerKey)
+            .OrderByDescending(g => g.GiaoDichGiuChoId)
+            .Select(g => new ReservationTransactionSnapshot(
+                g.GiaoDichGiuChoId,
+                g.YeuCauThanhToanGiuChoId,
+                g.MaGiaoDich,
+                g.SoTienThucNhan,
+                g.GhiChu,
+                g.NgayThucNhan))
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<bool> ExistsTransactionByDedupKeyAsync(string dedupKey, CancellationToken cancellationToken = default)
+    {
+        return await context.GiaoDichGiuChos.AsNoTracking()
+            .AnyAsync(g => g.MaGiaoDich == dedupKey, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<ReservationTransactionAdminDto>> ListTransactionsForReservationAsync(
+        int reservationId, CancellationToken cancellationToken = default)
+    {
+        var rows = await context.GiaoDichGiuChos.AsNoTracking()
+            .Include(g => g.NguoiXacNhan)
+            .Where(g => g.YeuCauThanhToanGiuCho.YeuCauGiuChoId == reservationId)
+            .OrderByDescending(g => g.NgayThucNhan)
+            .ThenByDescending(g => g.GiaoDichGiuChoId)
+            .Select(g => new
+            {
+                g.GiaoDichGiuChoId,
+                g.YeuCauThanhToanGiuChoId,
+                g.MaGiaoDich,
+                g.SoTienThucNhan,
+                g.NgayThucNhan,
+                NguoiXacNhanTen = g.NguoiXacNhan != null ? g.NguoiXacNhan.TenDangNhap : null,
+                g.GhiChu
+            })
+            .ToListAsync(cancellationToken);
+
+        return rows.Select(g => new ReservationTransactionAdminDto(
+            Id: g.GiaoDichGiuChoId,
+            PaymentRequestId: g.YeuCauThanhToanGiuChoId,
+            MaGiaoDich: g.MaGiaoDich,
+            SoTien: g.SoTienThucNhan,
+            ReceivedAtUtc: g.NgayThucNhan,
+            NguoiXacNhan: g.NguoiXacNhanTen,
+            GhiChu: g.GhiChu,
+            LaSePay: InvoicePaymentPolicy.IsSePayKey(g.MaGiaoDich),
+            LaVnPay: InvoicePaymentPolicy.IsVnPayKey(g.MaGiaoDich),
+            MaThamChieu: InvoicePaymentPolicy.AutoPaymentReference(g.MaGiaoDich),
+            CanHoan: string.Equals(g.GhiChu, ReservationPaymentMarkers.LateRefundRequired, StringComparison.Ordinal)
+        )).ToList();
+    }
 }

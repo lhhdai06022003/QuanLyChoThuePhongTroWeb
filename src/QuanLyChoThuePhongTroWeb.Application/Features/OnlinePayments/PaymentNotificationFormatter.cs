@@ -102,6 +102,10 @@ public static class PaymentNotificationFormatter
             return string.Join("\n", vnPayLines);
         }
 
+        var suggestion = outcome.Code != null && outcome.Code.StartsWith("TTPTGC", StringComparison.OrdinalIgnoreCase)
+            ? "Gợi ý: Vào Giữ chỗ → Chi tiết → Xác nhận tiền"
+            : "Gợi ý: Vào Hóa đơn → Thu thủ công";
+
         var lines = new[]
         {
             $"{IconAlert} CHUYỂN KHOẢN CẦN XỬ LÝ TAY",
@@ -110,7 +114,7 @@ public static class PaymentNotificationFormatter
             $"Nội dung: {EscapeHtml(OriginalContent(transfer))}",
             $"Mã GD: {EscapeHtml(TransferReference(transfer))}",
             $"Thời gian: {VietnamTime(transfer.TransactionDateUtc)}",
-            "Gợi ý: Vào Hóa đơn → Thu thủ công"
+            suggestion
         };
 
         return string.Join("\n", lines);

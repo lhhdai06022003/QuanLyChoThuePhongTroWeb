@@ -89,5 +89,8 @@ public sealed class ReservationPaymentServiceSystemGuardTests
 
         public Task<PaymentEvidenceAccess?> GetEvidenceAccessAsync(int evidenceId,
             CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+        public Task<IReadOnlyList<ReservationTransactionAdminDto>> ListTransactionsForReservationAsync(int reservationId,
+            CancellationToken cancellationToken = default) => throw new NotSupportedException();
     }
 }
