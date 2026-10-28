@@ -74,6 +74,7 @@
         </section>
 
         <section class="guest-payment-action" aria-label="Phương thức thanh toán">
+            @Html.AntiForgeryToken()
             @if (waitingPayment)
             {
                 <div class="guest-bank-details">
@@ -262,6 +263,8 @@
 </div>
 
 @section Scripts {
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.12/signalr.min.js"></script>
     <script src="~/js/guest-dat-coc.js" asp-append-version="true"></script>
     <script>

@@ -64,6 +64,7 @@
                     self.textContent = 'Đã chép!';
                     setTimeout(function () {
                         self.textContent = 'Sao chép';
+                        self.setAttribute('title', originalTitle);
                     }, 2000);
                 });
             });
@@ -173,9 +174,50 @@
         start: start,
         watchResult: watchResult
     };
-})(window, window.jQuery || {
-    // Fallback nếu trang không nạp jQuery (dùng native fetch & DOM)
-    ajax: function (opts) {
+})(window, window.jQuery || (function () {
+    // Fallback mini jQuery-compatible wrapper nếu trang không nạp jQuery
+    var fn = function (selector) {
+        var el = typeof selector === 'string' ? document.querySelector(selector) : selector;
+        return {
+            on: function (evt, handler) {
+                if (el) {
+                    el.addEventListener(evt, handler);
+                }
+                return this;
+            },
+            prop: function (name, val) {
+                if (!el) {
+                    return undefined;
+                }
+                if (arguments.length === 1) {
+                    return el[name];
+                }
+                el[name] = val;
+                return this;
+            },
+            html: function (content) {
+                if (!el) {
+                    return '';
+                }
+                if (arguments.length === 0) {
+                    return el.textContent || '';
+                }
+                el.textContent = '';
+                if (typeof content === 'string' && content.indexOf('<') !== -1) {
+                    var temp = document.createElement('div');
+                    temp.insertAdjacentHTML('beforeend', content);
+                    while (temp.firstChild) {
+                        el.appendChild(temp.firstChild);
+                    }
+                } else {
+                    el.textContent = content;
+                }
+                return this;
+            }
+        };
+    };
+
+    fn.ajax = function (opts) {
         var token = opts.headers ? opts.headers['RequestVerificationToken'] : '';
         var promise = fetch(opts.url, {
             method: opts.method || 'GET',
@@ -204,5 +246,7 @@
                 return this;
             }
         };
-    }
-});
+    };
+
+    return fn;
+})());

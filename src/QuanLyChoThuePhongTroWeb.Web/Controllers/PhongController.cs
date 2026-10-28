@@ -305,7 +305,7 @@ public sealed class PhongController(
         var clientIp = PaymentWebHelper.ResolveClientIp(HttpContext);
         var returnUrl = PaymentWebHelper.BuildAbsoluteUrl(Request, "/tai-khoan/yeu-cau-phong/giu-cho/dat-coc/vnpay/ket-qua");
 
-        var result = await reservationVnPay.CreatePaymentUrlAsync(reservationId, actorId, clientIp, returnUrl, cancellationToken);
+        var result = await reservationVnPay.CreatePaymentUrlAsync(actorId: actorId, reservationId: reservationId, clientIp: clientIp, returnUrl: returnUrl, ct: cancellationToken);
         return result.Success
             ? Ok(new { success = true, url = result.Data })
             : this.ToErrorResult(result);
