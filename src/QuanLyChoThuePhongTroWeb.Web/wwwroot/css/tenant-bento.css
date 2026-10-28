@@ -1,0 +1,186 @@
+/* TroSync Tenant Bento Grid & Mobile Bottom Navigation */
+
+/* 1. Mobile Bottom Navigation */
+.tenant-bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 64px;
+    background: var(--tblr-bg-surface, #ffffff);
+    border-top: 1px solid var(--tblr-border-color, #e6e8eb);
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    z-index: 1030;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+    padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.tenant-bottom-nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--tblr-secondary, #667382);
+    text-decoration: none;
+    font-size: 0.72rem;
+    font-weight: 500;
+    transition: color 0.15s ease, transform 0.1s ease;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.tenant-bottom-nav-item i {
+    font-size: 1.35rem;
+    margin-bottom: 2px;
+}
+
+.tenant-bottom-nav-item:hover,
+.tenant-bottom-nav-item:focus {
+    color: var(--tblr-primary, #206bc4);
+    text-decoration: none;
+}
+
+.tenant-bottom-nav-item.active {
+    color: var(--tblr-primary, #206bc4);
+    font-weight: 600;
+}
+
+.tenant-bottom-nav-item.active i {
+    transform: scale(1.1);
+}
+
+@media (max-width: 767.98px) {
+    .page-wrapper {
+        padding-bottom: 74px !important;
+    }
+}
+
+/* 2. Bento Grid Layout for Tenant Dashboard */
+.bento-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+
+.bento-card {
+    border-radius: 16px !important;
+    border: 1px solid var(--tblr-border-color, #e6e8eb);
+    background: var(--tblr-bg-surface, #ffffff);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    overflow: hidden;
+}
+
+.bento-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* Khối 1: Hero Hóa đơn (7 cột) */
+.bento-invoice {
+    grid-column: span 7;
+}
+
+.bento-invoice-unpaid {
+    background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%) !important;
+    color: #ffffff !important;
+    border: none !important;
+}
+
+.bento-invoice-unpaid .subheader {
+    color: rgba(255, 255, 255, 0.85) !important;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+}
+
+.bento-invoice-unpaid .h1 {
+    color: #ffffff !important;
+    font-weight: 700;
+}
+
+.bento-invoice-unpaid a.btn-cta {
+    background: #ffffff;
+    color: #1e40af;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 18px;
+    display: inline-flex;
+    align-items: center;
+    transition: background 0.15s ease;
+}
+
+.bento-invoice-unpaid a.btn-cta:hover {
+    background: #f1f5f9;
+    color: #1d4ed8;
+    text-decoration: none;
+}
+
+.bento-invoice-paid {
+    border-left: 4px solid var(--tblr-success, #2fb344) !important;
+}
+
+/* Khối 2: Chỉ số điện nước (5 cột) */
+.bento-utility {
+    grid-column: span 5;
+}
+
+/* Khối 3: Báo sự cố nhanh (6 cột) */
+.bento-incident {
+    grid-column: span 6;
+}
+
+.bento-incident-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.bento-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: var(--tblr-bg-surface-secondary, #f8fafc);
+    border: 1px solid var(--tblr-border-color, #e2e8f0);
+    border-radius: 20px;
+    font-size: 0.82rem;
+    color: var(--tblr-body-color, #1e293b);
+    text-decoration: none;
+    transition: all 0.15s ease;
+}
+
+.bento-chip:hover {
+    background: var(--tblr-primary-lt, #e0f2fe);
+    border-color: var(--tblr-primary, #0284c7);
+    color: var(--tblr-primary, #0284c7);
+    text-decoration: none;
+    transform: translateY(-1px);
+}
+
+/* Khối 4: Hợp đồng & Ban quản lý (6 cột) */
+.bento-contract {
+    grid-column: span 6;
+}
+
+/* Responsive cho Bento Grid */
+@media (max-width: 991.98px) {
+    .bento-invoice {
+        grid-column: span 12;
+    }
+    .bento-utility {
+        grid-column: span 12;
+    }
+    .bento-incident {
+        grid-column: span 12;
+    }
+    .bento-contract {
+        grid-column: span 12;
+    }
+}

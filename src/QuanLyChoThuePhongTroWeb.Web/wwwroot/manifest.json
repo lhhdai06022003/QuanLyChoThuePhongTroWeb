@@ -1,0 +1,23 @@
+{
+  "name": "TroSync - Quản lý Nhà Trọ",
+  "short_name": "TroSync",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "orientation": "portrait-primary",
+  "description": "Hệ thống quản lý phòng trọ, thanh toán hóa đơn và tìm phòng đa chi nhánh",
+  "icons": [
+    {
+      "src": "/images/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.ico",
+      "sizes": "48x48 32x32 16x16",
+      "type": "image/x-icon"
+    }
+  ]
+}

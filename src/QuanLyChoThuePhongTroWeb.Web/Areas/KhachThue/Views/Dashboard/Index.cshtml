@@ -21,20 +21,78 @@
     <div class="container-xl">
         @if (Model.HasTenantProfile)
         {
-            <div class="row row-cards mb-4">
-                <div class="col-sm-6">
-                    <div class="card"><div class="card-body">
-                        <div class="subheader">Hóa đơn chưa thanh toán</div>
-                        <div class="h1 my-3">@Model.OutstandingInvoiceAmount.ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("vi-VN")) VNĐ</div>
-                        <a href="/KhachThue/HoaDon">Xem hóa đơn và thanh toán</a>
-                    </div></div>
+            <div class="bento-grid">
+                <!-- Khối 1: Hero Hóa đơn kỳ này -->
+                <div class="bento-card bento-invoice p-4 @(Model.OutstandingInvoiceAmount > 0 ? "bento-invoice-unpaid" : "bento-invoice-paid")">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="subheader fw-bold">Hóa đơn chưa thanh toán</span>
+                        <i class="ti ti-receipt-dollar fs-1 opacity-75"></i>
+                    </div>
+                    <div class="h1 my-3 num-tabular">
+                        @Model.OutstandingInvoiceAmount.ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("vi-VN")) VNĐ
+                    </div>
+                    @if (Model.OutstandingInvoiceAmount > 0)
+                    {
+                        <p class="small text-white-50 mb-3">Bạn có khoản cần thanh toán kỳ này. Vui lòng hoàn tất trước hạn quy định.</p>
+                        <a href="/KhachThue/HoaDon" class="btn-cta">
+                            <i class="ti ti-qrcode me-1"></i> Thanh toán ngay (VietQR)
+                        </a>
+                    }
+                    else
+                    {
+                        <p class="text-success small mb-3"><i class="ti ti-check me-1"></i> Tuyệt vời! Bạn đã hoàn thành mọi khoản phí kỳ này.</p>
+                        <a href="/KhachThue/HoaDon" class="btn btn-sm btn-outline-secondary">Xem hóa đơn và thanh toán</a>
+                    }
                 </div>
-                <div class="col-sm-6">
-                    <div class="card"><div class="card-body">
-                        <h2 class="card-title">Hợp đồng thuê phòng</h2>
-                        <p class="text-secondary">Xem hợp đồng và thông tin thuê phòng của bạn.</p>
-                        <a href="/KhachThue/HopDong">Xem hợp đồng</a>
-                    </div></div>
+
+                <!-- Khối 2: Chỉ số điện nước -->
+                <div class="bento-card bento-utility p-4 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="subheader text-secondary fw-bold">Chỉ số điện &amp; nước</span>
+                            <span class="badge bg-blue-lt"><i class="ti ti-bolt me-1"></i> Phòng ở</span>
+                        </div>
+                        <h3 class="card-title mb-2">Theo dõi chỉ số phòng</h3>
+                        <p class="text-secondary small mb-3">Xem ảnh công tơ đồng hồ chốt chỉ số và mức tiêu thụ thực tế.</p>
+                    </div>
+                    <div>
+                        <a href="/KhachThue/ChiSoDienNuoc" class="btn btn-sm btn-outline-primary w-100">
+                            <i class="ti ti-eye me-1"></i> Xem chỉ số điện nước
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Khối 3: Báo sự cố nhanh -->
+                <div class="bento-card bento-incident p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="subheader text-secondary fw-bold">Báo hỏng &amp; Sửa chữa</span>
+                        <i class="ti ti-tool text-warning fs-2"></i>
+                    </div>
+                    <h3 class="card-title mb-1">Cần hỗ trợ kỹ thuật tại phòng?</h3>
+                    <p class="text-secondary small mb-2">Gửi nhanh yêu cầu để ban quản lý xử lý kịp thời:</p>
+                    <div class="bento-incident-chips">
+                        <a href="/KhachThue/SuCo" class="bento-chip"><i class="ti ti-bulb text-warning"></i> Hỏng đèn / điện</a>
+                        <a href="/KhachThue/SuCo" class="bento-chip"><i class="ti ti-droplet text-info"></i> Rò rỉ nước</a>
+                        <a href="/KhachThue/SuCo" class="bento-chip"><i class="ti ti-wind text-primary"></i> Máy lạnh</a>
+                        <a href="/KhachThue/SuCo" class="bento-chip"><i class="ti ti-wifi text-success"></i> Mạng Wifi</a>
+                    </div>
+                </div>
+
+                <!-- Khối 4: Hợp đồng thuê phòng -->
+                <div class="bento-card bento-contract p-4 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="subheader text-secondary fw-bold">Hợp đồng thuê phòng</span>
+                            <i class="ti ti-file-certificate text-purple fs-2"></i>
+                        </div>
+                        <h2 class="card-title mb-1">Hợp đồng thuê phòng</h2>
+                        <p class="text-secondary small mb-3">Xem hợp đồng và thông tin thuê phòng của bạn.</p>
+                    </div>
+                    <div>
+                        <a href="/KhachThue/HopDong" class="btn btn-sm btn-outline-secondary w-100">
+                            <i class="ti ti-file-text me-1"></i> Xem hợp đồng
+                        </a>
+                    </div>
                 </div>
             </div>
         }

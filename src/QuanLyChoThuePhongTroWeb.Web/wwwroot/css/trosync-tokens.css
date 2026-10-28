@@ -1,0 +1,63 @@
+/**
+ * TroSync Design Tokens & Responsive Utilities
+ * Chuẩn hóa màu sắc, bo góc, tabular numbers và responsive table-to-card
+ */
+
+:root {
+    /* Brand Colors */
+    --ts-primary: #206bc4;
+    --ts-primary-hover: #1a569d;
+    --ts-primary-light: #f0f6ff;
+    --ts-success: #2fb344;
+    --ts-warning: #f59f00;
+    --ts-danger: #d63939;
+
+    /* Contextual Radius */
+    --ts-radius-public: 14px;
+    --ts-radius-tenant: 16px;
+    --ts-radius-admin: 8px;
+
+    /* Transitions */
+    --ts-transition-fast: 0.15s ease-in-out;
+    --ts-transition-normal: 0.25s ease-in-out;
+}
+
+/* 1. Tabular Numbers - Căn thẳng hàng dọc tuyệt đối cho số liệu tài chính & công tơ */
+.num-tabular,
+.td-num,
+.hd-num,
+.dashboard-kpi-value,
+.meter-reading-val,
+.payment-amount-display,
+table.dataTable tbody td.text-end,
+table.dataTable tbody td.num-col {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+}
+
+/* 2. Responsive Table Utilities cho Mobile Nhân Viên & Quản Lý (< 768px) */
+@media (max-width: 767.98px) {
+    /* Thao tác nút bấm chạm dễ dàng bằng 1 tay (tối thiểu 40-42px touch target) */
+    .table-mobile-cards .btn-action-mobile,
+    .table-responsive .btn-icon-mobile,
+    .mobile-quick-action-btn {
+        min-height: 42px;
+        min-width: 42px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 500;
+        font-size: 0.925rem;
+    }
+
+    /* Tối ưu mật độ padding cho bảng DataTables trên điện thoại */
+    .table-responsive table.dataTable > tbody > tr > td {
+        padding: 0.65rem 0.5rem;
+        vertical-align: middle;
+    }
+
+    /* Ẩn bớt các cột thông tin phụ trên màn hình nhỏ nếu có class .d-mobile-none */
+    .d-mobile-none {
+        display: none !important;
+    }
+}

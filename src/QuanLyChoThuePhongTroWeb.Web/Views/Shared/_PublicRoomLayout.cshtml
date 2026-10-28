@@ -20,7 +20,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@500;600;700&display=swap" rel="stylesheet" />
+    <link rel="manifest" href="~/manifest.json" />
     <link rel="stylesheet" href="~/Theme/tabler/dist/css/tabler.min.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/trosync-tokens.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/khach-vang-lai.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/guest-discovery.css" asp-append-version="true" />
 </head>
@@ -88,5 +90,14 @@
     <partial name="_GuestRoomTools" />
     <script type="module" src="~/js/guest-room-tools.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function () {
+                navigator.serviceWorker.register('/service-worker.js').catch(function (err) {
+                    console.warn('ServiceWorker registration error:', err);
+                });
+            });
+        }
+    </script>
 </body>
 </html>

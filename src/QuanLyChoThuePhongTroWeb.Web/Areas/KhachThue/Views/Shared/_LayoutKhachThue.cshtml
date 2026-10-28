@@ -15,7 +15,10 @@
     <link rel="stylesheet" href="~/Theme/tabler/dist/css/tabler-vendors.min.css" />
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" />
+    <link rel="manifest" href="~/manifest.json" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/trosync-tokens.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/tenant-bento.css" asp-append-version="true" />
 
     <style>
         .swal2-popup.swal2-custom-popup {
@@ -62,6 +65,30 @@
             <!-- Footer -->
             <partial name="~/Views/Shared/_Footer.cshtml" />
         </div>
+
+        <!-- Mobile Bottom Navigation Bar (< 768px) -->
+        <nav class="tenant-bottom-nav d-md-none" aria-label="Điều hướng chính di động">
+            <a href="/KhachThue/Dashboard" class="tenant-bottom-nav-item @(Context.Request.Path.StartsWithSegments("/KhachThue/Dashboard") ? "active" : "")">
+                <i class="ti ti-layout-dashboard"></i>
+                <span>Tổng quan</span>
+            </a>
+            <a href="/KhachThue/HoaDon" class="tenant-bottom-nav-item @(Context.Request.Path.StartsWithSegments("/KhachThue/HoaDon") ? "active" : "")">
+                <i class="ti ti-receipt-2"></i>
+                <span>Hóa đơn</span>
+            </a>
+            <a href="/KhachThue/ChiSoDienNuoc" class="tenant-bottom-nav-item @(Context.Request.Path.StartsWithSegments("/KhachThue/ChiSoDienNuoc") ? "active" : "")">
+                <i class="ti ti-bolt"></i>
+                <span>Điện nước</span>
+            </a>
+            <a href="/KhachThue/SuCo" class="tenant-bottom-nav-item @(Context.Request.Path.StartsWithSegments("/KhachThue/SuCo") ? "active" : "")">
+                <i class="ti ti-tool"></i>
+                <span>Báo sự cố</span>
+            </a>
+            <a href="/KhachThue/HopDong" class="tenant-bottom-nav-item @(Context.Request.Path.StartsWithSegments("/KhachThue/HopDong") ? "active" : "")">
+                <i class="ti ti-file-text"></i>
+                <span>Hợp đồng</span>
+            </a>
+        </nav>
     </div>
 
     <!-- JS -->
@@ -127,5 +154,14 @@
     @{ ViewData["AiChatPortal"] = "KhachThue"; }
     <partial name="~/Views/Shared/_AiChatWidget.cshtml" />
     @await RenderSectionAsync("Scripts", required: false)
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function () {
+                navigator.serviceWorker.register('/service-worker.js').catch(function (err) {
+                    console.warn('ServiceWorker registration error:', err);
+                });
+            });
+        }
+    </script>
 </body>
 </html>

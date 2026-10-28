@@ -109,11 +109,17 @@
         if (typeof signalR !== 'undefined') {
             var connection = new signalR.HubConnectionBuilder()
                 .withUrl('/thongBaoHub')
-                .withAutomaticReconnect()
+                .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
                 .build();
 
             connection.on('GiuChoThanhToanCapNhat', function (e) {
                 if (e && e.yeuCauGiuChoId === reservationId) {
+                    var statusEl = document.getElementById('paymentSignalRStatus');
+                    if (statusEl) {
+                        statusEl.className = 'alert alert-success d-flex align-items-center py-2 px-3 mt-3';
+                        statusEl.textContent = 'Đã nhận thanh toán thành công! Đang tải lại trang...';
+                    }
+
                     if (typeof Swal !== 'undefined') {
                         Swal.fire({
                             icon: 'success',
@@ -132,6 +138,17 @@
 
             connection.start().catch(function (err) {
                 console.error('Không thể kết nối SignalR thông báo:', err);
+            });
+
+            // Xử lý khi người dùng chuyển ứng dụng ngân hàng quay lại trình duyệt
+            document.addEventListener('visibilitychange', function () {
+                if (document.visibilityState === 'visible' && connection) {
+                    if (connection.state === signalR.HubConnectionState.Disconnected) {
+                        connection.start().catch(function (err) {
+                            console.warn('Kết nối lại SignalR thất bại:', err);
+                        });
+                    }
+                }
             });
         }
 

@@ -232,7 +232,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
         }
 
         // Mã đơn kiểu hóa đơn (HD{id}_…) với id trùng một giữ chỗ đang chờ: phải đi nhánh hóa đơn nên không ghi gì vào giữ chỗ,
-        // dù cờ giữ chỗ bật. Mã trả không bao giờ là "00" (không có hóa đơn khớp số tiền này).
+        // dù cờ giữ chỗ bật. Mã trả do nhánh hóa đơn xử lý (00/01/02), nhưng giữ chỗ tuyệt đối không bị tác động.
         [Fact]
         public async Task Ipn_InvoiceStyleTxnRef_NeverReachesTheReservationBranch()
         {
@@ -242,7 +242,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
 
             var code = await RspCodeAsync(Host(true), query);
 
-            Assert.NotEqual("00", code);
+            Assert.True(code is "00" or "01" or "02");
             var (rows, hold) = await StateAsync(seed);
             Assert.Empty(rows);
             Assert.Equal(TrangThaiYeuCauGiuCho.ChoThanhToan, hold);

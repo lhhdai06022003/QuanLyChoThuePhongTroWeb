@@ -322,7 +322,7 @@ public sealed class GuestPortalFlowTests(CustomWebApplicationFactory factory)
             Assert.Equal(HttpStatusCode.OK, depositResponse.StatusCode);
             var depositHtml = WebUtility.HtmlDecode(
                 await depositResponse.Content.ReadAsStringAsync());
-            Assert.Contains("Thông tin chuyển khoản", depositHtml);
+            Assert.Contains("Phương thức thanh toán", depositHtml);
             Assert.Contains("name=\"paymentRequestId\"", depositHtml);
             Assert.Contains("200.000 ₫", depositHtml);
             Assert.DoesNotContain("200,000", depositHtml);

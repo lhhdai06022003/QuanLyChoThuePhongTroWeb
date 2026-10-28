@@ -24,11 +24,11 @@
             <h2>Số tiền giữ chỗ được duyệt</h2>
             @if (reservation.HoldAmount is { } holdAmount)
             {
-                <strong>@VndFormat.Money(holdAmount)</strong>
-                <p>Đã xác nhận: @VndFormat.Money(reservation.ConfirmedAmount)</p>
+                <strong class="num-tabular">@VndFormat.Money(holdAmount)</strong>
+                <p>Đã xác nhận: <span class="num-tabular">@VndFormat.Money(reservation.ConfirmedAmount)</span></p>
                 @if (canUpload)
                 {
-                    <p>Còn cần chuyển: <strong class="guest-payment-remaining text-primary">@VndFormat.Money(remaining)</strong></p>
+                    <p>Còn cần chuyển: <strong class="guest-payment-remaining text-primary num-tabular">@VndFormat.Money(remaining)</strong></p>
                 }
                 @if (reservation.PaymentDeadlineUtc is { } paymentDeadline)
                 {
@@ -43,10 +43,40 @@
             {
                 <div class="guest-preview-notice">Chờ nhân viên duyệt số tiền và hạn thanh toán. Bạn chưa cần chuyển tiền.</div>
             }
+            else if (reservation.Status == "DangGiuCho")
+            {
+                <div class="guest-preview-notice">Tiền đã được xác nhận và phòng đang được giữ cho bạn. Liên hệ nhân viên để tiếp tục ký hợp đồng.</div>
+            }
+            else if (reservation.Status is "DaHuy" or "HetHan")
+            {
+                <div class="guest-preview-notice">Yêu cầu đã hủy hoặc hết hạn. Vui lòng không chuyển thêm tiền; khoản đã nhận sẽ được nhân viên xử lý theo quyết định hoàn.</div>
+            }
+            else if (reservation.Status == "TuChoi")
+            {
+                <div class="guest-preview-notice">Yêu cầu đặt phòng đã bị từ chối. Bạn chưa cần chuyển tiền; hãy chọn phòng khác hoặc liên hệ nhân viên.</div>
+            }
+            else if (reservation.Status == "DaChuyenHopDong")
+            {
+                <div class="guest-preview-notice">Yêu cầu đã được chuyển sang hợp đồng. Theo dõi khoản tiền áp dụng vào cọc hợp đồng và khoản hoàn bên dưới.</div>
+            }
+            @if (Model.Settlement is { } settlement)
+            {
+                @if (settlement.AppliedToContractDeposit > 0)
+                {
+                    <p>Đã áp dụng vào cọc hợp đồng: <span class="num-tabular">@VndFormat.Money(settlement.AppliedToContractDeposit)</span></p>
+                }
+                @if (settlement.ApprovedRefundAmount is { } refund)
+                {
+                    <p>Hoàn đã duyệt: <span class="num-tabular">@VndFormat.Money(refund)</span></p>
+                    <p>Đã hoàn thực tế: <span class="num-tabular">@VndFormat.Money(settlement.RefundedAmount)</span></p>
+                }
+            }
+        </section>
 
+        <section class="guest-payment-action" aria-label="Phương thức thanh toán">
             @if (waitingPayment)
             {
-                <div class="guest-bank-details mt-3">
+                <div class="guest-bank-details">
                     <h2>Phương thức thanh toán</h2>
 
                     @if (canUpload && remaining > 0)
@@ -87,7 +117,7 @@
                                     <p class="d-flex justify-content-between align-items-center mb-2">
                                         <span>Số tài khoản:</span>
                                         <span>
-                                            <strong class="me-2">@bank.AccountNumber</strong>
+                                            <strong class="me-2 num-tabular">@bank.AccountNumber</strong>
                                             <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 guest-copy-btn" data-copy="@bank.AccountNumber" title="Sao chép số tài khoản">Sao chép</button>
                                         </span>
                                     </p>
@@ -98,7 +128,7 @@
                                     <p class="d-flex justify-content-between align-items-center mb-2">
                                         <span>Số tiền:</span>
                                         <span>
-                                            <strong class="text-primary me-2">@VndFormat.Money(remaining)</strong>
+                                            <strong class="text-primary me-2 num-tabular">@VndFormat.Money(remaining)</strong>
                                             <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 guest-copy-btn" data-copy="@remaining.ToString("0")" title="Sao chép số tiền">Sao chép</button>
                                         </span>
                                     </p>
@@ -140,7 +170,7 @@
                                     </div>
                                     <h3 class="mb-1">Cổng thanh toán VNPay</h3>
                                     <p class="text-secondary small mb-3">Hỗ trợ thẻ ATM nội địa (napas), Visa, MasterCard, JCB hoặc quét VNPAY-QR.</p>
-                                    <div class="h2 text-primary fw-bold mb-3">@VndFormat.Money(remaining)</div>
+                                    <div class="h2 text-primary fw-bold mb-3 num-tabular">@VndFormat.Money(remaining)</div>
                                     <button type="button" id="btnGuestVnPay" class="btn btn-primary btn-lg w-100">
                                         <i class="ti ti-lock me-1"></i> Thanh toán ngay qua VNPay
                                     </button>
@@ -148,6 +178,11 @@
                                 </div>
                             </div>
                         }
+
+                        <div class="alert alert-info d-flex align-items-center py-2 px-3 mt-3 payment-waiting-pulse" id="paymentSignalRStatus" role="status">
+                            <span class="spinner-grow spinner-grow-sm text-primary me-2 flex-shrink-0" aria-hidden="true"></span>
+                            <span class="small">Hệ thống đang tự động chờ tín hiệu từ ngân hàng (không cần tải lại trang)...</span>
+                        </div>
                     }
                     else if (remaining <= 0)
                     {
@@ -161,91 +196,67 @@
                     }
                 </div>
 
-                @if (canUpload)
-                {
-                    <p class="guest-field-hint mt-3">Ghi đúng nội dung chuyển khoản để hệ thống tự động ghi nhận tức thì. Nếu chuyển ngoài giờ hoặc thanh toán thủ công, bạn có thể tải ảnh minh chứng bên dưới để nhân viên đối soát.</p>
-                }
-                else
+                @if (!canUpload)
                 {
                     <p class="guest-field-hint mt-3">Đã qua hạn chuyển tiền. Liên hệ nhân viên trước khi chuyển thêm.</p>
                 }
             }
-            else if (reservation.Status == "DangGiuCho")
-            {
-                <div class="guest-preview-notice">Tiền đã được xác nhận và phòng đang được giữ cho bạn. Liên hệ nhân viên để tiếp tục ký hợp đồng.</div>
-            }
-            else if (reservation.Status is "DaHuy" or "HetHan")
-            {
-                <div class="guest-preview-notice">Yêu cầu đã hủy hoặc hết hạn. Vui lòng không chuyển thêm tiền; khoản đã nhận sẽ được nhân viên xử lý theo quyết định hoàn.</div>
-            }
-            else if (reservation.Status == "TuChoi")
-            {
-                <div class="guest-preview-notice">Yêu cầu đặt phòng đã bị từ chối. Bạn chưa cần chuyển tiền; hãy chọn phòng khác hoặc liên hệ nhân viên.</div>
-            }
-            else if (reservation.Status == "DaChuyenHopDong")
-            {
-                <div class="guest-preview-notice">Yêu cầu đã được chuyển sang hợp đồng. Theo dõi khoản tiền áp dụng vào cọc hợp đồng và khoản hoàn bên dưới.</div>
-            }
-            @if (Model.Settlement is { } settlement)
-            {
-                @if (settlement.AppliedToContractDeposit > 0)
-                {
-                    <p>Đã áp dụng vào cọc hợp đồng: @VndFormat.Money(settlement.AppliedToContractDeposit)</p>
-                }
-                @if (settlement.ApprovedRefundAmount is { } refund)
-                {
-                    <p>Hoàn đã duyệt: @VndFormat.Money(refund)</p>
-                    <p>Đã hoàn thực tế: @VndFormat.Money(settlement.RefundedAmount)</p>
-                }
-            }
-        </section>
-        <section>
-            @if (canUpload)
-            {
-                <form class="guest-viewing-form" method="post" enctype="multipart/form-data" action="/tai-khoan/yeu-cau-phong/minh-chung">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="paymentRequestId" value="@reservation.PaymentRequestId" />
-                    <h2>Gửi minh chứng chuyển tiền (tùy chọn)</h2>
-                    <p class="guest-field-hint">Nếu đã chuyển khoản ngân hàng hoặc nộp tiền nhưng chưa thấy cập nhật, tải ảnh biên nhận để nhân viên đối soát.</p>
-                    <label for="claimedAmount">Số tiền đã chuyển (₫)</label>
-                    <input id="claimedAmount" name="claimedAmount" type="number" min="1" step="1" value="@(remaining > 0 ? remaining : (decimal?)null)" required />
-                    <label for="transferTimeLocal">Thời gian chuyển</label>
-                    <input id="transferTimeLocal" name="transferTimeLocal" type="datetime-local" required />
-                    <label for="bankReference">Mã giao dịch ngân hàng (nếu có)</label>
-                    <input id="bankReference" name="bankReference" maxlength="100" />
-                    <label for="image">Ảnh minh chứng</label>
-                    <input id="image" name="image" type="file" accept="image/jpeg,image/png,image/webp" required />
-                    <p class="guest-field-hint">JPG, PNG hoặc WebP, tối đa 5 MB. Ảnh chỉ được xem bởi bạn và nhân viên phụ trách.</p>
-                    <label for="note">Ghi chú (nếu có)</label>
-                    <textarea id="note" name="note" maxlength="500" rows="3"></textarea>
-                    <button class="guest-button guest-button-primary" type="submit">Gửi minh chứng</button>
-                </form>
-            }
-            else if (waitingPayment)
-            {
-                <div class="guest-preview-notice">Đã qua hạn chuyển tiền. Nếu bạn đã gửi minh chứng, hãy chờ nhân viên đối soát; liên hệ nhân viên trước khi chuyển thêm.</div>
-            }
-            <div class="guest-evidence-list">
-                <h2>Minh chứng của bạn</h2>
-                @if (Model.Evidence.Count == 0)
-                {
-                    <p>Chưa gửi minh chứng chuyển tiền.</p>
-                }
-                @foreach (var evidence in Model.Evidence)
-                {
-                    var status = evidence.Status switch
+
+            <details class="guest-evidence-accordion card mt-4 border bg-white" @(Model.Evidence.Count > 0 ? "open" : "")>
+                <summary class="card-header py-2 px-3 text-secondary d-flex justify-content-between align-items-center cursor-pointer" style="cursor: pointer; user-select: none;">
+                    <span class="fw-medium small"><i class="ti ti-receipt me-1"></i> Bạn chuyển khoản ngoài hệ thống hoặc cần gửi ảnh biên lai xác nhận thủ công?</span>
+                    <i class="ti ti-chevron-down text-muted"></i>
+                </summary>
+                <div class="card-body p-3">
+                    @if (canUpload)
                     {
-                        "ChoXacNhan" => "Chờ đối soát",
-                        "DaXacNhan" => "Đã đối soát",
-                        "TuChoi" => "Đã từ chối",
-                        _ => evidence.Status
-                    };
-                    <div class="guest-evidence-item">
-                        <div><strong>@VndFormat.Money(evidence.ClaimedAmount)</strong><p>@status</p></div>
-                        <a class="guest-section-link" href="/tai-khoan/yeu-cau-phong/minh-chung/@evidence.Id" target="_blank" rel="noopener">Xem ảnh</a>
+                        <form class="guest-viewing-form" method="post" enctype="multipart/form-data" action="/tai-khoan/yeu-cau-phong/minh-chung">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="paymentRequestId" value="@reservation.PaymentRequestId" />
+                            <h3 class="h4 mb-2">Gửi minh chứng chuyển tiền</h3>
+                            <p class="guest-field-hint">Nếu đã chuyển khoản ngân hàng hoặc nộp tiền nhưng chưa thấy cập nhật, tải ảnh biên nhận để nhân viên đối soát.</p>
+                            <label for="claimedAmount">Số tiền đã chuyển (₫)</label>
+                            <input id="claimedAmount" name="claimedAmount" type="number" min="1" step="1" value="@(remaining > 0 ? remaining : (decimal?)null)" required />
+                            <label for="transferTimeLocal">Thời gian chuyển</label>
+                            <input id="transferTimeLocal" name="transferTimeLocal" type="datetime-local" required />
+                            <label for="bankReference">Mã giao dịch ngân hàng (nếu có)</label>
+                            <input id="bankReference" name="bankReference" maxlength="100" />
+                            <label for="image">Ảnh minh chứng</label>
+                            <input id="image" name="image" type="file" accept="image/jpeg,image/png,image/webp" required />
+                            <p class="guest-field-hint">JPG, PNG hoặc WebP, tối đa 5 MB. Ảnh chỉ được xem bởi bạn và nhân viên phụ trách.</p>
+                            <label for="note">Ghi chú (nếu có)</label>
+                            <textarea id="note" name="note" maxlength="500" rows="3"></textarea>
+                            <button class="guest-button guest-button-primary mt-2" type="submit">Gửi minh chứng</button>
+                        </form>
+                    }
+                    else if (waitingPayment)
+                    {
+                        <div class="guest-preview-notice">Đã qua hạn chuyển tiền. Nếu bạn đã gửi minh chứng, hãy chờ nhân viên đối soát; liên hệ nhân viên trước khi chuyển thêm.</div>
+                    }
+
+                    <div class="guest-evidence-list mt-3">
+                        <h3>Minh chứng của bạn</h3>
+                        @if (Model.Evidence.Count == 0)
+                        {
+                            <p>Chưa gửi minh chứng chuyển tiền.</p>
+                        }
+                        @foreach (var evidence in Model.Evidence)
+                        {
+                            var status = evidence.Status switch
+                            {
+                                "ChoXacNhan" => "Chờ đối soát",
+                                "DaXacNhan" => "Đã đối soát",
+                                "TuChoi" => "Đã từ chối",
+                                _ => evidence.Status
+                            };
+                            <div class="guest-evidence-item">
+                                <div><strong class="num-tabular">@VndFormat.Money(evidence.ClaimedAmount)</strong><p>@status</p></div>
+                                <a class="guest-section-link" href="/tai-khoan/yeu-cau-phong/minh-chung/@evidence.Id" target="_blank" rel="noopener">Xem ảnh</a>
+                            </div>
+                        }
                     </div>
-                }
-            </div>
+                </div>
+            </details>
         </section>
     </div>
 </div>
