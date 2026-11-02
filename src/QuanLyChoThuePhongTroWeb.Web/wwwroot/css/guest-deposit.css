@@ -1,0 +1,95 @@
+/* Cost hierarchy shared by public listings, booking and payment. */
+.guest-site .guest-cost-caption{display:block;color:var(--guest-muted);font-size:.76rem;font-weight:500;line-height:1.5;margin-bottom:5px}
+.guest-site .guest-room-bottom{align-items:center;margin-bottom:14px}
+.guest-site .guest-room-bottom p{gap:3px}
+.guest-site .guest-room-bottom .guest-cost-caption{margin:0}
+.guest-site .guest-room-bottom strong{color:var(--guest-ink);font-size:1.3rem;line-height:1.35}
+.guest-site .guest-room-bottom>a{font-weight:600;text-underline-offset:3px}
+.guest-card-deposit{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 12px;min-height:70px;padding:13px 15px;margin-bottom:12px;border:1px solid #c9dff6;border-radius:9px;background:var(--guest-soft);color:#154f87}
+.guest-card-deposit>span{font-size:.82rem;font-weight:600}
+.guest-card-deposit>strong{font-size:1.25rem;line-height:1.4;font-weight:700;letter-spacing:-.025em;color:#075fae}
+.guest-site .guest-deposit-unavailable{padding:13px 15px;border:1px dashed #ccd5df;border-radius:9px;margin:12px 0;color:#4b5d70;font-size:.86rem;font-weight:600;line-height:1.6}
+.guest-deposit-unavailable>span{display:block;font-size:.78rem;font-weight:400;color:var(--guest-muted)}
+.guest-room-card .guest-deposit-unavailable{display:flex;flex-direction:column;justify-content:center;min-height:70px;margin:0 0 12px}
+
+.guest-deposit-highlight{padding:21px 22px;border:1px solid #c9dff6;border-radius:12px;background:var(--guest-soft);margin:18px 0;color:#154f87}
+.guest-deposit-label{display:block;font-size:.87rem;font-weight:600;line-height:1.5;color:#245a8e}
+.guest-deposit-highlight .guest-deposit-amount{display:block;color:#075fae;font-size:clamp(1.75rem,3vw,2.15rem);font-weight:700;letter-spacing:-.045em;line-height:1.25;margin:8px 0 10px;overflow-wrap:anywhere}
+.guest-site .guest-deposit-highlight>p{color:#466788;font-size:.81rem;line-height:1.65;margin:0;max-width:39ch}
+.guest-site .guest-detail-aside{border-top:0;border-radius:14px;padding:26px;box-shadow:0 8px 28px #1b3d6310}
+.guest-site .guest-detail-price{margin-bottom:0;gap:6px;flex-wrap:wrap}
+.guest-site .guest-detail-price strong{color:var(--guest-ink);font-size:1.6rem;font-weight:700;letter-spacing:-.035em}
+.guest-site .guest-detail-price span{color:var(--guest-muted);font-size:.8rem}
+.guest-site .guest-detail-aside .guest-button{gap:12px;margin:5px 0;min-height:46px}
+.guest-site .guest-detail-aside .guest-button-primary{margin-top:0}
+.guest-checkout-rules{list-style:none;padding:0;margin:16px 0 20px;display:flex;flex-direction:column;gap:10px}
+.guest-checkout-rules>li{display:flex;align-items:baseline;gap:11px;line-height:1.5}
+.guest-checkout-rules strong{flex:0 0 65px;color:var(--guest-ink);font-size:.84rem;font-weight:700}
+.guest-checkout-rules span{color:var(--guest-muted);font-size:.8rem}
+.guest-checkout-eyebrow{font-size:.79rem;font-weight:600;color:var(--guest-primary);margin:0 0 12px}
+.guest-booking-layout{grid-template-areas:"intro summary" "steps summary";grid-template-rows:auto 1fr;row-gap:0}
+.guest-booking-layout>.guest-booking-intro{grid-area:intro;position:static}
+.guest-booking-layout>.guest-booking-steps{grid-area:steps}
+.guest-booking-layout>.guest-booking-summary{grid-area:summary}
+.guest-site .guest-booking-steps{list-style:none;counter-reset:booking-step;padding:0;margin-top:32px}
+.guest-site .guest-booking-steps li{position:relative;counter-increment:booking-step;padding:0 0 28px 50px}
+.guest-booking-steps li:before{content:counter(booking-step,decimal-leading-zero);position:absolute;left:0;top:-2px;width:33px;height:33px;display:grid;place-items:center;border:1px solid #c9dff6;border-radius:50%;font-size:.74rem;font-weight:700;background:var(--guest-soft);color:#075fae}
+.guest-booking-steps li:not(:last-child):after{content:"";position:absolute;left:16px;top:37px;bottom:8px;width:1px;background:#dce6f0}
+.guest-site .guest-booking-summary{border-radius:14px;box-shadow:0 8px 28px #1b3d6310}
+.guest-site .guest-booking-content h2{margin-bottom:7px;font-size:1.3rem}
+.guest-site .guest-booking-content>p{font-size:.86rem}
+.guest-rent-line{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:5px 15px;border-top:1px solid var(--guest-line);padding-top:19px;margin-top:22px;color:var(--guest-muted);font-size:.85rem}
+.guest-rent-line strong{font-weight:600;color:var(--guest-ink);font-size:1.03rem}
+.guest-site .guest-booking-content .guest-button{min-height:48px;gap:12px;margin:4px 0 12px}
+.guest-booking-content .guest-checkout-rules{margin-bottom:24px}
+
+.guest-site .guest-payment-summary{border-top:1px solid var(--guest-line);border-radius:14px;padding:26px;box-shadow:0 8px 28px #1b3d6310}
+.guest-payment-summary-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.guest-site .guest-payment-summary-heading h2{font-size:1rem;font-weight:600;margin:0}
+.guest-payment-status{display:inline-flex;align-items:center;padding:5px 9px;border:1px solid #d8e0e8;border-radius:5px;font-size:.72rem;font-weight:600;line-height:1.4;color:#536477;background:#f6f8fa}
+.guest-payment-status-success{color:#196b3c;background:#eef9f1;border-color:#cce7d5}
+.guest-payment-total{margin:20px 0 19px;padding:22px}
+.guest-payment-total .guest-deposit-amount{font-size:clamp(2rem,4vw,2.6rem);margin-block:10px;letter-spacing:-.045em}
+.guest-deposit-highlight-neutral{background:#f6f8fb;border-color:#dce3ec}
+.guest-deposit-highlight-neutral .guest-deposit-label{color:#536477}
+.guest-deposit-highlight-neutral .guest-deposit-amount{color:var(--guest-ink)}
+.guest-payment-breakdown{display:grid;gap:11px;margin:0 0 20px}
+.guest-payment-breakdown>div{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:4px 14px}
+.guest-payment-breakdown dt{font-weight:400;color:var(--guest-muted);font-size:.84rem}
+.guest-payment-breakdown dd{margin:0;font-size:.9rem;font-weight:600;color:var(--guest-ink)}
+.guest-payment-breakdown .guest-payment-confirmed dd{color:#237747}
+.guest-payment-deadline{display:flex;align-items:flex-start;gap:10px;border:1px solid #dce3ec;padding:14px;border-radius:9px;margin:19px 0 14px;color:#536477;background:#f6f8fb}
+.guest-payment-deadline>svg{width:20px;height:20px;flex-shrink:0;margin-top:1px}
+.guest-payment-deadline p{font-size:.83rem;line-height:1.5;margin:0 0 3px;font-weight:600}
+.guest-payment-deadline small{font-size:.72rem;color:inherit;opacity:.9}
+.guest-payment-deadline-active{border-color:#f0d49e;background:#fff8eb;color:#8b5107}
+.guest-site .guest-contract-deadline{font-size:.81rem;line-height:1.65;margin:0 0 20px}
+.guest-site .guest-payment-summary>.guest-field-hint{font-size:.79rem;line-height:1.65;margin-top:0}
+.guest-payment-summary>.guest-preview-notice{margin-bottom:0}
+.guest-site .guest-checkout-bank{border:1px solid var(--guest-line);border-radius:14px;padding:24px;margin-top:0;background:#fff;box-shadow:0 8px 28px #1b3d6308}
+.guest-checkout-bank>h2{font-size:1.05rem;font-weight:600;margin:0 0 23px}
+.guest-checkout-bank .nav-tabs{margin:0 0 20px;gap:6px;border-bottom:1px solid var(--guest-line)}
+.guest-checkout-bank .nav-link{font-size:.83rem;padding:12px 10px;border-radius:6px 6px 0 0}
+.guest-qr-stage{display:flex;align-items:center;flex-direction:column;padding:20px 16px;margin:0 0 18px;background:#f6f8fb;border:1px solid #e7ecf2;border-radius:10px}
+.guest-transfer-details{padding:0 3px}
+.guest-checkout-bank .guest-transfer-details>p{gap:12px;padding:11px 0;border-bottom:1px solid #edf0f5;font-size:.81rem;line-height:1.6;margin:0!important}
+.guest-transfer-details>p>span:last-child{min-width:0;overflow-wrap:anywhere}
+.guest-transfer-details .guest-copy-btn{margin-top:3px;font-size:.7rem;line-height:1.8}
+.guest-transfer-details>p.guest-transfer-amount{padding-block:14px}
+.guest-transfer-details .guest-transfer-amount strong{font-size:1.14rem;font-weight:700;letter-spacing:-.02em}
+.guest-checkout-bank .guest-transfer-details>p.guest-transfer-reference{border:0;align-items:baseline!important}
+.guest-transfer-reference strong{font-size:.95rem;overflow-wrap:anywhere}
+.guest-checkout-bank #paymentSignalRStatus{border:1px solid #c9dff6;border-radius:8px;color:#245a8e;background:var(--guest-soft);font-size:.8rem;margin-bottom:0}
+.guest-payment-action .guest-evidence-accordion{border-radius:10px;overflow:hidden}
+
+@media(max-width:1100px) and (min-width:701px){.guest-card-deposit{align-items:start;flex-direction:column;gap:4px}}
+@media(max-width:900px){.guest-booking-layout{grid-template-areas:"intro" "summary" "steps";row-gap:24px}.guest-booking-layout .guest-booking-steps{margin-top:8px}}
+@media(max-width:700px){
+    .guest-site .guest-detail-aside,.guest-site .guest-payment-summary,.guest-site .guest-checkout-bank{padding:20px}
+    .guest-deposit-highlight,.guest-payment-total{padding:18px}
+    .guest-site .guest-booking-content{padding:22px}
+    .guest-checkout-bank .guest-transfer-details>p{flex-direction:column;align-items:flex-start!important;gap:3px}
+    .guest-qr-stage{padding:18px 12px}
+    .guest-site .guest-payment-heading>p{margin-bottom:22px}
+}
+@media(prefers-reduced-motion:reduce){.guest-checkout-bank .payment-waiting-pulse{animation:none}}

@@ -376,6 +376,8 @@ secrets.json
 *.key
 
 # Local application state and user uploads
+**/App_Data/room-deposits*.json
+**/App_Data/room-deposits*.lock
 **/sent_reminders.json
 **/sent_invoice_reminders.json
 **/sent_contract_alerts.json

@@ -13,8 +13,8 @@ public sealed class RoomListingStoreHoldTests(PostgreSqlFixture fixture)
 {
     [Theory]
     [InlineData(TrangThaiYeuCauGiuCho.DangGiuCho, 1, true)]
-    [InlineData(TrangThaiYeuCauGiuCho.ChoXacNhanTien, -1, true)]
-    [InlineData(TrangThaiYeuCauGiuCho.ChoThanhToan, 1, true)]
+    [InlineData(TrangThaiYeuCauGiuCho.ChoXacNhanTien, -1, false)]
+    [InlineData(TrangThaiYeuCauGiuCho.ChoThanhToan, 1, false)]
     [InlineData(TrangThaiYeuCauGiuCho.ChoThanhToan, -1, false)]
     [InlineData(TrangThaiYeuCauGiuCho.DaHuy, 1, false)]
     public async Task ListAsync_FlagsActiveHold_SameAsPublicListing(

@@ -4,7 +4,7 @@ public sealed record ReservationDto(int Id, int RoomId, string RoomNumber, int B
     string GuestName, string Status, decimal? HoldAmount, DateTime? PaymentDeadlineUtc,
     DateTime? ContractDeadlineUtc, int? PaymentRequestId, string? PaymentCode,
     string? PaymentStatus,
-    decimal ConfirmedAmount, bool CanCancel);
+    decimal ConfirmedAmount, bool CanCancel, bool IsSelfService = false);
 
 public enum ReservationError
 {

@@ -18,7 +18,7 @@ public sealed class TinPhongController(IRoomListingService listings, IConfigurat
             room.Status == 0 && room.Published && room.BranchActive && !room.HasActiveHold &&
                 (publishedIds is null || publishedIds.Contains(room.RoomId)),
             room.ImageCount, room.CoverUrl, room.Title, room.Description, room.Published,
-            room.HasActiveHold)).ToArray();
+            room.HasActiveHold, room.DepositAmount)).ToArray();
         return View(new ListingPreviewPage(items));
     }
 
@@ -26,13 +26,19 @@ public sealed class TinPhongController(IRoomListingService listings, IConfigurat
     [RequestSizeLimit(55 * 1024 * 1024)]
     [RequestFormLimits(MultipartBodyLengthLimit = 55 * 1024 * 1024)]
     public async Task<IActionResult> LuuTin(int roomId, string? title, string? description,
-        bool publish, List<IFormFile>? photos, CancellationToken ct)
+        bool publish, decimal? depositAmount, List<IFormFile>? photos, CancellationToken ct)
     {
         var streams = new List<Stream>();
         try
         {
             var files = photos ?? new List<IFormFile>();
-            if (!ModelState.IsValid || files.Count > 10 || files.Any(f => f.Length <= 0 || f.Length > 5 * 1024 * 1024))
+            if (!ModelState.IsValid)
+            {
+                TempData["ListingMessage"] = "Kiểm tra lại số tiền cọc và thông tin tin phòng trước khi lưu.";
+                TempData["ListingWarning"] = true;
+                return RedirectToAction(nameof(Index));
+            }
+            if (files.Count > 10 || files.Any(f => f.Length <= 0 || f.Length > 5 * 1024 * 1024))
             {
                 TempData["ListingMessage"] = "Chọn tối đa 10 ảnh JPG, PNG hoặc WebP, mỗi ảnh không quá 5 MB.";
                 TempData["ListingWarning"] = true;
@@ -44,7 +50,7 @@ public sealed class TinPhongController(IRoomListingService listings, IConfigurat
                 return new UploadFile(stream, file.FileName, file.ContentType, file.Length);
             }).ToArray();
             var result = await listings.SaveAsync(CurrentActorId,
-                new SaveRoomListing(roomId, title ?? "", description ?? "", publish, uploads), ct);
+                new SaveRoomListing(roomId, title ?? "", description ?? "", publish, uploads, depositAmount), ct);
             if (result.ErrorKind == ServiceErrorKind.Forbidden) return Forbid();
             TempData["ListingMessage"] = result.Message;
             TempData["ListingWarning"] = !result.Success;

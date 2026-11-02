@@ -11,6 +11,79 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features.Reservati
 
 public sealed class ReservationStore(ApplicationDbContext context) : IReservationStore
 {
+    public async Task<ReservationCreateResult> CreateForPaymentAsync(int actorId, int roomId, int? viewingId,
+        QuanLyChoThuePhongTroWeb.Application.Features.PublicRooms.RoomDepositPolicy policy, DateTime nowUtc,
+        CancellationToken cancellationToken = default)
+    {
+        if (actorId <= 0 || roomId <= 0 || !policy.IsValid || nowUtc.Kind != DateTimeKind.Utc)
+            return new(null, ReservationError.InvalidState);
+        try
+        {
+            await using var transaction = await context.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+            await context.Database.ExecuteSqlInterpolatedAsync(
+                $"SELECT 1 FROM phong_tro WHERE \"PhongTroId\" = {roomId} FOR UPDATE", cancellationToken);
+            var guest = await RoomApplicantProfile.ResolveAsync(context, actorId, nowUtc, cancellationToken);
+            if (guest is null) return new(null, ReservationError.GuestMissing);
+            var room = await context.PhongTros.AsNoTracking().Include(p => p.ChiNhanh)
+                .SingleOrDefaultAsync(p => p.PhongTroId == roomId, cancellationToken);
+            if (room is null || room.IsDeleted || room.ChiNhanh.IsDeleted || !room.DuocDangTin || room.TrangThai != TrangThaiPhong.Trong)
+                return new(null, ReservationError.RoomUnavailable);
+            var active = await context.YeuCauGiuChos.AsNoTracking().Where(h => h.PhongTroId == roomId &&
+                (h.TrangThai == TrangThaiYeuCauGiuCho.ChoThanhToan || h.TrangThai == TrangThaiYeuCauGiuCho.ChoXacNhanTien ||
+                 h.TrangThai == TrangThaiYeuCauGiuCho.DangGiuCho)).SingleOrDefaultAsync(cancellationToken);
+            if (active is not null)
+            {
+                if (active.KhachVangLaiId == guest.KhachVangLaiId &&
+                    (active.TrangThai == TrangThaiYeuCauGiuCho.DangGiuCho || active.HanThanhToan > nowUtc))
+                    return new(active.YeuCauGiuChoId, ReservationError.None);
+                return new(null, ReservationError.Conflict);
+            }
+            if (viewingId.HasValue && !await context.YeuCauXemPhongs.AsNoTracking().AnyAsync(v =>
+                v.YeuCauXemPhongId == viewingId && v.PhongTroId == roomId && v.KhachVangLaiId == guest.KhachVangLaiId &&
+                v.TrangThai != TrangThaiYeuCauXemPhong.DaHuy && v.TrangThai != TrangThaiYeuCauXemPhong.TuChoi, cancellationToken))
+                return new(null, ReservationError.ViewingUnavailable);
+            var deadline = nowUtc.AddMinutes(policy.PaymentWindowMinutes);
+            var hold = new YeuCauGiuCho {
+                KhachVangLai = guest, PhongTroId = roomId, YeuCauXemPhongId = viewingId,
+                SoTienGiuCho = policy.Amount, HanThanhToan = deadline,
+                // Snapshot the contract window; receipt moves the deadline to when enough money was received.
+                HanKyHopDong = nowUtc.AddHours(policy.ContractWindowHours),
+                TrangThai = TrangThaiYeuCauGiuCho.ChoThanhToan, NgayTao = nowUtc
+            };
+            hold.LichSuTrangThais.Add(new LichSuTrangThaiYeuCauGiuCho {
+                TrangThaiSau = hold.TrangThai, LoaiTacNhan = LoaiTacNhan.HeThong,
+                NgayThucHien = nowUtc, LyDo = SelfServiceReservationRules.CreationReason });
+            context.YeuCauGiuChos.Add(hold);
+            await context.SaveChangesAsync(cancellationToken);
+            var code = ReservationTransferHandler.TransferCode(hold.YeuCauGiuChoId);
+            var payment = new YeuCauThanhToanGiuCho {
+                YeuCauGiuChoId = hold.YeuCauGiuChoId, MaYeuCau = code, NoiDungChuyenKhoan = code,
+                SoTien = policy.Amount, HanThanhToan = deadline, NguoiTaoId = actorId,
+                TrangThai = TrangThaiYeuCauThanhToan.ChoThanhToan, NgayTao = nowUtc };
+            payment.LichSuTrangThais.Add(new LichSuTrangThaiYeuCauThanhToanGiuCho {
+                TrangThaiSau = payment.TrangThai, LoaiTacNhan = LoaiTacNhan.HeThong, NgayThucHien = nowUtc,
+                LyDo = SelfServiceReservationRules.CreationReason });
+            context.YeuCauThanhToanGiuChos.Add(payment);
+            await context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+            return new(hold.YeuCauGiuChoId, ReservationError.None);
+        }
+        catch (Exception ex) when (IsCheckoutConflict(ex))
+        {
+            context.ChangeTracker.Clear();
+            return new(null, ReservationError.Conflict);
+        }
+    }
+
+    private static bool IsCheckoutConflict(Exception error)
+    {
+        for (Exception? current = error; current is not null; current = current.InnerException)
+            if (current is PostgresException pg && pg.SqlState is
+                PostgresErrorCodes.UniqueViolation or PostgresErrorCodes.SerializationFailure or PostgresErrorCodes.DeadlockDetected)
+                return true;
+        return false;
+    }
+
     public async Task ExpireUnpaidAsync(DateTime nowUtc,
         CancellationToken cancellationToken = default)
     {
@@ -18,36 +91,43 @@ public sealed class ReservationStore(ApplicationDbContext context) : IReservatio
             IsolationLevel.Serializable, cancellationToken);
         var expired = await context.YeuCauGiuChos
             .Include(h => h.YeuCauThanhToanGiuChos)
-            .Where(h => h.TrangThai == TrangThaiYeuCauGiuCho.ChoThanhToan &&
-                h.HanThanhToan <= nowUtc &&
-                !context.MinhChungThanhToanGiuChos.Any(e =>
-                    e.YeuCauThanhToanGiuCho.YeuCauGiuChoId == h.YeuCauGiuChoId))
+            .Where(h => h.HanThanhToan <= nowUtc &&
+                (h.TrangThai == TrangThaiYeuCauGiuCho.ChoThanhToan ||
+                 h.TrangThai == TrangThaiYeuCauGiuCho.ChoXacNhanTien && h.LichSuTrangThais.Any(l =>
+                     l.LyDo == SelfServiceReservationRules.CreationReason)) &&
+                (h.LichSuTrangThais.Any(l => l.LyDo == SelfServiceReservationRules.CreationReason) ||
+                 !context.MinhChungThanhToanGiuChos.Any(e =>
+                     e.YeuCauThanhToanGiuCho.YeuCauGiuChoId == h.YeuCauGiuChoId)))
             .OrderBy(h => h.HanThanhToan).Take(100)
             .ToListAsync(cancellationToken);
         foreach (var hold in expired)
         {
+            var previousHoldStatus = hold.TrangThai;
             hold.TrangThai = TrangThaiYeuCauGiuCho.HetHan;
             hold.NgayCapNhat = nowUtc;
             context.LichSuTrangThaiYeuCauGiuChos.Add(
                 new LichSuTrangThaiYeuCauGiuCho
                 {
                     YeuCauGiuChoId = hold.YeuCauGiuChoId,
-                    TrangThaiTruoc = TrangThaiYeuCauGiuCho.ChoThanhToan,
+                    TrangThaiTruoc = previousHoldStatus,
                     TrangThaiSau = TrangThaiYeuCauGiuCho.HetHan,
                     LoaiTacNhan = LoaiTacNhan.HeThong,
                     NgayThucHien = nowUtc,
                     LyDo = "Hết hạn chuyển tiền và chưa có minh chứng"
                 });
             foreach (var payment in hold.YeuCauThanhToanGiuChos.Where(p =>
-                         p.TrangThai == TrangThaiYeuCauThanhToan.ChoThanhToan))
+                         p.TrangThai == TrangThaiYeuCauThanhToan.ChoThanhToan ||
+                         p.TrangThai == TrangThaiYeuCauThanhToan.DaBaoChuyen ||
+                         p.TrangThai == TrangThaiYeuCauThanhToan.DangDoiChieu))
             {
+                var previousPaymentStatus = payment.TrangThai;
                 payment.TrangThai = TrangThaiYeuCauThanhToan.HetHan;
                 payment.NgayCapNhat = nowUtc;
                 context.LichSuTrangThaiYeuCauThanhToanGiuChos.Add(
                     new LichSuTrangThaiYeuCauThanhToanGiuCho
                     {
                         YeuCauThanhToanGiuChoId = payment.YeuCauThanhToanGiuChoId,
-                        TrangThaiTruoc = TrangThaiYeuCauThanhToan.ChoThanhToan,
+                        TrangThaiTruoc = previousPaymentStatus,
                         TrangThaiSau = TrangThaiYeuCauThanhToan.HetHan,
                         LoaiTacNhan = LoaiTacNhan.HeThong,
                         NgayThucHien = nowUtc
@@ -160,6 +240,7 @@ public sealed class ReservationStore(ApplicationDbContext context) : IReservatio
         var holds = await query
             .Include(hold => hold.KhachVangLai)
             .Include(hold => hold.PhongTro)
+            .Include(hold => hold.LichSuTrangThais)
             .Include(hold => hold.YeuCauThanhToanGiuChos)
                 .ThenInclude(payment => payment.GiaoDichGiuChos)
             .OrderByDescending(hold => hold.NgayTao)
@@ -181,7 +262,8 @@ public sealed class ReservationStore(ApplicationDbContext context) : IReservatio
                 hold.TrangThai is TrangThaiYeuCauGiuCho.MoiTao or
                     TrangThaiYeuCauGiuCho.ChoThanhToan or
                     TrangThaiYeuCauGiuCho.ChoXacNhanTien or
-                    TrangThaiYeuCauGiuCho.DangGiuCho);
+                    TrangThaiYeuCauGiuCho.DangGiuCho,
+                hold.LichSuTrangThais.Any(history => history.LyDo == SelfServiceReservationRules.CreationReason));
         }).ToArray();
     }
 

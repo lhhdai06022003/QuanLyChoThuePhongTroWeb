@@ -6,11 +6,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const roomLabel = document.getElementById('listingPreviewRoom');
     const title = document.getElementById('listingTitle');
     const visibility = document.getElementById('listingVisibility');
+    const deposit = document.getElementById('listingDepositAmount');
     const description = document.getElementById('listingDescription');
     const photos = document.getElementById('listingPhotos');
     const hint = document.getElementById('listingPhotoHint');
     const save = document.getElementById('listingSave');
     let existing = 0;
+    const updateDepositRequirement = () => { deposit.required = visibility.value === 'true'; };
     const validatePhotos = () => {
         const files = Array.from(photos.files || []);
         const error = existing + files.length > 10 ? 'Mỗi phòng tối đa 10 ảnh.' :
@@ -30,14 +32,18 @@ document.addEventListener('DOMContentLoaded', () => {
             title.value = button.dataset.title || `Phòng ${room} tại ${branch}`;
             description.value = button.dataset.description || '';
             visibility.value = button.dataset.visible === 'true' ? 'true' : 'false';
+            deposit.value = button.dataset.depositAmount || '';
+            updateDepositRequirement();
             existing = Number(button.dataset.images || 0);
             save.textContent = 'Lưu tin và ảnh';
             validatePhotos();
         });
     });
     photos.addEventListener('change', validatePhotos);
+    visibility.addEventListener('change', updateDepositRequirement);
     form.addEventListener('submit', event => {
         validatePhotos();
+        updateDepositRequirement();
         if (!form.checkValidity()) {
             event.preventDefault();
             form.reportValidity();

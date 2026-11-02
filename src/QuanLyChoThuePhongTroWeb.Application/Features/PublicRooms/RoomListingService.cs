@@ -8,10 +8,11 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.PublicRooms;
 
 public sealed record RoomListingDto(int RoomId, int BranchId, string RoomNumber, string BranchName,
     decimal MonthlyRent, double Area, int Status, bool BranchActive, bool Published,
-    string Title, string Description, int ImageCount, string? CoverUrl, bool HasActiveHold);
+    string Title, string Description, int ImageCount, string? CoverUrl, bool HasActiveHold,
+    decimal? DepositAmount = null);
 public sealed record ListingPhoto(string Url, string PublicId);
 public sealed record SaveRoomListing(int RoomId, string Title, string Description, bool Publish,
-    IReadOnlyList<UploadFile> Photos);
+    IReadOnlyList<UploadFile> Photos, decimal? DepositAmount = null);
 
 public interface IRoomListingStore
 {
@@ -28,12 +29,19 @@ public interface IRoomListingService
 }
 
 public sealed class RoomListingService(IRoomListingStore store, IEmployeeAccessService access,
-    IMeterImageStorageService storage, ILogger<RoomListingService> logger) : IRoomListingService
+    IMeterImageStorageService storage, ILogger<RoomListingService> logger,
+    IRoomDepositPolicyStore policies) : IRoomListingService
 {
     public async Task<IReadOnlyList<RoomListingDto>> ListAsync(int actorId, CancellationToken ct = default)
     {
         var scope = await access.GetScopeAsync(actorId, ct);
-        return scope is null ? Array.Empty<RoomListingDto>() : await store.ListAsync(scope.AllowedBranchIds, ct);
+        if (scope is null) return Array.Empty<RoomListingDto>();
+        var rooms = await store.ListAsync(scope.AllowedBranchIds, ct);
+        var deposits = await policies.GetAllAsync(ct);
+        return rooms.Select(room => room with {
+            DepositAmount = deposits.TryGetValue(room.RoomId, out var policy) && policy.IsValid
+                ? policy.Amount : null
+        }).ToArray();
     }
 
     public async Task<ServiceResult> SaveAsync(int actorId, SaveRoomListing request, CancellationToken ct = default)
@@ -46,6 +54,9 @@ public sealed class RoomListingService(IRoomListingStore store, IEmployeeAccessS
             return ServiceResult.Fail("Tiêu đề tin phải có từ 1 đến 255 ký tự.");
         if (request.Description.Length > 10000)
             return ServiceResult.Fail("Mô tả phòng tối đa 10.000 ký tự.");
+        var deposit = request.DepositAmount is { } amount ? new RoomDepositPolicy(amount) : null;
+        if ((request.Publish && deposit is null) || deposit is { IsValid: false })
+            return ServiceResult.Fail("Tiền cọc phải là số nguyên dương, tối đa 1.000.000.000.000 ₫ khi đăng công khai.");
         if (request.Publish && !room.Published && (room.Status != 0 || !room.BranchActive))
             return ServiceResult.Fail("Phòng chưa đủ điều kiện đăng công khai. Bạn vẫn có thể lưu ảnh khi ẩn tin.");
         if (room.ImageCount + request.Photos.Count > 10)
@@ -67,15 +78,18 @@ public sealed class RoomListingService(IRoomListingStore store, IEmployeeAccessS
                     image.Url.Length > 500 || string.IsNullOrWhiteSpace(image.PublicId) || image.PublicId.Length > 200)
                     throw new InvalidOperationException("Invalid image storage response");
             }
-            committed = await store.SaveAsync(actorId, room.BranchId, request with {
-                Title = request.Title.Trim(), Description = request.Description.Trim() }, uploaded, ct);
+            var normalized = request with { Title = request.Title.Trim(), Description = request.Description.Trim() };
+            committed = deposit is null
+                ? await store.SaveAsync(actorId, room.BranchId, normalized, uploaded, ct)
+                : await policies.UpdateListingAsync(request.RoomId, deposit,
+                    token => store.SaveAsync(actorId, room.BranchId, normalized, uploaded, token), ct);
             return committed ? ServiceResult.Ok("Đã lưu tin và ảnh phòng.") :
                 ServiceResult.Fail("Phòng vừa thay đổi hoặc đã đủ 10 ảnh. Vui lòng tải lại trang.");
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             logger.LogWarning(ex, "Không thể lưu tin/ảnh phòng {RoomId}", request.RoomId);
-            return ServiceResult.Fail("Chưa lưu được tin và ảnh. Vui lòng kiểm tra kết nối hoặc cấu hình Cloudinary rồi thử lại.");
+            return ServiceResult.Fail("Chưa lưu được tin, tiền cọc và ảnh. Vui lòng kiểm tra kết nối hoặc cấu hình lưu trữ rồi thử lại.");
         }
         finally
         {

@@ -6,9 +6,21 @@
     ViewData["Title"] = $"Đặt cọc phòng {reservation.RoomNumber}";
     var remaining = Math.Max(0, (reservation.HoldAmount ?? 0) - reservation.ConfirmedAmount);
     var waitingPayment = reservation.Status is "ChoThanhToan" or "ChoXacNhanTien";
+    var awaitingSelfServicePayment = reservation.IsSelfService && waitingPayment;
     var canUpload = waitingPayment && reservation.PaymentRequestId.HasValue &&
         reservation.PaymentDeadlineUtc > DateTime.UtcNow;
     var isTtptgc = reservation.PaymentCode?.StartsWith("TTPTGC", StringComparison.OrdinalIgnoreCase) == true;
+    var statusLabel = reservation.Status switch
+    {
+        "ChoThanhToan" => canUpload ? "Chờ thanh toán" : "Đã qua hạn chuyển",
+        "ChoXacNhanTien" => canUpload ? "Chờ xác nhận tiền" : "Đã qua hạn chuyển",
+        "DangGiuCho" => "Đang giữ phòng",
+        "DaChuyenHopDong" => "Đã lập hợp đồng",
+        "DaHuy" => "Đã hủy",
+        "HetHan" => "Đã hết hạn",
+        "TuChoi" => "Đã từ chối",
+        _ => "Chờ xử lý"
+    };
 }
 
 <link rel="stylesheet" href="~/Theme/tabler/dist/css/tabler-icons.min.css" asp-append-version="true" />
@@ -21,35 +33,59 @@
     </div>
     <div class="guest-payment-grid">
         <section class="guest-payment-summary" aria-label="Thông tin đặt cọc">
-            <h2>Số tiền giữ chỗ được duyệt</h2>
+            <div class="guest-payment-summary-heading">
+                <h2>Thông tin đặt cọc</h2>
+                <span class="guest-payment-status @(reservation.Status is "DangGiuCho" or "DaChuyenHopDong" ? "guest-payment-status-success" : "")">@statusLabel</span>
+            </div>
             @if (reservation.HoldAmount is { } holdAmount)
             {
-                <strong class="num-tabular">@VndFormat.Money(holdAmount)</strong>
-                <p>Đã xác nhận: <span class="num-tabular">@VndFormat.Money(reservation.ConfirmedAmount)</span></p>
-                @if (canUpload)
+                <div class="guest-deposit-highlight guest-payment-total @(canUpload && remaining > 0 ? "" : "guest-deposit-highlight-neutral")">
+                    <span class="guest-deposit-label">@(canUpload && remaining > 0 ? "Còn cần chuyển" : "Số tiền cọc giữ chỗ")</span>
+                    <strong class="guest-deposit-amount num-tabular">@VndFormat.Money(canUpload && remaining > 0 ? remaining : holdAmount)</strong>
+                    @if (canUpload && remaining > 0)
+                    {
+                        <p>Chuyển đúng số tiền và nội dung để được ghi nhận.</p>
+                    }
+                </div>
+                <dl class="guest-payment-breakdown">
+                    <div><dt>Số tiền cọc giữ chỗ</dt><dd class="num-tabular">@VndFormat.Money(holdAmount)</dd></div>
+                    <div class="guest-payment-confirmed"><dt>Đã xác nhận</dt><dd class="num-tabular">@VndFormat.Money(reservation.ConfirmedAmount)</dd></div>
+                </dl>
+                @if (waitingPayment)
                 {
-                    <p>Còn cần chuyển: <strong class="guest-payment-remaining text-primary num-tabular">@VndFormat.Money(remaining)</strong></p>
+                    <p class="guest-field-hint">Phòng được giữ khi nhận đủ số tiền cọc trong hạn. Ảnh chuyển khoản không xác nhận đã nhận tiền.</p>
                 }
                 @if (reservation.PaymentDeadlineUtc is { } paymentDeadline)
                 {
-                    <p>Hạn chuyển: @(new DateTimeOffset(paymentDeadline, TimeSpan.Zero).ToOffset(TimeSpan.FromHours(7)).ToString("dd/MM/yyyy HH:mm"))</p>
+                    <div class="guest-payment-deadline @(canUpload && remaining > 0 ? "guest-payment-deadline-active" : "")">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
+                        <div><p>Hạn chuyển: @(new DateTimeOffset(paymentDeadline, TimeSpan.Zero).ToOffset(TimeSpan.FromHours(7)).ToString("dd/MM/yyyy HH:mm"))</p><small>Giờ Việt Nam (GMT+7)</small></div>
+                    </div>
                 }
-                @if (reservation.ContractDeadlineUtc is { } contractDeadline)
+                @if (!awaitingSelfServicePayment && reservation.ContractDeadlineUtc is { } contractDeadline)
                 {
-                    <p>Hạn ký hợp đồng: @(new DateTimeOffset(contractDeadline, TimeSpan.Zero).ToOffset(TimeSpan.FromHours(7)).ToString("dd/MM/yyyy HH:mm"))</p>
+                    <p class="guest-contract-deadline">Hạn ký hợp đồng: @(new DateTimeOffset(contractDeadline, TimeSpan.Zero).ToOffset(TimeSpan.FromHours(7)).ToString("dd/MM/yyyy HH:mm"))</p>
+                }
+                else if (awaitingSelfServicePayment)
+                {
+                    <p class="guest-contract-deadline">Hạn ký hợp đồng: trong 48 giờ sau khi nhận đủ cọc.</p>
                 }
             }
-            else if (reservation.Status == "MoiTao")
+            @if (reservation.Status == "MoiTao")
             {
-                <div class="guest-preview-notice">Chờ nhân viên duyệt số tiền và hạn thanh toán. Bạn chưa cần chuyển tiền.</div>
+                <div class="guest-preview-notice">Yêu cầu cũ đang chờ nhân viên xử lý số tiền và hạn thanh toán. Bạn chưa cần chuyển tiền.</div>
             }
             else if (reservation.Status == "DangGiuCho")
             {
-                <div class="guest-preview-notice">Tiền đã được xác nhận và phòng đang được giữ cho bạn. Liên hệ nhân viên để tiếp tục ký hợp đồng.</div>
+                <div class="guest-preview-notice">Đã nhận đủ cọc và đang giữ phòng cho bạn. Vui lòng liên hệ chi nhánh để ký hợp đồng trước hạn.</div>
             }
-            else if (reservation.Status is "DaHuy" or "HetHan")
+            else if (reservation.Status == "DaHuy")
             {
-                <div class="guest-preview-notice">Yêu cầu đã hủy hoặc hết hạn. Vui lòng không chuyển thêm tiền; khoản đã nhận sẽ được nhân viên xử lý theo quyết định hoàn.</div>
+                <div class="guest-preview-notice">Yêu cầu đã hủy. Vui lòng không chuyển thêm tiền; khoản đã nhận sẽ được nhân viên xử lý theo quyết định hoàn.</div>
+            }
+            else if (reservation.Status == "HetHan")
+            {
+                <div class="guest-preview-notice">Yêu cầu đã hết hạn. Vui lòng không chuyển thêm tiền; khoản đã nhận sẽ được nhân viên xử lý theo quyết định hoàn.</div>
             }
             else if (reservation.Status == "TuChoi")
             {
@@ -77,7 +113,7 @@
             @Html.AntiForgeryToken()
             @if (waitingPayment)
             {
-                <div class="guest-bank-details">
+                <div class="guest-bank-details guest-checkout-bank">
                     <h2>Phương thức thanh toán</h2>
 
                     @if (canUpload && remaining > 0)
@@ -101,7 +137,7 @@
                         <div class="guest-pay-tab-panel active" id="tab-vietqr">
                             @if (Model.Bank is { } bank)
                             {
-                                <div class="text-center p-3 bg-light rounded mb-3">
+                                <div class="guest-qr-stage">
                                     <img src="/tai-khoan/yeu-cau-phong/giu-cho/@reservation.Id/dat-coc/qr" alt="Mã VietQR đặt cọc phòng @reservation.RoomNumber" class="img-fluid rounded border bg-white p-2" style="max-width: 220px;" />
                                     <div class="mt-2">
                                         <a href="/tai-khoan/yeu-cau-phong/giu-cho/@reservation.Id/dat-coc/qr?taiVe=true" class="btn btn-sm btn-outline-primary">
@@ -110,7 +146,7 @@
                                     </div>
                                 </div>
 
-                                <div class="p-2 border rounded bg-white">
+                                <div class="guest-transfer-details">
                                     <p class="d-flex justify-content-between align-items-center mb-2">
                                         <span>Ngân hàng:</span>
                                         <strong>@bank.BankId</strong>
@@ -126,14 +162,14 @@
                                         <span>Chủ tài khoản:</span>
                                         <strong>@bank.AccountName</strong>
                                     </p>
-                                    <p class="d-flex justify-content-between align-items-center mb-2">
+                                    <p class="d-flex justify-content-between align-items-center mb-2 guest-transfer-amount">
                                         <span>Số tiền:</span>
                                         <span>
                                             <strong class="text-primary me-2 num-tabular">@VndFormat.Money(remaining)</strong>
                                             <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 guest-copy-btn" data-copy="@remaining.ToString("0")" title="Sao chép số tiền">Sao chép</button>
                                         </span>
                                     </p>
-                                    <p class="d-flex justify-content-between align-items-center mb-0">
+                                    <p class="d-flex justify-content-between align-items-center mb-0 guest-transfer-reference">
                                         <span>Nội dung CK:</span>
                                         <span>
                                             <strong class="text-danger me-2">@reservation.PaymentCode</strong>
@@ -263,7 +299,6 @@
 </div>
 
 @section Scripts {
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.12/signalr.min.js"></script>
     <script src="~/js/guest-dat-coc.js" asp-append-version="true"></script>

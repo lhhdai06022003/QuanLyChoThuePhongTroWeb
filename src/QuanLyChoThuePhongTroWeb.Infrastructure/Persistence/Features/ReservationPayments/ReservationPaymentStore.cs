@@ -348,6 +348,30 @@ public sealed class ReservationPaymentStore(ApplicationDbContext context)
                 hold.TrangThai = nextHoldStatus;
                 hold.NgayCapNhat = nowUtc;
                 becameHolding = nextHoldStatus == TrangThaiYeuCauGiuCho.DangGiuCho;
+                if (becameHolding && hold.NguoiDuyetId is null &&
+                    await context.LichSuTrangThaiYeuCauGiuChos.AsNoTracking().AnyAsync(h =>
+                        h.YeuCauGiuChoId == hold.YeuCauGiuChoId &&
+                        h.LyDo == QuanLyChoThuePhongTroWeb.Application.Features.Reservations.SelfServiceReservationRules.CreationReason,
+                        cancellationToken))
+                {
+                    var window = hold.HanKyHopDong.HasValue ? hold.HanKyHopDong.Value - hold.NgayTao : TimeSpan.FromHours(48);
+                    if (window < TimeSpan.FromHours(1) || window > TimeSpan.FromHours(720)) window = TimeSpan.FromHours(48);
+                    var earlierReceipts = await context.GiaoDichGiuChos.AsNoTracking()
+                        .Where(g => g.YeuCauThanhToanGiuChoId == paymentRequestId &&
+                            g.NgayThucNhan <= payment.HanThanhToan && g.GhiChu != ReservationPaymentMarkers.LateRefundRequired)
+                        .Select(g => new { Amount = g.SoTienThucNhan, ReceivedAt = g.NgayThucNhan })
+                        .ToListAsync(cancellationToken);
+                    var timeline = earlierReceipts.Select(g => (g.Amount, g.ReceivedAt))
+                        .Append((Amount: amount, ReceivedAt: receivedAtUtc)).OrderBy(g => g.ReceivedAt);
+                    decimal accumulated = 0;
+                    foreach (var receipt in timeline)
+                    {
+                        accumulated += receipt.Amount;
+                        if (accumulated < hold.SoTienGiuCho) continue;
+                        hold.HanKyHopDong = receipt.ReceivedAt.Add(window);
+                        break;
+                    }
+                }
             }
             var nextPaymentStatus = fullyPaid
                 ? TrangThaiYeuCauThanhToan.DaHoanTat

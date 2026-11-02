@@ -28,13 +28,31 @@
         <p class="room-card-address"><svg class="room-icon" aria-hidden="true"><use href="#room-location" /></svg><span>@room.DiaChi</span></p>
         <div class="guest-room-facts"><span><svg class="room-icon" aria-hidden="true"><use href="#room-area" /></svg>@room.DienTich.ToString("0.#") m²</span><span><svg class="room-icon" aria-hidden="true"><use href="#room-people" /></svg>Tối đa @room.SoNguoiToiDa người</span></div>
         <div class="guest-room-bottom">
-            <p><strong>@room.GiaThue.ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("vi-VN")) ₫</strong><span>/ tháng</span></p>
+            <p><span class="guest-cost-caption">Giá thuê / tháng</span><strong class="num-tabular">@room.GiaThue.ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("vi-VN")) ₫</strong></p>
             <a href="/phong/@room.PhongTroId" aria-label="Xem chi tiết phòng @room.SoPhong">Chi tiết</a>
         </div>
+        @if (room.DepositAmount is > 0 and { } deposit)
+        {
+            <div class="guest-card-deposit">
+                <span>Cọc giữ chỗ</span>
+                <strong class="num-tabular">@deposit.ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("vi-VN")) ₫</strong>
+            </div>
+        }
+        else
+        {
+            <p class="guest-deposit-unavailable">Chưa mở đặt cọc <span>Đang cập nhật tiền cọc</span></p>
+        }
         <label class="room-compare-choice" hidden><input type="checkbox" data-compare-room="@room.PhongTroId" />So sánh phòng này</label>
         <div class="guest-room-actions" aria-label="Đăng ký phòng @room.SoPhong">
             <a class="guest-button guest-button-outline" href="/phong/@room.PhongTroId/hen-xem">Hẹn xem phòng</a>
-            <a class="guest-button guest-button-primary" href="/phong/@room.PhongTroId/giu-cho">Đặt phòng</a>
+            @if (room.DepositAmount is > 0)
+            {
+                <a class="guest-button guest-button-primary" href="/phong/@room.PhongTroId/giu-cho">Đặt phòng</a>
+            }
+            else
+            {
+                <button class="guest-button guest-button-primary guest-button-disabled" type="button" disabled>Chưa mở đặt cọc</button>
+            }
         </div>
     </div>
 </article>

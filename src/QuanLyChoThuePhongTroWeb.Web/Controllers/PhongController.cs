@@ -189,7 +189,7 @@ public sealed class PhongController(
         if (result.Success)
         {
             TempData["GuestReservationMessage"] = result.Message;
-            return Redirect("/tai-khoan/yeu-cau-phong");
+            return Redirect($"/tai-khoan/yeu-cau-phong/giu-cho/{result.Data}/dat-coc");
         }
 
         var room = await rooms.GetAsync(id, AllowedRoomIds, cancellationToken);

@@ -57,10 +57,12 @@
                 <ul class="list-group list-group-flush">
                     @foreach (var reservation in Model.Reservations)
                     {
+                        var awaitingSelfServicePayment = reservation.IsSelfService &&
+                            (reservation.Status is "ChoThanhToan" or "ChoXacNhanTien");
                         var (label, color) = reservation.Status switch
                         {
-                            "MoiTao" => ("Chờ nhân viên duyệt", "yellow"),
-                            "ChoThanhToan" => ("Đã duyệt · Chờ chuyển khoản", "yellow"),
+                            "MoiTao" => ("Yêu cầu cũ · Chờ xử lý", "yellow"),
+                            "ChoThanhToan" => ("Chờ chuyển khoản", "yellow"),
                             "ChoXacNhanTien" => ("Đã báo chuyển · Chờ xác nhận tiền", "blue"),
                             "DangGiuCho" when reservation.ConfirmedAmount > 0 => ("Đã nhận tiền giữ chỗ", "green"),
                             "DangGiuCho" => ("Đang giữ chỗ", "green"),
@@ -84,9 +86,13 @@
                             {
                                 <div>Hạn chuyển khoản: @paymentDeadline.AddHours(7).ToString("dd/MM/yyyy HH:mm")</div>
                             }
-                            @if (reservation.ContractDeadlineUtc is { } contractDeadline)
+                            @if (!awaitingSelfServicePayment && reservation.ContractDeadlineUtc is { } contractDeadline)
                             {
                                 <div>Hạn ký hợp đồng: @contractDeadline.AddHours(7).ToString("dd/MM/yyyy HH:mm")</div>
+                            }
+                            else if (awaitingSelfServicePayment)
+                            {
+                                <div>Hạn ký hợp đồng: trong 48 giờ sau khi nhận đủ cọc.</div>
                             }
                             <a class="d-inline-block mt-2" href="/tai-khoan/yeu-cau-phong/giu-cho/@reservation.Id/dat-coc">Xem yêu cầu và thông tin đặt cọc</a>
                         </li>

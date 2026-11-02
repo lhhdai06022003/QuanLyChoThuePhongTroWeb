@@ -25,6 +25,8 @@
     <link rel="stylesheet" href="~/css/trosync-tokens.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/khach-vang-lai.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/guest-discovery.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/guest-deposit.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/guest-ai-chat.css" asp-append-version="true" />
 </head>
 <body class="guest-site">
     <partial name="_GuestIcons" />
@@ -88,6 +90,8 @@
         </div>
     </footer>
     <partial name="_GuestRoomTools" />
+    <partial name="_GuestAiChat" />
+    <script src="~/js/guest-ai-chat.js" asp-append-version="true" defer></script>
     <script type="module" src="~/js/guest-room-tools.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
     <script>

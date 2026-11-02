@@ -13,7 +13,8 @@ public sealed record ListingPreviewItem(
     string Title = "",
     string Description = "",
     bool Published = false,
-    bool OnHold = false);
+    bool OnHold = false,
+    decimal? DepositAmount = null);
 
 public sealed record ListingPreviewPage(IReadOnlyList<ListingPreviewItem> Rooms)
 {

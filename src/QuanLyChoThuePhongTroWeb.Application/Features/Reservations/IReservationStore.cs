@@ -6,6 +6,8 @@ public interface IReservationStore
         CancellationToken cancellationToken = default);
     Task<ReservationCreateResult> CreateAsync(int actorId, int roomId, int? viewingId,
         DateTime nowUtc, CancellationToken cancellationToken = default);
+    Task<ReservationCreateResult> CreateForPaymentAsync(int actorId, int roomId, int? viewingId,
+        PublicRooms.RoomDepositPolicy policy, DateTime nowUtc, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<ReservationDto>> ListMineAsync(int actorId,
         CancellationToken cancellationToken = default);
     Task<IReadOnlyList<ReservationDto>> ListForStaffAsync(IReadOnlyCollection<int>? branchIds,

@@ -1,10 +1,11 @@
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Security;
 using QuanLyChoThuePhongTroWeb.Application.Common.Models;
+using QuanLyChoThuePhongTroWeb.Application.Features.PublicRooms;
 
 namespace QuanLyChoThuePhongTroWeb.Application.Features.Reservations;
 
 public sealed class ReservationService(IReservationStore store,
-    IEmployeeAccessService employeeAccess, TimeProvider clock) : IReservationService
+    IEmployeeAccessService employeeAccess, TimeProvider clock, IRoomDepositPolicyStore depositPolicies) : IReservationService
 {
     public async Task<IReadOnlyList<ReservationDto>> ListMineAsync(int actorId,
         CancellationToken cancellationToken = default)
@@ -29,18 +30,25 @@ public sealed class ReservationService(IReservationStore store,
     {
         if (actorId <= 0 || roomId <= 0 || viewingId is <= 0)
             return ServiceResult<int>.Fail("Thông tin giữ chỗ không hợp lệ.");
+        RoomDepositPolicy? policy;
+        try { policy = await depositPolicies.GetAsync(roomId, cancellationToken); }
+        catch (Exception ex) when (ex is IOException or System.Text.Json.JsonException or TimeoutException)
+        { return ServiceResult<int>.Fail("Chưa đọc được tiền cọc của phòng. Vui lòng thử lại sau."); }
+        if (policy is null || !policy.IsValid)
+            return ServiceResult<int>.Fail("Phòng chưa được thiết lập tiền cọc công khai. Vui lòng liên hệ quản lý.");
         await store.ExpireUnpaidAsync(clock.GetUtcNow().UtcDateTime,
             cancellationToken);
-        var result = await store.CreateAsync(actorId, roomId, viewingId,
-            clock.GetUtcNow().UtcDateTime, cancellationToken);
+        var result = await store.CreateForPaymentAsync(actorId, roomId, viewingId,
+            policy, clock.GetUtcNow().UtcDateTime, cancellationToken);
         return result.Id.HasValue
-            ? ServiceResult<int>.Ok(result.Id.Value, "Đã gửi yêu cầu giữ chỗ.")
+            ? ServiceResult<int>.Ok(result.Id.Value, "Đã tạo lượt thanh toán. Vui lòng hoàn tất trong 30 phút.")
             : result.Error switch
             {
                 ReservationError.GuestMissing => ServiceResult<int>.Forbidden("Không tìm thấy hồ sơ khách hợp lệ cho tài khoản. Vui lòng liên hệ nhân viên."),
                 ReservationError.RoomUnavailable => ServiceResult<int>.NotFound("Phòng không còn trống hoặc công khai."),
                 ReservationError.ViewingUnavailable => ServiceResult<int>.Fail("Lịch xem không thuộc phòng hoặc tài khoản của bạn."),
                 ReservationError.Duplicate => ServiceResult<int>.Fail("Bạn đã có yêu cầu giữ chỗ đang chờ cho phòng này."),
+                ReservationError.Conflict => ServiceResult<int>.Fail("Phòng đang có khách thanh toán. Vui lòng thử lại khi lượt thanh toán kết thúc."),
                 _ => ServiceResult<int>.Fail("Không thể gửi yêu cầu giữ chỗ lúc này.")
             };
     }

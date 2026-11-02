@@ -27,7 +27,7 @@
         <div class="card-header"><h2 class="card-title">Danh sách tin và ảnh phòng</h2></div>
         <div class="table-responsive">
             <table class="table table-vcenter card-table">
-                <thead><tr><th>Phòng</th><th>Giá thuê</th><th>Ảnh</th><th>Tình trạng phòng</th><th>Hiển thị công khai</th><th class="text-end">Thao tác</th></tr></thead>
+                <thead><tr><th>Phòng</th><th>Giá thuê / tiền cọc</th><th>Ảnh</th><th>Tình trạng phòng</th><th>Hiển thị công khai</th><th class="text-end">Thao tác</th></tr></thead>
                 <tbody>
                 @foreach (var room in Model.Rooms)
                 {
@@ -46,7 +46,7 @@
                                 <span><strong>Phòng @room.RoomNumber</strong><small class="d-block text-secondary">@room.BranchName · @room.Area.ToString("0.#") m²</small></span>
                             </div>
                         </td>
-                        <td class="text-nowrap"><strong>@VndFormat.Money(room.MonthlyRent)</strong><small class="d-block text-secondary">mỗi tháng</small></td>
+                        <td class="text-nowrap"><strong>@VndFormat.Money(room.MonthlyRent)</strong><small class="d-block text-secondary">mỗi tháng</small><small class="d-block">@(room.DepositAmount is { } deposit ? $"Cọc: {VndFormat.Money(deposit)}" : "Chưa cấu hình tiền cọc")</small></td>
                         <td>@room.ImageCount / 10 ảnh</td>
                         <td><span class="badge @(room.RoomStatus == 0 ? "bg-green-lt" : "bg-secondary-lt")">@roomStatus</span></td>
                         <td><span class="badge @(room.IsVisible ? "bg-blue-lt" : room.Published && room.OnHold ? "bg-orange-lt" : "bg-secondary-lt")">@(room.IsVisible ? "Đang hiển thị" : room.Published && room.OnHold ? "Ẩn — đang giữ chỗ" : "Chưa hiển thị")</span></td>
@@ -58,7 +58,7 @@
                                 }
                                 <button class="btn btn-outline-primary btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#listingPreviewModal"
                                         data-listing-open data-room-id="@room.RoomId" data-title="@room.Title" data-description="@room.Description" data-room="@room.RoomNumber" data-branch="@room.BranchName"
-                                        data-price="@VndFormat.Number(room.MonthlyRent)" data-images="@room.ImageCount"
+                                        data-price="@VndFormat.Number(room.MonthlyRent)" data-images="@room.ImageCount" data-deposit-amount="@(room.DepositAmount?.ToString("0", System.Globalization.CultureInfo.InvariantCulture))"
                                         data-ready="@(room.RoomStatus == 0 ? "true" : "false")"
                                         data-visible="@(room.Published ? "true" : "false")">Chỉnh sửa tin</button>
                             </div>
@@ -93,6 +93,11 @@
                 <div class="col-md-5">
                     <label class="form-label" for="listingVisibility">Hiển thị tin</label>
                     <select class="form-select" id="listingVisibility" name="Publish"><option value="true">Đăng công khai</option><option value="false">Ẩn tin</option></select>
+                </div>
+                <div class="col-12">
+                    <label class="form-label" for="listingDepositAmount">Tiền cọc giữ chỗ (₫)</label>
+                    <input class="form-control" id="listingDepositAmount" name="DepositAmount" type="number" min="1" max="1000000000000" step="1" inputmode="numeric" aria-describedby="listingDepositHint" />
+                    <div class="form-hint mt-1" id="listingDepositHint">Bắt buộc khi đăng công khai. Khách thanh toán trong 30 phút; phòng được giữ khi hệ thống nhận đủ cọc, hạn ký hợp đồng là 48 giờ sau đó. Giá mới chỉ áp dụng cho lượt đặt mới.</div>
                 </div>
                 <div class="col-12">
                     <label class="form-label" for="listingDescription">Mô tả phòng</label>
