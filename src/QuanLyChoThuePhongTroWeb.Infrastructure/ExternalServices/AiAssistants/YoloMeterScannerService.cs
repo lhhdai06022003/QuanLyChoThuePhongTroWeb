@@ -22,6 +22,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.AiAssistants
         private const float ConfidenceThreshold = 0.25f;
         private const float NmsIoUThreshold = 0.45f;
         private const double HighConfidencePassThreshold = 0.80;
+        private const long MaxPixels = 40_000_000;
 
         private readonly ILogger<YoloMeterScannerService> _logger;
         private readonly InferenceSession? _session;
@@ -76,18 +77,29 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.AiAssistants
                 };
             }
 
-            if (imageStream.CanSeek)
+            if (!imageStream.CanSeek)
             {
-                imageStream.Position = 0;
+                using var buffered = new MemoryStream();
+                await imageStream.CopyToAsync(buffered, cancellationToken);
+                buffered.Position = 0;
+                return await QuetAnhDongHoAsync(buffered, yeuCauDongHoDien, cancellationToken);
             }
 
+            // Giới hạn dung lượng chỉ tính trên tệp nén: kiểm số điểm ảnh trước khi giải mã vào bộ nhớ.
+            imageStream.Position = 0;
+            var imageInfo = await Image.IdentifyAsync(imageStream, cancellationToken);
+            if ((long)imageInfo.Width * imageInfo.Height > MaxPixels)
+            {
+                return new MeterScanResultDto
+                {
+                    DocThanhCong = false,
+                    ThongBaoLoi = "Ảnh có kích thước quá lớn. Vui lòng chụp lại hoặc giảm kích thước ảnh."
+                };
+            }
+
+            imageStream.Position = 0;
             using var originalImage = await Image.LoadAsync<Rgb24>(imageStream, cancellationToken);
             originalImage.Mutate(x => x.AutoOrient());
-
-            if (imageStream.CanSeek)
-            {
-                imageStream.Position = 0;
-            }
 
             // Lần quét 1: Ảnh gốc chuẩn hóa Letterbox 640x640
             var pass1Result = RunSinglePass(originalImage, yeuCauDongHoDien, isEnhancedPass: false);

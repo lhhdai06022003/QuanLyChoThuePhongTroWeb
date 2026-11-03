@@ -349,6 +349,8 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
 
                 var response = await client.SendAsync(request);
                 Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+                // Action tự trả 400 thì có JSON "success"; bộ lọc antiforgery chặn trước khi vào action thì không.
+                Assert.DoesNotContain("\"success\"", await response.Content.ReadAsStringAsync());
             }
             finally
             {

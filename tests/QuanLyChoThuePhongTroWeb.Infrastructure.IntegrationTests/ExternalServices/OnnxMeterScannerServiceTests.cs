@@ -78,10 +78,77 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.ExternalServi
             // Act
             var result = await scanner.QuetAnhDongHoAsync(ms, yeuCauDongHoDien: true);
 
-            // Assert - Ảnh trống không có số nên không đọc được số nhưng tiến trình suy luận phải chạy trơn tru
+            // Assert - Ảnh trống không có khung đồng hồ nên bị từ chối theo đúng lý do, không đoán số
             Assert.NotNull(result);
             Assert.False(result.DocThanhCong);
-            Assert.False(string.IsNullOrEmpty(result.ThongBaoLoi));
+            Assert.False(result.LoiHeThong);
+            Assert.Equal("Không nhận ra mặt đồng hồ trong ảnh", result.ThongBaoLoi);
+        }
+
+        [Fact]
+        public async Task OversizedImage_IsRejectedBeforeDecoding_AsUnreadable()
+        {
+            // Arrange: PNG một màu nén rất nhỏ nhưng có 40.005.625 điểm ảnh, vượt giới hạn 40 triệu.
+            using var scanner = new YoloMeterScannerService(NullLogger<YoloMeterScannerService>.Instance);
+            var ocrService = new OnnxMeterOcrService(scanner, NullLogger<OnnxMeterOcrService>.Instance);
+            using var img = new Image<L8>(6325, 6325);
+            using var ms = new MemoryStream();
+            await img.SaveAsPngAsync(ms);
+            Assert.True(ms.Length < 5 * 1024 * 1024);
+
+            // Act
+            ms.Position = 0;
+            var scan = await scanner.QuetAnhDongHoAsync(ms, yeuCauDongHoDien: true);
+            var ocr = await ocrService.ProcessImageAsync(ms.ToArray(), "image/png", LoaiDongHo.Dien);
+
+            // Assert
+            Assert.False(scan.DocThanhCong);
+            Assert.False(scan.LoiHeThong);
+            Assert.Equal("Ảnh có kích thước quá lớn. Vui lòng chụp lại hoặc giảm kích thước ảnh.", scan.ThongBaoLoi);
+            Assert.Equal(MeterOcrStatus.Unreadable, ocr.Status);
+        }
+
+        [Fact]
+        public async Task ImageAtPixelLimit_IsNotRejectedAsOversized()
+        {
+            // Arrange: đúng 40.000.000 điểm ảnh vẫn được giải mã.
+            using var scanner = new YoloMeterScannerService(NullLogger<YoloMeterScannerService>.Instance);
+            using var img = new Image<L8>(8000, 5000);
+            using var ms = new MemoryStream();
+            await img.SaveAsPngAsync(ms);
+            ms.Position = 0;
+
+            // Act
+            var result = await scanner.QuetAnhDongHoAsync(ms, yeuCauDongHoDien: true);
+
+            // Assert
+            Assert.DoesNotContain("quá lớn", result.ThongBaoLoi ?? string.Empty);
+        }
+
+        [Fact]
+        public async Task NonSeekableStream_IsBuffered_AndScanned()
+        {
+            // Arrange
+            using var scanner = new YoloMeterScannerService(NullLogger<YoloMeterScannerService>.Instance);
+            using var img = new Image<Rgb24>(640, 640, new Rgb24(128, 128, 128));
+            using var ms = new MemoryStream();
+            await img.SaveAsJpegAsync(ms);
+            using var nonSeekable = new NonSeekableStream(ms.ToArray());
+
+            // Act
+            var result = await scanner.QuetAnhDongHoAsync(nonSeekable, yeuCauDongHoDien: true);
+
+            // Assert: cùng kết luận với luồng thường (ảnh trống không có đồng hồ).
+            ms.Position = 0;
+            var expected = await scanner.QuetAnhDongHoAsync(ms, yeuCauDongHoDien: true);
+            Assert.Equal(expected.ThongBaoLoi, result.ThongBaoLoi);
+        }
+
+        private sealed class NonSeekableStream : MemoryStream
+        {
+            public NonSeekableStream(byte[] data) : base(data) { }
+
+            public override bool CanSeek => false;
         }
 
         [Fact]
