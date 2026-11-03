@@ -144,6 +144,39 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.ExternalServi
             Assert.Equal(expected.ThongBaoLoi, result.ThongBaoLoi);
         }
 
+        [Fact]
+        public async Task TiffImage_IsRejectedAsUnknownFormat_BeforeDecoding()
+        {
+            // Arrange: TIFF hợp lệ mà cấu hình mặc định của ImageSharp giải mã được.
+            using var scanner = new YoloMeterScannerService(NullLogger<YoloMeterScannerService>.Instance);
+            var ocrService = new OnnxMeterOcrService(scanner, NullLogger<OnnxMeterOcrService>.Instance);
+            using var img = new Image<Rgb24>(64, 64, new Rgb24(128, 128, 128));
+            using var ms = new MemoryStream();
+            await img.SaveAsTiffAsync(ms);
+            ms.Position = 0;
+            Assert.Equal("image/tiff", Image.DetectFormat(ms).DefaultMimeType);
+
+            // Act & Assert: bộ đọc chỉ số chỉ nạp bộ giải mã JPG/PNG/WebP.
+            ms.Position = 0;
+            await Assert.ThrowsAsync<UnknownImageFormatException>(() => scanner.QuetAnhDongHoAsync(ms, yeuCauDongHoDien: true));
+            var ocr = await ocrService.ProcessImageAsync(ms.ToArray(), "image/jpeg", LoaiDongHo.Dien);
+            Assert.Equal(MeterOcrStatus.Failed, ocr.Status);
+        }
+
+        [Fact]
+        public async Task WebpImage_IsDecodedAndScanned()
+        {
+            using var scanner = new YoloMeterScannerService(NullLogger<YoloMeterScannerService>.Instance);
+            using var img = new Image<Rgb24>(640, 640, new Rgb24(128, 128, 128));
+            using var ms = new MemoryStream();
+            await img.SaveAsWebpAsync(ms);
+            ms.Position = 0;
+
+            var result = await scanner.QuetAnhDongHoAsync(ms, yeuCauDongHoDien: true);
+
+            Assert.Equal("Không nhận ra mặt đồng hồ trong ảnh", result.ThongBaoLoi);
+        }
+
         private sealed class NonSeekableStream : MemoryStream
         {
             public NonSeekableStream(byte[] data) : base(data) { }

@@ -12,6 +12,10 @@ using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Services;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 
@@ -26,6 +30,15 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.AiAssistants
         private const float NmsIoUThreshold = 0.45f;
         private const double HighConfidencePassThreshold = 0.80;
         private const long MaxPixels = 40_000_000;
+
+        // Chỉ nạp bộ giải mã JPG/PNG/WebP: TIFF và định dạng khác không tới được bộ giải mã của ImageSharp (lỗ hổng TIFF ở 3.1.x).
+        private static readonly DecoderOptions ImageDecoderOptions = new()
+        {
+            Configuration = new Configuration(
+                new JpegConfigurationModule(),
+                new PngConfigurationModule(),
+                new WebpConfigurationModule())
+        };
 
         private readonly ILogger<YoloMeterScannerService> _logger;
         private readonly InferenceSession? _session;
@@ -90,7 +103,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.AiAssistants
 
             // Giới hạn dung lượng chỉ tính trên tệp nén: kiểm số điểm ảnh trước khi giải mã vào bộ nhớ.
             imageStream.Position = 0;
-            var imageInfo = await Image.IdentifyAsync(imageStream, cancellationToken);
+            var imageInfo = await Image.IdentifyAsync(ImageDecoderOptions, imageStream, cancellationToken);
             if ((long)imageInfo.Width * imageInfo.Height > MaxPixels)
             {
                 return new MeterScanResultDto
@@ -101,7 +114,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.AiAssistants
             }
 
             imageStream.Position = 0;
-            using var originalImage = await Image.LoadAsync<Rgb24>(imageStream, cancellationToken);
+            using var originalImage = await Image.LoadAsync<Rgb24>(ImageDecoderOptions, imageStream, cancellationToken);
             originalImage.Mutate(x => x.AutoOrient());
 
             // Lần quét 1: Ảnh gốc chuẩn hóa Letterbox 640x640
