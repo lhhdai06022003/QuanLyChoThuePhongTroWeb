@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Persistence;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Security;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Services;
+using QuanLyChoThuePhongTroWeb.Application.Common.Files;
 using QuanLyChoThuePhongTroWeb.Application.Common.Formatting;
 using QuanLyChoThuePhongTroWeb.Application.Common.Models;
 using QuanLyChoThuePhongTroWeb.Application.Common.Security;
@@ -161,6 +163,9 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
                 return ServiceResult<MeterImageWorkflowResult>.Fail(decision.LyDo!);
             }
 
+            // Giữ bản sao tệp để OCR dùng luôn, không tải lại từ kho lưu trữ ngay sau khi vừa tải lên.
+            var uploadedBytes = await BufferForOcrAsync(request.File, cancellationToken);
+
             // Upload ảnh lên dịch vụ lưu trữ ngoài transaction
             MeterImageUploadResult uploadResult;
             try
@@ -269,7 +274,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
                 image.LoaiDongHo,
                 image.NgayXuLy!.Value,
                 isRetry: false,
-                cancellationToken);
+                cancellationToken,
+                uploadedBytes);
         }
 
         public async Task<ServiceResult<MeterImageWorkflowResult>> RetryOcrAsync(int anhChiSoDongHoId, int actorUserId, CancellationToken cancellationToken = default)
@@ -373,7 +379,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
             LoaiDongHo loaiDongHo,
             DateTime attemptStamp,
             bool isRetry,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            byte[]? uploadedBytes = null)
         {
             MeterOcrResult? ocrResult = null;
             string? ocrExecutionError = null;
@@ -381,8 +388,17 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
             // Pha 2: Gọi ngoài không giữ transaction
             try
             {
-                var readResult = await _storageService.ReadAsync(publicId, url, cancellationToken);
-                ocrResult = await _ocrService.ProcessImageAsync(readResult.Bytes, readResult.ContentType, loaiDongHo, cancellationToken);
+                // Chỉ dùng bản vừa tải lên khi nội dung đúng là định dạng cho phép; còn lại đọc từ kho lưu trữ như cũ để kho kiểm định dạng thật.
+                var uploadedType = uploadedBytes == null ? null : ProofImageValidator.DetectContentType(uploadedBytes);
+                if (uploadedType != null && _options.AllowedContentTypes.Contains(uploadedType, StringComparer.OrdinalIgnoreCase))
+                {
+                    ocrResult = await _ocrService.ProcessImageAsync(uploadedBytes!, uploadedType, loaiDongHo, cancellationToken);
+                }
+                else
+                {
+                    var readResult = await _storageService.ReadAsync(publicId, url, cancellationToken);
+                    ocrResult = await _ocrService.ProcessImageAsync(readResult.Bytes, readResult.ContentType, loaiDongHo, cancellationToken);
+                }
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -1793,6 +1809,25 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
 
             await _store.AddPeriodRecordAsync(period, ct);
             return period;
+        }
+
+        private async Task<byte[]?> BufferForOcrAsync(UploadFile file, CancellationToken cancellationToken)
+        {
+            if (!file.Content.CanSeek)
+            {
+                return null;
+            }
+
+            var start = file.Content.Position;
+            if (file.Content.Length - start > _options.MaxFileSizeBytes)
+            {
+                return null;
+            }
+
+            using var copy = new MemoryStream();
+            await file.Content.CopyToAsync(copy, cancellationToken);
+            file.Content.Position = start;
+            return copy.ToArray();
         }
 
         private async Task CleanupUploadedStorageAsync(string publicId)

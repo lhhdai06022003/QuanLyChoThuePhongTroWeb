@@ -78,17 +78,23 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             public Action? OnUpload { get; set; }
 
             public int UploadCallCount { get; set; }
+            public byte[]? UploadedBytes { get; private set; }
+            public int ReadCallCount { get; private set; }
 
             public Task<MeterImageUploadResult> UploadAsync(UploadFile file, string folder, CancellationToken cancellationToken = default)
             {
                 UploadCallCount++;
                 if (ThrowOnUpload) throw new InvalidOperationException("Upload storage failed");
                 OnUpload?.Invoke();
+                using var copy = new MemoryStream();
+                file.Content.CopyTo(copy);
+                UploadedBytes = copy.ToArray();
                 return Task.FromResult(new MeterImageUploadResult("https://storage.test/img1.jpg", "meters/img1"));
             }
 
             public Task<MeterImageReadResult> ReadAsync(string publicId, string url, CancellationToken cancellationToken = default)
             {
+                ReadCallCount++;
                 return Task.FromResult(new MeterImageReadResult(ReadBytesToReturn, ReadContentTypeToReturn));
             }
 
@@ -105,9 +111,13 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             public MeterOcrResult ResultToReturn { get; set; } = MeterOcrResult.Readable(150.5m, 0.95);
             public bool ThrowOnProcess { get; set; }
             public Action? OnProcess { get; set; }
+            public byte[]? LastImageBytes { get; private set; }
+            public string? LastContentType { get; private set; }
 
             public Task<MeterOcrResult> ProcessImageAsync(byte[] imageBytes, string contentType, LoaiDongHo loaiDongHo, CancellationToken cancellationToken = default)
             {
+                LastImageBytes = imageBytes;
+                LastContentType = contentType;
                 if (ThrowOnProcess) throw new InvalidOperationException("AI OCR timeout");
                 OnProcess?.Invoke();
                 return Task.FromResult(ResultToReturn);
@@ -1879,6 +1889,49 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
                 Assert.False(result.Success);
                 Assert.Contains("không hợp lệ", result.Message.ToLowerInvariant());
             }
+        }
+
+        private UploadMeterImageRequest StaffUploadRequest(byte[] bytes)
+        {
+            _store.RoomBranches[1] = 10;
+            _access.Permissions.Add((2, 10, EmployeeActionCodes.MeterUpload));
+            return new UploadMeterImageRequest
+            {
+                PhongTroId = 1,
+                Thang = 10,
+                Nam = 2026,
+                LoaiDongHo = LoaiDongHo.Dien,
+                File = new UploadFile(new MemoryStream(bytes), "meter.jpg", "image/jpeg", bytes.Length)
+            };
+        }
+
+        [Fact]
+        public async Task UploadImageAsync_WithJpegBytes_RunsOcrOnUploadedBytes_WithoutReadingBackFromStorage()
+        {
+            var bytes = new byte[] { 0xFF, 0xD8, 0xFF, 0xE0, 1, 2, 3, 4, 5, 6, 7, 8 };
+            var req = StaffUploadRequest(bytes);
+
+            var result = await _service.UploadImageAsync(req, 2);
+
+            Assert.True(result.Success);
+            Assert.Equal(bytes, _storage.UploadedBytes); // kho lưu trữ vẫn nhận đủ tệp
+            Assert.Equal(0, _storage.ReadCallCount);
+            Assert.Equal(bytes, _ocr.LastImageBytes);
+            Assert.Equal("image/jpeg", _ocr.LastContentType);
+        }
+
+        [Fact]
+        public async Task UploadImageAsync_WhenBytesAreNotJpegPngWebp_StillReadsBackFromStorage()
+        {
+            // Đuôi và content-type khai báo là JPG nhưng nội dung không phải: giữ đường cũ, đọc lại từ kho lưu trữ.
+            var req = StaffUploadRequest(new byte[] { 1, 2, 3 });
+
+            var result = await _service.UploadImageAsync(req, 2);
+
+            Assert.True(result.Success);
+            Assert.Equal(1, _storage.ReadCallCount);
+            Assert.Equal(_storage.ReadBytesToReturn, _ocr.LastImageBytes);
+            Assert.Equal(_storage.ReadContentTypeToReturn, _ocr.LastContentType);
         }
 
         [Fact]
