@@ -15,5 +15,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
         Task<ServiceResult<MeterImageItemRes>> RetryOcrAsync(int anhChiSoDongHoId, int actorUserId, CancellationToken ct = default);
         Task<ServiceResult<MeterImageItemRes>> ConfirmAsync(ConfirmMeterImageRequest request, int actorUserId, CancellationToken ct = default);
         Task<ServiceResult<MeterImageItemRes>> CorrectAsync(CorrectConfirmedMeterImageRequest request, int actorUserId, CancellationToken ct = default);
+        Task<ServiceResult<MeterImageItemRes>> DoiMocAsync(ResetMeterBaselineRequest request, int actorUserId, CancellationToken ct = default);
     }
 }

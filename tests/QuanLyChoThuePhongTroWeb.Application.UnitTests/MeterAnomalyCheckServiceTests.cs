@@ -46,6 +46,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
 
             Assert.True(bat.Success, bat.Message);
             Assert.Equal("TieuThuBatThuong", bat.Data!.Dien!.MaLyDo);
+            Assert.Equal("Vang", bat.Data.Dien.MucDo);
             Assert.Contains("Điện", bat.Data.Dien.MoTa);
             Assert.Null(bat.Data.Nuoc);
             Assert.Null(thuong.Data!.Dien);
@@ -70,6 +71,9 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
 
             Assert.Null(r.Data!.Dien);
             Assert.Equal("ChiSoGiam", r.Data.Nuoc!.MaLyDo);
+            Assert.Equal("Chan", r.Data.Nuoc.MucDo);
+            Assert.False(r.Data.Nuoc.CoTheQuayVong);
+            Assert.Null(r.Data.Nuoc.ChiSoGoiY);
         }
 
         [Fact]

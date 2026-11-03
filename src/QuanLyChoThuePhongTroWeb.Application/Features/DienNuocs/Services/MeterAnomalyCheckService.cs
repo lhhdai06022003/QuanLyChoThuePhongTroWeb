@@ -76,6 +76,15 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
         }
 
         private static MeterAnomalyWarning? ToWarning(MeterAnomalyResult? r)
-            => r == null ? null : new MeterAnomalyWarning { MaLyDo = r.LyDo.ToString(), MoTa = r.MoTa };
+            => r == null ? null : new MeterAnomalyWarning
+            {
+                MaLyDo = r.LyDo.ToString(),
+                MoTa = r.MoTa,
+                MucDo = r.MucDo.ToString(),
+                ChiSoGoiY = r.ChiSoGoiY,
+                SanLuongTheoGoiY = r.SanLuongTheoGoiY,
+                CoTheQuayVong = r.LyDo == MeterAnomalyReason.ChiSoGiam && r.TranCongTo != null,
+                TranCongTo = r.TranCongTo
+            };
     }
 }

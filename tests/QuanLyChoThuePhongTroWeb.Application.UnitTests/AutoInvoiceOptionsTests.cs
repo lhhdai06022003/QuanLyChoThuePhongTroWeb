@@ -24,6 +24,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.Equal(2m, options.NguongXetThapNuocM3);
             Assert.Equal(500m, options.TranDienKwh);
             Assert.Equal(30m, options.TranNuocM3);
+            Assert.False(options.TuXacNhanAnhAi);
         }
 
         [Fact]

@@ -28,6 +28,7 @@ namespace QuanLyChoThuePhongTroWeb.Models.ChiSoDienNuoc
         public bool CoTheXacNhan { get; set; }
         public bool CanLyDo { get; set; }
         public bool CoTheSuaSo { get; set; }
+        public bool DoTinCayThap { get; set; }
     }
 
     public class StaffMeterPeriodVm
@@ -83,6 +84,17 @@ namespace QuanLyChoThuePhongTroWeb.Models.ChiSoDienNuoc
     public class CorrectMeterImageBodyReq
     {
         public decimal GiaTriMoi { get; set; }
+        public string LyDo { get; set; } = string.Empty;
+    }
+
+    public class DoiMocMeterImageBodyReq
+    {
+        // Chỉ nhận đúng chuỗi "DoiDongHo" hoặc "QuayVong".
+        public string Loai { get; set; } = string.Empty;
+        // Bắt buộc; nullable để thiếu trường không bị hiểu thành 0.
+        public decimal? GiaTriHienTai { get; set; }
+        public decimal? SoDauDongHoMoi { get; set; }
+        public decimal? SoCuoiDongHoCu { get; set; }
         public string LyDo { get; set; } = string.Empty;
     }
 
@@ -175,7 +187,8 @@ namespace QuanLyChoThuePhongTroWeb.Models.ChiSoDienNuoc
                 CoTheThuLai = dto.CoTheThuLai,
                 CoTheXacNhan = dto.CoTheXacNhan,
                 CanLyDo = dto.CanLyDoKhiXacNhan,
-                CoTheSuaSo = dto.CoTheSuaSo
+                CoTheSuaSo = dto.CoTheSuaSo,
+                DoTinCayThap = dto.DoTinCayThap
             };
         }
 

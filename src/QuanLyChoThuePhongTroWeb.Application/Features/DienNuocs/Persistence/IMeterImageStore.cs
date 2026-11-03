@@ -37,6 +37,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Persistence
         Task<bool> HasNonDraftInvoiceAsync(int periodRecordId, CancellationToken cancellationToken = default);
         Task<bool> HasLockedInvoiceAsync(int periodRecordId, CancellationToken cancellationToken = default);
         Task<(decimal ChiSoDienMoi, decimal ChiSoNuocMoi)> GetNearestPreviousReadingAsync(int phongTroId, int thang, int nam, CancellationToken cancellationToken = default);
+        // Kỳ chưa xóa gần nhất trước (thang, nam) của phòng; null khi chưa có kỳ trước.
+        Task<DichVuDienNuocCuaPhong?> GetNearestPreviousPeriodAsync(int phongTroId, int thang, int nam, CancellationToken cancellationToken = default);
         Task<decimal> GetServicePriceAsync(string serviceKeyword, int chiNhanhId, CancellationToken cancellationToken = default);
         Task AddPeriodRecordAsync(DichVuDienNuocCuaPhong record, CancellationToken cancellationToken = default);
         void UpdatePeriodRecord(DichVuDienNuocCuaPhong record);

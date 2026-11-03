@@ -14,7 +14,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
 {
     public class AutoInvoiceReadingPolicyTests
     {
-        private static readonly AutoInvoiceOptions Options = new();
+        private static readonly AutoInvoiceOptions Options = new() { TuXacNhanAnhAi = true };
         private static readonly DateTime T0 = new(2026, 10, 5, 3, 0, 0, DateTimeKind.Utc);
 
         internal static AutoInvoiceMeterImage Img(
@@ -110,6 +110,110 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             var d = AutoInvoiceReadingPolicy.EvaluateMeter(LoaiDongHo.Dien, ctx, Options);
 
             Assert.Equal(AutoInvoiceReason.DoTinCayThap, d.LyDo);
+        }
+
+        [Fact]
+        public void Meter_AutoConfirmFlagOff_GoodUnconfirmedImage_WaitsForStaff()
+        {
+            var ctx = Ctx(new[] { Img(1, LoaiDongHo.Dien, ai: 120m, tinCay: 0.95) });
+
+            var d = AutoInvoiceReadingPolicy.EvaluateMeter(LoaiDongHo.Dien, ctx, new AutoInvoiceOptions { TuXacNhanAnhAi = false });
+
+            Assert.Equal(AutoInvoiceReason.ThieuChiSo, d.LyDo);
+            Assert.True(AutoInvoiceReadingPolicy.IsSilent(d.LyDo!.Value));
+            Assert.Equal(120m, d.ChiSoMoi);
+            Assert.Null(d.AnhTuXacNhanId);
+        }
+
+        [Fact]
+        public void Meter_AutoConfirmFlagOn_GoodUnconfirmedImage_AutoConfirms()
+        {
+            var ctx = Ctx(new[] { Img(1, LoaiDongHo.Dien, ai: 120m, tinCay: 0.95) });
+
+            var d = AutoInvoiceReadingPolicy.EvaluateMeter(LoaiDongHo.Dien, ctx, new AutoInvoiceOptions { TuXacNhanAnhAi = true });
+
+            Assert.Null(d.LyDo);
+            Assert.Equal(1, d.AnhTuXacNhanId);
+        }
+
+        [Fact]
+        public void Meter_AutoConfirmFlagOff_AnomalyStillReportsAnomalyReason()
+        {
+            var ctx = Ctx(new[] { Img(1, LoaiDongHo.Dien, ai: 99.5m, tinCay: 0.95) });
+
+            var d = AutoInvoiceReadingPolicy.EvaluateMeter(LoaiDongHo.Dien, ctx, new AutoInvoiceOptions { TuXacNhanAnhAi = false });
+
+            Assert.Equal(AutoInvoiceReason.ChiSoGiam, d.LyDo);
+        }
+
+        [Fact]
+        public void Meter_AutoConfirmFlagOff_LowConfidenceStillReportsLowConfidence_SoTenantIsNotified()
+        {
+            var ctx = Ctx(new[] { Img(1, LoaiDongHo.Dien, ai: 120m, tinCay: 0.5) });
+
+            var d = AutoInvoiceReadingPolicy.EvaluateMeter(LoaiDongHo.Dien, ctx, new AutoInvoiceOptions { TuXacNhanAnhAi = false });
+
+            Assert.Equal(AutoInvoiceReason.DoTinCayThap, d.LyDo);
+            Assert.True(AutoInvoiceReadingPolicy.CanBaoKhach(d.LyDo!.Value));
+        }
+
+        [Fact]
+        public void Meter_AutoConfirmFlagOff_StaffConfirmedImage_IsUsedWithoutWaiting()
+        {
+            // Nhân viên đã xác nhận (ảnh chính thức): cờ tắt không cản, hóa đơn nháp vẫn tạo được.
+            var ctx = Ctx(new[] { Img(1, LoaiDongHo.Dien, TrangThaiXuLyAnhChiSo.DaXacNhan, ai: 120m, xacNhan: 125m, official: true) });
+
+            var d = AutoInvoiceReadingPolicy.EvaluateMeter(LoaiDongHo.Dien, ctx, new AutoInvoiceOptions { TuXacNhanAnhAi = false });
+
+            Assert.Null(d.LyDo);
+            Assert.Equal(125m, d.ChiSoMoi);
+            Assert.Null(d.AnhTuXacNhanId);
+        }
+
+        [Fact]
+        public void Meter_AutoConfirmFlagOff_ApprovedPeriod_IsNotAffected()
+        {
+            var ctx = Ctx(status: TrangThaiGhiNhan.DaDuyet, dienMoi: 130, nuocMoi: 60);
+
+            var dien = AutoInvoiceReadingPolicy.EvaluateMeter(LoaiDongHo.Dien, ctx, new AutoInvoiceOptions { TuXacNhanAnhAi = false });
+
+            Assert.Null(dien.LyDo);
+            Assert.Equal(130m, dien.ChiSoMoi);
+        }
+
+        [Fact]
+        public void Room_AutoConfirmFlagOff_GoodUnconfirmedImages_StopSilentlyWithoutNotifyingTenant()
+        {
+            var ctx = GoodCtx();
+
+            var room = AutoInvoiceReadingPolicy.EvaluateRoom(ctx, new AutoInvoiceOptions { TuXacNhanAnhAi = false });
+
+            Assert.False(room.DuDieuKien);
+            Assert.Equal(new[] { AutoInvoiceReason.ThieuChiSo }, room.LyDos);
+            Assert.All(room.LyDos, r => Assert.False(AutoInvoiceReadingPolicy.CanBaoKhach(r)));
+            Assert.Contains(room.MoTaLyDos, m => m.Contains("chờ nhân viên xác nhận"));
+        }
+
+        [Fact]
+        public void Room_AutoConfirmFlagOn_GoodUnconfirmedImages_AreReady()
+        {
+            var room = AutoInvoiceReadingPolicy.EvaluateRoom(GoodCtx(), new AutoInvoiceOptions { TuXacNhanAnhAi = true });
+
+            Assert.True(room.DuDieuKien);
+            Assert.Equal(1, room.Dien!.AnhTuXacNhanId);
+            Assert.Equal(2, room.Nuoc!.AnhTuXacNhanId);
+        }
+
+        [Fact]
+        public void Room_AutoConfirmFlagOff_OneMeterAnomalous_ReportsAnomalyAndStillNotifiesTenant()
+        {
+            // Điện bình thường chờ xác nhận (im lặng), nước giảm: chỉ lý do số giảm được báo.
+            var images = new[] { Img(1, LoaiDongHo.Dien, ai: 120m), Img(2, LoaiDongHo.Nuoc, ai: 40m) };
+
+            var room = AutoInvoiceReadingPolicy.EvaluateRoom(Ctx(images), new AutoInvoiceOptions { TuXacNhanAnhAi = false });
+
+            Assert.False(room.DuDieuKien);
+            Assert.Equal(new[] { AutoInvoiceReason.ChiSoGiam }, room.LyDos);
         }
 
         [Theory]
@@ -255,7 +359,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         [Fact]
         public void Meter_Messages_FormatNumbersTheVietnameseWayWithoutCulture()
         {
-            var tieuThu = AutoInvoiceReadingPolicy.EvaluateMeter(LoaiDongHo.Dien, Ctx(new[] { Img(1, LoaiDongHo.Dien, ai: 1_284.5m) }, dienCu: 50), Options);
+            var tieuThu = AutoInvoiceReadingPolicy.EvaluateMeter(LoaiDongHo.Dien, Ctx(new[] { Img(1, LoaiDongHo.Dien, ai: 1_434.5m) }, dienCu: 200), Options);
             var giam = AutoInvoiceReadingPolicy.EvaluateMeter(LoaiDongHo.Dien, Ctx(new[] { Img(1, LoaiDongHo.Dien, ai: 99.5m) }), Options);
             var tinCay = AutoInvoiceReadingPolicy.EvaluateMeter(LoaiDongHo.Dien, Ctx(new[] { Img(1, LoaiDongHo.Dien, ai: 120m, tinCay: 0.5) }), Options);
 

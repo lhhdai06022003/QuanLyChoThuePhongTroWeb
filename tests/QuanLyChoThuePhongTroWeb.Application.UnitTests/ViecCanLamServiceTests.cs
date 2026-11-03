@@ -633,8 +633,9 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         public async Task Hd5_AbnormalConsumption_ProducesCanLamItem_WithRoomReasonAndLink()
         {
             var (service, store, auto) = CreateWithAuto(StaffOfA());
+            // Số lớn tới mức không có ứng viên lệch dấu phẩy hợp lý, để ca vẫn là tiêu thụ bất thường.
             store.KyDaChotChuaCoHoaDon.Add(Ky(11, "P.101"));
-            auto.ContextsByKey[(11, 12, 2026)] = KyCtx(11, "P.101", dienMoi: 5000m);
+            auto.ContextsByKey[(11, 12, 2026)] = KyCtx(11, "P.101", dienMoi: 5_000_000m);
 
             var tongHop = await service.GetTongHopAsync(Staff, BranchA);
 
@@ -648,6 +649,22 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.Contains("A: 1", item.MoTa);
             Assert.Contains("P.101: tiêu thụ điện nước bất thường", item.MoTa);
             Assert.Equal("/QuanLyNhaTro/ChotDienNuoc?thang=12&nam=2026&chiNhanhId=1", item.Link);
+        }
+
+        [Fact]
+        public async Task Hd5_ConsumptionOverCeiling_WithPlausibleDecimalShift_IsLabelledSuspectedExtraDigit_NotPlainAbnormal()
+        {
+            // Spec ai-phan-tich-dien-nuoc §3.4 (Q2): cũ 0, mới 5.000, trần cho phép 200. Chia 100 cho 50 (≤ trần) nên là nghi sai chữ số,
+            // không còn là "tiêu thụ bất thường" như trước. Đây là phần đối chiếu của việc đổi seed 5.000 → 5.000.000 ở ca "bất thường".
+            var (service, store, auto) = CreateWithAuto(StaffOfA());
+            store.KyDaChotChuaCoHoaDon.Add(Ky(11, "P.101"));
+            auto.ContextsByKey[(11, 12, 2026)] = KyCtx(11, "P.101", dienMoi: 5000m);
+
+            var tongHop = await service.GetTongHopAsync(Staff, BranchA);
+
+            var item = Item(tongHop, "HD5");
+            Assert.Contains("P.101: nghi đọc sai chữ số", item.MoTa);
+            Assert.DoesNotContain("tiêu thụ điện nước bất thường", item.MoTa);
         }
 
         [Fact]
@@ -745,7 +762,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             for (var i = 1; i <= 5; i++)
             {
                 store.KyDaChotChuaCoHoaDon.Add(Ky(i, $"P.10{i}"));
-                auto.ContextsByKey[(i, 12, 2026)] = KyCtx(i, $"P.10{i}", dienMoi: 5000m);
+                auto.ContextsByKey[(i, 12, 2026)] = KyCtx(i, $"P.10{i}", dienMoi: 5_000_000m);
             }
 
             var tongHop = await service.GetTongHopAsync(Admin, null);

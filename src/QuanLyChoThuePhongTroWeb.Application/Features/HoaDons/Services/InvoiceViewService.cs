@@ -7,6 +7,7 @@ using QuanLyChoThuePhongTroWeb.Application.Abstractions.Services;
 using QuanLyChoThuePhongTroWeb.Application.Common.Configurations;
 using QuanLyChoThuePhongTroWeb.Application.Common.Models;
 using QuanLyChoThuePhongTroWeb.Application.Common.Security;
+using QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence;
 using QuanLyChoThuePhongTroWeb.Domain.Enums;
@@ -118,7 +119,33 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                 return null;
             }
 
-            return await _invoiceViewStore.GetDetailAsync(hoaDonId, includeHistory: true, ct);
+            var detail = await _invoiceViewStore.GetDetailAsync(hoaDonId, includeHistory: true, ct);
+            if (detail == null)
+            {
+                return null;
+            }
+
+            // Nhắc truy thu và đơn giá kỳ chỉ dành cho phía quản lý; phía khách thuê (GetTenantDetailAsync) không điền.
+            var facts = await _invoiceViewStore.GetMeterBaselineFactsAsync(hoaDonId, ct);
+            if (facts != null)
+            {
+                detail.DonGiaDienKy = facts.DonGiaDien;
+                detail.DonGiaNuocKy = facts.DonGiaNuoc;
+
+                var nhacDien = MeterBaselineChangePolicy.BuildReminder(LoaiDongHo.Dien, facts.ChiSoDienCu, facts.MoiDienKyTruoc, facts.GhiChuDien);
+                if (nhacDien != null)
+                {
+                    detail.NhacTruyThus.Add(nhacDien);
+                }
+
+                var nhacNuoc = MeterBaselineChangePolicy.BuildReminder(LoaiDongHo.Nuoc, facts.ChiSoNuocCu, facts.MoiNuocKyTruoc, facts.GhiChuNuoc);
+                if (nhacNuoc != null)
+                {
+                    detail.NhacTruyThus.Add(nhacNuoc);
+                }
+            }
+
+            return detail;
         }
 
         public async Task<byte[]?> ExportEmployeePdfAsync(int hoaDonId, int actorId, CancellationToken ct = default)

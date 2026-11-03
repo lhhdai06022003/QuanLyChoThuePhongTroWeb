@@ -129,5 +129,37 @@ namespace QuanLyChoThuePhongTroWeb.Domain.Entities
             ChiSoNuocMoi = chiSoNuocMoi;
             NgayCapNhat = DateTime.UtcNow;
         }
+
+        // Đổi đồng hồ hoặc quay vòng: chỉ đặt lại mốc (Cũ) và số hiện tại (Mới) của một loại đồng hồ, giữ nguyên loại còn lại.
+        public void DatLaiMocDongHo(LoaiDongHo loai, decimal moc, decimal moi)
+        {
+            if (moc < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(moc), "Mốc chỉ số không được âm.");
+            }
+
+            if (moi < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(moi), "Chỉ số mới không được âm.");
+            }
+
+            if (moi < moc)
+            {
+                throw new InvalidOperationException("Chỉ số mới không được nhỏ hơn mốc chỉ số.");
+            }
+
+            if (loai == LoaiDongHo.Dien)
+            {
+                ChiSoDienCu = moc;
+                ChiSoDienMoi = moi;
+            }
+            else
+            {
+                ChiSoNuocCu = moc;
+                ChiSoNuocMoi = moi;
+            }
+
+            NgayCapNhat = DateTime.UtcNow;
+        }
     }
 }

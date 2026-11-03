@@ -14,6 +14,12 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.DTOs
     {
         public string MaLyDo { get; init; } = "";
         public string MoTa { get; init; } = "";
+        // Chan, Do hoặc Vang (tên MeterAnomalyLevel).
+        public string MucDo { get; init; } = "";
+        public decimal? ChiSoGoiY { get; init; }
+        public decimal? SanLuongTheoGoiY { get; init; }
+        public bool CoTheQuayVong { get; init; }
+        public decimal? TranCongTo { get; init; }
     }
 
     public sealed class MeterAnomalyCheckResult

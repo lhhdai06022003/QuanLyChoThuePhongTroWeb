@@ -60,10 +60,10 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
         public DeadlineClock Clock { get; } = new();
         public DeadlineEmail Email { get; } = new();
 
-        public DeadlineHost(string connectionString)
+        public DeadlineHost(string connectionString, bool autoConfirmAiImages = true)
         {
             var config = new ConfigurationBuilder()
-                .AddInMemoryCollection(new Dictionary<string, string?> { ["ConnectionStrings:DefaultConnection"] = connectionString })
+                .AddInMemoryCollection(new Dictionary<string, string?> { ["ConnectionStrings:DefaultConnection"] = connectionString, ["AutoInvoiceOptions:TuXacNhanAnhAi"] = autoConfirmAiImages ? "true" : "false" })
                 .Build();
             var services = new ServiceCollection();
             services.AddLogging();

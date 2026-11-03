@@ -472,7 +472,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
         {
             var w = await SeedAsync(_factory);
             var ky = KyTruoc(1);
-            await AddPeriodAsync(w.RoomA, ky, TrangThaiGhiNhan.DaDuyet, dienMoi: 5000m);
+            await AddPeriodAsync(w.RoomA, ky, TrangThaiGhiNhan.DaDuyet, dienMoi: 5_000_000m);
             var phong = await RoomNumberAsync(w.RoomA);
             var (staff, _) = await LoginAsync(_factory, w.Staff);
 
@@ -484,11 +484,27 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
         }
 
         [Fact]
+        public async Task Hd5_ClosedPeriodWithPlausibleDecimalShift_IsLabelledSuspectedExtraDigit()
+        {
+            // Spec ai-phan-tich-dien-nuoc §3.4 / Q2: cũ 0 → mới 5.000 có ứng viên chia 100 hợp lý nên là "nghi đọc sai chữ số".
+            var w = await SeedAsync(_factory);
+            var ky = KyTruoc(1);
+            await AddPeriodAsync(w.RoomA, ky, TrangThaiGhiNhan.DaDuyet, dienMoi: 5000m);
+            var phong = await RoomNumberAsync(w.RoomA);
+            var (staff, _) = await LoginAsync(_factory, w.Staff);
+
+            var html = await ViecCanLamHtmlAsync(staff, w.BranchA);
+
+            Assert.Contains($"{phong}: nghi đọc sai chữ số", html);
+            Assert.DoesNotContain($"{phong}: tiêu thụ điện nước bất thường", html);
+        }
+
+        [Fact]
         public async Task Hd5_DisappearsOnceAnInvoiceExistsForThatRoomAndPeriod()
         {
             var w = await SeedAsync(_factory);
             var ky = KyTruoc(1);
-            await AddPeriodAsync(w.RoomA, ky, TrangThaiGhiNhan.DaDuyet, dienMoi: 5000m);
+            await AddPeriodAsync(w.RoomA, ky, TrangThaiGhiNhan.DaDuyet, dienMoi: 5_000_000m);
             var (staff, _) = await LoginAsync(_factory, w.Staff);
             Assert.Contains("Chưa tạo được hóa đơn tự động", await ViecCanLamHtmlAsync(staff, w.BranchA));
 
@@ -540,7 +556,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
         {
             var w = await SeedAsync(_factory);
             var ky = KyTruoc(1);
-            await AddPeriodAsync(w.RoomB, ky, TrangThaiGhiNhan.DaDuyet, dienMoi: 5000m);
+            await AddPeriodAsync(w.RoomB, ky, TrangThaiGhiNhan.DaDuyet, dienMoi: 5_000_000m);
             var (staff, _) = await LoginAsync(_factory, w.Staff);
             var (admin, _) = await LoginAsync(_factory, w.Admin);
 

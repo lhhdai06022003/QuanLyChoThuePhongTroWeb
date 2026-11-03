@@ -10,6 +10,8 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using QuanLyChoThuePhongTroWeb.Application.Common.Configurations;
 using QuanLyChoThuePhongTroWeb.Application.Common.Enums;
 using QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services;
 using QuanLyChoThuePhongTroWeb.Application.Features.NguoiDungs.DTOs;
@@ -35,6 +37,14 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             _factory = factory;
         }
 
+        // Cờ tự xác nhận ảnh AI mặc định tắt; các ca cần ảnh tự xác nhận bật cờ qua host riêng.
+        private WebApplicationFactory<Program> AutoConfirmHost()
+            => _factory.WithWebHostBuilder(b => b.ConfigureServices(s =>
+            {
+                s.RemoveAll<AutoInvoiceOptions>();
+                s.AddSingleton(new AutoInvoiceOptions { TuXacNhanAnhAi = true });
+            }));
+
         private static string ExtractAntiForgeryToken(string html)
         {
             var match = Regex.Match(html, @"name=""__RequestVerificationToken""\s+type=""hidden""\s+value=""([^""]+)""");
@@ -45,9 +55,9 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             return match.Success ? match.Groups[1].Value : string.Empty;
         }
 
-        private async Task<(HttpClient Client, string Csrf)> LoginAsync(string username, string password)
+        private async Task<(HttpClient Client, string Csrf)> LoginAsync(string username, string password, WebApplicationFactory<Program>? host = null, string csrfPath = "/KhachThue/ChiSoDienNuoc")
         {
-            var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false, HandleCookies = true });
+            var client = (host ?? _factory).CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false, HandleCookies = true });
             var loginPage = await client.GetAsync("/QuanLyNhaTro/DangNhap");
             var csrf = ExtractAntiForgeryToken(await loginPage.Content.ReadAsStringAsync());
             var response = await client.PostAsync("/QuanLyNhaTro/DangNhap", new FormUrlEncodedContent(new[]
@@ -58,7 +68,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             }));
             Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
 
-            var page = await client.GetAsync("/KhachThue/ChiSoDienNuoc");
+            var page = await client.GetAsync(csrfPath);
             var authCsrf = ExtractAntiForgeryToken(await page.Content.ReadAsStringAsync());
             return (client, string.IsNullOrWhiteSpace(authCsrf) ? csrf : authCsrf);
         }
@@ -177,7 +187,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
                 ocr.DefaultSuggestedValue = 20m;
                 ocr.DefaultConfidence = 0.95;
                 var seed = await SeedAsync();
-                var (client, csrf) = await LoginAsync(seed.TenantUsername, seed.Password);
+                var (client, csrf) = await LoginAsync(seed.TenantUsername, seed.Password, AutoConfirmHost());
 
                 var first = await UploadAsync(client, csrf, seed, 0);
                 Assert.Equal(HttpStatusCode.OK, first.StatusCode);
@@ -215,6 +225,49 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
                 var (staffClient, _) = await LoginAsync(seed.Staff.TenDangNhap, seed.Password);
                 var page = await staffClient.GetAsync($"/QuanLyNhaTro/QuanLyHoaDon?chiNhanhId={seed.Room.ChiNhanhId}&thang={seed.Thang}&nam={seed.Nam}&hoaDonId={invoice.HoaDonId}");
                 Assert.Equal(HttpStatusCode.OK, page.StatusCode);
+            }
+            finally
+            {
+                ocr.Reset();
+            }
+        }
+
+        [Fact]
+        public async Task FlagOff_TenantUploads_CreatesNoInvoice_UntilStaffConfirmsBothImages()
+        {
+            var ocr = _factory.FakeMeterOcrServiceInstance;
+            try
+            {
+                ocr.DefaultSuggestedValue = 20m;
+                ocr.DefaultConfidence = 0.95;
+                var seed = await SeedAsync();
+                var (client, csrf) = await LoginAsync(seed.TenantUsername, seed.Password);
+
+                Assert.Equal(HttpStatusCode.OK, (await UploadAsync(client, csrf, seed, 0)).StatusCode);
+                Assert.Equal(HttpStatusCode.OK, (await UploadAsync(client, csrf, seed, 1)).StatusCode);
+                Assert.Empty(await InvoicesAsync(seed));
+
+                List<int> imageIds;
+                using (var scope = _factory.Services.CreateScope())
+                {
+                    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                    imageIds = await db.AnhChiSoDongHos.AsNoTracking()
+                        .Where(a => a.DichVuDienNuocCuaPhong!.PhongTroId == seed.Room.PhongTroId && !a.IsDeleted)
+                        .Select(a => a.AnhChiSoDongHoId).ToListAsync();
+                }
+                Assert.Equal(2, imageIds.Count);
+
+                var (staffClient, staffCsrf) = await LoginAsync(seed.Staff.TenDangNhap, seed.Password, csrfPath: "/QuanLyNhaTro/YeuCauSuCo");
+                foreach (var imageId in imageIds)
+                {
+                    var req = new HttpRequestMessage(HttpMethod.Post, $"/DienNuoc/AnhChiSo/{imageId}/XacNhan");
+                    req.Headers.Add("RequestVerificationToken", staffCsrf);
+                    req.Content = System.Net.Http.Json.JsonContent.Create(new { giaTriXacNhan = 20m, ghiChu = (string?)null });
+                    Assert.Equal(HttpStatusCode.OK, (await staffClient.SendAsync(req)).StatusCode);
+                }
+
+                var invoice = Assert.Single(await InvoicesAsync(seed));
+                Assert.Equal(TrangThaiPhatHanhHoaDon.Nhap, invoice.TrangThaiPhatHanh);
             }
             finally
             {

@@ -81,6 +81,10 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs
         public List<InvoiceStatusHistoryRes> LichSuTrangThais { get; set; } = new();
         public List<ChiTietHoaDonRes> ChiTietHoaDons { get; set; } = new();
         public List<LichSuThanhToanRes> LichSuThanhToans { get; set; } = new();
+        // Chỉ điền ở phía quản lý (GetEmployeeDetailAsync): nhắc truy thu khi kỳ đổi đồng hồ/quay vòng và đơn giá của kỳ.
+        public List<string> NhacTruyThus { get; set; } = new();
+        public decimal? DonGiaDienKy { get; set; }
+        public decimal? DonGiaNuocKy { get; set; }
     }
 
     // Response cho từng dòng chi tiết

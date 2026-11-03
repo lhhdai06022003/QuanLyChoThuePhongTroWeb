@@ -73,6 +73,73 @@ namespace QuanLyChoThuePhongTroWeb.Domain.UnitTests
         }
 
         [Fact]
+        public void DatLaiMocDongHo_Dien_SetsBaselineAndNewReading_KeepsWater()
+        {
+            var record = new DichVuDienNuocCuaPhong
+            {
+                ChiSoDienCu = 4520m, ChiSoDienMoi = 4520m, ChiSoNuocCu = 50m, ChiSoNuocMoi = 60m
+            };
+
+            record.DatLaiMocDongHo(LoaiDongHo.Dien, 0m, 85.5m);
+
+            Assert.Equal((0m, 85.5m), (record.ChiSoDienCu, record.ChiSoDienMoi));
+            Assert.Equal((50m, 60m), (record.ChiSoNuocCu, record.ChiSoNuocMoi));
+            Assert.NotNull(record.NgayCapNhat);
+        }
+
+        [Fact]
+        public void DatLaiMocDongHo_Nuoc_SetsBaselineAndNewReading_KeepsElectricity()
+        {
+            var record = new DichVuDienNuocCuaPhong
+            {
+                ChiSoDienCu = 100m, ChiSoDienMoi = 150m, ChiSoNuocCu = 9990m, ChiSoNuocMoi = 9990m
+            };
+
+            record.DatLaiMocDongHo(LoaiDongHo.Nuoc, 0m, 12m);
+
+            Assert.Equal((0m, 12m), (record.ChiSoNuocCu, record.ChiSoNuocMoi));
+            Assert.Equal((100m, 150m), (record.ChiSoDienCu, record.ChiSoDienMoi));
+        }
+
+        [Fact]
+        public void DatLaiMocDongHo_RefusesNegativeAndNewBelowBaseline()
+        {
+            var record = new DichVuDienNuocCuaPhong { ChiSoDienCu = 100m, ChiSoDienMoi = 100m };
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => record.DatLaiMocDongHo(LoaiDongHo.Dien, -1m, 10m));
+            Assert.Throws<ArgumentOutOfRangeException>(() => record.DatLaiMocDongHo(LoaiDongHo.Dien, 0m, -1m));
+            Assert.Throws<InvalidOperationException>(() => record.DatLaiMocDongHo(LoaiDongHo.Dien, 50m, 49.999m));
+            Assert.Equal((100m, 100m), (record.ChiSoDienCu, record.ChiSoDienMoi));
+        }
+
+        [Fact]
+        public void DatLaiMocDongHo_NewEqualToBaseline_IsAllowed_AndKeepsApprovalState()
+        {
+            var record = new DichVuDienNuocCuaPhong { ChiSoDienCu = 4520m, ChiSoDienMoi = 4600m, ChiSoNuocCu = 50m, ChiSoNuocMoi = 60m };
+            record.GuiDuyet();
+            record.Duyet(nguoiDuyetId: 10);
+
+            record.DatLaiMocDongHo(LoaiDongHo.Dien, 12.5m, 12.5m);
+
+            Assert.Equal((12.5m, 12.5m), (record.ChiSoDienCu, record.ChiSoDienMoi));
+            Assert.Equal(TrangThaiGhiNhan.DaDuyet, record.TrangThaiGhiNhan);
+        }
+
+        [Fact]
+        public void DatLaiMocDongHo_ThenCapNhatChiSo_ChecksAgainstNewBaseline()
+        {
+            var record = new DichVuDienNuocCuaPhong { ChiSoDienCu = 4520m, ChiSoDienMoi = 4520m };
+            record.DatLaiMocDongHo(LoaiDongHo.Dien, 0m, 85.5m);
+
+            record.CapNhatChiSo(chiSoDienMoi: 90m, chiSoNuocMoi: 0m);
+
+            Assert.Equal((0m, 90m), (record.ChiSoDienCu, record.ChiSoDienMoi));
+            // Sau khi đổi mốc, so với mốc mới (0), không còn so với số cũ trước đó (4520).
+            record.CapNhatChiSo(chiSoDienMoi: 0m, chiSoNuocMoi: 0m);
+            Assert.Equal(0m, record.ChiSoDienMoi);
+        }
+
+        [Fact]
         public void DichVuDienNuoc_RefusesNegativeReadings_And_AllowsAdjustmentWhenDaDuyet()
         {
             var record = new DichVuDienNuocCuaPhong

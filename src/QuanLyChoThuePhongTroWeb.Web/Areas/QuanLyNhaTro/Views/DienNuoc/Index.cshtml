@@ -648,15 +648,35 @@
                         // Bỏ qua kết quả cũ nếu ô đã đổi trong lúc chờ.
                         if ($input.val() !== raw) return;
                         const w = isDien ? res.dien : res.nuoc;
+                        const fmt = function (n) { return Number(n).toLocaleString('vi-VN', { maximumFractionDigits: 3 }); };
+                        const cuVal = parseFloat($tr.find(isDien ? '.in-dien-cu' : '.in-nuoc-cu').val());
+                        const moiVal = parseFloat(raw);
                         if (w && w.moTa) {
-                            $box.removeClass('text-secondary').addClass('text-warning').text(w.moTa).show();
+                            // Chan/Do: đỏ; Vang: vàng. Gợi ý chỉ hiện dạng chữ, sửa nhanh nằm ở modal ảnh chỉ số.
+                            let text = w.moTa;
+                            if (w.chiSoGoiY !== null && w.chiSoGoiY !== undefined) {
+                                text += '. Gợi ý: ' + fmt(w.chiSoGoiY);
+                                if (w.sanLuongTheoGoiY !== null && w.sanLuongTheoGoiY !== undefined) {
+                                    text += ' (tiêu thụ ' + fmt(w.sanLuongTheoGoiY) + ')';
+                                }
+                            }
+                            if (w.mucDo === 'Chan') {
+                                text += '. Mở modal ảnh chỉ số để dùng thao tác đổi đồng hồ hoặc quay vòng.';
+                            }
+                            $box.removeClass('text-secondary text-warning text-danger')
+                                .addClass(w.mucDo === 'Vang' ? 'text-warning' : 'text-danger')
+                                .text(text).show();
+                        } else if (!isNaN(cuVal) && !isNaN(moiVal) && moiVal === cuVal) {
+                            // Hợp lệ nhưng tiêu thụ bằng 0: chỉ nhắc, không bắt ghi chú.
+                            $box.removeClass('text-secondary text-danger').addClass('text-warning')
+                                .text('Tiêu thụ bằng 0, hãy kiểm tra đồng hồ có kẹt số hoặc ảnh có phải ảnh cũ không.').show();
                         } else {
                             $box.hide().text('');
                         }
                     }).fail(function (xhr) {
                         if ($input.val() !== raw) return;
                         console.warn('Không kiểm tra được chỉ số bất thường', xhr.status);
-                        $box.removeClass('text-warning').addClass('text-secondary')
+                        $box.removeClass('text-warning text-danger').addClass('text-secondary')
                             .text('Không kiểm tra được chỉ số bất thường. Hệ thống vẫn kiểm lại khi lưu.').show();
                     });
                 }, 400);
@@ -687,14 +707,14 @@
                     }
 
                     if (dienMoi < dienCu) {
-                        Swal.fire({ icon: 'error', title: 'Chỉ số điện sai lệch', text: `Phòng ${rowData.tenPhong}: Chỉ số điện mới (${dienMoi}) không được nhỏ hơn chỉ số điện cũ (${dienCu}).` });
+                        Swal.fire({ icon: 'error', title: 'Chỉ số điện sai lệch', text: `Phòng ${rowData.tenPhong}: Chỉ số điện mới (${dienMoi}) không được nhỏ hơn chỉ số điện cũ (${dienCu}). Mở modal ảnh chỉ số để dùng thao tác đổi đồng hồ hoặc quay vòng.` });
                         $tr.find('.in-dien-moi').addClass('is-invalid');
                         ok = false;
                         return false;
                     }
 
                     if (nuocMoi < nuocCu) {
-                        Swal.fire({ icon: 'error', title: 'Chỉ số nước sai lệch', text: `Phòng ${rowData.tenPhong}: Chỉ số nước mới (${nuocMoi}) không được nhỏ hơn chỉ số nước cũ (${nuocCu}).` });
+                        Swal.fire({ icon: 'error', title: 'Chỉ số nước sai lệch', text: `Phòng ${rowData.tenPhong}: Chỉ số nước mới (${nuocMoi}) không được nhỏ hơn chỉ số nước cũ (${nuocCu}). Mở modal ảnh chỉ số để dùng thao tác đổi đồng hồ hoặc quay vòng.` });
                         $tr.find('.in-nuoc-moi').addClass('is-invalid');
                         ok = false;
                         return false;

@@ -2424,7 +2424,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             var period = new DichVuDienNuocCuaPhong
             {
                 DichVuDienNuocCuaPhongId = 1, PhongTroId = 1, Thang = 10, Nam = 2026,
-                ChiSoDienCu = 100m, ChiSoNuocCu = 50m, TrangThaiGhiNhan = TrangThaiGhiNhan.Nhap
+                ChiSoDienCu = 100m, ChiSoDienMoi = 100m, ChiSoNuocCu = 50m, ChiSoNuocMoi = 50m, TrangThaiGhiNhan = TrangThaiGhiNhan.Nhap
             };
             var next = LaterPeriod(2, 11, 100m, 100m, 50m, 50m);
             _store.Periods[1] = period;
@@ -2458,7 +2458,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             var period3 = new DichVuDienNuocCuaPhong
             {
                 DichVuDienNuocCuaPhongId = 3, PhongTroId = 2, Thang = 10, Nam = 2026,
-                ChiSoDienCu = 100m, ChiSoNuocCu = 50m, TrangThaiGhiNhan = TrangThaiGhiNhan.Nhap
+                ChiSoDienCu = 100m, ChiSoDienMoi = 100m, ChiSoNuocCu = 50m, ChiSoNuocMoi = 50m, TrangThaiGhiNhan = TrangThaiGhiNhan.Nhap
             };
             var period4 = new DichVuDienNuocCuaPhong
             {
@@ -2492,6 +2492,879 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.False(_uow.CurrentTransaction.Committed);
             Assert.Equal((100m, 120m), (period4.ChiSoDienCu, period4.ChiSoDienMoi));
             Assert.Equal(0, _uow.SaveChangesCallCount);
+        }
+
+        #endregion
+
+        #region Đổi đồng hồ, quay vòng và cascade theo mốc
+
+        private (DichVuDienNuocCuaPhong Period, AnhChiSoDongHo Image) SetupReset(
+            decimal dienCu = 4520m,
+            TrangThaiXuLyAnhChiSo status = TrangThaiXuLyAnhChiSo.DocDuoc,
+            params DichVuDienNuocCuaPhong[] others)
+        {
+            var period = new DichVuDienNuocCuaPhong
+            {
+                DichVuDienNuocCuaPhongId = 1, PhongTroId = 1, Thang = 10, Nam = 2026,
+                ChiSoDienCu = dienCu, ChiSoDienMoi = dienCu, ChiSoNuocCu = 50m, ChiSoNuocMoi = 50m
+            };
+            _store.Periods[1] = period;
+            _store.RoomBranches[1] = 10;
+            foreach (var o in others) _store.Periods[o.DichVuDienNuocCuaPhongId] = o;
+
+            var image = new AnhChiSoDongHo
+            {
+                AnhChiSoDongHoId = 100, DichVuDienNuocCuaPhongId = 1, LoaiDongHo = LoaiDongHo.Dien, Url = "http://test",
+                TrangThaiXuLy = status, GiaTriAIGoiY = 85.5m, DoTinCay = 0.95
+            };
+            _store.Images[100] = image;
+            _access.Permissions.Add((2, 10, EmployeeActionCodes.MeterReview));
+            return (period, image);
+        }
+
+        private static ResetMeterBaselineRequest Reset(
+            MeterBaselineResetType loai, decimal hienTai, decimal? soDau = null, decimal? soCuoi = null, string lyDo = "Thay đồng hồ mới")
+            => new(100, loai, hienTai, soDau, soCuoi, lyDo);
+
+        [Fact]
+        public async Task ResetMeterBaseline_WithoutReviewPermission_Fails()
+        {
+            SetupReset();
+
+            var result = await _service.ResetMeterBaselineAsync(Reset(MeterBaselineResetType.DoiDongHo, 85.5m), 99);
+
+            Assert.False(result.Success);
+            Assert.Contains("quyền", result.Message);
+            Assert.False(_uow.CurrentTransaction.Committed);
+        }
+
+        [Fact]
+        public async Task ResetMeterBaseline_WhenLockedByLaterPeriod_Fails()
+        {
+            SetupReset();
+            _store.SubsequentPeriods.Add((1, 10, 2026));
+
+            var result = await _service.ResetMeterBaselineAsync(Reset(MeterBaselineResetType.DoiDongHo, 85.5m), 2);
+
+            Assert.False(result.Success);
+            Assert.Contains("Kỳ sau", result.Message);
+        }
+
+        [Fact]
+        public async Task ResetMeterBaseline_WhenInvoiceLocked_Fails()
+        {
+            SetupReset();
+            _store.NonDraftInvoicePeriodIds.Add(1);
+
+            var result = await _service.ResetMeterBaselineAsync(Reset(MeterBaselineResetType.DoiDongHo, 85.5m), 2);
+
+            Assert.False(result.Success);
+        }
+
+        [Theory]
+        [InlineData(TrangThaiXuLyAnhChiSo.DaXacNhan)]
+        [InlineData(TrangThaiXuLyAnhChiSo.DaThayThe)]
+        [InlineData(TrangThaiXuLyAnhChiSo.CanChupLai)]
+        [InlineData(TrangThaiXuLyAnhChiSo.MoiTaiLen)]
+        [InlineData(TrangThaiXuLyAnhChiSo.DangXuLy)]
+        public async Task ResetMeterBaseline_WithUnsuitableImageStatus_Fails(TrangThaiXuLyAnhChiSo status)
+        {
+            var (period, _) = SetupReset(status: status);
+
+            var result = await _service.ResetMeterBaselineAsync(Reset(MeterBaselineResetType.DoiDongHo, 85.5m), 2);
+
+            Assert.False(result.Success);
+            Assert.Equal(4520m, period.ChiSoDienCu);
+            Assert.False(_uow.CurrentTransaction.Committed);
+        }
+
+        [Theory]
+        [InlineData(4520, 4600)]   // không nhỏ hơn chỉ số cũ
+        [InlineData(4520, 100)]    // cũ chưa đủ gần mức quay vòng (< 90% của 10.000)
+        public async Task ResetMeterBaseline_QuayVong_WithWrongCondition_Fails(int cu, int hienTai)
+        {
+            var (period, _) = SetupReset(dienCu: cu);
+
+            var result = await _service.ResetMeterBaselineAsync(Reset(MeterBaselineResetType.QuayVong, hienTai), 2);
+
+            Assert.False(result.Success);
+            Assert.Equal(cu, period.ChiSoDienCu);
+        }
+
+        [Fact]
+        public async Task ResetMeterBaseline_QuayVong_SetsBaselineToZeroAndWritesNote()
+        {
+            var (period, image) = SetupReset(dienCu: 9950m);
+
+            var result = await _service.ResetMeterBaselineAsync(Reset(MeterBaselineResetType.QuayVong, 100m, lyDo: "Quay vòng"), 2);
+
+            Assert.True(result.Success, result.Message);
+            Assert.Equal((0m, 100m), (period.ChiSoDienCu, period.ChiSoDienMoi));
+            Assert.Equal((50m, 50m), (period.ChiSoNuocCu, period.ChiSoNuocMoi));
+            Assert.Equal(TrangThaiXuLyAnhChiSo.DaXacNhan, image.TrangThaiXuLy);
+            Assert.True(image.DuocChonLamChiSoChinhThuc);
+            Assert.Equal("[QUAY_VONG] Chỉ số cũ 9.950; trần 10.000; phần trước mốc 50 kWh; lý do: Quay vòng", image.GhiChuXacNhan);
+            Assert.True(_uow.CurrentTransaction.Committed);
+        }
+
+        [Fact]
+        public async Task ResetMeterBaseline_DoiDongHo_AcceptsNewNumberLargerThanOld_AndWritesNoteWithOldMeterPart()
+        {
+            var (period, image) = SetupReset(dienCu: 4520m);
+
+            var result = await _service.ResetMeterBaselineAsync(
+                Reset(MeterBaselineResetType.DoiDongHo, 85.5m, soDau: 0m, soCuoi: 4565.25m, lyDo: "Thay đồng hồ"), 2);
+
+            Assert.True(result.Success, result.Message);
+            Assert.Equal((0m, 85.5m), (period.ChiSoDienCu, period.ChiSoDienMoi));
+            Assert.Equal("[DOI_DONG_HO] Chỉ số cũ 4.520; số đầu 0; số cuối đồng hồ cũ 4.565,25; phần đồng hồ cũ 45,25 kWh; lý do: Thay đồng hồ", image.GhiChuXacNhan);
+        }
+
+        [Fact]
+        public async Task ResetMeterBaseline_DoiDongHo_WithoutLastNumber_WritesShortNote()
+        {
+            var (_, image) = SetupReset(dienCu: 4520m);
+
+            var result = await _service.ResetMeterBaselineAsync(
+                Reset(MeterBaselineResetType.DoiDongHo, 4600m, soDau: 4500m, lyDo: "Thay"), 2);
+
+            Assert.True(result.Success, result.Message);
+            Assert.Equal("[DOI_DONG_HO] Chỉ số cũ 4.520; số đầu 4.500; không có số cuối đồng hồ cũ; lý do: Thay", image.GhiChuXacNhan);
+        }
+
+        [Fact]
+        public async Task ResetMeterBaseline_DoiDongHo_WithInvalidNumbers_Fails()
+        {
+            var (period, _) = SetupReset(dienCu: 4520m);
+
+            var soDauLonHon = await _service.ResetMeterBaselineAsync(Reset(MeterBaselineResetType.DoiDongHo, 10m, soDau: 20m), 2);
+            var soCuoiNhoHon = await _service.ResetMeterBaselineAsync(Reset(MeterBaselineResetType.DoiDongHo, 85m, soCuoi: 4000m), 2);
+            var khongLyDo = await _service.ResetMeterBaselineAsync(Reset(MeterBaselineResetType.DoiDongHo, 85m, lyDo: "  "), 2);
+            var lyDoDai = await _service.ResetMeterBaselineAsync(Reset(MeterBaselineResetType.DoiDongHo, 85m, lyDo: new string('x', 501)), 2);
+            var quaNhieuSoLe = await _service.ResetMeterBaselineAsync(Reset(MeterBaselineResetType.DoiDongHo, 85.1234m), 2);
+
+            Assert.False(soDauLonHon.Success);
+            Assert.False(soCuoiNhoHon.Success);
+            Assert.False(khongLyDo.Success);
+            Assert.False(lyDoDai.Success);
+            Assert.False(quaNhieuSoLe.Success);
+            Assert.Equal(4520m, period.ChiSoDienCu);
+        }
+
+        [Fact]
+        public async Task ResetMeterBaseline_SecondTime_UsesPreviousPeriodNewReadingAsTrueOldNumber()
+        {
+            // Kỳ 09 kết thúc ở 4520. Kỳ 10 đã từng đổi mốc về 0 nên Cũ hiện là 0, chỉ số cũ thật vẫn là 4520.
+            var prev = new DichVuDienNuocCuaPhong
+            {
+                DichVuDienNuocCuaPhongId = 5, PhongTroId = 1, Thang = 9, Nam = 2026,
+                ChiSoDienCu = 4400m, ChiSoDienMoi = 4520m, ChiSoNuocCu = 40m, ChiSoNuocMoi = 50m
+            };
+            var (period, image) = SetupReset(dienCu: 0m, others: new[] { prev });
+            period.ChiSoDienMoi = 80m;
+
+            var result = await _service.ResetMeterBaselineAsync(
+                Reset(MeterBaselineResetType.DoiDongHo, 85.5m, soDau: 0m, soCuoi: 4565.25m, lyDo: "Làm lại"), 2);
+
+            Assert.True(result.Success, result.Message);
+            Assert.StartsWith("[DOI_DONG_HO] Chỉ số cũ 4.520;", image.GhiChuXacNhan);
+            Assert.Equal((0m, 85.5m), (period.ChiSoDienCu, period.ChiSoDienMoi));
+        }
+
+        [Fact]
+        public async Task ResetMeterBaseline_RedoWithStartEqualToPreviousNew_RestoresNoBaselineChange()
+        {
+            var prev = new DichVuDienNuocCuaPhong
+            {
+                DichVuDienNuocCuaPhongId = 5, PhongTroId = 1, Thang = 9, Nam = 2026,
+                ChiSoDienCu = 4400m, ChiSoDienMoi = 4520m, ChiSoNuocCu = 40m, ChiSoNuocMoi = 50m
+            };
+            var (period, _) = SetupReset(dienCu: 0m, others: new[] { prev });
+            period.ChiSoDienMoi = 85.5m;
+
+            var result = await _service.ResetMeterBaselineAsync(
+                Reset(MeterBaselineResetType.DoiDongHo, 4580m, soDau: 4520m, lyDo: "Đổi nhầm, hoàn tác"), 2);
+
+            Assert.True(result.Success, result.Message);
+            Assert.Equal(4520m, period.ChiSoDienCu);
+            Assert.False(MeterBaselineChangePolicy.DaDoiMoc(period.ChiSoDienCu, prev.ChiSoDienMoi));
+        }
+
+        [Fact]
+        public async Task ResetMeterBaseline_DropsOldOfficialImageOfSameType()
+        {
+            var (_, image) = SetupReset(dienCu: 9950m);
+            var old = new AnhChiSoDongHo
+            {
+                AnhChiSoDongHoId = 101, DichVuDienNuocCuaPhongId = 1, LoaiDongHo = LoaiDongHo.Dien, Url = "http://old",
+                TrangThaiXuLy = TrangThaiXuLyAnhChiSo.DaXacNhan, DuocChonLamChiSoChinhThuc = true, GiaTriXacNhan = 9950m, NguoiXacNhanId = 1
+            };
+            _store.Images[101] = old;
+
+            var result = await _service.ResetMeterBaselineAsync(Reset(MeterBaselineResetType.QuayVong, 100m), 2);
+
+            Assert.True(result.Success, result.Message);
+            Assert.False(old.DuocChonLamChiSoChinhThuc);
+            Assert.True(image.DuocChonLamChiSoChinhThuc);
+        }
+
+        [Fact]
+        public async Task ResetMeterBaseline_ShiftsLaterDraftPeriodOldReading()
+        {
+            var next = LaterPeriod(2, 11, 4520m, 4520m, 50m, 50m);
+            var (period, _) = SetupReset(dienCu: 4520m, others: new[] { next });
+
+            var result = await _service.ResetMeterBaselineAsync(Reset(MeterBaselineResetType.DoiDongHo, 85.5m, soDau: 0m), 2);
+
+            Assert.True(result.Success, result.Message);
+            Assert.Equal((85.5m, 85.5m), (next.ChiSoDienCu, next.ChiSoDienMoi));
+            Assert.Equal((50m, 50m), (next.ChiSoNuocCu, next.ChiSoNuocMoi));
+        }
+
+        [Fact]
+        public async Task ResetMeterBaseline_WhenLaterPeriodAlreadyChangedBaseline_StopsAndRollsBack()
+        {
+            // Kỳ 11 đã đổi đồng hồ điện (Cũ 0 khác Mới 4520 của kỳ 10): không được ghi đè.
+            var next = LaterPeriod(2, 11, 0m, 30m, 50m, 50m);
+            var (period, _) = SetupReset(dienCu: 4520m, others: new[] { next });
+
+            var result = await _service.ResetMeterBaselineAsync(Reset(MeterBaselineResetType.DoiDongHo, 85.5m, soDau: 0m), 2);
+
+            Assert.False(result.Success);
+            Assert.Contains("11/2026", result.Message);
+            Assert.Contains("đã đổi đồng hồ hoặc quay vòng", result.Message);
+            Assert.True(_uow.CurrentTransaction.RolledBack);
+            Assert.False(_uow.CurrentTransaction.Committed);
+            Assert.Equal(0, _uow.SaveChangesCallCount);
+            Assert.Equal((0m, 30m), (next.ChiSoDienCu, next.ChiSoDienMoi));
+        }
+
+        [Fact]
+        public async Task ConfirmImageAsync_SuspectedExtraDigit_NeedsNote_ThenSucceedsWithNote()
+        {
+            var (period, _) = SetupReset(dienCu: 150m);
+
+            var withoutNote = await _service.ConfirmImageAsync(new ConfirmMeterImageRequest { AnhChiSoDongHoId = 100, GiaTriXacNhan = 1500m }, 2);
+            var withNote = await _service.ConfirmImageAsync(new ConfirmMeterImageRequest { AnhChiSoDongHoId = 100, GiaTriXacNhan = 1500m, GhiChu = "Đã đối chiếu đồng hồ, đúng 1500" }, 2);
+
+            Assert.False(withoutNote.Success);
+            Assert.Contains("bất thường", withoutNote.Message);
+            Assert.True(withNote.Success, withNote.Message);
+            Assert.Equal(1500m, period.ChiSoDienMoi);
+        }
+
+        [Fact]
+        public async Task CorrectConfirmedImageAsync_WhenLaterPeriodChangedElectricBaseline_StopsAndKeepsLaterPeriod()
+        {
+            // Kỳ 11 có Cũ điện 0 (đã đổi đồng hồ) khác Mới điện kỳ 10 trước khi sửa (150).
+            var next = LaterPeriod(2, 11, 0m, 30m, 70m, 70m);
+            SetupCorrectionWithLaterPeriods(out _, next);
+
+            var result = await _service.CorrectConfirmedImageAsync(new CorrectConfirmedMeterImageRequest(100, 180m, "Sửa số"), 2);
+
+            Assert.False(result.Success);
+            Assert.Contains("11/2026", result.Message);
+            Assert.Contains("đã đổi đồng hồ hoặc quay vòng", result.Message);
+            Assert.Equal((0m, 30m), (next.ChiSoDienCu, next.ChiSoDienMoi));
+            Assert.Equal(0, _uow.SaveChangesCallCount);
+        }
+
+        [Fact]
+        public async Task CorrectConfirmedImageAsync_ElectricEdit_IgnoresLaterPeriodWaterBaselineChange()
+        {
+            // Q1: kỳ 11 đổi đồng hồ nước (Cũ nước 0 khác Mới nước 70) nhưng sửa điện thì không bị dừng.
+            var next = LaterPeriod(2, 11, 150m, 150m, 0m, 20m);
+            SetupCorrectionWithLaterPeriods(out _, next);
+
+            var result = await _service.CorrectConfirmedImageAsync(new CorrectConfirmedMeterImageRequest(100, 180m, "Sửa số"), 2);
+
+            Assert.True(result.Success, result.Message);
+            Assert.Equal((180m, 180m), (next.ChiSoDienCu, next.ChiSoDienMoi));
+            Assert.Equal((0m, 20m), (next.ChiSoNuocCu, next.ChiSoNuocMoi));
+        }
+
+        [Fact]
+        public async Task CorrectConfirmedImageAsync_Chain_UsesNewReadingBeforeTheEditForNextLink()
+        {
+            // Kỳ 11 có số riêng 200 (Cũ 150): Cũ chuyển sang 180, Mới giữ 200. Kỳ 12 Cũ 200 khớp Mới 200 trước sửa của kỳ 11
+            // nên không còn gì để dịch (Mới kỳ 11 không đổi).
+            var next1 = LaterPeriod(2, 11, 150m, 200m, 70m, 70m);
+            var next2 = LaterPeriod(3, 12, 200m, 260m, 70m, 70m);
+            SetupCorrectionWithLaterPeriods(out _, next1, next2);
+
+            var result = await _service.CorrectConfirmedImageAsync(new CorrectConfirmedMeterImageRequest(100, 180m, "Sửa số"), 2);
+
+            Assert.True(result.Success, result.Message);
+            Assert.Equal((180m, 200m), (next1.ChiSoDienCu, next1.ChiSoDienMoi));
+            Assert.Equal((200m, 260m), (next2.ChiSoDienCu, next2.ChiSoDienMoi));
+        }
+
+        // ---------- Bổ sung của Tester: cascade 5 nơi gọi, Q1, "chỉ số cũ thật", điều kiện quay vòng ----------
+
+        private AnhChiSoDongHo AddWaterImage(int id = 101, TrangThaiXuLyAnhChiSo status = TrangThaiXuLyAnhChiSo.DocDuoc)
+        {
+            var image = new AnhChiSoDongHo
+            {
+                AnhChiSoDongHoId = id, DichVuDienNuocCuaPhongId = 1, LoaiDongHo = LoaiDongHo.Nuoc, Url = "http://test-nuoc",
+                TrangThaiXuLy = status, GiaTriAIGoiY = 60m, DoTinCay = 0.95
+            };
+            _store.Images[id] = image;
+            return image;
+        }
+
+        private static DichVuDienNuocCuaPhong PreviousPeriod(int id, int thang, decimal dienMoi, decimal nuocMoi, bool deleted = false) => new()
+        {
+            DichVuDienNuocCuaPhongId = id, PhongTroId = 1, Thang = thang, Nam = 2026,
+            ChiSoDienCu = 0m, ChiSoDienMoi = dienMoi, ChiSoNuocCu = 0m, ChiSoNuocMoi = nuocMoi, IsDeleted = deleted
+        };
+
+        [Fact]
+        public async Task ConfirmImageAsync_ShiftsEveryLaterDraftPeriodInTheChain()
+        {
+            var next1 = LaterPeriod(2, 11, 4520m, 4520m, 50m, 50m);
+            var next2 = LaterPeriod(3, 12, 4520m, 4520m, 50m, 50m);
+            var (period, _) = SetupReset(dienCu: 4520m, others: new[] { next1, next2 });
+
+            var result = await _service.ConfirmImageAsync(new ConfirmMeterImageRequest { AnhChiSoDongHoId = 100, GiaTriXacNhan = 4565m }, 2);
+
+            Assert.True(result.Success, result.Message);
+            Assert.Equal((4520m, 4565m), (period.ChiSoDienCu, period.ChiSoDienMoi));
+            Assert.Equal((4565m, 4565m), (next1.ChiSoDienCu, next1.ChiSoDienMoi));
+            Assert.Equal((4565m, 4565m), (next2.ChiSoDienCu, next2.ChiSoDienMoi));
+            Assert.Equal((50m, 50m), (next1.ChiSoNuocCu, next1.ChiSoNuocMoi));
+            Assert.True(_uow.CurrentTransaction.Committed);
+        }
+
+        [Fact]
+        public async Task ConfirmImageAsync_WhenLaterPeriodChangedElectricBaseline_StopsWithoutCommit()
+        {
+            var next = LaterPeriod(2, 11, 0m, 30m, 50m, 50m);
+            var (period, image) = SetupReset(dienCu: 4520m, others: new[] { next });
+
+            var result = await _service.ConfirmImageAsync(new ConfirmMeterImageRequest { AnhChiSoDongHoId = 100, GiaTriXacNhan = 4565m }, 2);
+
+            Assert.False(result.Success);
+            Assert.Contains("11/2026", result.Message);
+            Assert.Contains("đã đổi đồng hồ hoặc quay vòng", result.Message);
+            Assert.False(_uow.CurrentTransaction.Committed);
+            Assert.Equal(0, _uow.SaveChangesCallCount);
+            Assert.Equal((0m, 30m), (next.ChiSoDienCu, next.ChiSoDienMoi));
+        }
+
+        [Fact]
+        public async Task ConfirmImageAsync_WaterImage_IgnoresLaterElectricBaselineChange_AndShiftsWater()
+        {
+            // Q1: kỳ 11 đã đổi đồng hồ điện (Cũ 0 khác Mới 4520), nhưng ảnh nước chỉ làm đổi số nước.
+            var next = LaterPeriod(2, 11, 0m, 30m, 50m, 50m);
+            var (period, _) = SetupReset(dienCu: 4520m, others: new[] { next });
+            AddWaterImage();
+
+            var result = await _service.ConfirmImageAsync(new ConfirmMeterImageRequest { AnhChiSoDongHoId = 101, GiaTriXacNhan = 60m }, 2);
+
+            Assert.True(result.Success, result.Message);
+            Assert.Equal((60m, 60m), (next.ChiSoNuocCu, next.ChiSoNuocMoi));
+            Assert.Equal((0m, 30m), (next.ChiSoDienCu, next.ChiSoDienMoi));
+        }
+
+        [Fact]
+        public async Task CorrectConfirmedImageAsync_WhenSecondLinkChangedBaseline_FailsAndRollsBackWithoutSaving()
+        {
+            // Kỳ 11 còn nháp (Cũ 150 = Mới kỳ 10) nên bị dịch; kỳ 12 có Cũ 0 khác Mới 150 của kỳ 11 trước khi dịch.
+            var next1 = LaterPeriod(2, 11, 150m, 150m, 70m, 70m);
+            var next2 = LaterPeriod(3, 12, 0m, 40m, 70m, 70m);
+            SetupCorrectionWithLaterPeriods(out _, next1, next2);
+
+            var result = await _service.CorrectConfirmedImageAsync(new CorrectConfirmedMeterImageRequest(100, 180m, "Sửa số"), 2);
+
+            Assert.False(result.Success);
+            Assert.Contains("12/2026", result.Message);
+            Assert.Contains("đã đổi đồng hồ hoặc quay vòng", result.Message);
+            Assert.Equal(0, _uow.SaveChangesCallCount);
+            Assert.False(_uow.CurrentTransaction.Committed);
+            Assert.Equal((0m, 40m), (next2.ChiSoDienCu, next2.ChiSoDienMoi));
+        }
+
+        [Fact]
+        public async Task CorrectConfirmedImageAsync_ChainStopsWhereNewReadingStaysTheSame_EvenIfFurtherPeriodChangedBaseline()
+        {
+            // Kỳ 11 có số riêng 200: Mới của nó không đổi nên kỳ 12 (Cũ 0, đã đổi mốc) không liên quan và không bị dừng.
+            var next1 = LaterPeriod(2, 11, 150m, 200m, 70m, 70m);
+            var next2 = LaterPeriod(3, 12, 0m, 40m, 70m, 70m);
+            SetupCorrectionWithLaterPeriods(out _, next1, next2);
+
+            var result = await _service.CorrectConfirmedImageAsync(new CorrectConfirmedMeterImageRequest(100, 180m, "Sửa số"), 2);
+
+            Assert.True(result.Success, result.Message);
+            Assert.Equal((180m, 200m), (next1.ChiSoDienCu, next1.ChiSoDienMoi));
+            Assert.Equal((0m, 40m), (next2.ChiSoDienCu, next2.ChiSoDienMoi));
+        }
+
+        [Fact]
+        public async Task CorrectConfirmedImageAsync_MixedChain_PlaceholderThenOwnReading()
+        {
+            var next1 = LaterPeriod(2, 11, 150m, 150m, 70m, 70m);
+            var next2 = LaterPeriod(3, 12, 150m, 260m, 70m, 70m);
+            SetupCorrectionWithLaterPeriods(out _, next1, next2);
+
+            var result = await _service.CorrectConfirmedImageAsync(new CorrectConfirmedMeterImageRequest(100, 180m, "Sửa số"), 2);
+
+            Assert.True(result.Success, result.Message);
+            Assert.Equal((180m, 180m), (next1.ChiSoDienCu, next1.ChiSoDienMoi));
+            Assert.Equal((180m, 260m), (next2.ChiSoDienCu, next2.ChiSoDienMoi));
+        }
+
+        // ----- AdjustReadingsInCurrentTransactionAsync (điều chỉnh hóa đơn) -----
+
+        private DichVuDienNuocCuaPhong SetupAdjust(params DichVuDienNuocCuaPhong[] later)
+        {
+            var period = new DichVuDienNuocCuaPhong
+            {
+                DichVuDienNuocCuaPhongId = 1, PhongTroId = 1, Thang = 10, Nam = 2026,
+                ChiSoDienCu = 100m, ChiSoDienMoi = 150m, ChiSoNuocCu = 50m, ChiSoNuocMoi = 70m,
+                TrangThaiGhiNhan = TrangThaiGhiNhan.DaDuyet
+            };
+            _store.Periods[1] = period;
+            _store.RoomBranches[1] = 10;
+            foreach (var l in later) _store.Periods[l.DichVuDienNuocCuaPhongId] = l;
+            _access.Permissions.Add((2, 10, EmployeeActionCodes.MeterReview));
+            return period;
+        }
+
+        private static MeterAdjustmentRequest Adjust(decimal dien, decimal nuoc) => new()
+        {
+            DichVuDienNuocCuaPhongId = 1, ChiSoDienMoi = dien, ChiSoNuocMoi = nuoc, LyDo = "Khách yêu cầu sửa"
+        };
+
+        [Fact]
+        public async Task Adjust_ShiftsAllLaterDraftPeriods_UsingNewReadingBeforeTheEdit()
+        {
+            var next1 = LaterPeriod(2, 11, 150m, 150m, 70m, 70m);
+            var next2 = LaterPeriod(3, 12, 150m, 150m, 70m, 70m);
+            var period = SetupAdjust(next1, next2);
+
+            var result = await _service.AdjustReadingsInCurrentTransactionAsync(Adjust(180m, 70m), 2);
+
+            Assert.True(result.Success, result.Message);
+            Assert.Equal((150m, 180m), (result.Data!.ChiSoDienCu, result.Data.ChiSoDienMoi));
+            Assert.Equal((180m, 180m), (next1.ChiSoDienCu, next1.ChiSoDienMoi));
+            Assert.Equal((180m, 180m), (next2.ChiSoDienCu, next2.ChiSoDienMoi));
+            Assert.Equal((70m, 70m), (next1.ChiSoNuocCu, next1.ChiSoNuocMoi));
+            Assert.Equal(TrangThaiGhiNhan.DaDuyet, period.TrangThaiGhiNhan);
+        }
+
+        [Fact]
+        public async Task Adjust_ChainEndsAtLaterPeriodWithOwnReading()
+        {
+            var next1 = LaterPeriod(2, 11, 150m, 200m, 70m, 70m);
+            var next2 = LaterPeriod(3, 12, 200m, 260m, 70m, 70m);
+            SetupAdjust(next1, next2);
+
+            var result = await _service.AdjustReadingsInCurrentTransactionAsync(Adjust(180m, 70m), 2);
+
+            Assert.True(result.Success, result.Message);
+            Assert.Equal((180m, 200m), (next1.ChiSoDienCu, next1.ChiSoDienMoi));
+            Assert.Equal((200m, 260m), (next2.ChiSoDienCu, next2.ChiSoDienMoi));
+        }
+
+        [Fact]
+        public async Task Adjust_WhenLaterPeriodChangedElectricBaseline_StopsWithoutSaving()
+        {
+            var next = LaterPeriod(2, 11, 0m, 30m, 70m, 70m);
+            SetupAdjust(next);
+
+            var result = await _service.AdjustReadingsInCurrentTransactionAsync(Adjust(180m, 70m), 2);
+
+            Assert.False(result.Success);
+            Assert.Contains("11/2026", result.Message);
+            Assert.Contains("đã đổi đồng hồ hoặc quay vòng", result.Message);
+            Assert.Equal(0, _uow.SaveChangesCallCount);
+            Assert.Equal((0m, 30m), (next.ChiSoDienCu, next.ChiSoDienMoi));
+        }
+
+        [Fact]
+        public async Task Adjust_WaterOnly_IgnoresLaterElectricBaselineChange()
+        {
+            // Q1: chỉ sửa nước; kỳ sau đổi đồng hồ điện không cản.
+            var next = LaterPeriod(2, 11, 0m, 30m, 70m, 70m);
+            SetupAdjust(next);
+
+            var result = await _service.AdjustReadingsInCurrentTransactionAsync(Adjust(150m, 75m), 2);
+
+            Assert.True(result.Success, result.Message);
+            Assert.Equal((75m, 75m), (next.ChiSoNuocCu, next.ChiSoNuocMoi));
+            Assert.Equal((0m, 30m), (next.ChiSoDienCu, next.ChiSoDienMoi));
+        }
+
+        [Fact]
+        public async Task Adjust_ElectricAndWaterChainsAreIndependent()
+        {
+            // Điện: kỳ 11 có số riêng nên chuỗi điện dừng ở đó. Nước: cả hai kỳ sau còn nháp nên cùng dịch.
+            var next1 = LaterPeriod(2, 11, 150m, 200m, 70m, 70m);
+            var next2 = LaterPeriod(3, 12, 200m, 260m, 70m, 70m);
+            SetupAdjust(next1, next2);
+
+            var result = await _service.AdjustReadingsInCurrentTransactionAsync(Adjust(180m, 75m), 2);
+
+            Assert.True(result.Success, result.Message);
+            Assert.Equal((180m, 200m), (next1.ChiSoDienCu, next1.ChiSoDienMoi));
+            Assert.Equal((200m, 260m), (next2.ChiSoDienCu, next2.ChiSoDienMoi));
+            Assert.Equal((75m, 75m), (next1.ChiSoNuocCu, next1.ChiSoNuocMoi));
+            Assert.Equal((75m, 75m), (next2.ChiSoNuocCu, next2.ChiSoNuocMoi));
+        }
+
+        // ----- ApprovePeriodsAsync nhiều phòng -----
+
+        private (DichVuDienNuocCuaPhong P1, DichVuDienNuocCuaPhong L1, DichVuDienNuocCuaPhong L1b, DichVuDienNuocCuaPhong P2, DichVuDienNuocCuaPhong L2) SetupTwoRoomApproval(
+            DichVuDienNuocCuaPhong? room2Later = null)
+        {
+            DichVuDienNuocCuaPhong Draft(int id, int room, int thang) => new()
+            {
+                DichVuDienNuocCuaPhongId = id, PhongTroId = room, Thang = thang, Nam = 2026,
+                ChiSoDienCu = 100m, ChiSoDienMoi = 100m, ChiSoNuocCu = 50m, ChiSoNuocMoi = 50m, TrangThaiGhiNhan = TrangThaiGhiNhan.Nhap
+            };
+
+            var p1 = Draft(1, 1, 10);
+            var l1 = Draft(2, 1, 11);
+            var l1b = Draft(5, 1, 12);
+            var p2 = Draft(3, 2, 10);
+            var l2 = room2Later ?? Draft(4, 2, 11);
+            foreach (var p in new[] { p1, l1, l1b, p2, l2 }) _store.Periods[p.DichVuDienNuocCuaPhongId] = p;
+            _store.RoomBranches[1] = 10;
+            _store.RoomBranches[2] = 10;
+            _access.Permissions.Add((2, 10, EmployeeActionCodes.MeterReview));
+            return (p1, l1, l1b, p2, l2);
+        }
+
+        private static ApproveMeterPeriodsRequest ApproveBoth(decimal dien2, decimal nuoc2) => new()
+        {
+            Thang = 10,
+            Nam = 2026,
+            DanhSachPhong = new List<ApproveMeterPeriodItem> { ManualApproveItem(1, 160m, 65m), ManualApproveItem(2, dien2, nuoc2) }
+        };
+
+        [Fact]
+        public async Task ApprovePeriodsAsync_TwoRooms_ShiftsLaterDraftChainOfEveryRoom()
+        {
+            var (_, l1, l1b, _, l2) = SetupTwoRoomApproval();
+
+            var result = await _service.ApprovePeriodsAsync(ApproveBoth(150m, 55m), 2);
+
+            Assert.True(result.Success, result.Message);
+            Assert.Equal((160m, 160m, 65m, 65m), (l1.ChiSoDienCu, l1.ChiSoDienMoi, l1.ChiSoNuocCu, l1.ChiSoNuocMoi));
+            Assert.Equal((160m, 160m, 65m, 65m), (l1b.ChiSoDienCu, l1b.ChiSoDienMoi, l1b.ChiSoNuocCu, l1b.ChiSoNuocMoi));
+            Assert.Equal((150m, 150m, 55m, 55m), (l2.ChiSoDienCu, l2.ChiSoDienMoi, l2.ChiSoNuocCu, l2.ChiSoNuocMoi));
+            Assert.True(_uow.CurrentTransaction.Committed);
+        }
+
+        [Fact]
+        public async Task ApprovePeriodsAsync_SecondRoomLaterPeriodChangedBaseline_RejectsWholeBatchWithRoomInMessage()
+        {
+            var changed = LaterPeriod(4, 11, 0m, 30m, 50m, 50m);
+            changed.PhongTroId = 2;
+            var (_, _, _, _, l2) = SetupTwoRoomApproval(changed);
+
+            var result = await _service.ApprovePeriodsAsync(ApproveBoth(150m, 55m), 2);
+
+            Assert.False(result.Success);
+            Assert.Contains("Phòng 2", result.Message);
+            Assert.Contains("11/2026", result.Message);
+            Assert.Contains("đã đổi đồng hồ hoặc quay vòng", result.Message);
+            Assert.True(_uow.CurrentTransaction.RolledBack);
+            Assert.False(_uow.CurrentTransaction.Committed);
+            Assert.Equal((0m, 30m), (l2.ChiSoDienCu, l2.ChiSoDienMoi));
+        }
+
+        [Fact]
+        public async Task ApprovePeriodsAsync_WaterUnchanged_IgnoresLaterWaterBaselineChange()
+        {
+            // Q1: phòng 2 duyệt nước đúng bằng số hiện có (50 → 50) nên kỳ sau đã đổi đồng hồ nước không cản; điện vẫn dịch.
+            var changed = LaterPeriod(4, 11, 100m, 100m, 0m, 20m);
+            changed.PhongTroId = 2;
+            var (_, _, _, _, l2) = SetupTwoRoomApproval(changed);
+
+            var result = await _service.ApprovePeriodsAsync(ApproveBoth(150m, 50m), 2);
+
+            Assert.True(result.Success, result.Message);
+            Assert.Equal((150m, 150m), (l2.ChiSoDienCu, l2.ChiSoDienMoi));
+            Assert.Equal((0m, 20m), (l2.ChiSoNuocCu, l2.ChiSoNuocMoi));
+        }
+
+        // ----- ResetMeterBaselineAsync: điều kiện quay vòng, "chỉ số cũ thật", ghi chú, cascade -----
+
+        [Theory]
+        [InlineData(9000, true)]       // đúng 90% của 10.000
+        [InlineData(8999.999, false)]  // dưới 90%
+        [InlineData(950, false)]       // trần tối thiểu 10.000 nên 950 chỉ là 9,5% (không phải 95% của 1.000)
+        [InlineData(10_000, false)]    // trần là 100.000, 10.000 chỉ là 10%
+        [InlineData(90_000, true)]     // đúng 90% của 100.000
+        public async Task ResetMeterBaseline_QuayVong_NinetyPercentOfCeilingBoundary(double cu, bool allowed)
+        {
+            var (period, _) = SetupReset(dienCu: (decimal)cu);
+
+            var result = await _service.ResetMeterBaselineAsync(Reset(MeterBaselineResetType.QuayVong, 100m), 2);
+
+            Assert.Equal(allowed, result.Success);
+            Assert.Equal(allowed ? 0m : (decimal)cu, period.ChiSoDienCu);
+        }
+
+        [Fact]
+        public async Task ResetMeterBaseline_QuayVong_FiveDigitCeiling_WritesCeilingAndPartBeforeBaseline()
+        {
+            var (period, image) = SetupReset(dienCu: 95_000m);
+
+            var result = await _service.ResetMeterBaselineAsync(Reset(MeterBaselineResetType.QuayVong, 100m, lyDo: "Quay vòng"), 2);
+
+            Assert.True(result.Success, result.Message);
+            Assert.Equal((0m, 100m), (period.ChiSoDienCu, period.ChiSoDienMoi));
+            Assert.Equal("[QUAY_VONG] Chỉ số cũ 95.000; trần 100.000; phần trước mốc 5.000 kWh; lý do: Quay vòng", image.GhiChuXacNhan);
+        }
+
+        [Fact]
+        public async Task ResetMeterBaseline_QuayVong_Water_UsesCubicMetersAndKeepsElectricity()
+        {
+            var (period, _) = SetupReset(dienCu: 4520m);
+            period.ChiSoNuocCu = 9990m;
+            period.ChiSoNuocMoi = 9990m;
+            var image = AddWaterImage();
+
+            var result = await _service.ResetMeterBaselineAsync(
+                new ResetMeterBaselineRequest(101, MeterBaselineResetType.QuayVong, 3m, null, null, "Quay vòng nước"), 2);
+
+            Assert.True(result.Success, result.Message);
+            Assert.Equal((0m, 3m), (period.ChiSoNuocCu, period.ChiSoNuocMoi));
+            Assert.Equal((4520m, 4520m), (period.ChiSoDienCu, period.ChiSoDienMoi));
+            Assert.Equal("[QUAY_VONG] Chỉ số cũ 9.990; trần 10.000; phần trước mốc 10 m³; lý do: Quay vòng nước", image.GhiChuXacNhan);
+        }
+
+        [Fact]
+        public async Task ResetMeterBaseline_QuayVong_IgnoresStartAndLastNumbersFromRequest()
+        {
+            var (period, image) = SetupReset(dienCu: 9950m);
+
+            var result = await _service.ResetMeterBaselineAsync(
+                Reset(MeterBaselineResetType.QuayVong, 100m, soDau: 77m, soCuoi: 9999m, lyDo: "Quay vòng"), 2);
+
+            Assert.True(result.Success, result.Message);
+            Assert.Equal(0m, period.ChiSoDienCu);
+            Assert.StartsWith("[QUAY_VONG]", image.GhiChuXacNhan);
+            Assert.DoesNotContain("số cuối", image.GhiChuXacNhan);
+            Assert.DoesNotContain("số đầu", image.GhiChuXacNhan);
+        }
+
+        [Fact]
+        public async Task ResetMeterBaseline_SecondTime_QuayVongConditionUsesTrueOldNumberNotCurrentBaseline()
+        {
+            // Kỳ 09 kết thúc ở 9950. Kỳ 10 từng đổi mốc về 0 (Cũ hiện là 0): quay vòng vẫn hợp lệ theo chỉ số cũ thật 9950.
+            var prev = PreviousPeriod(5, 9, dienMoi: 9950m, nuocMoi: 50m);
+            var (period, image) = SetupReset(dienCu: 0m, others: new[] { prev });
+            period.ChiSoDienMoi = 80m;
+
+            var result = await _service.ResetMeterBaselineAsync(Reset(MeterBaselineResetType.QuayVong, 100m, lyDo: "Làm lại"), 2);
+
+            Assert.True(result.Success, result.Message);
+            Assert.StartsWith("[QUAY_VONG] Chỉ số cũ 9.950; trần 10.000;", image.GhiChuXacNhan);
+            Assert.Equal((0m, 100m), (period.ChiSoDienCu, period.ChiSoDienMoi));
+        }
+
+        [Fact]
+        public async Task ResetMeterBaseline_SecondTime_LastNumberIsComparedWithTrueOldNumber()
+        {
+            // Nếu dùng Cũ hiện tại (0) thì số cuối 4000 hợp lệ; dùng chỉ số cũ thật 4520 thì phải bị từ chối.
+            var prev = PreviousPeriod(5, 9, dienMoi: 4520m, nuocMoi: 50m);
+            var (period, _) = SetupReset(dienCu: 0m, others: new[] { prev });
+            period.ChiSoDienMoi = 80m;
+
+            var result = await _service.ResetMeterBaselineAsync(
+                Reset(MeterBaselineResetType.DoiDongHo, 85.5m, soDau: 0m, soCuoi: 4000m), 2);
+
+            Assert.False(result.Success);
+            Assert.Contains("4.520", result.Message);
+            Assert.Equal((0m, 80m), (period.ChiSoDienCu, period.ChiSoDienMoi));
+        }
+
+        [Fact]
+        public async Task ResetMeterBaseline_PreviousPeriodSoftDeleted_UsesNearestUndeletedPreviousPeriod()
+        {
+            var deleted = PreviousPeriod(6, 9, dienMoi: 9999m, nuocMoi: 50m, deleted: true);
+            var older = PreviousPeriod(5, 8, dienMoi: 4520m, nuocMoi: 50m);
+            var (_, image) = SetupReset(dienCu: 7m, others: new[] { deleted, older });
+
+            var result = await _service.ResetMeterBaselineAsync(
+                Reset(MeterBaselineResetType.DoiDongHo, 85.5m, soDau: 0m, soCuoi: 4565.25m), 2);
+
+            Assert.True(result.Success, result.Message);
+            Assert.StartsWith("[DOI_DONG_HO] Chỉ số cũ 4.520;", image.GhiChuXacNhan);
+        }
+
+        [Fact]
+        public async Task ResetMeterBaseline_DoiDongHo_BoundaryValuesAreAccepted()
+        {
+            // Số cuối bằng chỉ số cũ (phần đồng hồ cũ 0) và số đầu bằng số hiện tại đều hợp lệ.
+            var (period, image) = SetupReset(dienCu: 4520m);
+
+            var result = await _service.ResetMeterBaselineAsync(
+                Reset(MeterBaselineResetType.DoiDongHo, 12.5m, soDau: 12.5m, soCuoi: 4520m, lyDo: "Thay đồng hồ"), 2);
+
+            Assert.True(result.Success, result.Message);
+            Assert.Equal((12.5m, 12.5m), (period.ChiSoDienCu, period.ChiSoDienMoi));
+            Assert.Equal("[DOI_DONG_HO] Chỉ số cũ 4.520; số đầu 12,5; số cuối đồng hồ cũ 4.520; phần đồng hồ cũ 0 kWh; lý do: Thay đồng hồ", image.GhiChuXacNhan);
+        }
+
+        [Fact]
+        public async Task ResetMeterBaseline_DoiDongHo_NegativeNumbers_Fail()
+        {
+            var (period, _) = SetupReset(dienCu: 4520m);
+
+            var negativeStart = await _service.ResetMeterBaselineAsync(Reset(MeterBaselineResetType.DoiDongHo, 85m, soDau: -1m), 2);
+            var negativeCurrent = await _service.ResetMeterBaselineAsync(Reset(MeterBaselineResetType.DoiDongHo, -1m), 2);
+            var negativeLast = await _service.ResetMeterBaselineAsync(Reset(MeterBaselineResetType.DoiDongHo, 85m, soCuoi: -1m), 2);
+
+            Assert.False(negativeStart.Success);
+            Assert.False(negativeCurrent.Success);
+            Assert.False(negativeLast.Success);
+            Assert.Equal((4520m, 4520m), (period.ChiSoDienCu, period.ChiSoDienMoi));
+            Assert.False(_uow.CurrentTransaction.Committed);
+        }
+
+        [Fact]
+        public async Task ResetMeterBaseline_Reason_ExactlyLimit_SucceedsAndNoteStaysWithinColumnLimit()
+        {
+            var (_, image) = SetupReset(dienCu: 4520m);
+            var reason = new string('x', 500);
+
+            var result = await _service.ResetMeterBaselineAsync(
+                Reset(MeterBaselineResetType.DoiDongHo, 85.5m, soDau: 0m, soCuoi: 4565.25m, lyDo: "  " + reason + "  "), 2);
+
+            Assert.True(result.Success, result.Message);
+            Assert.True(image.GhiChuXacNhan!.Length <= 1000);
+            Assert.EndsWith("lý do: " + reason, image.GhiChuXacNhan);
+        }
+
+        [Theory]
+        [InlineData(TrangThaiXuLyAnhChiSo.KhongDocDuoc)]
+        [InlineData(TrangThaiXuLyAnhChiSo.Loi)]
+        public async Task ResetMeterBaseline_OnUnreadableImage_ConfirmsManuallyWithServerNote(TrangThaiXuLyAnhChiSo status)
+        {
+            var (period, image) = SetupReset(dienCu: 4520m, status: status);
+
+            var result = await _service.ResetMeterBaselineAsync(
+                Reset(MeterBaselineResetType.DoiDongHo, 85.5m, soDau: 0m, lyDo: "Ảnh mờ, đọc tay"), 2);
+
+            Assert.True(result.Success, result.Message);
+            Assert.Equal(TrangThaiXuLyAnhChiSo.DaXacNhan, image.TrangThaiXuLy);
+            Assert.True(image.DuocChonLamChiSoChinhThuc);
+            Assert.Equal(85.5m, image.GiaTriXacNhan);
+            Assert.Equal((0m, 85.5m), (period.ChiSoDienCu, period.ChiSoDienMoi));
+        }
+
+        [Fact]
+        public async Task ResetMeterBaseline_OnApprovedPeriod_StaysApprovedAndRecordsReviewer()
+        {
+            var (period, _) = SetupReset(dienCu: 4520m);
+            period.TrangThaiGhiNhan = TrangThaiGhiNhan.DaDuyet;
+            period.NguoiDuyetId = 1;
+
+            var result = await _service.ResetMeterBaselineAsync(Reset(MeterBaselineResetType.DoiDongHo, 85.5m, soDau: 0m), 2);
+
+            Assert.True(result.Success, result.Message);
+            Assert.Equal(TrangThaiGhiNhan.DaDuyet, period.TrangThaiGhiNhan);
+            Assert.Equal(2, period.NguoiDuyetId);
+            Assert.Equal((0m, 85.5m), (period.ChiSoDienCu, period.ChiSoDienMoi));
+        }
+
+        [Fact]
+        public async Task ResetMeterBaseline_ShiftsEveryLaterDraftPeriodInTheChain()
+        {
+            var next1 = LaterPeriod(2, 11, 4520m, 4520m, 50m, 50m);
+            var next2 = LaterPeriod(3, 12, 4520m, 4520m, 50m, 50m);
+            SetupReset(dienCu: 4520m, others: new[] { next1, next2 });
+
+            var result = await _service.ResetMeterBaselineAsync(Reset(MeterBaselineResetType.DoiDongHo, 85.5m, soDau: 0m), 2);
+
+            Assert.True(result.Success, result.Message);
+            Assert.Equal((85.5m, 85.5m), (next1.ChiSoDienCu, next1.ChiSoDienMoi));
+            Assert.Equal((85.5m, 85.5m), (next2.ChiSoDienCu, next2.ChiSoDienMoi));
+        }
+
+        [Fact]
+        public async Task ResetMeterBaseline_WhenSecondLinkChangedBaseline_StopsAndRollsBack()
+        {
+            var next1 = LaterPeriod(2, 11, 4520m, 4520m, 50m, 50m);
+            var next2 = LaterPeriod(3, 12, 0m, 30m, 50m, 50m);
+            SetupReset(dienCu: 4520m, others: new[] { next1, next2 });
+
+            var result = await _service.ResetMeterBaselineAsync(Reset(MeterBaselineResetType.DoiDongHo, 85.5m, soDau: 0m), 2);
+
+            Assert.False(result.Success);
+            Assert.Contains("12/2026", result.Message);
+            Assert.True(_uow.CurrentTransaction.RolledBack);
+            Assert.False(_uow.CurrentTransaction.Committed);
+            Assert.Equal((0m, 30m), (next2.ChiSoDienCu, next2.ChiSoDienMoi));
+        }
+
+        [Fact]
+        public async Task ResetMeterBaseline_Electric_IgnoresLaterWaterBaselineChange()
+        {
+            // Q1: đổi đồng hồ điện, kỳ sau đã đổi đồng hồ nước: không cản và không đụng số nước.
+            var next = LaterPeriod(2, 11, 4520m, 4520m, 0m, 20m);
+            SetupReset(dienCu: 4520m, others: new[] { next });
+
+            var result = await _service.ResetMeterBaselineAsync(Reset(MeterBaselineResetType.DoiDongHo, 85.5m, soDau: 0m), 2);
+
+            Assert.True(result.Success, result.Message);
+            Assert.Equal((85.5m, 85.5m), (next.ChiSoDienCu, next.ChiSoDienMoi));
+            Assert.Equal((0m, 20m), (next.ChiSoNuocCu, next.ChiSoNuocMoi));
+        }
+
+        [Fact]
+        public async Task ResetMeterBaseline_Water_ShiftsOnlyWaterOfLaterPeriod()
+        {
+            var next = LaterPeriod(2, 11, 0m, 30m, 50m, 50m);
+            SetupReset(dienCu: 4520m, others: new[] { next });
+            AddWaterImage();
+
+            var result = await _service.ResetMeterBaselineAsync(
+                new ResetMeterBaselineRequest(101, MeterBaselineResetType.DoiDongHo, 3m, 0m, 70m, "Thay đồng hồ nước"), 2);
+
+            Assert.True(result.Success, result.Message);
+            Assert.Equal((3m, 3m), (next.ChiSoNuocCu, next.ChiSoNuocMoi));
+            Assert.Equal((0m, 30m), (next.ChiSoDienCu, next.ChiSoDienMoi));
+        }
+
+        [Fact]
+        public async Task ResetMeterBaseline_Again_CascadeUsesNewReadingBeforeTheRedo_NotTheTrueOldNumber()
+        {
+            // Lần một đã đưa kỳ 10 về (0, 80) và kỳ 11 về (80, 80). Làm lại lần hai: kỳ 11 phải so với 80, không phải 4520.
+            var prev = PreviousPeriod(5, 9, dienMoi: 4520m, nuocMoi: 50m);
+            var next = LaterPeriod(2, 11, 80m, 80m, 50m, 50m);
+            var (period, _) = SetupReset(dienCu: 0m, others: new[] { prev, next });
+            period.ChiSoDienMoi = 80m;
+
+            var result = await _service.ResetMeterBaselineAsync(Reset(MeterBaselineResetType.DoiDongHo, 85.5m, soDau: 0m, soCuoi: 4565.25m), 2);
+
+            Assert.True(result.Success, result.Message);
+            Assert.Equal((85.5m, 85.5m), (next.ChiSoDienCu, next.ChiSoDienMoi));
+        }
+
+        [Fact]
+        public async Task ResetMeterBaseline_WhenCascadeFailsAfterDroppingOldOfficialImage_RollsBackTransaction()
+        {
+            // Bỏ ảnh chính thức cũ cần một lần SaveChanges giữa chừng (tránh vi phạm unique); cascade lỗi sau đó thì transaction phải rollback.
+            var next = LaterPeriod(2, 11, 0m, 30m, 50m, 50m);
+            SetupReset(dienCu: 9950m, others: new[] { next });
+            var old = new AnhChiSoDongHo
+            {
+                AnhChiSoDongHoId = 101, DichVuDienNuocCuaPhongId = 1, LoaiDongHo = LoaiDongHo.Dien, Url = "http://old",
+                TrangThaiXuLy = TrangThaiXuLyAnhChiSo.DaXacNhan, DuocChonLamChiSoChinhThuc = true, GiaTriXacNhan = 9950m, NguoiXacNhanId = 1
+            };
+            _store.Images[101] = old;
+
+            var result = await _service.ResetMeterBaselineAsync(Reset(MeterBaselineResetType.QuayVong, 100m), 2);
+
+            Assert.False(result.Success);
+            Assert.Contains("11/2026", result.Message);
+            Assert.True(_uow.CurrentTransaction.RolledBack);
+            Assert.False(_uow.CurrentTransaction.Committed);
         }
 
         #endregion

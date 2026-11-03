@@ -42,6 +42,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         public Func<int, int, ServiceResult<MeterImageWorkflowResult>>? OnRetryOcr { get; set; }
         public Func<ConfirmMeterImageRequest, int, ServiceResult<MeterImageWorkflowResult>>? OnConfirmImage { get; set; }
         public Func<CorrectConfirmedMeterImageRequest, int, ServiceResult<MeterImageWorkflowResult>>? OnCorrectConfirmedImage { get; set; }
+        public Func<ResetMeterBaselineRequest, int, ServiceResult<MeterImageWorkflowResult>>? OnResetMeterBaseline { get; set; }
 
         public Task<ServiceResult<MeterImageWorkflowResult>> UploadImageAsync(UploadMeterImageRequest request, int actorUserId, CancellationToken cancellationToken = default)
         {
@@ -67,6 +68,12 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             return Task.FromResult(ServiceResult<MeterImageWorkflowResult>.Ok(new MeterImageWorkflowResult()));
         }
 
+
+        public Task<ServiceResult<MeterImageWorkflowResult>> ResetMeterBaselineAsync(ResetMeterBaselineRequest request, int actorUserId, CancellationToken cancellationToken = default)
+        {
+            if (OnResetMeterBaseline != null) return Task.FromResult(OnResetMeterBaseline(request, actorUserId));
+            return Task.FromResult(ServiceResult<MeterImageWorkflowResult>.Ok(new MeterImageWorkflowResult()));
+        }
 
         public List<(MeterAdjustmentRequest Request, int ActorUserId)> AdjustCalls { get; } = new();
         public Func<MeterAdjustmentRequest, int, ServiceResult<MeterAdjustmentResult>>? OnAdjustReadings { get; set; }

@@ -6,6 +6,7 @@ using QuanLyChoThuePhongTroWeb.Application.Common.Configurations;
 using QuanLyChoThuePhongTroWeb.Application.Common.Models;
 using QuanLyChoThuePhongTroWeb.Application.Common.Security;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs;
+using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services;
 using QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes;
 using QuanLyChoThuePhongTroWeb.Domain.Enums;
@@ -204,6 +205,149 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
 
             Assert.NotNull(result);
             Assert.False(_viewStore.LastIncludeHistory);
+        }
+
+        [Fact]
+        public async Task EmployeeDetail_ChangedBaseline_AddsReminderAndPeriodPrices_TenantDoesNot()
+        {
+            var service = CreateService();
+            int hoaDonId = 100;
+            int tenantId = 5;
+            _viewStore.BranchIds[hoaDonId] = 5;
+            _accessService.Permissions.Add((2, 5, EmployeeActionCodes.InvoiceRead));
+            _hoaDonStore.OwnedInvoices.Add((hoaDonId, tenantId));
+            _viewStore.Details[hoaDonId] = new HoaDonChiTietRes { HoaDonId = hoaDonId };
+            _viewStore.BaselineFacts[hoaDonId] = new InvoiceMeterBaselineFacts(
+                ChiSoDienCu: 0m, ChiSoNuocCu: 50m, MoiDienKyTruoc: 4520m, MoiNuocKyTruoc: 50m,
+                GhiChuDien: "[DOI_DONG_HO] Chỉ số cũ 4.520; số đầu 0; không có số cuối đồng hồ cũ; lý do: Thay", GhiChuNuoc: null,
+                DonGiaDien: 3500m, DonGiaNuoc: 20000m);
+
+            var staff = await service.GetEmployeeDetailAsync(hoaDonId, actorId: 2);
+            // Fake trả đúng đối tượng đã đăng ký; cấp bản mới để thấy tenant không bị điền.
+            _viewStore.Details[hoaDonId] = new HoaDonChiTietRes { HoaDonId = hoaDonId };
+            var tenant = await service.GetTenantDetailAsync(hoaDonId, tenantId);
+
+            Assert.NotNull(staff);
+            var nhac = Assert.Single(staff!.NhacTruyThus);
+            Assert.StartsWith("Kỳ này có đổi đồng hồ điện: [DOI_DONG_HO]", nhac);
+            Assert.EndsWith("Kiểm tra đã thêm dòng truy thu nếu cần thu.", nhac);
+            Assert.Equal(3500m, staff.DonGiaDienKy);
+            Assert.Equal(20000m, staff.DonGiaNuocKy);
+
+            Assert.NotNull(tenant);
+            Assert.Empty(tenant!.NhacTruyThus);
+            Assert.Null(tenant.DonGiaDienKy);
+            Assert.Null(tenant.DonGiaNuocKy);
+        }
+
+        [Fact]
+        public async Task EmployeeDetail_NoBaselineChange_HasNoReminder()
+        {
+            var service = CreateService();
+            int hoaDonId = 100;
+            _viewStore.BranchIds[hoaDonId] = 5;
+            _accessService.Permissions.Add((2, 5, EmployeeActionCodes.InvoiceRead));
+            _viewStore.Details[hoaDonId] = new HoaDonChiTietRes { HoaDonId = hoaDonId };
+            _viewStore.BaselineFacts[hoaDonId] = new InvoiceMeterBaselineFacts(100m, 50m, 100m, 50m, null, null, 3500m, 20000m);
+
+            var staff = await service.GetEmployeeDetailAsync(hoaDonId, actorId: 2);
+
+            Assert.Empty(staff!.NhacTruyThus);
+            Assert.Equal(3500m, staff.DonGiaDienKy);
+        }
+
+        private const string TheDoiDongHoDien = "[DOI_DONG_HO] Chỉ số cũ 4.520; số đầu 0; không có số cuối đồng hồ cũ; lý do: Thay";
+
+        private HoaDonChiTietRes SeedEmployeeInvoice(int hoaDonId, InvoiceMeterBaselineFacts? facts)
+        {
+            _viewStore.BranchIds[hoaDonId] = 5;
+            _accessService.Permissions.Add((2, 5, EmployeeActionCodes.InvoiceRead));
+            _hoaDonStore.OwnedInvoices.Add((hoaDonId, 5));
+            var detail = new HoaDonChiTietRes { HoaDonId = hoaDonId };
+            _viewStore.Details[hoaDonId] = detail;
+            if (facts != null) _viewStore.BaselineFacts[hoaDonId] = facts;
+            return detail;
+        }
+
+        [Fact]
+        public async Task TenantDetail_NeverFillsReminderOrPeriodPrices_EvenWhenPeriodChangedBaseline()
+        {
+            var service = CreateService();
+            var detail = SeedEmployeeInvoice(100, new InvoiceMeterBaselineFacts(0m, 50m, 4520m, 50m, TheDoiDongHoDien, null, 3500m, 20000m));
+
+            // Cùng một đối tượng chi tiết, chỉ gọi đường phía khách: nếu service điền thì sẽ thấy ngay trên đối tượng này.
+            var tenant = await service.GetTenantDetailAsync(100, 5);
+
+            Assert.Same(detail, tenant);
+            Assert.Empty(tenant!.NhacTruyThus);
+            Assert.Null(tenant.DonGiaDienKy);
+            Assert.Null(tenant.DonGiaNuocKy);
+        }
+
+        [Fact]
+        public async Task EmployeeDetail_WaterOnlyChanged_HasOnlyWaterReminderWithGenericSentenceWhenNoteIsGone()
+        {
+            var service = CreateService();
+            SeedEmployeeInvoice(100, new InvoiceMeterBaselineFacts(100m, 0m, 100m, 9990m, null, "[Sửa 5 → 7] Nhập nhầm", 3500m, 20000m));
+
+            var staff = await service.GetEmployeeDetailAsync(100, actorId: 2);
+
+            var nhac = Assert.Single(staff!.NhacTruyThus);
+            Assert.Equal("Kỳ này có đổi đồng hồ hoặc quay vòng nước (không còn ghi chú xác nhận). Kiểm tra đã thêm dòng truy thu nếu cần thu.", nhac);
+        }
+
+        [Fact]
+        public async Task EmployeeDetail_BothMetersChanged_ListsElectricThenWater()
+        {
+            var service = CreateService();
+            SeedEmployeeInvoice(100, new InvoiceMeterBaselineFacts(
+                0m, 0m, 4520m, 9990m, TheDoiDongHoDien, "[QUAY_VONG] Chỉ số cũ 9.990; trần 10.000; phần trước mốc 10 m³; lý do: Quay vòng", 3500m, 20000m));
+
+            var staff = await service.GetEmployeeDetailAsync(100, actorId: 2);
+
+            Assert.Equal(2, staff!.NhacTruyThus.Count);
+            Assert.StartsWith("Kỳ này có đổi đồng hồ điện: [DOI_DONG_HO]", staff.NhacTruyThus[0]);
+            Assert.StartsWith("Kỳ này có quay vòng nước: [QUAY_VONG]", staff.NhacTruyThus[1]);
+        }
+
+        [Fact]
+        public async Task EmployeeDetail_FirstEverPeriod_HasNoReminderButStillOffersPeriodPrices()
+        {
+            // B4: kỳ đầu tiên không có kỳ trước nên không có nhắc, nhưng nút truy thu vẫn cần đơn giá kỳ.
+            var service = CreateService();
+            SeedEmployeeInvoice(100, new InvoiceMeterBaselineFacts(0m, 0m, null, null, TheDoiDongHoDien, null, 3500m, 20000m));
+
+            var staff = await service.GetEmployeeDetailAsync(100, actorId: 2);
+
+            Assert.Empty(staff!.NhacTruyThus);
+            Assert.Equal(3500m, staff.DonGiaDienKy);
+            Assert.Equal(20000m, staff.DonGiaNuocKy);
+        }
+
+        [Fact]
+        public async Task EmployeeDetail_InvoiceWithoutMeterPeriod_HasNoReminderAndNoPeriodPrices()
+        {
+            var service = CreateService();
+            SeedEmployeeInvoice(100, facts: null);
+
+            var staff = await service.GetEmployeeDetailAsync(100, actorId: 2);
+
+            Assert.NotNull(staff);
+            Assert.Empty(staff!.NhacTruyThus);
+            Assert.Null(staff.DonGiaDienKy);
+            Assert.Null(staff.DonGiaNuocKy);
+        }
+
+        [Fact]
+        public async Task EmployeeDetail_WithoutInvoiceReadPermission_ReturnsNullAndNoReminder()
+        {
+            var service = CreateService();
+            var detail = SeedEmployeeInvoice(100, new InvoiceMeterBaselineFacts(0m, 50m, 4520m, 50m, TheDoiDongHoDien, null, 3500m, 20000m));
+
+            var other = await service.GetEmployeeDetailAsync(100, actorId: 99);
+
+            Assert.Null(other);
+            Assert.Empty(detail.NhacTruyThus);
         }
 
         [Fact]

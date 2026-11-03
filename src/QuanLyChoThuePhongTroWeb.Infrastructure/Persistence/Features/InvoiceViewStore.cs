@@ -154,6 +154,42 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 .FirstOrDefaultAsync(ct);
         }
 
+        public async Task<InvoiceMeterBaselineFacts?> GetMeterBaselineFactsAsync(int hoaDonId, CancellationToken ct = default)
+        {
+            var ky = await _context.HoaDons
+                .AsNoTracking()
+                .Where(h => h.HoaDonId == hoaDonId && h.DichVuDienNuocCuaPhongId != null)
+                .Select(h => h.DichVuDienNuocCuaPhong)
+                .FirstOrDefaultAsync(ct);
+
+            if (ky == null || ky.IsDeleted) return null;
+
+            // Kỳ trước: cùng phòng, chưa xóa, (Nam, Thang) nhỏ hơn gần nhất.
+            var kyTruoc = await _context.DichVuDienNuocCuaPhongs
+                .AsNoTracking()
+                .Where(x => x.PhongTroId == ky.PhongTroId && !x.IsDeleted &&
+                            (x.Nam < ky.Nam || (x.Nam == ky.Nam && x.Thang < ky.Thang)))
+                .OrderByDescending(x => x.Nam)
+                .ThenByDescending(x => x.Thang)
+                .FirstOrDefaultAsync(ct);
+
+            var ghiChus = await _context.AnhChiSoDongHos
+                .AsNoTracking()
+                .Where(a => a.DichVuDienNuocCuaPhongId == ky.DichVuDienNuocCuaPhongId && a.DuocChonLamChiSoChinhThuc && !a.IsDeleted)
+                .Select(a => new { a.LoaiDongHo, a.GhiChuXacNhan })
+                .ToListAsync(ct);
+
+            return new InvoiceMeterBaselineFacts(
+                ky.ChiSoDienCu,
+                ky.ChiSoNuocCu,
+                kyTruoc?.ChiSoDienMoi,
+                kyTruoc?.ChiSoNuocMoi,
+                ghiChus.FirstOrDefault(a => a.LoaiDongHo == LoaiDongHo.Dien)?.GhiChuXacNhan,
+                ghiChus.FirstOrDefault(a => a.LoaiDongHo == LoaiDongHo.Nuoc)?.GhiChuXacNhan,
+                ky.DonGiaDien,
+                ky.DonGiaNuoc);
+        }
+
         public async Task<HoaDonChiTietRes?> GetDetailAsync(int hoaDonId, bool includeHistory, CancellationToken ct = default)
         {
             var hd = await _context.HoaDons

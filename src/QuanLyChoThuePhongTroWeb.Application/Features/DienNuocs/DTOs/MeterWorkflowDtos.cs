@@ -55,6 +55,21 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.DTOs
 
     public record CorrectConfirmedMeterImageRequest(int AnhChiSoDongHoId, decimal GiaTriMoi, string LyDo);
 
+    public enum MeterBaselineResetType
+    {
+        DoiDongHo = 1,
+        QuayVong = 2
+    }
+
+    // SoDauDongHoMoi và SoCuoiDongHoCu chỉ dùng cho DoiDongHo.
+    public sealed record ResetMeterBaselineRequest(
+        int AnhChiSoDongHoId,
+        MeterBaselineResetType Loai,
+        decimal GiaTriHienTai,
+        decimal? SoDauDongHoMoi,
+        decimal? SoCuoiDongHoCu,
+        string LyDo);
+
     public enum MeterReadingSubmissionMode
     {
         OfficialImage = 1,

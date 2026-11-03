@@ -269,6 +269,17 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
             return record != null ? (record.ChiSoDienMoi, record.ChiSoNuocMoi) : (0m, 0m);
         }
 
+        public async Task<DichVuDienNuocCuaPhong?> GetNearestPreviousPeriodAsync(int phongTroId, int thang, int nam, CancellationToken cancellationToken = default)
+        {
+            return await _context.DichVuDienNuocCuaPhongs
+                .AsNoTracking()
+                .Where(x => x.PhongTroId == phongTroId && !x.IsDeleted &&
+                            (x.Nam < nam || (x.Nam == nam && x.Thang < thang)))
+                .OrderByDescending(x => x.Nam)
+                .ThenByDescending(x => x.Thang)
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+
         public async Task<decimal> GetServicePriceAsync(string serviceKeyword, int chiNhanhId, CancellationToken cancellationToken = default)
         {
             var keyword = serviceKeyword.ToLower().Trim();

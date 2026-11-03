@@ -25,4 +25,10 @@
     <ProjectReference Include="..\QuanLyChoThuePhongTroWeb.Infrastructure\QuanLyChoThuePhongTroWeb.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Update="wwwroot\AIModels\meter_scanner.onnx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>

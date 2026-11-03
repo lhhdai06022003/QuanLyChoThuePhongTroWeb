@@ -113,6 +113,37 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         }
 
         [Fact]
+        public async Task DoiMoc_Success_TriggersXacNhanAnh_WithPeriodFromWorkflowResult()
+        {
+            ResetMeterBaselineRequest? seen = null;
+            _workflow.OnResetMeterBaseline = (req, _) =>
+            {
+                seen = req;
+                return ServiceResult<MeterImageWorkflowResult>.Ok(WorkflowData(), "Đã đổi đồng hồ.");
+            };
+
+            var request = new ResetMeterBaselineRequest(50, MeterBaselineResetType.DoiDongHo, 85.5m, 0m, 145.25m, "Thay đồng hồ");
+            var result = await _service.DoiMocAsync(request, 9);
+
+            Assert.True(result.Success);
+            Assert.Equal("Đã đổi đồng hồ.", result.Message);
+            Assert.Equal(request, seen);
+            Assert.Equal((9, AutoInvoiceTrigger.XacNhanAnh, RoomId, 10, 2026), Assert.Single(_autoInvoice.Calls));
+        }
+
+        [Fact]
+        public async Task DoiMoc_Failure_DoesNotTrigger()
+        {
+            _workflow.OnResetMeterBaseline = (_, _) => ServiceResult<MeterImageWorkflowResult>.Fail("Kỳ sau đã được chốt.");
+
+            var result = await _service.DoiMocAsync(new ResetMeterBaselineRequest(50, MeterBaselineResetType.QuayVong, 100m, null, null, "Quay vòng"), 9);
+
+            Assert.False(result.Success);
+            Assert.Equal("Kỳ sau đã được chốt.", result.Message);
+            Assert.Empty(_autoInvoice.Calls);
+        }
+
+        [Fact]
         public async Task Confirm_Failure_DoesNotTrigger()
         {
             _workflow.OnConfirmImage = (_, _) => ServiceResult<MeterImageWorkflowResult>.Fail("Không thể xác nhận.");

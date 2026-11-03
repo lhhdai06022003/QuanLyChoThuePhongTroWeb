@@ -165,6 +165,314 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.Equal("Nước: tiêu thụ 31 m³, hợp đồng mới chưa đủ lịch sử, so với trần chung 30 m³", r.MoTa);
         }
 
+        // ---------- Mức cảnh báo, gợi ý sửa số, quay vòng (spec ai-phan-tich-dien-nuoc mục 3) ----------
+
+        private static MeterAnomalyResult? DienCuMoi(decimal cu, decimal moi, MeterConsumptionHistory? lichSu = null) =>
+            MeterAnomalyPolicy.Evaluate(LoaiDongHo.Dien, cu, moi, lichSu ?? KhongLichSu(), Options);
+
+        [Fact]
+        public void MucDo_TieuThuBatThuong_DungBienBaLanTrungVi()
+        {
+            // Trung vị 40: trần 90. Tiêu thụ 119 là vàng, 120 (= 3 × M) là đỏ.
+            var vang = Dien(119m, SauKyDien);
+            var @do = Dien(120m, SauKyDien);
+
+            Assert.Equal(MeterAnomalyLevel.Vang, vang!.MucDo);
+            Assert.Equal(MeterAnomalyLevel.Do, @do!.MucDo);
+            Assert.Equal(MeterAnomalyReason.TieuThuBatThuong, @do.LyDo);
+        }
+
+        [Fact]
+        public void MucDo_TieuThuBatThuong_ChuaDuLichSu_LaVang()
+        {
+            var r = DienCuMoi(1000m, 1600m);
+
+            Assert.Equal(MeterAnomalyReason.TieuThuBatThuong, r!.LyDo);
+            Assert.Equal(MeterAnomalyLevel.Vang, r.MucDo);
+        }
+
+        [Fact]
+        public void MucDo_TieuThuThap_LaVang_VaChiSoGiamLaChan()
+        {
+            Assert.Equal(MeterAnomalyLevel.Vang, Dien(11m, SauKyDien)!.MucDo);
+            Assert.Equal(MeterAnomalyLevel.Chan, DienCuMoi(1000m, 900m)!.MucDo);
+        }
+
+        [Fact]
+        public void TieuThuThap_BangKhong_ThemGoiYKiemTraKetSo()
+        {
+            var r0 = Dien(0m, SauKyDien);
+            var r11 = Dien(11m, SauKyDien);
+
+            Assert.EndsWith(", kiểm tra đồng hồ kẹt số hoặc ảnh cũ", r0!.MoTa);
+            Assert.DoesNotContain("kẹt số", r11!.MoTa);
+        }
+
+        [Fact]
+        public void LechDauPhay_ChiSoMoiLonHon_GoiYChiaMuoi()
+        {
+            var r = DienCuMoi(1500m, 16082m);
+
+            Assert.Equal(MeterAnomalyReason.NghiSaiChuSo, r!.LyDo);
+            Assert.Equal(MeterAnomalyLevel.Do, r.MucDo);
+            Assert.Equal(1608.2m, r.ChiSoGoiY);
+            Assert.Equal(108.2m, r.SanLuongTheoGoiY);
+        }
+
+        [Fact]
+        public void LechDauPhay_ChiSoGiam_GoiYNhanMuoi()
+        {
+            var r = DienCuMoi(520m, 53.4426m);
+
+            Assert.Equal(MeterAnomalyReason.ChiSoGiam, r!.LyDo);
+            Assert.Equal(MeterAnomalyLevel.Chan, r.MucDo);
+            Assert.Equal(534.426m, r.ChiSoGoiY);
+            Assert.Equal(14.426m, r.SanLuongTheoGoiY);
+            Assert.Null(r.TranCongTo);
+        }
+
+        [Fact]
+        public void QuayVong_9950Xuong100_GoiYSanLuong150_KhongGoiYChiSo()
+        {
+            var r = DienCuMoi(9950m, 100m);
+
+            Assert.Equal(MeterAnomalyReason.ChiSoGiam, r!.LyDo);
+            Assert.Equal(MeterAnomalyLevel.Chan, r.MucDo);
+            Assert.Equal(10_000m, r.TranCongTo);
+            Assert.Equal(150m, r.SanLuongTheoGoiY);
+            Assert.Null(r.ChiSoGoiY);
+        }
+
+        [Fact]
+        public void QuayVong_SanLuongVuotTran_KhongGoiYQuayVong()
+        {
+            // Cũ 9950 → mới 700: (10000 − 9950) + 700 = 750 > trần 500, không phải quay vòng.
+            var r = DienCuMoi(9950m, 700m);
+
+            Assert.Equal(MeterAnomalyReason.ChiSoGiam, r!.LyDo);
+            Assert.Null(r.TranCongTo);
+        }
+
+        [Fact]
+        public void NghiSaiChuSo_KhongUngVien_KhongGoiY()
+        {
+            var r = DienCuMoi(150m, 1500m);
+
+            Assert.Equal(MeterAnomalyReason.NghiSaiChuSo, r!.LyDo);
+            Assert.Equal(MeterAnomalyLevel.Do, r.MucDo);
+            Assert.Null(r.ChiSoGoiY);
+            Assert.Null(r.SanLuongTheoGoiY);
+        }
+
+        [Fact]
+        public void TieuThuVuotTran_CoUngVienChiaMuoi_DoiSangNghiSaiChuSo()
+        {
+            // Cũ 50 (< 100) nên không vào điều kiện ×9, nhưng tiêu thụ 1.234,5 vượt trần và 128,45 hợp lý.
+            var r = DienCuMoi(50m, 1284.5m);
+
+            Assert.Equal(MeterAnomalyReason.NghiSaiChuSo, r!.LyDo);
+            Assert.Equal(128.45m, r.ChiSoGoiY);
+            Assert.Equal(78.45m, r.SanLuongTheoGoiY);
+            Assert.Contains("có thể đọc thừa một chữ số", r.MoTa);
+        }
+
+        [Theory]
+        [InlineData(9950, 10_000)]
+        [InlineData(10_000, 100_000)]
+        [InlineData(50, 10_000)]
+        [InlineData(99_999.5, 100_000)]
+        public void TinhTranCongTo(double cu, double expected)
+        {
+            Assert.Equal((decimal)expected, MeterAnomalyPolicy.TinhTranCongTo((decimal)cu));
+        }
+
+        // ---------- Bổ sung của Tester: điều kiện quay vòng, thứ tự, biên, loại nước ----------
+
+        // Lịch sử đủ kỳ với trung vị 1.000: trần cho phép max(2.000; 1.050) = 2.000, đủ lớn để quay vòng và lệch dấu phẩy cùng khả dĩ.
+        private static readonly MeterConsumptionHistory LichSuLon = Dien(1000, 1000, 1000);
+
+        [Fact]
+        public void QuayVong_DungChinXacChinCapPhanTramTran_LaQuayVong()
+        {
+            // 9.000 = đúng 90% của 10.000; (10.000 − 9.000) + 100 = 1.100 ≤ 2.000.
+            var r = DienCuMoi(9000m, 100m, LichSuLon);
+
+            Assert.Equal(MeterAnomalyReason.ChiSoGiam, r!.LyDo);
+            Assert.Equal(10_000m, r.TranCongTo);
+            Assert.Equal(1100m, r.SanLuongTheoGoiY);
+            Assert.Null(r.ChiSoGoiY);
+        }
+
+        [Fact]
+        public void QuayVong_DuoiChinMuoiPhanTramTran_KhongLaQuayVong()
+        {
+            var r = DienCuMoi(8999m, 100m, LichSuLon);
+
+            Assert.Equal(MeterAnomalyReason.ChiSoGiam, r!.LyDo);
+            Assert.Equal(MeterAnomalyLevel.Chan, r.MucDo);
+            Assert.Null(r.TranCongTo);
+        }
+
+        [Fact]
+        public void QuayVong_TranTangLenNamChuSo_KhiChiSoCuDaVuot10000()
+        {
+            // Cũ 95.000 thì trần là 100.000 (không phải 10.000); (100.000 − 95.000) + 50 = 5.050.
+            var lichSu = Dien(6000, 6000, 6000);
+
+            var r = DienCuMoi(95_000m, 50m, lichSu);
+
+            Assert.Equal(100_000m, r!.TranCongTo);
+            Assert.Equal(5050m, r.SanLuongTheoGoiY);
+        }
+
+        [Fact]
+        public void QuayVong_ChiSoCuDuoiChinMuoiPhanTramCuaTranNamChuSo_KhongLaQuayVong()
+        {
+            // Cũ 50.000: trần 100.000, chỉ 50%. Không được hiểu là quay vòng của trần 10.000.
+            var r = DienCuMoi(50_000m, 100m, Dien(6000, 6000, 6000));
+
+            Assert.Null(r!.TranCongTo);
+        }
+
+        [Fact]
+        public void QuayVongDuocXetTruocLechDauPhay_KhiCaHaiDeuKhaDi()
+        {
+            // Cũ 9.500, mới 960: quay vòng cho sản lượng 1.460; nhân 10 cũng cho 9.600 (sản lượng 100). Quay vòng phải thắng.
+            var r = DienCuMoi(9500m, 960m, LichSuLon);
+
+            Assert.Equal(MeterAnomalyReason.ChiSoGiam, r!.LyDo);
+            Assert.Equal(10_000m, r.TranCongTo);
+            Assert.Equal(1460m, r.SanLuongTheoGoiY);
+            Assert.Null(r.ChiSoGoiY);
+        }
+
+        [Fact]
+        public void QuayVong_9950Xuong100_KhongGoiYSuaThanh10000_DuCoLichSuLon()
+        {
+            // Với trần rộng, nhân 100 cũng cho 10.000 (sản lượng 50) nhưng đó là gợi ý sai: đây là quay vòng 150.
+            var r = DienCuMoi(9950m, 100m, LichSuLon);
+
+            Assert.Null(r!.ChiSoGoiY);
+            Assert.Equal(150m, r.SanLuongTheoGoiY);
+            Assert.Equal(10_000m, r.TranCongTo);
+        }
+
+        [Fact]
+        public void QuayVong_TranTheoNgay_ChiSoVuotTranCoDinhThiKhongGoiY()
+        {
+            // Hợp đồng mới chưa đủ lịch sử, mới phủ 12/31 ngày: trần 193,5. Quay vòng 150 hợp lệ; chỉ phủ 3/31 ngày thì trần 48,4 < 150.
+            var phu12 = MeterAnomalyPolicy.Evaluate(LoaiDongHo.Dien, 9950m, 100m, KhongLichSu(12, 31), Options);
+            var phu3 = MeterAnomalyPolicy.Evaluate(LoaiDongHo.Dien, 9950m, 100m, KhongLichSu(3, 31), Options);
+
+            Assert.Equal(10_000m, phu12!.TranCongTo);
+            Assert.Null(phu3!.TranCongTo);
+        }
+
+        [Fact]
+        public void QuayVong_Nuoc_DungTranChungNuoc()
+        {
+            // Nước 9.990 → 3: (10.000 − 9.990) + 3 = 13 ≤ 30.
+            var r = MeterAnomalyPolicy.Evaluate(LoaiDongHo.Nuoc, 9990m, 3m, KhongLichSu(), Options);
+
+            Assert.Equal(MeterAnomalyReason.ChiSoGiam, r!.LyDo);
+            Assert.Equal(10_000m, r.TranCongTo);
+            Assert.Equal(13m, r.SanLuongTheoGoiY);
+            Assert.Contains("Nước:", r.MoTa);
+        }
+
+        [Fact]
+        public void LechDauPhay_Nuoc_GoiYNhanMuoi()
+        {
+            var r = MeterAnomalyPolicy.Evaluate(LoaiDongHo.Nuoc, 50m, 5.5m, KhongLichSu(), Options);
+
+            Assert.Equal(MeterAnomalyReason.ChiSoGiam, r!.LyDo);
+            Assert.Equal(55m, r.ChiSoGoiY);
+            Assert.Equal(5m, r.SanLuongTheoGoiY);
+        }
+
+        [Fact]
+        public void LechDauPhay_ChiSoGiam_ChonHeSoNhoNhatKhaDi()
+        {
+            // Cũ 300, mới 5: nhân 10 = 50 < 300 (loại), nhân 100 = 500 → sản lượng 200 ≤ 500.
+            var r = DienCuMoi(300m, 5m);
+
+            Assert.Equal(500m, r!.ChiSoGoiY);
+            Assert.Equal(200m, r.SanLuongTheoGoiY);
+        }
+
+        [Fact]
+        public void LechDauPhay_ChiSoGiam_KhongUngVienKhaDi_ChiBaoSoGiam()
+        {
+            // Cũ 5.000, mới 5: nhân 100 = 500 vẫn < 5.000.
+            var r = DienCuMoi(5000m, 5m);
+
+            Assert.Equal(MeterAnomalyReason.ChiSoGiam, r!.LyDo);
+            Assert.Null(r.ChiSoGoiY);
+            Assert.Null(r.SanLuongTheoGoiY);
+            Assert.Null(r.TranCongTo);
+        }
+
+        [Fact]
+        public void NghiSaiChuSo_ChiaMuoi_ChonHeSoNhoNhatKhaDi()
+        {
+            // Cũ 20, mới 7.000: chia 10 = 700 (sản lượng 680 > 500, loại), chia 100 = 70 (sản lượng 50).
+            var r = DienCuMoi(20m, 7000m);
+
+            Assert.Equal(MeterAnomalyReason.NghiSaiChuSo, r!.LyDo);
+            Assert.Equal(70m, r.ChiSoGoiY);
+            Assert.Equal(50m, r.SanLuongTheoGoiY);
+        }
+
+        [Fact]
+        public void NghiSaiChuSo_ChiaNghin_KhiChiaMuoiVaChiaTramDeuQuaLon()
+        {
+            // Cũ 20, mới 70.000: 7.000 (6.980), 700 (680) đều > 500; chia 1.000 = 70 (sản lượng 50).
+            var r = DienCuMoi(20m, 70_000m);
+
+            Assert.Equal(MeterAnomalyReason.NghiSaiChuSo, r!.LyDo);
+            Assert.Equal(70m, r.ChiSoGoiY);
+            Assert.Equal(50m, r.SanLuongTheoGoiY);
+        }
+
+        [Fact]
+        public void NghiSaiChuSo_DieuKienGapChin_DungBien()
+        {
+            // Cũ 100: mới 900 (= 9 × cũ) vào điều kiện, 899,99 thì chưa; cả hai đều không có ứng viên chia hợp lệ.
+            var tai = DienCuMoi(100m, 900m);
+            var duoi = DienCuMoi(100m, 899.99m);
+
+            Assert.Equal(MeterAnomalyReason.NghiSaiChuSo, tai!.LyDo);
+            Assert.Null(tai.ChiSoGoiY);
+            // 899,99 − 100 = 799,99 > trần chung 500: vẫn bất thường nhưng theo luồng tiêu thụ, không phải sai chữ số.
+            Assert.Equal(MeterAnomalyReason.TieuThuBatThuong, duoi!.LyDo);
+            Assert.Equal(MeterAnomalyLevel.Vang, duoi.MucDo);
+        }
+
+        [Fact]
+        public void NghiSaiChuSo_CuDuoi100_KhongVaoDieuKienGapChin()
+        {
+            var r = DienCuMoi(99m, 891m);
+
+            Assert.NotEqual(MeterAnomalyReason.NghiSaiChuSo, r?.LyDo);
+        }
+
+        [Fact]
+        public void UngVienLamTronBaChuSoThapPhan()
+        {
+            // Mới 1,23456 (5 chữ số thập phân): ×10 = 12,3456 không dùng được (nhỏ hơn cũ); ×100 = 123,456 đúng 3 chữ số.
+            var r = DienCuMoi(100m, 1.23456m);
+
+            Assert.Equal(123.456m, r!.ChiSoGoiY);
+            Assert.Equal(23.456m, r.SanLuongTheoGoiY);
+        }
+
+        [Fact]
+        public void KhongBaoSaiChuSo_KhiTieuThuBinhThuong()
+        {
+            Assert.Null(DienCuMoi(1000m, 1100m));
+            Assert.Null(DienCuMoi(1000m, 1000m, KhongLichSu()));
+        }
+
         [Fact]
         public void DungLichSuCungLoai()
         {

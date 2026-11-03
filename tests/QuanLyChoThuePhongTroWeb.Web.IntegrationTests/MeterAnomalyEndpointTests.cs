@@ -150,6 +150,11 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
                 Assert.Equal(HttpStatusCode.OK, ok.StatusCode);
                 var json = await ok.Content.ReadFromJsonAsync<JsonElement>();
                 Assert.Equal("ChiSoGiam", json.GetProperty("dien").GetProperty("maLyDo").GetString());
+                Assert.Equal("Chan", json.GetProperty("dien").GetProperty("mucDo").GetString());
+                Assert.Equal(JsonValueKind.Null, json.GetProperty("dien").GetProperty("chiSoGoiY").ValueKind);
+                Assert.False(json.GetProperty("dien").GetProperty("coTheQuayVong").GetBoolean());
+                Assert.True(json.GetProperty("dien").TryGetProperty("sanLuongTheoGoiY", out _));
+                Assert.True(json.GetProperty("dien").TryGetProperty("tranCongTo", out _));
                 Assert.False(string.IsNullOrWhiteSpace(json.GetProperty("dien").GetProperty("moTa").GetString()));
                 Assert.Equal(JsonValueKind.Null, json.GetProperty("nuoc").ValueKind);
 
@@ -165,6 +170,99 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
                 db.ChiNhanhs.RemoveRange(branch1, branch2);
                 await db.SaveChangesAsync();
             }
+        }
+
+        // ---------- Bổ sung của Tester: gợi ý sửa số, quay vòng, mức cảnh báo qua HTTP ----------
+
+        // Phòng A của BranchScopeKit có hợp đồng phủ trọn tháng 10/2026 nên trần chung (chưa đủ lịch sử) là 500 kWh / 30 m³.
+        private async Task<(BranchScopeWorld World, System.Net.Http.HttpClient Client)> SeedPeriodAsync(decimal dienCu, decimal nuocCu)
+        {
+            var w = await BranchScopeKit.SeedAsync(_factory);
+            using (var scope = _factory.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                db.DichVuDienNuocCuaPhongs.Add(new DichVuDienNuocCuaPhong
+                {
+                    PhongTroId = w.RoomA, Thang = 10, Nam = 2026,
+                    ChiSoDienCu = dienCu, ChiSoDienMoi = dienCu, ChiSoNuocCu = nuocCu, ChiSoNuocMoi = nuocCu,
+                    TrangThaiGhiNhan = TrangThaiGhiNhan.Nhap
+                });
+                await db.SaveChangesAsync();
+            }
+
+            var (client, _) = await BranchScopeKit.LoginAsync(_factory, w.Staff);
+            return (w, client);
+        }
+
+        private static string Url(BranchScopeWorld w, string dien, string? nuoc = null)
+            => $"/DienNuoc/KiemTraBatThuong?phongTroId={w.RoomA}&thang=10&nam=2026&chiSoDienMoi={dien}" + (nuoc == null ? "" : $"&chiSoNuocMoi={nuoc}");
+
+        [Fact]
+        public async Task KiemTraBatThuong_Rollover_ReturnsRolloverHintForBothMeters()
+        {
+            var (w, client) = await SeedPeriodAsync(dienCu: 9950m, nuocCu: 9990m);
+
+            var res = await client.GetAsync(Url(w, "100", "3"));
+
+            Assert.Equal(HttpStatusCode.OK, res.StatusCode);
+            var json = await res.Content.ReadFromJsonAsync<JsonElement>();
+            var dien = json.GetProperty("dien");
+            Assert.Equal("ChiSoGiam", dien.GetProperty("maLyDo").GetString());
+            Assert.Equal("Chan", dien.GetProperty("mucDo").GetString());
+            Assert.True(dien.GetProperty("coTheQuayVong").GetBoolean());
+            Assert.Equal(10_000m, dien.GetProperty("tranCongTo").GetDecimal());
+            Assert.Equal(150m, dien.GetProperty("sanLuongTheoGoiY").GetDecimal());
+            Assert.Equal(JsonValueKind.Null, dien.GetProperty("chiSoGoiY").ValueKind);
+
+            var nuoc = json.GetProperty("nuoc");
+            Assert.True(nuoc.GetProperty("coTheQuayVong").GetBoolean());
+            Assert.Equal(13m, nuoc.GetProperty("sanLuongTheoGoiY").GetDecimal());
+        }
+
+        [Fact]
+        public async Task KiemTraBatThuong_DecimalPointShift_ReturnsRedLevelWithQuickFix()
+        {
+            var (w, client) = await SeedPeriodAsync(dienCu: 1500m, nuocCu: 50m);
+
+            var res = await client.GetAsync(Url(w, "16082"));
+
+            Assert.Equal(HttpStatusCode.OK, res.StatusCode);
+            var dien = (await res.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("dien");
+            Assert.Equal("NghiSaiChuSo", dien.GetProperty("maLyDo").GetString());
+            Assert.Equal("Do", dien.GetProperty("mucDo").GetString());
+            Assert.Equal(1608.2m, dien.GetProperty("chiSoGoiY").GetDecimal());
+            Assert.Equal(108.2m, dien.GetProperty("sanLuongTheoGoiY").GetDecimal());
+            Assert.False(dien.GetProperty("coTheQuayVong").GetBoolean());
+        }
+
+        [Fact]
+        public async Task KiemTraBatThuong_DecreaseWithTenfoldHint_SuggestsTimesTen()
+        {
+            var (w, client) = await SeedPeriodAsync(dienCu: 520m, nuocCu: 50m);
+
+            var res = await client.GetAsync(Url(w, "53.4426"));
+
+            var dien = (await res.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("dien");
+            Assert.Equal("Chan", dien.GetProperty("mucDo").GetString());
+            Assert.Equal(534.426m, dien.GetProperty("chiSoGoiY").GetDecimal());
+            Assert.Equal(14.426m, dien.GetProperty("sanLuongTheoGoiY").GetDecimal());
+        }
+
+        [Fact]
+        public async Task KiemTraBatThuong_OverCeilingWithoutHistory_IsYellow_AndNormalReadingIsNull()
+        {
+            var (w, client) = await SeedPeriodAsync(dienCu: 100m, nuocCu: 50m);
+
+            var yellow = await (await client.GetAsync(Url(w, "700"))).Content.ReadFromJsonAsync<JsonElement>();
+            var normal = await (await client.GetAsync(Url(w, "120", "55"))).Content.ReadFromJsonAsync<JsonElement>();
+            var zero = await (await client.GetAsync(Url(w, "100"))).Content.ReadFromJsonAsync<JsonElement>();
+
+            Assert.Equal("TieuThuBatThuong", yellow.GetProperty("dien").GetProperty("maLyDo").GetString());
+            Assert.Equal("Vang", yellow.GetProperty("dien").GetProperty("mucDo").GetString());
+            Assert.Equal(JsonValueKind.Null, normal.GetProperty("dien").ValueKind);
+            Assert.Equal(JsonValueKind.Null, normal.GetProperty("nuoc").ValueKind);
+            // Tiêu thụ bằng 0 khi chưa có lịch sử: server không cảnh báo (nhắc xem lại là việc của giao diện).
+            Assert.Equal(JsonValueKind.Null, zero.GetProperty("dien").ValueKind);
         }
     }
 }

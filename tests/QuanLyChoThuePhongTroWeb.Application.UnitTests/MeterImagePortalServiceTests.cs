@@ -310,6 +310,77 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.False(img.CanLyDoKhiXacNhan);
         }
 
+        [Theory]
+        [InlineData(0.89, true)]
+        [InlineData(0.50, true)]
+        [InlineData(0.90, false)]   // đúng ngưỡng NguongDoTinCay mặc định 0,90 thì chưa thấp
+        [InlineData(0.95, false)]
+        [InlineData(null, false)]   // chưa có độ tin cậy (ảnh chưa xử lý/không đọc được): không đánh dấu thấp
+        public async Task GetStaffPeriod_DoTinCayThap_IsComputedOnServerFromThreshold(double? doTinCay, bool expected)
+        {
+            const int actorId = 1;
+            const int roomId = 101;
+            const int branchId = 1;
+
+            _queryStore.RoomDetails[roomId] = new MeterRoomRef(roomId, "P101", branchId);
+            _accessService.Permissions.Add((actorId, branchId, EmployeeActionCodes.MeterRead));
+            _accessService.Permissions.Add((actorId, branchId, EmployeeActionCodes.MeterReview));
+            _queryStore.Periods[(roomId, 10, 2026)] = new MeterPeriodSnapshot(20, TrangThaiGhiNhan.Nhap, 100, 110, 50, 55);
+            _queryStore.Images[20] = new List<MeterImageSnapshot>
+            {
+                new MeterImageSnapshot(1, LoaiDongHo.Dien, "http://img/1.jpg", TrangThaiXuLyAnhChiSo.DocDuoc,
+                    110m, doTinCay, null, false, FixedNowUtc, FixedNowUtc, null, null, false)
+            };
+
+            var result = await _service.GetStaffPeriodAsync(actorId, roomId, 10, 2026);
+
+            Assert.True(result.Success);
+            Assert.Equal(expected, result.Data!.AnhDien[0].DoTinCayThap);
+        }
+
+        [Fact]
+        public async Task GetStaffPeriod_DoTinCayThap_FollowsConfiguredThreshold()
+        {
+            var service = new MeterImagePortalService(
+                _queryStore, _meterStore, _workflowService, _accessService, _options, _timeProvider,
+                autoInvoiceService: null, autoInvoiceOptions: new AutoInvoiceOptions { NguongDoTinCay = 0.99 });
+            const int roomId = 101;
+            _queryStore.RoomDetails[roomId] = new MeterRoomRef(roomId, "P101", 1);
+            _accessService.Permissions.Add((1, 1, EmployeeActionCodes.MeterRead));
+            _queryStore.Periods[(roomId, 10, 2026)] = new MeterPeriodSnapshot(20, TrangThaiGhiNhan.Nhap, 100, 110, 50, 55);
+            _queryStore.Images[20] = new List<MeterImageSnapshot>
+            {
+                new MeterImageSnapshot(1, LoaiDongHo.Dien, "http://img/1.jpg", TrangThaiXuLyAnhChiSo.DocDuoc,
+                    110m, 0.95, null, false, FixedNowUtc, FixedNowUtc, null, null, false)
+            };
+
+            var result = await service.GetStaffPeriodAsync(1, roomId, 10, 2026);
+
+            Assert.True(result.Data!.AnhDien[0].DoTinCayThap);
+        }
+
+        [Fact]
+        public async Task GetTenantPeriod_NeverFlagsLowConfidence_EvenWhenConfidenceIsLow()
+        {
+            const int tenantId = 5;
+            const int roomId = 101;
+            _meterStore.ActiveTenantContracts.Add((roomId, tenantId, 10, 2026));
+            _meterStore.ContractMonths.Add((roomId, 10, 2026));
+            _queryStore.RoomDetails[roomId] = new MeterRoomRef(roomId, "P101", 1);
+            _queryStore.Periods[(roomId, 10, 2026)] = new MeterPeriodSnapshot(20, TrangThaiGhiNhan.Nhap, 100, 110, 50, 55);
+            _queryStore.Images[20] = new List<MeterImageSnapshot>
+            {
+                new MeterImageSnapshot(1, LoaiDongHo.Dien, "http://img/1.jpg", TrangThaiXuLyAnhChiSo.DocDuoc,
+                    110m, 0.10, null, false, FixedNowUtc, FixedNowUtc, null, null, false)
+            };
+
+            var result = await _service.GetTenantPeriodAsync(tenantId, roomId, 10, 2026);
+
+            Assert.True(result.Success);
+            Assert.False(result.Data!.AnhDien[0].DoTinCayThap);
+            Assert.Null(result.Data.AnhDien[0].DoTinCay);
+        }
+
         [Fact]
         public async Task GetStaffPeriod_SubsequentPeriodExists_IsLocked_FlagsAllFalse()
         {

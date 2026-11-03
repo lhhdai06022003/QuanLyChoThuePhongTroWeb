@@ -111,6 +111,11 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.AutoInvoices
                 return new AutoInvoiceMeterDecision(loai, MapLyDo(batThuong.LyDo), batThuong.MoTa, cu, moi, anhTuXacNhanId, doTinCay);
             }
 
+            if (anhTuXacNhanId != null && !o.TuXacNhanAnhAi)
+            {
+                return new AutoInvoiceMeterDecision(loai, AutoInvoiceReason.ThieuChiSo, $"{ten}: ảnh chờ nhân viên xác nhận", cu, moi, null, doTinCay);
+            }
+
             return new AutoInvoiceMeterDecision(loai, null, null, cu, moi, anhTuXacNhanId, doTinCay);
         }
 

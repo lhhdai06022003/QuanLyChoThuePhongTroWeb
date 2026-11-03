@@ -25,6 +25,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
         private readonly MeterImageOptions _options;
         private readonly TimeProvider _time;
         private readonly IAutoInvoiceService? _autoInvoiceService;
+        private readonly AutoInvoiceOptions _autoInvoiceOptions;
 
         public MeterImagePortalService(
             IMeterImageQueryStore queryStore,
@@ -33,7 +34,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
             IEmployeeAccessService employeeAccessService,
             MeterImageOptions options,
             TimeProvider? timeProvider = null,
-            IAutoInvoiceService? autoInvoiceService = null)
+            IAutoInvoiceService? autoInvoiceService = null,
+            AutoInvoiceOptions? autoInvoiceOptions = null)
         {
             _queryStore = queryStore ?? throw new ArgumentNullException(nameof(queryStore));
             _meterImageStore = meterImageStore ?? throw new ArgumentNullException(nameof(meterImageStore));
@@ -42,6 +44,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
             _options = options ?? throw new ArgumentNullException(nameof(options));
             _time = timeProvider ?? TimeProvider.System;
             _autoInvoiceService = autoInvoiceService;
+            _autoInvoiceOptions = autoInvoiceOptions ?? new AutoInvoiceOptions();
         }
 
         public async Task<ServiceResult<IReadOnlyList<MeterRoomOptionRes>>> GetTenantRoomsAsync(int actorUserId, int thang, int nam, CancellationToken ct = default)
@@ -319,6 +322,19 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
             return ServiceResult<MeterImageItemRes>.Ok(resItem, wfRes.Message);
         }
 
+        public async Task<ServiceResult<MeterImageItemRes>> DoiMocAsync(ResetMeterBaselineRequest request, int actorUserId, CancellationToken ct = default)
+        {
+            var wfRes = await _workflowService.ResetMeterBaselineAsync(request, actorUserId, ct);
+            if (!wfRes.Success)
+            {
+                return ServiceResult<MeterImageItemRes>.Fail(wfRes.Message);
+            }
+
+            var resItem = MapWorkflowResultToStaffItem(wfRes.Data!);
+            await TriggerAutoInvoiceAsync(actorUserId, AutoInvoiceTrigger.XacNhanAnh, wfRes.Data!.PhongTroId, wfRes.Data!.Thang, wfRes.Data!.Nam);
+            return ServiceResult<MeterImageItemRes>.Ok(resItem, wfRes.Message);
+        }
+
         // Kết quả của hóa đơn tự động không ảnh hưởng thao tác gốc; RunForRoomAsync tự ghi log và không ném lỗi.
         private async Task TriggerAutoInvoiceAsync(int actorUserId, AutoInvoiceTrigger trigger, int phongTroId, int thang, int nam)
         {
@@ -388,7 +404,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
                 CoTheThuLai = coTheThuLai,
                 CoTheXacNhan = coTheXacNhan,
                 CanLyDoKhiXacNhan = canLyDo,
-                CoTheSuaSo = coTheSuaSo
+                CoTheSuaSo = coTheSuaSo,
+                DoTinCayThap = img.DoTinCay.HasValue && img.DoTinCay.Value < _autoInvoiceOptions.NguongDoTinCay
             };
         }
 

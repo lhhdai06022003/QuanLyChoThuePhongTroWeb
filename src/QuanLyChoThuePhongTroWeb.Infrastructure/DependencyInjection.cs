@@ -114,7 +114,8 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure
                 // Một câu hỏi gọi model tối đa 4 lần; 30 giây mỗi lần để request không treo quá lâu.
                 client.Timeout = TimeSpan.FromSeconds(30);
             });
-            services.AddHttpClient<QuanLyChoThuePhongTroWeb.Application.Abstractions.Services.IMeterOcrService, ExternalServices.AiAssistants.GeminiMeterOcrService>();
+            services.AddSingleton<QuanLyChoThuePhongTroWeb.Application.Abstractions.Services.IMeterScannerService, ExternalServices.AiAssistants.YoloMeterScannerService>();
+            services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Abstractions.Services.IMeterOcrService, ExternalServices.AiAssistants.OnnxMeterOcrService>();
             // URL gọi Telegram chứa BotToken: gỡ logger của HttpClient để không in URL ra log.
             services.AddHttpClient<QuanLyChoThuePhongTroWeb.Application.Features.OnlinePayments.ITelegramNotifier, ExternalServices.Telegram.TelegramBotNotifier>(client =>
             {

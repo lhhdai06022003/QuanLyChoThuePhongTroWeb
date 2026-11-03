@@ -11,6 +11,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
         Task<ServiceResult<MeterImageWorkflowResult>> RetryOcrAsync(int anhChiSoDongHoId, int actorUserId, CancellationToken cancellationToken = default);
         Task<ServiceResult<MeterImageWorkflowResult>> ConfirmImageAsync(ConfirmMeterImageRequest request, int actorUserId, CancellationToken cancellationToken = default);
         Task<ServiceResult<MeterImageWorkflowResult>> CorrectConfirmedImageAsync(CorrectConfirmedMeterImageRequest request, int actorUserId, CancellationToken cancellationToken = default);
+        // Đổi đồng hồ hoặc quay vòng: đặt lại mốc (Cũ) của kỳ, xác nhận ảnh làm chỉ số chính thức, ghi chú do server dựng.
+        Task<ServiceResult<MeterImageWorkflowResult>> ResetMeterBaselineAsync(ResetMeterBaselineRequest request, int actorUserId, CancellationToken cancellationToken = default);
         Task<ServiceResult<MeterPeriodsApprovalResult>> ApprovePeriodsAsync(ApproveMeterPeriodsRequest request, int actorUserId, CancellationToken cancellationToken = default);
         // Đổi chỉ số kỳ đã DaDuyet khi điều chỉnh hóa đơn. Chạy trong transaction do caller mở: không Begin/Commit/Rollback, có SaveChanges.
         // Caller phải đã đưa hóa đơn của kỳ về Nhap hoặc hủy, và đã SaveChanges, trước khi gọi.

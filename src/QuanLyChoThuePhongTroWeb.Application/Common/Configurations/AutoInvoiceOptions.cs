@@ -19,6 +19,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Common.Configurations
         // Trần tiêu thụ cả tháng khi hợp đồng chưa đủ lịch sử.
         public decimal TranDienKwh { get; set; } = 500m;
         public decimal TranNuocM3 { get; set; } = 30m;
+        // Tắt (mặc định): ảnh AI luôn chờ nhân viên xác nhận. Bật chỉ khi đã đo độ chính xác đạt yêu cầu.
+        public bool TuXacNhanAnhAi { get; set; } = false;
 
         public void Validate()
         {

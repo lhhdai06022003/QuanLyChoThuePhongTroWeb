@@ -126,7 +126,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             public Host(string connectionString)
             {
                 var config = new ConfigurationBuilder()
-                    .AddInMemoryCollection(new Dictionary<string, string?> { ["ConnectionStrings:DefaultConnection"] = connectionString })
+                    .AddInMemoryCollection(new Dictionary<string, string?> { ["ConnectionStrings:DefaultConnection"] = connectionString, ["AutoInvoiceOptions:TuXacNhanAnhAi"] = "true" })
                     .Build();
                 var services = new ServiceCollection();
                 services.AddLogging();

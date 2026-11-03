@@ -1,0 +1,56 @@
+services:
+  # -------------------------------------------------------------------
+  # 1. Dịch vụ Cơ sở dữ liệu PostgreSQL 16
+  #    Tài khoản, mật khẩu và tên DB lấy từ file .env (POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB).
+  # -------------------------------------------------------------------
+  trosync-db:
+    image: postgres:16-alpine
+    container_name: trosync-db
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      TZ: Asia/Ho_Chi_Minh
+    ports:
+      - "5433:5432" # Map cổng 5433 ra máy host để tránh trùng cổng 5432 trên Windows
+    volumes:
+      - trosync_pgdata:/var/lib/postgresql/data
+    networks:
+      - trosync-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # -------------------------------------------------------------------
+  # 2. Dịch vụ Web App (In-Memory ONNX + Cloudinary Storage)
+  #    Chuỗi kết nối và khóa dịch vụ lấy từ .env; mở tại http://localhost:5009
+  # -------------------------------------------------------------------
+  trosync-web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: trosync-web:latest
+    container_name: trosync-web
+    restart: unless-stopped
+    depends_on:
+      trosync-db:
+        condition: service_healthy
+    env_file:
+      - .env
+    ports:
+      - "5009:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - TZ=Asia/Ho_Chi_Minh
+    networks:
+      - trosync-network
+
+volumes:
+  trosync_pgdata:
+    name: trosync_pgdata
+
+networks:
+  trosync-network:
+    driver: bridge

@@ -349,6 +349,7 @@
                         <div class="col-md-6" id="editMaHDText"></div>
                         <div class="col-md-6 text-md-end text-start" id="editPhongText"></div>
                     </div>
+                    <div id="editNhacTruyThu"></div>
                     <div class="table-responsive">
                         <table class="table card-table table-vcenter table-striped table-hover w-100 table-sm" id="editLinesTable">
                             <thead>
@@ -368,6 +369,12 @@
                     </div>
                     <button type="button" class="btn btn-outline-primary btn-sm mt-3" id="btnAddEditRow">
                         <i class="ti ti-plus me-1"></i> Thêm dòng phí mới
+                    </button>
+                    <button type="button" class="btn btn-outline-warning btn-sm mt-3" id="btnAddTruyThuDien" style="display: none;">
+                        <i class="ti ti-bolt me-1"></i> Truy thu điện đồng hồ cũ
+                    </button>
+                    <button type="button" class="btn btn-outline-warning btn-sm mt-3" id="btnAddTruyThuNuoc" style="display: none;">
+                        <i class="ti ti-droplet me-1"></i> Truy thu nước đồng hồ cũ
                     </button>
                     <div class="text-end mt-3">
                         <h3>Tổng cộng: <span class="text-primary fw-bold" id="editTongTienText">0 ₫</span></h3>
@@ -1010,6 +1017,15 @@
                         `;
                     }
 
+                    let nhacTruyThuBanner = '';
+                    if (res.nhacTruyThus && res.nhacTruyThus.length > 0) {
+                        nhacTruyThuBanner = res.nhacTruyThus.map(t => `
+                            <div class="alert alert-warning py-2 mb-3">
+                                <i class="ti ti-alert-triangle me-2"></i>${escapeHtml(t)}
+                            </div>
+                        `).join('');
+                    }
+
                     let paymentStatusHtml = '';
                     if (res.daHuy) {
                         paymentStatusHtml = '<span class="text-secondary">—</span>';
@@ -1024,6 +1040,7 @@
                     let html = `
                         ${cancelBanner}
                         ${deadlineBanner}
+                        ${nhacTruyThuBanner}
                         <div class="datagrid mb-3">
                             <div class="datagrid-item">
                                 <div class="datagrid-title">Mã hóa đơn</div>
@@ -1221,6 +1238,15 @@
                         addEditRow(ct.tenDichVu, ct.donGia, ct.soLuong, ct.donVi || '', ct.chiTietHoaDonId, ct.dichVuId, ct.tongTien);
                     });
 
+                    // Nhắc truy thu khi kỳ đổi đồng hồ/quay vòng (không chặn lưu) và nút thêm dòng truy thu điền sẵn đơn giá kỳ.
+                    const nhacHtml = (res.nhacTruyThus || []).map(t =>
+                        `<div class="alert alert-warning py-2 mb-3"><i class="ti ti-alert-triangle me-2"></i>${escapeHtml(t)}</div>`).join('');
+                    $('#editNhacTruyThu').html(nhacHtml);
+                    const coGiaDien = res.donGiaDienKy !== null && res.donGiaDienKy !== undefined;
+                    const coGiaNuoc = res.donGiaNuocKy !== null && res.donGiaNuocKy !== undefined;
+                    $('#btnAddTruyThuDien').data('gia', coGiaDien ? res.donGiaDienKy : 0).toggle(coGiaDien);
+                    $('#btnAddTruyThuNuoc').data('gia', coGiaNuoc ? res.donGiaNuocKy : 0).toggle(coGiaNuoc);
+
                     recalculateEditTotal();
                     bootstrap.Modal.getOrCreateInstance(document.getElementById('editModal')).show();
                 });
@@ -1285,6 +1311,16 @@
 
             $('#btnAddEditRow').click(function() {
                 addEditRow('Khoản phí khác', 0, 1, '');
+            });
+
+            // Dòng truy thu: điền sẵn tên và đơn giá của kỳ (không làm tròn), số lượng để trống cho nhân viên nhập theo ghi chú xác nhận.
+            // Hệ thống không kiểm số tiền truy thu.
+            $('#btnAddTruyThuDien').click(function() {
+                addEditRow('Truy thu điện đồng hồ cũ', $(this).data('gia'), '', 'kWh', 0, null);
+            });
+
+            $('#btnAddTruyThuNuoc').click(function() {
+                addEditRow('Truy thu nước đồng hồ cũ', $(this).data('gia'), '', 'm³', 0, null);
             });
 
             function recalculateEditTotal() {
@@ -1539,31 +1575,49 @@
             // ========== Chốt hóa đơn ==========
             $('#hoaDonTable').on('click', '.btn-chot', function() {
                 let id = $(this).data('id');
-                Swal.fire({
-                    title: 'Xác nhận chốt hóa đơn?',
-                    text: 'Bạn có chắc chắn muốn chốt hóa đơn này? Hóa đơn đã chốt sẽ không thể chỉnh sửa.',
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonText: 'Chốt hóa đơn',
-                    cancelButtonText: 'Hủy'
-                }).then((res) => {
-                    if (res.isConfirmed) {
-                        $.ajax({
-                            url: `/HoaDon/Chot/${id}`,
-                            type: 'POST',
-                            headers: {
-                                'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
-                            },
-                            success: function(r) {
-                                showSuccess(r.message || 'Chốt hóa đơn thành công!');
-                                table.ajax.reload(null, false);
-                            },
-                            error: function(xhr) {
-                                showError(xhr.responseJSON?.message || 'Có lỗi khi chốt hóa đơn.');
-                            }
-                        });
+
+                function confirmChot(nhacTruyThus) {
+                    const mo = 'Bạn có chắc chắn muốn chốt hóa đơn này? Hóa đơn đã chốt sẽ không thể chỉnh sửa.';
+                    const cfg = {
+                        title: 'Xác nhận chốt hóa đơn?',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Chốt hóa đơn',
+                        cancelButtonText: 'Hủy'
+                    };
+                    if (nhacTruyThus && nhacTruyThus.length > 0) {
+                        // Nhắc truy thu không chặn chốt; mọi chuỗi đưa vào HTML đều qua escapeHtml.
+                        cfg.html = '<div class="text-start"><p>' + escapeHtml(mo) + '</p>'
+                            + nhacTruyThus.map(t => '<div class="alert alert-warning py-2 small mb-2"><i class="ti ti-alert-triangle me-1"></i>' + escapeHtml(t) + '</div>').join('')
+                            + '</div>';
+                    } else {
+                        cfg.text = mo;
                     }
-                });
+
+                    Swal.fire(cfg).then((res) => {
+                        if (res.isConfirmed) {
+                            $.ajax({
+                                url: `/HoaDon/Chot/${id}`,
+                                type: 'POST',
+                                headers: {
+                                    'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                                },
+                                success: function(r) {
+                                    showSuccess(r.message || 'Chốt hóa đơn thành công!');
+                                    table.ajax.reload(null, false);
+                                },
+                                error: function(xhr) {
+                                    showError(xhr.responseJSON?.message || 'Có lỗi khi chốt hóa đơn.');
+                                }
+                            });
+                        }
+                    });
+                }
+
+                // Lấy chi tiết để nhắc truy thu; GET lỗi thì vẫn hiện hộp xác nhận cũ.
+                $.get(`/HoaDon/GetById/${id}`)
+                    .done(function(res) { confirmChot(res && res.nhacTruyThus); })
+                    .fail(function() { confirmChot(null); });
             });
 
             // ========== Trả lại hóa đơn ==========

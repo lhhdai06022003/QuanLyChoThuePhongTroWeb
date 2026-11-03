@@ -898,6 +898,340 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             }
         }
 
+        // ---------- Đổi đồng hồ, quay vòng (/DienNuoc/AnhChiSo/{id}/DoiMoc) ----------
+
+        private sealed record DoiMocSeed(ChiNhanh Branch, ChiNhanh OtherBranch, PhongTro Room, DichVuDienNuocCuaPhong Period, AnhChiSoDongHo Image, NguoiDung Staff);
+
+        private async Task<DoiMocSeed> SeedDoiMocAsync(ApplicationDbContext db, INguoiDungService users, string username, string password, bool assignToImageBranch)
+        {
+            var suffix = Guid.NewGuid().ToString("N")[..8];
+            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = TestCodes.MaChiNhanh("C"), DiaChi = "A", SoDienThoai = "0900000001", MoTa = "M" };
+            var other = new ChiNhanh { TenChiNhanh = $"CNK_{suffix}", MaChiNhanh = TestCodes.MaChiNhanh("D"), DiaChi = "B", SoDienThoai = "0900000002", MoTa = "M" };
+            db.ChiNhanhs.AddRange(branch, other);
+            await db.SaveChangesAsync();
+
+            var room = new PhongTro { ChiNhanhId = branch.ChiNhanhId, SoPhong = $"P_{suffix}", GiaThue = 1000m, DienTich = 20, MoTa = "M" };
+            db.PhongTros.Add(room);
+            await db.SaveChangesAsync();
+
+            await users.AddAsync(new CreateNguoiDungReq { TenDangNhap = username, MatKhau = password, Role = AppRole.NhanVien });
+            var staff = await db.NguoiDungs.FirstAsync(u => u.TenDangNhap == username);
+            await AssignStaffToBranchAsync(db, staff.NguoiDungId, assignToImageBranch ? branch.ChiNhanhId : other.ChiNhanhId);
+
+            var (curMonth, curYear) = MeterPeriodPolicy.CurrentVn(DateTime.UtcNow);
+            var period = new DichVuDienNuocCuaPhong
+            {
+                PhongTroId = room.PhongTroId, Thang = curMonth, Nam = curYear,
+                ChiSoDienCu = 9950m, ChiSoDienMoi = 9950m, ChiSoNuocCu = 50m, ChiSoNuocMoi = 50m,
+                TrangThaiGhiNhan = TrangThaiGhiNhan.Nhap
+            };
+            db.DichVuDienNuocCuaPhongs.Add(period);
+            await db.SaveChangesAsync();
+
+            var img = new AnhChiSoDongHo
+            {
+                DichVuDienNuocCuaPhongId = period.DichVuDienNuocCuaPhongId,
+                LoaiDongHo = LoaiDongHo.Dien,
+                Url = "https://example.test/img.jpg",
+                TrangThaiXuLy = TrangThaiXuLyAnhChiSo.DocDuoc,
+                GiaTriAIGoiY = 100m,
+                DoTinCay = 0.95,
+                NgayGui = DateTime.UtcNow,
+                NguoiGuiId = staff.NguoiDungId
+            };
+            db.AnhChiSoDongHos.Add(img);
+            await db.SaveChangesAsync();
+
+            return new DoiMocSeed(branch, other, room, period, img, staff);
+        }
+
+        private static async Task CleanupDoiMocAsync(ApplicationDbContext db, DoiMocSeed s)
+        {
+            db.AnhChiSoDongHos.RemoveRange(db.AnhChiSoDongHos.Where(x => x.DichVuDienNuocCuaPhongId == s.Period.DichVuDienNuocCuaPhongId));
+            db.DichVuDienNuocCuaPhongs.Remove(s.Period);
+            db.NhanVienChiNhanhs.RemoveRange(db.NhanVienChiNhanhs.Where(x => x.NguoiDungId == s.Staff.NguoiDungId));
+            db.NguoiDungs.Remove(s.Staff);
+            db.PhongTros.Remove(s.Room);
+            db.ChiNhanhs.RemoveRange(s.Branch, s.OtherBranch);
+            await db.SaveChangesAsync();
+        }
+
+        private static HttpRequestMessage DoiMocRequest(int imageId, string csrf, object body)
+        {
+            var req = new HttpRequestMessage(HttpMethod.Post, $"/DienNuoc/AnhChiSo/{imageId}/DoiMoc");
+            req.Headers.Add("RequestVerificationToken", csrf);
+            req.Content = JsonContent.Create(body);
+            return req;
+        }
+
+        [Fact]
+        public async Task DoiMoc_QuayVong_StaffInBranch_200_UpdatesBaselineAndReturnsNote_InvalidType400()
+        {
+            var suffix = Guid.NewGuid().ToString("N")[..8];
+            var username = $"staff_{suffix}";
+            const string password = "StaffPassword123!";
+            using var scope = _factory.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var seed = await SeedDoiMocAsync(db, scope.ServiceProvider.GetRequiredService<INguoiDungService>(), username, password, assignToImageBranch: true);
+
+            try
+            {
+                var (client, csrf) = await LoginAsync(username, password);
+
+                // Chuỗi số hoặc tên lạ bị từ chối ở controller.
+                var bad = await client.SendAsync(DoiMocRequest(seed.Image.AnhChiSoDongHoId, csrf, new { loai = "1", giaTriHienTai = 100m, lyDo = "Quay vòng" }));
+                Assert.Equal(HttpStatusCode.BadRequest, bad.StatusCode);
+
+                var ok = await client.SendAsync(DoiMocRequest(seed.Image.AnhChiSoDongHoId, csrf, new { loai = "QuayVong", giaTriHienTai = 100m, lyDo = "Quay vòng" }));
+                Assert.Equal(HttpStatusCode.OK, ok.StatusCode);
+                var json = await ok.Content.ReadFromJsonAsync<JsonElement>();
+                Assert.True(json.GetProperty("success").GetBoolean());
+                Assert.Equal("[QUAY_VONG] Chỉ số cũ 9.950; trần 10.000; phần trước mốc 50 kWh; lý do: Quay vòng", json.GetProperty("ghiChuXacNhan").GetString());
+
+                using var verifyScope = _factory.Services.CreateScope();
+                var verifyDb = verifyScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                var period = await verifyDb.DichVuDienNuocCuaPhongs.AsNoTracking().SingleAsync(p => p.DichVuDienNuocCuaPhongId == seed.Period.DichVuDienNuocCuaPhongId);
+                Assert.Equal((0m, 100m), (period.ChiSoDienCu, period.ChiSoDienMoi));
+            }
+            finally
+            {
+                await CleanupDoiMocAsync(db, seed);
+            }
+        }
+
+        [Fact]
+        public async Task DoiMoc_StaffOtherBranch_400_AndChangesNothing()
+        {
+            var suffix = Guid.NewGuid().ToString("N")[..8];
+            var username = $"staff_{suffix}";
+            const string password = "StaffPassword123!";
+            using var scope = _factory.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var seed = await SeedDoiMocAsync(db, scope.ServiceProvider.GetRequiredService<INguoiDungService>(), username, password, assignToImageBranch: false);
+
+            try
+            {
+                var (client, csrf) = await LoginAsync(username, password);
+
+                var res = await client.SendAsync(DoiMocRequest(seed.Image.AnhChiSoDongHoId, csrf, new { loai = "QuayVong", giaTriHienTai = 100m, lyDo = "Quay vòng" }));
+
+                Assert.Equal(HttpStatusCode.BadRequest, res.StatusCode);
+                using var verifyScope = _factory.Services.CreateScope();
+                var verifyDb = verifyScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                var period = await verifyDb.DichVuDienNuocCuaPhongs.AsNoTracking().SingleAsync(p => p.DichVuDienNuocCuaPhongId == seed.Period.DichVuDienNuocCuaPhongId);
+                Assert.Equal((9950m, 9950m), (period.ChiSoDienCu, period.ChiSoDienMoi));
+            }
+            finally
+            {
+                await CleanupDoiMocAsync(db, seed);
+            }
+        }
+
+        [Fact]
+        public async Task DoiMoc_WithoutAntiforgery_400_AndChangesNothing_SameBodyWithTokenSucceeds()
+        {
+            var suffix = Guid.NewGuid().ToString("N")[..8];
+            var username = $"staff_{suffix}";
+            const string password = "StaffPassword123!";
+            using var scope = _factory.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var seed = await SeedDoiMocAsync(db, scope.ServiceProvider.GetRequiredService<INguoiDungService>(), username, password, assignToImageBranch: true);
+
+            try
+            {
+                var (client, csrf) = await LoginAsync(username, password);
+                var body = new { loai = "QuayVong", giaTriHienTai = 100m, lyDo = "Quay vòng" };
+
+                var noToken = new HttpRequestMessage(HttpMethod.Post, $"/DienNuoc/AnhChiSo/{seed.Image.AnhChiSoDongHoId}/DoiMoc")
+                {
+                    Content = JsonContent.Create(body)
+                };
+                var rejected = await client.SendAsync(noToken);
+
+                Assert.Equal(HttpStatusCode.BadRequest, rejected.StatusCode);
+                using (var verifyScope = _factory.Services.CreateScope())
+                {
+                    var verifyDb = verifyScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                    var period = await verifyDb.DichVuDienNuocCuaPhongs.AsNoTracking().SingleAsync(p => p.DichVuDienNuocCuaPhongId == seed.Period.DichVuDienNuocCuaPhongId);
+                    Assert.Equal((9950m, 9950m), (period.ChiSoDienCu, period.ChiSoDienMoi));
+                    var image = await verifyDb.AnhChiSoDongHos.AsNoTracking().SingleAsync(a => a.AnhChiSoDongHoId == seed.Image.AnhChiSoDongHoId);
+                    Assert.Equal(TrangThaiXuLyAnhChiSo.DocDuoc, image.TrangThaiXuLy);
+                }
+
+                // Đối chứng: cùng body có token thì qua, nên 400 ở trên là do thiếu token.
+                var accepted = await client.SendAsync(DoiMocRequest(seed.Image.AnhChiSoDongHoId, csrf, body));
+                Assert.Equal(HttpStatusCode.OK, accepted.StatusCode);
+            }
+            finally
+            {
+                await CleanupDoiMocAsync(db, seed);
+            }
+        }
+
+        [Fact]
+        public async Task DoiMoc_Tenant_RedirectedToLogin_AndChangesNothing()
+        {
+            var suffix = Guid.NewGuid().ToString("N")[..8];
+            var username = $"tenant_{suffix}";
+            var staffName = $"staff_{suffix}";
+            const string password = "TenantPassword123!";
+            using var scope = _factory.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var nguoiDungService = scope.ServiceProvider.GetRequiredService<INguoiDungService>();
+            var seed = await SeedDoiMocAsync(db, nguoiDungService, staffName, password, assignToImageBranch: true);
+            Assert.True((await nguoiDungService.AddAsync(new CreateNguoiDungReq { TenDangNhap = username, MatKhau = password, Role = AppRole.KhachThue })).Success);
+
+            try
+            {
+                var (client, csrf) = await LoginTenantAsync(username, password);
+
+                var res = await client.SendAsync(DoiMocRequest(seed.Image.AnhChiSoDongHoId, csrf, new { loai = "QuayVong", giaTriHienTai = 100m, lyDo = "Quay vòng" }));
+
+                Assert.Equal(HttpStatusCode.Redirect, res.StatusCode);
+                Assert.Contains("/QuanLyNhaTro/DangNhap", res.Headers.Location!.OriginalString);
+                using var verifyScope = _factory.Services.CreateScope();
+                var verifyDb = verifyScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                var period = await verifyDb.DichVuDienNuocCuaPhongs.AsNoTracking().SingleAsync(p => p.DichVuDienNuocCuaPhongId == seed.Period.DichVuDienNuocCuaPhongId);
+                Assert.Equal((9950m, 9950m), (period.ChiSoDienCu, period.ChiSoDienMoi));
+                var image = await verifyDb.AnhChiSoDongHos.AsNoTracking().SingleAsync(a => a.AnhChiSoDongHoId == seed.Image.AnhChiSoDongHoId);
+                Assert.Equal(TrangThaiXuLyAnhChiSo.DocDuoc, image.TrangThaiXuLy);
+            }
+            finally
+            {
+                await CleanupDoiMocAsync(db, seed);
+                var u = await db.NguoiDungs.FirstOrDefaultAsync(x => x.TenDangNhap == username);
+                if (u != null)
+                {
+                    db.NguoiDungs.Remove(u);
+                    await db.SaveChangesAsync();
+                }
+            }
+        }
+
+        [Fact]
+        public async Task DoiMoc_DoiDongHo_StaffInBranch_200_WritesOldMeterPartInNote()
+        {
+            var suffix = Guid.NewGuid().ToString("N")[..8];
+            var username = $"staff_{suffix}";
+            const string password = "StaffPassword123!";
+            using var scope = _factory.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var seed = await SeedDoiMocAsync(db, scope.ServiceProvider.GetRequiredService<INguoiDungService>(), username, password, assignToImageBranch: true);
+
+            try
+            {
+                var (client, csrf) = await LoginAsync(username, password);
+
+                var ok = await client.SendAsync(DoiMocRequest(seed.Image.AnhChiSoDongHoId, csrf,
+                    new { loai = "DoiDongHo", giaTriHienTai = 85.5m, soDauDongHoMoi = 0m, soCuoiDongHoCu = 10010m, lyDo = "Thay đồng hồ" }));
+
+                Assert.Equal(HttpStatusCode.OK, ok.StatusCode);
+                var json = await ok.Content.ReadFromJsonAsync<JsonElement>();
+                Assert.Equal("[DOI_DONG_HO] Chỉ số cũ 9.950; số đầu 0; số cuối đồng hồ cũ 10.010; phần đồng hồ cũ 60 kWh; lý do: Thay đồng hồ",
+                    json.GetProperty("ghiChuXacNhan").GetString());
+
+                using var verifyScope = _factory.Services.CreateScope();
+                var verifyDb = verifyScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                var period = await verifyDb.DichVuDienNuocCuaPhongs.AsNoTracking().SingleAsync(p => p.DichVuDienNuocCuaPhongId == seed.Period.DichVuDienNuocCuaPhongId);
+                Assert.Equal((0m, 85.5m), (period.ChiSoDienCu, period.ChiSoDienMoi));
+                var image = await verifyDb.AnhChiSoDongHos.AsNoTracking().SingleAsync(a => a.AnhChiSoDongHoId == seed.Image.AnhChiSoDongHoId);
+                Assert.True(image.DuocChonLamChiSoChinhThuc);
+                Assert.Equal(TrangThaiXuLyAnhChiSo.DaXacNhan, image.TrangThaiXuLy);
+            }
+            finally
+            {
+                await CleanupDoiMocAsync(db, seed);
+            }
+        }
+
+        [Fact]
+        public async Task DoiMoc_InvalidInputs_400_AndChangeNothing()
+        {
+            var suffix = Guid.NewGuid().ToString("N")[..8];
+            var username = $"staff_{suffix}";
+            const string password = "StaffPassword123!";
+            using var scope = _factory.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var seed = await SeedDoiMocAsync(db, scope.ServiceProvider.GetRequiredService<INguoiDungService>(), username, password, assignToImageBranch: true);
+
+            try
+            {
+                var (client, csrf) = await LoginAsync(username, password);
+                var id = seed.Image.AnhChiSoDongHoId;
+
+                var bodies = new object[]
+                {
+                    new { loai = "", giaTriHienTai = 100m, lyDo = "x" },                                          // loại rỗng
+                    new { loai = "quayvong", giaTriHienTai = 100m, lyDo = "x" },                                  // sai hoa thường
+                    new { loai = "QuayVong", lyDo = "x" },                                                        // thiếu chỉ số hiện tại
+                    new { loai = "DoiDongHo", lyDo = "x" },                                                       // thiếu chỉ số hiện tại
+                    new { loai = "DoiDongHo", giaTriHienTai = (decimal?)null, lyDo = "x" },                       // chỉ số hiện tại null
+                    new { loai = "QuayVong", giaTriHienTai = 9960m, lyDo = "x" },                                 // không nhỏ hơn chỉ số cũ
+                    new { loai = "QuayVong", giaTriHienTai = 100m, lyDo = "   " },                                // thiếu lý do
+                    new { loai = "QuayVong", giaTriHienTai = 100.1234m, lyDo = "x" },                             // quá 3 số lẻ
+                    new { loai = "DoiDongHo", giaTriHienTai = 10m, soDauDongHoMoi = 20m, lyDo = "x" },            // số đầu lớn hơn hiện tại
+                    new { loai = "DoiDongHo", giaTriHienTai = 10m, soCuoiDongHoCu = 9000m, lyDo = "x" },          // số cuối nhỏ hơn chỉ số cũ
+                    new { loai = "DoiDongHo", giaTriHienTai = -1m, lyDo = "x" },                                  // số âm
+                    new { loai = "DoiDongHo", giaTriHienTai = 10m, lyDo = new string('x', 501) }                  // lý do quá dài
+                };
+
+                foreach (var body in bodies)
+                {
+                    var res = await client.SendAsync(DoiMocRequest(id, csrf, body));
+                    Assert.Equal(HttpStatusCode.BadRequest, res.StatusCode);
+                }
+
+                using var verifyScope = _factory.Services.CreateScope();
+                var verifyDb = verifyScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                var period = await verifyDb.DichVuDienNuocCuaPhongs.AsNoTracking().SingleAsync(p => p.DichVuDienNuocCuaPhongId == seed.Period.DichVuDienNuocCuaPhongId);
+                Assert.Equal((9950m, 9950m), (period.ChiSoDienCu, period.ChiSoDienMoi));
+                var image = await verifyDb.AnhChiSoDongHos.AsNoTracking().SingleAsync(a => a.AnhChiSoDongHoId == id);
+                Assert.Equal(TrangThaiXuLyAnhChiSo.DocDuoc, image.TrangThaiXuLy);
+                Assert.False(image.DuocChonLamChiSoChinhThuc);
+            }
+            finally
+            {
+                await CleanupDoiMocAsync(db, seed);
+            }
+        }
+
+        [Fact]
+        public async Task DoiMoc_Admin_CanResetBaselineOfAnyBranch()
+        {
+            var suffix = Guid.NewGuid().ToString("N")[..8];
+            var staffName = $"staff_{suffix}";
+            var adminName = $"admin_{suffix}";
+            const string password = "StaffPassword123!";
+            using var scope = _factory.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var users = scope.ServiceProvider.GetRequiredService<INguoiDungService>();
+            var seed = await SeedDoiMocAsync(db, users, staffName, password, assignToImageBranch: false);
+            Assert.True((await users.AddAsync(new CreateNguoiDungReq { TenDangNhap = adminName, MatKhau = password, Role = AppRole.Admin })).Success);
+
+            try
+            {
+                var (client, csrf) = await LoginAsync(adminName, password);
+
+                var ok = await client.SendAsync(DoiMocRequest(seed.Image.AnhChiSoDongHoId, csrf, new { loai = "QuayVong", giaTriHienTai = 100m, lyDo = "Quay vòng" }));
+
+                Assert.Equal(HttpStatusCode.OK, ok.StatusCode);
+                using var verifyScope = _factory.Services.CreateScope();
+                var verifyDb = verifyScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                var period = await verifyDb.DichVuDienNuocCuaPhongs.AsNoTracking().SingleAsync(p => p.DichVuDienNuocCuaPhongId == seed.Period.DichVuDienNuocCuaPhongId);
+                Assert.Equal((0m, 100m), (period.ChiSoDienCu, period.ChiSoDienMoi));
+            }
+            finally
+            {
+                await CleanupDoiMocAsync(db, seed);
+                var admin = await db.NguoiDungs.FirstOrDefaultAsync(x => x.TenDangNhap == adminName);
+                if (admin != null)
+                {
+                    db.NguoiDungs.Remove(admin);
+                    await db.SaveChangesAsync();
+                }
+            }
+        }
+
         [Fact]
         public async Task ThuLai_KhongDocDuoc_200()
         {

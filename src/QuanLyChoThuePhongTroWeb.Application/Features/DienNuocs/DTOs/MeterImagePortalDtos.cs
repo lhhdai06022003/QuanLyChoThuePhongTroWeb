@@ -25,6 +25,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.DTOs
         public bool CoTheXacNhan { get; set; }
         public bool CanLyDoKhiXacNhan { get; set; }
         public bool CoTheSuaSo { get; set; }
+        // Chỉ điền cho nhân viên/Admin: độ tin cậy dưới NguongDoTinCay.
+        public bool DoTinCayThap { get; set; }
     }
 
     public class MeterRoomOptionRes

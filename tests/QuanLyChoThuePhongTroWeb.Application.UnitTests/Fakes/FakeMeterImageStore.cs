@@ -159,6 +159,16 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
             return Task.FromResult((DefaultChiSoDienMoi, DefaultChiSoNuocMoi));
         }
 
+        public Task<DichVuDienNuocCuaPhong?> GetNearestPreviousPeriodAsync(int phongTroId, int thang, int nam, CancellationToken cancellationToken = default)
+        {
+            var previous = Periods.Values
+                .Where(p => p.PhongTroId == phongTroId && !p.IsDeleted && (p.Nam < nam || (p.Nam == nam && p.Thang < thang)))
+                .OrderByDescending(p => p.Nam)
+                .ThenByDescending(p => p.Thang)
+                .FirstOrDefault();
+            return Task.FromResult(previous);
+        }
+
         public Task<decimal> GetServicePriceAsync(string serviceKeyword, int chiNhanhId, CancellationToken cancellationToken = default)
         {
             return Task.FromResult(serviceKeyword.Contains("điện") ? 3500m : 20000m);

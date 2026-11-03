@@ -701,6 +701,47 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
         }
 
         [Fact]
+        public async Task XemChiTiet_PeriodChangedBaseline_DoesNotExposeReminderOrPeriodPricesToTenant()
+        {
+            var data = await SeedTestDataAsync("XCT_NoRem");
+            var sent = await AddSentInvoiceAsync(data.InvoiceDaGui, "NOREM", 7, DateTime.UtcNow.AddHours(24));
+            await AttachMeterPeriodAsync(sent);
+            using (var scope = _factory.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                var contract = await db.HopDongs.FindAsync(sent.HopDongId);
+                // Kỳ 06 kết thúc ở 4.520 trong khi kỳ 07 có Cũ 100: kỳ 07 đã đổi đồng hồ.
+                db.DichVuDienNuocCuaPhongs.Add(new DichVuDienNuocCuaPhong
+                {
+                    PhongTroId = contract!.PhongTroId, Thang = 6, Nam = 2026,
+                    ChiSoDienCu = 4000, ChiSoDienMoi = 4520, ChiSoNuocCu = 40, ChiSoNuocMoi = 50,
+                    DonGiaDien = 3500, DonGiaNuoc = 20000, TrangThaiGhiNhan = TrangThaiGhiNhan.DaDuyet
+                });
+                await db.SaveChangesAsync();
+            }
+
+            var client = CreateHttpClient();
+            await LoginTenantAsync(client, data.TenantAUsername, data.TenantAPassword);
+
+            var res = await client.GetAsync($"/KhachThue/HoaDon/XemChiTiet?id={sent.HoaDonId}");
+            Assert.Equal(HttpStatusCode.OK, res.StatusCode);
+
+            var body = await res.Content.ReadAsStringAsync();
+            using var doc = JsonDocument.Parse(body);
+            var root = doc.RootElement;
+            foreach (var key in new[] { "nhacTruyThus", "NhacTruyThus", "donGiaDienKy", "DonGiaDienKy", "donGiaNuocKy", "DonGiaNuocKy" })
+            {
+                Assert.False(root.TryGetProperty(key, out _), $"Khách thuê không được thấy trường {key}");
+            }
+
+            Assert.DoesNotContain("đổi đồng hồ", body, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("truy thu", body, StringComparison.OrdinalIgnoreCase);
+            // Khách vẫn thấy chỉ số của kỳ như bình thường.
+            Assert.Equal(100m, root.GetProperty("chiSoDienCu").GetDecimal());
+            Assert.Equal(120m, root.GetProperty("chiSoDienMoi").GetDecimal());
+        }
+
+        [Fact]
         public async Task IndexPage_ShowsResponseDeadlineLine_WithoutProvisionalLabel()
         {
             var data = await SeedTestDataAsync("IDX_TT");

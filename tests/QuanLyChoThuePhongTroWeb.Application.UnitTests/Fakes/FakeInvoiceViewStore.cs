@@ -19,6 +19,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
         public bool? LastIncludeHistory { get; private set; }
         public int LastDetailId { get; private set; }
         public int GetDetailCallCount { get; private set; }
+        public Dictionary<int, InvoiceMeterBaselineFacts> BaselineFacts { get; } = new();
 
         public Task<DataTableResponse<HoaDonRes>> GetEmployeeListAsync(
             DataTableRequest request,
@@ -45,6 +46,12 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
             LastIncludeHistory = includeHistory;
             Details.TryGetValue(hoaDonId, out var detail);
             return Task.FromResult<HoaDonChiTietRes?>(detail);
+        }
+
+        public Task<InvoiceMeterBaselineFacts?> GetMeterBaselineFactsAsync(int hoaDonId, CancellationToken ct = default)
+        {
+            BaselineFacts.TryGetValue(hoaDonId, out var facts);
+            return Task.FromResult<InvoiceMeterBaselineFacts?>(facts);
         }
     }
 }

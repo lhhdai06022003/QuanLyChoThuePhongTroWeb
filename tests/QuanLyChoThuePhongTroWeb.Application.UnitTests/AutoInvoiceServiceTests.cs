@@ -67,7 +67,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
                 }
 
                 Service = new AutoInvoiceService(
-                    Store, Workflow, Issuance, Access, ThongBao, new AutoInvoiceOptions(), Logger);
+                    Store, Workflow, Issuance, Access, ThongBao, new AutoInvoiceOptions { TuXacNhanAnhAi = true }, Logger);
             }
 
             public Task<ServiceResult<AutoInvoiceRunResult>> Run(AutoInvoiceTrigger trigger = AutoInvoiceTrigger.NhanVienTaiAnh, int actor = Actor)

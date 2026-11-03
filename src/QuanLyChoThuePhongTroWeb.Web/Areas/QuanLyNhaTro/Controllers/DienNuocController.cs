@@ -136,10 +136,23 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
 
             return Ok(new
             {
-                dien = result.Data!.Dien == null ? null : new { maLyDo = result.Data.Dien.MaLyDo, moTa = result.Data.Dien.MoTa },
-                nuoc = result.Data.Nuoc == null ? null : new { maLyDo = result.Data.Nuoc.MaLyDo, moTa = result.Data.Nuoc.MoTa }
+                dien = ToAnomalyJson(result.Data!.Dien),
+                nuoc = ToAnomalyJson(result.Data.Nuoc)
             });
         }
+
+        // null nghĩa là xanh (không có cảnh báo).
+        private static object? ToAnomalyJson(MeterAnomalyWarning? w)
+            => w == null ? null : new
+            {
+                maLyDo = w.MaLyDo,
+                moTa = w.MoTa,
+                mucDo = w.MucDo,
+                chiSoGoiY = w.ChiSoGoiY,
+                sanLuongTheoGoiY = w.SanLuongTheoGoiY,
+                coTheQuayVong = w.CoTheQuayVong,
+                tranCongTo = w.TranCongTo
+            };
 
         [HttpGet("/DienNuoc/AnhChiSo")]
         public async Task<IActionResult> GetAnhChiSo(int phongTroId, int thang, int nam)
@@ -294,6 +307,52 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             {
                 _logger.LogError(ex, "Lỗi khi sửa số ảnh chỉ số {Id}", id);
                 return StatusCode(500, new { success = false, message = "Có lỗi xảy ra trên máy chủ khi sửa số chỉ số." });
+            }
+        }
+
+        [HttpPost("/DienNuoc/AnhChiSo/{id:int}/DoiMoc")]
+        public async Task<IActionResult> DoiMocAnhChiSo(int id, [FromBody] DoiMocMeterImageBodyReq body)
+        {
+            var actorIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!int.TryParse(actorIdStr, out var actorId) || actorId <= 0)
+            {
+                return Unauthorized(new { success = false, message = "Người dùng chưa đăng nhập hoặc phiên làm việc đã hết hạn." });
+            }
+
+            // Enum.TryParse chấp nhận cả chuỗi số ("1"), nên chỉ nhận đúng tên.
+            if (body == null || (body.Loai != "DoiDongHo" && body.Loai != "QuayVong"))
+            {
+                return BadRequest(new { success = false, message = "Loại thao tác không hợp lệ." });
+            }
+
+            if (body.GiaTriHienTai is not decimal giaTriHienTai)
+            {
+                return BadRequest(new { success = false, message = "Vui lòng nhập chỉ số hiện tại." });
+            }
+
+            try
+            {
+                var loai = body.Loai == "QuayVong" ? MeterBaselineResetType.QuayVong : MeterBaselineResetType.DoiDongHo;
+                var request = new ResetMeterBaselineRequest(id, loai, giaTriHienTai, body.SoDauDongHoMoi, body.SoCuoiDongHoCu, body.LyDo);
+
+                var result = await _meterImagePortalService.DoiMocAsync(request, actorId, HttpContext.RequestAborted);
+                if (!result.Success)
+                {
+                    return BadRequest(new { success = false, message = result.Message });
+                }
+
+                return Ok(new
+                {
+                    success = true,
+                    message = result.Message,
+                    ghiChuXacNhan = result.Data!.GhiChuXacNhan,
+                    data = MeterImageVmMapper.ToStaffVm(result.Data!)
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi đổi mốc chỉ số của ảnh {Id}", id);
+                return StatusCode(500, new { success = false, message = "Có lỗi xảy ra trên máy chủ khi đổi mốc chỉ số." });
             }
         }
     }
