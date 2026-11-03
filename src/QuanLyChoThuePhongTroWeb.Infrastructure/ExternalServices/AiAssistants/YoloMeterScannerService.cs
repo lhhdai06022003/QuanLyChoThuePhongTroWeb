@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -13,6 +14,8 @@ using QuanLyChoThuePhongTroWeb.Application.Abstractions.Services;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+
+[assembly: InternalsVisibleTo("QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests")]
 
 namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.AiAssistants
 {
@@ -268,7 +271,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.AiAssistants
             }
         }
 
-        private static DenseTensor<float> PreprocessLetterbox(Image<Rgb24> src)
+        internal static DenseTensor<float> PreprocessLetterbox(Image<Rgb24> src)
         {
             float scale = Math.Min((float)InputSize / src.Width, (float)InputSize / src.Height);
             int newWidth = (int)Math.Round(src.Width * scale);
@@ -282,17 +285,21 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.AiAssistants
 
             var tensor = new DenseTensor<float>(new[] { 1, 3, InputSize, InputSize });
 
+            // Ghi thẳng vào bộ đệm [1, 3, H, W] (R, G, B liền nhau theo kênh): indexer nhiều chiều cấp phát mảng chỉ số mỗi lần gọi.
             canvas.ProcessPixelRows(accessor =>
             {
+                const int plane = InputSize * InputSize;
+                var buffer = tensor.Buffer.Span;
                 for (int y = 0; y < InputSize; y++)
                 {
                     var row = accessor.GetRowSpan(y);
+                    int offset = y * InputSize;
                     for (int x = 0; x < InputSize; x++)
                     {
                         var pixel = row[x];
-                        tensor[0, 0, y, x] = pixel.R / 255f;
-                        tensor[0, 1, y, x] = pixel.G / 255f;
-                        tensor[0, 2, y, x] = pixel.B / 255f;
+                        buffer[offset + x] = pixel.R / 255f;
+                        buffer[plane + offset + x] = pixel.G / 255f;
+                        buffer[2 * plane + offset + x] = pixel.B / 255f;
                     }
                 }
             });
