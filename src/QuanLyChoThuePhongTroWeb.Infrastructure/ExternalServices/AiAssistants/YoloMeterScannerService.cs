@@ -307,13 +307,15 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.AiAssistants
             return tensor;
         }
 
-        private static List<BoundingBox> ParseYoloOutput(Tensor<float> output)
+        internal static List<BoundingBox> ParseYoloOutput(Tensor<float> output)
         {
             // YOLOv8 output tensor shape: [1, 17, 8400] (4 box coords + 13 classes)
             int dimensions = output.Dimensions[1]; // 17
             int numAnchors = output.Dimensions[2]; // 8400
             int numClasses = dimensions - 4;       // 13
 
+            // Đọc thẳng bộ đệm: phần tử [0, r, i] nằm ở r * numAnchors + i.
+            var data = (output as DenseTensor<float> ?? output.ToDenseTensor()).Buffer.Span;
             var detections = new List<BoundingBox>();
 
             for (int i = 0; i < numAnchors; i++)
@@ -323,7 +325,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.AiAssistants
 
                 for (int c = 0; c < numClasses; c++)
                 {
-                    float score = output[0, 4 + c, i];
+                    float score = data[(4 + c) * numAnchors + i];
                     if (score > maxScore)
                     {
                         maxScore = score;
@@ -336,10 +338,10 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.AiAssistants
                     continue;
                 }
 
-                float cx = output[0, 0, i];
-                float cy = output[0, 1, i];
-                float w = output[0, 2, i];
-                float h = output[0, 3, i];
+                float cx = data[i];
+                float cy = data[numAnchors + i];
+                float w = data[2 * numAnchors + i];
+                float h = data[3 * numAnchors + i];
 
                 detections.Add(new BoundingBox(
                     ClassId: bestClassId,
@@ -479,7 +481,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.AiAssistants
             _session?.Dispose();
         }
 
-        private sealed record BoundingBox(
+        internal sealed record BoundingBox(
             int ClassId,
             float Confidence,
             float CenterX,
