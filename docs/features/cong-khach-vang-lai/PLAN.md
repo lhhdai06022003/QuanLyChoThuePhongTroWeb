@@ -213,3 +213,16 @@ Các quy tắc chính đã được chốt trong SPEC. Cần xác nhận ranh gi
 - Tải JPEG/PNG/WebP lên Cloudinary có sẵn; kiểm chữ ký tệp, tối đa 5 MB/ảnh và 10 ảnh đang hoạt động/phòng. Ảnh mới bổ sung vào ảnh cũ, ảnh đầu làm đại diện nếu chưa có.
 - Giới hạn theo chi nhánh, khóa bản ghi phòng khi lưu để bảo vệ giới hạn ảnh/ảnh đại diện; lỗi tải/lưu không ghi tin dở và dọn ảnh tải dở.
 - Test HTTP chỉ dùng DB Test và fake storage; kiểm tải thật qua multipart, CSRF, sai nội dung ảnh, giới hạn 10 ảnh, phòng ngoài phạm vi và hiển thị ảnh ở trang công khai.
+
+## Đặt cọc tự động, tiền cọc phòng trong DB và trợ lý AI — 04/11/2026 (nhánh `feature/ai-phan-tich-dien-nuoc`)
+
+- [x] Gộp `origin/codex/khach-vang-lai` (`7f874e3`) bằng merge commit `ad130e0`, không xung đột. Rà quy tắc: bản đầu lưu tiền cọc ở `App_Data/room-deposits.json` và sửa `Program.cs` (rate limiter) chưa được duyệt riêng.
+- [x] Tiền cọc phòng chuyển sang cột `phong_tro."TienCocPhong"` (migration `AddRoomDepositAmount`, bảng S1/S2 và dòng ĐÃ XÁC NHẬN ở [SPEC.md](SPEC.md)). Gỡ store JSON, đăng ký DI, fake, test và 2 dòng `.gitignore`. Commit `5ba0e3a`.
+- [x] Rate limiter trợ lý AI tách ra `Web/Helpers/GuestAssistantRateLimiting.cs` theo phương án người dùng duyệt: 6 lượt/phút mỗi khách (tài khoản, chưa đăng nhập theo IP) nối với trần 30 lượt/phút toàn hệ thống; `Program.cs` chỉ thêm 3 dòng. Commit `5ba0e3a`.
+- [x] Toàn bộ test sau `5ba0e3a` (chạy tuần tự, DB `_test`): Domain 140, Application 2426, Infrastructure 683 + 1 skip, Web 715 PASS. `has-pending-model-changes` không còn thay đổi.
+- [x] Thử tay trên `QuanLyPhongTroDb` (người dùng đồng ý áp migration): đăng công khai với cọc 0 bị chặn ở trình duyệt và server; đăng P.103 cọc 1.500.000 ₫ thì `/phong/3` hiện đúng số cọc; tài khoản khách thử nghiệm bấm đặt cọc tạo ngay mã `TTPTGC3`, hạn 30 phút, sau đó đã hủy. Không thử thanh toán thật.
+- [x] Sửa badge Tin phòng: "Ẩn — chưa có tiền cọc" chỉ hiện khi phòng Trống, phòng Đã thuê/Bảo trì hiện "Chưa hiển thị" (thêm ca vào `TinPhongHoldStatusTests`).
+- [ ] Lượt đặt cọc tự tạo đã hủy hoặc hết hạn mà chưa nhận tiền vẫn hiện "Hạn ký hợp đồng" (giá trị tạm = giờ tạo + 48 giờ) ở `YeuCauCuaToi.cshtml` và `DatCoc.cshtml`.
+- [ ] Giữ chỗ tự tạo đã nộp minh chứng (`ChoXacNhanTien`) vẫn hết hạn sau 30 phút nếu nhân viên chưa đối soát.
+- [ ] Phòng đang chờ thanh toán vẫn hiện công khai, áp dụng cả luồng nhân viên duyệt cũ; giữ chỗ tự tạo nhận biết bằng so chuỗi `LyDo`.
+- [ ] Chưa bật `UseForwardedHeaders`: sau reverse proxy, khách chưa đăng nhập có thể bị tính chung một IP (hướng dẫn ở [AI_TIM_PHONG.md](AI_TIM_PHONG.md)).

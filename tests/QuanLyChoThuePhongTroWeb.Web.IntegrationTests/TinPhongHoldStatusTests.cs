@@ -37,7 +37,12 @@ public sealed class TinPhongHoldStatusTests(CustomWebApplicationFactory factory)
             DienTich = 20, MoTa = "Free", TrangThai = TrangThaiPhong.Trong, DuocDangTin = true, TienCocPhong = 500000m };
         var heldRoom = new PhongTro { ChiNhanh = branch, SoPhong = "G" + suffix, GiaThue = 1000000,
             DienTich = 20, MoTa = "Held", TrangThai = TrangThaiPhong.Trong, DuocDangTin = true, TienCocPhong = 500000m };
-        db.AddRange(staff, guest, freeRoom, heldRoom);
+        // Bật tin nhưng tiền cọc 0: phòng Trống báo thiếu cọc, phòng Đã thuê không báo nhầm lý do.
+        var noDepositRoom = new PhongTro { ChiNhanh = branch, SoPhong = "N" + suffix, GiaThue = 1000000,
+            DienTich = 20, MoTa = "No deposit", TrangThai = TrangThaiPhong.Trong, DuocDangTin = true };
+        var rentedRoom = new PhongTro { ChiNhanh = branch, SoPhong = "R" + suffix, GiaThue = 1000000,
+            DienTich = 20, MoTa = "Rented", TrangThai = TrangThaiPhong.DaThue, DuocDangTin = true };
+        db.AddRange(staff, guest, freeRoom, heldRoom, noDepositRoom, rentedRoom);
         await db.SaveChangesAsync();
         db.AddRange(
             new NhanVienChiNhanh { NguoiDungId = staff.NguoiDungId, ChiNhanhId = branch.ChiNhanhId,
@@ -61,6 +66,12 @@ public sealed class TinPhongHoldStatusTests(CustomWebApplicationFactory factory)
             Assert.DoesNotContain($"href=\"/phong/{heldRoom.PhongTroId}\"", heldRow);
             Assert.Equal(HttpStatusCode.NotFound,
                 (await client.GetAsync($"/phong/{heldRoom.PhongTroId}")).StatusCode);
+            var noDepositRow = Row(html, noDepositRoom.SoPhong);
+            Assert.Contains("Ẩn — chưa có tiền cọc", noDepositRow);
+            Assert.DoesNotContain($"href=\"/phong/{noDepositRoom.PhongTroId}\"", noDepositRow);
+            var rentedRow = Row(html, rentedRoom.SoPhong);
+            Assert.Contains("Chưa hiển thị", rentedRow);
+            Assert.DoesNotContain("chưa có tiền cọc", rentedRow);
         }
         finally
         {

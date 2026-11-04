@@ -32,6 +32,8 @@
                 @foreach (var room in Model.Rooms)
                 {
                     var roomStatus = room.RoomStatus switch { 0 => "Trống", 1 => "Đã thuê", 2 => "Bảo trì", _ => "Không rõ" };
+                    // Chỉ báo thiếu tiền cọc khi đó là lý do ẩn: phòng không Trống đã bị ẩn vì tình trạng phòng.
+                    var missingDeposit = room.Published && room.RoomStatus == 0 && room.DepositAmount <= 0;
                     <tr>
                         <td>
                             <div class="d-flex align-items-center gap-3">
@@ -49,7 +51,7 @@
                         <td class="text-nowrap"><strong>@VndFormat.Money(room.MonthlyRent)</strong><small class="d-block text-secondary">mỗi tháng</small><small class="d-block">@(room.DepositAmount > 0 ? $"Cọc: {VndFormat.Money(room.DepositAmount)}" : "Chưa có tiền cọc")</small></td>
                         <td>@room.ImageCount / 10 ảnh</td>
                         <td><span class="badge @(room.RoomStatus == 0 ? "bg-green-lt" : "bg-secondary-lt")">@roomStatus</span></td>
-                        <td><span class="badge @(room.IsVisible ? "bg-blue-lt" : room.Published && (room.OnHold || room.DepositAmount <= 0) ? "bg-orange-lt" : "bg-secondary-lt")">@(room.IsVisible ? "Đang hiển thị" : room.Published && room.OnHold ? "Ẩn — đang giữ chỗ" : room.Published && room.DepositAmount <= 0 ? "Ẩn — chưa có tiền cọc" : "Chưa hiển thị")</span></td>
+                        <td><span class="badge @(room.IsVisible ? "bg-blue-lt" : room.Published && (room.OnHold || missingDeposit) ? "bg-orange-lt" : "bg-secondary-lt")">@(room.IsVisible ? "Đang hiển thị" : room.Published && room.OnHold ? "Ẩn — đang giữ chỗ" : missingDeposit ? "Ẩn — chưa có tiền cọc" : "Chưa hiển thị")</span></td>
                         <td class="text-end">
                             <div class="d-flex justify-content-end flex-wrap gap-2">
                                 @if (room.IsVisible)

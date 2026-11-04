@@ -5,7 +5,7 @@
 Phần này thay thế các quy tắc duyệt giữ chỗ trước thanh toán trong tài liệu cũ bên dưới; các quy tắc lịch xem, quyền tài khoản, hoàn tiền và hợp đồng vẫn áp dụng.
 
 - Quản lý nhập tiền cọc phòng khi đăng/sửa tin. Số nguyên VND từ 0 đến 1.000.000.000.000, lưu ở cột `phong_tro."TienCocPhong"` (thay file `App_Data/room-deposits.json` của bản đầu, sửa ngày 04/11/2026). 0 nghĩa là chưa đặt mức cọc.
-- Đăng công khai phải có tiền cọc lớn hơn 0; code kiểm ở ba chỗ: lưu tin (`RoomListingService`, `RoomListingStore` trong lúc khóa dòng phòng), truy vấn công khai và hẹn xem (`PublicRoomStore`, `ViewingRequestStore` lọc `TienCocPhong > 0`), tạo lượt thanh toán (`ReservationStore.CreateForPaymentAsync` đọc số tiền trong lúc khóa dòng phòng). Phòng đang công khai mà cọc bằng 0 (dữ liệu trước migration) bị ẩn khỏi `/phong` cho tới khi quản lý nhập cọc; màn Tin phòng ghi "Ẩn — chưa có tiền cọc".
+- Đăng công khai phải có tiền cọc lớn hơn 0; code kiểm ở ba chỗ: lưu tin (`RoomListingService`, `RoomListingStore` trong lúc khóa dòng phòng), truy vấn công khai và hẹn xem (`PublicRoomStore`, `ViewingRequestStore` lọc `TienCocPhong > 0`), tạo lượt thanh toán (`ReservationStore.CreateForPaymentAsync` đọc số tiền trong lúc khóa dòng phòng). Phòng đang công khai mà cọc bằng 0 (dữ liệu trước migration) bị ẩn khỏi `/phong` cho tới khi quản lý nhập cọc; màn Tin phòng ghi "Ẩn — chưa có tiền cọc" khi phòng Trống (phòng Đã thuê/Bảo trì ghi "Chưa hiển thị" vì lý do ẩn là tình trạng phòng).
 - Giá cọc được hiển thị công khai trên thẻ, chi tiết và trang đặt phòng.
 
 ### Ảnh hưởng schema PostgreSQL
@@ -27,7 +27,7 @@ Migration `20261104075202_AddRoomDepositAmount`. ĐÃ XÁC NHẬN: người dùn
 Thiết kế đã duyệt: `docs/superpowers/specs/2026-10-29-dat-coc-tu-dong-design.md`; kế hoạch: `docs/superpowers/plans/2026-10-29-dat-coc-tu-dong.md`.
 
 **Trạng thái:** nghiệp vụ đã được chốt, 08/10/2026.
-**Ràng buộc:** chỉ dùng schema đã có trên `master` (migration cuối `20260922163513_AddPublicViewingAndReservations`); không tạo hoặc sửa migration, bảng, cột. Không dùng `QuanLyPhongTroDb` cho kiểm thử.
+**Ràng buộc:** chỉ dùng schema đã có trên `master` (migration cuối `20260922163513_AddPublicViewingAndReservations`); không tạo hoặc sửa migration, bảng, cột. Không dùng `QuanLyPhongTroDb` cho kiểm thử. Ngoại lệ đã duyệt ngày 04/11/2026: cột `TienCocPhong` (S1/S2 ở trên); người dùng cho áp migration và thử tay trên `QuanLyPhongTroDb` cùng ngày.
 
 ## Mục tiêu
 

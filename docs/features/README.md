@@ -12,7 +12,7 @@ Các README sau mô tả **công việc dự kiến và người sở hữu**, t
 | [Thanh toán hóa đơn](thanh-toan-hoa-don/README.md) | A | VietQR, yêu cầu thanh toán, minh chứng và đối chiếu của nhân viên đã có. Module Thanh toán trực tuyến (đã gộp `master`) nối tiếp và gỡ luồng khách tự tạo lượt/nộp minh chứng hóa đơn. README của module chưa cập nhật |
 | [Phòng công khai và lịch xem](phong-cong-khai-lich-xem/README.md) | B | Đã có trong mã: trang `/phong`, ảnh phòng (`AnhPhongTro`), lưu tin phòng và tải ảnh, hẹn xem do khách đề xuất giờ, nhân viên xác nhận/từ chối ở màn Lịch xem phòng. Đặt theo khung giờ không còn trong luồng (mã `ViewingSlotAdmin*` còn nhưng không có giao diện); API chưa có |
 | [Khách vãng lai, giữ chỗ, cọc và hoàn tiền](khach-vang-lai-giu-cho/README.md) | B | Đã có trong mã: đăng ký/đăng nhập khách, giữ chỗ, đặt cọc, nộp minh chứng, đối soát, áp tiền giữ chỗ vào cọc, quyết định và ghi nhận hoàn tiền. API chưa có |
-| [Cổng khách vãng lai (spec và kế hoạch)](cong-khach-vang-lai/PLAN.md) | thuan | Đã gộp `master` (`dc391e3`, `21eaa73`). `PLAN.md` còn 27 checkbox mở của các task cũ, chưa đối chiếu lại với mã nên chưa tick |
+| [Cổng khách vãng lai (spec và kế hoạch)](cong-khach-vang-lai/PLAN.md) | thuan | Đã gộp `master` (`dc391e3`, `21eaa73`). Đặt cọc tự động, cột `TienCocPhong` và trợ lý AI tìm phòng nằm trên `feature/ai-phan-tich-dien-nuoc` (`ad130e0`, `5ba0e3a`), thử tay PASS 04/11/2026. `PLAN.md` còn 27 checkbox mở của các task cũ, chưa đối chiếu lại với mã nên chưa tick |
 | [AI Assistant và Thông báo theo chi nhánh](ai-thong-bao-chi-nhanh/README.md) | — | Hoàn thành, đã merge vào `master` (commit `8295e36`) ngày 06/10/2026 |
 | [Trung tâm việc cần làm](viec-can-lam/README.md) | — | Code xong 2 đợt, review cuối ĐẠT 08/10/2026 ([review](viec-can-lam/review.md)); spec 1.2 đã xác nhận, người dùng thử tay đạt 09/10/2026; đã commit `361575e` |
 | [Hóa đơn tự động](hoa-don-tu-dong/plan.md) | — | Code xong đợt A–D và lượt dọn code, review ĐẠT 11/10/2026 ([review](hoa-don-tu-dong/review.md)); đã gộp `master` (commit `c11946c`) |
@@ -134,8 +134,9 @@ Phần công khai nằm ở `Web/Controllers` (thư mục `Areas/KhachVangLai` c
 - Xem phòng không cần đăng nhập: `/phong` (lọc, sắp xếp), `/phong/{id}`, `/phong/cam-nang`. Phòng đã lưu và so sánh (`/phong/da-luu`, `/phong/so-sanh`) giữ ở `localStorage` của trình duyệt. Phòng hiện khi `DuocDangTin = true`, trạng thái Trống và không có giữ chỗ hiệu lực.
 - Đăng ký khách tại `/dang-ky-khach`, đăng nhập chung trang `/QuanLyNhaTro/DangNhap`.
 - Hẹn xem: khách đề xuất ngày giờ, nhân viên xác nhận hoặc từ chối ở màn Lịch xem phòng và hệ thống gửi email trạng thái (email lỗi không hoàn tác trạng thái; có nút Gửi lại email). Phòng đã có người thuê thì nhân viên hủy lịch bằng "Hủy lịch — phòng đã thuê".
-- Giữ chỗ và đặt cọc: nhân viên duyệt số tiền và hạn, khách chuyển khoản và nộp ảnh minh chứng, nhân viên đối soát; tiền giữ chỗ có thể áp vào cọc hợp đồng hoặc hoàn lại (`ReservationSettlement`). Theo dõi tại `/tai-khoan/yeu-cau-phong`.
-- Nhân viên đăng tin ở màn Tin phòng công khai: tiêu đề, mô tả, hiển thị và tải ảnh (JPG/PNG/WebP, tối đa 5 MB/ảnh, 10 ảnh/phòng) qua Cloudinary.
+- Đặt cọc tự động (nhánh `feature/ai-phan-tich-dien-nuoc`, chưa vào `master`): khách đăng nhập bấm đặt cọc là có ngay mã `TTPTGC{id}`, hạn 30 phút, không chờ nhân viên duyệt; nhận đủ tiền mới giữ phòng, hạn ký hợp đồng 48 giờ. Số tiền lấy từ cột `phong_tro."TienCocPhong"` (0 = chưa đặt, đăng công khai phải > 0). Hướng dẫn: [DAT_COC_TU_DONG.md](cong-khach-vang-lai/DAT_COC_TU_DONG.md). Giữ chỗ cũ do nhân viên duyệt vẫn đọc và xử lý được; nhân viên đối soát, áp tiền vào cọc hợp đồng hoặc hoàn lại (`ReservationSettlement`). Theo dõi tại `/tai-khoan/yeu-cau-phong`.
+- Trợ lý AI tìm phòng `POST /phong/tro-ly-ai` (Gemini, không cần đăng nhập, chỉ đọc dữ liệu phòng công khai; 6 lượt/phút mỗi khách, 30 lượt/phút toàn hệ thống). Hướng dẫn: [AI_TIM_PHONG.md](cong-khach-vang-lai/AI_TIM_PHONG.md).
+- Nhân viên đăng tin ở màn Tin phòng công khai: tiêu đề, mô tả, tiền cọc phòng, hiển thị và tải ảnh (JPG/PNG/WebP, tối đa 5 MB/ảnh, 10 ảnh/phòng) qua Cloudinary.
 
 ## Tích hợp và tác vụ tự động
 
