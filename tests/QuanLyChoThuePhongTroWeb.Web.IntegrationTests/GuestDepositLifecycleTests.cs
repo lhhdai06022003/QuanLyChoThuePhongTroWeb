@@ -43,6 +43,32 @@ public sealed class GuestDepositLifecycleTests(CustomWebApplicationFactory facto
 
     }
 
+    // Lượt tự tạo lưu sẵn hạn ký tạm (giờ tạo + 48 giờ); chỉ hiện ngày khi đã nhận đủ cọc.
+    [Theory]
+    [InlineData(TrangThaiYeuCauGiuCho.DaHuy, false)]
+    [InlineData(TrangThaiYeuCauGiuCho.HetHan, false)]
+    [InlineData(TrangThaiYeuCauGiuCho.DangGiuCho, true)]
+    public async Task SelfServiceContractDeadline_ShownOnlyAfterDepositReceived(TrangThaiYeuCauGiuCho status,
+        bool showsDeadline)
+    {
+        await using var data = await RequestData.CreateAsync(factory, true);
+        await data.CloseAsync(status);
+        using var client = await data.LoginAsync();
+        var fixedDeadline = data.ContractDeadlineUtc.AddHours(7).ToString("dd/MM/yyyy HH:mm");
+
+        foreach (var path in new[] { data.DepositPath, "/tai-khoan/yeu-cau-phong", "/KhachThue/Dashboard" })
+        {
+            var response = await client.GetAsync(path);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var html = WebUtility.HtmlDecode(await response.Content.ReadAsStringAsync());
+            Assert.DoesNotContain("Hạn ký hợp đồng: trong 48 giờ sau khi nhận đủ cọc.", html);
+            if (showsDeadline)
+                Assert.Contains("Hạn ký hợp đồng: " + fixedDeadline, html);
+            else
+                Assert.DoesNotContain("Hạn ký hợp đồng: " + fixedDeadline, html);
+        }
+    }
+
     [Theory]
     [InlineData(TrangThaiYeuCauGiuCho.DaHuy, "Yêu cầu đã hủy")]
     [InlineData(TrangThaiYeuCauGiuCho.HetHan, "Yêu cầu đã hết hạn")]

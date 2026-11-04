@@ -62,7 +62,7 @@
                         <div><p>Hạn chuyển: @(new DateTimeOffset(paymentDeadline, TimeSpan.Zero).ToOffset(TimeSpan.FromHours(7)).ToString("dd/MM/yyyy HH:mm"))</p><small>Giờ Việt Nam (GMT+7)</small></div>
                     </div>
                 }
-                @if (!awaitingSelfServicePayment && reservation.ContractDeadlineUtc is { } contractDeadline)
+                @if (ReservationContractDeadline.Shown(reservation) is { } contractDeadline)
                 {
                     <p class="guest-contract-deadline">Hạn ký hợp đồng: @(new DateTimeOffset(contractDeadline, TimeSpan.Zero).ToOffset(TimeSpan.FromHours(7)).ToString("dd/MM/yyyy HH:mm"))</p>
                 }

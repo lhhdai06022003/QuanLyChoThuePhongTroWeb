@@ -73,8 +73,8 @@
             {
                 @foreach (var reservation in Model.Reservations)
                 {
-                    var awaitingSelfServicePayment = reservation.IsSelfService &&
-                        (reservation.Status is "ChoThanhToan" or "ChoXacNhanTien");
+                    var awaitingSelfServicePayment = ReservationContractDeadline.AwaitingSelfServicePayment(reservation);
+                    var shownContractDeadline = ReservationContractDeadline.Shown(reservation);
                     var reservationStatus = reservation.Status switch
                     {
                         "MoiTao" => "Yêu cầu cũ · Chờ xử lý",
@@ -101,9 +101,9 @@
                             var deadline = new DateTimeOffset(reservation.PaymentDeadlineUtc.Value, TimeSpan.Zero).ToOffset(TimeSpan.FromHours(7));
                             <p>Hạn chuyển: @deadline.ToString("dd/MM/yyyy HH:mm")</p>
                         }
-                        @if (!awaitingSelfServicePayment && reservation.ContractDeadlineUtc.HasValue)
+                        @if (shownContractDeadline.HasValue)
                         {
-                            var contractDeadline = new DateTimeOffset(reservation.ContractDeadlineUtc.Value, TimeSpan.Zero).ToOffset(TimeSpan.FromHours(7));
+                            var contractDeadline = new DateTimeOffset(shownContractDeadline.Value, TimeSpan.Zero).ToOffset(TimeSpan.FromHours(7));
                             <p>Hạn ký hợp đồng: @contractDeadline.ToString("dd/MM/yyyy HH:mm")</p>
                         }
                         else if (awaitingSelfServicePayment)

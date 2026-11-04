@@ -14,7 +14,7 @@ Chọn **Đăng công khai** thì ô tiền cọc bắt buộc và tối thiểu
 1. Xem giá cọc trên tin phòng rồi đăng nhập bằng tài khoản khách vãng lai hoặc khách thuê có sẵn.
 2. Bấm **Đặt phòng và đặt cọc**. Server tạo mã thanh toán và chuyển ngay tới trang QR/VNPay; không cần nhân viên duyệt trước.
 3. Chuyển đúng tài khoản và nội dung trong 30 phút. Cùng tài khoản quay lại vẫn sử dụng mã cũ, không tạo thêm mã đang hoạt động.
-4. Sau khi hệ thống xác thực đã nhận đủ tiền, phòng tự ẩn khỏi danh sách công khai và trạng thái tài khoản chuyển sang đang giữ chỗ. Hạn ký hợp đồng là 48 giờ tính từ thời điểm nhận đủ tiền.
+4. Sau khi hệ thống xác thực đã nhận đủ tiền, phòng tự ẩn khỏi danh sách công khai và trạng thái tài khoản chuyển sang đang giữ chỗ. Hạn ký hợp đồng là 48 giờ tính từ thời điểm nhận đủ tiền. Trước đó trang khách ghi "trong 48 giờ sau khi nhận đủ cọc"; lượt hủy hoặc hết hạn khi chưa nhận đủ cọc không hiện hạn ký (`Web/Helpers/ReservationContractDeadline.cs`).
 
 Trong thời gian chờ thanh toán, tin vẫn hiển thị; khách khác chưa được tạo lượt chuyển khoản cho cùng phòng. Trả thiếu hoặc gửi ảnh chưa được xem là hoàn thành. Hết hạn chưa đủ cọc thì giải phóng lượt, tiền đã nhận được xử lý theo quy tắc hoàn hiện có.
 
@@ -37,11 +37,10 @@ Hạn thanh toán 30 phút và hạn ký hợp đồng 48 giờ là hằng số 
 
 ## Kiểm chứng
 
-- Test tự động (DB `_test`): `RoomListingDepositTests`, `ReservationServiceTests`, `RoomDepositSchemaTests`, `SelfServiceReservationTests`, `TinPhongHoldStatusTests` và các test Web của cổng khách. Toàn bộ solution PASS ngày 04/11/2026.
+- Test tự động (DB `_test`): `RoomListingDepositTests`, `ReservationServiceTests`, `RoomDepositSchemaTests`, `SelfServiceReservationTests`, `TinPhongHoldStatusTests`, `GuestDepositLifecycleTests` và các test Web của cổng khách. Toàn bộ solution PASS ngày 04/11/2026.
 - Thử tay 04/11/2026 trên DB phát triển: chặn đăng công khai khi cọc 0 (trình duyệt và server), đăng phòng có cọc, trang công khai và trang đặt phòng hiện đúng số cọc, khách bấm đặt cọc nhận ngay mã `TTPTGC{id}` với hạn 30 phút, hủy lượt từ `/tai-khoan/yeu-cau-phong`. Chưa thử nhận tiền thật qua SePay/VNPay.
 
 ## Hạn chế đã biết
 
-- Lượt đã hủy hoặc hết hạn mà chưa nhận tiền vẫn hiện "Hạn ký hợp đồng" là giờ tạo cộng 48 giờ (giá trị tạm lưu lúc tạo lượt).
 - Lượt đã nộp minh chứng nhưng nhân viên chưa đối soát vẫn hết hạn sau 30 phút.
 - Phòng đang chờ thanh toán vẫn hiện công khai; khách khác không tạo được lượt mới cho tới khi lượt hiện tại hủy hoặc hết hạn.

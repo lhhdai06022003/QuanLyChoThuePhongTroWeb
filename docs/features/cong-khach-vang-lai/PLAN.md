@@ -222,7 +222,7 @@ Các quy tắc chính đã được chốt trong SPEC. Cần xác nhận ranh gi
 - [x] Toàn bộ test sau `5ba0e3a` (chạy tuần tự, DB `_test`): Domain 140, Application 2426, Infrastructure 683 + 1 skip, Web 715 PASS. `has-pending-model-changes` không còn thay đổi.
 - [x] Thử tay trên `QuanLyPhongTroDb` (người dùng đồng ý áp migration): đăng công khai với cọc 0 bị chặn ở trình duyệt và server; đăng P.103 cọc 1.500.000 ₫ thì `/phong/3` hiện đúng số cọc; tài khoản khách thử nghiệm bấm đặt cọc tạo ngay mã `TTPTGC3`, hạn 30 phút, sau đó đã hủy. Không thử thanh toán thật.
 - [x] Sửa badge Tin phòng: "Ẩn — chưa có tiền cọc" chỉ hiện khi phòng Trống, phòng Đã thuê/Bảo trì hiện "Chưa hiển thị" (thêm ca vào `TinPhongHoldStatusTests`).
-- [ ] Lượt đặt cọc tự tạo đã hủy hoặc hết hạn mà chưa nhận tiền vẫn hiện "Hạn ký hợp đồng" (giá trị tạm = giờ tạo + 48 giờ) ở `YeuCauCuaToi.cshtml` và `DatCoc.cshtml`.
+- [x] Lượt đặt cọc tự tạo đã hủy hoặc hết hạn mà chưa nhận tiền từng hiện "Hạn ký hợp đồng" tạm (giờ tạo + 48 giờ). Đã sửa: `Web/Helpers/ReservationContractDeadline.cs` dùng chung cho `DatCoc.cshtml`, `YeuCauCuaToi.cshtml` và dashboard khách; lượt tự tạo chỉ hiện ngày khi đang giữ chỗ hoặc đã chuyển hợp đồng, giữ chỗ cũ do nhân viên duyệt giữ nguyên. Test `SelfServiceContractDeadline_ShownOnlyAfterDepositReceived` (đỏ 2 ca trước khi sửa).
 - [ ] Giữ chỗ tự tạo đã nộp minh chứng (`ChoXacNhanTien`) vẫn hết hạn sau 30 phút nếu nhân viên chưa đối soát.
 - [ ] Phòng đang chờ thanh toán vẫn hiện công khai, áp dụng cả luồng nhân viên duyệt cũ; giữ chỗ tự tạo nhận biết bằng so chuỗi `LyDo`.
 - [ ] Chưa bật `UseForwardedHeaders`: sau reverse proxy, khách chưa đăng nhập có thể bị tính chung một IP (hướng dẫn ở [AI_TIM_PHONG.md](AI_TIM_PHONG.md)).
