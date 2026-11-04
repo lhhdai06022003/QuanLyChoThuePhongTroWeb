@@ -55,7 +55,7 @@ public sealed class ReservationStoreTests(PostgreSqlFixture fixture)
                 {
                     ChiNhanhId = branch.ChiNhanhId, SoPhong = "E" + suffix,
                     GiaThue = 1000000m, DienTich = 20, MoTa = "Test",
-                    TrangThai = TrangThaiPhong.Trong, DuocDangTin = true
+                    TrangThai = TrangThaiPhong.Trong, DuocDangTin = true, TienCocPhong = 500000m
                 };
                 db.PhongTros.Add(room);
                 await db.SaveChangesAsync();
@@ -248,7 +248,7 @@ public sealed class ReservationStoreTests(PostgreSqlFixture fixture)
                 {
                     ChiNhanhId = branch.ChiNhanhId, SoPhong = "S" + suffix,
                     GiaThue = 1000000m, DienTich = 20, MoTa = "Test",
-                    TrangThai = TrangThaiPhong.Trong, DuocDangTin = true
+                    TrangThai = TrangThaiPhong.Trong, DuocDangTin = true, TienCocPhong = 500000m
                 };
                 db.PhongTros.Add(room);
                 await db.SaveChangesAsync();
@@ -407,7 +407,7 @@ public sealed class ReservationStoreTests(PostgreSqlFixture fixture)
                 {
                     ChiNhanhId = branch.ChiNhanhId, SoPhong = "R" + suffix,
                     GiaThue = 1000000m, DienTich = 20, MoTa = "Test",
-                    TrangThai = TrangThaiPhong.Trong, DuocDangTin = true
+                    TrangThai = TrangThaiPhong.Trong, DuocDangTin = true, TienCocPhong = 500000m
                 };
                 db.PhongTros.Add(room);
                 await db.SaveChangesAsync();

@@ -83,7 +83,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
                 var room = new PhongTro
                 {
                     ChiNhanhId = branch.ChiNhanhId, SoPhong = "R" + suffix, GiaThue = 1_000_000m, DienTich = 20,
-                    MoTa = "Test", TrangThai = TrangThaiPhong.Trong, DuocDangTin = true
+                    MoTa = "Test", TrangThai = TrangThaiPhong.Trong, DuocDangTin = true, TienCocPhong = 500000m
                 };
                 db.PhongTros.Add(room);
                 await db.SaveChangesAsync();

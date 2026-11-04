@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.RateLimiting;
+using QuanLyChoThuePhongTroWeb.Web.Helpers;
 using QuanLyChoThuePhongTroWeb.Application.Features.GuestAssistant;
 
 namespace QuanLyChoThuePhongTroWeb.Controllers;
@@ -12,7 +12,7 @@ public sealed class GuestAssistantController(IGuestAssistantService assistant,
 {
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [EnableRateLimiting("guest-ai")]
+    [GuestAssistantRateLimit]
     [RequestSizeLimit(32768)]
     public async Task<IActionResult> Chat([FromBody] GuestAssistantRequest? request, CancellationToken ct)
     {

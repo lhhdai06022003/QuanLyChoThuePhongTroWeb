@@ -12,10 +12,9 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features.Reservati
 public sealed class ReservationStore(ApplicationDbContext context) : IReservationStore
 {
     public async Task<ReservationCreateResult> CreateForPaymentAsync(int actorId, int roomId, int? viewingId,
-        QuanLyChoThuePhongTroWeb.Application.Features.PublicRooms.RoomDepositPolicy policy, DateTime nowUtc,
-        CancellationToken cancellationToken = default)
+        DateTime nowUtc, CancellationToken cancellationToken = default)
     {
-        if (actorId <= 0 || roomId <= 0 || !policy.IsValid || nowUtc.Kind != DateTimeKind.Utc)
+        if (actorId <= 0 || roomId <= 0 || nowUtc.Kind != DateTimeKind.Utc)
             return new(null, ReservationError.InvalidState);
         try
         {
@@ -26,7 +25,7 @@ public sealed class ReservationStore(ApplicationDbContext context) : IReservatio
             if (guest is null) return new(null, ReservationError.GuestMissing);
             var room = await context.PhongTros.AsNoTracking().Include(p => p.ChiNhanh)
                 .SingleOrDefaultAsync(p => p.PhongTroId == roomId, cancellationToken);
-            if (room is null || room.IsDeleted || room.ChiNhanh.IsDeleted || !room.DuocDangTin || room.TrangThai != TrangThaiPhong.Trong)
+            if (room is null || room.IsDeleted || room.ChiNhanh.IsDeleted || !room.DuocDangTin || room.TienCocPhong <= 0 || room.TrangThai != TrangThaiPhong.Trong)
                 return new(null, ReservationError.RoomUnavailable);
             var active = await context.YeuCauGiuChos.AsNoTracking().Where(h => h.PhongTroId == roomId &&
                 (h.TrangThai == TrangThaiYeuCauGiuCho.ChoThanhToan || h.TrangThai == TrangThaiYeuCauGiuCho.ChoXacNhanTien ||
@@ -42,12 +41,12 @@ public sealed class ReservationStore(ApplicationDbContext context) : IReservatio
                 v.YeuCauXemPhongId == viewingId && v.PhongTroId == roomId && v.KhachVangLaiId == guest.KhachVangLaiId &&
                 v.TrangThai != TrangThaiYeuCauXemPhong.DaHuy && v.TrangThai != TrangThaiYeuCauXemPhong.TuChoi, cancellationToken))
                 return new(null, ReservationError.ViewingUnavailable);
-            var deadline = nowUtc.AddMinutes(policy.PaymentWindowMinutes);
+            var deadline = nowUtc.Add(SelfServiceReservationRules.PaymentWindow);
             var hold = new YeuCauGiuCho {
                 KhachVangLai = guest, PhongTroId = roomId, YeuCauXemPhongId = viewingId,
-                SoTienGiuCho = policy.Amount, HanThanhToan = deadline,
+                SoTienGiuCho = room.TienCocPhong, HanThanhToan = deadline,
                 // Snapshot the contract window; receipt moves the deadline to when enough money was received.
-                HanKyHopDong = nowUtc.AddHours(policy.ContractWindowHours),
+                HanKyHopDong = nowUtc.Add(SelfServiceReservationRules.ContractWindow),
                 TrangThai = TrangThaiYeuCauGiuCho.ChoThanhToan, NgayTao = nowUtc
             };
             hold.LichSuTrangThais.Add(new LichSuTrangThaiYeuCauGiuCho {
@@ -58,7 +57,7 @@ public sealed class ReservationStore(ApplicationDbContext context) : IReservatio
             var code = ReservationTransferHandler.TransferCode(hold.YeuCauGiuChoId);
             var payment = new YeuCauThanhToanGiuCho {
                 YeuCauGiuChoId = hold.YeuCauGiuChoId, MaYeuCau = code, NoiDungChuyenKhoan = code,
-                SoTien = policy.Amount, HanThanhToan = deadline, NguoiTaoId = actorId,
+                SoTien = room.TienCocPhong, HanThanhToan = deadline, NguoiTaoId = actorId,
                 TrangThai = TrangThaiYeuCauThanhToan.ChoThanhToan, NgayTao = nowUtc };
             payment.LichSuTrangThais.Add(new LichSuTrangThaiYeuCauThanhToanGiuCho {
                 TrangThaiSau = payment.TrangThai, LoaiTacNhan = LoaiTacNhan.HeThong, NgayThucHien = nowUtc,

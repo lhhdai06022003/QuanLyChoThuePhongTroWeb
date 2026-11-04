@@ -48,7 +48,6 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests.Fixtures
         // Mọi việc hậu xử lý thanh toán đã vào hàng đợi (hàng đợi test chạy ngay, đồng bộ).
         public ConcurrentQueue<PaymentNotificationWorkItem> PaymentNotifications { get; } = new();
         public FakeEmailService FakeEmailServiceInstance { get; } = new();
-        public FakeRoomDepositPolicyStore FakeRoomDepositPolicies { get; } = new();
         public FakeMeterImageStorageService FakeMeterImageStorageInstance { get; } = new();
         public FakeMeterOcrService FakeMeterOcrServiceInstance { get; } = new();
         public FakeAiChatModel FakeAiChatModelInstance { get; } = new();
@@ -82,8 +81,6 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests.Fixtures
 
             builder.ConfigureServices(services =>
             {
-                services.RemoveAll<QuanLyChoThuePhongTroWeb.Application.Features.PublicRooms.IRoomDepositPolicyStore>();
-                services.AddSingleton<QuanLyChoThuePhongTroWeb.Application.Features.PublicRooms.IRoomDepositPolicyStore>(FakeRoomDepositPolicies);
                 services.RemoveAll<DbContextOptions<ApplicationDbContext>>();
                 services.RemoveAll<ApplicationDbContext>();
                 services.AddDbContext<ApplicationDbContext>(options =>

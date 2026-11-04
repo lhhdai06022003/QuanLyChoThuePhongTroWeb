@@ -28,7 +28,14 @@ AI hỗ trợ giá, khu vực, diện tích, số người, mức cọc và quy 
 
 ## Giới hạn và lỗi
 
-`POST /phong/tro-ly-ai` nhận token CSRF, body tối đa 32 KB, câu hỏi tối đa 1.000 ký tự và lịch sử 8 tin đã giới hạn độ dài. Client giới hạn cả kích thước UTF-8 của lịch sử tiếng Việt. Mỗi IP tối đa 6 yêu cầu/phút; tối đa 3 vòng công cụ, 4 công cụ/vòng. Server ngắt sau 40 giây, trình duyệt sau 45 giây.
+`POST /phong/tro-ly-ai` nhận token CSRF, body tối đa 32 KB, câu hỏi tối đa 1.000 ký tự và lịch sử 8 tin đã giới hạn độ dài. Client giới hạn cả kích thước UTF-8 của lịch sử tiếng Việt. Tối đa 3 vòng công cụ, 4 công cụ/vòng. Server ngắt sau 40 giây, trình duyệt sau 45 giây.
+
+Giới hạn tần suất (`Web/Helpers/GuestAssistantRateLimiting.cs`, hằng số, không có khóa cấu hình), vượt thì trả 429 và không gọi Gemini:
+
+- Mỗi khách 6 yêu cầu/phút: khách đăng nhập tính theo tài khoản, khách chưa đăng nhập tính theo IP kết nối.
+- Cả hệ thống 30 yêu cầu/phút cho endpoint này. Yêu cầu đã bị chặn ở lớp theo khách không trừ vào trần chung.
+
+IP lấy từ kết nối trực tiếp tới ứng dụng. Chạy bằng `docker-compose.yml` (map cổng thẳng) hoặc sau reverse proxy, ứng dụng có thể thấy chung một IP cho mọi khách chưa đăng nhập; khi đó họ dùng chung 6 yêu cầu/phút, còn khách đăng nhập không bị ảnh hưởng. Muốn tính đúng IP khi đặt sau reverse proxy (nginx, Cloudflare Tunnel...), người triển khai cấu hình `ForwardedHeaders` với `KnownProxies`/`KnownNetworks` là địa chỉ proxy đó. Không bật chế độ tin mọi `X-Forwarded-For`, vì khách có thể tự gửi header này để vượt giới hạn. Mã hiện chưa bật `UseForwardedHeaders`.
 
 Nếu AI gián đoạn, giao diện giữ câu hỏi để thử lại và có đường dẫn tìm phòng/cẩm nang. Tin nhắn và tiêu đề phòng được chèn bằng văn bản, đường dẫn thẻ chỉ dựng từ ID số và tuyến nội bộ. Không chèn HTML hay đường dẫn do model tạo.
 

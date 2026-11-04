@@ -39,7 +39,7 @@ public sealed class PublicRoomDiscoveryTests(CustomWebApplicationFactory factory
                     {
                         ChiNhanhId = branchId.Value, SoPhong = "D" + index.ToString("00"),
                         GiaThue = (12 - index) * 1000000m, DienTich = 20 + index,
-                        SoNguoiToiDa = 2, DuocDangTin = index != 11,
+                        SoNguoiToiDa = 2, DuocDangTin = index != 11, TienCocPhong = 500000m,
                         TrangThai = index == 10 ? TrangThaiPhong.DaThue : TrangThaiPhong.Trong,
                         MoTa = "Test"
                     };

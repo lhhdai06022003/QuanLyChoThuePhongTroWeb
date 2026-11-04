@@ -88,7 +88,7 @@ public sealed class GuestPortalFlowTests(CustomWebApplicationFactory factory)
                 {
                     ChiNhanhId = branch.ChiNhanhId, SoPhong = "W" + suffix,
                     GiaThue = 1000000m, DienTich = 20, MoTa = "Test",
-                    TrangThai = TrangThaiPhong.Trong, DuocDangTin = true
+                    TrangThai = TrangThaiPhong.Trong, DuocDangTin = true, TienCocPhong = 200000m
                 };
                 db.PhongTros.Add(room);
                 await db.SaveChangesAsync();
@@ -113,7 +113,6 @@ public sealed class GuestPortalFlowTests(CustomWebApplicationFactory factory)
                 }
             }
 
-            await factory.FakeRoomDepositPolicies.SetAsync(roomId!.Value, new(200000));
             var client = factory.CreateClient(new WebApplicationFactoryClientOptions
             {
                 AllowAutoRedirect = false, HandleCookies = true
@@ -346,7 +345,6 @@ public sealed class GuestPortalFlowTests(CustomWebApplicationFactory factory)
         }
         finally
         {
-            if (roomId.HasValue) factory.FakeRoomDepositPolicies.Remove(roomId.Value);
             using var scope = factory.Services.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             var guest = await db.KhachVangLais.AsNoTracking()

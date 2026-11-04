@@ -20,6 +20,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
 
         [Theory]
         [InlineData(typeof(PhongTro), nameof(PhongTro.GiaThue), 18, 2)]
+        [InlineData(typeof(PhongTro), nameof(PhongTro.TienCocPhong), 18, 2)]
         [InlineData(typeof(HopDong), nameof(HopDong.TienCocPhong), 18, 2)]
         [InlineData(typeof(HopDong), nameof(HopDong.TienThuePhong), 18, 2)]
         [InlineData(typeof(HoaDon), nameof(HoaDon.TongTien), 18, 2)]

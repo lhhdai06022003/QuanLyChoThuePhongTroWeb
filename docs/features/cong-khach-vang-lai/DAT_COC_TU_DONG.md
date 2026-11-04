@@ -3,9 +3,9 @@
 ## Quản lý đăng tin
 
 1. Mở `/QuanLyNhaTro/TinPhong` và chọn **Chỉnh sửa tin**.
-2. Nhập **Tiền cọc giữ chỗ** cùng tiêu đề, mô tả và tùy chọn đăng công khai.
-3. Bấm **Lưu tin và ảnh**. Nhập số nguyên VND, không có dấu phân cách; số tiền phải lớn hơn 0.
-4. Mở trang phòng công khai để kiểm tra giá cọc. Tin chưa có giá cọc vẫn xem được nhưng chưa nhận đặt cọc tự động.
+2. Nhập **Tiền cọc phòng** cùng tiêu đề, mô tả và tùy chọn đăng công khai.
+3. Bấm **Lưu tin và ảnh**. Nhập số nguyên VND, không có dấu phân cách. Ẩn tin thì được để 0; đăng công khai thì phải lớn hơn 0.
+4. Mở trang phòng công khai để kiểm tra giá cọc. Phòng đang bật công khai nhưng cọc bằng 0 không hiện ở `/phong`; màn Tin phòng ghi "Ẩn — chưa có tiền cọc".
 
 ## Khách đặt cọc
 
@@ -27,8 +27,8 @@ Không ghi mật khẩu, khóa webhook, khóa VNPay hoặc thông tin ngân hàn
 
 ## Lưu trữ
 
-Giá theo phòng nằm trong `src/QuanLyChoThuePhongTroWeb.Web/App_Data/room-deposits.json` theo mặc định, có file khóa kèm theo. Giữ file giá cọc khi triển khai lại/chuyển máy; file này không được đưa vào Git. `RoomDeposits:StoragePath` có thể chỉ định nơi lưu riêng ngoài wwwroot.
+Tiền cọc phòng nằm ở cột `phong_tro."TienCocPhong"` (migration `AddRoomDepositAmount`), lưu cùng transaction với tiêu đề, mô tả và ảnh của tin. Bản đầu của nhánh lưu ở `App_Data/room-deposits.json`; số đã nhập ở file đó không tự chuyển sang DB, cần nhập lại trên màn Tin phòng.
 
-Giữ chỗ, mã thanh toán, số tiền đã chốt, lịch sử và giao dịch sử dụng các bảng hiện có. Sửa giá tin sau khi khách bắt đầu thanh toán không sửa giá trên lượt thanh toán đó.
+Giữ chỗ, mã thanh toán, số tiền đã chốt, lịch sử và giao dịch sử dụng các bảng hiện có. Sửa giá tin sau khi khách bắt đầu thanh toán không sửa giá trên lượt thanh toán đó (số tiền đã chép vào `YeuCauGiuCho.SoTienGiuCho` và `YeuCauThanhToanGiuCho.SoTien`).
 
-Thiết kế hiện tại dành cho một máy chủ ứng dụng với ổ đĩa bền vững. File cấu hình và database không thể cùng hoàn tất như một transaction duy nhất khi tiến trình bị tắt đột ngột; cần giữ dữ liệu ứng dụng và kiểm tra lại thao tác lưu tin nếu gặp sự cố đó.
+Hạn thanh toán 30 phút và hạn ký hợp đồng 48 giờ là hằng số trong `SelfServiceReservationRules`.

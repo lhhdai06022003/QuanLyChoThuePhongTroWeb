@@ -35,7 +35,7 @@ public sealed class RequestedViewingCancellationTests(PostgreSqlFixture fixture)
         var staff = new NguoiDung { TenDangNhap = "viewing_staff_" + suffix,
             MatKhauHash = "test", Role = Role.Admin };
         var room = new PhongTro { ChiNhanh = branch, SoPhong = "V" + suffix,
-            GiaThue = 1000000m, DienTich = 20, MoTa = "Test", DuocDangTin = true,
+            GiaThue = 1000000m, DienTich = 20, MoTa = "Test", DuocDangTin = true, TienCocPhong = 500000m,
             TrangThai = roomStatus };
         var now = DateTime.UtcNow;
         var request = new YeuCauXemPhong { PhongTro = room, HoTen = "Khách kiểm thử",

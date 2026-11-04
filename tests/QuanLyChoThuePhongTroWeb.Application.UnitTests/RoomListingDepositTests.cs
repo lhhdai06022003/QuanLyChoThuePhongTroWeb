@@ -10,14 +10,26 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests;
 public sealed class RoomListingDepositTests
 {
     [Theory]
-    [InlineData(null)]
-    [InlineData(0d)]
     [InlineData(-1d)]
     [InlineData(0.5)]
     [InlineData(1000000000001d)]
-    public async Task Publish_RejectsMissingOrInvalidDepositBeforeSaving(double? amount)
+    public async Task Save_RejectsInvalidDepositBeforeSaving(double amount)
     {
-        var (service, store, _) = Create();
+        var (service, store) = Create();
+
+        var result = await service.SaveAsync(7, Request(false, (decimal)amount));
+
+        Assert.False(result.Success);
+        Assert.Null(store.Saved);
+    }
+
+    [Theory]
+    [InlineData(0d)]
+    [InlineData(null)]
+    public async Task Publish_RequiresDepositAboveZero(double? amount)
+    {
+        // Phòng đang lưu tiền cọc 0, nên bỏ trống ô cọc cũng không được đăng công khai.
+        var (service, store) = Create(currentDeposit: 0);
 
         var result = await service.SaveAsync(7, Request(true, amount is { } value ? (decimal)value : null));
 
@@ -26,79 +38,67 @@ public sealed class RoomListingDepositTests
     }
 
     [Fact]
-    public async Task Publish_SavesMetadataAndCanonicalDepositTogether()
+    public async Task Publish_SavesDepositWithListing()
     {
-        var (service, store, policies) = Create();
+        var (service, store) = Create();
 
         var result = await service.SaveAsync(7, Request(true, 850000));
 
         Assert.True(result.Success);
         Assert.Equal("Tin phòng", store.Saved!.Title);
         Assert.True(store.Saved.Publish);
-        Assert.Equal(850000m, (await policies.GetAsync(10))!.Amount);
+        Assert.Equal(850000m, store.Saved.DepositAmount);
     }
 
     [Fact]
-    public async Task FailedMetadataSave_RetainsPreviousPublicDeposit()
+    public async Task Publish_WithoutDepositField_KeepsCurrentPositiveDeposit()
     {
-        var (service, store, policies) = Create();
-        store.SaveResult = false;
+        var (service, store) = Create(currentDeposit: 500000);
 
-        var result = await service.SaveAsync(7, Request(true, 850000));
+        var result = await service.SaveAsync(7, Request(true, null));
 
-        Assert.False(result.Success);
-        Assert.Equal(500000m, (await policies.GetAsync(10))!.Amount);
+        Assert.True(result.Success);
+        Assert.Null(store.Saved!.DepositAmount);
     }
 
     [Fact]
-    public async Task DraftWithoutDeposit_CanSaveAndRetainsPreviousQuote()
+    public async Task HiddenListing_CanSaveZeroDeposit()
     {
-        var (service, store, policies) = Create();
+        var (service, store) = Create();
 
-        var result = await service.SaveAsync(7, Request(false, null));
+        var result = await service.SaveAsync(7, Request(false, 0));
 
         Assert.True(result.Success);
         Assert.False(store.Saved!.Publish);
-        Assert.Equal(500000m, (await policies.GetAsync(10))!.Amount);
-    }
-
-    [Fact]
-    public async Task List_EnrichesListingsWithCanonicalDeposit()
-    {
-        var (service, _, _) = Create();
-
-        Assert.Equal(500000m, (await service.ListAsync(7)).Single().DepositAmount);
+        Assert.Equal(0m, store.Saved.DepositAmount);
     }
 
     [Fact]
     public async Task OutsideBranch_CannotChangeListingOrDeposit()
     {
-        var (service, store, policies) = Create(branchId: 99);
+        var (service, store) = Create(branchId: 99);
 
         var result = await service.SaveAsync(7, Request(true, 850000));
 
         Assert.False(result.Success);
         Assert.Null(store.Saved);
-        Assert.Equal(500000m, (await policies.GetAsync(10))!.Amount);
     }
 
     private static SaveRoomListing Request(bool publish, decimal? amount) =>
         new(10, " Tin phòng ", " Mô tả ", publish, [], amount);
 
-    private static (RoomListingService Service, Listings Store, Policies Policies) Create(int branchId = 3)
+    private static (RoomListingService Service, Listings Store) Create(int branchId = 3, decimal currentDeposit = 500000)
     {
-        var store = new Listings(branchId);
-        var policies = new Policies();
+        var store = new Listings(branchId, currentDeposit);
         var access = new FakeEmployeeAccessService { ScopeToReturn = new EmployeeAccessScope(7, false, [3]) };
         return (new RoomListingService(store, access, new NoStorage(),
-            NullLogger<RoomListingService>.Instance, policies), store, policies);
+            NullLogger<RoomListingService>.Instance), store);
     }
 
-    private sealed class Listings(int branchId) : IRoomListingStore
+    private sealed class Listings(int branchId, decimal deposit) : IRoomListingStore
     {
         private readonly RoomListingDto room = new(10, branchId, "103", "Chi nhánh", 2500000,
-            20, 0, true, true, "Tin cũ", "", 0, null, false);
-        public bool SaveResult { get; set; } = true;
+            20, 0, true, true, "Tin cũ", "", 0, null, false, deposit);
         public SaveRoomListing? Saved { get; private set; }
         public Task<IReadOnlyList<RoomListingDto>> ListAsync(IReadOnlyCollection<int>? branchIds, CancellationToken ct) =>
             Task.FromResult<IReadOnlyList<RoomListingDto>>([room]);
@@ -107,25 +107,7 @@ public sealed class RoomListingDepositTests
             IReadOnlyList<ListingPhoto> photos, CancellationToken ct)
         {
             Saved = request;
-            return Task.FromResult(SaveResult);
-        }
-    }
-
-    private sealed class Policies : IRoomDepositPolicyStore
-    {
-        private readonly Dictionary<int, RoomDepositPolicy> values = new() { [10] = new(500000) };
-        public Task<RoomDepositPolicy?> GetAsync(int roomId, CancellationToken ct = default) =>
-            Task.FromResult(values.GetValueOrDefault(roomId));
-        public Task<IReadOnlyDictionary<int, RoomDepositPolicy>> GetAllAsync(CancellationToken ct = default) =>
-            Task.FromResult<IReadOnlyDictionary<int, RoomDepositPolicy>>(values);
-        public Task SetAsync(int roomId, RoomDepositPolicy policy, CancellationToken ct = default)
-        { values[roomId] = policy; return Task.CompletedTask; }
-        public async Task<bool> UpdateListingAsync(int roomId, RoomDepositPolicy policy,
-            Func<CancellationToken, Task<bool>> saveListing, CancellationToken ct = default)
-        {
-            if (!await saveListing(ct)) return false;
-            values[roomId] = policy;
-            return true;
+            return Task.FromResult(true);
         }
     }
 

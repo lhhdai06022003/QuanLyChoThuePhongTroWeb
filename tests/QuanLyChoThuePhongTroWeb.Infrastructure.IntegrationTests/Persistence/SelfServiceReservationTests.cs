@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using QuanLyChoThuePhongTroWeb.Application.Features.PublicRooms;
 using QuanLyChoThuePhongTroWeb.Application.Features.Reservations;
 using QuanLyChoThuePhongTroWeb.Application.Features.ReservationPayments;
 using QuanLyChoThuePhongTroWeb.Domain.Entities;
@@ -24,7 +23,7 @@ public sealed class SelfServiceReservationTests(PostgreSqlFixture fixture)
         await using (var db = fixture.CreateDbContext())
         {
             var store = new ReservationStore(db);
-            var created = await store.CreateForPaymentAsync(seed.GuestA, seed.RoomId, null, new(450000), now);
+            var created = await store.CreateForPaymentAsync(seed.GuestA, seed.RoomId, null, now);
             Assert.Equal(ReservationError.None, created.Error);
             holdId = created.Id!.Value;
             var hold = await db.YeuCauGiuChos.Include(h => h.YeuCauThanhToanGiuChos).SingleAsync(h => h.YeuCauGiuChoId == holdId);
@@ -41,10 +40,12 @@ public sealed class SelfServiceReservationTests(PostgreSqlFixture fixture)
         }
         await using (var db = fixture.CreateDbContext())
         {
-            var repeated = await new ReservationStore(db).CreateForPaymentAsync(seed.GuestA, seed.RoomId, null, new(999000), now.AddMinutes(1));
+            // Quản lý đổi giá sau khi khách bắt đầu thanh toán không đổi số tiền đã chốt.
+            await db.PhongTros.Where(p => p.PhongTroId == seed.RoomId).ExecuteUpdateAsync(s => s.SetProperty(p => p.TienCocPhong, 999000m));
+            var repeated = await new ReservationStore(db).CreateForPaymentAsync(seed.GuestA, seed.RoomId, null, now.AddMinutes(1));
             Assert.Equal(holdId, repeated.Id);
             Assert.Equal(450000, (await db.YeuCauGiuChos.SingleAsync(h => h.YeuCauGiuChoId == holdId)).SoTienGiuCho);
-            var blocked = await new ReservationStore(db).CreateForPaymentAsync(seed.GuestB, seed.RoomId, null, new(450000), now.AddMinutes(1));
+            var blocked = await new ReservationStore(db).CreateForPaymentAsync(seed.GuestB, seed.RoomId, null, now.AddMinutes(1));
             Assert.Null(blocked.Id);
         }
         await using (var db = fixture.CreateDbContext())
@@ -76,7 +77,7 @@ public sealed class SelfServiceReservationTests(PostgreSqlFixture fixture)
         int firstId;
         await using (var db = fixture.CreateDbContext())
         {
-            firstId = (await new ReservationStore(db).CreateForPaymentAsync(seed.GuestA, seed.RoomId, null, new(450000), now)).Id!.Value;
+            firstId = (await new ReservationStore(db).CreateForPaymentAsync(seed.GuestA, seed.RoomId, null, now)).Id!.Value;
             await new ReservationPaymentStore(db).RecordSystemTransferAsync("TTPTGC" + firstId, "SEPAY-first-" + firstId,
                 100000, now.AddMinutes(1), "test", now.AddMinutes(1));
         }
@@ -86,7 +87,7 @@ public sealed class SelfServiceReservationTests(PostgreSqlFixture fixture)
             await store.ExpireUnpaidAsync(now.AddMinutes(31));
             Assert.Equal(TrangThaiYeuCauGiuCho.HetHan,
                 (await db.YeuCauGiuChos.SingleAsync(h => h.YeuCauGiuChoId == firstId)).TrangThai);
-            var next = await store.CreateForPaymentAsync(seed.GuestB, seed.RoomId, null, new(450000), now.AddMinutes(31));
+            var next = await store.CreateForPaymentAsync(seed.GuestB, seed.RoomId, null, now.AddMinutes(31));
             Assert.NotNull(next.Id);
             var late = await new ReservationPaymentStore(db).RecordSystemTransferAsync("TTPTGC" + firstId, "SEPAY-late-" + firstId,
                 350000, now.AddMinutes(32), "test", now.AddMinutes(32));
@@ -104,7 +105,7 @@ public sealed class SelfServiceReservationTests(PostgreSqlFixture fixture)
         async Task<ReservationCreateResult> Checkout(int actor)
         {
             await using var db = fixture.CreateDbContext();
-            return await new ReservationStore(db).CreateForPaymentAsync(actor, seed.RoomId, null, new(450000), now);
+            return await new ReservationStore(db).CreateForPaymentAsync(actor, seed.RoomId, null, now);
         }
         var results = await Task.WhenAll(Checkout(seed.GuestA), Checkout(seed.GuestB));
         Assert.Single(results.Where(r => r.Id.HasValue));
@@ -118,7 +119,7 @@ public sealed class SelfServiceReservationTests(PostgreSqlFixture fixture)
         await using var seed = await Seed.Create(fixture);
         var now = DateTime.UtcNow;
         await using var db = fixture.CreateDbContext();
-        var id = (await new ReservationStore(db).CreateForPaymentAsync(seed.GuestA, seed.RoomId, null, new(450000), now)).Id!.Value;
+        var id = (await new ReservationStore(db).CreateForPaymentAsync(seed.GuestA, seed.RoomId, null, now)).Id!.Value;
         var payments = new ReservationPaymentStore(db);
         var late = await payments.RecordSystemTransferAsync("TTPTGC" + id, "SEPAY-late-first-" + id,
             500000, now.AddMinutes(31), "test", now.AddMinutes(31));
@@ -135,7 +136,7 @@ public sealed class SelfServiceReservationTests(PostgreSqlFixture fixture)
         await using var seed = await Seed.Create(fixture);
         var now = DateTime.UtcNow;
         await using var db = fixture.CreateDbContext();
-        var id = (await new ReservationStore(db).CreateForPaymentAsync(seed.GuestA, seed.RoomId, null, new(450000), now)).Id!.Value;
+        var id = (await new ReservationStore(db).CreateForPaymentAsync(seed.GuestA, seed.RoomId, null, now)).Id!.Value;
         var payments = new ReservationPaymentStore(db);
         await payments.RecordSystemTransferAsync("TTPTGC" + id, "SEPAY-later-" + id,
             400000, now.AddMinutes(10), "test", now.AddMinutes(10));
@@ -143,6 +144,34 @@ public sealed class SelfServiceReservationTests(PostgreSqlFixture fixture)
             50000, now.AddMinutes(2), "test", now.AddMinutes(11));
         Assert.True(complete.VuaCoHieuLuc);
         Assert.InRange(Math.Abs((complete.HanKyHopDongUtc!.Value - now.AddMinutes(10).AddHours(48)).TotalMilliseconds), 0, 1);
+    }
+
+    [Fact]
+    public async Task PublishedRoomWithZeroDeposit_IsHiddenAndCannotCheckout()
+    {
+        await using var seed = await Seed.Create(fixture);
+        await using var db = fixture.CreateDbContext();
+        await db.PhongTros.Where(p => p.PhongTroId == seed.RoomId)
+            .ExecuteUpdateAsync(s => s.SetProperty(p => p.TienCocPhong, 0m));
+
+        var result = await new ReservationStore(db).CreateForPaymentAsync(seed.GuestA, seed.RoomId, null, DateTime.UtcNow);
+
+        Assert.Equal(ReservationError.RoomUnavailable, result.Error);
+        Assert.False(await db.YeuCauGiuChos.AnyAsync(h => h.PhongTroId == seed.RoomId));
+        var publicRooms = new PublicRoomStore(db, TimeProvider.System);
+        Assert.Null(await publicRooms.GetAvailableAsync(seed.RoomId));
+        Assert.DoesNotContain(await publicRooms.ListAvailableAsync(), room => room.PhongTroId == seed.RoomId);
+    }
+
+    [Fact]
+    public async Task PublicRoom_ExposesRoomDeposit()
+    {
+        await using var seed = await Seed.Create(fixture);
+        await using var db = fixture.CreateDbContext();
+
+        var room = await new PublicRoomStore(db, TimeProvider.System).GetAvailableAsync(seed.RoomId);
+
+        Assert.Equal(450000m, room!.DepositAmount);
     }
 
     private sealed class Seed(PostgreSqlFixture fixture, int branchId, int roomId, int guestA, int guestB) : IAsyncDisposable
@@ -157,7 +186,7 @@ public sealed class SelfServiceReservationTests(PostgreSqlFixture fixture)
             var branch = new ChiNhanh { MaChiNhanh = "S" + suffix, TenChiNhanh = "Self " + suffix,
                 DiaChi = "Test", MoTa = "Test", SoDienThoai = "0900000000" };
             var room = new PhongTro { ChiNhanh = branch, SoPhong = suffix, GiaThue = 1500000,
-                DienTich = 25, MoTa = "Test", DuocDangTin = true, TrangThai = TrangThaiPhong.Trong };
+                DienTich = 25, MoTa = "Test", DuocDangTin = true, TienCocPhong = 450000, TrangThai = TrangThaiPhong.Trong };
             var users = Enumerable.Range(0, 2).Select(i => new NguoiDung { TenDangNhap = "self_" + suffix + i,
                 MatKhauHash = "test", Role = Role.KhachVangLai }).ToArray();
             db.Add(room);

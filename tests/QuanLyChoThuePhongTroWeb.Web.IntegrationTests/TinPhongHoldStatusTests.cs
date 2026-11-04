@@ -34,9 +34,9 @@ public sealed class TinPhongHoldStatusTests(CustomWebApplicationFactory factory)
         var branch = new ChiNhanh { MaChiNhanh = "H" + suffix, TenChiNhanh = "Hold " + suffix,
             DiaChi = "Test", MoTa = "Test", SoDienThoai = "0900000000" };
         var freeRoom = new PhongTro { ChiNhanh = branch, SoPhong = "F" + suffix, GiaThue = 1000000,
-            DienTich = 20, MoTa = "Free", TrangThai = TrangThaiPhong.Trong, DuocDangTin = true };
+            DienTich = 20, MoTa = "Free", TrangThai = TrangThaiPhong.Trong, DuocDangTin = true, TienCocPhong = 500000m };
         var heldRoom = new PhongTro { ChiNhanh = branch, SoPhong = "G" + suffix, GiaThue = 1000000,
-            DienTich = 20, MoTa = "Held", TrangThai = TrangThaiPhong.Trong, DuocDangTin = true };
+            DienTich = 20, MoTa = "Held", TrangThai = TrangThaiPhong.Trong, DuocDangTin = true, TienCocPhong = 500000m };
         db.AddRange(staff, guest, freeRoom, heldRoom);
         await db.SaveChangesAsync();
         db.AddRange(

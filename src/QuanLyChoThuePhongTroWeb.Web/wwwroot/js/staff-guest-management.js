@@ -12,7 +12,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const hint = document.getElementById('listingPhotoHint');
     const save = document.getElementById('listingSave');
     let existing = 0;
-    const updateDepositRequirement = () => { deposit.required = visibility.value === 'true'; };
+    // Tiền cọc phòng được để 0 khi ẩn tin; đăng công khai thì phải lớn hơn 0 (server kiểm lại).
+    const updateDepositRequirement = () => {
+        const publish = visibility.value === 'true';
+        deposit.required = publish;
+        deposit.min = publish ? '1' : '0';
+    };
     const validatePhotos = () => {
         const files = Array.from(photos.files || []);
         const error = existing + files.length > 10 ? 'Mỗi phòng tối đa 10 ảnh.' :

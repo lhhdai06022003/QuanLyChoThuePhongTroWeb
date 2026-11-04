@@ -1481,6 +1481,12 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Migrations
                     b.Property<int>("TangLau")
                         .HasColumnType("integer");
 
+                    b.Property<decimal>("TienCocPhong")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasDefaultValue(0m);
+
                     b.Property<string>("TieuDeDangTin")
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
@@ -1498,7 +1504,10 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("NguoiDangTinId");
 
-                    b.ToTable("phong_tro");
+                    b.ToTable("phong_tro", t =>
+                        {
+                            t.HasCheckConstraint("CK_PhongTro_TienCocPhong", "\"TienCocPhong\" >= 0");
+                        });
                 });
 
             modelBuilder.Entity("QuanLyChoThuePhongTroWeb.Domain.Entities.QuyetDinhHoanTienGiuCho", b =>

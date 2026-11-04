@@ -31,7 +31,7 @@ public sealed class RequestedViewingStaffFlowTests(CustomWebApplicationFactory f
             DiaChi = "Test", MoTa = "Test", SoDienThoai = "0900000001" };
         var room = new PhongTro { ChiNhanh = branch, SoPhong = "C" + suffix,
             GiaThue = 1000000m, DienTich = 20, MoTa = "Test", TrangThai = TrangThaiPhong.Trong,
-            DuocDangTin = true };
+            DuocDangTin = true, TienCocPhong = 500000m };
         var desired = DateTime.UtcNow.AddDays(2);
         var viewing = new YeuCauXemPhong { PhongTro = room, HoTen = "Khách " + suffix,
             SoDienThoai = "0912345678", Email = "contact_" + suffix + "@example.com",

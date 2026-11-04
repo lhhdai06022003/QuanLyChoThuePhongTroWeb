@@ -4,8 +4,19 @@
 
 Phần này thay thế các quy tắc duyệt giữ chỗ trước thanh toán trong tài liệu cũ bên dưới; các quy tắc lịch xem, quyền tài khoản, hoàn tiền và hợp đồng vẫn áp dụng.
 
-- Quản lý nhập giá cọc riêng khi đăng/sửa tin. Giá là số nguyên dương VND, lưu trong `App_Data/room-deposits.json`, ngoài wwwroot và Git; không thêm schema/migration.
-- Giá cọc được hiển thị công khai trên thẻ, chi tiết và trang đặt phòng. Tin chưa có giá vẫn xem được nhưng chưa mở đặt cọc tự động.
+- Quản lý nhập tiền cọc phòng khi đăng/sửa tin. Số nguyên VND từ 0 đến 1.000.000.000.000, lưu ở cột `phong_tro."TienCocPhong"` (thay file `App_Data/room-deposits.json` của bản đầu, sửa ngày 04/11/2026). 0 nghĩa là chưa đặt mức cọc.
+- Đăng công khai phải có tiền cọc lớn hơn 0; code kiểm ở ba chỗ: lưu tin (`RoomListingService`, `RoomListingStore` trong lúc khóa dòng phòng), truy vấn công khai và hẹn xem (`PublicRoomStore`, `ViewingRequestStore` lọc `TienCocPhong > 0`), tạo lượt thanh toán (`ReservationStore.CreateForPaymentAsync` đọc số tiền trong lúc khóa dòng phòng). Phòng đang công khai mà cọc bằng 0 (dữ liệu trước migration) bị ẩn khỏi `/phong` cho tới khi quản lý nhập cọc; màn Tin phòng ghi "Ẩn — chưa có tiền cọc".
+- Giá cọc được hiển thị công khai trên thẻ, chi tiết và trang đặt phòng.
+
+### Ảnh hưởng schema PostgreSQL
+
+| Điểm | Thay đổi | Ghi chú |
+| --- | --- | --- |
+| S1 | `phong_tro` thêm `"TienCocPhong" numeric(18,2) NOT NULL DEFAULT 0` | Phòng có sẵn nhận 0; không cần điền dữ liệu |
+| S2 | `CHECK "CK_PhongTro_TienCocPhong": "TienCocPhong" >= 0` | Không đặt điều kiện > 0 ở DB vì phòng đang công khai sẽ nhận 0 sau migrate |
+| Down | Gỡ CHECK rồi gỡ cột | Mất số tiền cọc đã nhập |
+
+Migration `20261104075202_AddRoomDepositAmount`. ĐÃ XÁC NHẬN: người dùng chọn tên cột `TienCocPhong` trên `phong_tro`, cho phép 0, bắt > 0 khi công khai bằng code (trao đổi ngày 04/11/2026).
 - Khách đăng nhập tạo lượt thanh toán ngay với giá server đã lưu, mã `TTPTGC{id}`, hạn 30 phút; không cần nhân viên duyệt, không ghi giả người duyệt. Các yêu cầu lịch sử vẫn đọc và xử lý được.
 - Một phòng chỉ có một lượt thanh toán hoạt động theo unique index hiện có. Cùng khách bấm lại tiếp tục mã cũ; khách khác không được phát thêm mã trước khi lượt hiện tại hủy/hết hạn.
 - Lượt chưa thanh toán, ảnh minh chứng hoặc tiền nhận thiếu không làm ẩn tin. Chỉ trạng thái đã nhận đủ tiền và đang giữ chỗ mới ẩn phòng khỏi trang công khai.

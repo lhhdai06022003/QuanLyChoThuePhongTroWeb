@@ -25,6 +25,7 @@ namespace QuanLyChoThuePhongTroWeb.Domain.Entities
         public bool DuocDangTin { get; set; } = false;
         public string? TieuDeDangTin { get; set; }
         public string? MaCongKhai { get; set; }
+        public decimal TienCocPhong { get; set; }
         public int? NguoiDangTinId { get; set; }
         [ForeignKey("NguoiDangTinId")]
         public NguoiDung? NguoiDangTin { get; set; }

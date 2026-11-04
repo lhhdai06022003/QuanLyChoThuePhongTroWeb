@@ -61,7 +61,7 @@ public sealed class ReservationReconciliationScreenTests(CustomWebApplicationFac
                 {
                     ChiNhanhId = branch.ChiNhanhId, SoPhong = "D" + suffix,
                     GiaThue = 2000000m, DienTich = 20, MoTa = "Test",
-                    TrangThai = TrangThaiPhong.Trong, DuocDangTin = true
+                    TrangThai = TrangThaiPhong.Trong, DuocDangTin = true, TienCocPhong = 500000m
                 };
                 db.PhongTros.Add(room);
                 await db.SaveChangesAsync();

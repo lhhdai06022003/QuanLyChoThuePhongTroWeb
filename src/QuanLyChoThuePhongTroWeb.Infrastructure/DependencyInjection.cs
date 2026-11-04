@@ -19,7 +19,6 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure
             services.AddScoped<Persistence.IDatabaseInitializer, Persistence.DatabaseInitializer>();
 
             // Feature Stores
-            services.AddSingleton<QuanLyChoThuePhongTroWeb.Application.Features.PublicRooms.IRoomDepositPolicyStore, ExternalServices.Storage.JsonRoomDepositPolicyStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.ChiNhanhs.Persistence.IChiNhanhStore, Persistence.Features.ChiNhanhStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.DieuKhoanMaus.Persistence.IDieuKhoanMauStore, Persistence.Features.DieuKhoanMauStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.AiAssistants.Persistence.IAiAssistantStore, Persistence.Features.AiAssistantStore>();

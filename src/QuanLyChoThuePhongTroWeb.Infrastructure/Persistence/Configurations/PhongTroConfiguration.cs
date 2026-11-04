@@ -14,6 +14,18 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Configurations
             builder.Property(p => p.DuocDangTin)
                 .HasDefaultValue(false);
 
+            // 0 = chưa đặt mức cọc. Điều kiện > 0 khi đăng công khai do code kiểm tra.
+            builder.Property(p => p.TienCocPhong)
+                .HasPrecision(18, 2)
+                .HasDefaultValue(0m);
+
+            builder.ToTable(table =>
+            {
+                table.HasCheckConstraint(
+                    "CK_PhongTro_TienCocPhong",
+                    "\"TienCocPhong\" >= 0");
+            });
+
             builder.Property(p => p.TieuDeDangTin)
                 .HasMaxLength(255);
 

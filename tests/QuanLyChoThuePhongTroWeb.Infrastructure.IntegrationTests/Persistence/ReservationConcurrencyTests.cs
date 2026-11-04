@@ -183,7 +183,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
                 SoNguoiToiDa = 2,
                 TrangThai = TrangThaiPhong.Trong,
                 MoTa = "Phong tro test",
-                DuocDangTin = true,
+                DuocDangTin = true, TienCocPhong = 500000m,
                 MaCongKhai = "PUB" + uid
             };
             context.PhongTros.Add(pt);

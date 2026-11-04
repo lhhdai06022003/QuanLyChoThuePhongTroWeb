@@ -1,3 +1,4 @@
+using QuanLyChoThuePhongTroWeb.Application.Common.Models;
 using QuanLyChoThuePhongTroWeb.Application.Common.Security;
 using QuanLyChoThuePhongTroWeb.Application.Features.Reservations;
 using QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes;
@@ -9,34 +10,25 @@ public sealed class ReservationServiceTests
     private static readonly DateTime Now = new(2026, 10, 7, 8, 0, 0, DateTimeKind.Utc);
 
     [Fact]
-    public async Task Request_WithoutPublicDeposit_DoesNotCreateCheckout()
+    public async Task Request_RoomWithoutDeposit_IsUnavailable()
     {
-        var store = new FakeStore();
-        var result = await CreateService(store, new FixedDepositPolicy { Value = null }).RequestAsync(7, 5, null);
+        // Store trả RoomUnavailable khi phong_tro."TienCocPhong" = 0.
+        var store = new FakeStore { CreateError = ReservationError.RoomUnavailable };
+        var result = await CreateService(store).RequestAsync(7, 5, null);
         Assert.False(result.Success);
-        Assert.Equal(0, store.CreateCalls);
+        Assert.Equal(ServiceErrorKind.NotFound, result.ErrorKind);
+        Assert.Equal(1, store.CreateForPaymentCalls);
     }
 
     [Fact]
-    public async Task Request_UsesCanonicalRoomPriceWithoutStaffApproval()
+    public async Task Request_CreatesCheckoutWithoutStaffApproval()
     {
         var store = new FakeStore();
-        var result = await CreateService(store, new FixedDepositPolicy { Value = new(875000) }).RequestAsync(7, 5, null);
+        var result = await CreateService(store).RequestAsync(7, 5, null);
         Assert.True(result.Success);
-        Assert.Equal(875000m, store.CapturedPolicy!.Amount);
+        Assert.Contains("30 phút", result.Message);
+        Assert.Equal(1, store.CreateForPaymentCalls);
         Assert.Equal(0, store.ApproveCalls);
-    }
-
-    [Theory]
-    [InlineData(0)]
-    [InlineData(-1)]
-    [InlineData(1.5)]
-    public async Task Request_InvalidConfiguredDeposit_DoesNotCreate(decimal amount)
-    {
-        var store = new FakeStore();
-        var result = await CreateService(store, new FixedDepositPolicy { Value = new(amount) }).RequestAsync(7, 5, null);
-        Assert.False(result.Success);
-        Assert.Equal(0, store.CreateCalls);
     }
 
     [Fact]
@@ -92,31 +84,19 @@ public sealed class ReservationServiceTests
         Assert.Equal(0, store.ExtendCalls);
     }
 
-    private static ReservationService CreateService(FakeStore store, FixedDepositPolicy? policies = null) => new(store,
+    private static ReservationService CreateService(FakeStore store) => new(store,
         new FakeEmployeeAccessService
         {
             ScopeToReturn = new EmployeeAccessScope(3, false, [99])
-        }, new FixedTimeProvider(Now), policies ?? new FixedDepositPolicy());
-
-    private sealed class FixedDepositPolicy : QuanLyChoThuePhongTroWeb.Application.Features.PublicRooms.IRoomDepositPolicyStore
-    {
-        public QuanLyChoThuePhongTroWeb.Application.Features.PublicRooms.RoomDepositPolicy? Value { get; init; } = new(500000);
-        public Task<QuanLyChoThuePhongTroWeb.Application.Features.PublicRooms.RoomDepositPolicy?> GetAsync(int roomId,
-            CancellationToken ct = default) => Task.FromResult(Value);
-        public Task<IReadOnlyDictionary<int, QuanLyChoThuePhongTroWeb.Application.Features.PublicRooms.RoomDepositPolicy>> GetAllAsync(CancellationToken ct = default) => throw new NotSupportedException();
-        public Task SetAsync(int roomId, QuanLyChoThuePhongTroWeb.Application.Features.PublicRooms.RoomDepositPolicy policy, CancellationToken ct = default) => throw new NotSupportedException();
-        public Task<bool> UpdateListingAsync(int roomId, QuanLyChoThuePhongTroWeb.Application.Features.PublicRooms.RoomDepositPolicy policy,
-            Func<CancellationToken, Task<bool>> save, CancellationToken ct = default) => throw new NotSupportedException();
-    }
+        }, new FixedTimeProvider(Now));
 
     private sealed class FakeStore : IReservationStore
     {
-        public QuanLyChoThuePhongTroWeb.Application.Features.PublicRooms.RoomDepositPolicy? CapturedPolicy { get; private set; }
+        public int CreateForPaymentCalls { get; private set; }
         public Task<ReservationCreateResult> CreateForPaymentAsync(int actorId, int roomId, int? viewingId,
-            QuanLyChoThuePhongTroWeb.Application.Features.PublicRooms.RoomDepositPolicy policy,
             DateTime nowUtc, CancellationToken cancellationToken = default)
         {
-            CapturedPolicy = policy;
+            CreateForPaymentCalls++;
             return CreateAsync(actorId, roomId, viewingId, nowUtc, cancellationToken);
         }
         public Task ExpireUnpaidAsync(DateTime nowUtc,

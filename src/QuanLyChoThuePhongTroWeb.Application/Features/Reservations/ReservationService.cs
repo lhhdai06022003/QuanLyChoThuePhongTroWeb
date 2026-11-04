@@ -1,11 +1,10 @@
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Security;
 using QuanLyChoThuePhongTroWeb.Application.Common.Models;
-using QuanLyChoThuePhongTroWeb.Application.Features.PublicRooms;
 
 namespace QuanLyChoThuePhongTroWeb.Application.Features.Reservations;
 
 public sealed class ReservationService(IReservationStore store,
-    IEmployeeAccessService employeeAccess, TimeProvider clock, IRoomDepositPolicyStore depositPolicies) : IReservationService
+    IEmployeeAccessService employeeAccess, TimeProvider clock) : IReservationService
 {
     public async Task<IReadOnlyList<ReservationDto>> ListMineAsync(int actorId,
         CancellationToken cancellationToken = default)
@@ -30,18 +29,14 @@ public sealed class ReservationService(IReservationStore store,
     {
         if (actorId <= 0 || roomId <= 0 || viewingId is <= 0)
             return ServiceResult<int>.Fail("Thông tin giữ chỗ không hợp lệ.");
-        RoomDepositPolicy? policy;
-        try { policy = await depositPolicies.GetAsync(roomId, cancellationToken); }
-        catch (Exception ex) when (ex is IOException or System.Text.Json.JsonException or TimeoutException)
-        { return ServiceResult<int>.Fail("Chưa đọc được tiền cọc của phòng. Vui lòng thử lại sau."); }
-        if (policy is null || !policy.IsValid)
-            return ServiceResult<int>.Fail("Phòng chưa được thiết lập tiền cọc công khai. Vui lòng liên hệ quản lý.");
         await store.ExpireUnpaidAsync(clock.GetUtcNow().UtcDateTime,
             cancellationToken);
+        // Phòng có tiền cọc bằng 0 không công khai nên store trả RoomUnavailable.
         var result = await store.CreateForPaymentAsync(actorId, roomId, viewingId,
-            policy, clock.GetUtcNow().UtcDateTime, cancellationToken);
+            clock.GetUtcNow().UtcDateTime, cancellationToken);
         return result.Id.HasValue
-            ? ServiceResult<int>.Ok(result.Id.Value, "Đã tạo lượt thanh toán. Vui lòng hoàn tất trong 30 phút.")
+            ? ServiceResult<int>.Ok(result.Id.Value,
+                $"Đã tạo lượt thanh toán. Vui lòng hoàn tất trong {SelfServiceReservationRules.PaymentWindow.TotalMinutes:0} phút.")
             : result.Error switch
             {
                 ReservationError.GuestMissing => ServiceResult<int>.Forbidden("Không tìm thấy hồ sơ khách hợp lệ cho tài khoản. Vui lòng liên hệ nhân viên."),

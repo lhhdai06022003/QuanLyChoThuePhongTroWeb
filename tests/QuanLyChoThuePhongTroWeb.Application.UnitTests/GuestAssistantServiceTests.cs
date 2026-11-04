@@ -209,7 +209,7 @@ public sealed class GuestAssistantServiceTests
         public List<int[]?> Scopes { get; } = [];
         private readonly PublicRoomDto[] data = [
             new(1, "101", "Gò Vấp", "Quang Trung", 2500000, 25, 2, 1, "Phòng sáng", "PRIVATE-PHONE", DepositAmount:500000),
-            new(2, "102", "Gò Vấp", "Quang Trung", 3500000, 30, 3, 1, "Phòng lớn", DepositAmount:null),
+            new(2, "102", "Gò Vấp", "Quang Trung", 3500000, 30, 3, 1, "Phòng lớn", DepositAmount:0),
             new(3, "103", "Thủ Đức", "Võ Văn Ngân", 2000000, 20, 1, 1, "Phòng sinh viên", DepositAmount:400000)
         ];
         public Task<IReadOnlyList<PublicRoomDto>> ListAsync(IReadOnlyCollection<int>? allowedRoomIds, CancellationToken cancellationToken = default)

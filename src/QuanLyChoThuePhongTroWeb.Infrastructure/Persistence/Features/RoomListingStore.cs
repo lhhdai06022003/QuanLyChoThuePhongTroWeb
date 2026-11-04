@@ -18,14 +18,14 @@ public sealed class RoomListingStore(ApplicationDbContext context, TimeProvider 
                 p.TieuDeDangTin ?? "", p.MoTa ?? "", p.AnhPhongTros.Count(a => a.IsActive),
                 p.AnhPhongTros.Where(a => a.IsActive).OrderByDescending(a => a.LaAnhDaiDien)
                     .ThenBy(a => a.ThuTuHienThi).Select(a => a.Url).FirstOrDefault(),
-                activeHolds.Any(h => h.PhongTroId == p.PhongTroId), null)).ToListAsync(ct);
+                activeHolds.Any(h => h.PhongTroId == p.PhongTroId), p.TienCocPhong)).ToListAsync(ct);
     }
 
     public Task<RoomListingDto?> GetAsync(int roomId, CancellationToken ct) =>
         context.PhongTros.AsNoTracking().Where(p => p.PhongTroId == roomId && !p.IsDeleted && !p.ChiNhanh.IsDeleted)
             .Select(p => new RoomListingDto(p.PhongTroId, p.ChiNhanhId, p.SoPhong, p.ChiNhanh.TenChiNhanh,
                 p.GiaThue, p.DienTich, (int)p.TrangThai, !p.ChiNhanh.IsDeleted, p.DuocDangTin,
-                p.TieuDeDangTin ?? "", p.MoTa ?? "", p.AnhPhongTros.Count(a => a.IsActive), null, false, null))
+                p.TieuDeDangTin ?? "", p.MoTa ?? "", p.AnhPhongTros.Count(a => a.IsActive), null, false, p.TienCocPhong))
             .SingleOrDefaultAsync(ct);
 
     public async Task<bool> SaveAsync(int actorId, int branchId, SaveRoomListing request,
@@ -39,9 +39,11 @@ public sealed class RoomListingStore(ApplicationDbContext context, TimeProvider 
             .SingleOrDefaultAsync(p => p.PhongTroId == request.RoomId && !p.IsDeleted, ct);
         if (room is null || room.ChiNhanhId != branchId || room.ChiNhanh.IsDeleted) return false;
         var active = room.AnhPhongTros.Where(a => a.IsActive).ToArray();
-        if (active.Length + photos.Count > 10 ||
+        var deposit = request.DepositAmount ?? room.TienCocPhong;
+        if (active.Length + photos.Count > 10 || (request.Publish && deposit <= 0) ||
             (request.Publish && !room.DuocDangTin && room.TrangThai != TrangThaiPhong.Trong)) return false;
         room.TieuDeDangTin = request.Title;
+        room.TienCocPhong = deposit;
         room.MoTa = request.Description;
         room.DuocDangTin = request.Publish;
         room.NguoiDangTinId = actorId;

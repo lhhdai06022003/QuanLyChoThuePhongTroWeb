@@ -9,8 +9,7 @@ using QuanLyChoThuePhongTroWeb.Web.Hubs;
 using System;
 using System.Runtime.ExceptionServices;
 using System.Security.Claims;
-using Microsoft.AspNetCore.RateLimiting;
-using System.Threading.RateLimiting;
+using QuanLyChoThuePhongTroWeb.Web.Helpers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,25 +29,7 @@ builder.Services.AddControllersWithViews(options =>
 });
 builder.Services.AddControllers();
 builder.Services.AddSignalR();
-builder.Services.AddRateLimiter(options =>
-{
-    options.AddPolicy("guest-ai", context => RateLimitPartition.GetFixedWindowLimiter(
-        context.Connection.RemoteIpAddress?.ToString() ?? "local", _ => new FixedWindowRateLimiterOptions
-        {
-            PermitLimit = 6,
-            Window = TimeSpan.FromMinutes(1),
-            QueueLimit = 0,
-            AutoReplenishment = true
-        }));
-    options.OnRejected = async (context, ct) =>
-    {
-        context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
-        context.HttpContext.Response.Headers.RetryAfter = "60";
-        await context.HttpContext.Response.WriteAsJsonAsync(
-            QuanLyChoThuePhongTroWeb.Application.Features.GuestAssistant.GuestAssistantReply.Fail(
-                "Bạn hỏi hơi nhanh. Vui lòng thử lại sau khoảng một phút.", "RATE_LIMITED"), ct);
-    };
-});
+builder.Services.AddGuestAssistantRateLimiting();
 builder.Services.AddScoped<IThongBaoNotifier, SignalRThongBaoNotifier>();
 
 // Cấu hình Antiforgery để nhận Token qua Header của AJAX

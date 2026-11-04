@@ -354,8 +354,10 @@ public sealed class ReservationPaymentStore(ApplicationDbContext context)
                         h.LyDo == QuanLyChoThuePhongTroWeb.Application.Features.Reservations.SelfServiceReservationRules.CreationReason,
                         cancellationToken))
                 {
-                    var window = hold.HanKyHopDong.HasValue ? hold.HanKyHopDong.Value - hold.NgayTao : TimeSpan.FromHours(48);
-                    if (window < TimeSpan.FromHours(1) || window > TimeSpan.FromHours(720)) window = TimeSpan.FromHours(48);
+                    var window = hold.HanKyHopDong.HasValue ? hold.HanKyHopDong.Value - hold.NgayTao
+                        : QuanLyChoThuePhongTroWeb.Application.Features.Reservations.SelfServiceReservationRules.ContractWindow;
+                    if (window < TimeSpan.FromHours(1) || window > TimeSpan.FromHours(720))
+                        window = QuanLyChoThuePhongTroWeb.Application.Features.Reservations.SelfServiceReservationRules.ContractWindow;
                     var earlierReceipts = await context.GiaoDichGiuChos.AsNoTracking()
                         .Where(g => g.YeuCauThanhToanGiuChoId == paymentRequestId &&
                             g.NgayThucNhan <= payment.HanThanhToan && g.GhiChu != ReservationPaymentMarkers.LateRefundRequired)

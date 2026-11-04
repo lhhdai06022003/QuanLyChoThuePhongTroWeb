@@ -115,7 +115,7 @@ public sealed class ViewingRequestStore(ApplicationDbContext context) : IViewing
 
             var roomAvailable = await context.PhongTros.AsNoTracking()
                 .AnyAsync(room => room.PhongTroId == input.RoomId &&
-                    !room.IsDeleted && !room.ChiNhanh.IsDeleted && room.DuocDangTin &&
+                    !room.IsDeleted && !room.ChiNhanh.IsDeleted && room.DuocDangTin && room.TienCocPhong > 0 &&
                     room.TrangThai == TrangThaiPhong.Trong &&
                     !context.YeuCauGiuChos.Any(hold => hold.PhongTroId == room.PhongTroId &&
                         (hold.TrangThai == TrangThaiYeuCauGiuCho.ChoThanhToan &&

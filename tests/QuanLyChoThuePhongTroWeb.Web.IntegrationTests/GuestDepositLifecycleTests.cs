@@ -88,7 +88,7 @@ public sealed class GuestDepositLifecycleTests(CustomWebApplicationFactory facto
                 TenChiNhanh = "Deposit UI " + data.suffix, DiaChi = "Test", MoTa = "Test",
                 SoDienThoai = "0912345678" };
             var room = new PhongTro { ChiNhanh = branch, SoPhong = "D" + data.suffix,
-                GiaThue = 1500000, DienTich = 20, MoTa = "Test", DuocDangTin = true,
+                GiaThue = 1500000, DienTich = 20, MoTa = "Test", DuocDangTin = true, TienCocPhong = 375000m,
                 TrangThai = TrangThaiPhong.Trong };
             db.AddRange(guest, staff, room);
             await db.SaveChangesAsync();
@@ -101,7 +101,6 @@ public sealed class GuestDepositLifecycleTests(CustomWebApplicationFactory facto
             data.ContractDeadlineUtc = now.Date.AddDays(5).AddHours(3);
             if (selfService)
             {
-                await factory.FakeRoomDepositPolicies.SetAsync(data.roomId, new(375000));
                 var service = scope.ServiceProvider.GetRequiredService<IReservationService>();
                 var result = await service.RequestAsync(data.userId, data.roomId, null);
                 Assert.True(result.Success, result.Message);
@@ -149,7 +148,6 @@ public sealed class GuestDepositLifecycleTests(CustomWebApplicationFactory facto
 
         public async ValueTask DisposeAsync()
         {
-            factory.FakeRoomDepositPolicies.Remove(roomId);
             using var scope = factory.Services.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             var payments = db.YeuCauThanhToanGiuChos.Where(p => p.YeuCauGiuChoId == reservationId);

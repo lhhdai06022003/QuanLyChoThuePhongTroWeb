@@ -33,7 +33,7 @@ public sealed class PublicRoomStore(ApplicationDbContext context, TimeProvider c
             .Include(room => room.ChiNhanh)
             .Include(room => room.AnhPhongTros)
             .Where(room => !room.IsDeleted && !room.ChiNhanh.IsDeleted &&
-                room.DuocDangTin && room.TrangThai == TrangThaiPhong.Trong &&
+                room.DuocDangTin && room.TienCocPhong > 0 && room.TrangThai == TrangThaiPhong.Trong &&
                 !activeHolds.Any(hold => hold.PhongTroId == room.PhongTroId));
     }
 
@@ -47,7 +47,7 @@ public sealed class PublicRoomStore(ApplicationDbContext context, TimeProvider c
             .ThenBy(image => image.ThuTuHienThi)
             .Take(10)
             .Select(image => image.Url)
-            .ToArray(), room.TieuDeDangTin ?? "");
+            .ToArray(), room.TieuDeDangTin ?? "", room.TienCocPhong);
 
     private static bool IsSafeImageUrl(string? url) =>
         !string.IsNullOrWhiteSpace(url) &&
