@@ -103,6 +103,7 @@ public sealed class RoomListingUploadTests(CustomWebApplicationFactory factory)
                 content.Add(new StringContent("Room title " + suffix), "Title");
                 content.Add(new StringContent("New description " + suffix), "Description");
                 content.Add(new StringContent("true"), "Publish");
+                content.Add(new StringContent("200000"), "DepositAmount");
                 var image = new ByteArrayContent(bytes);
                 image.Headers.ContentType = new MediaTypeHeaderValue("image/png");
                 content.Add(image, "Photos", "room.png");

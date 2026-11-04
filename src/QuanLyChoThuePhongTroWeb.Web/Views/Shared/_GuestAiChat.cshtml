@@ -1,0 +1,44 @@
+@{
+    var isRoomPage = string.Equals(Context.Request.RouteValues["controller"]?.ToString(), "Phong", StringComparison.OrdinalIgnoreCase);
+    var roomId = isRoomPage && int.TryParse(Context.Request.RouteValues["id"]?.ToString(), out var parsed) && parsed > 0 ? parsed : (int?)null;
+}
+<div class="guest-ai" data-guest-ai data-endpoint="/phong/tro-ly-ai" data-room-id="@roomId" hidden>
+    <button class="guest-ai-launch" type="button" data-ai-open aria-expanded="false" aria-controls="guest-ai-panel">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M20 11.5a8.5 8.5 0 0 1-8.5 8.5H4l-1 1v-9.5a8.5 8.5 0 0 1 17 0Z" /><path d="m7 12 4.5-4 4.5 4M8.5 10.5v5h6v-5" /></svg>
+        <span>Hỏi AI tìm phòng</span>
+    </button>
+    <section class="guest-ai-panel" id="guest-ai-panel" role="dialog" aria-labelledby="guest-ai-title" hidden>
+        <header class="guest-ai-header">
+            <div class="guest-ai-heading">
+                <span class="guest-ai-avatar" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="m3 11 9-8 9 8M5 9.5V21h14V9.5M9 21v-7h6v7" /></svg></span>
+                <div><h2 id="guest-ai-title">TroSync AI</h2><p>Trợ lý tìm phòng</p></div>
+            </div>
+            <div class="guest-ai-header-actions">
+                <button class="guest-ai-reset" type="button" data-ai-reset aria-label="Cuộc trò chuyện mới" title="Cuộc trò chuyện mới"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M3 10a9 9 0 1 1 2 8M3 4v6h6" /></svg></button>
+                <button class="guest-ai-close" type="button" data-ai-close aria-label="Đóng trợ lý AI"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg></button>
+            </div>
+        </header>
+        <div class="guest-ai-conversation" data-ai-conversation>
+            <div class="guest-ai-welcome" data-ai-welcome>
+                <h3>Bạn muốn tìm phòng nào?</h3>
+                <p>Chọn gợi ý hoặc nói điều bạn cần.</p>
+                <div class="guest-ai-suggestions" aria-label="Câu hỏi gợi ý">
+                    <button type="button" data-ai-suggestion="Tìm phòng dưới 3 triệu cho 2 người"><strong>Dưới 3 triệu</strong><span>Cho 2 người</span></button>
+                    <button type="button" data-ai-suggestion="@(roomId.HasValue ? "Phòng đang xem cần cọc bao nhiêu?" : "Đặt cọc giữ chỗ thực hiện thế nào?")"><strong>@(roomId.HasValue ? "Cọc phòng này" : "Tiền cọc")</strong><span>Mức cọc &amp; cách trả</span></button>
+                    <button type="button" data-ai-suggestion="Tôi muốn hẹn xem phòng thì làm thế nào?"><strong>Hẹn xem phòng</strong><span>Cách đăng ký</span></button>
+                </div>
+            </div>
+            <div class="guest-ai-messages" data-ai-messages role="log" aria-label="Nội dung trò chuyện" aria-live="polite" aria-relevant="additions"></div>
+            <p class="guest-ai-thinking" data-ai-thinking role="status" hidden><span aria-hidden="true"></span>Đang tra cứu…</p>
+        </div>
+        <form class="guest-ai-compose" data-ai-form>
+            @Html.AntiForgeryToken()
+            <label class="visually-hidden" for="guest-ai-message">Câu hỏi cho trợ lý tìm phòng</label>
+            <div class="guest-ai-input-row">
+                <textarea id="guest-ai-message" data-ai-input rows="1" maxlength="1000" required placeholder="Hỏi về phòng bạn cần…"></textarea>
+                <button type="submit" data-ai-send aria-label="Gửi câu hỏi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m12 19 0-14M5 12l7-7 7 7" /></svg></button>
+            </div>
+            <p><a href="/phong">Tìm phòng</a><a href="/phong/cam-nang">Cẩm nang</a><span>Enter để gửi</span></p>
+        </form>
+    </section>
+</div>

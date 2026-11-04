@@ -9,16 +9,17 @@
 
 <div class="guest-container guest-form-page">
     <a class="guest-back" href="/phong/@room.PhongTroId">← Về thông tin phòng</a>
-    <div class="guest-form-grid">
-        <section>
+    <div class="guest-form-grid guest-booking-layout">
+        <section class="guest-booking-intro">
+            <p class="guest-checkout-eyebrow">Bước tiếp theo của bạn</p>
             <h1>Đặt phòng @room.SoPhong</h1>
-            <p class="guest-form-lead">Gửi yêu cầu giữ chỗ cho căn phòng bạn đã chọn. Nhân viên sẽ duyệt số tiền đặt cọc và thời hạn trước khi bạn chuyển khoản.</p>
-            <ol class="guest-booking-steps">
-                <li><strong>Gửi yêu cầu đặt phòng</strong><span>Đặt trực tiếp hoặc tiếp tục từ lịch xem của bạn.</span></li>
-                <li><strong>Nhân viên duyệt giữ chỗ</strong><span>Bạn nhận số tiền cần chuyển, hạn thanh toán và hạn ký hợp đồng.</span></li>
-                <li><strong>Chuyển khoản và gửi minh chứng</strong><span>Theo dõi xác nhận tiền trong mục Lịch xem và đặt phòng.</span></li>
-            </ol>
+            <p class="guest-form-lead">Đặt cọc theo số tiền công khai của phòng. Xác nhận để mở ngay trang QR hoặc VNPay và thanh toán trong 30 phút.</p>
         </section>
+            <ol class="guest-booking-steps" aria-label="Các bước đặt phòng">
+                <li><strong>Xác nhận số tiền cọc</strong><span>Đặt trực tiếp hoặc tiếp tục từ lịch xem của bạn. Số tiền được chốt cho lượt thanh toán này.</span></li>
+                <li><strong>Thanh toán trong 30 phút</strong><span>Dùng QR hoặc VNPay trên trang tiếp theo. Nếu quay lại trong hạn, bạn tiếp tục cùng mã thanh toán.</span></li>
+                <li><strong>Nhận đủ cọc, giữ phòng</strong><span>Hệ thống chỉ giữ phòng sau khi xác nhận đã nhận đủ tiền. Ký hợp đồng trong 48 giờ sau đó.</span></li>
+            </ol>
         <section class="guest-booking-summary" aria-label="Xác nhận đặt phòng">
             @if (cover is not null)
             {
@@ -28,21 +29,41 @@
                 <h2>Phòng @room.SoPhong</h2>
                 <p>@room.TenChiNhanh · @room.DiaChi</p>
                 <p>@room.DienTich.ToString("0.#") m² · Tối đa @room.SoNguoiToiDa người</p>
-                <p class="guest-booking-price"><strong>@VndFormat.Money(room.GiaThue)</strong> / tháng</p>
+                <div class="guest-rent-line"><span>Giá thuê / tháng</span><strong class="num-tabular">@VndFormat.Money(room.GiaThue)</strong></div>
+                @if (room.DepositAmount is > 0 and { } deposit)
+                {
+                    <div class="guest-deposit-highlight">
+                        <span class="guest-deposit-label">Cọc giữ chỗ</span>
+                        <strong class="guest-deposit-amount num-tabular">@VndFormat.Money(deposit)</strong>
+                        <p>Số tiền cần thanh toán ở bước tiếp theo.</p>
+                    </div>
+                    <ul class="guest-checkout-rules">
+                        <li><strong>30 phút</strong><span>để thanh toán sau khi xác nhận</span></li>
+                        <li><strong>48 giờ</strong><span>để ký hợp đồng sau khi nhận đủ cọc</span></li>
+                    </ul>
+                }
                 @if (Model.ViewingId.HasValue)
                 {
                     <p>Đặt phòng từ lịch xem #@Model.ViewingId.Value.</p>
                 }
                 <div asp-validation-summary="All" class="text-danger" role="alert"></div>
-                <form method="post" action="/phong/@room.PhongTroId/giu-cho">
-                    @Html.AntiForgeryToken()
-                    @if (Model.ViewingId.HasValue)
-                    {
-                        <input type="hidden" name="viewingId" value="@Model.ViewingId.Value" />
-                    }
-                    <button class="guest-button guest-button-primary" type="submit">Gửi yêu cầu đặt phòng</button>
-                </form>
-                <p class="guest-field-hint">Chưa cần chuyển tiền ở bước này. Bạn có thể hủy yêu cầu trong tài khoản của mình.</p>
+                @if (room.DepositAmount is > 0)
+                {
+                    <form method="post" action="/phong/@room.PhongTroId/giu-cho">
+                        @Html.AntiForgeryToken()
+                        @if (Model.ViewingId.HasValue)
+                        {
+                            <input type="hidden" name="viewingId" value="@Model.ViewingId.Value" />
+                        }
+                        <button class="guest-button guest-button-primary" type="submit">Xác nhận và thanh toán tiền cọc <span aria-hidden="true">→</span></button>
+                    </form>
+                    <p class="guest-field-hint">Ảnh chuyển khoản chỉ hỗ trợ đối soát, không xác nhận đã nhận tiền. Bạn có thể hủy lượt thanh toán trong tài khoản của mình.</p>
+                }
+                else
+                {
+                    <div class="guest-preview-notice" role="status">Phòng chưa có tiền cọc công khai nên chưa mở đặt cọc tự động. Bạn vẫn có thể hẹn xem phòng hoặc liên hệ chi nhánh.</div>
+                    <a class="guest-button guest-button-outline" href="/phong/@room.PhongTroId/hen-xem">Hẹn xem phòng</a>
+                }
             </div>
         </section>
     </div>

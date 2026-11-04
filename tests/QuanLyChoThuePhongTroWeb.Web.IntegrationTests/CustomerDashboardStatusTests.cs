@@ -27,7 +27,7 @@ public sealed class CustomerDashboardStatusTests(CustomWebApplicationFactory fac
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var html = WebUtility.HtmlDecode(await response.Content.ReadAsStringAsync());
         foreach (var label in new[] { "Chờ nhân viên xác nhận", "Đã xác nhận lịch", "Từ chối lịch xem", "Đã hủy lịch xem",
-            "Chờ nhân viên duyệt", "Đã duyệt · Chờ chuyển khoản", "Đã báo chuyển · Chờ xác nhận tiền", "Đã nhận tiền giữ chỗ", "Đã hủy yêu cầu" })
+            "Yêu cầu cũ · Chờ xử lý", "Chờ chuyển khoản", "Đã báo chuyển · Chờ xác nhận tiền", "Đã nhận tiền giữ chỗ", "Đã hủy yêu cầu" })
             Assert.Contains(label, html);
         Assert.Contains("Hạn chuyển khoản", html);
         Assert.Contains("Hạn ký hợp đồng", html);
@@ -36,7 +36,7 @@ public sealed class CustomerDashboardStatusTests(CustomWebApplicationFactory fac
         Assert.DoesNotContain("VIEW-OLDEST", html);
         Assert.Equal(5, Regex.Matches(html, "data-dashboard-viewing=").Count);
         var approvedCard = Regex.Match(html, $"<li[^>]*data-dashboard-reservation=\"{data.ApprovedId}\"[^>]*>(.*?)</li>", RegexOptions.Singleline).Value;
-        Assert.Contains("Đã duyệt · Chờ chuyển khoản", approvedCard);
+        Assert.Contains("Chờ chuyển khoản", approvedCard);
         Assert.Contains("Số tiền đã xác nhận: <strong>0 VNĐ</strong>", approvedCard);
         Assert.DoesNotContain("Đã nhận tiền giữ chỗ", approvedCard);
         var terminalCards = Regex.Matches(html, "<li[^>]*data-dashboard-reservation=\"[^\"]+\"[^>]*>.*?</li>", RegexOptions.Singleline)

@@ -18,14 +18,14 @@ public sealed class RoomListingStore(ApplicationDbContext context, TimeProvider 
                 p.TieuDeDangTin ?? "", p.MoTa ?? "", p.AnhPhongTros.Count(a => a.IsActive),
                 p.AnhPhongTros.Where(a => a.IsActive).OrderByDescending(a => a.LaAnhDaiDien)
                     .ThenBy(a => a.ThuTuHienThi).Select(a => a.Url).FirstOrDefault(),
-                activeHolds.Any(h => h.PhongTroId == p.PhongTroId))).ToListAsync(ct);
+                activeHolds.Any(h => h.PhongTroId == p.PhongTroId), null)).ToListAsync(ct);
     }
 
     public Task<RoomListingDto?> GetAsync(int roomId, CancellationToken ct) =>
         context.PhongTros.AsNoTracking().Where(p => p.PhongTroId == roomId && !p.IsDeleted && !p.ChiNhanh.IsDeleted)
             .Select(p => new RoomListingDto(p.PhongTroId, p.ChiNhanhId, p.SoPhong, p.ChiNhanh.TenChiNhanh,
                 p.GiaThue, p.DienTich, (int)p.TrangThai, !p.ChiNhanh.IsDeleted, p.DuocDangTin,
-                p.TieuDeDangTin ?? "", p.MoTa ?? "", p.AnhPhongTros.Count(a => a.IsActive), null, false))
+                p.TieuDeDangTin ?? "", p.MoTa ?? "", p.AnhPhongTros.Count(a => a.IsActive), null, false, null))
             .SingleOrDefaultAsync(ct);
 
     public async Task<bool> SaveAsync(int actorId, int branchId, SaveRoomListing request,

@@ -1,5 +1,20 @@
 # SPEC — Cổng khách vãng lai xem phòng và đặt cọc
 
+## Luồng đặt cọc hiện hành — chốt ngày 29/10/2026
+
+Phần này thay thế các quy tắc duyệt giữ chỗ trước thanh toán trong tài liệu cũ bên dưới; các quy tắc lịch xem, quyền tài khoản, hoàn tiền và hợp đồng vẫn áp dụng.
+
+- Quản lý nhập giá cọc riêng khi đăng/sửa tin. Giá là số nguyên dương VND, lưu trong `App_Data/room-deposits.json`, ngoài wwwroot và Git; không thêm schema/migration.
+- Giá cọc được hiển thị công khai trên thẻ, chi tiết và trang đặt phòng. Tin chưa có giá vẫn xem được nhưng chưa mở đặt cọc tự động.
+- Khách đăng nhập tạo lượt thanh toán ngay với giá server đã lưu, mã `TTPTGC{id}`, hạn 30 phút; không cần nhân viên duyệt, không ghi giả người duyệt. Các yêu cầu lịch sử vẫn đọc và xử lý được.
+- Một phòng chỉ có một lượt thanh toán hoạt động theo unique index hiện có. Cùng khách bấm lại tiếp tục mã cũ; khách khác không được phát thêm mã trước khi lượt hiện tại hủy/hết hạn.
+- Lượt chưa thanh toán, ảnh minh chứng hoặc tiền nhận thiếu không làm ẩn tin. Chỉ trạng thái đã nhận đủ tiền và đang giữ chỗ mới ẩn phòng khỏi trang công khai.
+- Hạn ký của yêu cầu tự tạo là 48 giờ sau thời điểm thực sự nhận đủ cọc, kể cả callback đến sai thứ tự. Yêu cầu cũ do nhân viên duyệt giữ nguyên hạn đã lưu.
+- Hết 30 phút mà chưa đủ tiền thì giải phóng lượt, kể cả đã có tiền một phần/minh chứng; tiền đã nhận và tiền đến muộn vẫn lưu để xử lý hoàn theo quy tắc hiện có, không giành lại phòng từ khách khác.
+- Tự ghi nhận chuyển khoản phụ thuộc cấu hình SePay/VNPay và callback xác thực hợp lệ; ảnh chuyển tiền không thay thế xác nhận ngân hàng.
+
+Thiết kế đã duyệt: `docs/superpowers/specs/2026-10-29-dat-coc-tu-dong-design.md`; kế hoạch: `docs/superpowers/plans/2026-10-29-dat-coc-tu-dong.md`.
+
 **Trạng thái:** nghiệp vụ đã được chốt, 08/10/2026.
 **Ràng buộc:** chỉ dùng schema đã có trên `master` (migration cuối `20260922163513_AddPublicViewingAndReservations`); không tạo hoặc sửa migration, bảng, cột. Không dùng `QuanLyPhongTroDb` cho kiểm thử.
 

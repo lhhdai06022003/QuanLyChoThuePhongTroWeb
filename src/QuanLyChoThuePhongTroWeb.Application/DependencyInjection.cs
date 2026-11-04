@@ -91,6 +91,7 @@ namespace QuanLyChoThuePhongTroWeb.Application
             services.AddScoped<IViecCanLamService, ViecCanLamService>();
 
             // AI assistant
+            services.AddScoped<Features.GuestAssistant.IGuestAssistantService, Features.GuestAssistant.GuestAssistantService>();
             services.AddScoped<Features.AiAssistants.Services.IAiAssistantService, Features.AiAssistants.Services.AiAssistantService>();
             services.AddScoped<Features.AiAssistants.Tools.AiToolExecutor>();
 

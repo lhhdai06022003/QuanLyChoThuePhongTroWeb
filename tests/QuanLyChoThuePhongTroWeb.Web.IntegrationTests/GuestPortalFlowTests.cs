@@ -113,6 +113,7 @@ public sealed class GuestPortalFlowTests(CustomWebApplicationFactory factory)
                 }
             }
 
+            await factory.FakeRoomDepositPolicies.SetAsync(roomId!.Value, new(200000));
             var client = factory.CreateClient(new WebApplicationFactoryClientOptions
             {
                 AllowAutoRedirect = false, HandleCookies = true
@@ -188,8 +189,8 @@ public sealed class GuestPortalFlowTests(CustomWebApplicationFactory factory)
                 var directBookingResponse = await client.PostAsync($"/phong/{roomId}/giu-cho",
                     Form(("__RequestVerificationToken",
                         Token(await directBookingPage.Content.ReadAsStringAsync()))));
-                Assert.Equal("/tai-khoan/yeu-cau-phong",
-                    directBookingResponse.Headers.Location?.ToString());
+                Assert.StartsWith("/tai-khoan/yeu-cau-phong/giu-cho/", directBookingResponse.Headers.Location?.ToString());
+                Assert.EndsWith("/dat-coc", directBookingResponse.Headers.Location?.ToString());
                 int directHoldId;
                 using (var scope = factory.Services.CreateScope())
                 {
@@ -263,8 +264,8 @@ public sealed class GuestPortalFlowTests(CustomWebApplicationFactory factory)
                 Form(("__RequestVerificationToken",
                     Token(await holdPage.Content.ReadAsStringAsync()))));
             Assert.Equal(HttpStatusCode.Redirect, holdResponse.StatusCode);
-            Assert.Equal("/tai-khoan/yeu-cau-phong",
-                holdResponse.Headers.Location?.ToString());
+            Assert.StartsWith("/tai-khoan/yeu-cau-phong/giu-cho/", holdResponse.Headers.Location?.ToString());
+            Assert.EndsWith("/dat-coc", holdResponse.Headers.Location?.ToString());
 
             int holdId;
             using (var scope = factory.Services.CreateScope())
@@ -274,7 +275,7 @@ public sealed class GuestPortalFlowTests(CustomWebApplicationFactory factory)
                     v.KhachVangLai!.NguoiDung.TenDangNhap == username).ToListAsync());
                 holdId = Assert.Single(await db.YeuCauGiuChos.Where(h =>
                     h.KhachVangLai.NguoiDung.TenDangNhap == username &&
-                    h.TrangThai == TrangThaiYeuCauGiuCho.MoiTao).ToListAsync())
+                    h.TrangThai == TrangThaiYeuCauGiuCho.ChoThanhToan).ToListAsync())
                     .YeuCauGiuChoId;
             }
 
@@ -283,7 +284,8 @@ public sealed class GuestPortalFlowTests(CustomWebApplicationFactory factory)
             var mineHtml = WebUtility.HtmlDecode(
                 await mineResponse.Content.ReadAsStringAsync());
             Assert.Contains("Đã hủy", mineHtml);
-            Assert.Contains("Chờ nhân viên duyệt", mineHtml);
+            Assert.Contains("Chờ chuyển tiền", mineHtml);
+            Assert.DoesNotContain("Chờ nhân viên duyệt", mineHtml);
             cancelResponse = await client.PostAsync(
                 $"/tai-khoan/yeu-cau-phong/giu-cho/{holdId}/huy",
                 Form(("__RequestVerificationToken", Token(mineHtml))));
@@ -303,16 +305,18 @@ public sealed class GuestPortalFlowTests(CustomWebApplicationFactory factory)
                 var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
                 holdId = await db.YeuCauGiuChos.Where(h =>
                     h.KhachVangLai.NguoiDung.TenDangNhap == username &&
-                    h.TrangThai == TrangThaiYeuCauGiuCho.MoiTao)
+                    h.TrangThai == TrangThaiYeuCauGiuCho.ChoThanhToan)
                     .Select(h => h.YeuCauGiuChoId).SingleAsync();
             }
             using (var scope = factory.Services.CreateScope())
             {
-                var reservationService = scope.ServiceProvider
-                    .GetRequiredService<IReservationService>();
-                var now = DateTime.UtcNow;
-                Assert.True((await reservationService.ApproveAsync(adminId.Value,
-                    holdId, 200000m, now.AddDays(1), now.AddDays(2))).Success);
+                var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                var payable = await db.YeuCauGiuChos.Include(h => h.YeuCauThanhToanGiuChos)
+                    .SingleAsync(h => h.YeuCauGiuChoId == holdId);
+                Assert.Null(payable.NguoiDuyetId);
+                Assert.Equal(200000m, payable.SoTienGiuCho);
+                Assert.Single(payable.YeuCauThanhToanGiuChos);
+                Assert.InRange((payable.HanThanhToan!.Value - payable.NgayTao).TotalMinutes, 29.99, 30.01);
             }
             mineHtml = await (await client.GetAsync("/tai-khoan/yeu-cau-phong"))
                 .Content.ReadAsStringAsync();
@@ -342,6 +346,7 @@ public sealed class GuestPortalFlowTests(CustomWebApplicationFactory factory)
         }
         finally
         {
+            if (roomId.HasValue) factory.FakeRoomDepositPolicies.Remove(roomId.Value);
             using var scope = factory.Services.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             var guest = await db.KhachVangLais.AsNoTracking()

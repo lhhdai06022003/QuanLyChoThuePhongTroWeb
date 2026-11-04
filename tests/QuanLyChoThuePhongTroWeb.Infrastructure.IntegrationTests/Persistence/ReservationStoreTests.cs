@@ -435,7 +435,7 @@ public sealed class ReservationStoreTests(PostgreSqlFixture fixture)
                 Assert.Equal(ReservationError.Duplicate, duplicate.Error);
                 Assert.Equal(ReservationError.None, await store.ApproveAsync(staffUserId.Value,
                     holdId.Value, 400000m, now.AddDays(1), now.AddDays(2), now));
-                Assert.Null(await new PublicRoomStore(db, TimeProvider.System)
+                Assert.NotNull(await new PublicRoomStore(db, TimeProvider.System)
                     .GetAvailableAsync(roomId.Value));
             }
             await using (var db = fixture.CreateDbContext())

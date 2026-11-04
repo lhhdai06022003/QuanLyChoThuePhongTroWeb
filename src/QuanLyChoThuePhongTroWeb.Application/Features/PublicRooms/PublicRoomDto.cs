@@ -12,4 +12,5 @@ public sealed record PublicRoomDto(
     string MoTa,
     string SoDienThoaiChiNhanh = "",
     IReadOnlyList<string>? ImageUrls = null,
-    string ListingTitle = "");
+    string ListingTitle = "",
+    decimal? DepositAmount = null);

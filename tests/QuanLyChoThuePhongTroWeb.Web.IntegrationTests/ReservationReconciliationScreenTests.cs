@@ -70,10 +70,12 @@ public sealed class ReservationReconciliationScreenTests(CustomWebApplicationFac
                 guestUserId = guest.NguoiDungId;
 
                 var reservations = scope.ServiceProvider.GetRequiredService<IReservationService>();
-                var requested = await reservations.RequestAsync(guest.NguoiDungId, room.PhongTroId, null);
-                Assert.True(requested.Success, requested.Message);
-                holdId = requested.Data;
                 var now = DateTime.UtcNow;
+                // This screen test exercises a historical staff-approved request; new guest checkout is tested separately.
+                var requested = await scope.ServiceProvider.GetRequiredService<IReservationStore>()
+                    .CreateAsync(guest.NguoiDungId, room.PhongTroId, null, now);
+                Assert.True(requested.Id.HasValue);
+                holdId = requested.Id;
                 Assert.True((await reservations.ApproveAsync(adminId, holdId.Value,
                     1500000m, now.AddDays(1), now.AddDays(2))).Success);
                 paymentRequestId = await db.YeuCauThanhToanGiuChos

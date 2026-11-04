@@ -18,7 +18,7 @@
         <div class="alert alert-info" role="status">@message</div>
     }
     <div class="card mb-4"><div class="card-body">
-        <p>Số tiền giữ chỗ được duyệt: @(reservation.HoldAmount is { } holdAmount ? VndFormat.Money(holdAmount) : "Chờ duyệt")</p>
+        <p>@(reservation.IsSelfService ? "Tiền cọc theo tin công khai:" : "Số tiền giữ chỗ được duyệt:") @(reservation.HoldAmount is { } holdAmount ? VndFormat.Money(holdAmount) : "Chờ duyệt")</p>
         <p>Tiền đã đối soát: @VndFormat.Money(reservation.ConfirmedAmount)</p>
         <p>Mã nội dung chuyển khoản: @reservation.PaymentCode</p>
         <p>Trạng thái thanh toán: @GuestStatusText.Payment(reservation.PaymentStatus)</p>

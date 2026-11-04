@@ -73,9 +73,11 @@
             {
                 @foreach (var reservation in Model.Reservations)
                 {
+                    var awaitingSelfServicePayment = reservation.IsSelfService &&
+                        (reservation.Status is "ChoThanhToan" or "ChoXacNhanTien");
                     var reservationStatus = reservation.Status switch
                     {
-                        "MoiTao" => "Chờ nhân viên duyệt",
+                        "MoiTao" => "Yêu cầu cũ · Chờ xử lý",
                         "ChoThanhToan" => "Chờ chuyển tiền",
                         "ChoXacNhanTien" => "Chờ đối soát tiền",
                         "DangGiuCho" => "Đang giữ chỗ",
@@ -99,10 +101,14 @@
                             var deadline = new DateTimeOffset(reservation.PaymentDeadlineUtc.Value, TimeSpan.Zero).ToOffset(TimeSpan.FromHours(7));
                             <p>Hạn chuyển: @deadline.ToString("dd/MM/yyyy HH:mm")</p>
                         }
-                        @if (reservation.ContractDeadlineUtc.HasValue)
+                        @if (!awaitingSelfServicePayment && reservation.ContractDeadlineUtc.HasValue)
                         {
                             var contractDeadline = new DateTimeOffset(reservation.ContractDeadlineUtc.Value, TimeSpan.Zero).ToOffset(TimeSpan.FromHours(7));
                             <p>Hạn ký hợp đồng: @contractDeadline.ToString("dd/MM/yyyy HH:mm")</p>
+                        }
+                        else if (awaitingSelfServicePayment)
+                        {
+                            <p>Hạn ký hợp đồng: trong 48 giờ sau khi nhận đủ cọc.</p>
                         }
                         <p>Tiền đã xác nhận: @VndFormat.Money(reservation.ConfirmedAmount)</p>
                         @if (Model.Settlements.FirstOrDefault(s => s.ReservationId == reservation.Id) is { } settlement)

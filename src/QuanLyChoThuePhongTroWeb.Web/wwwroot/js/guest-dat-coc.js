@@ -1,7 +1,7 @@
 // Thanh toán trực tuyến và cập nhật thời gian thực cho giữ chỗ (spec giữ chỗ §4, §5, §8).
 // GuestDatCoc.start: Tạo link VNPay và chuyển hướng khách sang cổng thanh toán an toàn.
 // GuestDatCoc.watchResult: Nghe sự kiện SignalR GiuChoThanhToanCapNhat để tự động tải lại trang.
-(function (window, $) {
+(function (window) {
     'use strict';
 
     var DEFAULT_ERROR = 'Không tạo được link thanh toán VNPay, vui lòng thử lại.';
@@ -71,17 +71,18 @@
         });
     }
 
-    function start(reservationId, buttonEl) {
-        var $button = $(buttonEl);
-        if ($button.prop('disabled')) {
+    async function start(reservationId, buttonEl) {
+        if (!buttonEl || buttonEl.disabled) {
             return;
         }
 
-        var originalHtml = $button.html();
-        $button.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Đang chuyển sang VNPay...');
+        var originalHtml = buttonEl.innerHTML;
+        buttonEl.disabled = true;
+        buttonEl.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Đang chuyển sang VNPay...';
 
         function fail(message) {
-            $button.prop('disabled', false).html(originalHtml);
+            buttonEl.disabled = false;
+            buttonEl.innerHTML = originalHtml;
             if (typeof Swal !== 'undefined') {
                 Swal.fire({ icon: 'error', title: 'Chưa thanh toán được', text: message || DEFAULT_ERROR });
             } else {
@@ -89,21 +90,23 @@
             }
         }
 
-        $.ajax({
-            url: '/tai-khoan/yeu-cau-phong/giu-cho/' + encodeURIComponent(reservationId) + '/dat-coc/vnpay',
-            method: 'POST',
-            headers: { 'RequestVerificationToken': getVerificationToken() },
-            dataType: 'json'
-        }).done(function (res) {
-            if (res && res.success && typeof res.url === 'string' && res.url.indexOf('https://') === 0) {
+        try {
+            var response = await fetch('/tai-khoan/yeu-cau-phong/giu-cho/' +
+                encodeURIComponent(reservationId) + '/dat-coc/vnpay', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'RequestVerificationToken': getVerificationToken(), 'Accept': 'application/json' }
+            });
+            var res = await response.json().catch(function () { return null; });
+            if (response.ok && res && res.success && typeof res.url === 'string' && res.url.indexOf('https://') === 0) {
                 window.location.assign(res.url);
                 return;
             }
 
             fail(res && res.message);
-        }).fail(function (xhr) {
-            fail(xhr && xhr.responseJSON && xhr.responseJSON.message);
-        });
+        } catch (_) {
+            fail();
+        }
     }
 
     function watchResult(reservationId) {
@@ -153,10 +156,14 @@
             });
         }
 
-        $('#guestVnPayRecheck').on('click', function () {
-            $(this).prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Đang kiểm tra...');
-            window.location.reload();
-        });
+        var recheck = document.getElementById('guestVnPayRecheck');
+        if (recheck) {
+            recheck.addEventListener('click', function () {
+                this.disabled = true;
+                this.textContent = 'Đang kiểm tra...';
+                window.location.reload();
+            });
+        }
     }
 
     function init(reservationId) {
@@ -164,9 +171,12 @@
         initCopyButtons();
         watchResult(reservationId);
 
-        $('#btnGuestVnPay').on('click', function () {
-            start(reservationId, this);
-        });
+        var button = document.getElementById('btnGuestVnPay');
+        if (button) {
+            button.addEventListener('click', function () {
+                start(reservationId, this);
+            });
+        }
     }
 
     window.GuestDatCoc = {
@@ -174,79 +184,4 @@
         start: start,
         watchResult: watchResult
     };
-})(window, window.jQuery || (function () {
-    // Fallback mini jQuery-compatible wrapper nếu trang không nạp jQuery
-    var fn = function (selector) {
-        var el = typeof selector === 'string' ? document.querySelector(selector) : selector;
-        return {
-            on: function (evt, handler) {
-                if (el) {
-                    el.addEventListener(evt, handler);
-                }
-                return this;
-            },
-            prop: function (name, val) {
-                if (!el) {
-                    return undefined;
-                }
-                if (arguments.length === 1) {
-                    return el[name];
-                }
-                el[name] = val;
-                return this;
-            },
-            html: function (content) {
-                if (!el) {
-                    return '';
-                }
-                if (arguments.length === 0) {
-                    return el.textContent || '';
-                }
-                el.textContent = '';
-                if (typeof content === 'string' && content.indexOf('<') !== -1) {
-                    var temp = document.createElement('div');
-                    temp.insertAdjacentHTML('beforeend', content);
-                    while (temp.firstChild) {
-                        el.appendChild(temp.firstChild);
-                    }
-                } else {
-                    el.textContent = content;
-                }
-                return this;
-            }
-        };
-    };
-
-    fn.ajax = function (opts) {
-        var token = opts.headers ? opts.headers['RequestVerificationToken'] : '';
-        var promise = fetch(opts.url, {
-            method: opts.method || 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                'RequestVerificationToken': token
-            }
-        }).then(function (resp) {
-            return resp.json().then(function (data) {
-                if (!resp.ok) {
-                    var err = new Error(data && data.message ? data.message : 'HTTP ' + resp.status);
-                    err.responseJSON = data;
-                    throw err;
-                }
-                return data;
-            });
-        });
-
-        return {
-            done: function (cb) {
-                promise.then(cb);
-                return this;
-            },
-            fail: function (cb) {
-                promise.catch(cb);
-                return this;
-            }
-        };
-    };
-
-    return fn;
-})());
+})(window);
