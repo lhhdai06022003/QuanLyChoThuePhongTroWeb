@@ -27,7 +27,6 @@ Triển khai theo [plan-giao-dien-nhom-1.md](plan-giao-dien-nhom-1.md):
 ## Hạn chế đã biết (chưa sửa)
 
 - Tắt `ContractAlertSettings:Enabled` (để ngừng email cảnh báo) thì cũng mất thông báo trong app khi hợp đồng hết hạn; spec chưa nói tới.
-- `appsettings.example.json` còn nhắc `ContractAutoCloseJob`; sửa cần người dùng duyệt (S8).
 - Khách trả phòng rồi thuê lại đúng phòng cũ: nợ cũ bị ẩn khỏi KH5 và bộ lọc (hệ quả của Q1 đã chọn).
 
 ## Hồ sơ triển khai
