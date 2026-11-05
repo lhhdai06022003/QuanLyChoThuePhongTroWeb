@@ -20,8 +20,22 @@
         return false;
     }
 
-    var isAnyChildActive = hasChild && visibleChildren!.Any(child => IsActiveUrl(child.Url));
-    var isParentActive = !hasChild && IsActiveUrl(Model.Url);
+    bool IsActive(MenuItem item)
+    {
+        if (item == null) return false;
+        if (IsActiveUrl(item.Url)) return true;
+        if (item.ActivePrefixes != null)
+        {
+            foreach (var prefix in item.ActivePrefixes)
+            {
+                if (IsActiveUrl(prefix)) return true;
+            }
+        }
+        return false;
+    }
+
+    var isAnyChildActive = hasChild && visibleChildren!.Any(child => IsActive(child));
+    var isParentActive = !hasChild && IsActive(Model);
     var hasOriginalChildren = Model.Children != null && Model.Children.Any();
     var isVisible = Model.IsVisibleFor(User) && !(hasOriginalChildren && !hasChild);
 }
@@ -50,7 +64,7 @@
                     <div class="dropdown-menu-column">
                         @foreach (var child in visibleChildren!)
                         {
-                            var isChildActive = IsActiveUrl(child.Url);
+                            var isChildActive = IsActive(child);
                             <a class="dropdown-item @(isChildActive ? "active" : "")" href="@child.Url">
                                 @if (!string.IsNullOrEmpty(child.Icon))
                                 {

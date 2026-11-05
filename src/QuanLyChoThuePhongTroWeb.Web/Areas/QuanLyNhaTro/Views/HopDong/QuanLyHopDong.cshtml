@@ -100,6 +100,7 @@
                             <th>Phòng</th>
                             <th>Người Đại Diện</th>
                             <th>Ngày Bắt Đầu</th>
+                            <th>Hết Hạn</th>
                             <th>Tiền Thuê/Tháng</th>
                             <th class="text-center">Trạng Thái</th>
                             <th class="text-center">Thao tác</th>
@@ -588,6 +589,15 @@
                         }
                     },
                     {
+                        "data": "thoiDiemKetThuc",
+                        "name": "thoiDiemKetThuc",
+                        "className": "align-middle",
+                        "render": function(data) {
+                            if (!data) return '—';
+                            return new Date(data).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', day: '2-digit', month: '2-digit', year: 'numeric' });
+                        }
+                    },
+                    {
                         "data": "tienThuePhong",
                         "name": "tienThuePhong",
                         "className": "align-middle",
@@ -597,9 +607,21 @@
                         "data": "trangThaiHopDong",
                         "orderable": false,
                         "className": "text-center align-middle",
-                        "render": function (data) {
-                            if (data === 1) return '<span class="badge bg-success-lt px-2 py-1">Đang hoạt động</span>';
-                            if (data === 2) return '<span class="badge bg-secondary-lt px-2 py-1">Đã kết thúc</span>';
+                        "render": function (data, type, row) {
+                            if (data === 1) {
+                                let html = '<span class="badge bg-success-lt px-2 py-1">Đang hoạt động</span>';
+                                if (row && row.soNgayQuaHan > 0) {
+                                    html += `<div class="mt-1"><span class="badge bg-danger-lt px-2 py-1">Quá hạn ${row.soNgayQuaHan} ngày</span></div>`;
+                                }
+                                return html;
+                            }
+                            if (data === 2) {
+                                if (row && row.maHopDongKeTiep) {
+                                    const escapedCode = escapeHtml(row.maHopDongKeTiep);
+                                    return `<span class="badge bg-info-lt px-2 py-1" title="→ ${escapedCode}">Đã gia hạn</span>`;
+                                }
+                                return '<span class="badge bg-secondary-lt px-2 py-1">Đã kết thúc</span>';
+                            }
                             return '<span class="badge bg-danger-lt px-2 py-1">Đã hủy</span>';
                         }
                     },
@@ -608,6 +630,13 @@
                         "orderable": false,
                         "className": "text-center align-middle",
                         "render": function (data, type, row) {
+                            const nutThanhLyGiaHan = row.trangThaiHopDong !== 1 ? '' : `
+                                            <a href="/QuanLyNhaTro/HopDong/ThanhLy/${data}" class="dropdown-item py-2">
+                                                <i class="ti ti-file-check me-2"></i> Thanh lý
+                                            </a>
+                                            <a href="/QuanLyNhaTro/HopDong/GiaHan/${data}" class="dropdown-item py-2">
+                                                <i class="ti ti-calendar-plus me-2"></i> Gia hạn
+                                            </a>`;
                             const nutSua = row.trangThaiHopDong === 2 ? '' : `
                                             <button class="dropdown-item btn-edit text-warning py-2" data-id="${data}">
                                                 <i class="ti ti-edit me-2"></i> Chỉnh sửa
@@ -627,6 +656,7 @@
                                             <a href="/QuanLyNhaTro/HopDong/ChiTiet/${data}" class="dropdown-item py-2">
                                                 <i class="ti ti-eye me-2"></i> Chi tiết
                                             </a>
+                                            ${nutThanhLyGiaHan}
                                             <a href="/HopDong/Print/${data}" target="_blank" class="dropdown-item text-info py-2">
                                                 <i class="ti ti-printer me-2"></i> In Hợp Đồng
                                             </a>

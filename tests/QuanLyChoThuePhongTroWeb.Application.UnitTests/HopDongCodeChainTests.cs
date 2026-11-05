@@ -52,5 +52,15 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.False(HopDongCodeChain.BelongsTo("HD-X-0010", "HD-X-001"));
             Assert.False(HopDongCodeChain.BelongsTo("HD-X-0010-GH1", "HD-X-001"));
         }
+
+        [Fact]
+        public void TimMaKeTiep_ReturnsSmallestHigherIndex_OrNull()
+        {
+            var chain = new[] { "HD-X-001", "HD-X-001-GH3", "HD-X-001-GH1" };
+            Assert.Equal("HD-X-001-GH1", HopDongCodeChain.TimMaKeTiep("HD-X-001", chain));
+            Assert.Equal("HD-X-001-GH3", HopDongCodeChain.TimMaKeTiep("HD-X-001-GH1", chain));
+            Assert.Null(HopDongCodeChain.TimMaKeTiep("HD-X-001-GH3", chain));
+            Assert.Null(HopDongCodeChain.TimMaKeTiep("HD-X-001", Array.Empty<string>()));
+        }
     }
 }

@@ -431,6 +431,9 @@
             }
             const urlHoaDonId = parseInt(urlParams.get('hoaDonId') || '0');
             let locDaKetThucConNo = urlParams.get('hopDongDaKetThucConNo') === '1';
+            const urlMoPhatSinh = urlParams.get('moPhatSinh') === '1';
+            const urlPhongTroId = parseInt(urlParams.get('phongTroId') || '0');
+            let targetPhongTroId = urlPhongTroId;
 
             function formatVND(n) {
                 if (n === null || n === undefined) return "0 ₫";
@@ -923,6 +926,19 @@
                 $('#missing-count').text(missingCount);
                 $('#invalid-count').text(invalidCount);
 
+                if (targetPhongTroId > 0) {
+                    var $targetCheckbox = $('.preview-select[data-id="' + targetPhongTroId + '"]');
+                    if ($targetCheckbox.length > 0) {
+                        $('.preview-select').prop('checked', false);
+                        $targetCheckbox.prop('checked', true);
+                        var targetRow = $targetCheckbox.closest('tr')[0];
+                        if (targetRow && typeof targetRow.scrollIntoView === 'function') {
+                            targetRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                    }
+                    targetPhongTroId = 0;
+                }
+
                 updateSelectedPreviewCount();
 
                 let tabEl;
@@ -1245,6 +1261,31 @@
             // Mở thẳng chi tiết khi đến từ màn đối chiếu thanh toán (?hoaDonId=)
             if (urlHoaDonId > 0) {
                 showInvoiceDetail(urlHoaDonId);
+            }
+
+            // Mở modal phát sinh hóa đơn khi có tham số (?moPhatSinh=1)
+            if (urlMoPhatSinh) {
+                if (urlChiNhanh && urlChiNhanh !== '0') { $('#previewChiNhanh').val(urlChiNhanh); }
+                else if ($('#filterChiNhanh').val() && $('#filterChiNhanh').val() !== '0') { $('#previewChiNhanh').val($('#filterChiNhanh').val()); }
+                if (urlThang && urlThang !== '0') { $('#previewThang').val(urlThang); }
+                if (urlNam) { $('#previewNam').val(urlNam); }
+
+                $('#previewReadyTable tbody').empty();
+                $('#previewMissingTable tbody').empty();
+                $('#previewInvalidTable tbody').empty();
+                $('#ready-count').text(0);
+                $('#missing-count').text(0);
+                $('#invalid-count').text(0);
+                $('#selected-preview-count').text(0);
+                $('#btnConfirmPhatSinh').prop('disabled', true);
+
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('previewModal')).show();
+                $('#btnLoadPreview').trigger('click');
+
+                const cleanUrl = new URL(window.location.href);
+                cleanUrl.searchParams.delete('moPhatSinh');
+                cleanUrl.searchParams.delete('phongTroId');
+                window.history.replaceState({}, document.title, cleanUrl.toString());
             }
 
             // ========== Chỉnh sửa hóa đơn ==========

@@ -108,6 +108,15 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         }
 
         [Fact]
+        public void ThieuHoaDonThangTraPhong_ByVietnamMonth_Boundary()
+        {
+            var invOct = new[] { Inv(1, 10, 1m, daThu: 1m) };
+            Assert.False(ThanhLyCalculator.ThieuHoaDonThangTraPhong(10, new DateTime(2026, 10, 31, 16, 59, 59, DateTimeKind.Utc), invOct));
+            Assert.True(ThanhLyCalculator.ThieuHoaDonThangTraPhong(10, new DateTime(2026, 10, 31, 17, 0, 0, DateTimeKind.Utc), invOct));
+            Assert.True(ThanhLyCalculator.ThieuHoaDonThangTraPhong(10, new DateTime(2026, 11, 1, 16, 59, 59, DateTimeKind.Utc), invOct));
+        }
+
+        [Fact]
         public void Block3_IgnoresInvoicesOfOtherContractsInChain()
         {
             var inChain = new[] { Inv(1, 10, 1m, daThu: 1m, hopDongId: 9) };

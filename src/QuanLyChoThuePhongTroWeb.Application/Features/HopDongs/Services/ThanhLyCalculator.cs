@@ -44,6 +44,14 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.Services
             return new ThanhLyKetQuaTinh(phanBos, tongNo, canTru, coc - canTru, tongNo - canTru);
         }
 
+        public static bool ThieuHoaDonThangTraPhong(int hopDongId, DateTime thoiDiemKetThucUtc, IReadOnlyList<ThanhLyHoaDonInput> hoaDons)
+        {
+            var ketThucVn = thoiDiemKetThucUtc.AddHours(7);
+            var thang = ketThucVn.Month;
+            var nam = ketThucVn.Year;
+            return !hoaDons.Any(h => h.HopDongId == hopDongId && h.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaGui && h.Thang == thang && h.Nam == nam);
+        }
+
         // Trả danh sách lý do chặn (rỗng = cho thanh lý).
         // Quy tắc "tháng trả phòng phải có hóa đơn DaGui" chỉ xét hợp đồng đang thanh lý; các quy tắc còn lại áp cho cả chuỗi.
         public static IReadOnlyList<string> TimLyDoChan(
@@ -69,7 +77,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.Services
             var ketThucVn = thoiDiemKetThucUtc.Value.AddHours(7);
             var thang = ketThucVn.Month;
             var nam = ketThucVn.Year;
-            if (!hoaDons.Any(h => h.HopDongId == hopDongId && h.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaGui && h.Thang == thang && h.Nam == nam))
+            if (ThieuHoaDonThangTraPhong(hopDongId, thoiDiemKetThucUtc.Value, hoaDons))
             {
                 lyDo.Add($"Tháng trả phòng T{thang}/{nam} chưa có hóa đơn đã công bố. Lập hóa đơn, gửi duyệt, chốt và công bố trước.");
             }

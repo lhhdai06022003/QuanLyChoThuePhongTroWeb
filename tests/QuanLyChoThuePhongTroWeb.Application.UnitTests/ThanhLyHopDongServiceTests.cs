@@ -414,5 +414,106 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             await kit.Service.XuatBienBanAsync(Staff, RootId, null);
             Assert.Null(kit.Exporter.LastData!.GhiChu);
         }
+
+        [Fact]
+        public async Task CapNhatNgayTraPhong_ValidDate_UpdatesTo165959Utc()
+        {
+            var kit = new Kit();
+            var ngayMoi = new DateOnly(2026, 11, 15);
+
+            var res = await kit.Service.CapNhatNgayTraPhongAsync(Staff, RootId, ngayMoi);
+
+            Assert.True(res.Success, res.Message);
+            Assert.Equal(new DateTime(2026, 11, 15, 16, 59, 59, DateTimeKind.Utc), kit.Contract.ThoiDiemKetThuc);
+            Assert.True(kit.Uow.SaveChangesCalls > 0);
+            Assert.True(kit.Uow.Transactions.Single().Committed);
+        }
+
+        [Fact]
+        public async Task CapNhatNgayTraPhong_BeforeStartDate_Fails()
+        {
+            var kit = new Kit();
+            var ngayTruoc = new DateOnly(2025, 12, 31);
+
+            var res = await kit.Service.CapNhatNgayTraPhongAsync(Staff, RootId, ngayTruoc);
+
+            Assert.False(res.Success);
+            Assert.Contains("từ ngày bắt đầu", res.Message);
+            Assert.Equal(0, kit.Uow.SaveChangesCalls);
+        }
+
+        [Fact]
+        public async Task CapNhatNgayTraPhong_NotActiveContract_Fails()
+        {
+            var kit = new Kit();
+            kit.Contract.TrangThaiHopDong = TrangThaiHopDong.DaKetThuc;
+
+            var res = await kit.Service.CapNhatNgayTraPhongAsync(Staff, RootId, new DateOnly(2026, 11, 15));
+
+            Assert.False(res.Success);
+            Assert.Contains("đang hoạt động", res.Message);
+            Assert.Equal(0, kit.Uow.SaveChangesCalls);
+        }
+
+        [Fact]
+        public async Task CapNhatNgayTraPhong_ExistingInvoiceInFromPeriod_Fails_ExceptDeleted()
+        {
+            var kit = new Kit();
+            var hd = kit.AddInvoice(101, RootId, 11, 2026, 1_000_000m);
+
+            var res = await kit.Service.CapNhatNgayTraPhongAsync(Staff, RootId, new DateOnly(2026, 11, 15));
+            Assert.False(res.Success);
+            Assert.Contains("Đã có hóa đơn từ T10/2026", res.Message);
+
+            hd.IsDeleted = true;
+            var res2 = await kit.Service.CapNhatNgayTraPhongAsync(Staff, RootId, new DateOnly(2026, 11, 15));
+            Assert.True(res2.Success, res2.Message);
+        }
+
+        [Fact]
+        public async Task CapNhatNgayTraPhong_UnauthorizedStaffOrOtherBranch_Forbidden()
+        {
+            var kitNoPerm = new Kit(grantSettle: false);
+            var res1 = await kitNoPerm.Service.CapNhatNgayTraPhongAsync(Staff, RootId, new DateOnly(2026, 11, 15));
+            Assert.Equal(ServiceErrorKind.Forbidden, res1.ErrorKind);
+
+            var kitOtherBranch = new Kit(branches: new[] { OtherBranch });
+            var res2 = await kitOtherBranch.Service.CapNhatNgayTraPhongAsync(Staff, RootId, new DateOnly(2026, 11, 15));
+            Assert.Equal(ServiceErrorKind.Forbidden, res2.ErrorKind);
+        }
+
+        [Fact]
+        public async Task CapNhatNgayTraPhong_SameDate_ReturnsOkWithoutSave()
+        {
+            var kit = new Kit();
+            var res = await kit.Service.CapNhatNgayTraPhongAsync(Staff, RootId, new DateOnly(2026, 10, 31));
+
+            Assert.True(res.Success);
+            Assert.Equal(0, kit.Uow.SaveChangesCalls);
+        }
+
+        [Fact]
+        public async Task Preview_FillsNewFieldsCorrectly()
+        {
+            var kit = new Kit();
+            kit.AddInvoice(1, RootId, 10, 2026, 1_000_000m, phatHanh: TrangThaiPhatHanhHoaDon.Nhap);
+            kit.AddInvoice(2, RootId, 9, 2026, 1_000_000m, phatHanh: TrangThaiPhatHanhHoaDon.ChoDuyet);
+
+            var preview = await kit.Service.GetPreviewAsync(Staff, RootId);
+
+            Assert.True(preview.Success);
+            var data = preview.Data!;
+            Assert.True(data.DangHoatDong);
+            Assert.Equal(Branch, data.ChiNhanhId);
+            Assert.Equal(5, data.PhongTroId);
+            Assert.Equal(10, data.ThangTraPhong);
+            Assert.Equal(2026, data.NamTraPhong);
+            Assert.True(data.ThieuHoaDonThangTraPhong);
+            Assert.Equal(2, data.HoaDonChuaCongBo.Count);
+            Assert.Equal(9, data.HoaDonChuaCongBo[0].Thang);
+            Assert.Equal("Chờ duyệt", data.HoaDonChuaCongBo[0].TrangThaiText);
+            Assert.Equal(10, data.HoaDonChuaCongBo[1].Thang);
+            Assert.Equal("Nháp", data.HoaDonChuaCongBo[1].TrangThaiText);
+        }
     }
 }

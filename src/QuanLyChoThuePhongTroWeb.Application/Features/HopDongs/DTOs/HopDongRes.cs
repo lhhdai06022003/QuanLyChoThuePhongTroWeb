@@ -19,6 +19,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.DTOs
         public decimal TienCocPhong { get; set; }
         public decimal TienThuePhong { get; set; }
         public AppTrangThaiHopDong TrangThaiHopDong { get; set; }
+        public string? MaHopDongKeTiep { get; set; }
+        public int? SoNgayQuaHan { get; set; }
         public DateTime NgayTao { get; set; }
         public DateTime? NgayCapNhat { get; set; }
     }

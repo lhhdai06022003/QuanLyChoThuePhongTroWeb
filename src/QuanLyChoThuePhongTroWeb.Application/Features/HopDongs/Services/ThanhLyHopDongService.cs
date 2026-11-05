@@ -75,6 +75,34 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.Services
             var lyDoChan = ThanhLyCalculator.TimLyDoChan(hopDong.TrangThaiHopDong, hopDong.ThoiDiemKetThuc, hopDong.TienCocPhong, hopDong.HopDongId, inputs);
             var members = await _store.GetMembersAsync(hopDongId, ct);
 
+            int? thangTraPhong = null;
+            int? namTraPhong = null;
+            bool thieuHoaDonThangTraPhong = false;
+            if (hopDong.ThoiDiemKetThuc.HasValue)
+            {
+                var ketThucVn = hopDong.ThoiDiemKetThuc.Value.AddHours(7);
+                thangTraPhong = ketThucVn.Month;
+                namTraPhong = ketThucVn.Year;
+                thieuHoaDonThangTraPhong = ThanhLyCalculator.ThieuHoaDonThangTraPhong(hopDong.HopDongId, hopDong.ThoiDiemKetThuc.Value, inputs);
+            }
+
+            var hoaDonChuaCongBo = inputs
+                .Where(h => h.TrangThaiPhatHanh is TrangThaiPhatHanhHoaDon.Nhap or TrangThaiPhatHanhHoaDon.ChoDuyet or TrangThaiPhatHanhHoaDon.DaChot)
+                .OrderBy(h => h.Nam).ThenBy(h => h.Thang).ThenBy(h => h.HoaDonId)
+                .Select(h => new ThanhLyHoaDonCanXuLyDto
+                {
+                    HoaDonId = h.HoaDonId,
+                    MaHoaDon = h.MaHoaDon,
+                    Thang = h.Thang,
+                    Nam = h.Nam,
+                    TrangThaiText = h.TrangThaiPhatHanh switch
+                    {
+                        TrangThaiPhatHanhHoaDon.Nhap => "Nháp",
+                        TrangThaiPhatHanhHoaDon.ChoDuyet => "Chờ duyệt",
+                        _ => "Đã chốt"
+                    }
+                }).ToList();
+
             var dto = new ThanhLyHopDongPreviewDto
             {
                 HopDongId = hopDong.HopDongId,
@@ -82,6 +110,13 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.Services
                 SoPhong = hopDong.PhongTro.SoPhong,
                 TenChiNhanh = hopDong.PhongTro.ChiNhanh.TenChiNhanh,
                 TenNguoiDaiDien = hopDong.NguoiThue.HoVaTen,
+                DangHoatDong = hopDong.TrangThaiHopDong == TrangThaiHopDong.DangHoatDong,
+                ChiNhanhId = hopDong.PhongTro.ChiNhanhId,
+                PhongTroId = hopDong.PhongTroId,
+                ThangTraPhong = thangTraPhong,
+                NamTraPhong = namTraPhong,
+                ThieuHoaDonThangTraPhong = thieuHoaDonThangTraPhong,
+                HoaDonChuaCongBo = hoaDonChuaCongBo,
                 ThanhVienDangO = members.Where(m => m.NgayChuyenDi == null).Select(m => m.NguoiThue.HoVaTen).ToList(),
                 ThoiDiemBatDauUtc = hopDong.ThoiDiemBatDau,
                 ThoiDiemKetThucUtc = hopDong.ThoiDiemKetThuc,
@@ -266,6 +301,96 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.Services
             }
 
             return ServiceResult<ThanhLyHopDongResult>.Ok(result, "Đã thanh lý hợp đồng.");
+        }
+
+        public async Task<ServiceResult> CapNhatNgayTraPhongAsync(int actorId, int hopDongId, DateOnly ngayTraPhong, CancellationToken ct = default)
+        {
+            if (actorId <= 0)
+            {
+                return ServiceResult.Forbidden("Yêu cầu bị từ chối.");
+            }
+
+            var info = await _store.GetHopDongAsync(hopDongId, ct);
+            if (info == null)
+            {
+                return ServiceResult.NotFound(HopDongAccessGuard.KhongTimThayHopDong);
+            }
+
+            var denied = await HopDongAccessGuard.CheckAsync(_access, actorId, info.PhongTro.ChiNhanhId, EmployeeActionCodes.ContractSettle, ct);
+            if (denied != null)
+            {
+                return denied;
+            }
+
+            await using var transaction = await _unitOfWork.BeginTransactionAsync(ct);
+            try
+            {
+                var hopDong = await _store.LockHopDongAsync(hopDongId, ct);
+                if (hopDong == null)
+                {
+                    await transaction.RollbackAsync(ct);
+                    return ServiceResult.NotFound(HopDongAccessGuard.KhongTimThayHopDong);
+                }
+
+                if (hopDong.TrangThaiHopDong != TrangThaiHopDong.DangHoatDong)
+                {
+                    await transaction.RollbackAsync(ct);
+                    return ServiceResult.Fail("Chỉ đổi ngày trả phòng của hợp đồng đang hoạt động.");
+                }
+
+                var ngayBatDauVn = DateOnly.FromDateTime(hopDong.ThoiDiemBatDau.AddHours(7));
+                if (ngayTraPhong < ngayBatDauVn)
+                {
+                    await transaction.RollbackAsync(ct);
+                    return ServiceResult.Fail("Ngày trả phòng phải từ ngày bắt đầu hợp đồng trở đi.");
+                }
+
+                DateOnly? ngayKetThucCuVn = hopDong.ThoiDiemKetThuc.HasValue
+                    ? DateOnly.FromDateTime(hopDong.ThoiDiemKetThuc.Value.AddHours(7))
+                    : null;
+
+                if (ngayKetThucCuVn.HasValue && ngayKetThucCuVn.Value == ngayTraPhong)
+                {
+                    await transaction.RollbackAsync(ct);
+                    return ServiceResult.Ok("Đã cập nhật ngày trả phòng.");
+                }
+
+                int mocThang = ngayTraPhong.Month;
+                int mocNam = ngayTraPhong.Year;
+                if (ngayKetThucCuVn.HasValue)
+                {
+                    if (ngayKetThucCuVn.Value.Year < mocNam ||
+                        (ngayKetThucCuVn.Value.Year == mocNam && ngayKetThucCuVn.Value.Month < mocThang))
+                    {
+                        mocThang = ngayKetThucCuVn.Value.Month;
+                        mocNam = ngayKetThucCuVn.Value.Year;
+                    }
+                }
+
+                if (await _store.HasInvoiceFromPeriodAsync(hopDongId, mocThang, mocNam, ct))
+                {
+                    await transaction.RollbackAsync(ct);
+                    return ServiceResult.Fail($"Đã có hóa đơn từ T{mocThang}/{mocNam} trở đi tính theo ngày trả phòng cũ. Hủy các hóa đơn đó trước khi đổi ngày trả phòng.");
+                }
+
+                var ngayCuUtc = hopDong.ThoiDiemKetThuc;
+                hopDong.ThoiDiemKetThuc = DateTime.SpecifyKind(ngayTraPhong.ToDateTime(new TimeOnly(23, 59, 59)).AddHours(-7), DateTimeKind.Utc);
+                hopDong.NgayCapNhat = _timeProvider.GetUtcNow().UtcDateTime;
+
+                await _unitOfWork.SaveChangesAsync(ct);
+                await transaction.CommitAsync(ct);
+
+                _logger.LogInformation("Nguoi dung {ActorId} da cap nhat ngay tra phong hop dong {HopDongId} tu {NgayCu} sang {NgayMoi}",
+                    actorId, hopDongId, ngayCuUtc, hopDong.ThoiDiemKetThuc);
+
+                return ServiceResult.Ok("Đã cập nhật ngày trả phòng.");
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync(ct);
+                _logger.LogError(ex, "Loi khi cap nhat ngay tra phong hop dong {HopDongId}", hopDongId);
+                return ServiceResult.Fail("Lỗi hệ thống khi cập nhật ngày trả phòng.");
+            }
         }
 
         public async Task<ServiceResult<byte[]>> XuatBienBanAsync(int actorId, int hopDongId, string? ghiChu, CancellationToken ct = default)

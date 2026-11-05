@@ -15,11 +15,18 @@
 - [x] Công nợ hợp đồng đã kết thúc: việc cần làm KH5, bộ lọc hóa đơn `hopDongDaKetThucConNo`, cảnh báo nợ cũ khi lập hợp đồng hoặc thêm thành viên (`/NguoiThue/NoCu/{id}`).
 - [x] Chỉ xóa được hợp đồng **Đã hủy**; hợp đồng đã kết thúc giữ lại để đối chiếu (người dùng chốt 05/11/2026).
 
+## Cải tiến giao diện nhóm 1 (05/11/2026)
+
+Triển khai theo [plan-giao-dien-nhom-1.md](plan-giao-dien-nhom-1.md):
+- [x] **Đổi ngày trả phòng trên màn thanh lý** (`POST /HopDong/NgayTraPhong/{id}`): card "Ngày trả phòng" cho phép cập nhật ngày trả phòng trực tiếp trên màn thanh lý mà không cần qua form sửa; lưu mốc 23:59:59 giờ VN (16:59:59Z); quy tắc nghiệp vụ: chặn đổi ngày nếu đã có hóa đơn chưa hủy ở mốc cũ hoặc mốc mới (`min(thangCu, thangMoi)`); sau khi đổi thành công tự tính lại toàn bộ giao diện thanh lý.
+- [x] **Nút "Lập hóa đơn T{m}/{y}" khi thiếu hóa đơn tháng trả phòng**: card "Chưa thanh lý được" hiển thị nút dẫn trực tiếp tới `/QuanLyNhaTro/QuanLyHoaDon?chiNhanhId=...&thang=...&nam=...&moPhatSinh=1&phongTroId=...`; màn hóa đơn tự động mở modal xem trước phát sinh, chọn sẵn chi nhánh/kỳ và tích đúng phòng mục tiêu; đồng thời hiển thị link "Mở {MaHoaDon}" cho các hóa đơn chưa công bố trong chuỗi.
+- [x] **Danh sách hợp đồng bổ sung cột "Hết hạn", badge "Đã gia hạn", "Quá hạn N ngày"**: thêm cột "Hết hạn" (`thoiDiemKetThuc`); hợp đồng đã gia hạn hiển thị badge xanh dương "Đã gia hạn" với tooltip `title="→ {MaHopDongKeTiep}"` thay cho "Đã kết thúc"; hợp đồng quá hạn hiển thị badge đỏ "Quá hạn N ngày" (tính theo ngày VN); truy vấn lấy `MaHopDongKeTiep` tối ưu theo lô chống N+1.
+- [x] **Menu "⋯" thao tác danh sách hợp đồng**: bổ sung nhanh nút "Thanh lý" và "Gia hạn" cho các hợp đồng đang hoạt động.
+- [x] **Menu trái giữ mục đang chọn trên các màn con**: mở rộng `MenuItem.ActivePrefixes`; menu "Hợp đồng" giữ active khi vào `/HopDong/ChiTiet|ThanhLy|GiaHan/{id}`; menu "Người thuê" giữ active khi vào `/NguoiThue/ChiTiet/{id}`.
+
 ## Hạn chế đã biết (chưa sửa)
 
-- Biên lai của dòng cấn trừ chỉ bị ẩn nút; gọi thẳng URL `/QuanLyNhaTro/HoaDon/BienLai/{id}` vẫn in được (review S5).
-- Gia hạn sớm: thành viên vào sau ngày bắt đầu hợp đồng mới nhận ngày chuyển đi sớm hơn ngày vào (S6).
-- Màn thanh lý: khi AJAX lỗi, nút Xác nhận bật lại dù chưa tích xác nhận nợ; server vẫn chặn (S7).
+- Tắt `ContractAlertSettings:Enabled` (để ngừng email cảnh báo) thì cũng mất thông báo trong app khi hợp đồng hết hạn; spec chưa nói tới.
 - `appsettings.example.json` còn nhắc `ContractAutoCloseJob`; sửa cần người dùng duyệt (S8).
 - Khách trả phòng rồi thuê lại đúng phòng cũ: nợ cũ bị ẩn khỏi KH5 và bộ lọc (hệ quả của Q1 đã chọn).
 
@@ -27,6 +34,7 @@
 
 - [spec.md](spec.md): đặc tả v2, người dùng đã duyệt 04/11/2026 (mục 10 ghi các điểm đã chốt; §4.1 tính cả chuỗi gia hạn, §4.4 quy tắc xóa bổ sung 05/11/2026).
 - [plan.md](plan.md): kế hoạch 13 task của planner, kèm câu trả lời của người dùng (Q1–Q14).
+- [plan-giao-dien-nhom-1.md](plan-giao-dien-nhom-1.md): kế hoạch 5 cải tiến giao diện luồng hợp đồng (nhóm 1).
 - [review.md](review.md): phát hiện của reviewer, cách xử lý, kết quả test và phần chưa kiểm chứng.
 
 ## Module tiếp theo

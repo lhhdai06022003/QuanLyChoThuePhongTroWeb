@@ -17,6 +17,15 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.DTOs
         public decimal CanTru { get; set; }
     }
 
+    public sealed class ThanhLyHoaDonCanXuLyDto
+    {
+        public int HoaDonId { get; set; }
+        public string MaHoaDon { get; set; } = string.Empty;
+        public int Thang { get; set; }
+        public int Nam { get; set; }
+        public string TrangThaiText { get; set; } = string.Empty;
+    }
+
     public sealed class ThanhLyHopDongPreviewDto
     {
         public int HopDongId { get; set; }
@@ -24,6 +33,13 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.DTOs
         public string SoPhong { get; set; } = string.Empty;
         public string TenChiNhanh { get; set; } = string.Empty;
         public string TenNguoiDaiDien { get; set; } = string.Empty;
+        public bool DangHoatDong { get; set; }
+        public int ChiNhanhId { get; set; }
+        public int PhongTroId { get; set; }
+        public int? ThangTraPhong { get; set; }
+        public int? NamTraPhong { get; set; }
+        public bool ThieuHoaDonThangTraPhong { get; set; }
+        public List<ThanhLyHoaDonCanXuLyDto> HoaDonChuaCongBo { get; set; } = new();
         public List<string> ThanhVienDangO { get; set; } = new();
         public DateTime ThoiDiemBatDauUtc { get; set; }
         public DateTime? ThoiDiemKetThucUtc { get; set; }

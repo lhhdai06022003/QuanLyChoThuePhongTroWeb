@@ -12,6 +12,26 @@
     <a href="/QuanLyNhaTro/HopDong/ChiTiet/@Model.HopDongId">← Chi tiết hợp đồng</a>
     <h1 class="page-title mt-3">Thanh lý hợp đồng @Model.MaHopDong</h1>
 
+    @if (Model.DangHoatDong)
+    {
+        var batDauVn = VietnamTime.Format(Model.ThoiDiemBatDauUtc, "yyyy-MM-dd");
+        var ketThucVn = Model.ThoiDiemKetThucUtc.HasValue ? VietnamTime.Format(Model.ThoiDiemKetThucUtc.Value, "yyyy-MM-dd") : "";
+        <div class="card mb-4">
+            <div class="card-header"><h3 class="card-title">Ngày trả phòng</h3></div>
+            <div class="card-body">
+                <div class="row align-items-center g-3">
+                    <div class="col-auto">
+                        <input type="date" class="form-control" id="ngayTraPhong" min="@batDauVn" value="@ketThucVn">
+                    </div>
+                    <div class="col-auto">
+                        <button type="button" class="btn btn-primary" id="btnLuuNgayTraPhong">Cập nhật</button>
+                    </div>
+                </div>
+                <small class="form-hint mt-2">Tháng trả phòng quyết định hóa đơn cuối. Đổi ngày sẽ tính lại toàn bộ màn này.</small>
+            </div>
+        </div>
+    }
+
     <div class="card mb-4">
         <div class="card-body">
             <div class="row g-3">
@@ -36,6 +56,22 @@
                     <li>@lyDo</li>
                 }
             </ul>
+            @if (Model.ThieuHoaDonThangTraPhong && Model.ThangTraPhong.HasValue && Model.NamTraPhong.HasValue)
+            {
+                <div class="mt-3">
+                    <a class="btn btn-primary" href="/QuanLyNhaTro/QuanLyHoaDon?chiNhanhId=@Model.ChiNhanhId&thang=@Model.ThangTraPhong&nam=@Model.NamTraPhong&moPhatSinh=1&phongTroId=@Model.PhongTroId">Lập hóa đơn T@(Model.ThangTraPhong)/@(Model.NamTraPhong)</a>
+                    <span class="text-secondary small ms-2">Cần chốt chỉ số điện nước tháng này trước khi phát sinh hóa đơn</span>
+                </div>
+            }
+            @if (Model.HoaDonChuaCongBo.Count > 0)
+            {
+                <div class="mt-2 d-flex flex-wrap gap-2">
+                    @foreach (var hd in Model.HoaDonChuaCongBo)
+                    {
+                        <a class="btn btn-outline-danger btn-sm" href="/QuanLyNhaTro/QuanLyHoaDon?hoaDonId=@hd.HoaDonId">Mở @hd.MaHoaDon</a>
+                    }
+                </div>
+            }
         </div>
     }
 
@@ -130,8 +166,49 @@
             const token = $('input[name="__RequestVerificationToken"]').first().val();
             const conNo = @((Model.ConNoSauCanTru > 0) ? "true" : "false");
 
-            $('#chkXacNhanConNo').on('change', function () {
-                $('#btnXacNhanThanhLy').prop('disabled', !this.checked);
+            let dangGui = false;
+
+            // Nút chỉ bật khi không đang gửi và (không còn nợ hoặc đã tích xác nhận nợ).
+            function capNhatNutXacNhan() {
+                const daXacNhan = !conNo || $('#chkXacNhanConNo').is(':checked');
+                $('#btnXacNhanThanhLy').prop('disabled', dangGui || !daXacNhan);
+            }
+
+            $('#chkXacNhanConNo').on('change', capNhatNutXacNhan);
+
+            $('#btnLuuNgayTraPhong').on('click', function () {
+                const val = $('#ngayTraPhong').val();
+                if (!val) {
+                    Swal.fire({ icon: 'warning', title: 'Thiếu ngày trả phòng', text: 'Vui lòng chọn ngày trả phòng.', confirmButtonText: 'Đóng' });
+                    return;
+                }
+                Swal.fire({
+                    title: 'Cập nhật ngày trả phòng?',
+                    text: 'Thao tác sẽ đổi ngày trả phòng và tính lại dữ liệu thanh lý.',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Cập nhật',
+                    cancelButtonText: 'Hủy'
+                }).then(function (r) {
+                    if (!r.isConfirmed) return;
+                    const $btn = $('#btnLuuNgayTraPhong');
+                    $btn.prop('disabled', true);
+                    $.ajax({
+                        url: '/HopDong/NgayTraPhong/@Model.HopDongId',
+                        type: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify({ ngayTraPhong: val }),
+                        headers: { 'RequestVerificationToken': token },
+                        success: function () {
+                            location.reload();
+                        },
+                        error: function (xhr) {
+                            $btn.prop('disabled', false);
+                            const msg = (xhr.responseJSON && xhr.responseJSON.message) || 'Không cập nhật được ngày trả phòng.';
+                            Swal.fire({ icon: 'error', title: 'Không cập nhật được', text: msg, confirmButtonText: 'Đóng' });
+                        }
+                    });
+                });
             });
 
             $('#formBienBan').on('submit', function () {
@@ -148,7 +225,8 @@
                     cancelButtonText: 'Hủy'
                 }).then(function (r) {
                     if (!r.isConfirmed) return;
-                    $('#btnXacNhanThanhLy').prop('disabled', true);
+                    dangGui = true;
+                    capNhatNutXacNhan();
                     $.ajax({
                         url: '/HopDong/ThanhLy/@Model.HopDongId',
                         type: 'POST',
@@ -163,7 +241,8 @@
                             $('#khuKetQua').show();
                         },
                         error: function (xhr) {
-                            $('#btnXacNhanThanhLy').prop('disabled', false);
+                            dangGui = false;
+                            capNhatNutXacNhan();
                             const msg = (xhr.responseJSON && xhr.responseJSON.message) || 'Không thanh lý được hợp đồng.';
                             Swal.fire({ icon: 'error', title: 'Không thanh lý được', text: msg, confirmButtonText: 'Đóng' });
                         }

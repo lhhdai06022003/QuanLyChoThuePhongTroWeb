@@ -203,11 +203,9 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.Services
         // Kế tiếp: hợp đồng cùng mã gốc, khác DaHuy, có chỉ số gia hạn nhỏ nhất mà lớn hơn chỉ số hiện tại.
         private static HopDong? TimKeTiep(IEnumerable<HopDong> chain, HopDong hienTai)
         {
-            var chiSo = HopDongCodeChain.RenewalIndex(hienTai.MaHopDong);
-            return chain
-                .Where(c => c.TrangThaiHopDong != TrangThaiHopDong.DaHuy && HopDongCodeChain.RenewalIndex(c.MaHopDong) > chiSo)
-                .OrderBy(c => HopDongCodeChain.RenewalIndex(c.MaHopDong))
-                .FirstOrDefault();
+            var candidates = chain.Where(c => c.TrangThaiHopDong != TrangThaiHopDong.DaHuy).ToList();
+            var maKeTiep = HopDongCodeChain.TimMaKeTiep(hienTai.MaHopDong, candidates.Select(c => c.MaHopDong));
+            return maKeTiep == null ? null : candidates.FirstOrDefault(c => c.MaHopDong == maKeTiep);
         }
 
         private static string TrangThaiText(HopDong hopDong, HopDong? keTiep)

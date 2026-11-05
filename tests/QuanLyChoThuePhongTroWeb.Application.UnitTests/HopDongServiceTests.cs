@@ -153,11 +153,12 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             public HopDongFilterReq? LastFilter { get; private set; }
             public HopDongDetailRes? Detail { get; set; }
             public HopDongPrintRes? Print { get; set; }
+            public DataTableResponse<HopDongRes>? DataTableResponseToReturn { get; set; }
 
             public Task<DataTableResponse<HopDongRes>> GetDataTableResponseAsync(HopDongFilterReq request, CancellationToken cancellationToken = default)
             {
                 LastFilter = request;
-                return Task.FromResult(new DataTableResponse<HopDongRes> { draw = request.Draw });
+                return Task.FromResult(DataTableResponseToReturn ?? new DataTableResponse<HopDongRes> { draw = request.Draw });
             }
 
             public Task<HopDongDetailRes?> GetDetailByIdAsync(int id, CancellationToken cancellationToken = default) => Task.FromResult(Detail);
@@ -570,6 +571,37 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             await service.DanhSachHopDongSideAsync(AdminId, new HopDongFilterReq { MocDauNgayHomNayUtc = new DateTime(2000, 1, 1) });
 
             Assert.Equal(new DateTime(2026, 11, 4, 17, 0, 0, DateTimeKind.Utc), store.LastFilter!.MocDauNgayHomNayUtc);
+        }
+
+        [Fact]
+        public async Task DanhSach_CalculatesSoNgayQuaHan_ForActiveContracts()
+        {
+            var store = new StubHopDongStore();
+            var service = new HopDongService(store, new FakeUnitOfWork(), new FakePasswordService(),
+                new Fakes.FakeEmployeeAccessService { ScopeToReturn = new Common.Security.EmployeeAccessScope(AdminId, true) },
+                new Fakes.FakeTenantVisibilityStore(),
+                new Fakes.FixedTimeProvider(new DateTimeOffset(2026, 11, 5, 10, 0, 0, TimeSpan.Zero)));
+
+            var h1 = new HopDongRes { HopDongId = 1, TrangThaiHopDong = Application.Common.Enums.AppTrangThaiHopDong.DangHoatDong, ThoiDiemKetThuc = new DateTime(2026, 11, 4, 16, 59, 59, DateTimeKind.Utc) };
+            var h2 = new HopDongRes { HopDongId = 2, TrangThaiHopDong = Application.Common.Enums.AppTrangThaiHopDong.DangHoatDong, ThoiDiemKetThuc = new DateTime(2026, 11, 5, 16, 59, 59, DateTimeKind.Utc) };
+            var h3 = new HopDongRes { HopDongId = 3, TrangThaiHopDong = Application.Common.Enums.AppTrangThaiHopDong.DangHoatDong, ThoiDiemKetThuc = new DateTime(2026, 11, 6, 16, 59, 59, DateTimeKind.Utc) };
+            var h4 = new HopDongRes { HopDongId = 4, TrangThaiHopDong = Application.Common.Enums.AppTrangThaiHopDong.DaKetThuc, ThoiDiemKetThuc = new DateTime(2026, 11, 4, 16, 59, 59, DateTimeKind.Utc) };
+            var h5 = new HopDongRes { HopDongId = 5, TrangThaiHopDong = Application.Common.Enums.AppTrangThaiHopDong.DangHoatDong, ThoiDiemKetThuc = null };
+
+            store.DataTableResponseToReturn = new DataTableResponse<HopDongRes>
+            {
+                draw = 1,
+                data = new List<HopDongRes> { h1, h2, h3, h4, h5 }
+            };
+
+            var res = await service.DanhSachHopDongSideAsync(AdminId, new HopDongFilterReq { Draw = 1 });
+            var list = res.data!.ToList();
+
+            Assert.Equal(1, list[0].SoNgayQuaHan);
+            Assert.Null(list[1].SoNgayQuaHan);
+            Assert.Null(list[2].SoNgayQuaHan);
+            Assert.Null(list[3].SoNgayQuaHan);
+            Assert.Null(list[4].SoNgayQuaHan);
         }
 
         // ---------- Phạm vi chi nhánh ----------

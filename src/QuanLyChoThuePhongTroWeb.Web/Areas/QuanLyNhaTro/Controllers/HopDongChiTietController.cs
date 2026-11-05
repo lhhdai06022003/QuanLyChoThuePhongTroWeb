@@ -64,6 +64,22 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
                 : this.ToErrorResult(result);
         }
 
+        [HttpPost("/HopDong/NgayTraPhong/{id:int}")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CapNhatNgayTraPhong(int id, [FromBody] NgayTraPhongBody? body, CancellationToken ct)
+        {
+            if (body == null || string.IsNullOrWhiteSpace(body.NgayTraPhong) ||
+                !DateOnly.TryParseExact(body.NgayTraPhong, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var ngayTraPhong))
+            {
+                return BadRequest(new { success = false, message = DuLieuKhongHopLe });
+            }
+
+            var result = await _thanhLy.CapNhatNgayTraPhongAsync(CurrentActorId, id, ngayTraPhong, ct);
+            return result.Success
+                ? Ok(new { success = true, message = result.Message })
+                : this.ToErrorResult(result);
+        }
+
         [HttpGet("/QuanLyNhaTro/HopDong/GiaHan/{id:int}")]
         public async Task<IActionResult> GiaHan(int id, CancellationToken ct)
         {
@@ -131,6 +147,11 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             var view = View("Loi", HopDongLoiViewModel.From(result));
             view.StatusCode = result.ToHttpStatusCode();
             return view;
+        }
+
+        public class NgayTraPhongBody
+        {
+            public string? NgayTraPhong { get; set; }
         }
 
         public class ThanhLyHopDongBody

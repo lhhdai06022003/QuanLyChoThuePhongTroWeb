@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.Services
@@ -31,6 +33,16 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.Services
         public static string LoaiText(string maHopDong) => TryParse(maHopDong, out _, out var n) ? $"Gia hạn lần {n}" : "Mới";
 
         public static bool BelongsTo(string maHopDong, string maGoc) => RootOf(maHopDong) == maGoc;
+
+        // Mã kế tiếp trong chuỗi: mã có chỉ số gia hạn lớn hơn mã hiện tại, nhỏ nhất. Danh sách vào chỉ gồm hợp đồng chưa hủy, cùng mã gốc.
+        public static string? TimMaKeTiep(string maHienTai, IEnumerable<string> maCungChuoiChuaHuy)
+        {
+            var chiSo = RenewalIndex(maHienTai);
+            return maCungChuoiChuaHuy
+                .Where(m => RenewalIndex(m) > chiSo)
+                .OrderBy(RenewalIndex)
+                .FirstOrDefault();
+        }
 
         private static bool TryParse(string? maHopDong, out string goc, out int n)
         {

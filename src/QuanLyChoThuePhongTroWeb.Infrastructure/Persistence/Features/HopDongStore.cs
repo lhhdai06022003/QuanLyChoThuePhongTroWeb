@@ -106,6 +106,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                     "soPhong" => isAscending ? query.OrderBy(x => x.PhongTro.SoPhong) : query.OrderByDescending(x => x.PhongTro.SoPhong),
                     "tienThuePhong" => isAscending ? query.OrderBy(x => x.TienThuePhong) : query.OrderByDescending(x => x.TienThuePhong),
                     "thoiDiemBatDau" => isAscending ? query.OrderBy(x => x.ThoiDiemBatDau) : query.OrderByDescending(x => x.ThoiDiemBatDau),
+                    "thoiDiemKetThuc" => isAscending ? query.OrderBy(x => x.ThoiDiemKetThuc) : query.OrderByDescending(x => x.ThoiDiemKetThuc),
                     _ => query.OrderByDescending(x => x.NgayTao)
                 };
             }
@@ -126,11 +127,31 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                     TienCocPhong = x.TienCocPhong,
                     TienThuePhong = x.TienThuePhong,
                     TrangThaiHopDong = (QuanLyChoThuePhongTroWeb.Application.Common.Enums.AppTrangThaiHopDong)(int)x.TrangThaiHopDong,
+                    PhongTroId = x.PhongTroId,
                     TenChiNhanh = x.PhongTro.ChiNhanh.TenChiNhanh
                 })
                 .Skip(request.Start)
                 .Take(request.Length)
                 .ToListAsync(cancellationToken);
+
+            if (data.Count > 0)
+            {
+                var phongIds = data.Select(d => d.PhongTroId).Distinct().ToList();
+                var contractCodes = await _context.HopDongs
+                    .AsNoTracking()
+                    .Where(x => !x.IsDeleted && x.TrangThaiHopDong != TrangThaiHopDong.DaHuy && phongIds.Contains(x.PhongTroId))
+                    .Select(x => new { x.PhongTroId, x.MaHopDong })
+                    .ToListAsync(cancellationToken);
+
+                foreach (var row in data)
+                {
+                    var root = HopDongCodeChain.RootOf(row.MaHopDong);
+                    var candidates = contractCodes
+                        .Where(c => c.PhongTroId == row.PhongTroId && HopDongCodeChain.BelongsTo(c.MaHopDong, root))
+                        .Select(c => c.MaHopDong);
+                    row.MaHopDongKeTiep = HopDongCodeChain.TimMaKeTiep(row.MaHopDong, candidates);
+                }
+            }
 
             return new DataTableResponse<HopDongRes>
             {

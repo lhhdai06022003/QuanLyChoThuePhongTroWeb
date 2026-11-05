@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Persistence;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Security;
+using QuanLyChoThuePhongTroWeb.Application.Common.Enums;
 using QuanLyChoThuePhongTroWeb.Application.Common.Models;
 using QuanLyChoThuePhongTroWeb.Application.Common.Security;
 using QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.DTOs;
@@ -67,8 +68,26 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.Services
 
             request.AllowedBranchIds = scope.AllowedBranchIds;
             // Đầu ngày hôm nay (giờ VN) tính bằng UTC, dùng cho bộ lọc quá hạn / sắp hết hạn.
-            request.MocDauNgayHomNayUtc = DateTime.SpecifyKind(_timeProvider.GetUtcNow().UtcDateTime.AddHours(7).Date, DateTimeKind.Utc).AddHours(-7);
-            return await _store.GetDataTableResponseAsync(request);
+            var now = _timeProvider.GetUtcNow().UtcDateTime;
+            request.MocDauNgayHomNayUtc = DateTime.SpecifyKind(now.AddHours(7).Date, DateTimeKind.Utc).AddHours(-7);
+            var response = await _store.GetDataTableResponseAsync(request);
+            if (response.data != null)
+            {
+                var homNayVn = DateOnly.FromDateTime(now.AddHours(7));
+                foreach (var row in response.data)
+                {
+                    if (row.TrangThaiHopDong == AppTrangThaiHopDong.DangHoatDong && row.ThoiDiemKetThuc.HasValue)
+                    {
+                        var ketThucVn = DateOnly.FromDateTime(row.ThoiDiemKetThuc.Value.AddHours(7));
+                        if (ketThucVn < homNayVn)
+                        {
+                            row.SoNgayQuaHan = homNayVn.DayNumber - ketThucVn.DayNumber;
+                        }
+                    }
+                }
+            }
+
+            return response;
         }
 
         public async Task<HopDongDetailRes?> GetByIdAsync(int actorId, int id)

@@ -361,5 +361,57 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             var deleted = await BranchScopeKit.ReadAsync(_factory, db => db.LichSuThanhToans.Where(l => l.LichSuThanhToanId == ledgerId).Select(l => l.IsDeleted).FirstAsync());
             Assert.False(deleted);
         }
+
+        [Fact]
+        public async Task CapNhatNgayTraPhong_ValidationAndAuthorization()
+        {
+            var world = await PrepareAsync();
+            var (client, token) = await BranchScopeKit.LoginAsync(_factory, world.Staff, Page);
+
+            // 1. Không có token -> 400
+            var noTokenRes = await client.PostAsync($"/HopDong/NgayTraPhong/{world.ContractA}",
+                new StringContent(@"{""ngayTraPhong"":""2026-11-15""}", System.Text.Encoding.UTF8, "application/json"));
+            Assert.Equal(HttpStatusCode.BadRequest, noTokenRes.StatusCode);
+
+            // 2. Body sai định dạng -> 400
+            var badFormatRes = await BranchScopeKit.SendJsonAsync(client, token, HttpMethod.Post, $"/HopDong/NgayTraPhong/{world.ContractA}",
+                new { ngayTraPhong = "invalid-date" });
+            Assert.Equal(HttpStatusCode.BadRequest, badFormatRes.StatusCode);
+
+            // 3. Nhân viên khác chi nhánh (thao tác trên ContractB) -> 403
+            var forbiddenRes = await BranchScopeKit.SendJsonAsync(client, token, HttpMethod.Post, $"/HopDong/NgayTraPhong/{world.ContractB}",
+                new { ngayTraPhong = "2026-11-15" });
+            Assert.Equal(HttpStatusCode.Forbidden, forbiddenRes.StatusCode);
+
+            // 4. Thành công -> 200, DB có 16:59:59Z, GET màn thanh lý có ngày mới
+            var okRes = await BranchScopeKit.SendJsonAsync(client, token, HttpMethod.Post, $"/HopDong/NgayTraPhong/{world.ContractA}",
+                new { ngayTraPhong = "2026-11-15" });
+            Assert.Equal(HttpStatusCode.OK, okRes.StatusCode);
+
+            var updatedEnd = await BranchScopeKit.ReadAsync(_factory, db => db.HopDongs.Where(h => h.HopDongId == world.ContractA).Select(h => h.ThoiDiemKetThuc).FirstAsync());
+            Assert.Equal(new DateTime(2026, 11, 15, 16, 59, 59, DateTimeKind.Utc), updatedEnd);
+
+            var thanhLyHtml = await HtmlTextAsync(await client.GetAsync($"/QuanLyNhaTro/HopDong/ThanhLy/{world.ContractA}"));
+            Assert.Contains("value=\"2026-11-15\"", thanhLyHtml);
+        }
+
+        [Fact]
+        public async Task Menu_StaysActive_OnSubPages()
+        {
+            var world = await PrepareAsync();
+            var (client, _) = await BranchScopeKit.LoginAsync(_factory, world.Admin, Page);
+
+            // 1. Chi tiết hợp đồng -> Menu Hợp đồng active
+            var hopDongRes = await client.GetAsync($"/QuanLyNhaTro/HopDong/ChiTiet/{world.ContractA}");
+            Assert.Equal(HttpStatusCode.OK, hopDongRes.StatusCode);
+            var hopDongHtml = await HtmlTextAsync(hopDongRes);
+            Assert.Matches(@"<a[^>]*class=""dropdown-item[^""]*active[^""]*""[^>]*href=""/QuanLyNhaTro/QuanLyHopDong""", hopDongHtml);
+
+            // 2. Chi tiết người thuê -> Menu Người thuê active
+            var nguoiThueRes = await client.GetAsync($"/QuanLyNhaTro/NguoiThue/ChiTiet/{world.TenantA}");
+            Assert.Equal(HttpStatusCode.OK, nguoiThueRes.StatusCode);
+            var nguoiThueHtml = await HtmlTextAsync(nguoiThueRes);
+            Assert.Matches(@"<a[^>]*class=""dropdown-item[^""]*active[^""]*""[^>]*href=""/QuanLyNhaTro/QuanLyNguoiThue""", nguoiThueHtml);
+        }
     }
 }

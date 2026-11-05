@@ -258,6 +258,65 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
         }
 
         [Fact]
+        public async Task DataTable_MaHopDongKeTiep_SkipsCancelledAndDeleted_AndFillsPhongTroId()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var seed = new DebtTestSeeder(db);
+            var branch = await seed.BranchAsync("K");
+            var tenant = await seed.TenantAsync("K");
+            var room = await seed.RoomAsync(branch, "K");
+            var root = $"HD-K{seed.Suffix}-001";
+            var goc = await WithCodeAsync(db, await seed.ContractAsync(room, tenant, status: TrangThaiHopDong.DaKetThuc), root);
+            // GH1 bị hủy và GH2 đã xóa mềm: không được tính là kế tiếp; gốc phải trỏ thẳng tới GH3.
+            await WithCodeAsync(db, await seed.ContractAsync(room, tenant, status: TrangThaiHopDong.DaHuy), root + "-GH1");
+            await WithCodeAsync(db, await seed.ContractAsync(room, tenant, status: TrangThaiHopDong.DaKetThuc, deleted: true), root + "-GH2");
+            var gh3 = await WithCodeAsync(db, await seed.ContractAsync(room, tenant, status: TrangThaiHopDong.DaKetThuc), root + "-GH3");
+            var gh4 = await WithCodeAsync(db, await seed.ContractAsync(room, tenant), root + "-GH4");
+            var khac = await seed.ContractAsync(await seed.RoomAsync(branch, "K"), tenant, status: TrangThaiHopDong.DaKetThuc);
+
+            var res = await new HopDongStore(db).GetDataTableResponseAsync(new HopDongFilterReq
+            {
+                Start = 0,
+                Length = 50,
+                AllowedBranchIds = new[] { branch.ChiNhanhId }
+            });
+            var rows = res.data.ToDictionary(x => x.HopDongId);
+
+            Assert.Equal(root + "-GH3", rows[goc.HopDongId].MaHopDongKeTiep);
+            Assert.Equal(root + "-GH4", rows[gh3.HopDongId].MaHopDongKeTiep);
+            Assert.Null(rows[gh4.HopDongId].MaHopDongKeTiep);
+            Assert.Null(rows[khac.HopDongId].MaHopDongKeTiep);
+            Assert.Equal(room.PhongTroId, rows[goc.HopDongId].PhongTroId);
+        }
+
+        [Fact]
+        public async Task DataTable_SortByThoiDiemKetThuc()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var seed = new DebtTestSeeder(db);
+            var branch = await seed.BranchAsync("E");
+            var tenant = await seed.TenantAsync("E");
+            var muon = await seed.ContractAsync(await seed.RoomAsync(branch, "E"), tenant, end: new DateTime(2027, 3, 31, 16, 59, 59, DateTimeKind.Utc));
+            var som = await seed.ContractAsync(await seed.RoomAsync(branch, "E"), tenant, end: new DateTime(2026, 12, 31, 16, 59, 59, DateTimeKind.Utc));
+
+            async Task<int[]> Ids(string huong)
+            {
+                var res = await new HopDongStore(db).GetDataTableResponseAsync(new HopDongFilterReq
+                {
+                    Start = 0,
+                    Length = 50,
+                    SortColumnName = "thoiDiemKetThuc",
+                    SortDirection = huong,
+                    AllowedBranchIds = new[] { branch.ChiNhanhId }
+                });
+                return res.data.Select(x => x.HopDongId).ToArray();
+            }
+
+            Assert.Equal(new[] { som.HopDongId, muon.HopDongId }, await Ids("asc"));
+            Assert.Equal(new[] { muon.HopDongId, som.HopDongId }, await Ids("desc"));
+        }
+
+        [Fact]
         public async Task InvoiceList_HopDongDaKetThucConNo_ExcludesRenewedTenant()
         {
             await using var db = _fixture.CreateDbContext();
