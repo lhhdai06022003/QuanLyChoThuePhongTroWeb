@@ -110,8 +110,36 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.Equal(1, dto.SoLanOGhep);
             Assert.Equal(700_000m, dto.NoHienTai);
             Assert.Equal(new[] { "Đứng tên", "Đứng tên", "Ở ghép" }, dto.Dong.Select(d => d.VaiTro).ToArray());
-            // 01/11/2025 -> 05/11/2026 (hiện tại) hợp nhất = 369 ngày, cộng 2024-01-01 -> 2024-03-01 = 60 ngày: 429 / 30 = 14.
+            // 01/11/2025 -> 05/11/2026 (hôm nay) hợp nhất, tính cả hai đầu = 370 ngày, cộng 01/01/2024 -> 01/03/2024 = 61 ngày: 431 / 30,4375 ≈ 14.
             Assert.Equal(14, dto.TongSoThang);
+        }
+
+        // Ngày kết thúc lưu lúc 00:00 VN (form sửa) hay 23:59:59 VN (gia hạn) đều tính trọn ngày cuối.
+        [Theory]
+        [InlineData("2025-12-31T17:00:00Z", "2026-04-29T17:00:00Z", 4)]   // 01/01 -> 30/04/2026, kết thúc 00:00 VN
+        [InlineData("2025-12-31T17:00:00Z", "2026-04-30T16:59:59Z", 4)]   // 01/01 -> 30/04/2026, kết thúc 23:59:59 VN
+        [InlineData("2024-12-31T17:00:00Z", "2025-12-30T17:00:00Z", 12)]  // 01/01 -> 31/12/2025
+        [InlineData("2026-01-31T17:00:00Z", "2026-02-27T17:00:00Z", 1)]   // 01/02 -> 28/02/2026
+        [InlineData("2026-10-31T17:00:00Z", null, 0)]                      // 01/11/2026 -> hôm nay 05/11/2026
+        public async Task History_MonthCount_IncludesLastDay(string batDau, string? ketThuc, int expected)
+        {
+            var (service, store, _, _) = Create();
+            store.NguoiThues.Add(Tenant);
+            store.RentalRows.Add((1, new LichSuThueRow
+            {
+                HopDongId = 10,
+                MaHopDong = Root,
+                LaNguoiDungTen = true,
+                SoPhong = "P101",
+                TenChiNhanh = "CN Một",
+                ThoiDiemBatDau = DateTime.Parse(batDau, null, System.Globalization.DateTimeStyles.AdjustToUniversal),
+                ThoiDiemKetThuc = ketThuc == null ? null : DateTime.Parse(ketThuc, null, System.Globalization.DateTimeStyles.AdjustToUniversal),
+                TrangThai = ketThuc == null ? 1 : 2
+            }));
+
+            var dto = (await service.GetLichSuThueAsync(Staff, 3)).Data!;
+
+            Assert.Equal(expected, dto.TongSoThang);
         }
 
         [Fact]

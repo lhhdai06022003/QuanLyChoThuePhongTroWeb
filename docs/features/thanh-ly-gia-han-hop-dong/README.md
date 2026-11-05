@@ -1,7 +1,7 @@
 # Module: Thanh lý, gia hạn hợp đồng và lịch sử thuê
 
 - **Nhánh Git:** `feature/thanh-ly-gia-han-hop-dong` (từ `master` = `d34fa90`).
-- **Hiện trạng:** đã code xong theo spec v2 (05/11/2026, qua `/ship`), đã sửa các điểm review M1, S1–S3; toàn bộ test PASS; thử giao diện (chỉ xem) PASS. Chưa bấm Thanh lý/Gia hạn thật trên DB phát triển. Chưa gộp vào `master`.
+- **Hiện trạng:** đã code xong theo spec v2 (05/11/2026, qua `/ship`), đã sửa các điểm review M1, S1–S3; toàn bộ test PASS; thử giao diện (chỉ xem) PASS; thanh lý thật trên DB phát triển PASS 05/11/2026 (hợp đồng cọc 0 ₫ còn nợ, chưa có dòng cấn trừ thật). Chưa bấm Gia hạn thật. Chưa gộp vào `master`.
 - **Schema:** không đổi (người dùng chốt 04/11/2026: không thêm migration, kể cả cột `HopDongTruocId`). Chỉ thêm giá trị enum `PhuongThucThanhToan.CanTruTienCoc = 2`.
 - **Phạm vi:** chỉ cổng quản lý; không đụng cổng khách vãng lai.
 

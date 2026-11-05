@@ -45,11 +45,13 @@ Lỗi tìm thấy khi thử giao diện: liên kết KH5 mở danh sách hóa đ
 | `dotnet test` Web.IntegrationTests (cùng DB, chạy riêng) | PASS 743/743 |
 | `dotnet ef migrations has-pending-model-changes` | PASS |
 | `git diff --check` | PASS |
+| Thanh lý thật trên DB phát triển (05/11/2026, người dùng chọn `HD-TD1-2601-001`, cọc 0 ₫, hóa đơn T4/2026 còn nợ 2.444.500 ₫) | PASS: sửa ngày kết thúc về 30/04/2026 qua form sửa thì hết bị chặn; nút Xác nhận khóa tới khi tích xác nhận nợ; sau thanh lý hợp đồng Đã kết thúc, thành viên có ngày chuyển đi 30/04/2026, phòng P.101 về Trống; KH5 thêm 1 khoản (tổng 4.655.500 ₫ = 2.444.500 + 2.211.000 có từ trước); bộ lọc hóa đơn và `/NguoiThue/NoCu/7` trả đúng khoản nợ; lịch sử thuê hiện hợp đồng và nợ; biên bản PDF (200, 1 trang, đủ các mục); gửi thanh lý lần hai trả 400; log server không có lỗi |
 | Thử giao diện trên preview cổng 5009, DB phát triển, chỉ xem | PASS sau khi sửa lỗi KH5: danh sách hợp đồng, bộ lọc nhanh, tìm theo CCCD, Chi tiết, Thanh lý (chặn đúng khi tháng trả phòng chưa có hóa đơn công bố), Gia hạn (mặc định, mã `-GH1`), PDF biên bản (200, `application/pdf`), Lịch sử thuê, KH5, cảnh báo nợ cũ khi lập hợp đồng |
 
 ## 5. Chưa kiểm chứng
 
-- Bấm **Thanh lý** và **Gia hạn** thật trên DB phát triển (luồng cuối tháng ở spec §9); chưa xem bố cục bên trong PDF biên bản.
+- Bấm **Gia hạn** thật trên DB phát triển. Thanh lý thật đã thử nhưng cọc 0 ₫ nên chưa có dòng cấn trừ thật (cần hợp đồng có cọc > 0; cọc không sửa được khi hợp đồng đang hoạt động).
+- Hai lỗi thấy khi thử thật, **đã sửa** 05/11/2026: (1) lịch sử thuê ghi "Tổng số tháng ở 3" cho hợp đồng 01/01–30/04/2026, vì `HopDongTraCuuService.TinhTongSoThang` lấy mốc kết thúc là 00:00 ngày cuối (cách form sửa lưu ngày) rồi chia 30 và làm tròn xuống. Nay đếm theo ngày lịch VN, tính trọn ngày đầu và ngày cuối, cắt ở hôm nay, đổi ra tháng bằng 30,4375 ngày và làm tròn gần nhất; test `HopDongTraCuuServiceTests.History_MonthCount_IncludesLastDay` (5 ca, đỏ trước khi sửa). (2) Biên bản in "Trừ tiền cọc: -0 đ" khi không cấn trừ, nay in "0 đ". Kiểm lại trên DB phát triển: lịch sử thuê ra 4 tháng, biên bản in "Trừ tiền cọc: 0 đ". Application 2529/2529, `BienBanThanhLyExporterTests` 2/2, `TenantRentalHistoryTests` + `ContractSettlementRenewalTests` 25/25 PASS.
 - Máy chủ chạy múi giờ UTC (code mới không phụ thuộc; code cũ ở `HopDongService` còn `ToUniversalTime()`).
 - Đồng thời thật: hai lượt thanh lý cùng lúc, thanh lý cùng lúc với webhook SePay/VNPay, gia hạn cùng lúc với lập hóa đơn. Mới có bằng chứng khóa dòng chạy được và bấm hai lần tuần tự bị từ chối.
 - `ContractExpiryAlertJob` chạy thật với file `sent_contract_alerts.json`. Lần chạy đầu sẽ gửi thông báo cho mọi hợp đồng đã quá hạn từ trước (đúng spec §10 #2).

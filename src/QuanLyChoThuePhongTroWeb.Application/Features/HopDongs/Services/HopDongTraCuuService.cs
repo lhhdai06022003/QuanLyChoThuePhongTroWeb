@@ -228,19 +228,25 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.Services
             _ => string.Empty
         };
 
-        // Hợp nhất các khoảng [bắt đầu, min(kết thúc, hiện tại)] (giờ VN) để khoảng trùng chỉ đếm một lần, rồi chia 30 ngày, làm tròn xuống.
+        // Đếm theo ngày lịch VN, tính trọn ngày đầu và ngày cuối (ngày kết thúc có thể lưu lúc 00:00 hoặc 23:59:59 VN), cắt ở hôm nay;
+        // hợp nhất các khoảng trùng hoặc liền nhau để chỉ đếm một lần, rồi đổi ra tháng (30,4375 ngày/tháng, làm tròn gần nhất).
         private static int TinhTongSoThang(IReadOnlyList<LichSuThueRow> rows, DateTime nowUtc)
         {
-            var nowVn = nowUtc.AddHours(7);
+            var homNay = DateOnly.FromDateTime(nowUtc.AddHours(7));
             var khoang = rows
-                .Select(r => (Tu: r.ThoiDiemBatDau.AddHours(7), Den: (r.ThoiDiemKetThuc?.AddHours(7) ?? nowVn) < nowVn ? (r.ThoiDiemKetThuc?.AddHours(7) ?? nowVn) : nowVn))
-                .Where(k => k.Den > k.Tu)
+                .Select(r =>
+                {
+                    var tuNgay = DateOnly.FromDateTime(r.ThoiDiemBatDau.AddHours(7));
+                    var denNgay = r.ThoiDiemKetThuc.HasValue ? DateOnly.FromDateTime(r.ThoiDiemKetThuc.Value.AddHours(7)) : homNay;
+                    return (Tu: tuNgay, Den: denNgay < homNay ? denNgay : homNay);
+                })
+                .Where(k => k.Den >= k.Tu)
                 .OrderBy(k => k.Tu)
                 .ToList();
 
-            var tongNgay = 0d;
-            DateTime? tu = null;
-            DateTime? den = null;
+            var tongNgay = 0;
+            DateOnly? tu = null;
+            DateOnly? den = null;
             foreach (var k in khoang)
             {
                 if (tu == null)
@@ -248,7 +254,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.Services
                     tu = k.Tu;
                     den = k.Den;
                 }
-                else if (k.Tu <= den)
+                else if (k.Tu.DayNumber <= den!.Value.DayNumber + 1)
                 {
                     if (k.Den > den)
                     {
@@ -257,7 +263,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.Services
                 }
                 else
                 {
-                    tongNgay += (den!.Value - tu.Value).TotalDays;
+                    tongNgay += den.Value.DayNumber - tu.Value.DayNumber + 1;
                     tu = k.Tu;
                     den = k.Den;
                 }
@@ -265,10 +271,10 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.Services
 
             if (tu != null)
             {
-                tongNgay += (den!.Value - tu.Value).TotalDays;
+                tongNgay += den!.Value.DayNumber - tu.Value.DayNumber + 1;
             }
 
-            return (int)Math.Floor(tongNgay / 30d);
+            return (int)Math.Round(tongNgay / 30.4375d, MidpointRounding.AwayFromZero);
         }
     }
 }

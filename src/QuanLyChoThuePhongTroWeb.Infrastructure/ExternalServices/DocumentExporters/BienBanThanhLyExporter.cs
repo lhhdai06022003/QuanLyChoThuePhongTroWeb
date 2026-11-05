@@ -90,7 +90,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.DocumentExpor
 
                         col.Item().PaddingTop(8).Text("TỔNG KẾT").Bold();
                         col.Item().Text($"Tiền cọc: {Tien(data.TienCoc)} đ");
-                        col.Item().Text($"Trừ tiền cọc: -{Tien(data.TongCanTru)} đ");
+                        col.Item().Text($"Trừ tiền cọc: {(data.TongCanTru > 0 ? "-" : string.Empty)}{Tien(data.TongCanTru)} đ");
                         col.Item().Text($"Cọc hoàn trực tiếp cho khách: {Tien(data.CocHoanTrucTiep)} đ").Bold();
                         col.Item().Text($"Khách còn nợ: {Tien(data.NoConLai)} đ (tính đến {Ngay(data.NgayInUtc)})")
                             .Bold().FontColor(data.NoConLai > 0 ? Colors.Red.Darken2 : Colors.Black);
