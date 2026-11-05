@@ -107,6 +107,35 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.True(kit.Uow.Transactions.Single().Committed);
         }
 
+        // Gia hạn sớm (bắt đầu 01/08/2026 trong khi hợp đồng cũ tới 31/10/2026): thành viên vào ngày 15/09/2026, sau mốc kết thúc mới
+        // của hợp đồng cũ (31/07), không được có ngày chuyển đi sớm hơn ngày vào; ở hợp đồng mới giữ đúng ngày vào thật.
+        [Fact]
+        public async Task EarlyRenewal_MemberJoinedAfterNewStart_KeepsJoinDate_AndNeverMovesOutBeforeJoining()
+        {
+            var kit = new Kit();
+            var vaoSau = new DateTime(2026, 9, 14, 17, 0, 0, DateTimeKind.Utc);
+            kit.Store.Members.Add(new ChiTietThanhVienHopDong { ChiTietThanhVienHopDongId = 2, HopDongId = 10, NguoiThueId = 4, NguoiThue = new NguoiThue { NguoiThueId = 4, HoVaTen = "Trần B" }, NgayVao = vaoSau });
+
+            var result = await kit.Service.GiaHanAsync(Staff, kit.Request(thang: 8, nam: 2026, end: new DateOnly(2027, 7, 31)));
+
+            Assert.True(result.Success, result.Message);
+            var oldEnd = new DateTime(2026, 7, 31, 16, 59, 59, DateTimeKind.Utc);
+            var newStart = new DateTime(2026, 7, 31, 17, 0, 0, DateTimeKind.Utc);
+            var moiId = result.Data!.HopDongMoiId;
+
+            var cuDaiDien = kit.Store.Members.Single(m => m.HopDongId == 10 && m.NguoiThueId == 3);
+            var moiDaiDien = kit.Store.Members.Single(m => m.HopDongId == moiId && m.NguoiThueId == 3);
+            Assert.Equal(oldEnd, cuDaiDien.NgayChuyenDi);
+            Assert.Equal(newStart, moiDaiDien.NgayVao);
+
+            var cuVaoSau = kit.Store.Members.Single(m => m.HopDongId == 10 && m.NguoiThueId == 4);
+            var moiVaoSau = kit.Store.Members.Single(m => m.HopDongId == moiId && m.NguoiThueId == 4);
+            Assert.True(cuVaoSau.NgayChuyenDi >= cuVaoSau.NgayVao, $"NgayChuyenDi {cuVaoSau.NgayChuyenDi:o} < NgayVao {cuVaoSau.NgayVao:o}");
+            Assert.Equal(vaoSau, cuVaoSau.NgayChuyenDi);
+            Assert.Equal(vaoSau, moiVaoSau.NgayVao);
+            Assert.Null(moiVaoSau.NgayChuyenDi);
+        }
+
         [Fact]
         public async Task SecondRenewal_FromGh1_BecomesGh2_WithoutNestingRoot()
         {

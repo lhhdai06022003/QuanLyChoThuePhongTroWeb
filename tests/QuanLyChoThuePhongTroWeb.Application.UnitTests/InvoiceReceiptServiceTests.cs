@@ -477,6 +477,56 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.Empty(_email.ReceiptCalls);
         }
 
+        // ---------- Dòng cấn trừ tiền cọc (thanh lý): không thu tiền nên không có biên lai ----------
+
+        private int AddDepositOffsetRow()
+        {
+            _h.AddSentInvoice();
+            var row = _h.AddLedger(7, 500_000m, "CANTRU-HD3-7");
+            row.PhuongThucThanhToan = PhuongThucThanhToan.CanTruTienCoc;
+            return row.LichSuThanhToanId;
+        }
+
+        [Fact]
+        public async Task DepositOffsetRow_Tenant_ReturnsNotFound()
+        {
+            var id = AddDepositOffsetRow();
+
+            var result = await Service().GetForTenantAsync(id, Tenant);
+
+            Assert.Equal(ServiceErrorKind.NotFound, result.ErrorKind);
+        }
+
+        [Fact]
+        public async Task DepositOffsetRow_Employee_ReturnsNotFound_EvenForAdmin()
+        {
+            var id = AddDepositOffsetRow();
+
+            Assert.Equal(ServiceErrorKind.NotFound, (await Service().GetForEmployeeAsync(PaymentTestHarness.AdminId, id)).ErrorKind);
+            Assert.Equal(ServiceErrorKind.NotFound, (await Service().GetForEmployeeAsync(PaymentTestHarness.StaffId, id)).ErrorKind);
+        }
+
+        [Fact]
+        public async Task DepositOffsetRow_OtherBranchStaff_IsStillForbidden()
+        {
+            var id = AddDepositOffsetRow();
+
+            Assert.Equal(ServiceErrorKind.Forbidden, (await Service().GetForEmployeeAsync(PaymentTestHarness.OtherStaffId, id)).ErrorKind);
+            Assert.Equal(ServiceErrorKind.Forbidden, (await Service().ResendForEmployeeAsync(PaymentTestHarness.OtherStaffId, id)).ErrorKind);
+        }
+
+        [Fact]
+        public async Task DepositOffsetRow_Resend_FailsWithoutSending()
+        {
+            var id = AddDepositOffsetRow();
+
+            var result = await Service().ResendForEmployeeAsync(PaymentTestHarness.AdminId, id);
+
+            Assert.Equal(ServiceErrorKind.Validation, result.ErrorKind);
+            Assert.Equal("Khoản cấn trừ tiền cọc không có biên lai thu tiền.", result.Message);
+            Assert.Empty(_email.ReceiptCalls);
+        }
+
         [Fact]
         public async Task Resend_VoidedRowOfAnotherBranch_IsForbidden_NotRevealingItsState()
         {

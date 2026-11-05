@@ -223,12 +223,15 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.Services
                 var thanhVienMoi = new List<ChiTietThanhVienHopDong>();
                 foreach (var thanhVien in await _store.GetActiveMembersAsync(cu.HopDongId, ct))
                 {
-                    thanhVien.NgayChuyenDi = oldEndUtc;
+                    // Gia hạn sớm: thành viên vào sau mốc bắt đầu mới thì dòng cũ đóng đúng ngày vào (không chuyển đi trước khi vào),
+                    // dòng mới giữ ngày vào thật.
+                    var vaoSauMocMoi = thanhVien.NgayVao > oldEndUtc;
+                    thanhVien.NgayChuyenDi = vaoSauMocMoi ? thanhVien.NgayVao : oldEndUtc;
                     thanhVienMoi.Add(new ChiTietThanhVienHopDong
                     {
                         HopDongId = moi.HopDongId,
                         NguoiThueId = thanhVien.NguoiThueId,
-                        NgayVao = newStartUtc,
+                        NgayVao = vaoSauMocMoi ? thanhVien.NgayVao : newStartUtc,
                         IsDeleted = false
                     });
                 }

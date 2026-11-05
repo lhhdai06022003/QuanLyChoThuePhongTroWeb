@@ -7,11 +7,13 @@ using QuanLyChoThuePhongTroWeb.Application.Common.Models;
 using QuanLyChoThuePhongTroWeb.Application.Common.Security;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Payments;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence;
+using QuanLyChoThuePhongTroWeb.Domain.Enums;
 
 namespace QuanLyChoThuePhongTroWeb.Application.Features.OnlinePayments;
 
 // Biên lai web của một dòng sổ (spec thanh toán trực tuyến §3.4) và gửi lại email biên lai (§6.3, §7.2).
 // Dòng đã hủy ghi nhận không có biên lai (NotFound khi xem) và không được gửi lại.
+// Dòng cấn trừ tiền cọc (thanh lý hợp đồng) không phải khoản thu tiền nên cũng không có biên lai, kể cả khi gọi thẳng URL.
 // Đợt, lũy kế, còn nợ, tiền thừa lấy từ GetReceiptSnapshotAsync, cùng công thức với PaymentNotificationFormatter.BuildReceiptEmail.
 // Gửi lại không log địa chỉ email và không log nội dung exception của lớp gửi thư (có thể chứa địa chỉ).
 public sealed class InvoiceReceiptService(
@@ -40,7 +42,7 @@ public sealed class InvoiceReceiptService(
         }
 
         var receipt = await store.GetReceiptSnapshotAsync(lichSuThanhToanId, ct);
-        if (receipt == null || receipt.IsDeleted)
+        if (receipt == null || receipt.IsDeleted || LaCanTruTienCoc(receipt))
         {
             return ServiceResult<InvoiceReceiptDto>.NotFound(NotFoundMessage);
         }
@@ -64,6 +66,11 @@ public sealed class InvoiceReceiptService(
         if (!await access.CanPerformAsync(actorId, receipt.ChiNhanhId, EmployeeActionCodes.InvoiceRead, ct))
         {
             return ServiceResult<InvoiceReceiptDto>.Forbidden(NoPermissionMessage);
+        }
+
+        if (LaCanTruTienCoc(receipt))
+        {
+            return ServiceResult<InvoiceReceiptDto>.NotFound(NotFoundMessage);
         }
 
         return ServiceResult<InvoiceReceiptDto>.Ok(Map(receipt));
@@ -91,6 +98,11 @@ public sealed class InvoiceReceiptService(
         if (receipt.IsDeleted)
         {
             return ServiceResult<InvoiceReceiptResendResult>.Fail("Khoản thanh toán đã hủy ghi nhận, không gửi biên lai.");
+        }
+
+        if (LaCanTruTienCoc(receipt))
+        {
+            return ServiceResult<InvoiceReceiptResendResult>.Fail("Khoản cấn trừ tiền cọc không có biên lai thu tiền.");
         }
 
         var toEmail = receipt.EmailKhachThue?.Trim();
@@ -133,6 +145,9 @@ public sealed class InvoiceReceiptService(
             new InvoiceReceiptResendResult { LichSuThanhToanId = receipt.LichSuThanhToanId, HoaDonId = receipt.HoaDonId },
             "Đã gửi lại biên lai.");
     }
+
+    private static bool LaCanTruTienCoc(PaymentReceiptSnapshot receipt)
+        => receipt.PhuongThucThanhToan == PhuongThucThanhToan.CanTruTienCoc;
 
     private static InvoiceReceiptDto Map(PaymentReceiptSnapshot receipt) => new()
     {
