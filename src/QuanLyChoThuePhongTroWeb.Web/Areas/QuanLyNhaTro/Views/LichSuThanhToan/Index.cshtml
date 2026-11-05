@@ -22,7 +22,7 @@
     <!-- Stat Cards Row -->
     <div class="row row-cards mb-4">
         <!-- Card 1: Tổng doanh thu -->
-        <div class="col-sm-6 col-lg-3">
+        <div class="col-sm-6 col-lg">
             <div class="card shadow border-0 bg-success text-white" style="position: relative; overflow: hidden;">
                 <div class="card-body p-4">
                     <div class="subheader text-white text-opacity-75 font-weight-bold mb-2 fs-4">TỔNG DOANH THU</div>
@@ -33,7 +33,7 @@
         </div>
 
         <!-- Card 2: Số giao dịch -->
-        <div class="col-sm-6 col-lg-3">
+        <div class="col-sm-6 col-lg">
             <div class="card shadow border-0 bg-primary text-white" style="position: relative; overflow: hidden;">
                 <div class="card-body p-4">
                     <div class="subheader text-white text-opacity-75 font-weight-bold mb-2 fs-4">SỐ GIAO DỊCH</div>
@@ -44,7 +44,7 @@
         </div>
 
         <!-- Card 3: Thu tiền mặt -->
-        <div class="col-sm-6 col-lg-3">
+        <div class="col-sm-6 col-lg">
             <div class="card shadow border-0 bg-info" style="position: relative; overflow: hidden;">
                 <div class="card-body p-4">
                     <div class="subheader text-white text-opacity-75 font-weight-bold mb-2 fs-4">THU TIỀN MẶT</div>
@@ -55,12 +55,23 @@
         </div>
 
         <!-- Card 4: Chuyển khoản -->
-        <div class="col-sm-6 col-lg-3">
+        <div class="col-sm-6 col-lg">
             <div class="card shadow border-0 bg-indigo text-white" style="position: relative; overflow: hidden;">
                 <div class="card-body p-4">
                     <div class="subheader text-white text-opacity-75 font-weight-bold mb-2 fs-4">CHUYỂN KHOẢN</div>
                     <div class="h1 mb-0 text-white font-weight-bold" id="statDoanhThuChuyenKhoan" style="font-size: 2rem;">0 ₫</div>
                     <i class="ti ti-building-bank fa-4x text-white text-opacity-25" style="position: absolute; right: 15px; top: 15px;"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 5: Cấn trừ cọc -->
+        <div class="col-sm-6 col-lg">
+            <div class="card shadow border-0 bg-teal text-white" style="position: relative; overflow: hidden;">
+                <div class="card-body p-4">
+                    <div class="subheader text-white text-opacity-75 font-weight-bold mb-2 fs-4">CẤN TRỪ CỌC</div>
+                    <div class="h1 mb-0 text-white font-weight-bold" id="statDoanhThuCanTruCoc" style="font-size: 2rem;">0 ₫</div>
+                    <i class="ti ti-arrows-exchange fa-4x text-white text-opacity-25" style="position: absolute; right: 15px; top: 15px;"></i>
                 </div>
             </div>
         </div>
@@ -265,6 +276,7 @@
                         $('#statTongSoGiaoDich').text(res.tongSoGiaoDich);
                         $('#statDoanhThuTienMat').text(formatVND(res.doanhThuTienMat));
                         $('#statDoanhThuChuyenKhoan').text(formatVND(res.doanhThuChuyenKhoan));
+                        $('#statDoanhThuCanTruCoc').text(formatVND(res.doanhThuCanTruCoc));
                     },
                     error: function (xhr) {
                         console.error('Không tải được thống kê giao dịch:', xhr);

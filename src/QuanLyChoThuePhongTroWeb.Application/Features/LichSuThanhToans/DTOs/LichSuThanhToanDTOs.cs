@@ -31,5 +31,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.LichSuThanhToans.DTOs
         public int TongSoGiaoDich { get; set; }
         public decimal DoanhThuTienMat { get; set; }
         public decimal DoanhThuChuyenKhoan { get; set; }
+        public decimal DoanhThuCanTruCoc { get; set; }
     }
 }

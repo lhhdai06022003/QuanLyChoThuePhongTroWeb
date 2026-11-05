@@ -1,0 +1,151 @@
+@using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Responses
+@model BaoCaoPageViewModel
+@{
+    ViewData["Title"] = "Báo cáo thống kê";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var tabs = new[]
+    {
+        (Slug: "doanh-thu", Ten: "Doanh thu", Icon: "ti ti-coin"),
+        (Slug: "cong-no", Ten: "Công nợ", Icon: "ti ti-receipt-2"),
+        (Slug: "cong-suat", Ten: "Công suất phòng", Icon: "ti ti-building"),
+        (Slug: "hop-dong", Ten: "Hợp đồng", Icon: "ti ti-file-text"),
+        (Slug: "dien-nuoc", Ten: "Điện nước", Icon: "ti ti-bolt")
+    };
+}
+
+@section Styles {
+    <style>
+        /* site.css ép .table-responsive overflow: visible; bảng báo cáo nhiều cột phải cuộn ngang trong thẻ, không đẩy rộng cả trang */
+        .bc-pane .table-responsive {
+            overflow-x: auto !important;
+        }
+
+        .bc-pane .card-table td,
+        .bc-pane .card-table th {
+            white-space: nowrap;
+        }
+    </style>
+}
+
+<div class="container-xl mt-3">
+    <div class="page-header d-print-none mb-3">
+        <div class="row align-items-center">
+            <div class="col">
+                <h2 class="page-title text-primary font-weight-bold d-flex align-items-center">
+                    <i class="ti ti-chart-bar me-2"></i> Báo cáo thống kê
+                </h2>
+            </div>
+        </div>
+    </div>
+
+    @if (Model.ChuaPhanCong)
+    {
+        <div class="alert alert-warning" role="alert">Bạn chưa được phân công chi nhánh nào.</div>
+    }
+    else
+    {
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="row g-2 align-items-end">
+                    <div class="col-12 col-md-4">
+                        <label class="form-label" for="bcChiNhanh">Chi nhánh</label>
+                        <select id="bcChiNhanh" class="form-select" asp-items="Model.ChiNhanhs">
+                            @if (Model.NhanTatCa != null)
+                            {
+                                <option value="">@Model.NhanTatCa</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <label class="form-label" for="bcTuKy">Từ kỳ</label>
+                        <input type="month" id="bcTuKy" class="form-control" value="@Model.TuKyMacDinh" />
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <label class="form-label" for="bcDenKy">Đến kỳ</label>
+                        <input type="month" id="bcDenKy" class="form-control" value="@Model.DenKyMacDinh" />
+                    </div>
+                    <div class="col-12 col-md-2 d-flex align-items-center gap-2">
+                        <button type="button" id="bcXem" class="btn btn-primary">Xem</button>
+                        <span id="bcLoading" class="spinner-border spinner-border-sm text-secondary d-none" role="status" aria-label="Đang tải"></span>
+                    </div>
+                </div>
+                <div class="text-secondary small mt-2" id="bcPhamVi"></div>
+            </div>
+        </div>
+
+        <ul class="nav nav-tabs mb-3" role="tablist">
+            @foreach (var t in tabs)
+            {
+                <li class="nav-item" role="presentation">
+                    <a href="?tab=@t.Slug" id="tab-@t.Slug" class="nav-link @(Model.Tab == t.Slug ? "active" : "")" data-tab="@t.Slug" role="tab" aria-controls="pane-@t.Slug">
+                        <i class="@t.Icon me-1"></i>@t.Ten
+                    </a>
+                </li>
+            }
+        </ul>
+
+        <div id="pane-doanh-thu" class="bc-pane @(Model.Tab == "doanh-thu" ? "" : "d-none")" data-tab="doanh-thu">
+            <div class="d-flex justify-content-end mb-2"><button type="button" class="btn btn-outline-primary btn-sm bc-export" data-tab="doanh-thu" disabled><i class="ti ti-file-spreadsheet me-1"></i>Xuất Excel</button></div>
+            <div class="row row-cards mb-3" id="cards-doanh-thu"></div>
+            <div class="card mb-3"><div class="card-body"><div style="position:relative;height:300px"><canvas id="chart-doanh-thu" aria-label="Biểu đồ doanh thu theo kỳ"></canvas></div></div></div>
+            <div class="card mb-3"><div class="card-header"><h3 class="card-title">Theo kỳ</h3></div><div class="table-responsive"><table class="table table-vcenter card-table" id="bang-doanh-thu-ky"></table></div></div>
+            <div class="card mb-3 d-none" id="wrap-doanh-thu-cn"><div class="card-header"><h3 class="card-title">Theo chi nhánh</h3></div><div class="table-responsive"><table class="table table-vcenter card-table" id="bang-doanh-thu-cn"></table></div></div>
+            <p class="text-secondary small">Chỉ tính hóa đơn đã gửi khách, theo kỳ của hóa đơn. Đã thu tính theo sổ thanh toán, gồm cả tiền cấn trừ từ cọc.</p>
+        </div>
+
+        <div id="pane-cong-no" class="bc-pane @(Model.Tab == "cong-no" ? "" : "d-none")" data-tab="cong-no">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="text-secondary small">Số liệu tính tới hôm nay, không theo khoảng kỳ.</span>
+                <button type="button" class="btn btn-outline-primary btn-sm bc-export" data-tab="cong-no" disabled><i class="ti ti-file-spreadsheet me-1"></i>Xuất Excel</button>
+            </div>
+            <div class="row row-cards mb-3" id="cards-cong-no"></div>
+            <div class="card mb-3"><div class="card-body"><div style="position:relative;height:300px"><canvas id="chart-cong-no" aria-label="Biểu đồ tuổi nợ"></canvas></div></div></div>
+            <div class="card mb-3"><div class="card-header"><h3 class="card-title">Khách còn nợ</h3></div><div class="table-responsive"><table class="table table-vcenter card-table" id="bang-cong-no"></table></div></div>
+        </div>
+
+        <div id="pane-cong-suat" class="bc-pane @(Model.Tab == "cong-suat" ? "" : "d-none")" data-tab="cong-suat">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="text-secondary small">Phòng đã xóa không được tính; trạng thái Bảo trì chỉ có số hiện tại.</span>
+                <button type="button" class="btn btn-outline-primary btn-sm bc-export" data-tab="cong-suat" disabled><i class="ti ti-file-spreadsheet me-1"></i>Xuất Excel</button>
+            </div>
+            <div class="row row-cards mb-3" id="cards-cong-suat"></div>
+            <div class="card mb-3"><div class="card-body"><div style="position:relative;height:300px"><canvas id="chart-cong-suat" aria-label="Biểu đồ tỷ lệ lấp đầy theo kỳ"></canvas></div></div></div>
+            <div class="card mb-3"><div class="card-header"><h3 class="card-title">Theo kỳ</h3></div><div class="table-responsive"><table class="table table-vcenter card-table" id="bang-cong-suat-ky"></table></div></div>
+            <div class="card mb-3 d-none" id="wrap-cong-suat-cn"><div class="card-header"><h3 class="card-title">Theo chi nhánh</h3></div><div class="table-responsive"><table class="table table-vcenter card-table" id="bang-cong-suat-cn"></table></div></div>
+            <div class="card mb-3"><div class="card-header"><h3 class="card-title">Phòng trống lâu nhất</h3></div><div class="table-responsive"><table class="table table-vcenter card-table" id="bang-cong-suat-trong"></table></div></div>
+        </div>
+
+        <div id="pane-hop-dong" class="bc-pane @(Model.Tab == "hop-dong" ? "" : "d-none")" data-tab="hop-dong">
+            <div class="d-flex justify-content-end mb-2"><button type="button" class="btn btn-outline-primary btn-sm bc-export" data-tab="hop-dong" disabled><i class="ti ti-file-spreadsheet me-1"></i>Xuất Excel</button></div>
+            <div class="row row-cards mb-3" id="cards-hop-dong"></div>
+            <div class="card mb-3"><div class="card-body"><div style="position:relative;height:300px"><canvas id="chart-hop-dong" aria-label="Biểu đồ hợp đồng theo kỳ"></canvas></div></div></div>
+            <div class="card mb-3"><div class="card-header"><h3 class="card-title">Theo kỳ</h3></div><div class="table-responsive"><table class="table table-vcenter card-table" id="bang-hop-dong"></table></div></div>
+        </div>
+
+        <div id="pane-dien-nuoc" class="bc-pane @(Model.Tab == "dien-nuoc" ? "" : "d-none")" data-tab="dien-nuoc">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="text-secondary small">Chỉ tính chỉ số đã duyệt.</span>
+                <button type="button" class="btn btn-outline-primary btn-sm bc-export" data-tab="dien-nuoc" disabled><i class="ti ti-file-spreadsheet me-1"></i>Xuất Excel</button>
+            </div>
+            <div class="row row-cards mb-3" id="cards-dien-nuoc"></div>
+            <div class="card mb-3"><div class="card-body"><div style="position:relative;height:300px"><canvas id="chart-dien-nuoc" aria-label="Biểu đồ điện nước theo kỳ"></canvas></div></div></div>
+            <div class="card mb-3"><div class="card-header"><h3 class="card-title">Theo kỳ</h3></div><div class="table-responsive"><table class="table table-vcenter card-table" id="bang-dien-nuoc-ky"></table></div></div>
+            <div class="card mb-3"><div class="card-header"><h3 class="card-title">Phòng dùng nhiều nhất</h3></div><div class="table-responsive"><table class="table table-vcenter card-table" id="bang-dien-nuoc-phong"></table></div></div>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    @if (!Model.ChuaPhanCong)
+    {
+        <script>window.baoCaoConfig = {
+            tab: @Html.Raw(Json.Serialize(Model.Tab)),
+            urlDuLieu: @Html.Raw(Json.Serialize(Url.Action("DuLieu", "BaoCao", new { area = "QuanLyNhaTro" }))),
+            urlXuatExcel: @Html.Raw(Json.Serialize(Url.Action("XuatExcel", "BaoCao", new { area = "QuanLyNhaTro" }))),
+            urlHoaDon: "/QuanLyNhaTro/QuanLyHoaDon",
+            urlHopDong: "/QuanLyNhaTro/QuanLyHopDong",
+            urlNguoiThue: "/QuanLyNhaTro/NguoiThue/ChiTiet/"
+        };</script>
+        <script src="~/js/bao-cao.js" asp-append-version="true"></script>
+    }
+}

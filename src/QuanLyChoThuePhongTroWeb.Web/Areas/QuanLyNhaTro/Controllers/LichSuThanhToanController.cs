@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels;
 using System;
+using System.Globalization;
+using System.Linq;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
@@ -61,27 +63,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
                 SearchValue = form["search[value]"].FirstOrDefault()
             };
 
-            DateTime? tuNgay = null;
-            DateTime? denNgay = null;
-
-            if (!string.IsNullOrEmpty(dateRange))
-            {
-                // dateRange format: "yyyy-MM-dd to yyyy-MM-dd" hoặc "yyyy-MM-dd"
-                var parts = dateRange.Split(" to ");
-                if (parts.Length == 2)
-                {
-                    if (DateTime.TryParse(parts[0], out DateTime t)) tuNgay = t;
-                    if (DateTime.TryParse(parts[1], out DateTime dn)) denNgay = dn;
-                }
-                else if (parts.Length == 1)
-                {
-                    if (DateTime.TryParse(parts[0], out DateTime t))
-                    {
-                        tuNgay = t;
-                        denNgay = t;
-                    }
-                }
-            }
+            var (tuNgay, denNgay) = TachKhoangNgay(dateRange);
 
             var data = await _lichSuThanhToanService.GetDanhSachThanhToanAsync(actorId, request, chiNhanhId, phuongThuc, tuNgay, denNgay, coTienThua);
             return Ok(data);
@@ -95,26 +77,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
                 return Unauthorized(new { Message = "Người dùng chưa đăng nhập hoặc phiên làm việc đã hết hạn." });
             }
 
-            DateTime? tuNgay = null;
-            DateTime? denNgay = null;
-
-            if (!string.IsNullOrEmpty(dateRange))
-            {
-                var parts = dateRange.Split(" to ");
-                if (parts.Length == 2)
-                {
-                    if (DateTime.TryParse(parts[0], out DateTime t)) tuNgay = t;
-                    if (DateTime.TryParse(parts[1], out DateTime dn)) denNgay = dn;
-                }
-                else if (parts.Length == 1)
-                {
-                    if (DateTime.TryParse(parts[0], out DateTime t))
-                    {
-                        tuNgay = t;
-                        denNgay = t;
-                    }
-                }
-            }
+            var (tuNgay, denNgay) = TachKhoangNgay(dateRange);
 
             var stats = await _lichSuThanhToanService.GetThongKeThanhToanAsync(actorId, chiNhanhId, tuNgay, denNgay);
             return Ok(stats);
@@ -136,6 +99,36 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             }
 
             return Ok(new { Message = result.Message, data = result.Data });
+        }
+
+        // dateRange là chuỗi của flatpickr dạng "yyyy-MM-dd {dấu ngăn} yyyy-MM-dd" hoặc "yyyy-MM-dd".
+        // Dấu ngăn mặc định là " to ", còn locale vn (l10n/vn.js 4.6.13) dùng " đến ", nên chấp nhận cả hai.
+        // Kết quả là ngày lịch Việt Nam; store đổi sang mốc UTC.
+        private static (DateTime? TuNgay, DateTime? DenNgay) TachKhoangNgay(string? dateRange)
+        {
+            if (string.IsNullOrWhiteSpace(dateRange))
+            {
+                return (null, null);
+            }
+
+            var parts = dateRange.Split(new[] { " to ", " đến " }, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length == 2)
+            {
+                return (ParseNgay(parts[0]), ParseNgay(parts[1]));
+            }
+
+            if (parts.Length == 1)
+            {
+                var ngay = ParseNgay(parts[0]);
+                return (ngay, ngay);
+            }
+
+            return (null, null);
+        }
+
+        private static DateTime? ParseNgay(string text)
+        {
+            return DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.None, out var ngay) ? ngay.Date : null;
         }
 
         private bool TryGetActorId(out int actorId)

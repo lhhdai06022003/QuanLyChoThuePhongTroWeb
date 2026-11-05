@@ -51,13 +51,15 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
 
             if (tuNgay.HasValue)
             {
-                var utcTu = DateTime.SpecifyKind(tuNgay.Value.Date, DateTimeKind.Utc);
+                // Đầu ngày Việt Nam = 17:00Z của hôm trước.
+                var utcTu = DateTime.SpecifyKind(tuNgay.Value.Date, DateTimeKind.Utc).AddHours(-7);
                 query = query.Where(l => l.NgayThanhToan >= utcTu);
             }
             if (denNgay.HasValue)
             {
-                var utcDen = DateTime.SpecifyKind(denNgay.Value.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc);
-                query = query.Where(l => l.NgayThanhToan <= utcDen);
+                // Hết ngày Việt Nam: nhỏ hơn đầu ngày kế tiếp.
+                var utcDenExclusive = DateTime.SpecifyKind(denNgay.Value.Date.AddDays(1), DateTimeKind.Utc).AddHours(-7);
+                query = query.Where(l => l.NgayThanhToan < utcDenExclusive);
             }
 
             if (!string.IsNullOrEmpty(request.SearchValue))
@@ -120,13 +122,15 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
 
             if (tuNgay.HasValue)
             {
-                var utcTu = DateTime.SpecifyKind(tuNgay.Value.Date, DateTimeKind.Utc);
+                // Đầu ngày Việt Nam = 17:00Z của hôm trước.
+                var utcTu = DateTime.SpecifyKind(tuNgay.Value.Date, DateTimeKind.Utc).AddHours(-7);
                 query = query.Where(l => l.NgayThanhToan >= utcTu);
             }
             if (denNgay.HasValue)
             {
-                var utcDen = DateTime.SpecifyKind(denNgay.Value.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc);
-                query = query.Where(l => l.NgayThanhToan <= utcDen);
+                // Hết ngày Việt Nam: nhỏ hơn đầu ngày kế tiếp.
+                var utcDenExclusive = DateTime.SpecifyKind(denNgay.Value.Date.AddDays(1), DateTimeKind.Utc).AddHours(-7);
+                query = query.Where(l => l.NgayThanhToan < utcDenExclusive);
             }
 
             var stats = await query
@@ -136,7 +140,8 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                     TongDoanhThu = g.Sum(p => p.SoTienThanhToan),
                     TongSoGiaoDich = g.Count(),
                     DoanhThuTienMat = g.Where(p => p.PhuongThucThanhToan == PhuongThucThanhToan.TienMat).Sum(p => p.SoTienThanhToan),
-                    DoanhThuChuyenKhoan = g.Where(p => p.PhuongThucThanhToan == PhuongThucThanhToan.ChuyenKhoan).Sum(p => p.SoTienThanhToan)
+                    DoanhThuChuyenKhoan = g.Where(p => p.PhuongThucThanhToan == PhuongThucThanhToan.ChuyenKhoan).Sum(p => p.SoTienThanhToan),
+                    DoanhThuCanTruCoc = g.Where(p => p.PhuongThucThanhToan == PhuongThucThanhToan.CanTruTienCoc).Sum(p => p.SoTienThanhToan)
                 })
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -145,7 +150,8 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 TongDoanhThu = 0,
                 TongSoGiaoDich = 0,
                 DoanhThuTienMat = 0,
-                DoanhThuChuyenKhoan = 0
+                DoanhThuChuyenKhoan = 0,
+                DoanhThuCanTruCoc = 0
             };
         }
 

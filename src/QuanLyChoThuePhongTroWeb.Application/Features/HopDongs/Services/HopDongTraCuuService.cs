@@ -238,39 +238,9 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.Services
                     var denNgay = r.ThoiDiemKetThuc.HasValue ? DateOnly.FromDateTime(r.ThoiDiemKetThuc.Value.AddHours(7)) : homNay;
                     return (Tu: tuNgay, Den: denNgay < homNay ? denNgay : homNay);
                 })
-                .Where(k => k.Den >= k.Tu)
-                .OrderBy(k => k.Tu)
                 .ToList();
 
-            var tongNgay = 0;
-            DateOnly? tu = null;
-            DateOnly? den = null;
-            foreach (var k in khoang)
-            {
-                if (tu == null)
-                {
-                    tu = k.Tu;
-                    den = k.Den;
-                }
-                else if (k.Tu.DayNumber <= den!.Value.DayNumber + 1)
-                {
-                    if (k.Den > den)
-                    {
-                        den = k.Den;
-                    }
-                }
-                else
-                {
-                    tongNgay += den.Value.DayNumber - tu.Value.DayNumber + 1;
-                    tu = k.Tu;
-                    den = k.Den;
-                }
-            }
-
-            if (tu != null)
-            {
-                tongNgay += den!.Value.DayNumber - tu.Value.DayNumber + 1;
-            }
+            var tongNgay = KhoangNgayThue.HopNhat(khoang).Sum(k => k.Den.DayNumber - k.Tu.DayNumber + 1);
 
             return (int)Math.Round(tongNgay / 30.4375d, MidpointRounding.AwayFromZero);
         }

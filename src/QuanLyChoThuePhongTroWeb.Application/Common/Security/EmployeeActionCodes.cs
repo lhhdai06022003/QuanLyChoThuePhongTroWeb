@@ -22,6 +22,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Common.Security
         public const string PaymentConfigurePartial = "Payment.ConfigurePartial";
         public const string ContractSettle = "Contract.Settle";
         public const string ContractRenew = "Contract.Renew";
+        public const string ReportRead = "Report.Read";
 
         private static readonly FrozenSet<string> ValidActionsSet = new[]
         {
@@ -29,7 +30,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Common.Security
             InvoiceDraft, InvoiceSubmit, InvoiceFinalize, InvoiceReject,
             InvoiceSend, InvoiceCancel, InvoiceResendEmail, InvoiceRead,
             PaymentReview, PaymentConfigurePartial,
-            ContractSettle, ContractRenew
+            ContractSettle, ContractRenew,
+            ReportRead
         }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 
         private static readonly FrozenSet<string> AdminOnlySet = new[]

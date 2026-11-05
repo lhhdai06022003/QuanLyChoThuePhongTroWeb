@@ -14,6 +14,7 @@ using QuanLyChoThuePhongTroWeb.Application.Features.YeuCauSuCos.Services;
 using QuanLyChoThuePhongTroWeb.Application.Features.ThongBaos.Services;
 using QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.Services;
 using QuanLyChoThuePhongTroWeb.Application.Features.ViecCanLam.Services;
+using QuanLyChoThuePhongTroWeb.Application.Features.BaoCaos.Services;
 using QuanLyChoThuePhongTroWeb.Application.Features.PublicRooms;
 using QuanLyChoThuePhongTroWeb.Application.Features.GuestAccounts;
 using QuanLyChoThuePhongTroWeb.Application.Features.Viewings;
@@ -92,6 +93,7 @@ namespace QuanLyChoThuePhongTroWeb.Application
             services.AddScoped<IThongBaoService, ThongBaoService>();
             services.AddScoped<IDashboardService, DashboardService>();
             services.AddScoped<IViecCanLamService, ViecCanLamService>();
+            services.AddScoped<IBaoCaoService, BaoCaoService>();
 
             // AI assistant
             services.AddScoped<Features.GuestAssistant.IGuestAssistantService, Features.GuestAssistant.GuestAssistantService>();

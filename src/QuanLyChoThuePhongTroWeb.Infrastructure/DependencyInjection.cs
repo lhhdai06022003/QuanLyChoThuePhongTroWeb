@@ -56,6 +56,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.LichSuThanhToans.Persistence.ILichSuThanhToanStore, Persistence.Features.LichSuThanhToanStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.Persistence.IDashboardStore, Persistence.Features.DashboardStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.ViecCanLam.Persistence.IViecCanLamStore, Persistence.Features.ViecCanLamStore>();
+            services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.BaoCaos.Persistence.IBaoCaoStore, Persistence.Features.BaoCaoStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.NhanViens.Persistence.IEmployeeBranchStore, Persistence.Features.EmployeeBranchStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.NhanViens.Persistence.IEmployeeBranchAssignmentStore, Persistence.Features.EmployeeBranchAssignmentStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.NguoiDungs.Persistence.IUserSessionStore, Persistence.Features.UserSessionStore>();
@@ -63,6 +64,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure
             // Document exporters & QR services
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Abstractions.Services.IInvoiceDocumentExporter, ExternalServices.DocumentExporters.InvoiceDocumentExporter>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Abstractions.Services.IBienBanThanhLyExporter, ExternalServices.DocumentExporters.BienBanThanhLyExporter>();
+            services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Abstractions.Services.IBaoCaoExcelExporter, ExternalServices.DocumentExporters.BaoCaoExcelExporter>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Abstractions.Services.IVietQRService, ExternalServices.DocumentExporters.VietQRService>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Abstractions.Services.IContractDocumentGenerator, ExternalServices.DocumentExporters.DocXContractDocumentGenerator>();
 

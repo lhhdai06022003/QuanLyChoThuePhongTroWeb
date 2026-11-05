@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using QuanLyChoThuePhongTroWeb.Application.Features.AiAssistants.Services;
+using QuanLyChoThuePhongTroWeb.Application.Features.BaoCaos.Services;
 using QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.Services;
 using QuanLyChoThuePhongTroWeb.Application.Features.DichVus.Services;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services;
@@ -32,6 +33,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             typeof(IDichVuService),
             typeof(IDashboardService),
             typeof(IViecCanLamService),
+            typeof(IBaoCaoService),
             typeof(IAiAssistantService),
             typeof(IYeuCauSuCoService),
             typeof(IAutoInvoiceService),

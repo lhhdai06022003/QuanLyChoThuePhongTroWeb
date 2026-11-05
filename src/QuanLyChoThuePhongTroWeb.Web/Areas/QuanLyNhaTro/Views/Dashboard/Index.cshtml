@@ -105,7 +105,7 @@
     <div class="dashboard-layout mb-5">
         <div class="card dashboard-chart">
             <div class="card-body">
-                <h3 class="card-title mb-3"><i class="ti ti-chart-bar me-2 text-primary"></i>Xu hướng doanh thu (Năm <span id="chartYearText">@Model.SelectedYear</span>)</h3>
+                <h3 class="card-title mb-3"><i class="ti ti-chart-bar me-2 text-primary"></i>Xu hướng doanh thu (Năm <span id="chartYearText">@Model.SelectedYear</span>)<a href="@Url.Action("Index", "BaoCao", new { area = "QuanLyNhaTro", tab = "doanh-thu" })" class="btn btn-sm btn-outline-primary ms-2">Xem báo cáo chi tiết</a></h3>
                 <div style="height: 320px; position: relative;">
                     <canvas id="revenueBarChart"></canvas>
                 </div>

@@ -191,22 +191,14 @@ public static class PaymentNotificationFormatter
     // Dùng chung với biên lai web và panel thanh toán của khách thuê (cùng nhãn phương thức với email biên lai).
     internal static string PaymentMethodLabel(string maGiaoDich, PhuongThucThanhToan phuongThuc)
     {
-        if (InvoicePaymentPolicy.IsVnPayKey(maGiaoDich))
+        return PaymentChannels.Of(maGiaoDich, phuongThuc) switch
         {
-            return $"{VnPayMethodName} (VNPay)";
-        }
-
-        if (maGiaoDich.StartsWith(InvoicePaymentPolicy.SePayMaGiaoDichPrefix, StringComparison.OrdinalIgnoreCase))
-        {
-            return "Chuyển khoản 24/7 (VietQR, tự động)";
-        }
-
-        if (phuongThuc == PhuongThucThanhToan.CanTruTienCoc)
-        {
-            return "Cấn trừ tiền cọc";
-        }
-
-        return phuongThuc == PhuongThucThanhToan.TienMat ? "Tiền mặt" : "Chuyển khoản";
+            KenhThu.VnPay => $"{VnPayMethodName} (VNPay)",
+            KenhThu.SePay => "Chuyển khoản 24/7 (VietQR, tự động)",
+            KenhThu.CanTruCoc => "Cấn trừ tiền cọc",
+            KenhThu.TienMat => "Tiền mặt",
+            _ => "Chuyển khoản"
+        };
     }
 
     // Mã tham chiếu ngân hàng; giao dịch không có thì dùng id SePay.
