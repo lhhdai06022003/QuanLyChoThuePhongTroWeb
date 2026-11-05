@@ -8,13 +8,13 @@
     <div class="container-xl">
         <div class="row g-2 align-items-center">
             <div class="col">
-                <h2 class="page-title text-primary font-weight-bold d-flex align-items-center">
+                <h2 class="page-title text-primary fw-bold d-flex align-items-center">
                     <i class="ti ti-users me-2"></i> Quản lý Khách Thuê
                 </h2>
             </div>
             <div class="col-auto ms-auto d-print-none">
                 <div class="btn-list">
-                    <button type="button" class="btn btn-success font-weight-bold shadow-sm d-none d-sm-inline-block" id="btnOpenAddModal">
+                    <button type="button" class="btn btn-success fw-bold shadow-sm d-none d-sm-inline-block" id="btnOpenAddModal">
                         <i class="ti ti-circle-plus me-1"></i> Thêm Người Thuê
                     </button>
                 </div>
@@ -110,7 +110,7 @@
 
             <div class="modal-footer">
                 <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i> Đóng</button>
-                <button type="button" class="btn btn-primary font-weight-bold shadow-sm" id="btnSaveData">
+                <button type="button" class="btn btn-primary fw-bold shadow-sm" id="btnSaveData">
                     <i class="ti ti-plus me-1"></i> Thêm dữ liệu
                 </button>
             </div>
@@ -159,7 +159,7 @@
                     {
                         "data": "hoVaTen",
                         "render": function(data) {
-                            return `<span class="font-weight-bold text-primary">${escapeHtml(data)}</span>`;
+                            return `<span class="fw-bold text-primary">${escapeHtml(data)}</span>`;
                         }
                     },
                     // THÊM MỚI: Hiển thị Email trên bảng. Nếu null thì hiển thị chữ "Chưa có" màu xám
@@ -315,7 +315,7 @@
                             $('#GhiChu').val(res.ghiChu);
 
                             $('#modalTitle').text('Cập nhật Người Thuê');
-                            $('#btnSaveData').removeClass('btn-primary').addClass('btn-success').addClass('font-weight-bold').addClass('shadow-sm').html('<i class="ti ti-device-floppy me-1"></i> Lưu dữ liệu');
+                            $('#btnSaveData').removeClass('btn-primary').addClass('btn-success').addClass('fw-bold').addClass('shadow-sm').html('<i class="ti ti-device-floppy me-1"></i> Lưu dữ liệu');
                             $('#nguoiThueModal').modal('show');
                         }
                     },
@@ -369,7 +369,7 @@
                 currentNguoiThueId = 0;
                 $('#frmNguoiThue')[0].reset(); 
                 $('#modalTitle').text('Thêm Người Thuê Mới');
-                $('#btnSaveData').removeClass('btn-success').addClass('btn-primary').addClass('font-weight-bold').addClass('shadow-sm').html('<i class="ti ti-plus me-1"></i> Thêm dữ liệu');
+                $('#btnSaveData').removeClass('btn-success').addClass('btn-primary').addClass('fw-bold').addClass('shadow-sm').html('<i class="ti ti-plus me-1"></i> Thêm dữ liệu');
                 $('#nguoiThueModal').modal('show');
             });
 

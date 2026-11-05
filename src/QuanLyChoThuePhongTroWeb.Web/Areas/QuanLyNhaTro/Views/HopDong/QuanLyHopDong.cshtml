@@ -12,12 +12,12 @@
     <div class="page-header d-print-none mb-3">
         <div class="row align-items-center">
             <div class="col">
-                <h2 class="page-title text-primary font-weight-bold d-flex align-items-center">
+                <h2 class="page-title text-primary fw-bold d-flex align-items-center">
                     <i class="ti ti-file-text me-2"></i> Quản lý Hợp Đồng
                 </h2>
             </div>
             <div class="col-auto ms-auto">
-                <button type="button" class="btn btn-success font-weight-bold shadow-sm" id="btnOpenAddModal">
+                <button type="button" class="btn btn-success fw-bold shadow-sm" id="btnOpenAddModal">
                     <i class="ti ti-circle-plus me-1"></i> Tạo Hợp Đồng Mới
                 </button>
             </div>
@@ -31,7 +31,7 @@
             <div class="bg-light p-3 border border-dashed rounded-3 mb-4">
                 <div class="row g-3 align-items-end">
                     <div class="col-md-3">
-                        <label for="filterChiNhanh" class="form-label font-weight-bold text-secondary mb-1">
+                        <label for="filterChiNhanh" class="form-label fw-bold text-secondary mb-1">
                             <i class="ti ti-building me-1"></i> Chi Nhánh
                         </label>
                         <select id="filterChiNhanh" class="form-select form-select-sm">
@@ -46,7 +46,7 @@
                         </select>
                     </div>
                     <div class="col-md-3">
-                        <label for="filterNguoiThue" class="form-label font-weight-bold text-secondary mb-1">
+                        <label for="filterNguoiThue" class="form-label fw-bold text-secondary mb-1">
                             <i class="ti ti-user me-1"></i> Người Thuê
                         </label>
                         <select id="filterNguoiThue" class="form-select form-select-sm">
@@ -61,13 +61,13 @@
                         </select>
                     </div>
                     <div class="col-md-3">
-                        <label for="filterDateRange" class="form-label font-weight-bold text-secondary mb-1">
+                        <label for="filterDateRange" class="form-label fw-bold text-secondary mb-1">
                             <i class="ti ti-calendar me-1"></i> Thời hạn hợp đồng
                         </label>
                         <input type="text" class="form-control form-control-sm" id="filterDateRange" placeholder="Chọn khoảng thời gian...">
                     </div>
                     <div class="col-md-3">
-                        <label for="filterTrangThai" class="form-label font-weight-bold text-secondary mb-1">
+                        <label for="filterTrangThai" class="form-label fw-bold text-secondary mb-1">
                             <i class="ti ti-info-circle me-1"></i> Trạng thái
                         </label>
                         <select id="filterTrangThai" class="form-select form-select-sm">
@@ -78,7 +78,7 @@
                         </select>
                     </div>
                     <div class="col-md-3">
-                        <label for="filterBoLoc" class="form-label font-weight-bold text-secondary mb-1">
+                        <label for="filterBoLoc" class="form-label fw-bold text-secondary mb-1">
                             <i class="ti ti-filter me-1"></i> Bộ lọc nhanh
                         </label>
                         <select id="filterBoLoc" class="form-select form-select-sm">
@@ -117,7 +117,7 @@
     <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
         <div class="modal-content shadow-lg border-0">
             <div class="modal-header bg-primary-lt py-3">
-                <h5 class="modal-title font-weight-bold" id="modalTitle">Thêm Hợp Đồng Mới</h5>
+                <h5 class="modal-title fw-bold" id="modalTitle">Thêm Hợp Đồng Mới</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
             </div>
 
@@ -181,7 +181,7 @@
                                 <div class="mb-3" id="groupNguoiDungCoO">
                                     <div class="form-check">
                                         <input class="form-check-input" type="checkbox" id="NguoiDungCoOPhongKhong" checked>
-                                        <label for="NguoiDungCoOPhongKhong" class="form-check-label text-success font-weight-bold">
+                                        <label for="NguoiDungCoOPhongKhong" class="form-check-label text-success fw-bold">
                                             Người đại diện có ở tại phòng này không?
                                         </label>
                                     </div>
@@ -254,7 +254,7 @@
                                             <div class="card-header p-2 bg-light d-flex align-items-center">
                                                 <div class="form-check m-0">
                                                     <input class="form-check-input chk-dieukhoan" type="checkbox" id="dk_@dk.DieuKhoanMauId" value="@dk.DieuKhoanMauId">
-                                                    <label class="form-check-label font-weight-bold" for="dk_@dk.DieuKhoanMauId">
+                                                    <label class="form-check-label fw-bold" for="dk_@dk.DieuKhoanMauId">
                                                         @dk.TieuDe
                                                     </label>
                                                 </div>
@@ -576,7 +576,7 @@
                             return meta.row + meta.settings._iDisplayStart + 1;
                         }
                     },
-                    { "data": "maHopDong", "name": "maHopDong", "className": "font-weight-bold text-primary align-middle", "render": $.fn.dataTable.render.text() },
+                    { "data": "maHopDong", "name": "maHopDong", "className": "fw-bold text-primary align-middle", "render": $.fn.dataTable.render.text() },
                     { "data": "soPhong", "name": "SoPhong", "orderable": true, "className": "align-middle", "render": $.fn.dataTable.render.text() },
                     { "data": "tenNguoiThue", "orderable": false, "className": "align-middle", "render": $.fn.dataTable.render.text() },
                     {

@@ -46,7 +46,7 @@
     {
         var menuSlug = "sidebar-menu-" + System.Text.RegularExpressions.Regex.Replace(Model.Name, @"\W+", "-").Trim('-').ToLowerInvariant();
         <li class="nav-item dropdown @(isAnyChildActive ? "active" : "")">
-            <a class="nav-link dropdown-toggle @(isAnyChildActive ? "show text-primary font-weight-bold" : "")"
+            <a class="nav-link dropdown-toggle @(isAnyChildActive ? "show text-primary fw-bold" : "")"
                href="#@menuSlug"
                data-bs-toggle="dropdown"
                data-bs-auto-close="false"

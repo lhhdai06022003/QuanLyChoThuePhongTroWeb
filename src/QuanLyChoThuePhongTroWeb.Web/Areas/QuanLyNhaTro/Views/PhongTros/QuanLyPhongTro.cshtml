@@ -10,7 +10,7 @@
     <div class="page-header d-print-none mb-3">
         <div class="row align-items-center">
             <div class="col d-flex align-items-center gap-3">
-                <h2 class="page-title text-primary font-weight-bold d-flex align-items-center m-0">
+                <h2 class="page-title text-primary fw-bold d-flex align-items-center m-0">
                     <i class="ti ti-bed me-2"></i> Quản Lý Phòng Trọ
                 </h2>
                 <div class="view-toggle btn-group" role="group">
@@ -19,12 +19,12 @@
                 </div>
             </div>
             <div class="col-auto ms-auto">
-                @* <button type="button" class="btn btn-success me-2 font-weight-bold" id="btnPhatSinhPhong">
+                @* <button type="button" class="btn btn-success me-2 fw-bold" id="btnPhatSinhPhong">
                     <i class="ti ti-wand"></i> Phát sinh 10 phòng ngẫu nhiên
                 </button> *@
                 @if (laAdmin)
                 {
-                    <button type="button" class="btn btn-success font-weight-bold shadow-sm" id="btnOpenAddModal">
+                    <button type="button" class="btn btn-success fw-bold shadow-sm" id="btnOpenAddModal">
                         <i class="ti ti-circle-plus me-1"></i> Thêm Mới Phòng
                     </button>
                 }
@@ -45,7 +45,7 @@
                             </div>
                             <div class="col text-end">
                                 <div class="text-secondary small font-weight-medium">Phòng trống</div>
-                                <div class="h3 mb-0 font-weight-bold" id="statTrong">0</div>
+                                <div class="h3 mb-0 fw-bold" id="statTrong">0</div>
                             </div>
                         </div>
                     </div>
@@ -60,7 +60,7 @@
                             </div>
                             <div class="col text-end">
                                 <div class="text-secondary small font-weight-medium">Đã thuê</div>
-                                <div class="h3 mb-0 font-weight-bold" id="statDaThue">0</div>
+                                <div class="h3 mb-0 fw-bold" id="statDaThue">0</div>
                             </div>
                         </div>
                     </div>
@@ -75,7 +75,7 @@
                             </div>
                             <div class="col text-end">
                                 <div class="text-secondary small font-weight-medium">Đang nợ</div>
-                                <div class="h3 mb-0 font-weight-bold" id="statNoTien">0</div>
+                                <div class="h3 mb-0 fw-bold" id="statNoTien">0</div>
                             </div>
                         </div>
                     </div>
@@ -90,7 +90,7 @@
                             </div>
                             <div class="col text-end">
                                 <div class="text-secondary small font-weight-medium">Sắp hết hạn</div>
-                                <div class="h3 mb-0 font-weight-bold" id="statSapHetHan">0</div>
+                                <div class="h3 mb-0 fw-bold" id="statSapHetHan">0</div>
                             </div>
                         </div>
                     </div>
@@ -239,7 +239,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i> Đóng</button>
-                <button type="button" class="btn btn-primary font-weight-bold shadow-sm" id="btnSaveData"><i class="ti ti-plus me-1"></i> Thêm dữ liệu</button>
+                <button type="button" class="btn btn-primary fw-bold shadow-sm" id="btnSaveData"><i class="ti ti-plus me-1"></i> Thêm dữ liệu</button>
             </div>
         </div>
     </div>
@@ -299,7 +299,7 @@
             <div class="modal-body">
                 <div class="row mb-3">
                     <div class="col-md-6 border-end">
-                        <h6 class="font-weight-bold text-primary border-bottom pb-1 mb-2"><i class="ti ti-info-circle"></i> Thông tin hợp đồng</h6>
+                        <h6 class="fw-bold text-primary border-bottom pb-1 mb-2"><i class="ti ti-info-circle"></i> Thông tin hợp đồng</h6>
                         <table class="table table-sm table-borderless">
                             <tr><td width="40%">Mã HĐ:</td><td><strong id="qcMaHD"></strong></td></tr>
                             <tr><td>Ngày bắt đầu:</td><td id="qcNgayBatDau"></td></tr>
@@ -309,7 +309,7 @@
                         </table>
                     </div>
                     <div class="col-md-6">
-                        <h6 class="font-weight-bold text-primary border-bottom pb-1 mb-2"><i class="ti ti-user"></i> Đại diện ký hợp đồng</h6>
+                        <h6 class="fw-bold text-primary border-bottom pb-1 mb-2"><i class="ti ti-user"></i> Đại diện ký hợp đồng</h6>
                         <table class="table table-sm table-borderless">
                             <tr><td width="40%">Họ tên:</td><td><strong id="qcTenDaiDien"></strong></td></tr>
                             <tr><td>Số điện thoại:</td><td id="qcSDTDaiDien"></td></tr>
@@ -320,10 +320,10 @@
 
                 <ul class="nav nav-tabs mb-3" id="quickContractTabs" role="tablist">
                     <li class="nav-item">
-                        <a class="nav-link active font-weight-bold" id="qc-members-tab" data-bs-toggle="tab" href="#qc-members-pane" role="tab"><i class="ti ti-users me-1"></i> Khách ở ghép (<span id="qcMemberCount">0</span>)</a>
+                        <a class="nav-link active fw-bold" id="qc-members-tab" data-bs-toggle="tab" href="#qc-members-pane" role="tab"><i class="ti ti-users me-1"></i> Khách ở ghép (<span id="qcMemberCount">0</span>)</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link font-weight-bold" id="qc-services-tab" data-bs-toggle="tab" href="#qc-services-pane" role="tab"><i class="ti ti-bell me-1"></i> Dịch vụ đăng ký (<span id="qcServiceCount">0</span>)</a>
+                        <a class="nav-link fw-bold" id="qc-services-tab" data-bs-toggle="tab" href="#qc-services-pane" role="tab"><i class="ti ti-bell me-1"></i> Dịch vụ đăng ký (<span id="qcServiceCount">0</span>)</a>
                     </li>
                 </ul>
 
@@ -380,10 +380,10 @@
                 <input type="hidden" id="qpInvoiceId" />
                 <div class="row">
                     <div class="col-lg-7 border-end">
-                        <h6 class="font-weight-bold text-success border-bottom pb-2 mb-3">
-                            <i class="ti ti-receipt-dollar me-1"></i> Hóa đơn chưa thanh toán kỳ: <span id="qpInvoicePeriod" class="text-danger font-weight-bold"></span>
+                        <h6 class="fw-bold text-success border-bottom pb-2 mb-3">
+                            <i class="ti ti-receipt-dollar me-1"></i> Hóa đơn chưa thanh toán kỳ: <span id="qpInvoicePeriod" class="text-danger fw-bold"></span>
                         </h6>
-                        <div class="row mb-3 font-weight-bold text-secondary">
+                        <div class="row mb-3 fw-bold text-secondary">
                             <div class="col-md-6">Mã Hóa Đơn: <span id="qpInvoiceCode"></span></div>
                             <div class="col-md-6 text-end">Khách thuê: <span id="qpTenantName"></span></div>
                         </div>
@@ -402,8 +402,8 @@
                             </tbody>
                             <tfoot>
                                 <tr>
-                                    <td colspan="5" class="text-right font-weight-bold align-middle">TỔNG CỘNG THANH TOÁN:</td>
-                                    <td class="text-right text-danger font-weight-bold align-middle" style="font-size: 1.25rem;" id="qpTotalAmount"></td>
+                                    <td colspan="5" class="text-right fw-bold align-middle">TỔNG CỘNG THANH TOÁN:</td>
+                                    <td class="text-right text-danger fw-bold align-middle" style="font-size: 1.25rem;" id="qpTotalAmount"></td>
                                 </tr>
                             </tfoot>
                         </table>
@@ -414,7 +414,7 @@
                     <div class="col-lg-5 text-center mt-3 mt-lg-0">
                         <div class="card p-3 shadow-sm h-100 d-flex flex-column justify-content-between border-0">
                             <div>
-                                <h6 class="font-weight-bold text-primary mb-2"><i class="ti ti-qrcode me-1"></i> Quét mã QR chuyển khoản nhanh</h6>
+                                <h6 class="fw-bold text-primary mb-2"><i class="ti ti-qrcode me-1"></i> Quét mã QR chuyển khoản nhanh</h6>
                                 <div class="my-3">
                                     <img id="qpQRImage" src="" class="img-fluid border rounded p-2 bg-white" style="max-width: 200px; height: auto;" alt="VietQR" />
                                 </div>
@@ -422,12 +422,12 @@
                             </div>
                             <div class="bg-light p-3 rounded text-start small" style="line-height: 1.6;">
                                 <div class="border-bottom pb-1 mb-1"><strong>Nội dung thanh toán:</strong></div>
-                                <div><strong>Nội dung CK:</strong> <code id="qpCKContent" class="text-primary font-weight-bold" style="font-size: 0.95rem;"></code></div>
+                                <div><strong>Nội dung CK:</strong> <code id="qpCKContent" class="text-primary fw-bold" style="font-size: 0.95rem;"></code></div>
                                 <div class="border-top pt-1 mt-1"><strong>Thông tin người nhận thụ hưởng:</strong></div>
                                 <div class="row text-muted">
-                                    <div class="col-4">Ngân hàng:</div><div class="col-8 font-weight-bold" id="qpBankId"></div>
-                                    <div class="col-4">Số tài khoản:</div><div class="col-8 font-weight-bold" id="qpAccountNumber"></div>
-                                    <div class="col-4">Tên tài khoản:</div><div class="col-8 font-weight-bold" id="qpAccountName"></div>
+                                    <div class="col-4">Ngân hàng:</div><div class="col-8 fw-bold" id="qpBankId"></div>
+                                    <div class="col-4">Số tài khoản:</div><div class="col-8 fw-bold" id="qpAccountNumber"></div>
+                                    <div class="col-4">Tên tài khoản:</div><div class="col-8 fw-bold" id="qpAccountName"></div>
                                 </div>
                             </div>
                         </div>
@@ -436,7 +436,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i> Đóng</button>
-                <button type="button" class="btn btn-primary font-weight-bold px-4" id="btnConfirmQuickPayment">
+                <button type="button" class="btn btn-primary fw-bold px-4" id="btnConfirmQuickPayment">
                     <i class="ti ti-report-money me-1"></i> Thu tiền
                 </button>
             </div>
@@ -634,7 +634,7 @@
                     $('#TrangThai').val(d.trangThai);
                     $('#MoTa').val(d.moTa);
                     $('#modalTitle').text('Chỉnh sửa: Phòng ' + (d.soPhong || ""));
-                    $('#btnSaveData').removeClass('btn-primary').addClass('btn-success').addClass('font-weight-bold').addClass('shadow-sm').html('<i class="ti ti-device-floppy me-1"></i> Lưu dữ liệu');
+                    $('#btnSaveData').removeClass('btn-primary').addClass('btn-success').addClass('fw-bold').addClass('shadow-sm').html('<i class="ti ti-device-floppy me-1"></i> Lưu dữ liệu');
                     $('#phongTroModal').modal('show');
                 }
             }).fail(function (xhr) {
@@ -710,7 +710,7 @@
                         mHtml += `
                             <tr>
                                 <td class="text-center">${idx + 1}</td>
-                                <td class="font-weight-bold">${escapeHtml(m.hoVaTen)}</td>
+                                <td class="fw-bold">${escapeHtml(m.hoVaTen)}</td>
                                 <td class="text-center">${escapeHtml(m.soDienThoai) || '-'}</td>
                                 <td class="text-center">${escapeHtml(m.cccd) || '-'}</td>
                                 <td class="text-center">${m.ngayVao}</td>
@@ -728,7 +728,7 @@
                         sHtml += `
                             <tr>
                                 <td class="text-center">${idx + 1}</td>
-                                <td class="font-weight-bold">${escapeHtml(s.tenDichVu)}</td>
+                                <td class="fw-bold">${escapeHtml(s.tenDichVu)}</td>
                                 <td class="text-right">${formatVND(s.donGia)}</td>
                                 <td class="text-center">${s.soLuong}</td>
                                 <td class="text-center">${escapeHtml(s.donVi) || '-'}</td>
@@ -792,7 +792,7 @@
                                 <td class="text-right">${formatVND(d.donGia)}</td>
                                 <td class="text-center">${d.soLuong}</td>
                                 <td class="text-center">${escapeHtml(d.donVi) || '-'}</td>
-                                <td class="text-right font-weight-bold">${formatVND(d.tongTien)}</td>
+                                <td class="text-right fw-bold">${formatVND(d.tongTien)}</td>
                             </tr>`;
                     });
                 } else {
@@ -902,13 +902,13 @@
 
             let html = `
                 <div class="detail-row"><span class="detail-label">Chi nhánh:</span> <span class="detail-value">${escapeHtml(r.tenChiNhanh)}</span></div>
-                <div class="detail-row"><span class="detail-label">Giá thuê:</span> <span class="detail-value text-danger font-weight-bold">${formatVND(r.giaThue)}/tháng</span></div>
+                <div class="detail-row"><span class="detail-label">Giá thuê:</span> <span class="detail-value text-danger fw-bold">${formatVND(r.giaThue)}/tháng</span></div>
                 <div class="detail-row"><span class="detail-label">Diện tích:</span> <span class="detail-value">${r.dienTich} m²</span></div>
                 <div class="detail-row"><span class="detail-label">Tầng:</span> <span class="detail-value">${r.tangLau}</span></div>
                 <div class="detail-row"><span class="detail-label">Số người tối đa:</span> <span class="detail-value">${r.soNguoiToiDa}</span></div><hr>`;
 
             if (r.trangThai === 1 && r.tenNguoiThue) {
-                html += `<h6 class="font-weight-bold"><i class="ti ti-user"></i> Thông tin người thuê</h6>
+                html += `<h6 class="fw-bold"><i class="ti ti-user"></i> Thông tin người thuê</h6>
                     <div class="detail-row"><span class="detail-label">Họ tên:</span> <span class="detail-value">${escapeHtml(r.tenNguoiThue)}</span></div>
                     <div class="detail-row"><span class="detail-label">SĐT:</span> <span class="detail-value">${escapeHtml(r.sdtNguoiThue) || 'N/A'}</span></div>`;
                 if (r.ngayHetHan) html += `<div class="detail-row"><span class="detail-label">Hết hạn HĐ:</span> <span class="detail-value">${new Date(r.ngayHetHan).toLocaleDateString('vi-VN')}</span></div>`;
@@ -935,7 +935,7 @@
                     { "data": null, "className": "text-center align-middle", "orderable": false, "searchable": false,
                         "render": (d,t,r,m) => m.row + m.settings._iDisplayStart + 1 },
                     { "data": "tenChiNhanh", "className": "align-middle", "render": $.fn.dataTable.render.text() },
-                    { "data": "soPhong", "className": "align-middle", "render": d => `<span class="font-weight-bold text-primary">${escapeHtml(d)}</span>` },
+                    { "data": "soPhong", "className": "align-middle", "render": d => `<span class="fw-bold text-primary">${escapeHtml(d)}</span>` },
                     { "data": "tangLau", "className": "text-center align-middle" },
                     { "data": "giaThue", "className": "text-end align-middle", "render": d => formatVND(d) },
                     { "data": "dienTich", "className": "text-center align-middle", "render": d => d + " m²" },
@@ -1009,7 +1009,7 @@
                 $('#GiaThue').val(''); $('#DienTich').val(''); $('#SoNguoiToiDa').val('2');
                 $('#TrangThai').val('0'); $('#MoTa').val('');
                 $('#modalTitle').text('Thêm Phòng Trọ Mới');
-                $('#btnSaveData').removeClass('btn-success').addClass('btn-primary').addClass('font-weight-bold').addClass('shadow-sm').html('<i class="ti ti-plus me-1"></i> Thêm dữ liệu');
+                $('#btnSaveData').removeClass('btn-success').addClass('btn-primary').addClass('fw-bold').addClass('shadow-sm').html('<i class="ti ti-plus me-1"></i> Thêm dữ liệu');
                 $('#phongTroModal').modal('show');
             });
 
@@ -1088,7 +1088,7 @@
                         $('#DienTich').val(d.dienTich); $('#SoNguoiToiDa').val(d.soNguoiToiDa);
                         $('#TrangThai').val(d.trangThai); $('#MoTa').val(d.moTa);
                         $('#modalTitle').text('Chỉnh sửa: Phòng ' + (d.soPhong || ""));
-                        $('#btnSaveData').removeClass('btn-primary').addClass('btn-success').addClass('font-weight-bold').addClass('shadow-sm').html('<i class="ti ti-device-floppy me-1"></i> Lưu dữ liệu');
+                        $('#btnSaveData').removeClass('btn-primary').addClass('btn-success').addClass('fw-bold').addClass('shadow-sm').html('<i class="ti ti-device-floppy me-1"></i> Lưu dữ liệu');
                         $('#phongTroModal').modal('show');
                     } else showError("Lỗi: " + (res.message || "Không tải được."));
                     $btn.prop('disabled', false).html(orig);
