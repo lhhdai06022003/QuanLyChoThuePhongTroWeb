@@ -77,6 +77,17 @@
                             <option value="3">Đã hủy</option>
                         </select>
                     </div>
+                    <div class="col-md-3">
+                        <label for="filterBoLoc" class="form-label font-weight-bold text-secondary mb-1">
+                            <i class="ti ti-filter me-1"></i> Bộ lọc nhanh
+                        </label>
+                        <select id="filterBoLoc" class="form-select form-select-sm">
+                            <option value="">-- Tất cả --</option>
+                            <option value="QuaHan">Quá hạn chưa xử lý</option>
+                            <option value="SapHetHan">Sắp hết hạn (30 ngày)</option>
+                            <option value="GiaHan">Gia hạn</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
@@ -163,6 +174,7 @@
                                             }
                                         }
                                     </select>
+                                    <div id="canhBaoNoCu"></div>
                                 </div>
 
                                 <div class="mb-3" id="groupNguoiDungCoO">
@@ -201,7 +213,6 @@
                                     <label for="TrangThaiHopDong" class="form-label">Trạng Thái Hợp Đồng <span class="text-danger">*</span></label>
                                     <select class="form-select" id="TrangThaiHopDong">
                                         <option value="1">Đang hoạt động</option>
-                                        <option value="2">Đã kết thúc</option>
                                         <option value="3">Đã hủy</option>
                                     </select>
                                 </div>
@@ -442,6 +453,25 @@
                 });
             }
 
+            // Cảnh báo nợ cũ của người thuê ở hợp đồng đã kết thúc (không chặn lưu).
+            function hienCanhBaoNoCu(nguoiThueId, $dich) {
+                $dich.empty();
+                if (!nguoiThueId) return;
+                $.get('/NguoiThue/NoCu/' + encodeURIComponent(nguoiThueId)).done(function (res) {
+                    if (!res || !(res.tongNo > 0)) return;
+                    const ds = (res.hoaDons || []).map(h => escapeHtml(h.maHoaDon) + ' (' + escapeHtml(h.maHopDong) + ')').join(', ');
+                    $dich.html('<div class="alert alert-warning mt-2 mb-0">Người thuê đang nợ ' + formatVND(res.tongNo) + ' ở hợp đồng đã kết thúc: ' + ds + '</div>');
+                });
+            }
+
+            $('#NguoiThueId').on('change', function () {
+                if (window.currentHopDongId > 0) {
+                    $('#canhBaoNoCu').empty();
+                    return;
+                }
+                hienCanhBaoNoCu($(this).val(), $('#canhBaoNoCu'));
+            });
+
             // Mảng dữ liệu phòng trọ từ ViewBag
             let allPhongTros = @jsonPhongTros || [];
 
@@ -506,6 +536,10 @@
             if (urlParams.has('chiNhanhId')) {
                 $('#filterChiNhanh').val(urlParams.get('chiNhanhId'));
             }
+            const urlBoLoc = urlParams.get('boLoc');
+            if (urlBoLoc && $('#filterBoLoc option').filter(function () { return this.value === urlBoLoc; }).length > 0) {
+                $('#filterBoLoc').val(urlBoLoc);
+            }
 
             // KHỞI TẠO DATATABLE SERVER-SIDE
             var table = $('#hopDongTable').DataTable({
@@ -521,6 +555,7 @@
                         d.chiNhanhId = $('#filterChiNhanh').val();
                         d.nguoiThueId = $('#filterNguoiThue').val();
                         d.trangThai = $('#filterTrangThai').val();
+                        d.boLoc = $('#filterBoLoc').val();
 
                         // Lấy khoảng ngày từ Flatpickr gửi lên Server
                         let selectedDates = filterPicker.selectedDates;
@@ -572,7 +607,16 @@
                         "data": "hopDongId",
                         "orderable": false,
                         "className": "text-center align-middle",
-                        "render": function (data) {
+                        "render": function (data, type, row) {
+                            const nutSua = row.trangThaiHopDong === 2 ? '' : `
+                                            <button class="dropdown-item btn-edit text-warning py-2" data-id="${data}">
+                                                <i class="ti ti-edit me-2"></i> Chỉnh sửa
+                                            </button>`;
+                            // Chỉ hợp đồng Đã hủy (3) mới xóa được; hợp đồng đã kết thúc được lưu trữ.
+                            const nutXoa = row.trangThaiHopDong !== 3 ? '' : `
+                                            <button class="dropdown-item btn-delete text-danger py-2" data-id="${data}">
+                                                <i class="ti ti-trash me-2"></i> Xóa hợp đồng
+                                            </button>`;
                             return `
                                 <div class="d-flex justify-content-center">
                                     <div class="dropdown">
@@ -580,6 +624,9 @@
                                             <i class="ti ti-settings"></i>
                                         </button>
                                         <div class="dropdown-menu dropdown-menu-end">
+                                            <a href="/QuanLyNhaTro/HopDong/ChiTiet/${data}" class="dropdown-item py-2">
+                                                <i class="ti ti-eye me-2"></i> Chi tiết
+                                            </a>
                                             <a href="/HopDong/Print/${data}" target="_blank" class="dropdown-item text-info py-2">
                                                 <i class="ti ti-printer me-2"></i> In Hợp Đồng
                                             </a>
@@ -587,12 +634,8 @@
                                                 <i class="ti ti-file-type-docx me-2"></i> Tải Word
                                             </a>
                                             <div class="dropdown-divider"></div>
-                                            <button class="dropdown-item btn-edit text-warning py-2" data-id="${data}">
-                                                <i class="ti ti-edit me-2"></i> Chỉnh sửa
-                                            </button>
-                                            <button class="dropdown-item btn-delete text-danger py-2" data-id="${data}">
-                                                <i class="ti ti-trash me-2"></i> Xóa hợp đồng
-                                            </button>
+                                            ${nutSua}
+                                            ${nutXoa}
                                         </div>
                                     </div>
                                 </div>
@@ -604,7 +647,7 @@
             });
 
             // Tự động tải lại dữ liệu khi thay đổi các bộ lọc
-            $('#filterChiNhanh, #filterNguoiThue, #filterTrangThai').on('change', function () {
+            $('#filterChiNhanh, #filterNguoiThue, #filterTrangThai, #filterBoLoc').on('change', function () {
                 table.ajax.reload();
             });
 
@@ -711,10 +754,12 @@
                 $('#addMember_HoVaTen').val(data.hoVaTen).prop('disabled', true);
                 $('#addMember_SoDienThoai').val(data.soDienThoai).prop('disabled', true);
                 $('#addMember_CCCD').val(data.cccd).prop('disabled', true);
+                hienCanhBaoNoCu(data.id, $('#addMember_NoCuWarning'));
             });
 
             // Khi người dùng click nút clear trong select2
             $('#addMember_SearchNguoiThue').on('select2:clear', function () {
+                $('#addMember_NoCuWarning').empty();
                 resetAddMemberForm();
             });
 

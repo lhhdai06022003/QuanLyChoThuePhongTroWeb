@@ -1,0 +1,75 @@
+@using QuanLyChoThuePhongTroWeb.Web.Helpers
+@model LichSuThueDto
+@{
+    ViewData["Title"] = "Chi tiết người thuê " + Model.HoVaTen;
+
+    string Ngay(DateTime utc) => VietnamTime.Format(utc, "dd/MM/yyyy");
+}
+
+<div class="container-xl py-4">
+    <a href="/QuanLyNhaTro/QuanLyNguoiThue">← Danh sách người thuê</a>
+    <h1 class="page-title mt-3">@Model.HoVaTen</h1>
+    <p class="text-secondary">CCCD: @Model.CCCD · Điện thoại: @Model.SoDienThoai</p>
+
+    <div class="card">
+        <div class="card-header">
+            <ul class="nav nav-tabs card-header-tabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <a href="#tab-lich-su-thue" class="nav-link active" data-bs-toggle="tab" role="tab" aria-selected="true">Lịch sử thuê</a>
+                </li>
+            </ul>
+        </div>
+        <div class="card-body">
+            <div class="tab-content">
+                <div class="tab-pane active show" id="tab-lich-su-thue" role="tabpanel">
+                    <div class="row row-cards mb-4">
+                        <div class="col-6 col-lg"><div class="card"><div class="card-body"><div class="text-secondary small">Số lần thuê</div><div class="h3 mb-0">@Model.SoLanThue</div></div></div></div>
+                        <div class="col-6 col-lg"><div class="card"><div class="card-body"><div class="text-secondary small">Số hợp đồng</div><div class="h3 mb-0">@Model.SoHopDong</div></div></div></div>
+                        <div class="col-6 col-lg"><div class="card"><div class="card-body"><div class="text-secondary small">Số lần ở ghép</div><div class="h3 mb-0">@Model.SoLanOGhep</div></div></div></div>
+                        <div class="col-6 col-lg"><div class="card"><div class="card-body"><div class="text-secondary small">Tổng số tháng ở</div><div class="h3 mb-0">@Model.TongSoThang</div></div></div></div>
+                        <div class="col-6 col-lg"><div class="card"><div class="card-body"><div class="text-secondary small">Nợ hiện tại</div><div class="h3 mb-0 @(Model.NoHienTai > 0 ? "text-danger" : "")">@VndFormat.Money(Model.NoHienTai)</div></div></div></div>
+                    </div>
+
+                    @if (Model.Dong.Count == 0)
+                    {
+                        <p class="text-secondary mb-0">Chưa có hợp đồng nào trong phạm vi bạn được xem.</p>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-vcenter">
+                                <thead>
+                                    <tr>
+                                        <th>Mã HĐ</th>
+                                        <th>Vai trò</th>
+                                        <th>Loại</th>
+                                        <th>Phòng</th>
+                                        <th>Chi nhánh</th>
+                                        <th>Từ - đến</th>
+                                        <th>Trạng thái</th>
+                                        <th class="text-end">Còn nợ</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var d in Model.Dong)
+                                    {
+                                        <tr>
+                                            <td><a href="/QuanLyNhaTro/HopDong/ChiTiet/@d.HopDongId">@d.MaHopDong</a></td>
+                                            <td>@d.VaiTro</td>
+                                            <td>@d.LoaiText</td>
+                                            <td>@d.SoPhong</td>
+                                            <td>@d.TenChiNhanh</td>
+                                            <td>@Ngay(d.TuUtc) - @(d.DenUtc.HasValue ? Ngay(d.DenUtc.Value) : "Chưa có")</td>
+                                            <td>@d.TrangThaiText</td>
+                                            <td class="text-end">@(d.ConNo > 0 ? VndFormat.Money(d.ConNo) : "-")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

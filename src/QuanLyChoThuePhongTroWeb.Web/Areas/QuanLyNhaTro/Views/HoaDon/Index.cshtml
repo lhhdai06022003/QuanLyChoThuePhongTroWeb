@@ -83,6 +83,11 @@
                 </div>
             </div>
 
+            <div id="locDaKetThucConNo" class="d-none align-items-center gap-2 px-3 py-2">
+                <span class="badge bg-orange-lt">Đang lọc: hóa đơn còn nợ của hợp đồng đã kết thúc</span>
+                <button type="button" class="btn btn-sm btn-ghost-secondary" id="btnBoLocDaKetThucConNo">Bỏ lọc</button>
+            </div>
+
             <div id="bulkToolbar" class="hd-bulk d-none align-items-center justify-content-between px-3 py-2">
                 <span id="bulkSelectedText">Đã chọn 0 hóa đơn</span>
                 <div class="d-flex gap-2">
@@ -425,6 +430,7 @@
                 $('#filterPhatHanh').val(urlPhatHanh);
             }
             const urlHoaDonId = parseInt(urlParams.get('hoaDonId') || '0');
+            let locDaKetThucConNo = urlParams.get('hopDongDaKetThucConNo') === '1';
 
             function formatVND(n) {
                 if (n === null || n === undefined) return "0 ₫";
@@ -494,6 +500,7 @@
                         d.nam = $('#filterNam').val();
                         d.trangThai = $('#filterTrangThai').val();
                         d.trangThaiPhatHanh = $('#filterPhatHanh').val();
+                        d.hopDongDaKetThucConNo = locDaKetThucConNo ? 1 : 0;
                         d.__RequestVerificationToken = $('input[name="__RequestVerificationToken"]').val();
                     }
                 },
@@ -781,6 +788,16 @@
             });
 
             // ========== Filter ==========
+            function capNhatBadgeDaKetThucConNo() {
+                $('#locDaKetThucConNo').toggleClass('d-none', !locDaKetThucConNo).toggleClass('d-flex', locDaKetThucConNo);
+            }
+            capNhatBadgeDaKetThucConNo();
+            $('#btnBoLocDaKetThucConNo').on('click', function () {
+                locDaKetThucConNo = false;
+                capNhatBadgeDaKetThucConNo();
+                table.ajax.reload();
+            });
+
             $('#filterChiNhanh, #filterThang, #filterTrangThai, #filterPhatHanh').change(function() {
                 selectedIds.clear();
                 $('#checkAllInvoices').prop('checked', false);
@@ -1104,6 +1121,12 @@
                             </div>
                             <div class="hd-total-row mb-3"><span class="fw-bold">Tổng cộng</span><span class="fw-bold text-primary fs-3 hd-num">${formatVND(res.tongTien)}</span></div>`;
 
+                    // Khoản cấn trừ tiền cọc khi thanh lý hợp đồng
+                    const canTruCoc = (res.lichSuThanhToans || []).filter(ls => ls.laCanTruCoc).reduce((s, ls) => s + ls.soTienThanhToan, 0);
+                    if (canTruCoc > 0) {
+                        html += `<div class="hd-total-row mb-3"><span>Trừ tiền cọc</span><span class="hd-num">−${formatVND(canTruCoc)}</span></div>`;
+                    }
+
                     // Lịch sử thanh toán
                     if (res.lichSuThanhToans && res.lichSuThanhToans.length > 0) {
                         html += `<h4 class="fw-bold border-bottom pb-2 mt-4"><i class="ti ti-history me-1"></i> Lịch sử thanh toán</h4>
@@ -1128,10 +1151,10 @@
                                 <td>${escapeHtml(ls.nguoiXacNhan) || '—'}</td>
                                 <td class="hd-note">${escapeHtml(ls.ghiChu || '')}</td>
                                 <td class="text-end">
-                                    <div class="btn-list flex-nowrap justify-content-end">
+                                    ${ls.laCanTruCoc ? '' : `<div class="btn-list flex-nowrap justify-content-end">
                                         <a class="btn btn-sm btn-outline-primary" href="/QuanLyNhaTro/HoaDon/BienLai/${ls.lichSuThanhToanId}" target="_blank" rel="noopener"><i class="ti ti-receipt me-1"></i>Biên lai</a>
                                         <button type="button" class="btn btn-sm btn-outline-secondary hd-resend-receipt" data-id="${ls.lichSuThanhToanId}"><i class="ti ti-mail-forward me-1"></i>Gửi lại biên lai</button>
-                                    </div>
+                                    </div>`}
                                 </td>
                             </tr>`;
                         });

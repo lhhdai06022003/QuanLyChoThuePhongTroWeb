@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -8,6 +9,7 @@ using QuanLyChoThuePhongTroWeb.Application.Abstractions.Services;
 using QuanLyChoThuePhongTroWeb.Application.Common.Configurations;
 using QuanLyChoThuePhongTroWeb.Application.Features.Emails.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.Persistence;
+using QuanLyChoThuePhongTroWeb.Application.Features.ThongBaos.Services;
 
 namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.UseCases
 {
@@ -17,6 +19,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.UseCases
         private readonly IEmailService _emailService;
         private readonly ContractAlertSettings _settings;
         private readonly IContractExpiryAlertStateStore _stateStore;
+        private readonly IThongBaoService _thongBao;
+        private readonly TimeProvider _timeProvider;
         private readonly ILogger<ContractExpiryAlertUseCase> _logger;
 
         public ContractExpiryAlertUseCase(
@@ -24,12 +28,16 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.UseCases
             IEmailService emailService,
             ContractAlertSettings settings,
             IContractExpiryAlertStateStore stateStore,
+            IThongBaoService thongBao,
+            TimeProvider timeProvider,
             ILogger<ContractExpiryAlertUseCase> logger)
         {
             _store = store;
             _emailService = emailService;
             _settings = settings;
             _stateStore = stateStore;
+            _thongBao = thongBao;
+            _timeProvider = timeProvider;
             _logger = logger;
         }
 
@@ -133,7 +141,59 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.UseCases
                 }
             }
 
+            sentCount += await SendExpiredAppNoticesAsync(sentAlerts, cancellationToken);
+
             return sentCount;
+        }
+
+        private async Task<int> SendExpiredAppNoticesAsync(IReadOnlySet<string> sentAlerts, CancellationToken cancellationToken)
+        {
+            var nowUtc = _timeProvider.GetUtcNow().UtcDateTime;
+            var homNayVnBatDauUtc = DateTime.SpecifyKind(nowUtc.AddHours(7).Date, DateTimeKind.Utc).AddHours(-7);
+            var ngayMaiVnBatDauUtc = homNayVnBatDauUtc.AddDays(1);
+
+            var expired = await _store.GetExpiredActiveContractsAsync(ngayMaiVnBatDauUtc, cancellationToken);
+            var count = 0;
+
+            foreach (var hd in expired)
+            {
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    break;
+                }
+
+                var key = $"app_het_han_{hd.HopDongId}";
+                if (sentAlerts.Contains(key))
+                {
+                    continue;
+                }
+
+                try
+                {
+                    var ngayHetHan = hd.ThoiDiemKetThuc!.Value.AddHours(7).ToString("dd/MM/yyyy", CultureInfo.InvariantCulture);
+                    var tieuDe = $"Hợp đồng {hd.MaHopDong} đã hết hạn";
+                    var noiDung = $"Phòng {hd.PhongTro?.SoPhong} - {hd.PhongTro?.ChiNhanh?.TenChiNhanh}, người đại diện {hd.NguoiThue?.HoVaTen}, hết hạn ngày {ngayHetHan}. Hãy gia hạn hoặc thanh lý hợp đồng.";
+
+                    var result = await _thongBao.GuiChoNguoiPhuTrachPhongAsync(
+                        hd.PhongTroId, tieuDe, noiDung, "HopDong", $"/QuanLyNhaTro/HopDong/ChiTiet/{hd.HopDongId}", cancellationToken);
+
+                    if (result.Success)
+                    {
+                        await _stateStore.MarkAsSentAsync(key, cancellationToken);
+                        count++;
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Lỗi gửi thông báo hết hạn trong app cho hợp đồng {MaHopDong}.", hd.MaHopDong);
+                }
+            }
+
+            return count;
         }
     }
 }

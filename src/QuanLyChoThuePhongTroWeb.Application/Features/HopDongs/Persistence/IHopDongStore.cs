@@ -31,6 +31,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.Persistence
         Task<HopDongPrintRes?> GetPrintDataAsync(int id, CancellationToken cancellationToken = default);
         Task<IReadOnlyList<HopDong>> GetHopDongsByNguoiThueIdAsync(int nguoiThueId, CancellationToken cancellationToken = default);
         Task<HopDongKhachThueDetailDto?> GetChiTietHopDongKhachThueAsync(int id, int nguoiThueId, CancellationToken cancellationToken = default);
+        // Hợp đồng DangHoatDong chưa xóa, ThoiDiemKetThuc != null && < nowUtc (kèm PhongTro + ChiNhanh, NguoiThue).
         Task<IReadOnlyList<HopDong>> GetExpiredActiveContractsAsync(DateTime nowUtc, CancellationToken cancellationToken = default);
         Task<IReadOnlyList<DangKyDichVu>> GetActiveServicesByRoomIdsAsync(IReadOnlyList<int> roomIds, CancellationToken cancellationToken = default);
         Task<IReadOnlyList<HopDong>> GetActiveExpiringContractsAsync(CancellationToken cancellationToken = default);

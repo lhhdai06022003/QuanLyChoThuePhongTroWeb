@@ -50,6 +50,9 @@ namespace QuanLyChoThuePhongTroWeb.Application
 
             // Phase 6.3 services
             services.AddScoped<IHopDongService, HopDongService>();
+            services.AddScoped<IThanhLyHopDongService, ThanhLyHopDongService>();
+            services.AddScoped<IGiaHanHopDongService, GiaHanHopDongService>();
+            services.AddScoped<IHopDongTraCuuService, HopDongTraCuuService>();
             services.AddScoped<IThanhVienHopDongService, ThanhVienHopDongService>();
             services.AddScoped<IDienNuocService, DienNuocService>();
             services.AddScoped<IMeterReadingWorkflowService, MeterReadingWorkflowService>();
@@ -96,7 +99,6 @@ namespace QuanLyChoThuePhongTroWeb.Application
             services.AddScoped<Features.AiAssistants.Tools.AiToolExecutor>();
 
             // Phase 8 Background Job Use Cases
-            services.AddScoped<Features.HopDongs.UseCases.IContractAutoCloseUseCase, Features.HopDongs.UseCases.ContractAutoCloseUseCase>();
             services.AddScoped<Features.HopDongs.UseCases.IContractExpiryAlertUseCase, Features.HopDongs.UseCases.ContractExpiryAlertUseCase>();
             services.AddScoped<Features.HoaDons.UseCases.IInvoiceReminderUseCase, Features.HoaDons.UseCases.InvoiceReminderUseCase>();
 

@@ -201,6 +201,11 @@ public static class PaymentNotificationFormatter
             return "Chuyển khoản 24/7 (VietQR, tự động)";
         }
 
+        if (phuongThuc == PhuongThucThanhToan.CanTruTienCoc)
+        {
+            return "Cấn trừ tiền cọc";
+        }
+
         return phuongThuc == PhuongThucThanhToan.TienMat ? "Tiền mặt" : "Chuyển khoản";
     }
 

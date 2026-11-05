@@ -52,6 +52,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         [InlineData(EmployeeActionCodes.InvoiceReject)]
         [InlineData(EmployeeActionCodes.PaymentReview)]
         [InlineData(EmployeeActionCodes.PaymentConfigurePartial)]
+        [InlineData(EmployeeActionCodes.ContractSettle)]
+        [InlineData(EmployeeActionCodes.ContractRenew)]
         public async Task Admin_CanPerform_AllActions_AtAnyBranch(string action)
         {
             _store.Actors[1] = new EmployeeBranchActorDto
@@ -143,6 +145,24 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.True(canSubmit);
             Assert.True(canSend);
             Assert.True(canCancel);
+        }
+
+        [Theory]
+        [InlineData(EmployeeActionCodes.ContractSettle)]
+        [InlineData(EmployeeActionCodes.ContractRenew)]
+        public async Task Staff_CanPerform_ContractActions_AtAssignedBranch_AndTheyAreNotAdminOnly(string action)
+        {
+            _store.Actors[10] = new EmployeeBranchActorDto
+            {
+                NguoiDungId = 10,
+                Role = Role.NhanVien,
+                IsActive = true,
+                ActiveBranchIds = new List<int> { 1 }
+            };
+
+            Assert.True(await _service.CanPerformAsync(actorId: 10, chiNhanhId: 1, action: action));
+            Assert.False(await _service.CanPerformAsync(actorId: 10, chiNhanhId: 2, action: action));
+            Assert.DoesNotContain(action, EmployeeActionCodes.AdminOnlyActions);
         }
 
         [Theory]

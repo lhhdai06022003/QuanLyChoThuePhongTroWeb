@@ -23,19 +23,22 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.Services
         private readonly IPasswordService _passwordService;
         private readonly IEmployeeAccessService _access;
         private readonly ITenantVisibilityStore _tenantVisibility;
+        private readonly TimeProvider _timeProvider;
 
         public HopDongService(
             IHopDongStore store,
             IUnitOfWork unitOfWork,
             IPasswordService passwordService,
             IEmployeeAccessService access,
-            ITenantVisibilityStore tenantVisibility)
+            ITenantVisibilityStore tenantVisibility,
+            TimeProvider? timeProvider = null)
         {
             _store = store;
             _unitOfWork = unitOfWork;
             _passwordService = passwordService;
             _access = access;
             _tenantVisibility = tenantVisibility;
+            _timeProvider = timeProvider ?? TimeProvider.System;
         }
 
 
@@ -63,6 +66,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.Services
             }
 
             request.AllowedBranchIds = scope.AllowedBranchIds;
+            // Đầu ngày hôm nay (giờ VN) tính bằng UTC, dùng cho bộ lọc quá hạn / sắp hết hạn.
+            request.MocDauNgayHomNayUtc = DateTime.SpecifyKind(_timeProvider.GetUtcNow().UtcDateTime.AddHours(7).Date, DateTimeKind.Utc).AddHours(-7);
             return await _store.GetDataTableResponseAsync(request);
         }
 
@@ -283,13 +288,28 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.Services
         private async Task<(bool IsSuccess, string? ErrorMessage)> UpdateCoreAsync(HopDong entity, int id, HopDongReq input)
         {
 
+            if (entity.TrangThaiHopDong == TrangThaiHopDong.DaKetThuc)
+            {
+                return (false, "Hợp đồng đã kết thúc (thanh lý hoặc gia hạn), không sửa được.");
+            }
+
             var targetStatus = (TrangThaiHopDong)(int)input.TrangThaiHopDong;
+            if (targetStatus == TrangThaiHopDong.DaKetThuc)
+            {
+                return (false, "Muốn kết thúc hợp đồng, hãy dùng Thanh lý hoặc Gia hạn.");
+            }
+
             if (targetStatus == TrangThaiHopDong.DaHuy)
             {
+                if (HopDongCodeChain.IsRenewal(entity.MaHopDong))
+                {
+                    return (false, "Không hủy được hợp đồng gia hạn.");
+                }
+
                 bool hasInvoices = await _store.HasInvoicesAsync(id);
                 if (hasInvoices)
                 {
-                    return (false, "Hợp đồng đã phát sinh giao dịch tài chính/hóa đơn, không thể hủy. Vui lòng chọn trạng thái Đã kết thúc.");
+                    return (false, "Hợp đồng đã phát sinh hóa đơn, không thể hủy. Hãy dùng Thanh lý hợp đồng.");
                 }
             }
 
@@ -299,17 +319,12 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.Services
                                          input.NguoiThueId != entity.NguoiThueId ||
                                          input.TienThuePhong != entity.TienThuePhong ||
                                          input.TienCocPhong != entity.TienCocPhong ||
-                                         input.ThoiDiemBatDau.ToUniversalTime().Date != entity.ThoiDiemBatDau.Date;
+                                         input.ThoiDiemBatDau.Date != entity.ThoiDiemBatDau.AddHours(7).Date;
 
                 if (isCoreInfoChanged)
                 {
                     return (false, "Không được phép sửa đổi thông tin cốt lõi (Tiền thuê, Tiền cọc, Ngày bắt đầu, Phòng trọ, Người đại diện) của hợp đồng đang hoạt động. Vui lòng kết thúc hợp đồng này và ký hợp đồng mới nếu muốn thay đổi.");
                 }
-            }
-
-            if (targetStatus == TrangThaiHopDong.DaKetThuc && !input.ThoiDiemKetThuc.HasValue)
-            {
-                input.ThoiDiemKetThuc = DateTime.UtcNow;
             }
 
             if (input.ThoiDiemKetThuc.HasValue && input.ThoiDiemKetThuc.Value.Date < input.ThoiDiemBatDau.Date)
@@ -343,6 +358,14 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.Services
                             {
                                 member.NgayChuyenDi = DateTime.UtcNow;
                             }
+
+                            if (targetStatus == TrangThaiHopDong.DaHuy)
+                            {
+                                foreach (var dv in await _store.GetActiveServicesByRoomIdsAsync(new[] { entity.PhongTroId }))
+                                {
+                                    dv.NgayKetThuc = DateTime.UtcNow;
+                                }
+                            }
                         }
                         else if (targetStatus == TrangThaiHopDong.DangHoatDong)
                         {
@@ -353,7 +376,11 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.Services
                     }
                 }
 
-                entity.ThoiDiemBatDau = input.ThoiDiemBatDau.ToUniversalTime();
+                if (entity.TrangThaiHopDong != TrangThaiHopDong.DangHoatDong)
+                {
+                    entity.ThoiDiemBatDau = input.ThoiDiemBatDau.ToUniversalTime();
+                }
+
                 entity.ThoiDiemKetThuc = input.ThoiDiemKetThuc?.ToUniversalTime();
                 entity.TienCocPhong = input.TienCocPhong;
                 entity.TienThuePhong = input.TienThuePhong;
@@ -400,9 +427,15 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.Services
             if (!await CanAccessRoomsAsync(await _access.GetScopeAsync(actorId), entity.PhongTroId))
                 return ServiceResult.Forbidden(KhongCoQuyen);
 
+            // Chỉ xóa hợp đồng đã hủy (tạo nhầm). Hợp đồng đang hoạt động hoặc đã kết thúc có hóa đơn,
+            // sổ thanh toán, cấn trừ cọc và chuỗi gia hạn cần lưu trữ để đối chiếu (người dùng chốt 05/11/2026).
             if (entity.TrangThaiHopDong == TrangThaiHopDong.DangHoatDong)
             {
-                return ServiceResult.Fail("Không thể xóa hợp đồng đang trong trạng thái Hoạt động. Vui lòng thanh lý hợp đồng trước.");
+                return ServiceResult.Fail("Không thể xóa hợp đồng đang trong trạng thái Hoạt động. Chỉ xóa được hợp đồng đã hủy.");
+            }
+            if (entity.TrangThaiHopDong != TrangThaiHopDong.DaHuy)
+            {
+                return ServiceResult.Fail("Không thể xóa hợp đồng đã kết thúc vì cần lưu trữ để đối chiếu. Chỉ xóa được hợp đồng đã hủy.");
             }
 
             entity.IsDeleted = true;

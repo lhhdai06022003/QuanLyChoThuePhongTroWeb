@@ -42,6 +42,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.ReservationSettlement.IReservationSettlementStore, Persistence.Features.ReservationSettlement.ReservationSettlementStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.RoomDepositedNotices.IRoomNoticeStore, Persistence.Features.RoomDepositedNotices.RoomNoticeStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.Persistence.IHopDongStore, Persistence.Features.HopDongStore>();
+            services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.Persistence.IHopDongLifecycleStore, Persistence.Features.HopDongLifecycleStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence.IHoaDonStore, Persistence.Features.HoaDonStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence.IInvoicePaymentStore, Persistence.Features.InvoicePaymentStore>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence.IInvoiceIssuanceStore, Persistence.Features.InvoiceIssuanceStore>();
@@ -61,6 +62,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure
 
             // Document exporters & QR services
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Abstractions.Services.IInvoiceDocumentExporter, ExternalServices.DocumentExporters.InvoiceDocumentExporter>();
+            services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Abstractions.Services.IBienBanThanhLyExporter, ExternalServices.DocumentExporters.BienBanThanhLyExporter>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Abstractions.Services.IVietQRService, ExternalServices.DocumentExporters.VietQRService>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Abstractions.Services.IContractDocumentGenerator, ExternalServices.DocumentExporters.DocXContractDocumentGenerator>();
 
@@ -153,7 +155,6 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure
             var backgroundJobsEnabled = configuration.GetValue<bool?>("BackgroundJobs:Enabled") ?? true;
             if (backgroundJobsEnabled)
             {
-                services.AddHostedService<BackgroundJobs.ContractAutoCloseJob>();
                 services.AddHostedService<BackgroundJobs.ContractExpiryAlertJob>();
                 services.AddHostedService<BackgroundJobs.InvoiceReminderJob>();
             }

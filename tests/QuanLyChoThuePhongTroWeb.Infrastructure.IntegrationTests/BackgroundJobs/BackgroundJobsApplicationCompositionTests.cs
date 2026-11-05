@@ -30,7 +30,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.BackgroundJob
         [Fact]
         public async Task EnabledBackgroundJobs_WithProductionApplicationComposition_ShouldExecuteRealUseCasesWithoutExternalSideEffects()
         {
-            var autoCloseQueried = NewSignal();
+            var expiredQueried = NewSignal();
             var expiryAlertQueried = NewSignal();
             var invoiceReminderQueried = NewSignal();
             var logSink = new InMemoryLogSink();
@@ -38,7 +38,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.BackgroundJob
 
             var hopDongStore = CreateProxy<IHopDongStore>((method, _) => method.Name switch
             {
-                nameof(IHopDongStore.GetExpiredActiveContractsAsync) => SignalEmptyAsync<HopDong>(autoCloseQueried),
+                nameof(IHopDongStore.GetExpiredActiveContractsAsync) => SignalEmptyAsync<HopDong>(expiredQueried),
                 nameof(IHopDongStore.GetActiveExpiringContractsAsync) => SignalEmptyAsync<HopDong>(expiryAlertQueried),
                 _ => throw new InvalidOperationException($"Unexpected IHopDongStore call: {method.Name}")
             });
@@ -97,7 +97,6 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.BackgroundJob
 
             using (var scope = host.Services.CreateScope())
             {
-                Assert.IsType<ContractAutoCloseUseCase>(scope.ServiceProvider.GetRequiredService<IContractAutoCloseUseCase>());
                 Assert.IsType<ContractExpiryAlertUseCase>(scope.ServiceProvider.GetRequiredService<IContractExpiryAlertUseCase>());
                 Assert.IsType<InvoiceReminderUseCase>(scope.ServiceProvider.GetRequiredService<IInvoiceReminderUseCase>());
             }
@@ -106,7 +105,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.BackgroundJob
 
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
             await Task.WhenAll(
-                autoCloseQueried.Task.WaitAsync(timeout.Token),
+                expiredQueried.Task.WaitAsync(timeout.Token),
                 expiryAlertQueried.Task.WaitAsync(timeout.Token),
                 invoiceReminderQueried.Task.WaitAsync(timeout.Token));
 
@@ -114,7 +113,6 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.BackgroundJob
 
             Assert.Equal(0, emailService.CallCount);
             Assert.DoesNotContain(logSink.Entries, entry => entry.Level >= LogLevel.Error);
-            AssertStartupLogFor<ContractAutoCloseJob>(logSink);
             AssertStartupLogFor<ContractExpiryAlertJob>(logSink);
             AssertStartupLogFor<InvoiceReminderJob>(logSink);
         }

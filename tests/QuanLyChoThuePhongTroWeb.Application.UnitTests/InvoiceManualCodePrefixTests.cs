@@ -23,7 +23,9 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             "vnpay-14123456",
             "SEPAY-FT26ABC",
             "Sepay-ID-92704",
-            "  VNPAY-1  "
+            "  VNPAY-1  ",
+            "CANTRU-HD12-345",
+            "cantru-hd1-1"
         };
 
         [Theory]
@@ -39,6 +41,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         [InlineData("FT26ABC")]
         [InlineData("VNPAY14123456")]
         [InlineData("GD-SEPAY-1")]
+        [InlineData("CANTRUHD12")]
         public void Validate_AcceptsCodesWithoutTheSystemPrefix(string? code)
         {
             Assert.Null(InvoicePaymentPolicy.ValidateMaGiaoDich(code));

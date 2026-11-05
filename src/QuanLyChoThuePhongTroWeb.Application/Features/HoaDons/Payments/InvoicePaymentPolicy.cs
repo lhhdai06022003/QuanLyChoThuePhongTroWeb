@@ -36,6 +36,9 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Payments
         // Tiền tố MaGiaoDich của dòng sổ do IPN VNPay ghi (spec VNPay §6).
         public const string VnPayMaGiaoDichPrefix = "VNPAY-";
 
+        // Tiền tố MaGiaoDich của dòng sổ cấn trừ tiền cọc khi thanh lý hợp đồng: CANTRU-HD{HopDongId}-{HoaDonId}.
+        public const string CanTruMaGiaoDichPrefix = "CANTRU-";
+
         // Báo lỗi khi mã giao dịch nhập tay hoặc khách khai trùng một dòng sổ VNPay chưa xóa (spec VNPay §6.1).
         public const string VnPayAlreadyRecordedMessage = "Mã giao dịch này đã được hệ thống ghi nhận tự động qua VNPay.";
 
@@ -164,6 +167,12 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Payments
             return string.IsNullOrWhiteSpace(reference) ? null : reference;
         }
 
+        // Dòng sổ cấn trừ tiền cọc do thanh lý hợp đồng ghi: MaGiaoDich bắt đầu "CANTRU-", không phân biệt hoa thường.
+        public static bool IsCanTruKey(string? maGiaoDich)
+        {
+            return maGiaoDich != null && maGiaoDich.StartsWith(CanTruMaGiaoDichPrefix, StringComparison.OrdinalIgnoreCase);
+        }
+
         // Dòng hệ thống tự ghi từ cổng thanh toán trực tuyến (SePay hoặc VNPay).
         public static bool IsSystemRecordedKey(string? maGiaoDich)
         {
@@ -178,11 +187,12 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Payments
 
         // Báo lỗi khi mã nhập tay mang tiền tố của dòng sổ hệ thống tự ghi (T4, người dùng chọn 26/10/2026).
         public const string SystemPrefixMessage =
-            "Mã bắt đầu bằng " + SePayMaGiaoDichPrefix + " hoặc " + VnPayMaGiaoDichPrefix
-            + " dành cho thanh toán hệ thống ghi tự động. Vui lòng nhập mã giao dịch gốc (không có tiền tố).";
+            "Mã bắt đầu bằng " + SePayMaGiaoDichPrefix + ", " + VnPayMaGiaoDichPrefix + " hoặc " + CanTruMaGiaoDichPrefix
+            + " dành cho giao dịch hệ thống ghi tự động. Vui lòng nhập mã giao dịch gốc (không có tiền tố).";
 
         // Mã giao dịch nhân viên nhập tay (thu thủ công, xác nhận minh chứng): tối đa MaxMaGiaoDichLength ký tự và không được
-        // mang tiền tố SEPAY-/VNPAY- (không phân biệt hoa thường), để dòng nhập tay không bao giờ trông như dòng hệ thống ghi.
+        // mang tiền tố SEPAY-/VNPAY-/CANTRU- (không phân biệt hoa thường), để dòng nhập tay không bao giờ trông như dòng hệ thống
+        // ghi, và không chiếm trước mã CANTRU-HD{id}-{id} của lần thanh lý sau (unique index MaGiaoDich).
         public static string? ValidateMaGiaoDich(string? maGiaoDich)
         {
             if (maGiaoDich != null && maGiaoDich.Length > MaxMaGiaoDichLength)
@@ -190,7 +200,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Payments
                 return $"Mã giao dịch tối đa {MaxMaGiaoDichLength} ký tự.";
             }
 
-            return IsSePayKey(maGiaoDich) || IsVnPayKey(maGiaoDich) ? SystemPrefixMessage : null;
+            return IsSePayKey(maGiaoDich) || IsVnPayKey(maGiaoDich) || IsCanTruKey(maGiaoDich) ? SystemPrefixMessage : null;
         }
 
         // Định dạng tiền kiểu Việt Nam (1.900.000), không phụ thuộc culture của máy chủ.

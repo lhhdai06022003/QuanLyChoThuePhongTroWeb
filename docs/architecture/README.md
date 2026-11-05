@@ -115,12 +115,11 @@ Mật khẩu mới dùng ASP.NET Core Identity PasswordHasher (PBKDF2). SHA256 c
 
 Khi Web khởi động, DatabaseInitializer chạy toàn bộ EF Core migrations rồi seed tài khoản quản trị. Nếu kết nối hoặc migration lỗi, ứng dụng không khởi động hoàn chỉnh.
 
-Khi BackgroundJobs:Enabled bật, Infrastructure đăng ký ba hosted service:
+Khi BackgroundJobs:Enabled bật, Infrastructure đăng ký hai hosted service:
 
 | Job | Hành vi hiện tại |
 | --- | --- |
-| ContractAutoCloseJob | Chạy khi service bắt đầu, sau đó đợi đến 00:00 giờ Việt Nam mỗi ngày |
-| ContractExpiryAlertJob | Chạy khi service bắt đầu, sau đó đợi đến 08:00 giờ Việt Nam mỗi ngày; mốc cảnh báo lấy từ cấu hình |
+| ContractExpiryAlertJob | Chạy khi service bắt đầu, sau đó đợi đến 08:00 giờ Việt Nam mỗi ngày; mốc cảnh báo lấy từ cấu hình; thêm thông báo trong app một lần khi hợp đồng hết hạn (khóa `app_het_han_{id}` trong sent_contract_alerts.json) |
 | InvoiceReminderJob | Chạy khi service bắt đầu rồi lặp mỗi giờ; chỉ gửi khi AutoReminderSettings:Enabled bật |
 
 Trạng thái email đã gửi được lưu trong sent_invoice_reminders.json và sent_contract_alerts.json tại content root. Đây là state cục bộ, cần volume ghi bền nếu triển khai bằng container và không phù hợp để nhiều instance ghi chung.

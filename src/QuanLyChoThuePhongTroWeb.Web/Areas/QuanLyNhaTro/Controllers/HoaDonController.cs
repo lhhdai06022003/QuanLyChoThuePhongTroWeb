@@ -171,7 +171,8 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             [FromForm] int thang = 0,
             [FromForm] int nam = 0,
             [FromForm] int trangThai = -1,
-            [FromForm] int trangThaiPhatHanh = -1)
+            [FromForm] int trangThaiPhatHanh = -1,
+            [FromForm] int hopDongDaKetThucConNo = 0)
         {
             var form = Request.Form;
             var request = new DataTableRequest
@@ -191,7 +192,8 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
                 Thang = thang,
                 Nam = nam,
                 TrangThaiThanhToan = trangThai,
-                TrangThaiPhatHanh = trangThaiPhatHanh
+                TrangThaiPhatHanh = trangThaiPhatHanh,
+                HopDongDaKetThucConNo = hopDongDaKetThucConNo == 1
             };
 
             var data = await _invoiceViewService.GetEmployeeListAsync(request, filter, actorId);

@@ -112,6 +112,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs
         public bool LaSePay { get; set; }
         // Dòng do IPN VNPay ghi: MaGiaoDich bắt đầu "VNPAY-".
         public bool LaVnPay { get; set; }
+        // Dòng cấn trừ tiền cọc khi thanh lý hợp đồng (không hủy ghi nhận được).
+        public bool LaCanTruCoc { get; set; }
         // Mã tham chiếu: mã ngân hàng của dòng SePay ghi theo mã tham chiếu (SEPAY-ID-{id} và dòng thủ công thì null)
         // hoặc vnp_TransactionNo của dòng VNPay.
         public string? MaThamChieu { get; set; }

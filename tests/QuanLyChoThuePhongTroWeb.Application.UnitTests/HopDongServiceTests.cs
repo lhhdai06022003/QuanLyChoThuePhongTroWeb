@@ -80,6 +80,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             public List<HopDong> UpdatedContracts { get; } = new();
             public HopDong? DeletedContract { get; set; }
             public List<NguoiDung> AddedUsers { get; } = new();
+            public List<DangKyDichVu> RoomServices { get; } = new();
 
             public Task<bool> IsRoomRentedAsync(int phongTroId, CancellationToken cancellationToken = default) =>
                 Task.FromResult(RoomRented);
@@ -168,7 +169,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             public Task<HopDongKhachThueDetailDto?> GetChiTietHopDongKhachThueAsync(int id, int nguoiThueId, CancellationToken cancellationToken = default) => throw new NotImplementedException();
             public Task<IReadOnlyList<HopDong>> GetExpiredActiveContractsAsync(DateTime nowUtc, CancellationToken cancellationToken = default) => throw new NotImplementedException();
             public Task<IReadOnlyList<HopDong>> GetActiveExpiringContractsAsync(CancellationToken cancellationToken = default) => throw new NotImplementedException();
-            public Task<IReadOnlyList<DangKyDichVu>> GetActiveServicesByRoomIdsAsync(IReadOnlyList<int> roomIds, CancellationToken cancellationToken = default) => throw new NotImplementedException();
+            public Task<IReadOnlyList<DangKyDichVu>> GetActiveServicesByRoomIdsAsync(IReadOnlyList<int> roomIds, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<DangKyDichVu>>(RoomServices.ToList());
         }
 
         private HopDongService CreateService(StubHopDongStore store, FakeUnitOfWork uow)
@@ -331,7 +332,30 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         }
 
         [Fact]
-        public async Task Delete_EndedContract_SoftDeletesAndReleasesRoom()
+        public async Task Delete_EndedContract_IsRejected_AndKeptForArchive()
+        {
+            var room = new PhongTro { PhongTroId = 10, SoPhong = "102", TrangThai = TrangThaiPhong.Trong };
+            var contract = new HopDong
+            {
+                HopDongId = 5,
+                TrangThaiHopDong = TrangThaiHopDong.DaKetThuc,
+                PhongTroId = 10,
+                IsDeleted = false
+            };
+            var store = new StubHopDongStore { ActiveContract = contract, Room = room };
+            var uow = new FakeUnitOfWork();
+            var service = CreateService(store, uow);
+
+            var outcome = await service.DeleteAsync(AdminId, 5);
+
+            Assert.False(outcome.Success);
+            Assert.Contains("đã kết thúc", outcome.Message!);
+            Assert.False(contract.IsDeleted);
+            Assert.Empty(store.UpdatedContracts);
+        }
+
+        [Fact]
+        public async Task Delete_CancelledContract_SoftDeletesAndReleasesRoom()
         {
             var room = new PhongTro
             {
@@ -342,7 +366,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             var contract = new HopDong
             {
                 HopDongId = 5,
-                TrangThaiHopDong = TrangThaiHopDong.DaKetThuc,
+                TrangThaiHopDong = TrangThaiHopDong.DaHuy,
                 PhongTroId = 10,
                 IsDeleted = false
             };
@@ -433,6 +457,121 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.False(isSuccess);
             Assert.Contains("hóa đơn", error!);
         }
+
+        private static HopDong ActiveContractFor(string ma = "HD-CN01-2511-001") => new()
+        {
+            HopDongId = 1,
+            MaHopDong = ma,
+            PhongTroId = 1,
+            NguoiThueId = 1,
+            TienThuePhong = 3000000,
+            TienCocPhong = 3000000,
+            ThoiDiemBatDau = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            TrangThaiHopDong = TrangThaiHopDong.DangHoatDong
+        };
+
+        private static HopDongReq UpdateInput(HopDong contract, TrangThaiHopDong status) => new()
+        {
+            PhongTroId = contract.PhongTroId,
+            NguoiThueId = contract.NguoiThueId,
+            ThoiDiemBatDau = contract.ThoiDiemBatDau,
+            TienThuePhong = contract.TienThuePhong,
+            TienCocPhong = contract.TienCocPhong,
+            TrangThaiHopDong = (Application.Common.Enums.AppTrangThaiHopDong)(int)status
+        };
+
+        [Fact]
+        public async Task Update_ToDaKetThuc_IsRejected()
+        {
+            var contract = ActiveContractFor();
+            var service = CreateService(new StubHopDongStore { ActiveContract = contract }, new FakeUnitOfWork());
+
+            var outcome = await service.UpdateAsync(AdminId, 1, UpdateInput(contract, TrangThaiHopDong.DaKetThuc));
+
+            Assert.False(outcome.Success);
+            Assert.Contains("Thanh lý", outcome.Message);
+            Assert.Equal(TrangThaiHopDong.DangHoatDong, contract.TrangThaiHopDong);
+        }
+
+        [Fact]
+        public async Task Update_EndedContract_IsRejected()
+        {
+            var contract = ActiveContractFor();
+            contract.TrangThaiHopDong = TrangThaiHopDong.DaKetThuc;
+            var service = CreateService(new StubHopDongStore { ActiveContract = contract }, new FakeUnitOfWork());
+
+            var outcome = await service.UpdateAsync(AdminId, 1, UpdateInput(contract, TrangThaiHopDong.DaKetThuc));
+
+            Assert.False(outcome.Success);
+            Assert.Contains("không sửa được", outcome.Message);
+        }
+
+        [Fact]
+        public async Task Update_CancelRenewal_IsRejected()
+        {
+            var contract = ActiveContractFor("HD-CN01-2511-001-GH1");
+            var service = CreateService(new StubHopDongStore { ActiveContract = contract }, new FakeUnitOfWork());
+
+            var outcome = await service.UpdateAsync(AdminId, 1, UpdateInput(contract, TrangThaiHopDong.DaHuy));
+
+            Assert.False(outcome.Success);
+            Assert.Contains("hợp đồng gia hạn", outcome.Message);
+        }
+
+        [Fact]
+        public async Task Update_ToDaHuy_ClosesRoomServices()
+        {
+            var contract = ActiveContractFor();
+            var service = new DangKyDichVu { PhongTroId = 1, NgayBatDau = contract.ThoiDiemBatDau };
+            var store = new StubHopDongStore
+            {
+                ActiveContract = contract,
+                Room = new PhongTro { PhongTroId = 1, ChiNhanhId = 1, TrangThai = TrangThaiPhong.DaThue },
+                RoomServices = { service }
+            };
+            var svc = CreateService(store, new FakeUnitOfWork());
+
+            var outcome = await svc.UpdateAsync(AdminId, 1, UpdateInput(contract, TrangThaiHopDong.DaHuy));
+
+            Assert.True(outcome.Success, outcome.Message);
+            Assert.NotNull(service.NgayKetThuc);
+            Assert.Equal(TrangThaiHopDong.DaHuy, contract.TrangThaiHopDong);
+        }
+
+        [Fact]
+        public async Task Update_ActiveRenewal_StartStoredAt17Utc_EditEndDate_Succeeds()
+        {
+            var contract = ActiveContractFor("HD-CN01-2511-001-GH1");
+            contract.ThoiDiemBatDau = new DateTime(2026, 10, 31, 17, 0, 0, DateTimeKind.Utc);
+            var storedStart = contract.ThoiDiemBatDau;
+            var store = new StubHopDongStore { ActiveContract = contract, Room = new PhongTro { PhongTroId = 1, ChiNhanhId = 1 } };
+            var svc = CreateService(store, new FakeUnitOfWork());
+
+            var input = UpdateInput(contract, TrangThaiHopDong.DangHoatDong);
+            input.ThoiDiemBatDau = new DateTime(2026, 11, 1, 0, 0, 0, DateTimeKind.Unspecified);
+            input.ThoiDiemKetThuc = new DateTime(2027, 10, 31, 0, 0, 0, DateTimeKind.Unspecified);
+
+            var outcome = await svc.UpdateAsync(AdminId, 1, input);
+
+            Assert.True(outcome.Success, outcome.Message);
+            Assert.Equal(storedStart, contract.ThoiDiemBatDau);
+            Assert.NotNull(contract.ThoiDiemKetThuc);
+        }
+
+        [Fact]
+        public async Task DanhSach_SetsMocDauNgayHomNay()
+        {
+            var store = new StubHopDongStore();
+            var service = new HopDongService(store, new FakeUnitOfWork(), new FakePasswordService(),
+                new Fakes.FakeEmployeeAccessService { ScopeToReturn = new Common.Security.EmployeeAccessScope(AdminId, true) },
+                new Fakes.FakeTenantVisibilityStore(),
+                new Fakes.FixedTimeProvider(new DateTimeOffset(2026, 11, 4, 18, 0, 0, TimeSpan.Zero)));
+
+            await service.DanhSachHopDongSideAsync(AdminId, new HopDongFilterReq { MocDauNgayHomNayUtc = new DateTime(2000, 1, 1) });
+
+            Assert.Equal(new DateTime(2026, 11, 4, 17, 0, 0, DateTimeKind.Utc), store.LastFilter!.MocDauNgayHomNayUtc);
+        }
+
         // ---------- Phạm vi chi nhánh ----------
 
         private const int StaffId = 7;

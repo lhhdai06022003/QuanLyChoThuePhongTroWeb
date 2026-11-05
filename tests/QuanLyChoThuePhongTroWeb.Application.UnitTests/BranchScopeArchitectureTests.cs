@@ -24,6 +24,9 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         {
             typeof(IPhongTroService),
             typeof(IHopDongService),
+            typeof(IThanhLyHopDongService),
+            typeof(IGiaHanHopDongService),
+            typeof(IHopDongTraCuuService),
             typeof(IThanhVienHopDongService),
             typeof(INguoiThueService),
             typeof(IDichVuService),

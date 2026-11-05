@@ -20,5 +20,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs
         public int Nam { get; set; }
         public int TrangThaiThanhToan { get; set; } = -1;
         public int TrangThaiPhatHanh { get; set; } = -1;
+        // Chỉ hóa đơn DaGui còn nợ của hợp đồng DaKetThuc mà khách chưa gia hạn sang hợp đồng mới.
+        public bool HopDongDaKetThucConNo { get; set; }
     }
 }

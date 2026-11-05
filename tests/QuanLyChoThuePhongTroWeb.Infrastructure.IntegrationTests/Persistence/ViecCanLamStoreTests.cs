@@ -840,5 +840,60 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
 
             await tx.RollbackAsync();
         }
+
+        // KH4: hợp đồng quá hạn chưa xử lý, biên đầu ngày VN.
+        [Fact]
+        public async Task HopDongQuaHan_FiltersBranchAndStartOfDayBoundary()
+        {
+            await using var db = _fixture.CreateDbContext();
+            await using var tx = await db.Database.BeginTransactionAsync();
+            var seed = new DebtTestSeeder(db);
+            var a = await seed.BranchAsync("A");
+            var b = await seed.BranchAsync("B");
+            var tenant = await seed.TenantAsync("Q");
+            await seed.ContractAsync(await seed.RoomAsync(a, "A"), tenant, end: Tu.AddSeconds(-1));                      // quá hạn
+            await seed.ContractAsync(await seed.RoomAsync(a, "A"), tenant, end: Tu);                                    // đúng đầu ngày: chưa quá hạn
+            await seed.ContractAsync(await seed.RoomAsync(a, "A"), tenant, end: null);                                  // không có ngày kết thúc
+            await seed.ContractAsync(await seed.RoomAsync(a, "A"), tenant, end: Tu.AddDays(-5), deleted: true);         // xóa mềm
+            await seed.ContractAsync(await seed.RoomAsync(a, "A"), tenant, end: Tu.AddDays(-5), status: TrangThaiHopDong.DaKetThuc);
+            await seed.ContractAsync(await seed.RoomAsync(b, "B"), tenant, end: Tu.AddDays(-2));                        // chi nhánh khác
+
+            var store = Store(db);
+
+            Assert.Equal(1, Assert.Single(await store.DemHopDongQuaHanAsync(a.ChiNhanhId, null, Tu)).SoLuong);
+            Assert.Equal(1, Assert.Single(await store.DemHopDongQuaHanAsync(b.ChiNhanhId, null, Tu)).SoLuong);
+            Assert.Empty(await store.DemHopDongQuaHanAsync(a.ChiNhanhId, new[] { b.ChiNhanhId }, Tu));
+
+            await tx.RollbackAsync();
+        }
+
+        // KH5: hợp đồng đã kết thúc còn nợ, loại hợp đồng đã trả hết và khách đã gia hạn.
+        [Fact]
+        public async Task HopDongDaTraPhongConNo_ExcludesPaidAndRenewedTenants()
+        {
+            await using var db = _fixture.CreateDbContext();
+            await using var tx = await db.Database.BeginTransactionAsync();
+            var seed = new DebtTestSeeder(db);
+            var a = await seed.BranchAsync("A");
+            var left = await seed.TenantAsync("L");
+            var renewed = await seed.TenantAsync("R");
+            var leftEnded = await seed.ContractAsync(await seed.RoomAsync(a, "A"), left, status: TrangThaiHopDong.DaKetThuc);
+            var paidEnded = await seed.ContractAsync(await seed.RoomAsync(a, "A"), left, status: TrangThaiHopDong.DaKetThuc);
+            var renewedRoom = await seed.RoomAsync(a, "A");
+            var renewedOld = await seed.ContractAsync(renewedRoom, renewed, status: TrangThaiHopDong.DaKetThuc);
+            await seed.ContractAsync(renewedRoom, renewed);
+            await seed.InvoiceAsync(leftEnded, TrangThaiPhatHanhHoaDon.DaGui, TrangThaiHoaDon.ThanhToanMotPhan, 1_000_000m, null, paid: 400_000m);
+            await seed.InvoiceAsync(leftEnded, TrangThaiPhatHanhHoaDon.DaGui, TrangThaiHoaDon.ChuaThanhToan, 500_000m, null);
+            await seed.InvoiceAsync(paidEnded, TrangThaiPhatHanhHoaDon.DaGui, TrangThaiHoaDon.DaThanhToan, 700_000m, null, paid: 700_000m);
+            await seed.InvoiceAsync(renewedOld, TrangThaiPhatHanhHoaDon.DaGui, TrangThaiHoaDon.ChuaThanhToan, 900_000m, null);
+
+            var row = Assert.Single(await Store(db).DemHopDongDaTraPhongConNoAsync(a.ChiNhanhId, null));
+
+            Assert.Equal(1, row.SoLuong);
+            Assert.Equal(1_100_000m, row.TongConNo);
+            Assert.Empty(await Store(db).DemHopDongDaTraPhongConNoAsync(a.ChiNhanhId, Array.Empty<int>()));
+
+            await tx.RollbackAsync();
+        }
     }
 }

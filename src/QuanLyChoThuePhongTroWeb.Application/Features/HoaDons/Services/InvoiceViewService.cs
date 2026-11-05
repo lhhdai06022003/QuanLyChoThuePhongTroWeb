@@ -74,7 +74,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                     : -1,
                 TrangThaiPhatHanh = (filter.TrangThaiPhatHanh >= 0 && filter.TrangThaiPhatHanh <= 4)
                     ? filter.TrangThaiPhatHanh
-                    : -1
+                    : -1,
+                HopDongDaKetThucConNo = filter.HopDongDaKetThucConNo
             };
 
             if (!scope.IsAdmin)

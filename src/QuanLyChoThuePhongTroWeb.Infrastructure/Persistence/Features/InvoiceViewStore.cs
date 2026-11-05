@@ -72,6 +72,20 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 query = query.Where(h => !h.IsDeleted && h.TrangThaiPhatHanh != TrangThaiPhatHanhHoaDon.DaHuy);
             }
 
+            if (filter.HopDongDaKetThucConNo)
+            {
+                // Hợp đồng đã kết thúc mà khách chưa gia hạn: cùng phòng và cùng người thuê chưa có hợp đồng đang hoạt động.
+                query = query.Where(h => !h.IsDeleted
+                    && h.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaGui
+                    && h.TrangThaiHoaDon != TrangThaiHoaDon.DaThanhToan
+                    && h.HopDong.TrangThaiHopDong == TrangThaiHopDong.DaKetThuc
+                    && !h.HopDong.IsDeleted
+                    && !_context.HopDongs.Any(o => !o.IsDeleted
+                        && o.TrangThaiHopDong == TrangThaiHopDong.DangHoatDong
+                        && o.PhongTroId == h.HopDong.PhongTroId
+                        && o.NguoiThueId == h.HopDong.NguoiThueId));
+            }
+
             if (!string.IsNullOrWhiteSpace(request.SearchValue))
             {
                 string s = request.SearchValue.Trim().ToLower();

@@ -48,7 +48,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Responses
                 MoTa = dto.MoTa,
                 SoLuong = dto.SoLuong,
                 Link = dto.Link,
-                NhanNut = dto.MaViec is "TT2" or "TT3" or "KH3" ? "Xem" : "Xử lý"
+                NhanNut = dto.MaViec is "TT2" or "TT3" or "KH3" or "KH5" ? "Xem" : "Xử lý"
             };
         }
     }

@@ -1,0 +1,175 @@
+@using System.Globalization
+@using QuanLyChoThuePhongTroWeb.Web.Helpers
+@model ThanhLyHopDongPreviewDto
+@{
+    ViewData["Title"] = "Thanh lý hợp đồng " + Model.MaHopDong;
+
+    string Ngay(DateTime? utc) => utc.HasValue ? VietnamTime.Format(utc.Value, "dd/MM/yyyy") : "Chưa có";
+}
+
+<div class="container-xl py-4">
+    @Html.AntiForgeryToken()
+    <a href="/QuanLyNhaTro/HopDong/ChiTiet/@Model.HopDongId">← Chi tiết hợp đồng</a>
+    <h1 class="page-title mt-3">Thanh lý hợp đồng @Model.MaHopDong</h1>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4"><div class="text-secondary small">Phòng</div><div>@Model.SoPhong · @Model.TenChiNhanh</div></div>
+                <div class="col-md-4"><div class="text-secondary small">Người đại diện</div><div>@Model.TenNguoiDaiDien</div></div>
+                <div class="col-md-4"><div class="text-secondary small">Thời hạn</div><div>@Ngay(Model.ThoiDiemBatDauUtc) - @Ngay(Model.ThoiDiemKetThucUtc)</div></div>
+                <div class="col-md-12">
+                    <div class="text-secondary small">Thành viên đang ở</div>
+                    <div>@(Model.ThanhVienDangO.Count == 0 ? "Không có" : string.Join(", ", Model.ThanhVienDangO))</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (Model.LyDoChan.Count > 0)
+    {
+        <div class="alert alert-danger" role="alert">
+            <h4 class="alert-title">Chưa thanh lý được</h4>
+            <ul class="mb-0">
+                @foreach (var lyDo in Model.LyDoChan)
+                {
+                    <li>@lyDo</li>
+                }
+            </ul>
+        </div>
+    }
+
+    <div class="card mb-4">
+        <div class="card-header"><h2 class="card-title">Hóa đơn còn nợ (cả chuỗi gia hạn)</h2></div>
+        <div class="card-body">
+            @if (Model.HoaDonNo.Count == 0)
+            {
+                <p class="text-secondary mb-0">Không có hóa đơn nào còn nợ.</p>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-vcenter">
+                        <thead>
+                            <tr>
+                                <th>Mã hóa đơn</th>
+                                <th>Hợp đồng</th>
+                                <th>Kỳ</th>
+                                <th class="text-end">Tổng tiền</th>
+                                <th class="text-end">Đã thu</th>
+                                <th class="text-end">Còn lại</th>
+                                <th class="text-end">Cấn trừ cọc</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var hd in Model.HoaDonNo)
+                            {
+                                <tr>
+                                    <td>@hd.MaHoaDon</td>
+                                    <td>@hd.MaHopDong</td>
+                                    <td>T@(hd.Thang)/@hd.Nam</td>
+                                    <td class="text-end">@VndFormat.Money(hd.TongTien)</td>
+                                    <td class="text-end">@VndFormat.Money(hd.DaThu)</td>
+                                    <td class="text-end">@VndFormat.Money(hd.ConLai)</td>
+                                    <td class="text-end">@VndFormat.Money(hd.CanTru)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="row row-cards mb-4">
+        <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="text-secondary small">Tiền cọc</div><div class="h3 mb-0">@VndFormat.Money(Model.TienCoc)</div></div></div></div>
+        <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="text-secondary small">Tổng nợ</div><div class="h3 mb-0">@VndFormat.Money(Model.TongNo)</div></div></div></div>
+        <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="text-secondary small">Cấn trừ cọc</div><div class="h3 mb-0">@VndFormat.Money(Model.CanTru)</div></div></div></div>
+        <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="text-secondary small">Cọc hoàn trực tiếp cho khách</div><div class="h3 mb-0">@VndFormat.Money(Model.CocHoanTrucTiep)</div></div></div></div>
+    </div>
+    <p>Khách còn nợ sau cấn trừ: <strong id="conNoSauCanTru">@VndFormat.Money(Model.ConNoSauCanTru)</strong></p>
+
+    @if (Model.CoTheThanhLy)
+    {
+        <div id="khuXacNhan" class="card mb-4">
+            <div class="card-body">
+                @if (Model.ConNoSauCanTru > 0)
+                {
+                    <label class="form-check mb-3">
+                        <input type="checkbox" class="form-check-input" id="chkXacNhanConNo" />
+                        <span class="form-check-label">Khách còn nợ @VndFormat.Money(Model.ConNoSauCanTru) sau khi cấn trừ cọc</span>
+                    </label>
+                }
+                <div class="mb-3">
+                    <label class="form-label" for="ghiChuBienBan">Ghi chú in trên biên bản (không lưu vào hệ thống)</label>
+                    <textarea class="form-control" id="ghiChuBienBan" rows="2" maxlength="1000"></textarea>
+                </div>
+                <button type="button" class="btn btn-danger" id="btnXacNhanThanhLy" @(Model.ConNoSauCanTru > 0 ? "disabled" : "")>
+                    <i class="ti ti-file-check me-1"></i> Xác nhận thanh lý
+                </button>
+            </div>
+        </div>
+
+        <div id="khuKetQua" class="card mb-4" style="display:none">
+            <div class="card-body">
+                <div class="alert alert-success" role="status">Đã thanh lý hợp đồng.</div>
+                <form id="formBienBan" method="post" action="/HopDong/BienBanThanhLy/@Model.HopDongId" target="_blank">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="ghiChu" id="ghiChuBienBanGui" />
+                    <button type="submit" class="btn btn-primary"><i class="ti ti-file-download me-1"></i> Tải biên bản thanh lý (PDF)</button>
+                    <a class="btn btn-outline-secondary" href="/QuanLyNhaTro/HopDong/ChiTiet/@Model.HopDongId">Về chi tiết hợp đồng</a>
+                </form>
+            </div>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        $(function () {
+            const token = $('input[name="__RequestVerificationToken"]').first().val();
+            const conNo = @((Model.ConNoSauCanTru > 0) ? "true" : "false");
+
+            $('#chkXacNhanConNo').on('change', function () {
+                $('#btnXacNhanThanhLy').prop('disabled', !this.checked);
+            });
+
+            $('#formBienBan').on('submit', function () {
+                $('#ghiChuBienBanGui').val($('#ghiChuBienBan').val());
+            });
+
+            $('#btnXacNhanThanhLy').on('click', function () {
+                Swal.fire({
+                    title: 'Thanh lý hợp đồng?',
+                    text: 'Thao tác này không hoàn tác được.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Thanh lý',
+                    cancelButtonText: 'Hủy'
+                }).then(function (r) {
+                    if (!r.isConfirmed) return;
+                    $('#btnXacNhanThanhLy').prop('disabled', true);
+                    $.ajax({
+                        url: '/HopDong/ThanhLy/@Model.HopDongId',
+                        type: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify({
+                            tongNoLucMo: @Model.TongNo.ToString(CultureInfo.InvariantCulture),
+                            xacNhanConNo: conNo && $('#chkXacNhanConNo').is(':checked')
+                        }),
+                        headers: { 'RequestVerificationToken': token },
+                        success: function () {
+                            $('#khuXacNhan').hide();
+                            $('#khuKetQua').show();
+                        },
+                        error: function (xhr) {
+                            $('#btnXacNhanThanhLy').prop('disabled', false);
+                            const msg = (xhr.responseJSON && xhr.responseJSON.message) || 'Không thanh lý được hợp đồng.';
+                            Swal.fire({ icon: 'error', title: 'Không thanh lý được', text: msg, confirmButtonText: 'Đóng' });
+                        }
+                    });
+                });
+            });
+        });
+    </script>
+}

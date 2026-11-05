@@ -6,6 +6,7 @@ using QuanLyChoThuePhongTroWeb.Application.Abstractions.Security;
 using QuanLyChoThuePhongTroWeb.Application.Common.Formatting;
 using QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.Persistence;
+using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Payments;
 using QuanLyChoThuePhongTroWeb.Domain.Enums;
 
 namespace QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.Services
@@ -118,7 +119,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.Services
             {
                 activities.Add((p.NgayThanhToan,
                     $"Đã thu tiền Phòng {p.SoPhong}",
-                    $"Số tiền: {TienTe.DinhDang(p.SoTienThanhToan)} - {(p.PhuongThuc == PhuongThucThanhToan.TienMat ? "Tiền mặt" : "Chuyển khoản")}",
+                    $"Số tiền: {TienTe.DinhDang(p.SoTienThanhToan)} - {PaymentMethodLabels.Label(p.PhuongThuc)}",
                     "fas fa-check-circle",
                     "bg-success-lt"));
             }

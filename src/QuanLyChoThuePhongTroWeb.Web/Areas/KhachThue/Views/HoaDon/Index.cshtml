@@ -273,6 +273,12 @@
                         </div>`;
                 }
 
+                // Khoản cấn trừ tiền cọc khi thanh lý hợp đồng
+                const canTruCoc = (res.lichSuThanhToans || []).filter(ls => ls.laCanTruCoc).reduce((s, ls) => s + ls.soTienThanhToan, 0);
+                if (canTruCoc > 0) {
+                    html += `<div class="hd-total-row mb-3"><span>Trừ tiền cọc</span><span class="hd-num">−${formatVND(canTruCoc)}</span></div>`;
+                }
+
                 // Lịch sử thanh toán
                 if (res.lichSuThanhToans && res.lichSuThanhToans.length > 0) {
                     html += `<h4 class="fw-bold border-bottom pb-2 mt-4"><i class="ti ti-history me-1"></i> Lịch sử thanh toán</h4>

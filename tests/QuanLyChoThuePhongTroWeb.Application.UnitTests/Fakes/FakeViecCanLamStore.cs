@@ -31,6 +31,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
         public List<DemHoaDonRow> HoaDonQuaHan { get; } = new();
         public List<DemHoaDonRow> HoaDonChuaToiHan { get; } = new();
         public List<DemChiNhanhRow> SuCoXuLyQuaLau { get; } = new();
+        public List<(int ChiNhanhId, string Ten, DateTime ThoiDiemKetThuc)> HopDongQuaHan { get; } = new();
+        public List<DemHoaDonRow> HopDongDaTraPhongConNo { get; } = new();
         public List<HoaDonQuaHanRow> BangQuaHan { get; } = new();
         public List<KyDaChotChuaCoHoaDonRow> KyDaChotChuaCoHoaDon { get; } = new();
 
@@ -145,6 +147,24 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
                     SoLuongGap = g.Count(x => x.ThoiDiemKetThuc < gapTruocUtc)
                 }).ToList();
             return Task.FromResult<IReadOnlyList<DemChiNhanhRow>>(rows);
+        }
+
+        // KH4: ThoiDiemKetThuc < homNayVnBatDauUtc.
+        public Task<IReadOnlyList<DemChiNhanhRow>> DemHopDongQuaHanAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, DateTime homNayVnBatDauUtc, CancellationToken ct = default)
+        {
+            Record(nameof(DemHopDongQuaHanAsync), branchId, allowedBranchIds, homNayVnBatDauUtc);
+            var rows = HopDongQuaHan
+                .Where(h => h.ThoiDiemKetThuc < homNayVnBatDauUtc)
+                .GroupBy(h => new { h.ChiNhanhId, h.Ten })
+                .Select(g => new DemChiNhanhRow { ChiNhanhId = g.Key.ChiNhanhId, TenChiNhanh = g.Key.Ten, SoLuong = g.Count() })
+                .ToList();
+            return Task.FromResult<IReadOnlyList<DemChiNhanhRow>>(rows);
+        }
+
+        public Task<IReadOnlyList<DemHoaDonRow>> DemHopDongDaTraPhongConNoAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, CancellationToken ct = default)
+        {
+            Record(nameof(DemHopDongDaTraPhongConNoAsync), branchId, allowedBranchIds);
+            return Task.FromResult<IReadOnlyList<DemHoaDonRow>>(HopDongDaTraPhongConNo.ToList());
         }
 
         public Task<IReadOnlyList<HoaDonQuaHanRow>> GetHoaDonQuaHanAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, DateTime nowUtc, int gioiHan, CancellationToken ct = default)

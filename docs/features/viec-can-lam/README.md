@@ -8,7 +8,7 @@
 ## Tính năng cần hoàn thành
 
 - [x] Dashboard có khối "Việc cần làm" ở cột phải: 5 việc ưu tiên cao nhất, ô đếm theo mức ưu tiên, link xem tất cả.
-- [x] Trang `/QuanLyNhaTro/ViecCanLam` liệt kê đủ 11 loại việc theo mức ưu tiên, lọc theo chi nhánh và nhóm, kèm bảng hóa đơn quá hạn.
+- [x] Trang `/QuanLyNhaTro/ViecCanLam` liệt kê đủ 11 loại việc theo mức ưu tiên, lọc theo chi nhánh và nhóm, kèm bảng hóa đơn quá hạn. Về sau có thêm việc từ module khác; 05/11/2026 thêm KH4 "Hợp đồng đã quá hạn chưa xử lý" và KH5 "Khách đã trả phòng còn nợ" ([thanh lý, gia hạn hợp đồng](../thanh-ly-gia-han-hop-dong/README.md)), hiện có 14 loại.
 - [x] Mục menu "Việc cần làm" có badge số việc.
 - [x] Nhân viên chỉ thấy việc trong chi nhánh được phân công và không thấy việc chỉ-Admin.
 - [x] KPI "Chờ thu", "Phòng đang nợ" và biểu đồ chỉ tính hóa đơn đã gửi khách; có thêm thẻ "Quá hạn" và "Tỷ lệ lấp đầy".

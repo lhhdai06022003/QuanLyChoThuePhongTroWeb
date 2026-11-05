@@ -1,0 +1,160 @@
+@using System.Globalization
+@using QuanLyChoThuePhongTroWeb.Web.Helpers
+@model QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.GiaHanHopDongViewModel
+@{
+    var form = Model.Form;
+    ViewData["Title"] = "Gia hạn hợp đồng " + form.MaHopDong;
+
+    string Ngay(DateTime? utc) => utc.HasValue ? VietnamTime.Format(utc.Value, "dd/MM/yyyy") : "Chưa có";
+}
+
+<div class="container-xl py-4">
+    @Html.AntiForgeryToken()
+    <a href="/QuanLyNhaTro/HopDong/ChiTiet/@form.HopDongId">← Chi tiết hợp đồng</a>
+    <h1 class="page-title mt-3">Gia hạn hợp đồng @form.MaHopDong</h1>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4"><div class="text-secondary small">Phòng</div><div>@form.SoPhong · @form.TenChiNhanh</div></div>
+                <div class="col-md-4"><div class="text-secondary small">Người đại diện</div><div>@form.TenNguoiDaiDien</div></div>
+                <div class="col-md-4"><div class="text-secondary small">Thời hạn hiện tại</div><div>@Ngay(form.ThoiDiemBatDauUtc) - @Ngay(form.ThoiDiemKetThucUtc)</div></div>
+                <div class="col-md-4"><div class="text-secondary small">Mã hợp đồng mới (dự kiến)</div><div><strong>@form.MaHopDongMoiDuKien</strong></div></div>
+                <div class="col-md-8">
+                    <div class="text-secondary small">Thành viên được chép sang hợp đồng mới</div>
+                    <div>@(form.ThanhVienDangO.Count == 0 ? "Không có" : string.Join(", ", form.ThanhVienDangO))</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header"><h2 class="card-title">Hợp đồng mới</h2></div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label" for="thangBatDau">Tháng bắt đầu</label>
+                    <select class="form-select" id="thangBatDau">
+                        @for (var m = 1; m <= 12; m++)
+                        {
+                            <option value="@m" selected="@(m == form.ThangBatDauMacDinh)">Tháng @m</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="namBatDau">Năm</label>
+                    <input type="number" class="form-control" id="namBatDau" min="2000" max="2100" value="@form.NamBatDauMacDinh" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="ngayKetThucMoi">Ngày kết thúc mới</label>
+                    <input type="date" class="form-control" id="ngayKetThucMoi" value="@form.NgayKetThucMacDinh.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)" />
+                </div>
+                <div class="col-md-3"></div>
+                <div class="col-md-3">
+                    <label class="form-label" for="tienThue">Giá thuê/tháng mới (VNĐ)</label>
+                    <input type="number" class="form-control" id="tienThue" min="1" value="@form.TienThue.ToString("0", CultureInfo.InvariantCulture)" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="tienCoc">Tiền cọc (VNĐ)</label>
+                    <input type="number" class="form-control" id="tienCoc" min="0" value="@form.TienCoc.ToString("0", CultureInfo.InvariantCulture)" />
+                </div>
+                <div class="col-md-6">
+                    <div id="nhacChenhLechCoc" class="alert alert-warning mb-0" style="display:none">
+                        Tiền cọc khác hợp đồng cũ. Chênh lệch cọc thu/trả ngoài hệ thống.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header"><h2 class="card-title">Điều khoản</h2></div>
+        <div class="card-body">
+            <label class="form-check">
+                <input type="radio" class="form-check-input" name="cheDoDieuKhoan" id="cheDoChep" value="chep" checked />
+                <span class="form-check-label">Chép điều khoản hợp đồng cũ</span>
+            </label>
+            <div class="ms-4 mb-3 text-secondary">
+                @if (form.DieuKhoanHienTai.Count == 0)
+                {
+                    <span>Hợp đồng cũ không có điều khoản.</span>
+                }
+                else
+                {
+                    <ul class="mb-0">
+                        @foreach (var tieuDe in form.DieuKhoanHienTai)
+                        {
+                            <li>@tieuDe</li>
+                        }
+                    </ul>
+                }
+            </div>
+            <label class="form-check">
+                <input type="radio" class="form-check-input" name="cheDoDieuKhoan" id="cheDoChon" value="chon" />
+                <span class="form-check-label">Chọn lại từ điều khoản mẫu</span>
+            </label>
+            <div class="row ms-3 mt-2" id="khuDieuKhoanMau" style="display:none">
+                @foreach (var dk in Model.DieuKhoanMau)
+                {
+                    <div class="col-md-6 mb-2">
+                        <div class="form-check">
+                            <input class="form-check-input chk-dieukhoan" type="checkbox" id="dk_@dk.DieuKhoanMauId" value="@dk.DieuKhoanMauId">
+                            <label class="form-check-label" for="dk_@dk.DieuKhoanMauId">@dk.TieuDe</label>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <button type="button" class="btn btn-primary" id="btnXacNhanGiaHan"><i class="ti ti-calendar-plus me-1"></i> Xác nhận gia hạn</button>
+</div>
+
+@section Scripts {
+    <script>
+        $(function () {
+            const token = $('input[name="__RequestVerificationToken"]').first().val();
+            const cocCu = @form.TienCoc.ToString("0.####", CultureInfo.InvariantCulture);
+
+            function capNhatNhacCoc() {
+                const coc = parseFloat($('#tienCoc').val() || '0');
+                $('#nhacChenhLechCoc').toggle(coc !== cocCu);
+            }
+
+            $('#tienCoc').on('input change', capNhatNhacCoc);
+            $('input[name="cheDoDieuKhoan"]').on('change', function () {
+                $('#khuDieuKhoanMau').toggle($('#cheDoChon').is(':checked'));
+            });
+
+            $('#btnXacNhanGiaHan').on('click', function () {
+                const chep = $('#cheDoChep').is(':checked');
+                const body = {
+                    thangBatDau: parseInt($('#thangBatDau').val()),
+                    namBatDau: parseInt($('#namBatDau').val()),
+                    ngayKetThucMoi: $('#ngayKetThucMoi').val(),
+                    tienThue: parseFloat($('#tienThue').val() || '0'),
+                    tienCoc: parseFloat($('#tienCoc').val() || '0'),
+                    chepDieuKhoanCu: chep,
+                    dieuKhoanMauIds: chep ? null : $('.chk-dieukhoan:checked').map(function () { return parseInt($(this).val()); }).get()
+                };
+
+                $('#btnXacNhanGiaHan').prop('disabled', true);
+                $.ajax({
+                    url: '/HopDong/GiaHan/@form.HopDongId',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(body),
+                    headers: { 'RequestVerificationToken': token },
+                    success: function (res) {
+                        location.href = '/QuanLyNhaTro/HopDong/ChiTiet/' + res.data.hopDongMoiId;
+                    },
+                    error: function (xhr) {
+                        $('#btnXacNhanGiaHan').prop('disabled', false);
+                        const msg = (xhr.responseJSON && xhr.responseJSON.message) || 'Không gia hạn được hợp đồng.';
+                        Swal.fire({ icon: 'error', title: 'Không gia hạn được', text: msg, confirmButtonText: 'Đóng' });
+                    }
+                });
+            });
+        });
+    </script>
+}

@@ -8,6 +8,9 @@ namespace QuanLyChoThuePhongTroWeb.Domain.Enums
         TienMat = 0,
 
         [Description("Chuyển khoản")]
-        ChuyenKhoan = 1
+        ChuyenKhoan = 1,
+
+        [Description("Cấn trừ tiền cọc")]
+        CanTruTienCoc = 2
     }
 }

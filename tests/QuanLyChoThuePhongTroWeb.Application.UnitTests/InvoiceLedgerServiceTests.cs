@@ -374,5 +374,38 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.True((await _h.Ledger.CancelInvoiceAsync(7, Staff, "x")).Success);
             Assert.Equal(ServiceErrorKind.NotFound, (await _h.Ledger.CancelInvoiceAsync(7, Staff, "x")).ErrorKind);
         }
+
+        // ---------- Cấn trừ tiền cọc khi thanh lý hợp đồng ----------
+
+        [Fact]
+        public async Task Void_OffsetLedger_IsRejected()
+        {
+            _h.AddSentInvoice();
+            var offset = _h.AddLedger(7, 500_000m, "CANTRU-HD1-7");
+            offset.PhuongThucThanhToan = PhuongThucThanhToan.CanTruTienCoc;
+            var statusBefore = _h.Store.Invoices[7].TrangThaiHoaDon;
+
+            var result = await _h.Ledger.VoidPaymentAsync(offset.LichSuThanhToanId, Admin, "Thử hủy");
+
+            Assert.False(result.Success);
+            Assert.Contains("không hủy được", result.Message);
+            Assert.False(offset.IsDeleted);
+            Assert.Equal(statusBefore, _h.Store.Invoices[7].TrangThaiHoaDon);
+            Assert.Empty(_h.Store.Invoices[7].LichSuTrangThaiHoaDons);
+        }
+
+        [Fact]
+        public async Task CollectManually_WithMethodValue2_IsRejected()
+        {
+            _h.AddSentInvoice();
+            var request = Cash(500_000m);
+            request.PhuongThuc = (AppPhuongThucThanhToan)2;
+
+            var result = await _h.Ledger.CollectManuallyAsync(request, Staff);
+
+            Assert.False(result.Success);
+            Assert.Equal("Phương thức thanh toán không hợp lệ.", result.Message);
+            Assert.Empty(_h.Store.Ledger);
+        }
     }
 }

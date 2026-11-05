@@ -20,6 +20,7 @@ Các README sau mô tả **công việc dự kiến và người sở hữu**, t
 | [AI đọc chỉ số điện nước và cảnh báo theo mức](ai-phan-tich-dien-nuoc/README.md) | — | Spec v1 đã duyệt (02/11/2026); code xong 5 task trên nhánh `feature/ai-phan-tich-dien-nuoc`, đã qua test và review, đã sửa S1–S4, đã commit (chưa gộp `master`); SQL rà dữ liệu cũ, thử tay và Docker PASS (03/11/2026); chưa đo độ chính xác model |
 | [Thanh toán trực tuyến — Cổng SePay](thanh-toan-truc-tuyen/sepay/README.md) | — | Thuộc module [thanh toán trực tuyến](thanh-toan-truc-tuyen/README.md). Hỗ trợ cả Hóa đơn (`TTPTHD{Id}`) và Giữ chỗ (`TTPTGC{Id}`). Chuyển khoản VietQR, webhook SePay tự ghi sổ, SignalR realtime, Telegram, email biên lai, đối chiếu màn Giao dịch SePay. Đã hoàn thành, toàn bộ test PASS |
 | [Thanh toán trực tuyến — Cổng VNPay](thanh-toan-truc-tuyen/vnpay/README.md) | — | Thuộc module [thanh toán trực tuyến](thanh-toan-truc-tuyen/README.md). Hỗ trợ cả Hóa đơn và Giữ chỗ qua thẻ ATM / Visa / MasterCard / VNPAY-QR. IPN tự ghi sổ, trang kết quả chỉ đọc, SignalR realtime, Telegram, badge quản lý. Sandbox V01–V07 PASS, toàn bộ test PASS |
+| [Thanh lý, gia hạn hợp đồng và lịch sử thuê](thanh-ly-gia-han-hop-dong/README.md) | — | Code xong 05/11/2026 trên nhánh `feature/thanh-ly-gia-han-hop-dong` qua `/ship`, review ĐẠT CÓ ĐIỀU KIỆN và đã sửa M1, S1–S3 ([review](thanh-ly-gia-han-hop-dong/review.md)); toàn bộ test PASS, thử giao diện chỉ xem PASS; chưa bấm thanh lý/gia hạn thật, chưa gộp `master`. Không đổi schema; bỏ `ContractAutoCloseJob`, thay bằng thông báo một lần cho Admin và nhân viên chi nhánh |
 | [Việt hóa giao diện](viet-hoa-giao-dien/README.md) | — | Đã khảo sát và sửa chữ tiếng Anh còn sót (nút hộp thoại, Select2, DataTables, trang lỗi, nhãn trạng thái màn nhân viên) trên nhánh `feature/viet-hoa-giao-dien` (đã có trong `master`); thông báo lỗi do framework sinh giữ nguyên, không sửa `Program.cs` (quyết định 22/10/2026). Sau khi gộp `thuan`, layout trang khách dùng logo và tên TroSync |
 
 Quyền sở hữu file và lịch 60 ngày nằm trong [roadmap](../roadmap-60-ngay.md). Không đánh dấu hoàn thành chỉ vì đã có entity, migration hoặc thư mục tài liệu.
@@ -58,12 +59,15 @@ Quyền sở hữu file và lịch 60 ngày nằm trong [roadmap](../roadmap-60-
 
 ### Hợp đồng và thành viên
 
-- Tạo, cập nhật, xem chi tiết, in/xuất hợp đồng và xóa mềm.
+- Tạo, cập nhật, xem chi tiết, in/xuất hợp đồng. Chỉ xóa mềm được hợp đồng Đã hủy; hợp đồng đã kết thúc giữ lại để đối chiếu.
 - Trạng thái hợp đồng: DangHoatDong, DaKetThuc, DaHuy.
 - Lưu giá thuê thỏa thuận, tiền cọc, thời hạn, phòng và người thuê đại diện.
 - Quản lý thành viên ở ghép, ngày chuyển vào/ra và dịch vụ đăng ký.
 - Sao chép nội dung điều khoản mẫu vào hợp đồng để giữ snapshot lịch sử.
-- Job tự kết thúc hợp đồng hết hạn, giải phóng phòng và đóng thành viên/dịch vụ liên quan.
+- Hệ thống không tự kết thúc hợp đồng. Hết hạn thì `ContractExpiryAlertJob` gửi thông báo trong app một lần cho Admin và nhân viên chi nhánh; việc cần làm KH4 liệt kê hợp đồng đã quá hạn chưa xử lý.
+- Thanh lý: chọn ngày trả phòng, cấn trừ cọc vào hóa đơn còn nợ của cả chuỗi gia hạn (kỳ cũ trước, tối đa bằng số nợ), trả phòng, đóng thành viên và dịch vụ, in biên bản thanh lý PDF. Còn nợ vẫn thanh lý được khi xác nhận; nợ tiếp tục theo dõi ở KH5. Chặn khi hóa đơn tháng trả phòng chưa công bố.
+- Gia hạn: tạo hợp đồng mới nối tiếp từ ngày 1 tháng sau, mã `{mã gốc}-GH{n}`, chuyển cọc, chép thành viên và điều khoản.
+- Lịch sử thuê theo người thuê (đứng tên và ở ghép, giới hạn theo chi nhánh), tìm hợp đồng theo mã gốc, tên, CCCD, số điện thoại; cảnh báo nợ cũ khi lập hợp đồng hoặc thêm thành viên. Chi tiết: [thanh lý, gia hạn hợp đồng](thanh-ly-gia-han-hop-dong/README.md).
 
 ### Dịch vụ và điện nước
 
@@ -86,6 +90,7 @@ Quyền sở hữu file và lịch 60 ngày nằm trong [roadmap](../roadmap-60-
 ### Lịch sử thanh toán
 
 - Danh sách và thống kê giao dịch theo chi nhánh/khoảng ngày.
+- Phương thức: Tiền mặt, Chuyển khoản, Cấn trừ tiền cọc (dòng do thanh lý ghi, mã `CANTRU-...`; không hủy được, không có biên lai; mã nhập tay không được bắt đầu bằng `SEPAY-`, `VNPAY-`, `CANTRU-`).
 - Hủy giao dịch theo nghiệp vụ, lưu người thực hiện.
 - Khách thuê xem lịch sử giao dịch của chính mình.
 
@@ -122,7 +127,7 @@ Khách thuê đăng nhập bằng cookie và phải có role KhachThue cùng cla
 - Dashboard: tổng quan hồ sơ, tổng tiền hóa đơn chưa thanh toán, lịch xem và giữ chỗ của chính người dùng (mở cho cả KhachThue và KhachVangLai; công nợ chỉ hiện với KhachThue có hồ sơ người thuê).
 - Hồ sơ: xem thông tin cá nhân và đổi mật khẩu.
 - Hợp đồng: xem danh sách và chi tiết hợp đồng của mình.
-- Hóa đơn: xem danh sách/chi tiết, quyền sở hữu hóa đơn được kiểm tra ở server.
+- Hóa đơn: xem danh sách/chi tiết, quyền sở hữu hóa đơn được kiểm tra ở server. Hợp đồng đã kết thúc vẫn xem và thanh toán được khoản còn nợ; khoản cấn trừ hiện là "Trừ tiền cọc".
 - Lịch sử thanh toán: xem các giao dịch liên quan.
 - Sự cố: tạo và theo dõi yêu cầu của mình.
 - Thông báo: xem và quản lý trạng thái đã đọc.

@@ -157,8 +157,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.BackgroundJob
             var hostedServices = host.Services.GetServices<IHostedService>().ToList();
 
             Assert.Single(hostedServices, s => s is PaymentNotificationWorker);
-            Assert.Equal(backgroundJobsEnabled ? 3 : 0, hostedServices.Count(s => s.GetType().Namespace == typeof(ContractAutoCloseJob).Namespace));
-            Assert.Equal(backgroundJobsEnabled, hostedServices.Any(s => s is ContractAutoCloseJob));
+            Assert.Equal(backgroundJobsEnabled ? 2 : 0, hostedServices.Count(s => s.GetType().Namespace == typeof(ContractExpiryAlertJob).Namespace));
             Assert.Equal(backgroundJobsEnabled, hostedServices.Any(s => s is ContractExpiryAlertJob));
             Assert.Equal(backgroundJobsEnabled, hostedServices.Any(s => s is InvoiceReminderJob));
         }

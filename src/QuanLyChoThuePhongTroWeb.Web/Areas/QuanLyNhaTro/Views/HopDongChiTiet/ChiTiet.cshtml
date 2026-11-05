@@ -1,0 +1,143 @@
+@using System.Globalization
+@using QuanLyChoThuePhongTroWeb.Web.Helpers
+@model HopDongChiTietDto
+@{
+    ViewData["Title"] = "Chi tiết hợp đồng " + Model.MaHopDong;
+
+    string Ngay(DateTime utc) => VietnamTime.Format(utc, "dd/MM/yyyy");
+    string NgayHoacTrong(DateTime? utc) => utc.HasValue ? Ngay(utc.Value) : "Chưa có";
+    var badge = Model.TrangThai switch
+    {
+        1 => "bg-green-lt",
+        2 => "bg-secondary-lt",
+        _ => "bg-red-lt"
+    };
+}
+
+<div class="container-xl py-4">
+    <a href="/QuanLyNhaTro/QuanLyHopDong">← Danh sách hợp đồng</a>
+    <div class="d-flex flex-wrap align-items-center justify-content-between mt-3 mb-3">
+        <div>
+            <h1 class="page-title mb-1">Hợp đồng @Model.MaHopDong</h1>
+            <div class="text-secondary">
+                <span class="badge @badge me-2">@Model.TrangThaiText</span>
+                <span>@Model.LoaiText</span>
+            </div>
+        </div>
+        <div class="btn-list">
+            @if (Model.CoTheGiaHan)
+            {
+                <a class="btn btn-outline-primary" href="/QuanLyNhaTro/HopDong/GiaHan/@Model.HopDongId"><i class="ti ti-calendar-plus me-1"></i> Gia hạn</a>
+            }
+            @if (Model.CoTheThanhLy)
+            {
+                <a class="btn btn-danger" href="/QuanLyNhaTro/HopDong/ThanhLy/@Model.HopDongId"><i class="ti ti-file-check me-1"></i> Thanh lý</a>
+            }
+            @if (Model.CoBienBanThanhLy)
+            {
+                <a class="btn btn-outline-secondary" href="/HopDong/BienBanThanhLy/@Model.HopDongId" target="_blank" rel="noopener"><i class="ti ti-printer me-1"></i> In lại biên bản thanh lý</a>
+            }
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header"><h2 class="card-title">Thông tin</h2></div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4"><div class="text-secondary small">Phòng</div><div>@Model.SoPhong · @Model.TenChiNhanh</div></div>
+                <div class="col-md-4">
+                    <div class="text-secondary small">Người đại diện</div>
+                    <div><a href="/QuanLyNhaTro/NguoiThue/ChiTiet/@Model.NguoiThueId">@Model.TenNguoiDaiDien</a></div>
+                </div>
+                <div class="col-md-4"><div class="text-secondary small">Thời hạn</div><div>@Ngay(Model.ThoiDiemBatDauUtc) - @NgayHoacTrong(Model.ThoiDiemKetThucUtc)</div></div>
+                <div class="col-md-4"><div class="text-secondary small">Tiền thuê/tháng</div><div>@VndFormat.Money(Model.TienThue)</div></div>
+                <div class="col-md-4"><div class="text-secondary small">Tiền cọc</div><div>@VndFormat.Money(Model.TienCoc)</div></div>
+                @if (Model.MaHopDongKeTiep != null)
+                {
+                    <div class="col-md-4">
+                        <div class="text-secondary small">Hợp đồng kế tiếp</div>
+                        <div><a href="/QuanLyNhaTro/HopDong/ChiTiet/@Model.HopDongKeTiepId">@Model.MaHopDongKeTiep</a></div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header"><h2 class="card-title">Thành viên</h2></div>
+        <div class="card-body">
+            @if (Model.ThanhVien.Count == 0)
+            {
+                <p class="text-secondary mb-0">Chưa có thành viên.</p>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-vcenter">
+                        <thead><tr><th>Họ tên</th><th>Ngày vào</th><th>Ngày chuyển đi</th></tr></thead>
+                        <tbody>
+                            @foreach (var tv in Model.ThanhVien)
+                            {
+                                <tr>
+                                    <td>@tv.HoVaTen</td>
+                                    <td>@Ngay(tv.NgayVaoUtc)</td>
+                                    <td>@(tv.NgayChuyenDiUtc.HasValue ? Ngay(tv.NgayChuyenDiUtc.Value) : "Đang ở")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header"><h2 class="card-title">Điều khoản</h2></div>
+        <div class="card-body">
+            @if (Model.DieuKhoan.Count == 0)
+            {
+                <p class="text-secondary mb-0">Hợp đồng không có điều khoản bổ sung.</p>
+            }
+            else
+            {
+                <ol class="mb-0">
+                    @foreach (var dk in Model.DieuKhoan)
+                    {
+                        <li>@dk</li>
+                    }
+                </ol>
+            }
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><h2 class="card-title">Chuỗi hợp đồng</h2></div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-vcenter">
+                    <thead><tr><th>Mã hợp đồng</th><th>Loại</th><th>Từ - đến</th><th>Trạng thái</th></tr></thead>
+                    <tbody>
+                        @foreach (var item in Model.ChuoiHopDong)
+                        {
+                            <tr class="@(item.LaHienTai ? "fw-bold" : "")">
+                                <td>
+                                    @if (item.LaHienTai)
+                                    {
+                                        <strong>@item.MaHopDong</strong>
+                                    }
+                                    else
+                                    {
+                                        <a href="/QuanLyNhaTro/HopDong/ChiTiet/@item.HopDongId">@item.MaHopDong</a>
+                                    }
+                                </td>
+                                <td>@item.LoaiText</td>
+                                <td>@Ngay(item.TuUtc) - @NgayHoacTrong(item.DenUtc)</td>
+                                <td>@item.TrangThaiText</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

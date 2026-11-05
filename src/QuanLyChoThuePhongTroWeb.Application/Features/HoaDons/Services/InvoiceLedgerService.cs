@@ -214,6 +214,11 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                     return ServiceResult<VoidPaymentResult>.Fail("Khoản thanh toán đã bị hủy ghi nhận trước đó.");
                 }
 
+                if (ledger.PhuongThucThanhToan == PhuongThucThanhToan.CanTruTienCoc)
+                {
+                    return ServiceResult<VoidPaymentResult>.Fail("Khoản cấn trừ tiền cọc khi thanh lý hợp đồng không hủy được.");
+                }
+
                 ledger.HuyGhiNhan(PaymentNoteTags.AppendDaHuy(ledger.GhiChu, scope.NowUtc, actorId, lyDoTrim));
 
                 // Luôn ghi lịch sử hóa đơn: đây là nơi lưu người, thời điểm và lý do hủy (spec §20).

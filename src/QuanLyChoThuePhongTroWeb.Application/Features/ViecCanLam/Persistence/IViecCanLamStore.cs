@@ -52,6 +52,13 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.ViecCanLam.Persistence
         // KH3: hợp đồng DangHoatDong chưa xóa có tuUtc <= ThoiDiemKetThuc < denTruocUtc; SoLuongGap = số có ThoiDiemKetThuc < gapTruocUtc.
         Task<IReadOnlyList<DemChiNhanhRow>> DemHopDongSapHetHanAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, DateTime tuUtc, DateTime denTruocUtc, DateTime gapTruocUtc, CancellationToken ct = default);
 
+        // KH4: hợp đồng DangHoatDong chưa xóa, ThoiDiemKetThuc != null && < homNayVnBatDauUtc (đã quá hạn mà chưa thanh lý hay gia hạn).
+        Task<IReadOnlyList<DemChiNhanhRow>> DemHopDongQuaHanAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, DateTime homNayVnBatDauUtc, CancellationToken ct = default);
+
+        // KH5: hợp đồng DaKetThuc chưa xóa có hóa đơn DaGui chưa xóa còn nợ, trừ hợp đồng mà khách đã gia hạn (cùng phòng và cùng
+        // người thuê đang có hợp đồng DangHoatDong). SoLuong = số hợp đồng, TongConNo = tổng còn nợ.
+        Task<IReadOnlyList<DemHoaDonRow>> DemHopDongDaTraPhongConNoAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, CancellationToken ct = default);
+
         // Bảng quá hạn: điều kiện như TT2, sắp HanThanhToan tăng rồi HoaDonId tăng, lấy gioiHan dòng.
         Task<IReadOnlyList<HoaDonQuaHanRow>> GetHoaDonQuaHanAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, DateTime nowUtc, int gioiHan, CancellationToken ct = default);
     }

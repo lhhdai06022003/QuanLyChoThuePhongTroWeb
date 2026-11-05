@@ -171,6 +171,24 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.ViecCanLam.Services
                     ghiChuThem: gap > 0 ? $"{gap} hợp đồng còn tối đa {_settings.HopDongSapHetHanGapTrongNgay} ngày" : null);
             }
 
+            // KH4: hợp đồng đã quá hạn mà chưa thanh lý hay gia hạn
+            {
+                var rows = await _store.DemHopDongQuaHanAsync(branchId, allowed, homNayVnBatDauUtc, ct);
+                var dongs = rows.Select(r => new DongChiNhanh(r.ChiNhanhId, r.TenChiNhanh, r.SoLuong)).ToList();
+                ThemViec(items, "KH4", NhomViec.KhachThueHopDong, MucUuTienViec.Khan, "Hợp đồng đã quá hạn chưa xử lý", dongs, branchId,
+                    "/QuanLyNhaTro/QuanLyHopDong?boLoc=QuaHan");
+            }
+
+            // KH5: khách đã trả phòng còn nợ
+            if (DuocPhep(scope, EmployeeActionCodes.InvoiceRead))
+            {
+                var rows = await _store.DemHopDongDaTraPhongConNoAsync(branchId, allowed, ct);
+                var dongs = TuHoaDon(rows);
+                ThemViec(items, "KH5", NhomViec.KhachThueHopDong, MucUuTienViec.CanLam, "Khách đã trả phòng còn nợ", dongs, branchId,
+                    "/QuanLyNhaTro/QuanLyHoaDon?thang=0&nam=0&trangThaiPhatHanh=3&hopDongDaKetThucConNo=1",
+                    tongConNo: dongs.Sum(d => d.TongConNo));
+            }
+
             var sapXep = items
                 .OrderBy(i => i.MucUuTien)
                 .ThenByDescending(i => i.SoLuong)

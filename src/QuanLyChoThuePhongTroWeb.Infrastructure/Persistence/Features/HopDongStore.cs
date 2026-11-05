@@ -1,12 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using QuanLyChoThuePhongTroWeb.Application.Common.Models;
 using QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.Persistence;
+using QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.Services;
 using QuanLyChoThuePhongTroWeb.Domain.Entities;
 using QuanLyChoThuePhongTroWeb.Domain.Enums;
 using QuanLyChoThuePhongTroWeb.Infrastructure.Persistence;
@@ -50,6 +52,25 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
             {
                 query = query.Where(x => (int)x.TrangThaiHopDong == request.TrangThai.Value);
             }
+            if (!string.IsNullOrEmpty(request.BoLoc))
+            {
+                var moc = request.MocDauNgayHomNayUtc;
+                switch (request.BoLoc)
+                {
+                    case "QuaHan" when moc.HasValue:
+                        query = query.Where(x => x.TrangThaiHopDong == TrangThaiHopDong.DangHoatDong
+                            && x.ThoiDiemKetThuc != null && x.ThoiDiemKetThuc < moc.Value);
+                        break;
+                    case "SapHetHan" when moc.HasValue:
+                        var mocCuoi = moc.Value.AddDays(31);
+                        query = query.Where(x => x.TrangThaiHopDong == TrangThaiHopDong.DangHoatDong
+                            && x.ThoiDiemKetThuc != null && x.ThoiDiemKetThuc >= moc.Value && x.ThoiDiemKetThuc < mocCuoi);
+                        break;
+                    case "GiaHan":
+                        query = query.Where(x => Regex.IsMatch(x.MaHopDong, HopDongCodeChain.RenewalPattern));
+                        break;
+                }
+            }
             if (request.StartDate.HasValue && request.EndDate.HasValue)
             {
                 var startUtc = DateTime.SpecifyKind(request.StartDate.Value.Date, DateTimeKind.Utc);
@@ -63,7 +84,13 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 query = query.Where(x =>
                     x.MaHopDong.ToLower().Contains(searchValue) ||
                     x.PhongTro.SoPhong.ToLower().Contains(searchValue) ||
-                    x.NguoiThue.HoVaTen.ToLower().Contains(searchValue));
+                    x.NguoiThue.HoVaTen.ToLower().Contains(searchValue) ||
+                    x.NguoiThue.CCCD.Contains(searchValue) ||
+                    x.NguoiThue.SoDienThoai.Contains(searchValue) ||
+                    x.ChiTietThanhVienHopDongs.Any(m => !m.IsDeleted &&
+                        (m.NguoiThue.HoVaTen.ToLower().Contains(searchValue) ||
+                         m.NguoiThue.CCCD.Contains(searchValue) ||
+                         m.NguoiThue.SoDienThoai.Contains(searchValue))));
             }
 
             int filteredRecords = await query.CountAsync(cancellationToken);
@@ -158,7 +185,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
 
         public async Task<int> CountContractsWithPrefixAsync(string prefix, CancellationToken cancellationToken = default)
         {
-            return await _context.HopDongs.CountAsync(x => x.MaHopDong.StartsWith(prefix), cancellationToken);
+            return await _context.HopDongs.CountAsync(x => x.MaHopDong.StartsWith(prefix) && !Regex.IsMatch(x.MaHopDong, HopDongCodeChain.RenewalPattern), cancellationToken);
         }
 
         public async Task<bool> ExistsContractWithCodeAsync(string code, CancellationToken cancellationToken = default)
@@ -365,10 +392,12 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
         public async Task<IReadOnlyList<HopDong>> GetExpiredActiveContractsAsync(DateTime nowUtc, CancellationToken cancellationToken = default)
         {
             return await _context.HopDongs
-                .Include(hd => hd.PhongTro)
-                .Include(hd => hd.ChiTietThanhVienHopDongs)
+                .AsNoTracking()
+                .Include(hd => hd.PhongTro).ThenInclude(p => p.ChiNhanh)
+                .Include(hd => hd.NguoiThue)
                 .Where(hd => hd.TrangThaiHopDong == TrangThaiHopDong.DangHoatDong
                     && !hd.IsDeleted
+                    && !hd.PhongTro.IsDeleted
                     && hd.ThoiDiemKetThuc != null
                     && hd.ThoiDiemKetThuc < nowUtc)
                 .ToListAsync(cancellationToken);

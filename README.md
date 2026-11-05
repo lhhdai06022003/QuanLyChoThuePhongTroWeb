@@ -13,11 +13,12 @@ Roadmap mô tả công việc dự kiến, không phải danh sách tính năng 
 - Xuất hóa đơn PDF/Excel, hợp đồng Word, sinh VietQR; webhook SePay tự ghi sổ thanh toán (mặc định tắt) kèm thông báo Telegram và email biên lai.
 - Dashboard, email, báo sự cố kèm hình ảnh Cloudinary và thông báo SignalR.
 - Trợ lý Gemini với các công cụ truy vấn dữ liệu vận hành.
-- Tác vụ nền kết thúc hợp đồng, cảnh báo hết hạn và nhắc hóa đơn; bật/tắt theo cấu hình.
+- Thanh lý hợp đồng (cấn trừ cọc, biên bản PDF), gia hạn bằng hợp đồng nối tiếp, lịch sử thuê theo người thuê.
+- Tác vụ nền cảnh báo hợp đồng hết hạn (thông báo trong app một lần, không tự kết thúc hợp đồng) và nhắc hóa đơn; bật/tắt theo cấu hình.
 - Khách thuê xem hồ sơ, hợp đồng, hóa đơn, lịch sử thanh toán và báo sự cố.
 - Khách vãng lai xem phòng công khai (lọc, lưu, so sánh), đăng ký tài khoản, hẹn xem, giữ chỗ, đặt cọc, nộp ảnh minh chứng và theo dõi khoản hoàn; nhân viên đăng tin phòng kèm ảnh, xác nhận lịch xem và đối soát tiền giữ chỗ.
 
-API phiên bản v1 và CI workflow mới có thư mục khung (chỉ có `.gitkeep`). Chưa có: gộp tài khoản khi khách vãng lai ký hợp đồng, xóa hoặc sắp xếp ảnh tin phòng, thanh toán VNPay. Trạng thái phát hành hóa đơn gồm Nhap, ChoDuyet, DaChot, DaGui, DaHuy; trạng thái thanh toán gồm ChuaThanhToan, DaThanhToan, ThanhToanMotPhan. Danh mục và hiện trạng chi tiết: [docs/features/README.md](docs/features/README.md).
+API phiên bản v1 và CI workflow mới có thư mục khung (chỉ có `.gitkeep`). Chưa có: gộp tài khoản khi khách vãng lai ký hợp đồng, xóa hoặc sắp xếp ảnh tin phòng, báo cáo thống kê. Trạng thái phát hành hóa đơn gồm Nhap, ChoDuyet, DaChot, DaGui, DaHuy; trạng thái thanh toán gồm ChuaThanhToan, DaThanhToan, ThanhToanMotPhan. Danh mục và hiện trạng chi tiết: [docs/features/README.md](docs/features/README.md).
 
 ## Cấu trúc và luồng xử lý
 

@@ -822,5 +822,49 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.False(store.WasCalled(nameof(store.GetKyDaChotChuaCoHoaDonAsync)));
             Assert.Equal(0, auto.GetContextCalls);
         }
+
+        // KH4: hợp đồng quá hạn chưa xử lý. Hôm nay VN = 10/01/2027, đầu ngày = 2027-01-09T17:00Z.
+
+        [Fact]
+        public async Task Kh4_ExpiredContract_IsKhan_WithFilterLink_AndPassesStartOfTodayVn()
+        {
+            var (service, store) = Create(AdminScope());
+            store.HopDongQuaHan.Add((BranchA, "A", new DateTime(2027, 1, 9, 16, 59, 59, DateTimeKind.Utc)));
+            store.HopDongQuaHan.Add((BranchA, "A", new DateTime(2027, 1, 9, 17, 0, 0, DateTimeKind.Utc)));
+
+            var item = Item(await service.GetTongHopAsync(Admin, null), "KH4");
+
+            Assert.Equal(MucUuTienViec.Khan, item.MucUuTien);
+            Assert.Equal(1, item.SoLuong);
+            Assert.StartsWith("/QuanLyNhaTro/QuanLyHopDong?boLoc=QuaHan", item.Link);
+            Assert.Equal(new DateTime(2027, 1, 9, 17, 0, 0, DateTimeKind.Utc), store.Single(nameof(store.DemHopDongQuaHanAsync)).Args[0]);
+        }
+
+        // KH5: khách đã trả phòng còn nợ.
+
+        [Fact]
+        public async Task Kh5_EndedContractDebt_CarriesTotalDebt_AndLinksToFilteredInvoices()
+        {
+            var (service, store) = Create(AdminScope());
+            store.HopDongDaTraPhongConNo.Add(HoaDon(BranchA, "A", 2, conNo: 3_500_000m));
+
+            var item = Item(await service.GetTongHopAsync(Admin, null), "KH5");
+
+            Assert.Equal(MucUuTienViec.CanLam, item.MucUuTien);
+            Assert.Equal(2, item.SoLuong);
+            Assert.Equal(3_500_000m, item.TongConNo);
+            Assert.Contains("hopDongDaKetThucConNo=1", item.Link);
+        }
+
+        [Fact]
+        public async Task Kh5_ScopeNull_DoesNotCallStore()
+        {
+            var (service, store) = Create(null);
+
+            await service.GetTongHopAsync(Staff, null);
+
+            Assert.False(store.WasCalled(nameof(store.DemHopDongDaTraPhongConNoAsync)));
+            Assert.False(store.WasCalled(nameof(store.DemHopDongQuaHanAsync)));
+        }
     }
 }

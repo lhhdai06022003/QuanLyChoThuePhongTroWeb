@@ -87,7 +87,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                     TenChiNhanh = l.HoaDon.HopDong.PhongTro.ChiNhanh.TenChiNhanh,
                     SoTienThanhToan = l.SoTienThanhToan,
                     PhuongThucThanhToan = (int)l.PhuongThucThanhToan,
-                    PhuongThucThanhToanText = l.PhuongThucThanhToan == PhuongThucThanhToan.TienMat ? "Tiền mặt" : "Chuyển khoản",
+                    PhuongThucThanhToanText = PaymentMethodLabels.Label(l.PhuongThucThanhToan),
                     NgayThanhToan = l.NgayThanhToan.AddHours(7).ToString("dd/MM/yyyy HH:mm"),
                     NguoiXacNhan = l.NguoiXacNhan != null ? l.NguoiXacNhan.TenDangNhap : "Hệ thống",
                     GhiChu = l.GhiChu
