@@ -1,7 +1,7 @@
 # Module: Thanh lý, gia hạn hợp đồng và lịch sử thuê
 
 - **Nhánh Git:** `feature/thanh-ly-gia-han-hop-dong` (từ `master` = `d34fa90`).
-- **Hiện trạng:** đã code xong theo spec v2 (05/11/2026, qua `/ship`), đã sửa các điểm review M1, S1–S3; toàn bộ test PASS; thử giao diện (chỉ xem) PASS; thanh lý thật trên DB phát triển PASS 05/11/2026 (hợp đồng cọc 0 ₫ còn nợ, chưa có dòng cấn trừ thật). Chưa bấm Gia hạn thật. Chưa gộp vào `master`.
+- **Hiện trạng:** đã code xong theo spec v2 (05/11/2026, qua `/ship`), đã sửa các điểm review M1, S1–S3; toàn bộ test PASS; thử giao diện (chỉ xem) PASS; thanh lý thật trên DB phát triển PASS 05/11/2026 (hợp đồng cọc 0 ₫ còn nợ, chưa có dòng cấn trừ thật); gia hạn thật PASS 05/11/2026. Chưa gộp vào `master`.
 - **Schema:** không đổi (người dùng chốt 04/11/2026: không thêm migration, kể cả cột `HopDongTruocId`). Chỉ thêm giá trị enum `PhuongThucThanhToan.CanTruTienCoc = 2`.
 - **Phạm vi:** chỉ cổng quản lý; không đụng cổng khách vãng lai.
 
@@ -10,7 +10,7 @@
 - [x] Bỏ `ContractAutoCloseJob` và `ContractAutoCloseUseCase`: hệ thống không tự kết thúc hợp đồng hay trả phòng về Trống. Form sửa hợp đồng không còn trạng thái Đã kết thúc (server cũng từ chối).
 - [x] `ContractExpiryAlertJob` gửi thông báo trong app **một lần** khi hợp đồng hết hạn cho Admin và nhân viên chi nhánh (khóa `app_het_han_{id}` trong `sent_contract_alerts.json`); việc cần làm KH4 "Hợp đồng đã quá hạn chưa xử lý" (lọc `boLoc=QuaHan` ở danh sách hợp đồng).
 - [x] Thanh lý (`/QuanLyNhaTro/HopDong/ThanhLy/{id}`, xem chi tiết ở `/QuanLyNhaTro/HopDong/ChiTiet/{id}`): ngày trả phòng; tiền phòng tháng trả tính theo ngày, điện nước theo chỉ số chốt (qua hóa đơn tháng đó, phải đã công bố); cấn trừ cọc vào hóa đơn còn nợ của cả chuỗi gia hạn, kỳ cũ trước, tối đa bằng số nợ, ghi `LichSuThanhToan` mã `CANTRU-HD{id}-{HoaDonId}`; trả phòng, đóng thành viên và dịch vụ; biên bản thanh lý PDF. Còn nợ sau cấn trừ vẫn cho thanh lý khi tích xác nhận, nợ tiếp tục theo dõi ở KH5 và cảnh báo nợ cũ.
-- [x] Gia hạn (`/QuanLyNhaTro/HopDong/GiaHan/{id}`): hợp đồng mới nối tiếp từ ngày 1 tháng sau, mã `{mã gốc}-GH{n}`, chuyển cọc, chép thành viên và điều khoản; giá thuê/cọc phải là số đồng nguyên.
+- [x] Gia hạn (`/QuanLyNhaTro/HopDong/GiaHan/{id}`): hợp đồng mới nối tiếp từ ngày 1 tháng sau, mã `{mã gốc}-GH{n}`, chuyển cọc, chép thành viên và điều khoản; giá thuê/cọc phải là số đồng nguyên; hộp thoại xác nhận tóm tắt hợp đồng mới trước khi gia hạn.
 - [x] Lịch sử thuê theo người thuê (`/QuanLyNhaTro/NguoiThue/ChiTiet/{id}`: đứng tên và ở ghép, giới hạn theo chi nhánh); tìm hợp đồng theo mã gốc, tên, CCCD, số điện thoại; bộ lọc nhanh ở danh sách hợp đồng.
 - [x] Công nợ hợp đồng đã kết thúc: việc cần làm KH5, bộ lọc hóa đơn `hopDongDaKetThucConNo`, cảnh báo nợ cũ khi lập hợp đồng hoặc thêm thành viên (`/NguoiThue/NoCu/{id}`).
 - [x] Chỉ xóa được hợp đồng **Đã hủy**; hợp đồng đã kết thúc giữ lại để đối chiếu (người dùng chốt 05/11/2026).

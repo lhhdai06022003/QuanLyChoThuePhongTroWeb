@@ -115,6 +115,8 @@
         $(function () {
             const token = $('input[name="__RequestVerificationToken"]').first().val();
             const cocCu = @form.TienCoc.ToString("0.####", CultureInfo.InvariantCulture);
+            const maHopDongCu = @Json.Serialize(form.MaHopDong);
+            const maHopDongMoi = @Json.Serialize(form.MaHopDongMoiDuKien);
 
             function capNhatNhacCoc() {
                 const coc = parseFloat($('#tienCoc').val() || '0');
@@ -138,21 +140,39 @@
                     dieuKhoanMauIds: chep ? null : $('.chk-dieukhoan:checked').map(function () { return parseInt($(this).val()); }).get()
                 };
 
-                $('#btnXacNhanGiaHan').prop('disabled', true);
-                $.ajax({
-                    url: '/HopDong/GiaHan/@form.HopDongId',
-                    type: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify(body),
-                    headers: { 'RequestVerificationToken': token },
-                    success: function (res) {
-                        location.href = '/QuanLyNhaTro/HopDong/ChiTiet/' + res.data.hopDongMoiId;
-                    },
-                    error: function (xhr) {
-                        $('#btnXacNhanGiaHan').prop('disabled', false);
-                        const msg = (xhr.responseJSON && xhr.responseJSON.message) || 'Không gia hạn được hợp đồng.';
-                        Swal.fire({ icon: 'error', title: 'Không gia hạn được', text: msg, confirmButtonText: 'Đóng' });
-                    }
+                const thang = String(body.thangBatDau).padStart(2, '0');
+                const ketThuc = (body.ngayKetThucMoi || '').split('-').reverse().join('/');
+                const tien = function (v) { return (isNaN(v) ? 0 : v).toLocaleString('vi-VN') + ' đ'; };
+                const tomTat = 'Tạo hợp đồng ' + maHopDongMoi + ' từ 01/' + thang + '/' + body.namBatDau + ' đến ' + ketThuc
+                    + ', giá thuê ' + tien(body.tienThue) + '/tháng, tiền cọc ' + tien(body.tienCoc) + '. Hợp đồng ' + maHopDongCu
+                    + ' sẽ chuyển Đã gia hạn. Thao tác này không hoàn tác được.';
+
+                // Dùng text (không dùng html) để chuỗi hiển thị luôn được escape.
+                Swal.fire({
+                    title: 'Gia hạn hợp đồng?',
+                    text: tomTat,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Gia hạn',
+                    cancelButtonText: 'Hủy'
+                }).then(function (r) {
+                    if (!r.isConfirmed) return;
+                    $('#btnXacNhanGiaHan').prop('disabled', true);
+                    $.ajax({
+                        url: '/HopDong/GiaHan/@form.HopDongId',
+                        type: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify(body),
+                        headers: { 'RequestVerificationToken': token },
+                        success: function (res) {
+                            location.href = '/QuanLyNhaTro/HopDong/ChiTiet/' + res.data.hopDongMoiId;
+                        },
+                        error: function (xhr) {
+                            $('#btnXacNhanGiaHan').prop('disabled', false);
+                            const msg = (xhr.responseJSON && xhr.responseJSON.message) || 'Không gia hạn được hợp đồng.';
+                            Swal.fire({ icon: 'error', title: 'Không gia hạn được', text: msg, confirmButtonText: 'Đóng' });
+                        }
+                    });
                 });
             });
         });
