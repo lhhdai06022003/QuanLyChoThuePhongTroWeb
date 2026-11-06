@@ -36,15 +36,17 @@ public sealed class ReservationSettlementService(IReservationSettlementStore sto
     }
 
     public Task<ServiceResult> CloseWithoutRentAsync(int actorId, int reservationId, string reason,
+        bool confirm, bool preservePriorRefund,
         CancellationToken cancellationToken = default) =>
-        CloseAsync(actorId, reservationId, reason, requireExpired: false, cancellationToken);
+        CloseAsync(actorId, reservationId, reason, requireExpired: false, confirm, preservePriorRefund, cancellationToken);
 
     public Task<ServiceResult> CancelExpiredContractAsync(int actorId, int reservationId, string reason,
+        bool confirm, bool preservePriorRefund,
         CancellationToken cancellationToken = default) =>
-        CloseAsync(actorId, reservationId, reason, requireExpired: true, cancellationToken);
+        CloseAsync(actorId, reservationId, reason, requireExpired: true, confirm, preservePriorRefund, cancellationToken);
 
     private async Task<ServiceResult> CloseAsync(int actorId, int reservationId, string reason,
-        bool requireExpired, CancellationToken cancellationToken)
+        bool requireExpired, bool confirm, bool preservePriorRefund, CancellationToken cancellationToken)
     {
         var trimmedReason = reason?.Trim();
         if (reservationId <= 0 || string.IsNullOrEmpty(trimmedReason) || trimmedReason.Length > 500)
@@ -54,7 +56,7 @@ public sealed class ReservationSettlementService(IReservationSettlementStore sto
             return ServiceResult.Forbidden(Unauthorized);
 
         return await store.CloseWithoutRentAsync(actorId, reservationId, branchId.Value, trimmedReason,
-            requireExpired, clock.GetUtcNow().UtcDateTime, cancellationToken);
+            requireExpired, confirm, preservePriorRefund, clock.GetUtcNow().UtcDateTime, cancellationToken);
     }
 
     public Task<IReadOnlyList<SettlementSummaryDto>> ListMineAsync(int actorId,

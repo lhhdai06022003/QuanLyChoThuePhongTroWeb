@@ -127,8 +127,10 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                     CocGiuLai = y.TrangThai == TrangThaiYeuCauGiuCho.KhachKhongThue ? y.SoTienGiuCho ?? 0m : 0m,
                     NgayGiuLai = y.LichSuTrangThais.Where(h => h.TrangThaiSau == TrangThaiYeuCauGiuCho.KhachKhongThue)
                         .Select(h => (DateTime?)h.NgayThucHien).Min(),
-                    DangGiuChoTuPhucVu = y.TrangThai == TrangThaiYeuCauGiuCho.DangGiuCho &&
-                        y.LichSuTrangThais.Any(h => h.LyDo == SelfServiceReservationRules.CreationReason),
+                    BoQuaThuKhac = y.LichSuTrangThais.Any(h => h.LyDo == SelfServiceReservationRules.CreationReason) &&
+                        (y.TrangThai == TrangThaiYeuCauGiuCho.DangGiuCho ||
+                            y.TrangThai == TrangThaiYeuCauGiuCho.DaHuy && y.LichSuTrangThais.Any(h =>
+                                h.TrangThaiSau == TrangThaiYeuCauGiuCho.DaHuy && h.LyDo == SelfServiceReservationRules.PriorRefundClosureMarker)),
                     CoQuyetDinh = y.QuyetDinhHoanTienGiuCho != null,
                     TrangThaiQuyetDinh = y.QuyetDinhHoanTienGiuCho != null ? (TrangThaiHoanTien?)y.QuyetDinhHoanTienGiuCho.TrangThai : null,
                     NgayQuyetDinh = y.QuyetDinhHoanTienGiuCho != null ? (DateTime?)y.QuyetDinhHoanTienGiuCho.NgayQuyetDinh : null,
@@ -153,7 +155,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                     r.DaHoan,
                     r.CocGiuLai,
                     r.NgayGiuLai,
-                    r.DangGiuChoTuPhucVu))
+                    r.BoQuaThuKhac))
                 .ToList();
         }
 

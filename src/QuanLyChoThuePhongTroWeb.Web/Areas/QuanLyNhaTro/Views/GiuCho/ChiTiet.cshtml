@@ -31,16 +31,32 @@
             <p><strong>Cọc giữ lại: @VndFormat.Money(closure.RetainedDepositAmount)</strong></p>
             <p>Lý do: @closure.ClosureReason</p>
         }
+        else if (reservation.Status == "DaHuy" && Model.Settlement is { UsesPriorRefundForClosure: true } priorClosure)
+        {
+            <p>Đã hủy giữ chỗ theo quyết định hoàn tiền trước đó.</p>
+            <p>Lý do: @priorClosure.ClosureReason</p>
+        }
     </div></div>
-    @if (Model.Settlement is { CanCloseWithoutRent: true })
+    @if (Model.Settlement is { CanCloseWithoutRent: true } closeOption)
     {
         <div class="card mb-4"><div class="card-header"><h2 class="card-title">Khách không thuê</h2></div>
             <div class="card-body">
-                <p>Kết thúc giữ chỗ và ghi nhận @VndFormat.Money(reservation.HoldAmount.GetValueOrDefault()) tiền cọc giữ lại. Khoản cọc này không hoàn hoặc chuyển sang lần đặt sau. Tiền dư hoặc đến muộn được xử lý riêng.</p>
+                @if (closeOption.UsesPriorRefundForClosure)
+                {
+                    <p>Khoản hoàn đã duyệt hoặc đã chuyển có dùng tiền cọc. Kết thúc giữ chỗ theo quyết định hoàn tiền trước đó và giữ nguyên số tiền đã duyệt.</p>
+                }
+                else
+                {
+                    <p>Kết thúc giữ chỗ và ghi nhận @VndFormat.Money(reservation.HoldAmount.GetValueOrDefault()) tiền cọc giữ lại. Khoản cọc này không hoàn hoặc chuyển sang lần đặt sau. Tiền dư hoặc đến muộn được xử lý riêng.</p>
+                }
                 <form method="post" asp-action="KhachKhongThue">
                     <input type="hidden" name="reservationId" value="@reservation.Id" />
+                    @if (closeOption.UsesPriorRefundForClosure)
+                    {
+                        <input type="hidden" name="preservePriorRefund" value="true" />
+                    }
                     <div class="mb-3"><label class="form-label" for="closeReason">Lý do khách không thuê</label><input class="form-control" id="closeReason" name="reason" maxlength="500" required /></div>
-                    <label class="form-check mb-3"><input class="form-check-input" type="checkbox" name="confirm" value="true" required /><span class="form-check-label">Tôi xác nhận khách không thuê và giữ lại tiền cọc.</span></label>
+                    <label class="form-check mb-3"><input class="form-check-input" type="checkbox" name="confirm" value="true" required /><span class="form-check-label">@(closeOption.UsesPriorRefundForClosure ? "Tôi xác nhận hủy giữ chỗ theo quyết định hoàn tiền trước đó." : "Tôi xác nhận khách không thuê và giữ lại tiền cọc.")</span></label>
                     <button class="btn btn-outline-danger" type="submit">Xác nhận khách không thuê</button>
                 </form>
             </div>

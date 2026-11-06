@@ -4,7 +4,8 @@ public sealed record SettlementSummaryDto(int ReservationId, decimal ConfirmedAm
     decimal AppliedToContractDeposit, int? ContractId, int? RefundDecisionId,
     decimal? ApprovedRefundAmount, decimal RefundedAmount,
     decimal MandatoryRefundAmount, string? RefundStatus, decimal RetainedDepositAmount = 0m,
-    decimal AvailableRefundAmount = 0m, bool CanCloseWithoutRent = false, string? ClosureReason = null);
+    decimal AvailableRefundAmount = 0m, bool CanCloseWithoutRent = false, string? ClosureReason = null,
+    bool UsesPriorRefundForClosure = false);
 
 public sealed record ReservationContractDraft(int ReservationId, string RoomNumber,
     string CustomerName, string Email, string Phone, bool RequiresCccd,

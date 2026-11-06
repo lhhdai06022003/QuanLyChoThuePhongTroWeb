@@ -111,8 +111,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.BaoCaos.Services
             // Với yêu cầu cũ, giữ nguyên cách tính theo quyết định hoàn tiền đã hoàn tất.
             foreach (var g in giuChos)
             {
-                // Hoàn xong phần chuyển dư trong khi còn giữ chỗ chưa phải là giữ lại cọc.
-                if (g.DangGiuChoTuPhucVu)
+                // Yêu cầu tự phục vụ đang mở hoặc hủy theo quyết định hoàn cũ chưa ghi nhận giữ cọc.
+                if (g.BoQuaThuKhac)
                 {
                     continue;
                 }

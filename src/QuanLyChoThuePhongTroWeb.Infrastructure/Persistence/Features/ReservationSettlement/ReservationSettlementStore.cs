@@ -7,6 +7,7 @@ using QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.Services;
 using QuanLyChoThuePhongTroWeb.Application.Features.ReservationPayments;
 using QuanLyChoThuePhongTroWeb.Application.Features.ReservationSettlement;
+using QuanLyChoThuePhongTroWeb.Application.Features.Reservations;
 using QuanLyChoThuePhongTroWeb.Domain.Entities;
 using QuanLyChoThuePhongTroWeb.Domain.Enums;
 using QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features.Reservations;
@@ -144,7 +145,8 @@ public sealed class ReservationSettlementStore(ApplicationDbContext context,
     }
 
     public async Task<ServiceResult> CloseWithoutRentAsync(int actorId, int reservationId,
-        int authorizedBranchId, string reason, bool requireExpired, DateTime nowUtc,
+        int authorizedBranchId, string reason, bool requireExpired, bool confirm,
+        bool preservePriorRefund, DateTime nowUtc,
         CancellationToken cancellationToken = default)
     {
         try
@@ -158,13 +160,19 @@ public sealed class ReservationSettlementStore(ApplicationDbContext context,
                 return ServiceResult.Forbidden("Bạn không có quyền xử lý yêu cầu này.");
             if (requireExpired && (hold.HanKyHopDong is null || hold.HanKyHopDong > nowUtc))
                 return ServiceResult.Fail("Chỉ hủy theo hạn ký khi yêu cầu đã quá hạn.");
+
+            // Yêu cầu cũ được nhân viên duyệt có thể hủy quá hạn theo quy trình cũ.
+            var legacyCancellation = requireExpired && !ReservationDepositRules.IsSelfService(hold);
+            if (!legacyCancellation && !confirm)
+                return ServiceResult.Fail("Cần xác nhận cách xử lý tiền cọc trước khi kết thúc giữ chỗ.");
             if (hold.TrangThai == TrangThaiYeuCauGiuCho.KhachKhongThue)
                 return ServiceResult.Ok("Đã ghi nhận khách không thuê và giữ lại tiền cọc.");
+            if (WasClosedWithPriorRefund(hold))
+                return ServiceResult.Ok(ClosedWithPriorRefundMessage);
             if (hold.TrangThai != TrangThaiYeuCauGiuCho.DangGiuCho || hold.ApDungTienGiuChoVaoTienCoc is not null)
                 return ServiceResult.Fail("Yêu cầu không còn ở trạng thái đang giữ chỗ.");
 
-            // Lượt giữ chỗ cũ đã được nhân viên duyệt giữ nguyên cách xử lý khi hủy quá hạn.
-            var legacyCancellation = requireExpired && !ReservationDepositRules.IsSelfService(hold);
+            var closeWithPriorRefund = false;
             if (!legacyCancellation)
             {
                 var deposit = ReservationDepositRules.PaidDeposit(hold);
@@ -172,10 +180,13 @@ public sealed class ReservationSettlementStore(ApplicationDbContext context,
                     return ServiceResult.Fail("Chưa nhận đủ tiền giữ chỗ trong hạn để kết thúc theo chính sách cọc.");
                 var summary = Map(hold);
                 var separateRefund = summary.ConfirmedAmount - deposit;
-                if (Math.Max(summary.ApprovedRefundAmount.GetValueOrDefault(), summary.RefundedAmount) > separateRefund)
+                closeWithPriorRefund = summary.UsesPriorRefundForClosure;
+                if (preservePriorRefund != closeWithPriorRefund)
+                    return ServiceResult.Fail("Cách xử lý tiền cọc đã thay đổi. Vui lòng tải lại và xác nhận.");
+                if (!closeWithPriorRefund && Math.Max(summary.ApprovedRefundAmount.GetValueOrDefault(), summary.RefundedAmount) > separateRefund)
                     return ServiceResult.Fail("Quyết định hoàn tiền đã dùng một phần tiền cọc giữ chỗ.");
 
-                if (hold.QuyetDinhHoanTienGiuCho is null)
+                if (!closeWithPriorRefund && hold.QuyetDinhHoanTienGiuCho is null)
                 {
                     context.QuyetDinhHoanTienGiuChos.Add(new QuyetDinhHoanTienGiuCho
                     {
@@ -191,7 +202,8 @@ public sealed class ReservationSettlementStore(ApplicationDbContext context,
 
             // Trạng thái kết thúc đánh dấu chính xác SoTienGiuCho là phần đã giữ lại.
             // Không đổi trạng thái phòng: chỉ phòng còn trống và được đăng tin mới hiện lại.
-            var nextStatus = legacyCancellation ? TrangThaiYeuCauGiuCho.DaHuy : TrangThaiYeuCauGiuCho.KhachKhongThue;
+            var nextStatus = legacyCancellation || closeWithPriorRefund
+                ? TrangThaiYeuCauGiuCho.DaHuy : TrangThaiYeuCauGiuCho.KhachKhongThue;
             hold.TrangThai = nextStatus;
             hold.LyDoTuChoiHoacHuy = reason;
             hold.NgayCapNhat = nowUtc;
@@ -203,10 +215,12 @@ public sealed class ReservationSettlementStore(ApplicationDbContext context,
                 LoaiTacNhan = LoaiTacNhan.NguoiDung,
                 NguoiThucHienId = actorId,
                 NgayThucHien = nowUtc,
-                LyDo = reason
+                LyDo = closeWithPriorRefund ? SelfServiceReservationRules.PriorRefundClosureMarker : reason
             });
             await context.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
+            if (closeWithPriorRefund)
+                return ServiceResult.Ok(ClosedWithPriorRefundMessage);
             return ServiceResult.Ok(legacyCancellation
                 ? "Đã hủy giữ chỗ; nhân viên cần quyết định hoàn tiền."
                 : "Đã ghi nhận khách không thuê và giữ lại tiền cọc.");
@@ -222,6 +236,13 @@ public sealed class ReservationSettlementStore(ApplicationDbContext context,
             return ServiceResult.Fail("Dữ liệu vừa thay đổi, vui lòng tải lại.");
         }
     }
+
+    private const string ClosedWithPriorRefundMessage = "Đã hủy giữ chỗ theo quyết định hoàn tiền trước đó.";
+
+    private static bool WasClosedWithPriorRefund(YeuCauGiuCho hold) =>
+        hold.TrangThai == TrangThaiYeuCauGiuCho.DaHuy && ReservationDepositRules.IsSelfService(hold) &&
+        hold.LichSuTrangThais.Any(h => h.TrangThaiSau == TrangThaiYeuCauGiuCho.DaHuy &&
+            h.LyDo == SelfServiceReservationRules.PriorRefundClosureMarker);
 
     // Settlement mutations lock room first, then reservation, in a serializable transaction.
     private async Task<YeuCauGiuCho?> LockReservationAsync(int reservationId,
@@ -553,7 +574,10 @@ public sealed class ReservationSettlementStore(ApplicationDbContext context,
         var refunded = decision?.GiaoDichHoanTiens.Sum(g => g.SoTienHoan) ?? 0m;
         var paid = hold.TrangThai == TrangThaiYeuCauGiuCho.DangGiuCho ? ReservationDepositRules.PaidDeposit(hold) : 0m;
         var retained = hold.TrangThai == TrangThaiYeuCauGiuCho.KhachKhongThue ? hold.SoTienGiuCho.GetValueOrDefault() : 0m;
-        var reserved = retained > 0m ? retained : ReservationDepositRules.IsSelfService(hold) ? paid : 0m;
+        var isSelfService = ReservationDepositRules.IsSelfService(hold);
+        var refundTouchesDeposit = paid > 0m && Math.Max(decision?.SoTienHoanDuyet ?? 0m, refunded) > received - paid;
+        var closedWithPriorRefund = WasClosedWithPriorRefund(hold);
+        var reserved = retained > 0m ? retained : isSelfService ? paid : 0m;
         var available = Math.Max(0m, received - applied - reserved);
         var mandatory = reserved > 0m ? available : SettlementMath.MandatoryRefund(received, hold.SoTienGiuCho ?? 0m, applied, late);
         return new SettlementSummaryDto(hold.YeuCauGiuChoId, received,
@@ -562,8 +586,9 @@ public sealed class ReservationSettlementStore(ApplicationDbContext context,
             decision?.SoTienHoanDuyet, refunded,
             mandatory, decision?.TrangThai.ToString(), retained, available,
             paid > 0m && hold.ApDungTienGiuChoVaoTienCoc is null &&
-                Math.Max(decision?.SoTienHoanDuyet ?? 0m, refunded) <= received - paid,
-            retained > 0m ? hold.LyDoTuChoiHoacHuy : null);
+                (!refundTouchesDeposit || isSelfService),
+            retained > 0m || closedWithPriorRefund ? hold.LyDoTuChoiHoacHuy : null,
+            closedWithPriorRefund || isSelfService && refundTouchesDeposit);
     }
 
     private static bool SameGuest(KhachVangLai guest, NguoiThue tenant) =>

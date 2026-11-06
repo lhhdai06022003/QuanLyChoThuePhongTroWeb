@@ -1,7 +1,6 @@
 using QuanLyChoThuePhongTroWeb.Application.Features.ReservationPayments;
 using QuanLyChoThuePhongTroWeb.Application.Features.Reservations;
 using QuanLyChoThuePhongTroWeb.Domain.Entities;
-using QuanLyChoThuePhongTroWeb.Domain.Enums;
 
 namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features.Reservations;
 
@@ -19,7 +18,4 @@ internal static class ReservationDepositRules
             .Sum(g => g.SoTienThucNhan));
         return agreedDeposit > 0m && onTimeAmount >= agreedDeposit ? agreedDeposit : 0m;
     }
-
-    public static bool HasProtectedDeposit(YeuCauGiuCho hold) =>
-        hold.TrangThai == TrangThaiYeuCauGiuCho.DangGiuCho && IsSelfService(hold) && PaidDeposit(hold) > 0m;
 }

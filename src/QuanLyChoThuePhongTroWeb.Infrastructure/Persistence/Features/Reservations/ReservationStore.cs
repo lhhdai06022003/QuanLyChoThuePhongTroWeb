@@ -261,7 +261,7 @@ public sealed class ReservationStore(ApplicationDbContext context) : IReservatio
                 (hold.TrangThai is TrangThaiYeuCauGiuCho.MoiTao or
                     TrangThaiYeuCauGiuCho.ChoThanhToan or
                     TrangThaiYeuCauGiuCho.ChoXacNhanTien or
-                    TrangThaiYeuCauGiuCho.DangGiuCho) && !ReservationDepositRules.HasProtectedDeposit(hold),
+                    TrangThaiYeuCauGiuCho.DangGiuCho) && ReservationDepositRules.PaidDeposit(hold) == 0m,
                 ReservationDepositRules.IsSelfService(hold));
         }).ToArray();
     }
@@ -383,7 +383,7 @@ public sealed class ReservationStore(ApplicationDbContext context) : IReservatio
             TrangThaiYeuCauGiuCho.ChoXacNhanTien or
             TrangThaiYeuCauGiuCho.DangGiuCho))
             return ReservationError.InvalidState;
-        if (ReservationDepositRules.HasProtectedDeposit(hold))
+        if (ReservationDepositRules.PaidDeposit(hold) > 0m)
             return ReservationError.PaidDepositRequiresStaff;
 
         var oldStatus = hold.TrangThai;

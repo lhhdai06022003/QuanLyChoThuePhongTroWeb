@@ -49,20 +49,19 @@ public sealed class GiuChoController(IReservationService reservations,
 
     [HttpPost]
     public async Task<IActionResult> HuyQuaHanKy(int reservationId, string reason,
-        CancellationToken cancellationToken)
+        bool confirm, bool preservePriorRefund, CancellationToken cancellationToken)
     {
         var result = await settlements.CancelExpiredContractAsync(CurrentActorId,
-            reservationId, reason, cancellationToken);
+            reservationId, reason, confirm, preservePriorRefund, cancellationToken);
         return CloseResult(reservationId, result);
     }
 
     [HttpPost]
     public async Task<IActionResult> KhachKhongThue(int reservationId, string reason, bool confirm,
-        CancellationToken cancellationToken)
+        bool preservePriorRefund, CancellationToken cancellationToken)
     {
-        var result = confirm
-            ? await settlements.CloseWithoutRentAsync(CurrentActorId, reservationId, reason, cancellationToken)
-            : ServiceResult.Fail("Cần xác nhận giữ lại tiền cọc khi khách không thuê.");
+        var result = await settlements.CloseWithoutRentAsync(CurrentActorId,
+            reservationId, reason, confirm, preservePriorRefund, cancellationToken);
         return CloseResult(reservationId, result);
     }
 

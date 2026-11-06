@@ -32,6 +32,7 @@ public sealed class PaidReservationContractTests(CustomWebApplicationFactory fac
     private string DetailPath => $"/QuanLyNhaTro/GiuCho/ChiTiet/{hold.YeuCauGiuChoId}";
     private string ContractPath => $"/QuanLyNhaTro/GiuCho/XacNhanThue/{hold.YeuCauGiuChoId}";
     private const string ClosePath = "/QuanLyNhaTro/GiuCho/KhachKhongThue";
+    private const string ExpiredPath = "/QuanLyNhaTro/GiuCho/HuyQuaHanKy";
     private const string HistoryPath = "/tai-khoan/yeu-cau-phong";
     private const string ClosureReason = "Khách báo không thuê";
 
@@ -144,8 +145,7 @@ public sealed class PaidReservationContractTests(CustomWebApplicationFactory fac
             Assert.Contains("Số tiền vượt", WebUtility.HtmlDecode(await client.GetStringAsync(DetailPath)));
             Assert.Equal(HttpStatusCode.Redirect, (await BranchScopeKit.PostFormAsync(client, token,
                 ClosePath, ClosureForm(confirm: false))).StatusCode);
-            const string expiredPath = "/QuanLyNhaTro/GiuCho/HuyQuaHanKy";
-            Assert.Equal(HttpStatusCode.Redirect, (await BranchScopeKit.PostFormAsync(client, token, expiredPath, ClosureForm())).StatusCode);
+            Assert.Equal(HttpStatusCode.Redirect, (await BranchScopeKit.PostFormAsync(client, token, ExpiredPath, ClosureForm())).StatusCode);
             var (guestClient, guestToken) = await BranchScopeKit.LoginAsync(factory, booker.TenDangNhap, HistoryPath);
             using (guestClient)
             {
@@ -155,9 +155,12 @@ public sealed class PaidReservationContractTests(CustomWebApplicationFactory fac
                     cancelPath, new Dictionary<string, string>())).StatusCode);
             }
             await AssertUnconvertedAsync();
-            await BranchScopeKit.ReadAsync(factory, db => db.YeuCauGiuChos.Where(h => h.YeuCauGiuChoId == hold.YeuCauGiuChoId)
-                .ExecuteUpdateAsync(s => s.SetProperty(h => h.HanKyHopDong, DateTime.UtcNow.AddMinutes(-1))));
-            Assert.Equal(HttpStatusCode.Redirect, (await BranchScopeKit.PostFormAsync(client, token, expiredPath, ClosureForm())).StatusCode);
+            await ExpireSigningDeadlineAsync();
+            var unconfirmed = ClosureForm();
+            unconfirmed.Remove("confirm");
+            Assert.Equal(HttpStatusCode.Redirect, (await BranchScopeKit.PostFormAsync(client, token, ExpiredPath, unconfirmed)).StatusCode);
+            await AssertUnconvertedAsync();
+            Assert.Equal(HttpStatusCode.Redirect, (await BranchScopeKit.PostFormAsync(client, token, ExpiredPath, ClosureForm())).StatusCode);
             Assert.Contains("Khách không thuê", WebUtility.HtmlDecode(await client.GetStringAsync(DetailPath)));
         }
         await AssertReportedRetentionAsync();
@@ -221,13 +224,22 @@ public sealed class PaidReservationContractTests(CustomWebApplicationFactory fac
     [Fact]
     public async Task ExpiredHistoricalHoldCanStillRecordPriorRefundDecision()
     {
-        await BranchScopeKit.ReadAsync(factory, db => db.YeuCauGiuChos.Where(h => h.YeuCauGiuChoId == hold.YeuCauGiuChoId)
-            .ExecuteUpdateAsync(s => s.SetProperty(h => h.HanKyHopDong, DateTime.UtcNow.AddMinutes(-1))));
+        var (guestClient, guestToken) = await BranchScopeKit.LoginAsync(factory, booker.TenDangNhap, HistoryPath);
+        using (guestClient)
+        {
+            var cancelPath = $"{HistoryPath}/giu-cho/{hold.YeuCauGiuChoId}/huy";
+            Assert.DoesNotContain(cancelPath, await guestClient.GetStringAsync(HistoryPath));
+            Assert.Equal(HttpStatusCode.Redirect, (await BranchScopeKit.PostFormAsync(guestClient, guestToken,
+                cancelPath, new Dictionary<string, string>())).StatusCode);
+        }
+        await AssertUnconvertedAsync();
+        await ExpireSigningDeadlineAsync();
         var (client, token) = await BranchScopeKit.LoginAsync(factory, admin.TenDangNhap, DetailPath);
         using (client)
         {
-            Assert.Equal(HttpStatusCode.Redirect, (await BranchScopeKit.PostFormAsync(client, token,
-                "/QuanLyNhaTro/GiuCho/HuyQuaHanKy", ClosureForm())).StatusCode);
+            var unconfirmed = ClosureForm();
+            unconfirmed.Remove("confirm");
+            Assert.Equal(HttpStatusCode.Redirect, (await BranchScopeKit.PostFormAsync(client, token, ExpiredPath, unconfirmed)).StatusCode);
             await PostRefundAsync(client, token, 300_000m);
             await PostRefundTransferAsync(client, token, 300_000m);
         }
@@ -240,6 +252,80 @@ public sealed class PaidReservationContractTests(CustomWebApplicationFactory fac
             return 0;
         });
     }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task SelfServiceHoldCanCloseUnderEarlierDepositRefund(bool fullyRefunded)
+    {
+        var approved = fullyRefunded ? 300_000m : 100_000m;
+        var (client, token) = await BranchScopeKit.LoginAsync(factory, admin.TenDangNhap, DetailPath);
+        using (client)
+        {
+            await PostRefundAsync(client, token, approved);
+            if (fullyRefunded)
+                await PostRefundTransferAsync(client, token, approved, "earlier");
+
+            var prior = await BranchScopeKit.ReadAsync(factory, db => db.QuyetDinhHoanTienGiuChos
+                .SingleAsync(q => q.YeuCauGiuChoId == hold.YeuCauGiuChoId));
+            await MarkSelfServiceAsync();
+            await ExpireSigningDeadlineAsync();
+
+            var detail = WebUtility.HtmlDecode(await client.GetStringAsync(DetailPath));
+            Assert.Contains(ClosePath, detail);
+            Assert.Contains("name=\"preservePriorRefund\" value=\"true\"", detail);
+            Assert.Contains("quyết định hoàn tiền trước đó", detail);
+            Assert.DoesNotContain("Cọc giữ lại:", detail);
+
+            var path = fullyRefunded ? ClosePath : ExpiredPath;
+            Assert.Equal(HttpStatusCode.Redirect, (await BranchScopeKit.PostFormAsync(client, token, path, ClosureForm())).StatusCode);
+            await AssertUnconvertedAsync();
+
+            var recovery = ClosureForm();
+            recovery["preservePriorRefund"] = "true";
+            Assert.Equal(HttpStatusCode.Redirect, (await BranchScopeKit.PostFormAsync(client, token, path, recovery)).StatusCode);
+            detail = WebUtility.HtmlDecode(await client.GetStringAsync(DetailPath));
+            Assert.Contains("Đã hủy giữ chỗ theo quyết định hoàn tiền trước đó", detail);
+            Assert.DoesNotContain("Cọc giữ lại:", detail);
+            await BranchScopeKit.ReadAsync(factory, async db =>
+            {
+                var saved = (await db.YeuCauGiuChos.FindAsync(hold.YeuCauGiuChoId))!;
+                Assert.Equal(TrangThaiYeuCauGiuCho.DaHuy, saved.TrangThai);
+                Assert.Equal(ClosureReason, saved.LyDoTuChoiHoacHuy);
+                var decision = await db.QuyetDinhHoanTienGiuChos.Include(q => q.GiaoDichHoanTiens)
+                    .SingleAsync(q => q.YeuCauGiuChoId == hold.YeuCauGiuChoId);
+                Assert.Equal(prior.QuyetDinhHoanTienGiuChoId, decision.QuyetDinhHoanTienGiuChoId);
+                Assert.Equal(prior.SoTienHoanDuyet, decision.SoTienHoanDuyet);
+                Assert.Equal(prior.NgayQuyetDinh, decision.NgayQuyetDinh);
+                Assert.Equal(prior.LyDo, decision.LyDo);
+                Assert.Equal(prior.TrangThai, decision.TrangThai);
+                Assert.Equal(fullyRefunded ? approved : 0m, decision.GiaoDichHoanTiens.Sum(g => g.SoTienHoan));
+                Assert.Equal(300_000m, (await db.GiaoDichGiuChos.SingleAsync(g =>
+                    g.YeuCauThanhToanGiuChoId == payment.YeuCauThanhToanGiuChoId)).SoTienThucNhan);
+                return 0;
+            });
+            if (!fullyRefunded)
+                await PostRefundTransferAsync(client, token, approved, "earlier");
+            var refund = await BranchScopeKit.ReadAsync(factory, db => db.GiaoDichHoanTienGiuChos
+                .SingleAsync(g => g.QuyetDinhHoanTienGiuChoId == prior.QuyetDinhHoanTienGiuChoId));
+            Assert.Equal(approved, refund.SoTienHoan);
+        }
+
+        using var visitor = BranchScopeKit.NewClient(factory);
+        Assert.Equal(HttpStatusCode.OK, (await visitor.GetAsync($"/phong/{room.PhongTroId}")).StatusCode);
+        var (guestClient, _) = await BranchScopeKit.LoginAsync(factory, booker.TenDangNhap, HistoryPath);
+        using (guestClient)
+        {
+            var history = WebUtility.HtmlDecode(await guestClient.GetStringAsync(HistoryPath));
+            Assert.Contains("Quản lý đã hủy giữ chỗ theo quyết định hoàn tiền trước đó", history);
+            Assert.DoesNotContain("Cọc giữ lại:", history);
+        }
+        Assert.Equal(0m, (await GetRevenueReportAsync()).Tong.ThuKhacGiuCho);
+    }
+
+    private Task<int> ExpireSigningDeadlineAsync() => BranchScopeKit.ReadAsync(factory,
+        db => db.YeuCauGiuChos.Where(h => h.YeuCauGiuChoId == hold.YeuCauGiuChoId)
+            .ExecuteUpdateAsync(s => s.SetProperty(h => h.HanKyHopDong, DateTime.UtcNow.AddMinutes(-1))));
 
     private Dictionary<string, string> ClosureForm(bool confirm = true) => new()
     {

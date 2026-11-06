@@ -86,7 +86,7 @@ public sealed class ReservationStoreTests(PostgreSqlFixture fixture)
                         holdId.Value, now.AddDays(2), now));
                 Assert.False((await PostgreSqlFixture.CreateReservationSettlementStore(db)
                     .CloseWithoutRentAsync(userId.Value, holdId.Value, branchId.Value,
-                        "Chưa quá hạn", requireExpired: true, now)).Success);
+                        "Chưa quá hạn", requireExpired: true, confirm: false, preservePriorRefund: false, now)).Success);
                 Assert.Null(await new PublicRoomStore(db, TimeProvider.System)
                     .GetAvailableAsync(roomId.Value));
             }
@@ -99,7 +99,7 @@ public sealed class ReservationStoreTests(PostgreSqlFixture fixture)
                 await db.SaveChangesAsync();
                 Assert.True((await PostgreSqlFixture.CreateReservationSettlementStore(db)
                     .CloseWithoutRentAsync(userId.Value, holdId.Value, branchId.Value,
-                        "Khách không ký hợp đồng", requireExpired: true, now)).Success);
+                        "Khách không ký hợp đồng", requireExpired: true, confirm: false, preservePriorRefund: false, now)).Success);
                 Assert.NotNull(await new PublicRoomStore(db, TimeProvider.System)
                     .GetAvailableAsync(roomId.Value));
 
@@ -365,7 +365,7 @@ public sealed class ReservationStoreTests(PostgreSqlFixture fixture)
     }
 
     [Fact]
-    public async Task CreateApproveCancel_PersistsState_AndRejectsDuplicate()
+    public async Task CreateApproveAndStaffCancel_PersistsState_AndRejectsDuplicate()
     {
         var suffix = Guid.NewGuid().ToString("N")[..8];
         int? branchId = null;
@@ -475,23 +475,28 @@ public sealed class ReservationStoreTests(PostgreSqlFixture fixture)
                 var settlement = PostgreSqlFixture.CreateReservationSettlementStore(db);
                 Assert.Equal(50000m,
                     (await settlement.GetAsync(holdId.Value))!.MandatoryRefundAmount);
-                Assert.Equal(ReservationError.None,
+                var closedAt = now.AddDays(2).AddMinutes(1);
+                Assert.Equal(ReservationError.PaidDepositRequiresStaff,
                     await store.CancelAsync(guestUserId.Value, holdId.Value,
-                        now.AddDays(2)));
+                        closedAt));
+                Assert.Null(await new PublicRoomStore(db, TimeProvider.System)
+                    .GetAvailableAsync(roomId.Value));
+                Assert.True((await settlement.CloseWithoutRentAsync(staffUserId.Value, holdId.Value, branchId.Value,
+                    "Khách không ký hợp đồng", requireExpired: true, confirm: false, preservePriorRefund: false, closedAt)).Success);
                 Assert.NotNull(await new PublicRoomStore(db, TimeProvider.System)
                     .GetAvailableAsync(roomId.Value));
                 Assert.Equal(SettlementError.None, await settlement.DecideRefundAsync(
                     staffUserId.Value, holdId.Value, 450000m,
-                    "Khách hủy sau khi chuyển tiền", now));
+                    "Khách không ký hợp đồng", closedAt));
                 Assert.Equal(SettlementError.None, await settlement.RecordRefundAsync(
                     staffUserId.Value, holdId.Value, "REF-" + suffix,
-                    200000m, now));
+                    200000m, closedAt));
                 Assert.Equal(SettlementError.DuplicateTransaction,
                     await settlement.RecordRefundAsync(staffUserId.Value,
-                        holdId.Value, "REF-" + suffix, 200000m, now));
+                        holdId.Value, "REF-" + suffix, 200000m, closedAt));
                 Assert.Equal(SettlementError.None, await settlement.RecordRefundAsync(
                     staffUserId.Value, holdId.Value, "REF2-" + suffix,
-                    250000m, now));
+                    250000m, closedAt));
                 Assert.Equal(450000m, (await settlement.GetAsync(holdId.Value))!.RefundedAmount);
             }
             await using (var db = fixture.CreateDbContext())

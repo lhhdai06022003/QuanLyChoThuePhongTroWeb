@@ -20,7 +20,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.BaoCaos.Persistence
         decimal DaHoan,
         decimal CocGiuLai = 0m,
         DateTime? NgayGiuLaiUtc = null,
-        bool DangGiuChoTuPhucVu = false);
+        bool BoQuaThuKhac = false);
 
     public sealed record BaoCaoHoaDonNoRow(
         int HoaDonId,

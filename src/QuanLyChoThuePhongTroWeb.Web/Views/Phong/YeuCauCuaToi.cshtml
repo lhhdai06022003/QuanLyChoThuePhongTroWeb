@@ -123,6 +123,10 @@
                             {
                                 <p><strong>Cọc giữ lại: @VndFormat.Money(settlement.RetainedDepositAmount)</strong>. Khoản này không được hoàn hoặc chuyển sang lần đặt khác.</p>
                             }
+                            else if (reservation.Status == "DaHuy" && settlement.UsesPriorRefundForClosure)
+                            {
+                                <p>Quản lý đã hủy giữ chỗ theo quyết định hoàn tiền trước đó.</p>
+                            }
                             @if (settlement.ApprovedRefundAmount.HasValue)
                             {
                                 <p>Hoàn đã duyệt: @VndFormat.Money(settlement.ApprovedRefundAmount.Value) · Đã hoàn thực tế: @VndFormat.Money(settlement.RefundedAmount)</p>
