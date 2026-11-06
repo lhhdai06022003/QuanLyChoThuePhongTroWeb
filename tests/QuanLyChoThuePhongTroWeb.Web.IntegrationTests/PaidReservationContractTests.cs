@@ -259,6 +259,8 @@ public sealed class PaidReservationContractTests(CustomWebApplicationFactory fac
     public async Task SelfServiceHoldCanCloseUnderEarlierDepositRefund(bool fullyRefunded)
     {
         var approved = fullyRefunded ? 300_000m : 100_000m;
+        var expectedRetention = fullyRefunded ? 0m : 220_000m;
+        const string partialRetentionText = "Cọc giữ lại: 220.000 ₫";
         if (!fullyRefunded)
         {
             await BranchScopeKit.ReadAsync(factory, db =>
@@ -292,9 +294,13 @@ public sealed class PaidReservationContractTests(CustomWebApplicationFactory fac
             var recovery = ClosureForm();
             recovery["preservePriorRefund"] = "true";
             Assert.Equal(HttpStatusCode.Redirect, (await BranchScopeKit.PostFormAsync(client, token, path, recovery)).StatusCode);
+            Assert.Equal(expectedRetention, (await GetRevenueReportAsync()).Tong.ThuKhacGiuCho);
             detail = WebUtility.HtmlDecode(await client.GetStringAsync(DetailPath));
             Assert.Contains("Đã hủy giữ chỗ theo quyết định hoàn tiền trước đó", detail);
-            Assert.DoesNotContain("Cọc giữ lại:", detail);
+            if (fullyRefunded)
+                Assert.DoesNotContain("Cọc giữ lại:", detail);
+            else
+                Assert.Contains(partialRetentionText, detail);
             await BranchScopeKit.ReadAsync(factory, async db =>
             {
                 var saved = (await db.YeuCauGiuChos.FindAsync(hold.YeuCauGiuChoId))!;
@@ -349,8 +355,11 @@ public sealed class PaidReservationContractTests(CustomWebApplicationFactory fac
                     Assert.Equal(125_000m, decision.SoTienHoanDuyet);
                     Assert.Equal(TrangThaiHoanTien.DaHoanTien, decision.TrangThai);
                     Assert.Equal(new[] { 25_000m, 100_000m }, decision.GiaoDichHoanTiens.Select(g => g.SoTienHoan).Order().ToArray());
-                    return 0;
+                    // Move the completed decision to a different report period from the closure.
+                    decision.NgayQuyetDinh = DateTime.UtcNow.AddMonths(1);
+                    return await db.SaveChangesAsync();
                 });
+                Assert.Equal(0m, (await GetRevenueReportAsync(monthsFromNow: 1)).Tong.ThuKhacGiuCho);
             }
         }
 
@@ -361,9 +370,12 @@ public sealed class PaidReservationContractTests(CustomWebApplicationFactory fac
         {
             var history = WebUtility.HtmlDecode(await guestClient.GetStringAsync(HistoryPath));
             Assert.Contains("Quản lý đã hủy giữ chỗ theo quyết định hoàn tiền trước đó", history);
-            Assert.DoesNotContain("Cọc giữ lại:", history);
+            if (fullyRefunded)
+                Assert.DoesNotContain("Cọc giữ lại:", history);
+            else
+                Assert.Contains(partialRetentionText, history);
         }
-        Assert.Equal(0m, (await GetRevenueReportAsync()).Tong.ThuKhacGiuCho);
+        Assert.Equal(expectedRetention, (await GetRevenueReportAsync()).Tong.ThuKhacGiuCho);
     }
 
     private Task<int> ExpireSigningDeadlineAsync() => BranchScopeKit.ReadAsync(factory,
@@ -395,11 +407,11 @@ public sealed class PaidReservationContractTests(CustomWebApplicationFactory fac
         Assert.Equal(0, report.Tong.SoHoaDon);
     }
 
-    private async Task<BaoCaoDoanhThuDto> GetRevenueReportAsync()
+    private async Task<BaoCaoDoanhThuDto> GetRevenueReportAsync(int monthsFromNow = 0)
     {
         using var scope = factory.Services.CreateScope();
         var reports = scope.ServiceProvider.GetRequiredService<IBaoCaoService>();
-        var localNow = DateTime.UtcNow.AddHours(7);
+        var localNow = DateTime.UtcNow.AddHours(7).AddMonths(monthsFromNow);
         var report = await reports.GetDoanhThuAsync(admin.NguoiDungId, new BaoCaoFilter
         {
             ChiNhanhId = branch.ChiNhanhId, TuThang = localNow.Month, DenThang = localNow.Month,

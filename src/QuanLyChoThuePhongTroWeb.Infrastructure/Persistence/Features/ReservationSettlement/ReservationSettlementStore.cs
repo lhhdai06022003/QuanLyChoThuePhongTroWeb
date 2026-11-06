@@ -1,5 +1,4 @@
 using System.Data;
-using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Persistence;
@@ -250,7 +249,9 @@ public sealed class ReservationSettlementStore(ApplicationDbContext context,
 
     private static string? FindPriorRefundClosureMarker(YeuCauGiuCho hold) =>
         hold.TrangThai == TrangThaiYeuCauGiuCho.DaHuy && ReservationDepositRules.IsSelfService(hold)
-            ? hold.LichSuTrangThais.Where(h => h.TrangThaiSau == TrangThaiYeuCauGiuCho.DaHuy)
+            ? hold.LichSuTrangThais.Where(h => h.TrangThaiTruoc == TrangThaiYeuCauGiuCho.DangGiuCho &&
+                    h.TrangThaiSau == TrangThaiYeuCauGiuCho.DaHuy)
+                .OrderBy(h => h.NgayThucHien)
                 .Select(h => h.LyDo).FirstOrDefault(reason => reason == SelfServiceReservationRules.PriorRefundClosureMarker ||
                     reason?.StartsWith(SelfServiceReservationRules.PriorRefundClosurePrefix, StringComparison.Ordinal) == true)
             : null;
@@ -586,23 +587,18 @@ public sealed class ReservationSettlementStore(ApplicationDbContext context,
         var agreedDeposit = hold.SoTienGiuCho.GetValueOrDefault();
         var committedRefund = Math.Max(decision?.SoTienHoanDuyet ?? 0m, refunded);
         var paid = hold.TrangThai == TrangThaiYeuCauGiuCho.DangGiuCho ? ReservationDepositRules.PaidDeposit(hold) : 0m;
-        var retained = hold.TrangThai == TrangThaiYeuCauGiuCho.KhachKhongThue ? agreedDeposit : 0m;
         var isSelfService = ReservationDepositRules.IsSelfService(hold);
         var refundTouchesDeposit = paid > 0m && committedRefund > received - paid;
         var priorRefundClosureMarker = FindPriorRefundClosureMarker(hold);
         var closedWithPriorRefund = priorRefundClosureMarker is not null;
-        var reserved = retained > 0m ? retained : isSelfService ? paid : 0m;
-        if (priorRefundClosureMarker is not null)
+        var retained = hold.TrangThai == TrangThaiYeuCauGiuCho.KhachKhongThue ? agreedDeposit
+            : ReservationDepositRules.PriorRefundRetainedDeposit(agreedDeposit, priorRefundClosureMarker);
+        var reserved = retained ?? (isSelfService ? paid : 0m);
+        if (closedWithPriorRefund && retained is null)
         {
-            var prefix = SelfServiceReservationRules.PriorRefundClosurePrefix;
-            if (!priorRefundClosureMarker.StartsWith(prefix, StringComparison.Ordinal) ||
-                !decimal.TryParse(priorRefundClosureMarker.AsSpan(prefix.Length), NumberStyles.AllowDecimalPoint,
-                    CultureInfo.InvariantCulture, out var committedFromDeposit))
-            {
-                // Dấu cũ không lưu số tiền, chỉ bảo toàn tổng đã cam kết và phần hoàn riêng xác định được.
-                var separate = Math.Max(0m, received - applied - agreedDeposit);
-                committedFromDeposit = Math.Max(0m, committedRefund - separate);
-            }
+            // Dấu cũ không lưu số tiền, chỉ bảo toàn tổng đã cam kết và phần hoàn riêng xác định được.
+            var separate = Math.Max(0m, received - applied - agreedDeposit);
+            var committedFromDeposit = Math.Max(0m, committedRefund - separate);
             reserved = Math.Max(0m, agreedDeposit - committedFromDeposit);
         }
         var available = Math.Max(0m, received - applied - reserved);
@@ -612,7 +608,7 @@ public sealed class ReservationSettlementStore(ApplicationDbContext context,
             applied, hold.ApDungTienGiuChoVaoTienCoc?.HopDongId,
             decision?.QuyetDinhHoanTienGiuChoId,
             decision?.SoTienHoanDuyet, refunded,
-            mandatory, decision?.TrangThai.ToString(), retained, available,
+            mandatory, decision?.TrangThai.ToString(), retained.GetValueOrDefault(), available,
             paid > 0m && hold.ApDungTienGiuChoVaoTienCoc is null &&
                 (!refundTouchesDeposit || isSelfService),
             retained > 0m || closedWithPriorRefund ? hold.LyDoTuChoiHoacHuy : null,

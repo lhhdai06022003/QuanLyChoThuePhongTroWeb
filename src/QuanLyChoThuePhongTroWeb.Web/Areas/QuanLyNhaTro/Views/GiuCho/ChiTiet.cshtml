@@ -26,15 +26,18 @@
         <p>Tiền đã đối soát: @VndFormat.Money(reservation.ConfirmedAmount)</p>
         <p>Mã nội dung chuyển khoản: @reservation.PaymentCode</p>
         <p>Trạng thái thanh toán: @GuestStatusText.Payment(reservation.PaymentStatus)</p>
-        @if (Model.Settlement is { RetainedDepositAmount: > 0 } closure)
+        @if (Model.Settlement is { } closure && (closure.RetainedDepositAmount > 0 ||
+            (reservation.Status == "DaHuy" && closure.UsesPriorRefundForClosure)))
         {
-            <p><strong>Cọc giữ lại: @VndFormat.Money(closure.RetainedDepositAmount)</strong></p>
+            @if (reservation.Status == "DaHuy")
+            {
+                <p>Đã hủy giữ chỗ theo quyết định hoàn tiền trước đó.</p>
+            }
+            @if (closure.RetainedDepositAmount > 0)
+            {
+                <p><strong>Cọc giữ lại: @VndFormat.Money(closure.RetainedDepositAmount)</strong></p>
+            }
             <p>Lý do: @closure.ClosureReason</p>
-        }
-        else if (reservation.Status == "DaHuy" && Model.Settlement is { UsesPriorRefundForClosure: true } priorClosure)
-        {
-            <p>Đã hủy giữ chỗ theo quyết định hoàn tiền trước đó.</p>
-            <p>Lý do: @priorClosure.ClosureReason</p>
         }
     </div></div>
     @if (Model.Settlement is { CanCloseWithoutRent: true } closeOption)

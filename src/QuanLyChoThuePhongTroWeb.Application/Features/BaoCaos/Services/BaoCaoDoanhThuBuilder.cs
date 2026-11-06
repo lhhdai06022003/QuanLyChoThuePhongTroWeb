@@ -111,13 +111,13 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.BaoCaos.Services
             // Với yêu cầu cũ, giữ nguyên cách tính theo quyết định hoàn tiền đã hoàn tất.
             foreach (var g in giuChos)
             {
-                // Yêu cầu tự phục vụ đang mở hoặc hủy theo quyết định hoàn cũ chưa ghi nhận giữ cọc.
+                // Bỏ qua yêu cầu tự phục vụ đang mở và hồ sơ cũ không rõ phần cọc giữ lại.
                 if (g.BoQuaThuKhac)
                 {
                     continue;
                 }
 
-                var daGiuLaiCoc = g.TrangThai == TrangThaiYeuCauGiuCho.KhachKhongThue;
+                var daGiuLaiCoc = g.NgayGiuLaiUtc.HasValue || g.TrangThai == TrangThaiYeuCauGiuCho.KhachKhongThue;
                 var ngayGhiNhan = daGiuLaiCoc ? g.NgayGiuLaiUtc
                     : g.TrangThaiQuyetDinh == TrangThaiHoanTien.DaHoanTien ? g.NgayQuyetDinhUtc : null;
                 if (ngayGhiNhan is null || (!daGiuLaiCoc && !g.CoQuyetDinh))
