@@ -26,25 +26,47 @@
         <p>Tiền đã đối soát: @VndFormat.Money(reservation.ConfirmedAmount)</p>
         <p>Mã nội dung chuyển khoản: @reservation.PaymentCode</p>
         <p>Trạng thái thanh toán: @GuestStatusText.Payment(reservation.PaymentStatus)</p>
+        @if (Model.Settlement is { RetainedDepositAmount: > 0 } closure)
+        {
+            <p><strong>Cọc giữ lại: @VndFormat.Money(closure.RetainedDepositAmount)</strong></p>
+            <p>Lý do: @closure.ClosureReason</p>
+        }
     </div></div>
+    @if (Model.Settlement is { CanCloseWithoutRent: true })
+    {
+        <div class="card mb-4"><div class="card-header"><h2 class="card-title">Khách không thuê</h2></div>
+            <div class="card-body">
+                <p>Kết thúc giữ chỗ và ghi nhận @VndFormat.Money(reservation.HoldAmount.GetValueOrDefault()) tiền cọc giữ lại. Khoản cọc này không hoàn hoặc chuyển sang lần đặt sau. Tiền dư hoặc đến muộn được xử lý riêng.</p>
+                <form method="post" asp-action="KhachKhongThue">
+                    <input type="hidden" name="reservationId" value="@reservation.Id" />
+                    <div class="mb-3"><label class="form-label" for="closeReason">Lý do khách không thuê</label><input class="form-control" id="closeReason" name="reason" maxlength="500" required /></div>
+                    <label class="form-check mb-3"><input class="form-check-input" type="checkbox" name="confirm" value="true" required /><span class="form-check-label">Tôi xác nhận khách không thuê và giữ lại tiền cọc.</span></label>
+                    <button class="btn btn-outline-danger" type="submit">Xác nhận khách không thuê</button>
+                </form>
+            </div>
+        </div>
+    }
     @if (reservation.Status == "DangGiuCho" &&
         reservation.ContractDeadlineUtc is { } deadlineUtc && deadlineUtc <= DateTime.UtcNow)
     {
         <div class="card mb-4"><div class="card-header"><h2 class="card-title">Đã quá hạn ký hợp đồng</h2></div>
             <div class="card-body">
-                <p>Khách đã nộp tiền. Nhân viên chọn gia hạn hoặc hủy giữ chỗ; nếu hủy, tiếp tục quyết định hoàn tiền bên dưới.</p>
+                <p>@(reservation.IsSelfService ? "Gia hạn nếu khách vẫn thuê. Nếu khách không thuê, dùng mục Khách không thuê để kết thúc giữ chỗ." : "Gia hạn nếu khách vẫn thuê. Nếu hủy yêu cầu cũ, tiếp tục xử lý khoản hoàn bên dưới.")</p>
                 <form method="post" asp-area="QuanLyNhaTro" asp-controller="GiuCho" asp-action="GiaHanKyHopDong" class="row g-2 align-items-end mb-3">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="reservationId" value="@reservation.Id" />
                     <div class="col-md-5"><label class="form-label">Hạn ký mới</label><input class="form-control" type="datetime-local" name="newDeadlineLocal" required /></div>
                     <div class="col-md-4"><button class="btn btn-primary" type="submit">Gia hạn ký hợp đồng</button></div>
                 </form>
-                <form method="post" asp-area="QuanLyNhaTro" asp-controller="GiuCho" asp-action="HuyQuaHanKy" class="row g-2 align-items-end">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="reservationId" value="@reservation.Id" />
-                    <div class="col-md-8"><label class="form-label">Lý do hủy</label><input class="form-control" name="reason" maxlength="500" required /></div>
-                    <div class="col-md-4"><button class="btn btn-outline-danger" type="submit">Hủy giữ chỗ</button></div>
-                </form>
+                @if (!reservation.IsSelfService)
+                {
+                    <form method="post" asp-area="QuanLyNhaTro" asp-controller="GiuCho" asp-action="HuyQuaHanKy" class="row g-2 align-items-end">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="reservationId" value="@reservation.Id" />
+                        <div class="col-md-8"><label class="form-label">Lý do hủy</label><input class="form-control" name="reason" maxlength="500" required /></div>
+                        <div class="col-md-4"><button class="btn btn-outline-danger" type="submit">Hủy giữ chỗ</button></div>
+                    </form>
+                }
             </div>
         </div>
     }
@@ -167,6 +189,10 @@
             <div class="card-body">
                 <p>Đã xác nhận: @VndFormat.Money(settlement.ConfirmedAmount) · Đã áp dụng cọc: @VndFormat.Money(settlement.AppliedToContractDeposit) · Đã hoàn: @VndFormat.Money(settlement.RefundedAmount)</p>
                 <p>Phải hoàn tối thiểu theo tiền dư/đến muộn: @VndFormat.Money(settlement.MandatoryRefundAmount)</p>
+                @if (settlement.ApprovedRefundAmount is { } approved)
+                {
+                    <p>Hoàn đã duyệt: @VndFormat.Money(approved)</p>
+                }
                 @if (!reservation.IsSelfService && reservation.Status == "DangGiuCho" && settlement.AppliedToContractDeposit == 0)
                 {
                     <form method="post" asp-area="QuanLyNhaTro" asp-controller="GiuCho" asp-action="ApDungCoc" class="row g-2 align-items-end mb-4">
@@ -177,13 +203,16 @@
                         <div class="col-md-3"><button class="btn btn-primary mt-md-4" type="submit">Áp dụng vào cọc</button></div>
                     </form>
                 }
-                <form method="post" asp-area="QuanLyNhaTro" asp-controller="GiuCho" asp-action="QuyetDinhHoan" class="row g-2 align-items-end mb-4">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="reservationId" value="@reservation.Id" />
-                    <div class="col-md-3"><label class="form-label">Số tiền hoàn được duyệt (₫)</label><input class="form-control" name="amount" type="number" min="0" step="1" value="@(settlement.ApprovedRefundAmount ?? settlement.MandatoryRefundAmount)" required /></div>
-                    <div class="col-md-6"><label class="form-label">Lý do</label><input class="form-control" name="reason" maxlength="500" required /></div>
-                    <div class="col-md-3"><button class="btn btn-outline-primary mt-md-4" type="submit">Lưu quyết định hoàn</button></div>
-                </form>
+                @if (settlement.AvailableRefundAmount > 0)
+                {
+                    <form method="post" asp-area="QuanLyNhaTro" asp-controller="GiuCho" asp-action="QuyetDinhHoan" class="row g-2 align-items-end mb-4">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="reservationId" value="@reservation.Id" />
+                        <div class="col-md-3"><label class="form-label">Số tiền hoàn được duyệt (₫)</label><input class="form-control" name="amount" type="number" min="0" max="@settlement.AvailableRefundAmount" step="1" value="@Math.Max(settlement.ApprovedRefundAmount.GetValueOrDefault(), settlement.MandatoryRefundAmount)" required /></div>
+                        <div class="col-md-6"><label class="form-label">Lý do</label><input class="form-control" name="reason" maxlength="500" required /></div>
+                        <div class="col-md-3"><button class="btn btn-outline-primary mt-md-4" type="submit">Lưu quyết định hoàn</button></div>
+                    </form>
+                }
                 @if (settlement.RefundDecisionId.HasValue &&
                     settlement.ApprovedRefundAmount > settlement.RefundedAmount)
                 {

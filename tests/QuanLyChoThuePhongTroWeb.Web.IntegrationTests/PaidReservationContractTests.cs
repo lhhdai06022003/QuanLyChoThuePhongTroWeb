@@ -2,6 +2,8 @@ using System.Net;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Security;
+using QuanLyChoThuePhongTroWeb.Application.Features.BaoCaos.DTOs;
+using QuanLyChoThuePhongTroWeb.Application.Features.BaoCaos.Services;
 using QuanLyChoThuePhongTroWeb.Application.Features.ReservationPayments;
 using QuanLyChoThuePhongTroWeb.Application.Features.Reservations;
 using QuanLyChoThuePhongTroWeb.Domain.Entities;
@@ -29,6 +31,254 @@ public sealed class PaidReservationContractTests(CustomWebApplicationFactory fac
 
     private string DetailPath => $"/QuanLyNhaTro/GiuCho/ChiTiet/{hold.YeuCauGiuChoId}";
     private string ContractPath => $"/QuanLyNhaTro/GiuCho/XacNhanThue/{hold.YeuCauGiuChoId}";
+    private const string ClosePath = "/QuanLyNhaTro/GiuCho/KhachKhongThue";
+    private const string HistoryPath = "/tai-khoan/yeu-cau-phong";
+    private const string ClosureReason = "Khách báo không thuê";
+
+    [Fact]
+    public async Task NoRentClosesPaidHoldOnceAndReleasesRoomWithoutCreditOrRefund()
+    {
+        await MarkSelfServiceAsync();
+        using var visitor = BranchScopeKit.NewClient(factory);
+        var publicPath = $"/phong/{room.PhongTroId}";
+        Assert.Equal(HttpStatusCode.NotFound, (await visitor.GetAsync(publicPath)).StatusCode);
+
+        var (client, token) = await BranchScopeKit.LoginAsync(factory, admin.TenDangNhap, DetailPath);
+        using (client)
+        {
+            var form = ClosureForm();
+            Assert.Equal(HttpStatusCode.Redirect, (await BranchScopeKit.PostFormAsync(client, token, ClosePath, form)).StatusCode);
+            Assert.Contains("Khách không thuê", WebUtility.HtmlDecode(await client.GetStringAsync(DetailPath)));
+            Assert.Equal(HttpStatusCode.Redirect, (await BranchScopeKit.PostFormAsync(client, token, ClosePath, form)).StatusCode);
+            await PostRefundAsync(client, token, 300_000m);
+            Assert.Contains("Số tiền vượt", WebUtility.HtmlDecode(await client.GetStringAsync(DetailPath)));
+            await PostRefundTransferAsync(client, token, 300_000m);
+            Assert.Contains("Số tiền vượt", WebUtility.HtmlDecode(await client.GetStringAsync(DetailPath)));
+        }
+
+        Assert.Equal(HttpStatusCode.OK, (await visitor.GetAsync(publicPath)).StatusCode);
+        await BranchScopeKit.ReadAsync(factory, async db =>
+        {
+            var saved = (await db.YeuCauGiuChos.FindAsync(hold.YeuCauGiuChoId))!;
+            Assert.Equal("KhachKhongThue", saved.TrangThai.ToString());
+            Assert.Equal(ClosureReason, saved.LyDoTuChoiHoacHuy);
+            Assert.Equal(300_000m, saved.SoTienGiuCho);
+            var history = await db.LichSuTrangThaiYeuCauGiuChos.SingleAsync(h =>
+                h.YeuCauGiuChoId == hold.YeuCauGiuChoId && h.TrangThaiTruoc == TrangThaiYeuCauGiuCho.DangGiuCho);
+            Assert.Equal(saved.TrangThai, history.TrangThaiSau);
+            Assert.Equal(ClosureReason, history.LyDo);
+            Assert.Equal(admin.NguoiDungId, history.NguoiThucHienId);
+            Assert.False(await db.HopDongs.AnyAsync(h => h.PhongTroId == room.PhongTroId));
+            Assert.False(await db.HoaDons.AnyAsync(h => h.HopDong.PhongTroId == room.PhongTroId));
+            Assert.False(await db.ApDungTienGiuChoVaoTienCocs.AnyAsync(a => a.YeuCauGiuChoId == hold.YeuCauGiuChoId));
+            Assert.Equal(300_000m, (await db.GiaoDichGiuChos.SingleAsync(g =>
+                g.YeuCauThanhToanGiuChoId == payment.YeuCauThanhToanGiuChoId)).SoTienThucNhan);
+            var decision = await db.QuyetDinhHoanTienGiuChos.Include(q => q.GiaoDichHoanTiens)
+                .SingleAsync(q => q.YeuCauGiuChoId == hold.YeuCauGiuChoId);
+            Assert.Equal(0m, decision.SoTienHoanDuyet);
+            Assert.Equal(TrangThaiHoanTien.DaHoanTien, decision.TrangThai);
+            Assert.Empty(decision.GiaoDichHoanTiens);
+            return 0;
+        });
+        var (guestClient, _) = await BranchScopeKit.LoginAsync(factory, booker.TenDangNhap, HistoryPath);
+        using (guestClient)
+        {
+            var history = WebUtility.HtmlDecode(await guestClient.GetStringAsync(HistoryPath));
+            Assert.Contains("Cọc giữ lại", history);
+            Assert.Contains("300.000 ₫", history);
+            var checkoutPath = $"{HistoryPath}/giu-cho/{hold.YeuCauGiuChoId}/dat-coc";
+            var checkout = WebUtility.HtmlDecode(await guestClient.GetStringAsync(checkoutPath));
+            Assert.Contains("Vui lòng không chuyển thêm tiền", checkout);
+            Assert.DoesNotContain($"{checkoutPath}/qr", checkout);
+        }
+        await AssertReportedRetentionAsync();
+    }
+
+    [Fact]
+    public async Task NoRentKeepsExcessAndSubsequentLateTransferSeparateFromRetainedDeposit()
+    {
+        await MarkSelfServiceAsync();
+        await BranchScopeKit.ReadAsync(factory, db =>
+        {
+            db.GiaoDichGiuChos.Add(Receipt(50_000m, "excess"));
+            return db.SaveChangesAsync();
+        });
+        var (client, token) = await BranchScopeKit.LoginAsync(factory, admin.TenDangNhap, DetailPath);
+        using (client)
+        {
+            await PostRefundAsync(client, token, 50_000m);
+            await PostRefundTransferAsync(client, token, 50_000m);
+            Assert.Equal(0m, (await GetRevenueReportAsync()).Tong.ThuKhacGiuCho);
+            Assert.Equal(HttpStatusCode.Redirect, (await BranchScopeKit.PostFormAsync(client, token, ClosePath, ClosureForm())).StatusCode);
+            using (var scope = factory.Services.CreateScope())
+            {
+                var store = scope.ServiceProvider.GetRequiredService<IReservationAutoPaymentStore>();
+                var now = DateTime.UtcNow;
+                var result = await store.RecordSystemTransferAsync(payment.MaYeuCau, $"late-{suffix}", 25_000m, now, "Test", now);
+                Assert.True(result.CanHoanTien);
+            }
+            await AssertReportedRetentionAsync();
+            await PostRefundAsync(client, token, 75_000m);
+            await PostRefundTransferAsync(client, token, 25_000m, "late");
+            await AssertReportedRetentionAsync();
+        }
+        await BranchScopeKit.ReadAsync(factory, async db =>
+        {
+            var decision = await db.QuyetDinhHoanTienGiuChos.Include(q => q.GiaoDichHoanTiens)
+                .SingleAsync(q => q.YeuCauGiuChoId == hold.YeuCauGiuChoId);
+            Assert.Equal(75_000m, decision.SoTienHoanDuyet);
+            Assert.Equal(new[] { 25_000m, 50_000m }, decision.GiaoDichHoanTiens.Select(g => g.SoTienHoan).Order().ToArray());
+            Assert.Equal(3, await db.GiaoDichGiuChos.CountAsync(g => g.YeuCauThanhToanGiuChoId == payment.YeuCauThanhToanGiuChoId));
+            return 0;
+        });
+    }
+
+    [Fact]
+    public async Task PaidSelfServiceRejectsGuestCancelManualRefundAndPrematureExpiredClosure()
+    {
+        await MarkSelfServiceAsync();
+        var (client, token) = await BranchScopeKit.LoginAsync(factory, admin.TenDangNhap, DetailPath);
+        using (client)
+        {
+            await PostRefundAsync(client, token, 300_000m);
+            Assert.Contains("Số tiền vượt", WebUtility.HtmlDecode(await client.GetStringAsync(DetailPath)));
+            Assert.Equal(HttpStatusCode.Redirect, (await BranchScopeKit.PostFormAsync(client, token,
+                ClosePath, ClosureForm(confirm: false))).StatusCode);
+            const string expiredPath = "/QuanLyNhaTro/GiuCho/HuyQuaHanKy";
+            Assert.Equal(HttpStatusCode.Redirect, (await BranchScopeKit.PostFormAsync(client, token, expiredPath, ClosureForm())).StatusCode);
+            var (guestClient, guestToken) = await BranchScopeKit.LoginAsync(factory, booker.TenDangNhap, HistoryPath);
+            using (guestClient)
+            {
+                var cancelPath = $"{HistoryPath}/giu-cho/{hold.YeuCauGiuChoId}/huy";
+                Assert.DoesNotContain(cancelPath, await guestClient.GetStringAsync(HistoryPath));
+                Assert.Equal(HttpStatusCode.Redirect, (await BranchScopeKit.PostFormAsync(guestClient, guestToken,
+                    cancelPath, new Dictionary<string, string>())).StatusCode);
+            }
+            await AssertUnconvertedAsync();
+            await BranchScopeKit.ReadAsync(factory, db => db.YeuCauGiuChos.Where(h => h.YeuCauGiuChoId == hold.YeuCauGiuChoId)
+                .ExecuteUpdateAsync(s => s.SetProperty(h => h.HanKyHopDong, DateTime.UtcNow.AddMinutes(-1))));
+            Assert.Equal(HttpStatusCode.Redirect, (await BranchScopeKit.PostFormAsync(client, token, expiredPath, ClosureForm())).StatusCode);
+            Assert.Contains("Khách không thuê", WebUtility.HtmlDecode(await client.GetStringAsync(DetailPath)));
+        }
+        await AssertReportedRetentionAsync();
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task PartialOrLateOnlyTransferDoesNotQualifyAsPaidDeposit(bool lateOnly)
+    {
+        await MarkSelfServiceAsync();
+        await BranchScopeKit.ReadAsync(factory, db => db.GiaoDichGiuChos
+            .Where(g => g.YeuCauThanhToanGiuChoId == payment.YeuCauThanhToanGiuChoId)
+            .ExecuteUpdateAsync(s => s.SetProperty(g => g.SoTienThucNhan, lateOnly ? 300_000m : 150_000m)
+                .SetProperty(g => g.GhiChu, lateOnly ? ReservationPaymentMarkers.LateRefundRequired : null)));
+        var (client, token) = await BranchScopeKit.LoginAsync(factory, admin.TenDangNhap, DetailPath);
+        using (client)
+        {
+            Assert.DoesNotContain(ClosePath, await client.GetStringAsync(DetailPath));
+            Assert.Equal(HttpStatusCode.Redirect, (await BranchScopeKit.PostFormAsync(client, token, ClosePath, ClosureForm())).StatusCode);
+            Assert.Contains("Chưa nhận đủ tiền", WebUtility.HtmlDecode(await client.GetStringAsync(DetailPath)));
+        }
+        await AssertUnconvertedAsync();
+    }
+
+    [Fact]
+    public async Task UnpaidSelfServiceShowsDepositPolicyAndStillAllowsGuestToCancel()
+    {
+        await MarkSelfServiceAsync();
+        await BranchScopeKit.ReadAsync(factory, async db =>
+        {
+            var savedHold = (await db.YeuCauGiuChos.FindAsync(hold.YeuCauGiuChoId))!;
+            savedHold.TrangThai = TrangThaiYeuCauGiuCho.ChoThanhToan;
+            savedHold.HanThanhToan = DateTime.UtcNow.AddMinutes(10);
+            var savedPayment = (await db.YeuCauThanhToanGiuChos.FindAsync(payment.YeuCauThanhToanGiuChoId))!;
+            savedPayment.HanThanhToan = savedHold.HanThanhToan.Value;
+            savedPayment.TrangThai = TrangThaiYeuCauThanhToan.ChoThanhToan;
+            await db.GiaoDichGiuChos.Where(g => g.YeuCauThanhToanGiuChoId == payment.YeuCauThanhToanGiuChoId).ExecuteDeleteAsync();
+            return await db.SaveChangesAsync();
+        });
+        var (client, token) = await BranchScopeKit.LoginAsync(factory, booker.TenDangNhap, HistoryPath);
+        using (client)
+        {
+            var bookingPath = $"/phong/{room.PhongTroId}/giu-cho";
+            var checkoutPath = $"{HistoryPath}/giu-cho/{hold.YeuCauGiuChoId}/dat-coc";
+            Assert.Contains(SelfServiceReservationRules.DepositPolicy, WebUtility.HtmlDecode(await client.GetStringAsync(bookingPath)));
+            Assert.Contains(SelfServiceReservationRules.DepositPolicy, WebUtility.HtmlDecode(await client.GetStringAsync(checkoutPath)));
+            var cancelPath = $"{HistoryPath}/giu-cho/{hold.YeuCauGiuChoId}/huy";
+            Assert.Contains(cancelPath, await client.GetStringAsync(HistoryPath));
+            Assert.Equal(HttpStatusCode.Redirect, (await BranchScopeKit.PostFormAsync(client, token,
+                cancelPath, new Dictionary<string, string>())).StatusCode);
+        }
+        await BranchScopeKit.ReadAsync(factory, async db =>
+        {
+            Assert.Equal(TrangThaiYeuCauGiuCho.DaHuy, (await db.YeuCauGiuChos.FindAsync(hold.YeuCauGiuChoId))!.TrangThai);
+            Assert.False(await db.QuyetDinhHoanTienGiuChos.AnyAsync(q => q.YeuCauGiuChoId == hold.YeuCauGiuChoId));
+            return 0;
+        });
+    }
+
+    [Fact]
+    public async Task ExpiredHistoricalHoldCanStillRecordPriorRefundDecision()
+    {
+        await BranchScopeKit.ReadAsync(factory, db => db.YeuCauGiuChos.Where(h => h.YeuCauGiuChoId == hold.YeuCauGiuChoId)
+            .ExecuteUpdateAsync(s => s.SetProperty(h => h.HanKyHopDong, DateTime.UtcNow.AddMinutes(-1))));
+        var (client, token) = await BranchScopeKit.LoginAsync(factory, admin.TenDangNhap, DetailPath);
+        using (client)
+        {
+            Assert.Equal(HttpStatusCode.Redirect, (await BranchScopeKit.PostFormAsync(client, token,
+                "/QuanLyNhaTro/GiuCho/HuyQuaHanKy", ClosureForm())).StatusCode);
+            await PostRefundAsync(client, token, 300_000m);
+            await PostRefundTransferAsync(client, token, 300_000m);
+        }
+        await BranchScopeKit.ReadAsync(factory, async db =>
+        {
+            Assert.Equal(TrangThaiYeuCauGiuCho.DaHuy, (await db.YeuCauGiuChos.FindAsync(hold.YeuCauGiuChoId))!.TrangThai);
+            var decision = await db.QuyetDinhHoanTienGiuChos.Include(q => q.GiaoDichHoanTiens)
+                .SingleAsync(q => q.YeuCauGiuChoId == hold.YeuCauGiuChoId);
+            Assert.Equal(300_000m, Assert.Single(decision.GiaoDichHoanTiens).SoTienHoan);
+            return 0;
+        });
+    }
+
+    private Dictionary<string, string> ClosureForm(bool confirm = true) => new()
+    {
+        ["reservationId"] = hold.YeuCauGiuChoId.ToString(), ["reason"] = ClosureReason, ["confirm"] = confirm.ToString()
+    };
+
+    private Task<HttpResponseMessage> PostRefundAsync(HttpClient client, string token, decimal amount) =>
+        BranchScopeKit.PostFormAsync(client, token, "/QuanLyNhaTro/GiuCho/QuyetDinhHoan", new Dictionary<string, string>
+        {
+            ["reservationId"] = hold.YeuCauGiuChoId.ToString(), ["reason"] = "Hoàn phần chuyển thừa", ["amount"] = amount.ToString()
+        });
+
+    private Task<HttpResponseMessage> PostRefundTransferAsync(HttpClient client, string token, decimal amount, string tag = "excess") =>
+        BranchScopeKit.PostFormAsync(client, token, "/QuanLyNhaTro/GiuCho/XacNhanHoan", new Dictionary<string, string>
+        {
+            ["reservationId"] = hold.YeuCauGiuChoId.ToString(), ["bankReference"] = $"refund-{tag}-{suffix}", ["amount"] = amount.ToString()
+        });
+
+    private async Task AssertReportedRetentionAsync()
+    {
+        var report = await GetRevenueReportAsync();
+        Assert.Equal(300_000m, report.Tong.ThuKhacGiuCho);
+        Assert.Equal(0m, report.TienCocDangGiu);
+        Assert.Equal(0, report.Tong.SoHoaDon);
+    }
+
+    private async Task<BaoCaoDoanhThuDto> GetRevenueReportAsync()
+    {
+        using var scope = factory.Services.CreateScope();
+        var reports = scope.ServiceProvider.GetRequiredService<IBaoCaoService>();
+        var localNow = DateTime.UtcNow.AddHours(7);
+        var report = await reports.GetDoanhThuAsync(admin.NguoiDungId, new BaoCaoFilter
+        {
+            ChiNhanhId = branch.ChiNhanhId, TuThang = localNow.Month, DenThang = localNow.Month,
+            TuNam = localNow.Year, DenNam = localNow.Year
+        });
+        Assert.True(report.Success, report.Message);
+        return report.Data!;
+    }
 
     [Theory]
     [InlineData(false, false)]
@@ -160,6 +410,9 @@ public sealed class PaidReservationContractTests(CustomWebApplicationFactory fac
             var post = await BranchScopeKit.PostFormAsync(client, token, ContractPath, ContractForm(cccd));
             Assert.Equal(HttpStatusCode.Redirect, post.StatusCode);
             Assert.StartsWith("/QuanLyNhaTro/DangNhap", post.Headers.Location?.AbsolutePath);
+            var closure = await BranchScopeKit.PostFormAsync(client, token, ClosePath, ClosureForm());
+            Assert.Equal(HttpStatusCode.Redirect, closure.StatusCode);
+            Assert.StartsWith("/QuanLyNhaTro/DangNhap", closure.Headers.Location?.AbsolutePath);
         }
         await AssertUnconvertedAsync();
     }
@@ -377,8 +630,10 @@ public sealed class PaidReservationContractTests(CustomWebApplicationFactory fac
         await db.ApDungTienGiuChoVaoTienCocs.Where(a => a.YeuCauGiuChoId == hold.YeuCauGiuChoId).ExecuteDeleteAsync();
         await db.ChiTietThanhVienHopDongs.Where(m => contractIds.Contains(m.HopDongId)).ExecuteDeleteAsync();
         await contracts.ExecuteDeleteAsync();
+        await db.GiaoDichHoanTienGiuChos.Where(g => g.QuyetDinhHoanTienGiuCho.YeuCauGiuChoId == hold.YeuCauGiuChoId).ExecuteDeleteAsync();
         await db.QuyetDinhHoanTienGiuChos.Where(q => q.YeuCauGiuChoId == hold.YeuCauGiuChoId).ExecuteDeleteAsync();
         await db.GiaoDichGiuChos.Where(g => g.YeuCauThanhToanGiuChoId == payment.YeuCauThanhToanGiuChoId).ExecuteDeleteAsync();
+        await db.LichSuTrangThaiYeuCauThanhToanGiuChos.Where(h => h.YeuCauThanhToanGiuChoId == payment.YeuCauThanhToanGiuChoId).ExecuteDeleteAsync();
         await db.YeuCauThanhToanGiuChos.Where(p => p.YeuCauThanhToanGiuChoId == payment.YeuCauThanhToanGiuChoId).ExecuteDeleteAsync();
         await db.LichSuTrangThaiYeuCauGiuChos.Where(h => h.YeuCauGiuChoId == hold.YeuCauGiuChoId).ExecuteDeleteAsync();
         await db.YeuCauGiuChos.Where(h => h.YeuCauGiuChoId == hold.YeuCauGiuChoId).ExecuteDeleteAsync();

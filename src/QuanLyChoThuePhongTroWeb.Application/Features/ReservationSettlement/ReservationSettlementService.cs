@@ -35,6 +35,28 @@ public sealed class ReservationSettlementService(IReservationSettlementStore sto
             clock.GetUtcNow().UtcDateTime, cancellationToken);
     }
 
+    public Task<ServiceResult> CloseWithoutRentAsync(int actorId, int reservationId, string reason,
+        CancellationToken cancellationToken = default) =>
+        CloseAsync(actorId, reservationId, reason, requireExpired: false, cancellationToken);
+
+    public Task<ServiceResult> CancelExpiredContractAsync(int actorId, int reservationId, string reason,
+        CancellationToken cancellationToken = default) =>
+        CloseAsync(actorId, reservationId, reason, requireExpired: true, cancellationToken);
+
+    private async Task<ServiceResult> CloseAsync(int actorId, int reservationId, string reason,
+        bool requireExpired, CancellationToken cancellationToken)
+    {
+        var trimmedReason = reason?.Trim();
+        if (reservationId <= 0 || string.IsNullOrEmpty(trimmedReason) || trimmedReason.Length > 500)
+            return ServiceResult.Fail("Cần nhập lý do hợp lệ để kết thúc giữ chỗ.");
+        var branchId = await GetAuthorizedBranchIdAsync(actorId, reservationId, cancellationToken);
+        if (!branchId.HasValue)
+            return ServiceResult.Forbidden(Unauthorized);
+
+        return await store.CloseWithoutRentAsync(actorId, reservationId, branchId.Value, trimmedReason,
+            requireExpired, clock.GetUtcNow().UtcDateTime, cancellationToken);
+    }
+
     public Task<IReadOnlyList<SettlementSummaryDto>> ListMineAsync(int actorId,
         CancellationToken cancellationToken = default) =>
         store.ListMineAsync(actorId, cancellationToken);

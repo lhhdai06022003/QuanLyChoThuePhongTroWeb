@@ -13,6 +13,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.Helpers
 
         public static DateTime? Shown(ReservationDto reservation) =>
             reservation.ContractDeadlineUtc is { } deadline &&
+            reservation.Status != "KhachKhongThue" &&
             (!reservation.IsSelfService || reservation.Status is "DangGiuCho" or "DaChuyenHopDong")
                 ? deadline
                 : null;

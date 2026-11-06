@@ -8,6 +8,10 @@ public interface IReservationSettlementService
         int reservationId, CancellationToken cancellationToken = default);
     Task<ServiceResult<int>> CreateContractAsync(int actorId, int reservationId,
         ReservationContractInput input, CancellationToken cancellationToken = default);
+    Task<ServiceResult> CloseWithoutRentAsync(int actorId, int reservationId, string reason,
+        CancellationToken cancellationToken = default);
+    Task<ServiceResult> CancelExpiredContractAsync(int actorId, int reservationId, string reason,
+        CancellationToken cancellationToken = default);
     Task<ServiceResult> ApplyAsync(int actorId, int reservationId, int contractId,
         decimal amount, CancellationToken cancellationToken = default);
     Task<ServiceResult> DecideRefundAsync(int actorId, int reservationId,

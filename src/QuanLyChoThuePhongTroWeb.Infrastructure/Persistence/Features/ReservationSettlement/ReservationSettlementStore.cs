@@ -7,9 +7,9 @@ using QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.Services;
 using QuanLyChoThuePhongTroWeb.Application.Features.ReservationPayments;
 using QuanLyChoThuePhongTroWeb.Application.Features.ReservationSettlement;
-using QuanLyChoThuePhongTroWeb.Application.Features.Reservations;
 using QuanLyChoThuePhongTroWeb.Domain.Entities;
 using QuanLyChoThuePhongTroWeb.Domain.Enums;
+using QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features.Reservations;
 
 namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features.ReservationSettlement;
 
@@ -143,7 +143,87 @@ public sealed class ReservationSettlementStore(ApplicationDbContext context,
         }
     }
 
-    // Both settlement outcomes lock room first, then reservation, in a serializable transaction.
+    public async Task<ServiceResult> CloseWithoutRentAsync(int actorId, int reservationId,
+        int authorizedBranchId, string reason, bool requireExpired, DateTime nowUtc,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            await using var transaction = await context.Database.BeginTransactionAsync(
+                IsolationLevel.Serializable, cancellationToken);
+            var hold = await LockReservationAsync(reservationId, cancellationToken);
+            if (hold is null)
+                return ServiceResult.NotFound("Không tìm thấy yêu cầu giữ chỗ.");
+            if (hold.PhongTro.ChiNhanhId != authorizedBranchId)
+                return ServiceResult.Forbidden("Bạn không có quyền xử lý yêu cầu này.");
+            if (requireExpired && (hold.HanKyHopDong is null || hold.HanKyHopDong > nowUtc))
+                return ServiceResult.Fail("Chỉ hủy theo hạn ký khi yêu cầu đã quá hạn.");
+            if (hold.TrangThai == TrangThaiYeuCauGiuCho.KhachKhongThue)
+                return ServiceResult.Ok("Đã ghi nhận khách không thuê và giữ lại tiền cọc.");
+            if (hold.TrangThai != TrangThaiYeuCauGiuCho.DangGiuCho || hold.ApDungTienGiuChoVaoTienCoc is not null)
+                return ServiceResult.Fail("Yêu cầu không còn ở trạng thái đang giữ chỗ.");
+
+            // Lượt giữ chỗ cũ đã được nhân viên duyệt giữ nguyên cách xử lý khi hủy quá hạn.
+            var legacyCancellation = requireExpired && !ReservationDepositRules.IsSelfService(hold);
+            if (!legacyCancellation)
+            {
+                var deposit = ReservationDepositRules.PaidDeposit(hold);
+                if (deposit == 0m)
+                    return ServiceResult.Fail("Chưa nhận đủ tiền giữ chỗ trong hạn để kết thúc theo chính sách cọc.");
+                var summary = Map(hold);
+                var separateRefund = summary.ConfirmedAmount - deposit;
+                if (Math.Max(summary.ApprovedRefundAmount.GetValueOrDefault(), summary.RefundedAmount) > separateRefund)
+                    return ServiceResult.Fail("Quyết định hoàn tiền đã dùng một phần tiền cọc giữ chỗ.");
+
+                if (hold.QuyetDinhHoanTienGiuCho is null)
+                {
+                    context.QuyetDinhHoanTienGiuChos.Add(new QuyetDinhHoanTienGiuCho
+                    {
+                        YeuCauGiuChoId = reservationId,
+                        SoTienHoanDuyet = separateRefund,
+                        LyDo = separateRefund > 0m ? "Chỉ hoàn tiền chuyển dư hoặc đến muộn." : "Giữ lại tiền cọc do khách không thuê.",
+                        NguoiQuyetDinhId = actorId,
+                        NgayQuyetDinh = nowUtc,
+                        TrangThai = separateRefund > 0m ? TrangThaiHoanTien.ChoHoanTien : TrangThaiHoanTien.DaHoanTien
+                    });
+                }
+            }
+
+            // Trạng thái kết thúc đánh dấu chính xác SoTienGiuCho là phần đã giữ lại.
+            // Không đổi trạng thái phòng: chỉ phòng còn trống và được đăng tin mới hiện lại.
+            var nextStatus = legacyCancellation ? TrangThaiYeuCauGiuCho.DaHuy : TrangThaiYeuCauGiuCho.KhachKhongThue;
+            hold.TrangThai = nextStatus;
+            hold.LyDoTuChoiHoacHuy = reason;
+            hold.NgayCapNhat = nowUtc;
+            context.LichSuTrangThaiYeuCauGiuChos.Add(new LichSuTrangThaiYeuCauGiuCho
+            {
+                YeuCauGiuChoId = reservationId,
+                TrangThaiTruoc = TrangThaiYeuCauGiuCho.DangGiuCho,
+                TrangThaiSau = nextStatus,
+                LoaiTacNhan = LoaiTacNhan.NguoiDung,
+                NguoiThucHienId = actorId,
+                NgayThucHien = nowUtc,
+                LyDo = reason
+            });
+            await context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+            return ServiceResult.Ok(legacyCancellation
+                ? "Đã hủy giữ chỗ; nhân viên cần quyết định hoàn tiền."
+                : "Đã ghi nhận khách không thuê và giữ lại tiền cọc.");
+        }
+        catch (PostgresException ex) when (IsWriteConflict(ex))
+        {
+            context.ChangeTracker.Clear();
+            return ServiceResult.Fail("Dữ liệu vừa thay đổi, vui lòng tải lại.");
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException pg && IsWriteConflict(pg))
+        {
+            context.ChangeTracker.Clear();
+            return ServiceResult.Fail("Dữ liệu vừa thay đổi, vui lòng tải lại.");
+        }
+    }
+
+    // Settlement mutations lock room first, then reservation, in a serializable transaction.
     private async Task<YeuCauGiuCho?> LockReservationAsync(int reservationId,
         CancellationToken cancellationToken)
     {
@@ -174,12 +254,8 @@ public sealed class ReservationSettlementStore(ApplicationDbContext context,
         if (hold.PhongTro.IsDeleted || hold.PhongTro.TrangThai != TrangThaiPhong.Trong)
             return ServiceResult<decimal>.Fail("Phòng không còn trống để lập hợp đồng.");
 
-        var deposit = hold.SoTienGiuCho.GetValueOrDefault();
-        var onTimeAmount = hold.YeuCauThanhToanGiuChos.Sum(p => p.GiaoDichGiuChos
-            .Where(g => g.NgayThucNhan <= p.HanThanhToan &&
-                g.GhiChu != ReservationPaymentMarkers.LateRefundRequired)
-            .Sum(g => g.SoTienThucNhan));
-        if (deposit <= 0 || onTimeAmount < deposit)
+        var deposit = ReservationDepositRules.PaidDeposit(hold);
+        if (deposit == 0m)
             return ServiceResult<decimal>.Fail("Chưa nhận đủ tiền giữ chỗ trong hạn để lập hợp đồng.");
 
         var summary = Map(hold);
@@ -260,12 +336,10 @@ public sealed class ReservationSettlementStore(ApplicationDbContext context,
         {
             await using var transaction = await context.Database.BeginTransactionAsync(
                 IsolationLevel.Serializable, cancellationToken);
-            var hold = await FullQuery().SingleOrDefaultAsync(h =>
-                h.YeuCauGiuChoId == reservationId, cancellationToken);
+            var hold = await LockReservationAsync(reservationId, cancellationToken);
             if (hold is null)
                 return SettlementError.NotFound;
-            if (await context.LichSuTrangThaiYeuCauGiuChos.AnyAsync(h => h.YeuCauGiuChoId == reservationId &&
-                    h.LyDo == SelfServiceReservationRules.CreationReason, cancellationToken))
+            if (ReservationDepositRules.IsSelfService(hold))
                 return SettlementError.ContractConfirmationRequired;
             if (hold.TrangThai != TrangThaiYeuCauGiuCho.DangGiuCho ||
                 hold.ApDungTienGiuChoVaoTienCoc is not null)
@@ -342,14 +416,13 @@ public sealed class ReservationSettlementStore(ApplicationDbContext context,
         {
             await using var transaction = await context.Database.BeginTransactionAsync(
                 IsolationLevel.Serializable, cancellationToken);
-            var hold = await FullQuery().SingleOrDefaultAsync(h =>
-                h.YeuCauGiuChoId == reservationId, cancellationToken);
+            var hold = await LockReservationAsync(reservationId, cancellationToken);
             if (hold is null)
                 return SettlementError.NotFound;
             var summary = Map(hold);
             if (amount < summary.MandatoryRefundAmount)
                 return SettlementError.BelowMandatoryRefund;
-            if (amount > summary.ConfirmedAmount - summary.AppliedToContractDeposit ||
+            if (amount > summary.AvailableRefundAmount ||
                 amount < summary.RefundedAmount)
                 return SettlementError.AmountExceedsAvailable;
 
@@ -405,8 +478,7 @@ public sealed class ReservationSettlementStore(ApplicationDbContext context,
         {
             await using var transaction = await context.Database.BeginTransactionAsync(
                 IsolationLevel.Serializable, cancellationToken);
-            var hold = await FullQuery().SingleOrDefaultAsync(h =>
-                h.YeuCauGiuChoId == reservationId, cancellationToken);
+            var hold = await LockReservationAsync(reservationId, cancellationToken);
             if (hold is null)
                 return SettlementError.NotFound;
             var decision = hold.QuyetDinhHoanTienGiuCho;
@@ -419,8 +491,7 @@ public sealed class ReservationSettlementStore(ApplicationDbContext context,
 
             var summary = Map(hold);
             if (amount > decision.SoTienHoanDuyet - summary.RefundedAmount ||
-                amount > summary.ConfirmedAmount - summary.AppliedToContractDeposit -
-                    summary.RefundedAmount)
+                amount > summary.AvailableRefundAmount - summary.RefundedAmount)
                 return SettlementError.AmountExceedsAvailable;
             context.GiaoDichHoanTienGiuChos.Add(new GiaoDichHoanTienGiuCho
             {
@@ -461,6 +532,7 @@ public sealed class ReservationSettlementStore(ApplicationDbContext context,
     private IQueryable<YeuCauGiuCho> FullQuery() =>
         context.YeuCauGiuChos
             .Include(h => h.KhachVangLai)
+            .Include(h => h.LichSuTrangThais)
             .Include(h => h.YeuCauThanhToanGiuChos)
                 .ThenInclude(p => p.GiaoDichGiuChos)
             .Include(h => h.ApDungTienGiuChoVaoTienCoc)
@@ -479,12 +551,19 @@ public sealed class ReservationSettlementStore(ApplicationDbContext context,
         var applied = hold.ApDungTienGiuChoVaoTienCoc?.SoTienApDung ?? 0m;
         var decision = hold.QuyetDinhHoanTienGiuCho;
         var refunded = decision?.GiaoDichHoanTiens.Sum(g => g.SoTienHoan) ?? 0m;
+        var paid = hold.TrangThai == TrangThaiYeuCauGiuCho.DangGiuCho ? ReservationDepositRules.PaidDeposit(hold) : 0m;
+        var retained = hold.TrangThai == TrangThaiYeuCauGiuCho.KhachKhongThue ? hold.SoTienGiuCho.GetValueOrDefault() : 0m;
+        var reserved = retained > 0m ? retained : ReservationDepositRules.IsSelfService(hold) ? paid : 0m;
+        var available = Math.Max(0m, received - applied - reserved);
+        var mandatory = reserved > 0m ? available : SettlementMath.MandatoryRefund(received, hold.SoTienGiuCho ?? 0m, applied, late);
         return new SettlementSummaryDto(hold.YeuCauGiuChoId, received,
             applied, hold.ApDungTienGiuChoVaoTienCoc?.HopDongId,
             decision?.QuyetDinhHoanTienGiuChoId,
             decision?.SoTienHoanDuyet, refunded,
-            SettlementMath.MandatoryRefund(received, hold.SoTienGiuCho ?? 0m,
-                applied, late), decision?.TrangThai.ToString());
+            mandatory, decision?.TrangThai.ToString(), retained, available,
+            paid > 0m && hold.ApDungTienGiuChoVaoTienCoc is null &&
+                Math.Max(decision?.SoTienHoanDuyet ?? 0m, refunded) <= received - paid,
+            retained > 0m ? hold.LyDoTuChoiHoacHuy : null);
     }
 
     private static bool SameGuest(KhachVangLai guest, NguoiThue tenant) =>

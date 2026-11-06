@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using QuanLyChoThuePhongTroWeb.Application.Features.BaoCaos.Persistence;
+using QuanLyChoThuePhongTroWeb.Application.Features.Reservations;
 using QuanLyChoThuePhongTroWeb.Domain.Entities;
 using QuanLyChoThuePhongTroWeb.Domain.Enums;
 using QuanLyChoThuePhongTroWeb.Infrastructure.Persistence;
@@ -123,6 +124,11 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                     y.TrangThai,
                     DaNhan = y.YeuCauThanhToanGiuChos.SelectMany(p => p.GiaoDichGiuChos).Sum(g => (decimal?)g.SoTienThucNhan) ?? 0m,
                     DaApDung = y.ApDungTienGiuChoVaoTienCoc != null ? y.ApDungTienGiuChoVaoTienCoc.SoTienApDung : 0m,
+                    CocGiuLai = y.TrangThai == TrangThaiYeuCauGiuCho.KhachKhongThue ? y.SoTienGiuCho ?? 0m : 0m,
+                    NgayGiuLai = y.LichSuTrangThais.Where(h => h.TrangThaiSau == TrangThaiYeuCauGiuCho.KhachKhongThue)
+                        .Select(h => (DateTime?)h.NgayThucHien).Min(),
+                    DangGiuChoTuPhucVu = y.TrangThai == TrangThaiYeuCauGiuCho.DangGiuCho &&
+                        y.LichSuTrangThais.Any(h => h.LyDo == SelfServiceReservationRules.CreationReason),
                     CoQuyetDinh = y.QuyetDinhHoanTienGiuCho != null,
                     TrangThaiQuyetDinh = y.QuyetDinhHoanTienGiuCho != null ? (TrangThaiHoanTien?)y.QuyetDinhHoanTienGiuCho.TrangThai : null,
                     NgayQuyetDinh = y.QuyetDinhHoanTienGiuCho != null ? (DateTime?)y.QuyetDinhHoanTienGiuCho.NgayQuyetDinh : null,
@@ -144,7 +150,10 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                     r.CoQuyetDinh,
                     r.TrangThaiQuyetDinh,
                     r.NgayQuyetDinh,
-                    r.DaHoan))
+                    r.DaHoan,
+                    r.CocGiuLai,
+                    r.NgayGiuLai,
+                    r.DangGiuChoTuPhucVu))
                 .ToList();
         }
 

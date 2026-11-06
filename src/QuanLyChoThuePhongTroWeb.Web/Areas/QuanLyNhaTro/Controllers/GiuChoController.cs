@@ -51,8 +51,27 @@ public sealed class GiuChoController(IReservationService reservations,
     public async Task<IActionResult> HuyQuaHanKy(int reservationId, string reason,
         CancellationToken cancellationToken)
     {
-        var result = await reservations.CancelExpiredContractAsync(CurrentActorId,
+        var result = await settlements.CancelExpiredContractAsync(CurrentActorId,
             reservationId, reason, cancellationToken);
+        return CloseResult(reservationId, result);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> KhachKhongThue(int reservationId, string reason, bool confirm,
+        CancellationToken cancellationToken)
+    {
+        var result = confirm
+            ? await settlements.CloseWithoutRentAsync(CurrentActorId, reservationId, reason, cancellationToken)
+            : ServiceResult.Fail("Cần xác nhận giữ lại tiền cọc khi khách không thuê.");
+        return CloseResult(reservationId, result);
+    }
+
+    private IActionResult CloseResult(int reservationId, ServiceResult result)
+    {
+        if (result.ErrorKind == ServiceErrorKind.Forbidden)
+            return Forbid();
+        if (result.ErrorKind == ServiceErrorKind.NotFound)
+            return NotFound();
         TempData["ReservationAdminMessage"] = result.Message;
         return RedirectToAction(nameof(ChiTiet), new { id = reservationId });
     }

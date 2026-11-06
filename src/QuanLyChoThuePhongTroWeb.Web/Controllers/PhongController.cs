@@ -263,7 +263,8 @@ public sealed class PhongController(
 
         var reservation = (await reservations.ListMineAsync(actorId, cancellationToken))
             .SingleOrDefault(item => item.Id == reservationId);
-        if (reservation is null)
+        if (reservation is null || reservation.Status is not ("ChoThanhToan" or "ChoXacNhanTien") ||
+            reservation.PaymentDeadlineUtc is not { } deadline || deadline <= DateTime.UtcNow)
         {
             return NotFound();
         }
@@ -277,6 +278,8 @@ public sealed class PhongController(
         }
 
         var remaining = Math.Max(0, (reservation.HoldAmount ?? 0) - reservation.ConfirmedAmount);
+        if (remaining == 0)
+            return NotFound();
         var memo = reservation.PaymentCode ?? $"TTPTGC{reservation.Id}";
         var payload = vietQrService.GenerateVietQRString(bank.BankId, bank.AccountNumber, remaining, memo);
         var bytes = vietQrService.GenerateQRCodePNGBytes(payload);

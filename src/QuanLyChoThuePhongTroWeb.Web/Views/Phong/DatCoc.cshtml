@@ -1,4 +1,5 @@
 @using QuanLyChoThuePhongTroWeb.Web.Helpers
+@using QuanLyChoThuePhongTroWeb.Application.Features.Reservations
 @model QuanLyChoThuePhongTroWeb.ViewModels.PublicRooms.GuestDepositPageModel
 @{
     Layout = "_PublicRoomLayout";
@@ -16,6 +17,7 @@
         "ChoXacNhanTien" => canUpload ? "Chờ xác nhận tiền" : "Đã qua hạn chuyển",
         "DangGiuCho" => "Đang giữ phòng",
         "DaChuyenHopDong" => "Đã lập hợp đồng",
+        "KhachKhongThue" => "Khách không thuê",
         "DaHuy" => "Đã hủy",
         "HetHan" => "Đã hết hạn",
         "TuChoi" => "Đã từ chối",
@@ -54,6 +56,10 @@
                 @if (waitingPayment)
                 {
                     <p class="guest-field-hint">Phòng được giữ khi nhận đủ số tiền cọc trong hạn. Ảnh chuyển khoản không xác nhận đã nhận tiền.</p>
+                    @if (reservation.IsSelfService)
+                    {
+                        <p class="guest-preview-notice">@SelfServiceReservationRules.DepositPolicy</p>
+                    }
                 }
                 @if (reservation.PaymentDeadlineUtc is { } paymentDeadline)
                 {
@@ -95,11 +101,19 @@
             {
                 <div class="guest-preview-notice">Yêu cầu đã được chuyển sang hợp đồng. Theo dõi khoản tiền áp dụng vào cọc hợp đồng và khoản hoàn bên dưới.</div>
             }
+            else if (reservation.Status == "KhachKhongThue")
+            {
+                <div class="guest-preview-notice">Yêu cầu đã kết thúc vì khách không thuê. Vui lòng không chuyển thêm tiền.</div>
+            }
             @if (Model.Settlement is { } settlement)
             {
                 @if (settlement.AppliedToContractDeposit > 0)
                 {
                     <p>Đã áp dụng vào cọc hợp đồng: <span class="num-tabular">@VndFormat.Money(settlement.AppliedToContractDeposit)</span></p>
+                }
+                @if (settlement.RetainedDepositAmount > 0)
+                {
+                    <p>Cọc giữ lại: <strong class="num-tabular">@VndFormat.Money(settlement.RetainedDepositAmount)</strong>. Khoản này không được hoàn hoặc chuyển sang lần đặt khác.</p>
                 }
                 @if (settlement.ApprovedRefundAmount is { } refund)
                 {

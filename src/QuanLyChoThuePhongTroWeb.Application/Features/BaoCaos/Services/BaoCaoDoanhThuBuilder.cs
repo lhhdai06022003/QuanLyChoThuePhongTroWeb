@@ -107,21 +107,31 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.BaoCaos.Services
                 }
             }
 
-            // Thu khác: tiền giữ chỗ không hoàn, tính theo ngày VN của quyết định hoàn tiền đã hoàn tất.
+            // Cọc giữ lại ghi theo ngày kết thúc giữ chỗ, độc lập với quyết định hoàn phần dư hoặc muộn.
+            // Với yêu cầu cũ, giữ nguyên cách tính theo quyết định hoàn tiền đã hoàn tất.
             foreach (var g in giuChos)
             {
-                if (!g.CoQuyetDinh || g.TrangThaiQuyetDinh != TrangThaiHoanTien.DaHoanTien || g.NgayQuyetDinhUtc == null)
+                // Hoàn xong phần chuyển dư trong khi còn giữ chỗ chưa phải là giữ lại cọc.
+                if (g.DangGiuChoTuPhucVu)
                 {
                     continue;
                 }
 
-                var khongHoan = g.DaNhan - g.DaApDung - g.DaHoan;
+                var daGiuLaiCoc = g.TrangThai == TrangThaiYeuCauGiuCho.KhachKhongThue;
+                var ngayGhiNhan = daGiuLaiCoc ? g.NgayGiuLaiUtc
+                    : g.TrangThaiQuyetDinh == TrangThaiHoanTien.DaHoanTien ? g.NgayQuyetDinhUtc : null;
+                if (ngayGhiNhan is null || (!daGiuLaiCoc && !g.CoQuyetDinh))
+                {
+                    continue;
+                }
+
+                var khongHoan = daGiuLaiCoc ? g.CocGiuLai : g.DaNhan - g.DaApDung - g.DaHoan;
                 if (khongHoan <= 0m)
                 {
                     continue;
                 }
 
-                var ky = BaoCaoCalculator.KyCua(g.NgayQuyetDinhUtc.Value);
+                var ky = BaoCaoCalculator.KyCua(ngayGhiNhan.Value);
                 if (!theoKy.TryGetValue(ky.Key, out var kyAcc))
                 {
                     continue;

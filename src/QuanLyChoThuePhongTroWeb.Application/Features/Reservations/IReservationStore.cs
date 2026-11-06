@@ -23,7 +23,4 @@ public interface IReservationStore
     Task<ReservationError> ExtendContractDeadlineAsync(int actorId,
         int reservationId, DateTime newDeadlineUtc, DateTime nowUtc,
         CancellationToken cancellationToken = default);
-    Task<ReservationError> CancelExpiredContractAsync(int actorId,
-        int reservationId, string reason, DateTime nowUtc,
-        CancellationToken cancellationToken = default);
 }

@@ -23,6 +23,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.Helpers
             "ChoXacNhanTien" => "Chờ đối soát tiền",
             "DangGiuCho" => "Đang giữ chỗ",
             "DaChuyenHopDong" => "Đã ký hợp đồng",
+            "KhachKhongThue" => "Khách không thuê",
             "DaHuy" => "Đã hủy",
             "HetHan" => "Đã hết hạn",
             "TuChoi" => "Đã từ chối",

@@ -84,9 +84,9 @@ public sealed class ReservationStoreTests(PostgreSqlFixture fixture)
                 Assert.Equal(ReservationError.None,
                     await store.ExtendContractDeadlineAsync(userId.Value,
                         holdId.Value, now.AddDays(2), now));
-                Assert.Equal(ReservationError.InvalidState,
-                    await store.CancelExpiredContractAsync(userId.Value,
-                        holdId.Value, "Chưa quá hạn", now));
+                Assert.False((await PostgreSqlFixture.CreateReservationSettlementStore(db)
+                    .CloseWithoutRentAsync(userId.Value, holdId.Value, branchId.Value,
+                        "Chưa quá hạn", requireExpired: true, now)).Success);
                 Assert.Null(await new PublicRoomStore(db, TimeProvider.System)
                     .GetAvailableAsync(roomId.Value));
             }
@@ -97,10 +97,9 @@ public sealed class ReservationStoreTests(PostgreSqlFixture fixture)
                     h.YeuCauGiuChoId == holdId.Value);
                 hold.HanKyHopDong = now.AddMinutes(-1);
                 await db.SaveChangesAsync();
-                var store = new ReservationStore(db);
-                Assert.Equal(ReservationError.None,
-                    await store.CancelExpiredContractAsync(userId.Value,
-                        holdId.Value, "Khách không ký hợp đồng", now));
+                Assert.True((await PostgreSqlFixture.CreateReservationSettlementStore(db)
+                    .CloseWithoutRentAsync(userId.Value, holdId.Value, branchId.Value,
+                        "Khách không ký hợp đồng", requireExpired: true, now)).Success);
                 Assert.NotNull(await new PublicRoomStore(db, TimeProvider.System)
                     .GetAvailableAsync(roomId.Value));
 

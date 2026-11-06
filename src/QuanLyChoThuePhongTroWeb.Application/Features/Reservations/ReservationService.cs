@@ -90,6 +90,8 @@ public sealed class ReservationService(IReservationStore store,
         {
             ReservationError.None => ServiceResult.Ok("Đã hủy yêu cầu. Nếu đã nhận tiền, nhân viên sẽ xử lý hoàn."),
             ReservationError.InvalidState => ServiceResult.Fail("Yêu cầu này không thể hủy."),
+            ReservationError.PaidDepositRequiresStaff => ServiceResult.Fail("Yêu cầu đã đủ cọc. Vui lòng liên hệ chi nhánh nếu bạn không thuê."),
+            ReservationError.Conflict => ServiceResult.Fail("Yêu cầu vừa thay đổi, vui lòng tải lại."),
             _ => ServiceResult.NotFound("Không tìm thấy yêu cầu giữ chỗ.")
         };
     }
@@ -112,29 +114,6 @@ public sealed class ReservationService(IReservationStore store,
         {
             ReservationError.None => ServiceResult.Ok("Đã gia hạn ký hợp đồng."),
             ReservationError.InvalidState => ServiceResult.Fail("Chỉ gia hạn yêu cầu đã nhận tiền và quá hạn ký."),
-            ReservationError.Conflict => ServiceResult.Fail("Yêu cầu vừa thay đổi, vui lòng tải lại."),
-            _ => ServiceResult.NotFound("Không tìm thấy yêu cầu giữ chỗ.")
-        };
-    }
-
-    public async Task<ServiceResult> CancelExpiredContractAsync(int actorId,
-        int reservationId, string reason,
-        CancellationToken cancellationToken = default)
-    {
-        if (reservationId <= 0 || string.IsNullOrWhiteSpace(reason) ||
-            reason.Trim().Length > 500)
-            return ServiceResult.Fail("Cần nhập lý do hủy hợp lệ.");
-        var access = await CheckStaffAccessAsync(actorId, reservationId,
-            cancellationToken);
-        if (!access.Success)
-            return access;
-        var error = await store.CancelExpiredContractAsync(actorId,
-            reservationId, reason.Trim(), clock.GetUtcNow().UtcDateTime,
-            cancellationToken);
-        return error switch
-        {
-            ReservationError.None => ServiceResult.Ok("Đã hủy giữ chỗ; nhân viên cần quyết định hoàn tiền."),
-            ReservationError.InvalidState => ServiceResult.Fail("Chỉ hủy theo hạn ký khi yêu cầu đã nhận tiền và quá hạn."),
             ReservationError.Conflict => ServiceResult.Fail("Yêu cầu vừa thay đổi, vui lòng tải lại."),
             _ => ServiceResult.NotFound("Không tìm thấy yêu cầu giữ chỗ.")
         };

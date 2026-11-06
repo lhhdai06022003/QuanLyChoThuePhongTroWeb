@@ -11,6 +11,9 @@ public interface IReservationSettlementStore
     Task<ServiceResult<int>> CreateContractAsync(int actorId, int reservationId,
         int authorizedBranchId, ReservationContractInput input, DateTime nowUtc,
         CancellationToken cancellationToken = default);
+    Task<ServiceResult> CloseWithoutRentAsync(int actorId, int reservationId,
+        int authorizedBranchId, string reason, bool requireExpired, DateTime nowUtc,
+        CancellationToken cancellationToken = default);
     Task<SettlementSummaryDto?> GetAsync(int reservationId,
         CancellationToken cancellationToken = default);
     Task<IReadOnlyList<SettlementSummaryDto>> ListMineAsync(int actorId,

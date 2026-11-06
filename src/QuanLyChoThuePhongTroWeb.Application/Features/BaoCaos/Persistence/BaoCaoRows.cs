@@ -17,7 +17,10 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.BaoCaos.Persistence
         bool CoQuyetDinh,
         TrangThaiHoanTien? TrangThaiQuyetDinh,
         DateTime? NgayQuyetDinhUtc,
-        decimal DaHoan);
+        decimal DaHoan,
+        decimal CocGiuLai = 0m,
+        DateTime? NgayGiuLaiUtc = null,
+        bool DangGiuChoTuPhucVu = false);
 
     public sealed record BaoCaoHoaDonNoRow(
         int HoaDonId,

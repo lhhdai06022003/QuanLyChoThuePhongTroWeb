@@ -15,7 +15,8 @@ public enum ReservationError
     ViewingUnavailable,
     Duplicate,
     InvalidState,
-    Conflict
+    Conflict,
+    PaidDepositRequiresStaff
 }
 
 public sealed record ReservationCreateResult(int? Id, ReservationError Error);
