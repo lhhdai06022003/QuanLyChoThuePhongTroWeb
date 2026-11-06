@@ -11,7 +11,6 @@ using QuanLyChoThuePhongTroWeb.Domain.Enums;
 using QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Fixtures;
 using QuanLyChoThuePhongTroWeb.Infrastructure.Persistence;
 using QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features.ReservationPayments;
-using QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features.ReservationSettlement;
 using QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features.Reservations;
 using Xunit;
 
@@ -475,7 +474,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             await RecordAsync(late, "SEPAY-ST2", 700_000m, late.Deadline.AddMinutes(5));
 
             await using var db = _fixture.CreateDbContext();
-            var settlement = new ReservationSettlementStore(db);
+            var settlement = PostgreSqlFixture.CreateReservationSettlementStore(db);
             var onTimeSummary = await settlement.GetAsync(onTime.HoldId);
             var lateSummary = await settlement.GetAsync(late.HoldId);
 

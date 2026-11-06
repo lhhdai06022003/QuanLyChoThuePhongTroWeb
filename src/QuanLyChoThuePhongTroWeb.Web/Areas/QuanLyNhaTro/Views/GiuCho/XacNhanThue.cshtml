@@ -1,0 +1,53 @@
+@using QuanLyChoThuePhongTroWeb.Web.Helpers
+@model QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.ReservationContractFormModel
+@{
+    ViewData["Title"] = "Xác nhận thuê";
+    var draft = Model.Draft;
+}
+
+<div class="container-xl py-4 guest-admin">
+    <a asp-action="ChiTiet" asp-route-id="@draft.ReservationId">← Chi tiết giữ chỗ</a>
+    <h1 class="page-title mt-3">Xác nhận thuê phòng @draft.RoomNumber</h1>
+    <div class="card mb-4">
+        <div class="card-body">
+            <dl class="row mb-0">
+                <dt class="col-sm-4">Khách thuê</dt><dd class="col-sm-8">@draft.CustomerName</dd>
+                <dt class="col-sm-4">Email</dt><dd class="col-sm-8">@draft.Email</dd>
+                <dt class="col-sm-4">Số điện thoại</dt><dd class="col-sm-8">@draft.Phone</dd>
+                <dt class="col-sm-4">Tiền cọc đã nhận</dt><dd class="col-sm-8">@VndFormat.Money(draft.PaidDeposit)</dd>
+            </dl>
+            <p class="mb-0">Khoản cọc trên sẽ được áp dụng vào tiền cọc hợp đồng khi lưu.</p>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-body">
+            <form method="post" asp-action="XacNhanThue" asp-route-id="@draft.ReservationId" class="row g-3">
+                <div asp-validation-summary="All" class="text-danger" role="alert"></div>
+                @if (draft.RequiresCccd)
+                {
+                    <div class="col-md-4">
+                        <label asp-for="Input.CCCD" class="form-label">CCCD người đặt chỗ</label>
+                        <input asp-for="Input.CCCD" class="form-control" inputmode="numeric" pattern="[0-9]{9,12}" maxlength="12" required />
+                    </div>
+                }
+                <div class="col-md-4">
+                    <label asp-for="Input.StartDate" class="form-label">Ngày bắt đầu thuê</label>
+                    <input asp-for="Input.StartDate" class="form-control" type="date" required />
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="Input.EndDate" class="form-label">Ngày kết thúc thuê (nếu có)</label>
+                    <input asp-for="Input.EndDate" class="form-control" type="date" />
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="Input.Rent" class="form-label">Tiền thuê phòng (₫/tháng)</label>
+                    <input asp-for="Input.Rent" class="form-control" type="number" min="1" step="0.01" required />
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">Tạo hợp đồng và áp dụng cọc</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Styles { <link rel="stylesheet" href="~/css/staff-guest-management.css" asp-append-version="true" /> }

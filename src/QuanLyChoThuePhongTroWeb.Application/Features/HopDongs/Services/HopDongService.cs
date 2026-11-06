@@ -15,7 +15,7 @@ using QuanLyChoThuePhongTroWeb.Domain.Enums;
 
 namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.Services
 {
-    public class HopDongService : IHopDongService
+    public class HopDongService : IHopDongService, IHopDongCreation
     {
         private const string KhongCoQuyen = "Bạn không có quyền thao tác hợp đồng tại chi nhánh này.";
 
@@ -97,13 +97,14 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.Services
             return detail != null && scope!.CanAccessBranch(detail.ChiNhanhId) ? detail : null;
         }
 
-        private async Task<string> GenerateMaHopDongAsync(int chiNhanhId, DateTime thoiDiemBatDau, int offset = 0)
+        private async Task<string> GenerateMaHopDongAsync(int chiNhanhId, DateTime thoiDiemBatDau, int offset = 0,
+            CancellationToken cancellationToken = default)
         {
-            var maChiNhanh = await _store.GetMaChiNhanhAsync(chiNhanhId) ?? $"CN{chiNhanhId}";
+            var maChiNhanh = await _store.GetMaChiNhanhAsync(chiNhanhId, cancellationToken) ?? $"CN{chiNhanhId}";
             string datePart = thoiDiemBatDau.ToString("yyMM");
             string prefix = $"HD-{maChiNhanh}-{datePart}-";
 
-            int count = await _store.CountContractsWithPrefixAsync(prefix);
+            int count = await _store.CountContractsWithPrefixAsync(prefix, cancellationToken);
             string seq = (count + 1 + offset).ToString("D3");
             return $"{prefix}{seq}";
         }
@@ -121,25 +122,42 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.Services
             if (!scope!.IsAdmin && !await _tenantVisibility.AreAllVisibleAsync(tenantIds, scope.AllowedBranchIds!))
                 return ServiceResult.Forbidden("Bạn không có quyền dùng người thuê thuộc chi nhánh khác.");
 
-            return ServiceResult.FromTuple(await CreateCoreAsync(input));
+            await using var transaction = await _unitOfWork.BeginTransactionAsync();
+            try
+            {
+                await _store.LockRoomForContractAsync(input.PhongTroId);
+                var result = await CreateInTransactionAsync(input);
+                if (!result.Success)
+                    return result;
+
+                await transaction.CommitAsync();
+                return ServiceResult.Ok();
+            }
+            catch (Exception e)
+            {
+                await transaction.RollbackAsync();
+                string errorDetails = e.InnerException != null ? e.InnerException.Message : e.Message;
+                return ServiceResult.Fail($"Lỗi hệ thống khi tạo hợp đồng: {errorDetails}");
+            }
         }
 
-        private async Task<(bool IsSuccess, string? ErrorMessage)> CreateCoreAsync(HopDongReq input)
+        public async Task<ServiceResult<int>> CreateInTransactionAsync(HopDongReq input,
+            CancellationToken cancellationToken = default)
         {
             if (input.ThoiDiemKetThuc.HasValue && input.ThoiDiemKetThuc.Value.Date < input.ThoiDiemBatDau.Date)
             {
-                return (false, "Ngày kết thúc không được trước ngày bắt đầu.");
+                return ServiceResult<int>.Fail("Ngày kết thúc không được trước ngày bắt đầu.");
             }
 
-            bool isPhongDangThue = await _store.IsRoomRentedAsync(input.PhongTroId);
-            if (isPhongDangThue) return (false, "Phòng trọ này hiện đang có hợp đồng hiệu lực.");
+            bool isPhongDangThue = await _store.IsRoomRentedAsync(input.PhongTroId, cancellationToken);
+            if (isPhongDangThue) return ServiceResult<int>.Fail("Phòng trọ này hiện đang có hợp đồng hiệu lực.");
 
-            bool isNguoiThueDaCoHopDong = await _store.IsTenantActiveInAnotherContractAsync(input.NguoiThueId);
+            bool isNguoiThueDaCoHopDong = await _store.IsTenantActiveInAnotherContractAsync(input.NguoiThueId, cancellationToken: cancellationToken);
             if (isNguoiThueDaCoHopDong)
-                return (false, "Người đại diện này hiện đã đứng tên một hợp đồng đang hoạt động khác.");
+                return ServiceResult<int>.Fail("Người đại diện này hiện đã đứng tên một hợp đồng đang hoạt động khác.");
 
-            var phong = await _store.GetPhongTroByIdAsync(input.PhongTroId);
-            if (phong == null) return (false, "Không tìm thấy phòng trọ.");
+            var phong = await _store.GetPhongTroByIdAsync(input.PhongTroId, cancellationToken);
+            if (phong == null) return ServiceResult<int>.Fail("Không tìm thấy phòng trọ.");
 
             string maHopDong = "";
             int maxRetries = 5;
@@ -148,8 +166,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.Services
 
             while (!isCodeUnique && retryCount < maxRetries)
             {
-                maHopDong = await GenerateMaHopDongAsync(phong.ChiNhanhId, input.ThoiDiemBatDau, retryCount);
-                bool exists = await _store.ExistsContractWithCodeAsync(maHopDong);
+                maHopDong = await GenerateMaHopDongAsync(phong.ChiNhanhId, input.ThoiDiemBatDau, retryCount, cancellationToken);
+                bool exists = await _store.ExistsContractWithCodeAsync(maHopDong, cancellationToken);
                 if (!exists)
                 {
                     isCodeUnique = true;
@@ -162,14 +180,14 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.Services
 
             if (!isCodeUnique)
             {
-                return (false, "Không thể tự động sinh mã hợp đồng duy nhất. Vui lòng thử lại.");
+                return ServiceResult<int>.Fail("Không thể tự động sinh mã hợp đồng duy nhất. Vui lòng thử lại.");
             }
 
             int totalMembersToAdd = (input.NguoiDungCoOPhongKhong ? 1 : 0) +
                                     (input.ThanhVienKhacIds != null ? input.ThanhVienKhacIds.Where(id => id != input.NguoiThueId).Distinct().Count() : 0);
             if (totalMembersToAdd > phong.SoNguoiToiDa)
             {
-                return (false, $"Số lượng người đăng ký vào phòng ({totalMembersToAdd} người) vượt quá số người tối đa cho phép của phòng này ({phong.SoNguoiToiDa} người).");
+                return ServiceResult<int>.Fail($"Số lượng người đăng ký vào phòng ({totalMembersToAdd} người) vượt quá số người tối đa cho phép của phòng này ({phong.SoNguoiToiDa} người).");
             }
 
             var allMemberIds = new List<int>();
@@ -181,115 +199,104 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.Services
 
             if (allMemberIds.Any())
             {
-                var overlappingMembers = await _store.GetOverlappingLivingMemberNamesAsync(allMemberIds);
+                var overlappingMembers = await _store.GetOverlappingLivingMemberNamesAsync(allMemberIds, cancellationToken);
                 if (overlappingMembers.Any())
                 {
-                    return (false, $"Các thành viên sau đang ở một phòng khác có hợp đồng hoạt động: {string.Join(", ", overlappingMembers)}.");
+                    return ServiceResult<int>.Fail($"Các thành viên sau đang ở một phòng khác có hợp đồng hoạt động: {string.Join(", ", overlappingMembers)}.");
                 }
             }
 
-            await using var transaction = await _unitOfWork.BeginTransactionAsync();
-            try
+            var hopDong = new HopDong
             {
-                var hopDong = new HopDong
+                MaHopDong = maHopDong,
+                PhongTroId = input.PhongTroId,
+                NguoiThueId = input.NguoiThueId,
+                ThoiDiemBatDau = input.ThoiDiemBatDau.ToUniversalTime(),
+                ThoiDiemKetThuc = input.ThoiDiemKetThuc?.ToUniversalTime(),
+                TienCocPhong = input.TienCocPhong,
+                TienThuePhong = input.TienThuePhong,
+                TrangThaiHopDong = TrangThaiHopDong.DangHoatDong,
+                NgayTao = DateTime.UtcNow,
+                IsDeleted = false
+            };
+
+            await _store.AddAsync(hopDong, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            var members = new List<ChiTietThanhVienHopDong>();
+            if (input.NguoiDungCoOPhongKhong)
+            {
+                members.Add(new ChiTietThanhVienHopDong
                 {
-                    MaHopDong = maHopDong,
-                    PhongTroId = input.PhongTroId,
+                    HopDongId = hopDong.HopDongId,
                     NguoiThueId = input.NguoiThueId,
-                    ThoiDiemBatDau = input.ThoiDiemBatDau.ToUniversalTime(),
-                    ThoiDiemKetThuc = input.ThoiDiemKetThuc?.ToUniversalTime(),
-                    TienCocPhong = input.TienCocPhong,
-                    TienThuePhong = input.TienThuePhong,
-                    TrangThaiHopDong = TrangThaiHopDong.DangHoatDong,
-                    NgayTao = DateTime.UtcNow,
+                    NgayVao = hopDong.ThoiDiemBatDau,
                     IsDeleted = false
-                };
+                });
+            }
 
-                await _store.AddAsync(hopDong);
-                await _unitOfWork.SaveChangesAsync();
-
-                var members = new List<ChiTietThanhVienHopDong>();
-                if (input.NguoiDungCoOPhongKhong)
+            if (input.ThanhVienKhacIds != null && input.ThanhVienKhacIds.Any())
+            {
+                var uniqueMembers = input.ThanhVienKhacIds.Where(id => id != input.NguoiThueId).Distinct();
+                foreach (var memberId in uniqueMembers)
                 {
                     members.Add(new ChiTietThanhVienHopDong
                     {
                         HopDongId = hopDong.HopDongId,
-                        NguoiThueId = input.NguoiThueId,
+                        NguoiThueId = memberId,
                         NgayVao = hopDong.ThoiDiemBatDau,
                         IsDeleted = false
                     });
                 }
-
-                if (input.ThanhVienKhacIds != null && input.ThanhVienKhacIds.Any())
-                {
-                    var uniqueMembers = input.ThanhVienKhacIds.Where(id => id != input.NguoiThueId).Distinct();
-                    foreach (var memberId in uniqueMembers)
-                    {
-                        members.Add(new ChiTietThanhVienHopDong
-                        {
-                            HopDongId = hopDong.HopDongId,
-                            NguoiThueId = memberId,
-                            NgayVao = hopDong.ThoiDiemBatDau,
-                            IsDeleted = false
-                        });
-                    }
-                }
-
-                if (members.Any())
-                {
-                    await _store.AddMembersAsync(members);
-                }
-
-                if (input.DieuKhoanMauIds != null && input.DieuKhoanMauIds.Any())
-                {
-                    var selectedTerms = await _store.GetActiveTermsByIdsAsync(input.DieuKhoanMauIds);
-                    int thutu = 1;
-                    var terms = selectedTerms.Select(term => new HopDongDieuKhoan
-                    {
-                        HopDongId = hopDong.HopDongId,
-                        TieuDe = term.TieuDe,
-                        NoiDung = term.NoiDung,
-                        ThuTu = thutu++
-                    }).ToList();
-
-                    await _store.AddTermsAsync(terms);
-                }
-
-                phong.TrangThai = TrangThaiPhong.DaThue;
-                phong.NgayCapNhat = DateTime.UtcNow;
-                _store.UpdatePhongTro(phong);
-
-                var nguoiThueDaiDien = await _store.GetNguoiThueByIdAsync(input.NguoiThueId);
-                if (nguoiThueDaiDien != null && !string.IsNullOrWhiteSpace(nguoiThueDaiDien.Email))
-                {
-                    bool hasAccount = await _store.ExistsActiveAccountForTenantAsync(input.NguoiThueId);
-                    if (!hasAccount)
-                    {
-                        var newTenantUser = new NguoiDung
-                        {
-                            TenDangNhap = nguoiThueDaiDien.Email,
-                            Role = Role.KhachThue,
-                            NguoiThueId = input.NguoiThueId,
-                            IsActive = true,
-                            NgayTao = DateTime.UtcNow,
-                            IsDeleted = false
-                        };
-                        newTenantUser.MatKhauHash = _passwordService.HashPassword(nguoiThueDaiDien.SoDienThoai);
-                        await _store.AddNguoiDungAsync(newTenantUser);
-                    }
-                }
-
-                await _unitOfWork.SaveChangesAsync();
-                await transaction.CommitAsync();
-
-                return (true, string.Empty);
             }
-            catch (Exception e)
+
+            if (members.Any())
             {
-                await transaction.RollbackAsync();
-                string errorDetails = e.InnerException != null ? e.InnerException.Message : e.Message;
-                return (false, $"Lỗi hệ thống khi tạo hợp đồng: {errorDetails}");
+                await _store.AddMembersAsync(members, cancellationToken);
             }
+
+            if (input.DieuKhoanMauIds != null && input.DieuKhoanMauIds.Any())
+            {
+                var selectedTerms = await _store.GetActiveTermsByIdsAsync(input.DieuKhoanMauIds, cancellationToken);
+                int thutu = 1;
+                var terms = selectedTerms.Select(term => new HopDongDieuKhoan
+                {
+                    HopDongId = hopDong.HopDongId,
+                    TieuDe = term.TieuDe,
+                    NoiDung = term.NoiDung,
+                    ThuTu = thutu++
+                }).ToList();
+
+                await _store.AddTermsAsync(terms, cancellationToken);
+            }
+
+            phong.TrangThai = TrangThaiPhong.DaThue;
+            phong.NgayCapNhat = DateTime.UtcNow;
+            _store.UpdatePhongTro(phong);
+
+            var nguoiThueDaiDien = await _store.GetNguoiThueByIdAsync(input.NguoiThueId, cancellationToken);
+            if (nguoiThueDaiDien != null && !string.IsNullOrWhiteSpace(nguoiThueDaiDien.Email))
+            {
+                bool hasAccount = await _store.ExistsActiveAccountForTenantAsync(input.NguoiThueId, cancellationToken);
+                if (!hasAccount)
+                {
+                    var newTenantUser = new NguoiDung
+                    {
+                        TenDangNhap = nguoiThueDaiDien.Email,
+                        Role = Role.KhachThue,
+                        NguoiThueId = input.NguoiThueId,
+                        IsActive = true,
+                        NgayTao = DateTime.UtcNow,
+                        IsDeleted = false
+                    };
+                    newTenantUser.MatKhauHash = _passwordService.HashPassword(nguoiThueDaiDien.SoDienThoai);
+                    await _store.AddNguoiDungAsync(newTenantUser, cancellationToken);
+                }
+            }
+
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            return ServiceResult<int>.Ok(hopDong.HopDongId);
         }
 
         public async Task<ServiceResult> UpdateAsync(int actorId, int id, HopDongReq input)
@@ -349,20 +356,18 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.Services
             if (input.ThoiDiemKetThuc.HasValue && input.ThoiDiemKetThuc.Value.Date < input.ThoiDiemBatDau.Date)
                 return (false, "Ngày kết thúc không được trước ngày bắt đầu.");
 
-            if (targetStatus == TrangThaiHopDong.DangHoatDong && entity.TrangThaiHopDong != TrangThaiHopDong.DangHoatDong)
-            {
-                bool isNguoiThueDaCoHopDong = await _store.IsTenantActiveInAnotherContractAsync(entity.NguoiThueId, id);
-                if (isNguoiThueDaCoHopDong)
-                    return (false, "Người đại diện của hợp đồng này hiện đang đứng tên một hợp đồng hoạt động khác.");
-
-                bool isPhongDangThue = await _store.IsRoomRentedExcludingContractAsync(entity.PhongTroId, id);
-                if (isPhongDangThue)
-                    return (false, "Phòng trọ này hiện đang có một hợp đồng hoạt động khác.");
-            }
-
             await using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
+                if (targetStatus == TrangThaiHopDong.DangHoatDong && entity.TrangThaiHopDong != TrangThaiHopDong.DangHoatDong)
+                {
+                    await _store.LockRoomForContractAsync(entity.PhongTroId);
+                    if (await _store.IsTenantActiveInAnotherContractAsync(entity.NguoiThueId, id))
+                        return (false, "Người đại diện của hợp đồng này hiện đang đứng tên một hợp đồng hoạt động khác.");
+                    if (await _store.IsRoomRentedExcludingContractAsync(entity.PhongTroId, id))
+                        return (false, "Phòng trọ này hiện đang có một hợp đồng hoạt động khác.");
+                }
+
                 if (entity.TrangThaiHopDong != targetStatus)
                 {
                     var phong = await _store.GetPhongTroByIdAsync(entity.PhongTroId);

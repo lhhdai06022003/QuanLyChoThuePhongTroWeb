@@ -5,6 +5,18 @@ public sealed record SettlementSummaryDto(int ReservationId, decimal ConfirmedAm
     decimal? ApprovedRefundAmount, decimal RefundedAmount,
     decimal MandatoryRefundAmount, string? RefundStatus);
 
+public sealed record ReservationContractDraft(int ReservationId, string RoomNumber,
+    string CustomerName, string Email, string Phone, bool RequiresCccd,
+    decimal Rent, decimal PaidDeposit);
+
+public sealed class ReservationContractInput
+{
+    public string? CCCD { get; set; }
+    public DateOnly? StartDate { get; set; }
+    public DateOnly? EndDate { get; set; }
+    public decimal Rent { get; set; }
+}
+
 public enum SettlementError
 {
     None,
@@ -14,7 +26,8 @@ public enum SettlementError
     AmountExceedsAvailable,
     BelowMandatoryRefund,
     DuplicateTransaction,
-    Conflict
+    Conflict,
+    ContractConfirmationRequired
 }
 
 public static class SettlementMath

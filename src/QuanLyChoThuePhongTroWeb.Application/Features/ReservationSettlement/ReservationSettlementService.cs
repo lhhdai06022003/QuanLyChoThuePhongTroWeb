@@ -7,6 +7,34 @@ public sealed class ReservationSettlementService(IReservationSettlementStore sto
     IEmployeeAccessService employeeAccess, TimeProvider clock)
     : IReservationSettlementService
 {
+    private const string Unauthorized = "Bạn không có quyền xử lý yêu cầu này.";
+
+    public async Task<ServiceResult<ReservationContractDraft>> GetContractDraftAsync(int actorId,
+        int reservationId, CancellationToken cancellationToken = default)
+    {
+        var branchId = await GetAuthorizedBranchIdAsync(actorId, reservationId, cancellationToken);
+        return branchId.HasValue
+            ? await store.GetContractDraftAsync(reservationId, branchId.Value, cancellationToken)
+            : ServiceResult<ReservationContractDraft>.Forbidden(Unauthorized);
+    }
+
+    public async Task<ServiceResult<int>> CreateContractAsync(int actorId, int reservationId,
+        ReservationContractInput input, CancellationToken cancellationToken = default)
+    {
+        var branchId = await GetAuthorizedBranchIdAsync(actorId, reservationId, cancellationToken);
+        if (!branchId.HasValue)
+            return ServiceResult<int>.Forbidden(Unauthorized);
+        if (input.StartDate is null || input.StartDate == DateOnly.MinValue)
+            return ServiceResult<int>.Fail("Vui lòng nhập ngày bắt đầu thuê hợp lệ.");
+        if (input.EndDate < input.StartDate)
+            return ServiceResult<int>.Fail("Ngày kết thúc không được trước ngày bắt đầu.");
+        if (input.Rent < 1m || !ValidMoney(input.Rent, false) || input.Rent > 9_999_999_999_999_999.99m)
+            return ServiceResult<int>.Fail("Tiền thuê phòng không hợp lệ.");
+
+        return await store.CreateContractAsync(actorId, reservationId, branchId.Value, input,
+            clock.GetUtcNow().UtcDateTime, cancellationToken);
+    }
+
     public Task<IReadOnlyList<SettlementSummaryDto>> ListMineAsync(int actorId,
         CancellationToken cancellationToken = default) =>
         store.ListMineAsync(actorId, cancellationToken);
@@ -58,13 +86,17 @@ public sealed class ReservationSettlementService(IReservationSettlementStore sto
     }
 
     private async Task<bool> CanAccessAsync(int actorId, int reservationId,
+        CancellationToken cancellationToken) =>
+        (await GetAuthorizedBranchIdAsync(actorId, reservationId, cancellationToken)).HasValue;
+
+    private async Task<int?> GetAuthorizedBranchIdAsync(int actorId, int reservationId,
         CancellationToken cancellationToken)
     {
         var branchId = await store.GetBranchIdAsync(reservationId, cancellationToken);
         if (!branchId.HasValue)
-            return false;
+            return null;
         var scope = await employeeAccess.GetScopeAsync(actorId, cancellationToken);
-        return scope is not null && scope.CanAccessBranch(branchId.Value);
+        return scope is not null && scope.CanAccessBranch(branchId.Value) ? branchId : null;
     }
 
     private static bool ValidMoney(decimal amount, bool allowZero) =>
@@ -80,6 +112,7 @@ public sealed class ReservationSettlementService(IReservationSettlementStore sto
             SettlementError.BelowMandatoryRefund => ServiceResult.Fail("Số tiền hoàn thấp hơn phần bắt buộc hoàn do chuyển dư hoặc đến muộn."),
             SettlementError.DuplicateTransaction => ServiceResult.Fail("Mã giao dịch hoàn đã được ghi nhận."),
             SettlementError.InvalidState => ServiceResult.Fail("Trạng thái yêu cầu không cho phép thao tác này."),
+            SettlementError.ContractConfirmationRequired => ServiceResult.Fail("Vui lòng dùng Xác nhận thuê để tạo hợp đồng và liên kết tài khoản đặt chỗ."),
             SettlementError.Conflict => ServiceResult.Fail("Dữ liệu tiền vừa thay đổi, vui lòng tải lại."),
             _ => ServiceResult.NotFound("Không tìm thấy yêu cầu giữ chỗ.")
         };

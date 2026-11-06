@@ -7,7 +7,6 @@ using QuanLyChoThuePhongTroWeb.Domain.Enums;
 using QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Fixtures;
 using QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features.Reservations;
 using QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features.ReservationPayments;
-using QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features.ReservationSettlement;
 using QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features;
 
 namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence;
@@ -153,7 +152,7 @@ public sealed class ReservationStoreTests(PostgreSqlFixture fixture)
                 Assert.Equal(TrangThaiYeuCauThanhToan.HetHan,
                     latePayment.TrangThai);
                 Assert.Equal(200000m,
-                    (await new ReservationSettlementStore(db)
+                    (await PostgreSqlFixture.CreateReservationSettlementStore(db)
                         .GetAsync(lateHoldId.Value))!.MandatoryRefundAmount);
             }
         }
@@ -302,7 +301,7 @@ public sealed class ReservationStoreTests(PostgreSqlFixture fixture)
             }
             await using (var db = fixture.CreateDbContext())
             {
-                var store = new ReservationSettlementStore(db);
+                var store = PostgreSqlFixture.CreateReservationSettlementStore(db);
                 var now = DateTime.UtcNow;
                 Assert.Equal(SettlementError.AmountExceedsAvailable,
                     await store.ApplyAsync(staffUserId.Value, holdId.Value,
@@ -313,7 +312,7 @@ public sealed class ReservationStoreTests(PostgreSqlFixture fixture)
             }
             await using (var db = fixture.CreateDbContext())
             {
-                var store = new ReservationSettlementStore(db);
+                var store = PostgreSqlFixture.CreateReservationSettlementStore(db);
                 var summary = await store.GetAsync(holdId.Value);
                 Assert.Equal(100000m, summary!.MandatoryRefundAmount);
                 Assert.Equal(SettlementError.BelowMandatoryRefund,
@@ -474,7 +473,7 @@ public sealed class ReservationStoreTests(PostgreSqlFixture fixture)
                 Assert.Equal(PaymentError.None, await paymentStore.ConfirmReceivedAsync(
                     staffUserId.Value, hold.PaymentRequestId.Value, null,
                     "BANK3-" + suffix, 50000m, now.AddDays(2), now.AddDays(2)));
-                var settlement = new ReservationSettlementStore(db);
+                var settlement = PostgreSqlFixture.CreateReservationSettlementStore(db);
                 Assert.Equal(50000m,
                     (await settlement.GetAsync(holdId.Value))!.MandatoryRefundAmount);
                 Assert.Equal(ReservationError.None,

@@ -128,6 +128,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             public Task<string?> GetMaChiNhanhAsync(int chiNhanhId, CancellationToken cancellationToken = default) => throw new NotImplementedException();
             public Task<int> CountContractsWithPrefixAsync(string prefix, CancellationToken cancellationToken = default) => throw new NotImplementedException();
             public Task<bool> ExistsContractWithCodeAsync(string code, CancellationToken cancellationToken = default) => throw new NotImplementedException();
+            public Task LockRoomForContractAsync(int phongTroId, CancellationToken cancellationToken = default) => throw new NotImplementedException();
             public Task<bool> IsRoomRentedAsync(int phongTroId, CancellationToken cancellationToken = default) => throw new NotImplementedException();
             public Task<bool> IsTenantActiveInAnotherContractAsync(int nguoiThueId, int? excludeHopDongId = null, CancellationToken cancellationToken = default) => throw new NotImplementedException();
             public Task<bool> IsRoomRentedExcludingContractAsync(int phongTroId, int excludeHopDongId, CancellationToken cancellationToken = default) => throw new NotImplementedException();

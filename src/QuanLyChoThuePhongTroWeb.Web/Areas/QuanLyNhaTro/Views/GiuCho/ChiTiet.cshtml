@@ -9,6 +9,10 @@
     <a asp-area="QuanLyNhaTro" asp-controller="GiuCho" asp-action="Index">← Yêu cầu giữ chỗ</a>
     <h1 class="page-title mt-3">Phòng @reservation.RoomNumber · yêu cầu #@reservation.Id</h1>
     <p>Khách: @reservation.GuestName · Trạng thái: @GuestStatusText.Reservation(reservation.Status)</p>
+    @if (reservation.Status == "DangGiuCho")
+    {
+        <a class="btn btn-primary mb-3" asp-action="XacNhanThue" asp-route-id="@reservation.Id">Xác nhận thuê</a>
+    }
     @if (reservation.Status is "DangGiuCho" or "DaChuyenHopDong")
     {
         <a class="btn btn-outline-primary mb-3" asp-area="QuanLyNhaTro" asp-controller="GiuCho" asp-action="ThongBaoDatCoc" asp-route-roomId="@reservation.RoomId">Xem trước email báo phòng đã có người cọc</a>
@@ -163,7 +167,7 @@
             <div class="card-body">
                 <p>Đã xác nhận: @VndFormat.Money(settlement.ConfirmedAmount) · Đã áp dụng cọc: @VndFormat.Money(settlement.AppliedToContractDeposit) · Đã hoàn: @VndFormat.Money(settlement.RefundedAmount)</p>
                 <p>Phải hoàn tối thiểu theo tiền dư/đến muộn: @VndFormat.Money(settlement.MandatoryRefundAmount)</p>
-                @if (reservation.Status == "DangGiuCho" && settlement.AppliedToContractDeposit == 0)
+                @if (!reservation.IsSelfService && reservation.Status == "DangGiuCho" && settlement.AppliedToContractDeposit == 0)
                 {
                     <form method="post" asp-area="QuanLyNhaTro" asp-controller="GiuCho" asp-action="ApDungCoc" class="row g-2 align-items-end mb-4">
                         @Html.AntiForgeryToken()
