@@ -259,6 +259,14 @@ public sealed class PaidReservationContractTests(CustomWebApplicationFactory fac
     public async Task SelfServiceHoldCanCloseUnderEarlierDepositRefund(bool fullyRefunded)
     {
         var approved = fullyRefunded ? 300_000m : 100_000m;
+        if (!fullyRefunded)
+        {
+            await BranchScopeKit.ReadAsync(factory, db =>
+            {
+                db.GiaoDichGiuChos.Add(Receipt(20_000m, "prior-excess"));
+                return db.SaveChangesAsync();
+            });
+        }
         var (client, token) = await BranchScopeKit.LoginAsync(factory, admin.TenDangNhap, DetailPath);
         using (client)
         {
@@ -300,15 +308,50 @@ public sealed class PaidReservationContractTests(CustomWebApplicationFactory fac
                 Assert.Equal(prior.LyDo, decision.LyDo);
                 Assert.Equal(prior.TrangThai, decision.TrangThai);
                 Assert.Equal(fullyRefunded ? approved : 0m, decision.GiaoDichHoanTiens.Sum(g => g.SoTienHoan));
-                Assert.Equal(300_000m, (await db.GiaoDichGiuChos.SingleAsync(g =>
-                    g.YeuCauThanhToanGiuChoId == payment.YeuCauThanhToanGiuChoId)).SoTienThucNhan);
+                Assert.Equal(fullyRefunded ? 300_000m : 320_000m, await db.GiaoDichGiuChos
+                    .Where(g => g.YeuCauThanhToanGiuChoId == payment.YeuCauThanhToanGiuChoId)
+                    .SumAsync(g => g.SoTienThucNhan));
                 return 0;
             });
             if (!fullyRefunded)
+            {
+                await PostRefundAsync(client, token, 300_000m);
+                Assert.Contains("Số tiền vượt", WebUtility.HtmlDecode(await client.GetStringAsync(DetailPath)));
+                await PostRefundAsync(client, token, 50_000m);
+                Assert.Contains("Số tiền hoàn thấp hơn", WebUtility.HtmlDecode(await client.GetStringAsync(DetailPath)));
                 await PostRefundTransferAsync(client, token, approved, "earlier");
+            }
             var refund = await BranchScopeKit.ReadAsync(factory, db => db.GiaoDichHoanTienGiuChos
                 .SingleAsync(g => g.QuyetDinhHoanTienGiuChoId == prior.QuyetDinhHoanTienGiuChoId));
             Assert.Equal(approved, refund.SoTienHoan);
+
+            if (!fullyRefunded)
+            {
+                using (var scope = factory.Services.CreateScope())
+                {
+                    var store = scope.ServiceProvider.GetRequiredService<IReservationAutoPaymentStore>();
+                    var now = DateTime.UtcNow;
+                    var result = await store.RecordSystemTransferAsync(payment.MaYeuCau, $"late-{suffix}", 25_000m, now, "Test", now);
+                    Assert.True(result.CanHoanTien);
+                }
+                await PostRefundAsync(client, token, 145_000m);
+                Assert.Contains("Số tiền vượt", WebUtility.HtmlDecode(await client.GetStringAsync(DetailPath)));
+                await PostRefundAsync(client, token, 125_000m);
+                await PostRefundAsync(client, token, 145_000m);
+                Assert.Contains("Số tiền vượt", WebUtility.HtmlDecode(await client.GetStringAsync(DetailPath)));
+                await PostRefundTransferAsync(client, token, 26_000m, "too-much");
+                Assert.Contains("Số tiền vượt", WebUtility.HtmlDecode(await client.GetStringAsync(DetailPath)));
+                await PostRefundTransferAsync(client, token, 25_000m, "late");
+                await BranchScopeKit.ReadAsync(factory, async db =>
+                {
+                    var decision = await db.QuyetDinhHoanTienGiuChos.Include(q => q.GiaoDichHoanTiens)
+                        .SingleAsync(q => q.QuyetDinhHoanTienGiuChoId == prior.QuyetDinhHoanTienGiuChoId);
+                    Assert.Equal(125_000m, decision.SoTienHoanDuyet);
+                    Assert.Equal(TrangThaiHoanTien.DaHoanTien, decision.TrangThai);
+                    Assert.Equal(new[] { 25_000m, 100_000m }, decision.GiaoDichHoanTiens.Select(g => g.SoTienHoan).Order().ToArray());
+                    return 0;
+                });
+            }
         }
 
         using var visitor = BranchScopeKit.NewClient(factory);

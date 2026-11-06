@@ -133,7 +133,7 @@ public sealed class ReservationSettlementService(IReservationSettlementStore sto
             SettlementError.None => ServiceResult.Ok(successMessage),
             SettlementError.ContractMismatch => ServiceResult.Fail("Hợp đồng không cùng phòng hoặc không khớp thông tin khách."),
             SettlementError.AmountExceedsAvailable => ServiceResult.Fail("Số tiền vượt phần đã nhận còn có thể xử lý."),
-            SettlementError.BelowMandatoryRefund => ServiceResult.Fail("Số tiền hoàn thấp hơn phần bắt buộc hoàn do chuyển dư hoặc đến muộn."),
+            SettlementError.BelowMandatoryRefund => ServiceResult.Fail("Số tiền hoàn thấp hơn phần phải hoàn theo quyết toán giữ chỗ."),
             SettlementError.DuplicateTransaction => ServiceResult.Fail("Mã giao dịch hoàn đã được ghi nhận."),
             SettlementError.InvalidState => ServiceResult.Fail("Trạng thái yêu cầu không cho phép thao tác này."),
             SettlementError.ContractConfirmationRequired => ServiceResult.Fail("Vui lòng dùng Xác nhận thuê để tạo hợp đồng và liên kết tài khoản đặt chỗ."),

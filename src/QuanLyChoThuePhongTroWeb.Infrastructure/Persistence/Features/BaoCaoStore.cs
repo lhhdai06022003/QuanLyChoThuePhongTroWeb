@@ -130,7 +130,9 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                     BoQuaThuKhac = y.LichSuTrangThais.Any(h => h.LyDo == SelfServiceReservationRules.CreationReason) &&
                         (y.TrangThai == TrangThaiYeuCauGiuCho.DangGiuCho ||
                             y.TrangThai == TrangThaiYeuCauGiuCho.DaHuy && y.LichSuTrangThais.Any(h =>
-                                h.TrangThaiSau == TrangThaiYeuCauGiuCho.DaHuy && h.LyDo == SelfServiceReservationRules.PriorRefundClosureMarker)),
+                                h.TrangThaiSau == TrangThaiYeuCauGiuCho.DaHuy &&
+                                (h.LyDo == SelfServiceReservationRules.PriorRefundClosureMarker ||
+                                    h.LyDo != null && h.LyDo.StartsWith(SelfServiceReservationRules.PriorRefundClosurePrefix)))),
                     CoQuyetDinh = y.QuyetDinhHoanTienGiuCho != null,
                     TrangThaiQuyetDinh = y.QuyetDinhHoanTienGiuCho != null ? (TrangThaiHoanTien?)y.QuyetDinhHoanTienGiuCho.TrangThai : null,
                     NgayQuyetDinh = y.QuyetDinhHoanTienGiuCho != null ? (DateTime?)y.QuyetDinhHoanTienGiuCho.NgayQuyetDinh : null,
