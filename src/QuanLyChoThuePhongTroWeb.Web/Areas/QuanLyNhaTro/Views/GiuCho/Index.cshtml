@@ -4,57 +4,87 @@
     ViewData["Title"] = "Giữ chỗ phòng";
 }
 
-<div class="container-xl py-4 guest-admin">
-    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
-        <div>
-            <h1 class="page-title mb-2">Yêu cầu giữ chỗ</h1>
-            <p class="text-secondary mb-0">Khách thanh toán ngay theo tiền cọc công khai của tin phòng. Theo dõi giao dịch, hợp đồng và các yêu cầu cũ tại đây.</p>
-        </div>
-    </div>
+<div class="container-xl py-4 guest-admin reservation-admin">
+    <h1 class="page-title mb-3">Yêu cầu giữ chỗ</h1>
     @if (TempData["ReservationAdminMessage"] is string message)
     {
         <div class="alert alert-info" role="status">@message</div>
     }
-    <div class="card guest-admin-table mb-4">
-        <div class="card-header"><h2 class="card-title">Danh sách yêu cầu</h2></div>
-        <div class="table-responsive">
-            <table class="table table-vcenter card-table">
-                <thead><tr><th>Phòng</th><th>Khách</th><th>Trạng thái</th><th>Tiền giữ chỗ</th><th>Đã nhận</th><th>Hạn chuyển</th><th>Hạn ký</th></tr></thead>
+    <div class="card guest-admin-table reservation-admin-list">
+        <div class="table-responsive" tabindex="0" role="region" aria-label="Danh sách yêu cầu giữ chỗ">
+            <table class="table table-vcenter table-hover card-table">
+                <thead>
+                    <tr><th scope="col">Phòng và khách</th><th scope="col">Trạng thái</th><th scope="col" class="text-end">Tiền cọc</th><th scope="col" class="d-none d-md-table-cell text-end">Thời hạn (VN)</th></tr>
+                </thead>
                 <tbody>
                     @if (Model.Count == 0)
                     {
-                        <tr><td class="guest-admin-empty" colspan="7">Chưa có yêu cầu giữ chỗ.</td></tr>
+                        <tr><td class="guest-admin-empty" colspan="4">Chưa có yêu cầu giữ chỗ.</td></tr>
                     }
                     @foreach (var reservation in Model)
                     {
                         <tr>
-                            <td><strong>@reservation.RoomNumber</strong><br /><a asp-area="QuanLyNhaTro" asp-controller="GiuCho" asp-action="ChiTiet" asp-route-id="@reservation.Id">Xem #@reservation.Id</a></td>
-                            <td>@reservation.GuestName</td>
-                            <td>@GuestStatusText.Reservation(reservation.Status)</td>
-                            <td>@(reservation.HoldAmount is { } holdAmount ? VndFormat.Money(holdAmount) : "Chờ duyệt")</td>
-                            <td>@VndFormat.Money(reservation.ConfirmedAmount)</td>
-                            <td>@(reservation.PaymentDeadlineUtc.HasValue ? new DateTimeOffset(reservation.PaymentDeadlineUtc.Value, TimeSpan.Zero).ToOffset(TimeSpan.FromHours(7)).ToString("dd/MM/yyyy HH:mm") : "—")</td>
-                            <td>@(reservation.ContractDeadlineUtc.HasValue ? new DateTimeOffset(reservation.ContractDeadlineUtc.Value, TimeSpan.Zero).ToOffset(TimeSpan.FromHours(7)).ToString("dd/MM/yyyy HH:mm") : "—")</td>
+                            <td>
+                                <a class="fw-semibold" asp-action="ChiTiet" asp-route-id="@reservation.Id">Phòng @reservation.RoomNumber <span class="text-secondary fw-normal">#@reservation.Id</span></a>
+                                <span class="d-block small text-secondary">@reservation.GuestName</span>
+                            </td>
+                            <td><partial name="_ReservationStatus" model="reservation.Status" /></td>
+                            <td class="text-end text-nowrap reservation-admin-numeric">
+                                @if (reservation.ConfirmedAmount > 0)
+                                {
+                                    <strong class="reservation-admin-positive">@VndFormat.Money(reservation.ConfirmedAmount)</strong>
+                                    <span class="small text-secondary d-block">Đã nhận</span>
+                                }
+                                else if (reservation.HoldAmount is { } holdAmount)
+                                {
+                                    <span>@VndFormat.Money(holdAmount)</span>
+                                    <span class="small text-secondary d-block">Chưa nhận</span>
+                                }
+                                else
+                                {
+                                    <span class="text-secondary">—</span>
+                                }
+                            </td>
+                            <td class="d-none d-md-table-cell text-end text-nowrap reservation-admin-numeric">
+                                @if (reservation.Status == "DangGiuCho" && ReservationContractDeadline.Shown(reservation) is { } contractDeadline)
+                                {
+                                    <span>@VietnamTime.Format(contractDeadline, "dd/MM/yyyy HH:mm")</span>
+                                    <span class="small text-secondary d-block">Hạn ký</span>
+                                }
+                                else if ((reservation.Status is "ChoThanhToan" or "ChoXacNhanTien") && reservation.PaymentDeadlineUtc is { } paymentDeadline)
+                                {
+                                    <span>@VietnamTime.Format(paymentDeadline, "dd/MM/yyyy HH:mm")</span>
+                                    <span class="small text-secondary d-block">Hạn chuyển</span>
+                                }
+                                else
+                                {
+                                    <span class="text-secondary">—</span>
+                                }
+                            </td>
                         </tr>
                         @if (reservation.Status == "MoiTao")
                         {
-                            <tr><td colspan="7">
-                                <form method="post" asp-area="QuanLyNhaTro" asp-controller="GiuCho" asp-action="Duyet" class="row g-2 align-items-end">
-                                    @Html.AntiForgeryToken()
-                                    <input type="hidden" name="reservationId" value="@reservation.Id" />
-                                    <div class="col-md-3"><label class="form-label">Số tiền giữ chỗ (₫)</label><input class="form-control" type="number" name="amount" min="1" step="1" required /></div>
-                                    <div class="col-md-3"><label class="form-label">Hạn chuyển</label><input class="form-control" type="datetime-local" name="paymentDeadlineLocal" required /></div>
-                                    <div class="col-md-3"><label class="form-label">Hạn ký hợp đồng</label><input class="form-control" type="datetime-local" name="contractDeadlineLocal" required /></div>
-                                    <div class="col-md-3"><button class="btn btn-primary" type="submit">Duyệt giữ chỗ</button></div>
-                                </form>
-                            </td></tr>
+                            <tr>
+                                <td colspan="4" class="reservation-admin-approval">
+                                    <details class="reservation-admin-disclosure">
+                                        <summary class="fw-semibold">Duyệt yêu cầu #@reservation.Id</summary>
+                                        <form method="post" asp-area="QuanLyNhaTro" asp-controller="GiuCho" asp-action="Duyet" class="row g-2 align-items-end mt-1">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="reservationId" value="@reservation.Id" />
+                                            <div class="col-md-3"><label class="form-label">Số tiền giữ chỗ (₫)</label><input class="form-control" type="number" name="amount" min="1" step="1" required /></div>
+                                            <div class="col-md-3"><label class="form-label">Hạn chuyển</label><input class="form-control" type="datetime-local" name="paymentDeadlineLocal" required /></div>
+                                            <div class="col-md-3"><label class="form-label">Hạn ký hợp đồng</label><input class="form-control" type="datetime-local" name="contractDeadlineLocal" required /></div>
+                                            <div class="col-md-3"><button class="btn btn-primary" type="submit">Duyệt giữ chỗ</button></div>
+                                        </form>
+                                    </details>
+                                </td>
+                            </tr>
                         }
                     }
                 </tbody>
             </table>
         </div>
     </div>
-    <div class="alert alert-info">Mở chi tiết từng yêu cầu để xem minh chứng, đối soát tiền, áp dụng vào cọc hợp đồng và xử lý hoàn tiền.</div>
 </div>
 
 @section Styles { <link rel="stylesheet" href="~/css/staff-guest-management.css" asp-append-version="true" /> }

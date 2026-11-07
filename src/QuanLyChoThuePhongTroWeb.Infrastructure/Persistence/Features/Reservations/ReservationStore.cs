@@ -258,11 +258,11 @@ public sealed class ReservationStore(ApplicationDbContext context) : IReservatio
                 payment?.TrangThai.ToString(),
                 hold.YeuCauThanhToanGiuChos.Sum(p =>
                     p.GiaoDichGiuChos.Sum(g => g.SoTienThucNhan)),
-                hold.TrangThai is TrangThaiYeuCauGiuCho.MoiTao or
+                (hold.TrangThai is TrangThaiYeuCauGiuCho.MoiTao or
                     TrangThaiYeuCauGiuCho.ChoThanhToan or
                     TrangThaiYeuCauGiuCho.ChoXacNhanTien or
-                    TrangThaiYeuCauGiuCho.DangGiuCho,
-                hold.LichSuTrangThais.Any(history => history.LyDo == SelfServiceReservationRules.CreationReason));
+                    TrangThaiYeuCauGiuCho.DangGiuCho) && ReservationDepositRules.PaidDeposit(hold) == 0m,
+                ReservationDepositRules.IsSelfService(hold));
         }).ToArray();
     }
 
@@ -347,10 +347,33 @@ public sealed class ReservationStore(ApplicationDbContext context) : IReservatio
     public async Task<ReservationError> CancelAsync(int actorId, int reservationId,
         DateTime nowUtc, CancellationToken cancellationToken = default)
     {
+        try
+        {
+            return await CancelCoreAsync(actorId, reservationId, nowUtc, cancellationToken);
+        }
+        catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.SerializationFailure)
+        {
+            context.ChangeTracker.Clear();
+            return ReservationError.Conflict;
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException pg &&
+            pg.SqlState == PostgresErrorCodes.SerializationFailure)
+        {
+            context.ChangeTracker.Clear();
+            return ReservationError.Conflict;
+        }
+    }
+
+    private async Task<ReservationError> CancelCoreAsync(int actorId, int reservationId,
+        DateTime nowUtc, CancellationToken cancellationToken)
+    {
         await using var transaction = await context.Database.BeginTransactionAsync(
             IsolationLevel.Serializable, cancellationToken);
         var hold = await context.YeuCauGiuChos
             .Include(h => h.YeuCauThanhToanGiuChos)
+                .ThenInclude(p => p.GiaoDichGiuChos)
+            .Include(h => h.LichSuTrangThais)
+            .AsSplitQuery()
             .SingleOrDefaultAsync(h => h.YeuCauGiuChoId == reservationId &&
                 h.KhachVangLai.NguoiDungId == actorId, cancellationToken);
         if (hold is null)
@@ -360,6 +383,8 @@ public sealed class ReservationStore(ApplicationDbContext context) : IReservatio
             TrangThaiYeuCauGiuCho.ChoXacNhanTien or
             TrangThaiYeuCauGiuCho.DangGiuCho))
             return ReservationError.InvalidState;
+        if (ReservationDepositRules.PaidDeposit(hold) > 0m)
+            return ReservationError.PaidDepositRequiresStaff;
 
         var oldStatus = hold.TrangThai;
         hold.TrangThai = TrangThaiYeuCauGiuCho.DaHuy;
@@ -428,51 +453,6 @@ public sealed class ReservationStore(ApplicationDbContext context) : IReservatio
                     NguoiThucHienId = actorId,
                     NgayThucHien = nowUtc,
                     LyDo = $"Gia hạn ký hợp đồng đến {newDeadlineUtc:O}"
-                });
-            await context.SaveChangesAsync(cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
-            return ReservationError.None;
-        }
-        catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.SerializationFailure)
-        {
-            return ReservationError.Conflict;
-        }
-        catch (DbUpdateException ex) when (ex.InnerException is PostgresException pg &&
-            pg.SqlState == PostgresErrorCodes.SerializationFailure)
-        {
-            return ReservationError.Conflict;
-        }
-    }
-
-    public async Task<ReservationError> CancelExpiredContractAsync(int actorId,
-        int reservationId, string reason, DateTime nowUtc,
-        CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            await using var transaction = await context.Database.BeginTransactionAsync(
-                IsolationLevel.Serializable, cancellationToken);
-            var hold = await context.YeuCauGiuChos.SingleOrDefaultAsync(h =>
-                h.YeuCauGiuChoId == reservationId, cancellationToken);
-            if (hold is null)
-                return ReservationError.NotFound;
-            if (hold.TrangThai != TrangThaiYeuCauGiuCho.DangGiuCho ||
-                hold.HanKyHopDong is null || hold.HanKyHopDong > nowUtc)
-                return ReservationError.InvalidState;
-
-            hold.TrangThai = TrangThaiYeuCauGiuCho.DaHuy;
-            hold.LyDoTuChoiHoacHuy = reason;
-            hold.NgayCapNhat = nowUtc;
-            context.LichSuTrangThaiYeuCauGiuChos.Add(
-                new LichSuTrangThaiYeuCauGiuCho
-                {
-                    YeuCauGiuChoId = reservationId,
-                    TrangThaiTruoc = TrangThaiYeuCauGiuCho.DangGiuCho,
-                    TrangThaiSau = TrangThaiYeuCauGiuCho.DaHuy,
-                    LoaiTacNhan = LoaiTacNhan.NguoiDung,
-                    NguoiThucHienId = actorId,
-                    NgayThucHien = nowUtc,
-                    LyDo = reason
                 });
             await context.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);

@@ -1,4 +1,5 @@
 @using QuanLyChoThuePhongTroWeb.Web.Helpers
+@using QuanLyChoThuePhongTroWeb.Application.Features.Reservations
 @model QuanLyChoThuePhongTroWeb.ViewModels.PublicRooms.ReservationPageModel
 @{
     Layout = "_PublicRoomLayout";
@@ -41,6 +42,7 @@
                         <li><strong>30 phút</strong><span>để thanh toán sau khi xác nhận</span></li>
                         <li><strong>48 giờ</strong><span>để ký hợp đồng sau khi nhận đủ cọc</span></li>
                     </ul>
+                    <p class="guest-preview-notice">@SelfServiceReservationRules.DepositPolicy</p>
                 }
                 @if (Model.ViewingId.HasValue)
                 {
@@ -57,7 +59,7 @@
                         }
                         <button class="guest-button guest-button-primary" type="submit">Xác nhận và thanh toán tiền cọc <span aria-hidden="true">→</span></button>
                     </form>
-                    <p class="guest-field-hint">Ảnh chuyển khoản chỉ hỗ trợ đối soát, không xác nhận đã nhận tiền. Bạn có thể hủy lượt thanh toán trong tài khoản của mình.</p>
+                    <p class="guest-field-hint">Ảnh chuyển khoản chỉ hỗ trợ đối soát. Bạn có thể hủy trong tài khoản trước khi nhận đủ cọc. Sau khi nhận đủ cọc, hãy liên hệ chi nhánh nếu bạn không thuê.</p>
                 }
                 else
                 {

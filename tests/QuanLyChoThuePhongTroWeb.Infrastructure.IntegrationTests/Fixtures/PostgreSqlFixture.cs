@@ -1,8 +1,15 @@
 using System;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity;
 using Npgsql;
+using QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.Services;
+using QuanLyChoThuePhongTroWeb.Application.Features.NhanViens.Services;
+using QuanLyChoThuePhongTroWeb.Domain.Entities;
 using QuanLyChoThuePhongTroWeb.Infrastructure.Persistence;
+using QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features;
+using QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features.ReservationSettlement;
+using QuanLyChoThuePhongTroWeb.Infrastructure.Security;
 using Xunit;
 
 namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Fixtures
@@ -47,6 +54,11 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Fixtures
             }
             return new ApplicationDbContext(CreateDbContextOptions());
         }
+
+        public static ReservationSettlementStore CreateReservationSettlementStore(ApplicationDbContext db) =>
+            new(db, new HopDongService(new HopDongStore(db), new EfUnitOfWork(db),
+                new AspNetPasswordService(new PasswordHasher<NguoiDung>()),
+                new EmployeeAccessService(new EmployeeBranchStore(db)), new NguoiThueStore(db)));
 
         public static string ResolveConnectionString(Func<string, string?>? getEnvironmentVariable = null)
         {

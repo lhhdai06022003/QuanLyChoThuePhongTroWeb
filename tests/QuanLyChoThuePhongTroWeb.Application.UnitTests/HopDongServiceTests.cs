@@ -81,6 +81,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             public HopDong? DeletedContract { get; set; }
             public List<NguoiDung> AddedUsers { get; } = new();
             public List<DangKyDichVu> RoomServices { get; } = new();
+            public Action<int>? OnLockRoom { get; set; }
 
             public Task<bool> IsRoomRentedAsync(int phongTroId, CancellationToken cancellationToken = default) =>
                 Task.FromResult(RoomRented);
@@ -97,6 +98,11 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             public Task<int> CountContractsWithPrefixAsync(string prefix, CancellationToken cancellationToken = default) =>
                 Task.FromResult(0);
 
+            public Task LockRoomForContractAsync(int phongTroId, CancellationToken cancellationToken = default)
+            {
+                OnLockRoom?.Invoke(phongTroId);
+                return Task.CompletedTask;
+            }
             public Task<bool> ExistsContractWithCodeAsync(string code, CancellationToken cancellationToken = default) =>
                 Task.FromResult(false);
 
@@ -125,7 +131,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
                 Task.FromResult<IReadOnlyList<HopDongDieuKhoan>>(new List<HopDongDieuKhoan>());
 
             public Task<bool> IsRoomRentedExcludingContractAsync(int phongTroId, int excludeHopDongId, CancellationToken cancellationToken = default) =>
-                Task.FromResult(false);
+                Task.FromResult(RoomRented);
 
             public Task AddAsync(HopDong hopDong, CancellationToken cancellationToken = default)
             {
@@ -419,6 +425,41 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
 
             Assert.False(isSuccess);
             Assert.Contains("cốt lõi", error!);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task Update_ReactivationChecksConflictsAfterLockingRoomInTransaction(bool tenantConflict)
+        {
+            var contract = new HopDong
+            {
+                HopDongId = 50, PhongTroId = 10, NguoiThueId = 21,
+                TrangThaiHopDong = TrangThaiHopDong.DaHuy
+            };
+            var store = new StubHopDongStore { ActiveContract = contract };
+            var uow = new FakeUnitOfWork();
+            store.OnLockRoom = roomId =>
+            {
+                Assert.NotNull(uow.LastTransaction);
+                Assert.Equal(contract.PhongTroId, roomId);
+                store.TenantActive = tenantConflict;
+                store.RoomRented = !tenantConflict;
+            };
+            var service = CreateService(store, uow);
+
+            var result = await service.UpdateAsync(AdminId, contract.HopDongId, new HopDongReq
+            {
+                PhongTroId = contract.PhongTroId, NguoiThueId = contract.NguoiThueId,
+                TrangThaiHopDong = Application.Common.Enums.AppTrangThaiHopDong.DangHoatDong,
+                ThoiDiemBatDau = DateTime.UtcNow
+            });
+
+            Assert.False(result.Success);
+            Assert.Contains(tenantConflict ? "Người đại diện" : "Phòng trọ", result.Message);
+            Assert.Equal(TrangThaiHopDong.DaHuy, contract.TrangThaiHopDong);
+            Assert.False(uow.LastTransaction!.Committed);
+            Assert.Empty(store.UpdatedContracts);
         }
 
         [Fact]

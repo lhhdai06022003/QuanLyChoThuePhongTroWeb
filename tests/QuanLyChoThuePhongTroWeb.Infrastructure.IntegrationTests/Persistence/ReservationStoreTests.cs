@@ -7,7 +7,6 @@ using QuanLyChoThuePhongTroWeb.Domain.Enums;
 using QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Fixtures;
 using QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features.Reservations;
 using QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features.ReservationPayments;
-using QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features.ReservationSettlement;
 using QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features;
 
 namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence;
@@ -85,9 +84,9 @@ public sealed class ReservationStoreTests(PostgreSqlFixture fixture)
                 Assert.Equal(ReservationError.None,
                     await store.ExtendContractDeadlineAsync(userId.Value,
                         holdId.Value, now.AddDays(2), now));
-                Assert.Equal(ReservationError.InvalidState,
-                    await store.CancelExpiredContractAsync(userId.Value,
-                        holdId.Value, "Chưa quá hạn", now));
+                Assert.False((await PostgreSqlFixture.CreateReservationSettlementStore(db)
+                    .CloseWithoutRentAsync(userId.Value, holdId.Value, branchId.Value,
+                        "Chưa quá hạn", requireExpired: true, confirm: false, preservePriorRefund: false, now)).Success);
                 Assert.Null(await new PublicRoomStore(db, TimeProvider.System)
                     .GetAvailableAsync(roomId.Value));
             }
@@ -98,10 +97,9 @@ public sealed class ReservationStoreTests(PostgreSqlFixture fixture)
                     h.YeuCauGiuChoId == holdId.Value);
                 hold.HanKyHopDong = now.AddMinutes(-1);
                 await db.SaveChangesAsync();
-                var store = new ReservationStore(db);
-                Assert.Equal(ReservationError.None,
-                    await store.CancelExpiredContractAsync(userId.Value,
-                        holdId.Value, "Khách không ký hợp đồng", now));
+                Assert.True((await PostgreSqlFixture.CreateReservationSettlementStore(db)
+                    .CloseWithoutRentAsync(userId.Value, holdId.Value, branchId.Value,
+                        "Khách không ký hợp đồng", requireExpired: true, confirm: false, preservePriorRefund: false, now)).Success);
                 Assert.NotNull(await new PublicRoomStore(db, TimeProvider.System)
                     .GetAvailableAsync(roomId.Value));
 
@@ -153,7 +151,7 @@ public sealed class ReservationStoreTests(PostgreSqlFixture fixture)
                 Assert.Equal(TrangThaiYeuCauThanhToan.HetHan,
                     latePayment.TrangThai);
                 Assert.Equal(200000m,
-                    (await new ReservationSettlementStore(db)
+                    (await PostgreSqlFixture.CreateReservationSettlementStore(db)
                         .GetAsync(lateHoldId.Value))!.MandatoryRefundAmount);
             }
         }
@@ -302,7 +300,7 @@ public sealed class ReservationStoreTests(PostgreSqlFixture fixture)
             }
             await using (var db = fixture.CreateDbContext())
             {
-                var store = new ReservationSettlementStore(db);
+                var store = PostgreSqlFixture.CreateReservationSettlementStore(db);
                 var now = DateTime.UtcNow;
                 Assert.Equal(SettlementError.AmountExceedsAvailable,
                     await store.ApplyAsync(staffUserId.Value, holdId.Value,
@@ -313,7 +311,7 @@ public sealed class ReservationStoreTests(PostgreSqlFixture fixture)
             }
             await using (var db = fixture.CreateDbContext())
             {
-                var store = new ReservationSettlementStore(db);
+                var store = PostgreSqlFixture.CreateReservationSettlementStore(db);
                 var summary = await store.GetAsync(holdId.Value);
                 Assert.Equal(100000m, summary!.MandatoryRefundAmount);
                 Assert.Equal(SettlementError.BelowMandatoryRefund,
@@ -367,7 +365,7 @@ public sealed class ReservationStoreTests(PostgreSqlFixture fixture)
     }
 
     [Fact]
-    public async Task CreateApproveCancel_PersistsState_AndRejectsDuplicate()
+    public async Task CreateApproveAndStaffCancel_PersistsState_AndRejectsDuplicate()
     {
         var suffix = Guid.NewGuid().ToString("N")[..8];
         int? branchId = null;
@@ -474,26 +472,31 @@ public sealed class ReservationStoreTests(PostgreSqlFixture fixture)
                 Assert.Equal(PaymentError.None, await paymentStore.ConfirmReceivedAsync(
                     staffUserId.Value, hold.PaymentRequestId.Value, null,
                     "BANK3-" + suffix, 50000m, now.AddDays(2), now.AddDays(2)));
-                var settlement = new ReservationSettlementStore(db);
+                var settlement = PostgreSqlFixture.CreateReservationSettlementStore(db);
                 Assert.Equal(50000m,
                     (await settlement.GetAsync(holdId.Value))!.MandatoryRefundAmount);
-                Assert.Equal(ReservationError.None,
+                var closedAt = now.AddDays(2).AddMinutes(1);
+                Assert.Equal(ReservationError.PaidDepositRequiresStaff,
                     await store.CancelAsync(guestUserId.Value, holdId.Value,
-                        now.AddDays(2)));
+                        closedAt));
+                Assert.Null(await new PublicRoomStore(db, TimeProvider.System)
+                    .GetAvailableAsync(roomId.Value));
+                Assert.True((await settlement.CloseWithoutRentAsync(staffUserId.Value, holdId.Value, branchId.Value,
+                    "Khách không ký hợp đồng", requireExpired: true, confirm: false, preservePriorRefund: false, closedAt)).Success);
                 Assert.NotNull(await new PublicRoomStore(db, TimeProvider.System)
                     .GetAvailableAsync(roomId.Value));
                 Assert.Equal(SettlementError.None, await settlement.DecideRefundAsync(
                     staffUserId.Value, holdId.Value, 450000m,
-                    "Khách hủy sau khi chuyển tiền", now));
+                    "Khách không ký hợp đồng", closedAt));
                 Assert.Equal(SettlementError.None, await settlement.RecordRefundAsync(
                     staffUserId.Value, holdId.Value, "REF-" + suffix,
-                    200000m, now));
+                    200000m, closedAt));
                 Assert.Equal(SettlementError.DuplicateTransaction,
                     await settlement.RecordRefundAsync(staffUserId.Value,
-                        holdId.Value, "REF-" + suffix, 200000m, now));
+                        holdId.Value, "REF-" + suffix, 200000m, closedAt));
                 Assert.Equal(SettlementError.None, await settlement.RecordRefundAsync(
                     staffUserId.Value, holdId.Value, "REF2-" + suffix,
-                    250000m, now));
+                    250000m, closedAt));
                 Assert.Equal(450000m, (await settlement.GetAsync(holdId.Value))!.RefundedAmount);
             }
             await using (var db = fixture.CreateDbContext())

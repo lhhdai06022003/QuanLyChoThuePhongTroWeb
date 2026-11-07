@@ -14,9 +14,6 @@ public interface IReservationService
     Task<ServiceResult> ExtendContractDeadlineAsync(int actorId,
         int reservationId, DateTime newDeadlineUtc,
         CancellationToken cancellationToken = default);
-    Task<ServiceResult> CancelExpiredContractAsync(int actorId,
-        int reservationId, string reason,
-        CancellationToken cancellationToken = default);
     Task<IReadOnlyList<ReservationDto>> ListMineAsync(int actorId,
         CancellationToken cancellationToken = default);
     Task<IReadOnlyList<ReservationDto>> ListForStaffAsync(int actorId,

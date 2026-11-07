@@ -1,4 +1,5 @@
 @using QuanLyChoThuePhongTroWeb.Web.Helpers
+@using QuanLyChoThuePhongTroWeb.Application.Features.Reservations
 @model QuanLyChoThuePhongTroWeb.ViewModels.PublicRooms.GuestRequestsPageModel
 @{
     Layout = "_PublicRoomLayout";
@@ -82,6 +83,7 @@
                         "ChoXacNhanTien" => "Chờ đối soát tiền",
                         "DangGiuCho" => "Đang giữ chỗ",
                         "DaChuyenHopDong" => "Đã ký hợp đồng",
+                        "KhachKhongThue" => "Khách không thuê",
                         "DaHuy" => "Đã hủy",
                         "HetHan" => "Đã hết hạn",
                         "TuChoi" => "Đã từ chối",
@@ -90,7 +92,7 @@
                     <div class="guest-cancel-preview">
                         <div class="guest-request-heading">
                             <strong>Phòng @reservation.RoomNumber</strong>
-                            <span class="guest-status @(reservation.Status is "DangGiuCho" or "DaChuyenHopDong" ? "guest-status-success" : reservation.Status is "DaHuy" or "HetHan" or "TuChoi" ? "guest-status-muted" : "guest-status-warning")">@reservationStatus</span>
+                            <span class="guest-status @(reservation.Status is "DangGiuCho" or "DaChuyenHopDong" ? "guest-status-success" : reservation.Status is "DaHuy" or "HetHan" or "TuChoi" or "KhachKhongThue" ? "guest-status-muted" : "guest-status-warning")">@reservationStatus</span>
                         </div>
                         @if (reservation.HoldAmount.HasValue)
                         {
@@ -117,6 +119,14 @@
                             {
                                 <p>Đã trừ vào cọc hợp đồng #@settlement.ContractId: @VndFormat.Money(settlement.AppliedToContractDeposit)</p>
                             }
+                            @if (settlement.RetainedDepositAmount > 0)
+                            {
+                                <p><strong>Cọc giữ lại: @VndFormat.Money(settlement.RetainedDepositAmount)</strong>. Khoản này không được hoàn hoặc chuyển sang lần đặt khác.</p>
+                            }
+                            @if (reservation.Status == "DaHuy" && settlement.UsesPriorRefundForClosure)
+                            {
+                                <p>Quản lý đã hủy giữ chỗ theo quyết định hoàn tiền trước đó.</p>
+                            }
                             @if (settlement.ApprovedRefundAmount.HasValue)
                             {
                                 <p>Hoàn đã duyệt: @VndFormat.Money(settlement.ApprovedRefundAmount.Value) · Đã hoàn thực tế: @VndFormat.Money(settlement.RefundedAmount)</p>
@@ -141,6 +151,10 @@
                                 })</p>
                             @if (reservation.Status is "ChoThanhToan" or "ChoXacNhanTien")
                             {
+                                @if (reservation.IsSelfService)
+                                {
+                                    <p class="guest-field-hint">@SelfServiceReservationRules.DepositPolicy</p>
+                                }
                                 @if (Model.Bank is { } bank)
                                 {
                                     <p>Chuyển khoản tới @bank.BankId · <strong>@bank.AccountNumber</strong> · @bank.AccountName. Ghi đúng nội dung <strong>@reservation.PaymentCode</strong>.</p>
@@ -170,6 +184,10 @@
                                 @Html.AntiForgeryToken()
                                 <button class="guest-button guest-button-danger" type="submit">Hủy yêu cầu giữ chỗ</button>
                             </form>
+                        }
+                        else if (reservation.IsSelfService && reservation.Status == "DangGiuCho")
+                        {
+                            <p class="guest-field-hint">Nếu bạn không thuê, vui lòng liên hệ chi nhánh để kết thúc giữ chỗ.</p>
                         }
                     </div>
                 }

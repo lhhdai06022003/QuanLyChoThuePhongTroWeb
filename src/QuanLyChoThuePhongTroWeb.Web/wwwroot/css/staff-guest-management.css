@@ -153,6 +153,65 @@
     margin-bottom: 0;
 }
 
+.reservation-admin-facts dt {
+    color: var(--tblr-secondary);
+    font-size: .8125rem;
+    font-weight: 500;
+}
+
+.reservation-admin-facts dd {
+    margin: .125rem 0 0;
+    font-weight: 600;
+    font-size: 1.25rem;
+    line-height: 1.25;
+    font-variant-numeric: tabular-nums;
+}
+
+.reservation-admin-numeric {
+    font-variant-numeric: tabular-nums;
+}
+
+.reservation-admin .reservation-admin-status {
+    padding: .4rem .6rem;
+    letter-spacing: normal;
+    color: var(--tblr-body-color) !important;
+}
+
+.reservation-admin-positive {
+    color: #176638;
+}
+
+[data-bs-theme="dark"] .reservation-admin-positive {
+    color: #86efac;
+}
+
+.reservation-admin-list .reservation-admin-approval {
+    background: var(--tblr-bg-surface-secondary);
+}
+
+.reservation-admin-list .table td {
+    padding-block: .55rem;
+}
+
+.reservation-admin-disclosure > summary {
+    cursor: pointer;
+}
+
+.reservation-admin-disclosure > summary.card-header {
+    display: list-item;
+    list-style-position: inside;
+}
+
+.reservation-admin-disclosure:not([open]) > summary.card-header {
+    border-bottom: 0;
+}
+
+.reservation-admin-disclosure > summary:focus-visible,
+.reservation-admin-list .table-responsive:focus-visible {
+    outline: 2px solid var(--tblr-primary);
+    outline-offset: -2px;
+}
+
 @media (max-width: 767px) {
     .guest-admin {
         padding-top: 1rem !important;
@@ -160,6 +219,19 @@
 
     .guest-admin-table .table {
         min-width: 720px;
+    }
+
+    .reservation-admin-list .table {
+        min-width: 0;
+    }
+
+    .reservation-admin-list .table th,
+    .reservation-admin-list .table td {
+        padding-inline: .5rem;
+    }
+
+    .reservation-admin-list .reservation-admin-status {
+        white-space: normal;
     }
 
     .guest-admin-empty {

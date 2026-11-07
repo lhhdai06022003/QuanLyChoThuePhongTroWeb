@@ -50,7 +50,9 @@ namespace QuanLyChoThuePhongTroWeb.Application
             services.AddScoped<INguoiDungService, NguoiDungService>();
 
             // Phase 6.3 services
-            services.AddScoped<IHopDongService, HopDongService>();
+            services.AddScoped<HopDongService>();
+            services.AddScoped<IHopDongService>(sp => sp.GetRequiredService<HopDongService>());
+            services.AddScoped<IHopDongCreation>(sp => sp.GetRequiredService<HopDongService>());
             services.AddScoped<IThanhLyHopDongService, ThanhLyHopDongService>();
             services.AddScoped<IGiaHanHopDongService, GiaHanHopDongService>();
             services.AddScoped<IHopDongTraCuuService, HopDongTraCuuService>();

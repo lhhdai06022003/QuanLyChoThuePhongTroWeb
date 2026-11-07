@@ -9,6 +9,7 @@ namespace QuanLyChoThuePhongTroWeb.Domain.Enums
         DaChuyenHopDong = 4,
         TuChoi = 5,
         HetHan = 6,
-        DaHuy = 7
+        DaHuy = 7,
+        KhachKhongThue = 8
     }
 }

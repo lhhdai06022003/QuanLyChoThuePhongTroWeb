@@ -14,13 +14,17 @@ public sealed class GuestRegistrationServiceTests
         var service = new GuestRegistrationService(store, new FakePasswordService());
 
         var result = await service.RegisterAsync(new GuestRegistrationRequest(
-            "visitor", "strong-password", "Nguyễn Văn A", "0912345678", "A@Example.com"));
+            " khách+1@example.com ", "matkhaucuatoi", " Nguyễn Văn A ",
+            "(+84) 912-345-678", " A@Example.com "));
 
         Assert.True(result.Success, result.Message);
         Assert.Equal(42, result.Data);
         Assert.Equal(Role.KhachVangLai, store.User!.Role);
-        Assert.Equal("hashed:strong-password", store.User.MatKhauHash);
-        Assert.Equal("A@Example.com", store.Profile!.Email);
+        Assert.Equal("khách+1@example.com", store.User.TenDangNhap);
+        Assert.Equal("hashed:matkhaucuatoi", store.User.MatKhauHash);
+        Assert.Equal("Nguyễn Văn A", store.Profile!.HoTen);
+        Assert.Equal("+84912345678", store.Profile.SoDienThoai);
+        Assert.Equal("A@Example.com", store.Profile.Email);
         Assert.Equal("A@EXAMPLE.COM", store.Profile.EmailNormalized);
     }
 
@@ -29,6 +33,7 @@ public sealed class GuestRegistrationServiceTests
     [InlineData("visitor", "short", "Nguyễn Văn A", "0912345678", "a@example.com")]
     [InlineData("visitor", "strong-password", "", "0912345678", "a@example.com")]
     [InlineData("visitor", "strong-password", "Nguyễn Văn A", "123", "a@example.com")]
+    [InlineData("visitor", "strong-password", "Nguyễn Văn A", "0912 abc 345 678", "a@example.com")]
     [InlineData("visitor", "strong-password", "Nguyễn Văn A", "0912345678", "invalid")]
     public async Task Register_InvalidInput_DoesNotCreateAccount(string username,
         string password, string fullName, string phone, string email)

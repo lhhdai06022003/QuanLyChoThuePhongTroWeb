@@ -17,6 +17,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.Persistence
         Task<string?> GetMaChiNhanhAsync(int chiNhanhId, CancellationToken cancellationToken = default);
         Task<int> CountContractsWithPrefixAsync(string prefix, CancellationToken cancellationToken = default);
         Task<bool> ExistsContractWithCodeAsync(string code, CancellationToken cancellationToken = default);
+        Task LockRoomForContractAsync(int phongTroId, CancellationToken cancellationToken = default);
         Task<bool> IsRoomRentedAsync(int phongTroId, CancellationToken cancellationToken = default);
         Task<bool> IsTenantActiveInAnotherContractAsync(int nguoiThueId, int? excludeHopDongId = null, CancellationToken cancellationToken = default);
         Task<bool> IsRoomRentedExcludingContractAsync(int phongTroId, int excludeHopDongId, CancellationToken cancellationToken = default);

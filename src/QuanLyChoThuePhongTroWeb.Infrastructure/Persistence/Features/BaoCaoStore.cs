@@ -5,9 +5,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using QuanLyChoThuePhongTroWeb.Application.Features.BaoCaos.Persistence;
+using QuanLyChoThuePhongTroWeb.Application.Features.Reservations;
 using QuanLyChoThuePhongTroWeb.Domain.Entities;
 using QuanLyChoThuePhongTroWeb.Domain.Enums;
 using QuanLyChoThuePhongTroWeb.Infrastructure.Persistence;
+using QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features.Reservations;
 
 namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
 {
@@ -123,6 +125,19 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                     y.TrangThai,
                     DaNhan = y.YeuCauThanhToanGiuChos.SelectMany(p => p.GiaoDichGiuChos).Sum(g => (decimal?)g.SoTienThucNhan) ?? 0m,
                     DaApDung = y.ApDungTienGiuChoVaoTienCoc != null ? y.ApDungTienGiuChoVaoTienCoc.SoTienApDung : 0m,
+                    CocThoaThuan = y.SoTienGiuCho ?? 0m,
+                    NgayGiuLai = y.LichSuTrangThais.Where(h => h.TrangThaiSau == TrangThaiYeuCauGiuCho.KhachKhongThue)
+                        .Select(h => (DateTime?)h.NgayThucHien).Min(),
+                    TuPhucVu = y.LichSuTrangThais.Any(h => h.LyDo == SelfServiceReservationRules.CreationReason),
+                    DongTheoHoanCu = y.LichSuTrangThais.Where(h =>
+                            y.TrangThai == TrangThaiYeuCauGiuCho.DaHuy &&
+                            h.TrangThaiTruoc == TrangThaiYeuCauGiuCho.DangGiuCho &&
+                            h.TrangThaiSau == TrangThaiYeuCauGiuCho.DaHuy &&
+                            (h.LyDo == SelfServiceReservationRules.PriorRefundClosureMarker ||
+                                h.LyDo != null && h.LyDo.StartsWith(SelfServiceReservationRules.PriorRefundClosurePrefix)))
+                        .OrderBy(h => h.NgayThucHien)
+                        .Select(h => new { h.LyDo, h.NgayThucHien })
+                        .FirstOrDefault(),
                     CoQuyetDinh = y.QuyetDinhHoanTienGiuCho != null,
                     TrangThaiQuyetDinh = y.QuyetDinhHoanTienGiuCho != null ? (TrangThaiHoanTien?)y.QuyetDinhHoanTienGiuCho.TrangThai : null,
                     NgayQuyetDinh = y.QuyetDinhHoanTienGiuCho != null ? (DateTime?)y.QuyetDinhHoanTienGiuCho.NgayQuyetDinh : null,
@@ -134,17 +149,30 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
 
             return rows
                 .Where(r => r.DaNhan > 0m)
-                .Select(r => new BaoCaoGiuChoRow(
-                    r.YeuCauGiuChoId,
-                    r.ChiNhanhId,
-                    r.TenChiNhanh,
-                    r.TrangThai,
-                    r.DaNhan,
-                    r.DaApDung,
-                    r.CoQuyetDinh,
-                    r.TrangThaiQuyetDinh,
-                    r.NgayQuyetDinh,
-                    r.DaHoan))
+                .Select(r =>
+                {
+                    var dongTheoHoanCu = r.TuPhucVu ? r.DongTheoHoanCu : null;
+                    var cocGiuLaiTheoHoanCu = ReservationDepositRules.PriorRefundRetainedDeposit(
+                        r.CocThoaThuan, dongTheoHoanCu?.LyDo);
+                    var cocGiuLai = r.TrangThai == TrangThaiYeuCauGiuCho.KhachKhongThue
+                        ? r.CocThoaThuan : cocGiuLaiTheoHoanCu.GetValueOrDefault();
+                    var boQuaThuKhac = (r.TuPhucVu && r.TrangThai == TrangThaiYeuCauGiuCho.DangGiuCho) ||
+                        (dongTheoHoanCu is not null && !cocGiuLaiTheoHoanCu.HasValue);
+                    return new BaoCaoGiuChoRow(
+                        r.YeuCauGiuChoId,
+                        r.ChiNhanhId,
+                        r.TenChiNhanh,
+                        r.TrangThai,
+                        r.DaNhan,
+                        r.DaApDung,
+                        r.CoQuyetDinh,
+                        r.TrangThaiQuyetDinh,
+                        r.NgayQuyetDinh,
+                        r.DaHoan,
+                        cocGiuLai,
+                        dongTheoHoanCu?.NgayThucHien ?? r.NgayGiuLai,
+                        boQuaThuKhac);
+                })
                 .ToList();
         }
 

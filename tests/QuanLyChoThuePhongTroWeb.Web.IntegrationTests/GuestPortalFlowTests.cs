@@ -62,8 +62,9 @@ public sealed class GuestPortalFlowTests(CustomWebApplicationFactory factory)
         bool bookBeforeViewing)
     {
         var suffix = Guid.NewGuid().ToString("N")[..8];
-        var username = "guest_http_" + suffix;
         var email = "guest_http_" + suffix + "@example.com";
+        var username = useExistingTenant ? "guest_http_" + suffix : $"khách+{suffix}@example.com";
+        const string password = "matkhaucuatoi";
         int? branchId = null, roomId = null, adminId = null, tenantId = null;
         try
         {
@@ -105,7 +106,7 @@ public sealed class GuestPortalFlowTests(CustomWebApplicationFactory factory)
                         QuanLyChoThuePhongTroWeb.Application.Abstractions.Security.IPasswordService>();
                     db.NguoiDungs.Add(new NguoiDung
                     {
-                        TenDangNhap = username, MatKhauHash = passwords.HashPassword("GuestTest123!"),
+                        TenDangNhap = username, MatKhauHash = passwords.HashPassword(password),
                         Role = Role.KhachThue, NguoiThue = tenant
                     });
                     await db.SaveChangesAsync();
@@ -149,8 +150,8 @@ public sealed class GuestPortalFlowTests(CustomWebApplicationFactory factory)
                     .Content.ReadAsStringAsync();
                 var registerResponse = await client.PostAsync("/dang-ky-khach",
                     Form(("__RequestVerificationToken", Token(registerHtml)),
-                        ("Username", username), ("Password", "GuestTest123!"),
-                        ("FullName", "Khách kiểm thử"), ("Phone", "0912345678"),
+                        ("Username", username), ("Password", password),
+                        ("FullName", "Khách kiểm thử"), ("Phone", "0912 345-678"),
                         ("Email", email), ("ReturnUrl", Hidden(registerHtml, "ReturnUrl"))));
                 Assert.Equal(HttpStatusCode.Redirect, registerResponse.StatusCode);
                 loginLocation = registerResponse.Headers.Location;
@@ -159,7 +160,7 @@ public sealed class GuestPortalFlowTests(CustomWebApplicationFactory factory)
                 .Content.ReadAsStringAsync();
             var loginResponse = await client.PostAsync("/QuanLyNhaTro/DangNhap",
                 Form(("__RequestVerificationToken", Token(loginHtml)),
-                    ("TenDangNhap", username), ("MatKhau", "GuestTest123!"),
+                    ("TenDangNhap", username), ("MatKhau", password),
                     ("returnUrl", Hidden(loginHtml, "returnUrl"))));
             Assert.Equal(HttpStatusCode.Redirect, loginResponse.StatusCode);
             Assert.Equal(viewingPath,
@@ -253,7 +254,7 @@ public sealed class GuestPortalFlowTests(CustomWebApplicationFactory factory)
                 .Content.ReadAsStringAsync();
             loginResponse = await client.PostAsync("/QuanLyNhaTro/DangNhap",
                 Form(("__RequestVerificationToken", Token(loginHtml)),
-                    ("TenDangNhap", username), ("MatKhau", "GuestTest123!"),
+                    ("TenDangNhap", username), ("MatKhau", password),
                     ("returnUrl", Hidden(loginHtml, "returnUrl"))));
             Assert.Equal(holdPath, loginResponse.Headers.Location?.ToString());
 

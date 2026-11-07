@@ -214,6 +214,10 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
             return await _context.HopDongs.AnyAsync(x => x.MaHopDong == code, cancellationToken);
         }
 
+        public Task LockRoomForContractAsync(int phongTroId, CancellationToken cancellationToken = default) =>
+            _context.Database.ExecuteSqlInterpolatedAsync(
+                $"SELECT 1 FROM phong_tro WHERE \"PhongTroId\" = {phongTroId} FOR UPDATE", cancellationToken);
+
         public async Task<bool> IsRoomRentedAsync(int phongTroId, CancellationToken cancellationToken = default)
         {
             return await _context.HopDongs.AnyAsync(x =>

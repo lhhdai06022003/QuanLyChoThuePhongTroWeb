@@ -14,20 +14,35 @@ public sealed class GuestRegistrationService(
     public async Task<ServiceResult<int>> RegisterAsync(GuestRegistrationRequest request,
         CancellationToken cancellationToken = default)
     {
-        if (request is null ||
-            string.IsNullOrWhiteSpace(request.Username) ||
-            !Regex.IsMatch(request.Username.Trim(), "^[A-Za-z0-9._-]{3,50}$") ||
-            PasswordPolicy.Validate(request.Password, request.Username.Trim(), request.Phone?.Trim()) != null ||
-            string.IsNullOrWhiteSpace(request.FullName) || request.FullName.Trim().Length > 100 ||
-            string.IsNullOrWhiteSpace(request.Phone) ||
-            !Regex.IsMatch(request.Phone.Trim(), "^\\+?[0-9]{9,15}$") ||
-            string.IsNullOrWhiteSpace(request.Email) || request.Email.Trim().Length > 150 ||
-            !new EmailAddressAttribute().IsValid(request.Email.Trim()))
-            return ServiceResult<int>.Fail("Thông tin đăng ký không hợp lệ.");
+        if (request is null)
+            return ServiceResult<int>.Fail("Vui lòng nhập thông tin đăng ký.");
+
+        var username = request.Username?.Trim() ?? string.Empty;
+        if (username.Length is < 3 or > 50)
+            return ServiceResult<int>.Fail("Tên đăng nhập phải từ 3 đến 50 ký tự.");
+        if (!Regex.IsMatch(username, @"\A[\p{L}\p{M}\p{Nd}._@+\-]+\z"))
+            return ServiceResult<int>.Fail("Tên đăng nhập có thể dùng chữ, số và các dấu . _ @ + -, không có khoảng trắng.");
+
+        // Chính sách mật khẩu dùng chung (độ dài, không trùng tên đăng nhập/số điện thoại, không nằm danh sách yếu).
+        var passwordError = PasswordPolicy.Validate(request.Password, username, request.Phone?.Trim());
+        if (passwordError != null)
+            return ServiceResult<int>.Fail(passwordError);
+
+        var fullName = request.FullName?.Trim() ?? string.Empty;
+        if (fullName.Length is < 1 or > 100)
+            return ServiceResult<int>.Fail("Vui lòng nhập họ tên, tối đa 100 ký tự.");
+
+        var phone = Regex.Replace(request.Phone?.Trim() ?? string.Empty, @"[\p{Zs}().-]", "");
+        if (!Regex.IsMatch(phone, @"\A\+?[0-9]{9,15}\z"))
+            return ServiceResult<int>.Fail("Số điện thoại cần có 9 đến 15 chữ số, ví dụ 0912 345 678 hoặc +84 912 345 678.");
+
+        var email = request.Email?.Trim() ?? string.Empty;
+        if (email.Length is < 1 or > 150 || !new EmailAddressAttribute().IsValid(email))
+            return ServiceResult<int>.Fail("Vui lòng nhập email hợp lệ, ví dụ ban@example.com.");
 
         var user = new NguoiDung
         {
-            TenDangNhap = request.Username.Trim(),
+            TenDangNhap = username,
             MatKhauHash = passwordService.HashPassword(request.Password),
             Role = Role.KhachVangLai,
             IsActive = true
@@ -35,14 +50,14 @@ public sealed class GuestRegistrationService(
         var profile = new KhachVangLai
         {
             NguoiDung = user,
-            HoTen = request.FullName.Trim(),
-            SoDienThoai = request.Phone.Trim(),
-            Email = request.Email.Trim(),
-            EmailNormalized = request.Email.Trim().ToUpperInvariant()
+            HoTen = fullName,
+            SoDienThoai = phone,
+            Email = email,
+            EmailNormalized = email.ToUpperInvariant()
         };
         var userId = await store.TryCreateAsync(user, profile, cancellationToken);
         return userId.HasValue
             ? ServiceResult<int>.Ok(userId.Value)
-            : ServiceResult<int>.Fail("Tên đăng nhập đã tồn tại.");
+            : ServiceResult<int>.Fail("Tên đăng nhập đã tồn tại. Bạn có thể chọn tên khác hoặc đăng nhập nếu đây là tài khoản của bạn.");
     }
 }

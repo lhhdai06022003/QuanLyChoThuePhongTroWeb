@@ -136,9 +136,5 @@ public sealed class ReservationServiceTests
             ExtendCalls++;
             return Task.FromResult(ReservationError.None);
         }
-        public Task<ReservationError> CancelExpiredContractAsync(int actorId,
-            int reservationId, string reason, DateTime nowUtc,
-            CancellationToken cancellationToken = default) =>
-            Task.FromResult(ReservationError.None);
     }
 }

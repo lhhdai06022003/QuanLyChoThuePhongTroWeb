@@ -4,6 +4,16 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.ReservationSettlement;
 
 public interface IReservationSettlementService
 {
+    Task<ServiceResult<ReservationContractDraft>> GetContractDraftAsync(int actorId,
+        int reservationId, CancellationToken cancellationToken = default);
+    Task<ServiceResult<int>> CreateContractAsync(int actorId, int reservationId,
+        ReservationContractInput input, CancellationToken cancellationToken = default);
+    Task<ServiceResult> CloseWithoutRentAsync(int actorId, int reservationId, string reason,
+        bool confirm, bool preservePriorRefund,
+        CancellationToken cancellationToken = default);
+    Task<ServiceResult> CancelExpiredContractAsync(int actorId, int reservationId, string reason,
+        bool confirm, bool preservePriorRefund,
+        CancellationToken cancellationToken = default);
     Task<ServiceResult> ApplyAsync(int actorId, int reservationId, int contractId,
         decimal amount, CancellationToken cancellationToken = default);
     Task<ServiceResult> DecideRefundAsync(int actorId, int reservationId,

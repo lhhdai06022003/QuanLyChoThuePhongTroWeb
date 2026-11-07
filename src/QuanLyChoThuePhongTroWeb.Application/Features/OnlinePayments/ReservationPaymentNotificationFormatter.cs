@@ -29,6 +29,7 @@ public static class ReservationPaymentNotificationFormatter
             "ChoXacNhanTien" => "Chờ xác nhận tiền",
             "DangGiuCho" => "Đang giữ chỗ",
             "DaChuyenHopDong" => "Đã chuyển hợp đồng",
+            "KhachKhongThue" => "Khách không thuê",
             "TuChoi" => "Từ chối",
             "HetHan" => "Hết hạn",
             "DaHuy" => "Đã hủy",

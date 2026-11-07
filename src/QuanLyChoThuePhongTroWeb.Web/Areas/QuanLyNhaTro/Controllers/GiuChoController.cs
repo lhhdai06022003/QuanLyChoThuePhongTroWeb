@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using QuanLyChoThuePhongTroWeb.Application.Common.Models;
 using QuanLyChoThuePhongTroWeb.Application.Features.Reservations;
 using QuanLyChoThuePhongTroWeb.Application.Features.ReservationPayments;
 using QuanLyChoThuePhongTroWeb.Application.Features.ReservationSettlement;
@@ -48,10 +49,28 @@ public sealed class GiuChoController(IReservationService reservations,
 
     [HttpPost]
     public async Task<IActionResult> HuyQuaHanKy(int reservationId, string reason,
-        CancellationToken cancellationToken)
+        bool confirm, bool preservePriorRefund, CancellationToken cancellationToken)
     {
-        var result = await reservations.CancelExpiredContractAsync(CurrentActorId,
-            reservationId, reason, cancellationToken);
+        var result = await settlements.CancelExpiredContractAsync(CurrentActorId,
+            reservationId, reason, confirm, preservePriorRefund, cancellationToken);
+        return CloseResult(reservationId, result);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> KhachKhongThue(int reservationId, string reason, bool confirm,
+        bool preservePriorRefund, CancellationToken cancellationToken)
+    {
+        var result = await settlements.CloseWithoutRentAsync(CurrentActorId,
+            reservationId, reason, confirm, preservePriorRefund, cancellationToken);
+        return CloseResult(reservationId, result);
+    }
+
+    private IActionResult CloseResult(int reservationId, ServiceResult result)
+    {
+        if (result.ErrorKind == ServiceErrorKind.Forbidden)
+            return Forbid();
+        if (result.ErrorKind == ServiceErrorKind.NotFound)
+            return NotFound();
         TempData["ReservationAdminMessage"] = result.Message;
         return RedirectToAction(nameof(ChiTiet), new { id = reservationId });
     }
@@ -70,6 +89,50 @@ public sealed class GiuChoController(IReservationService reservations,
                 cancellationToken),
             await payments.ListTransactionsForReservationAsync(CurrentActorId, id,
                 reservation.BranchId, cancellationToken)));
+    }
+
+    [HttpGet]
+    public Task<IActionResult> XacNhanThue(int id, CancellationToken cancellationToken) =>
+        ShowContractFormAsync(id, null, cancellationToken);
+
+    [HttpPost]
+    public async Task<IActionResult> XacNhanThue([FromRoute] int id,
+        [FromForm(Name = "Input")] ReservationContractInput input, CancellationToken cancellationToken)
+    {
+        if (ModelState.IsValid)
+        {
+            var result = await settlements.CreateContractAsync(CurrentActorId, id, input, cancellationToken);
+            if (result.ErrorKind == ServiceErrorKind.Forbidden)
+                return Forbid();
+            if (result.ErrorKind == ServiceErrorKind.NotFound)
+                return NotFound();
+            if (result.Success)
+            {
+                TempData["ReservationAdminMessage"] = result.Message;
+                return RedirectToAction(nameof(ChiTiet), new { id });
+            }
+            return await ShowContractFormAsync(id, input, cancellationToken, result.Message);
+        }
+        return await ShowContractFormAsync(id, input, cancellationToken);
+    }
+
+    private async Task<IActionResult> ShowContractFormAsync(int id, ReservationContractInput? input,
+        CancellationToken cancellationToken, string? submissionError = null)
+    {
+        var result = await settlements.GetContractDraftAsync(CurrentActorId, id, cancellationToken);
+        if (result.ErrorKind == ServiceErrorKind.Forbidden)
+            return Forbid();
+        if (result.ErrorKind == ServiceErrorKind.NotFound)
+            return NotFound();
+        if (!result.Success || result.Data is not { } draft)
+        {
+            TempData["ReservationAdminMessage"] = submissionError ?? result.Message;
+            return RedirectToAction(nameof(ChiTiet), new { id });
+        }
+        if (submissionError is not null)
+            ModelState.AddModelError(string.Empty, submissionError);
+        return View(nameof(XacNhanThue), new ReservationContractFormModel(draft,
+            input ?? new ReservationContractInput { Rent = draft.Rent }));
     }
 
     [HttpPost]
