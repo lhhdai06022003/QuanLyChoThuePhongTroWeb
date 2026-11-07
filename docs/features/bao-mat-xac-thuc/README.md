@@ -1,7 +1,7 @@
 # Bảo mật xác thực
 
 - **Mục tiêu:** bỏ `admin`/`admin`, ép đổi mật khẩu khi đang dùng mật khẩu mặc định (`admin`, số điện thoại của khách thuê, trùng tên đăng nhập), giới hạn dò mật khẩu ở màn đăng nhập, thêm màn đổi mật khẩu cho Admin và nhân viên, thống nhất chính sách mật khẩu.
-- **Hiện trạng (06/11/2026):** đã code xong qua `/ship` (từ coder), sửa N1–N3 sau review, kiểm trên trình duyệt; xem [review.md](review.md). Reviewer: ĐẠT CÓ ĐIỀU KIỆN, không lỗi chặn. Code đã commit `a3c29fb` (07/11/2026), toàn bộ Web test PASS 799/799; chưa gộp `master`. Khối "Điền nhanh tài khoản mẫu" ở màn đăng nhập nay chỉ hiện ở `Development` (07/11/2026).
+- **Hiện trạng (07/11/2026):** đã code xong qua `/ship` (từ coder), sửa N1–N3 sau review, kiểm trên trình duyệt; xem [review.md](review.md). Reviewer: ĐẠT CÓ ĐIỀU KIỆN, không lỗi chặn. Code đã commit `a3c29fb` (07/11/2026) và đã gộp `master` ngày 07/11/2026 (merge `809772c`, cùng nhánh khách vãng lai `codex/khach-vang-lai-tiep-tuc` của `thuan`). Sau gộp: build PASS, Web PASS 819/819, Application 2761/2762 (1 FAIL có sẵn), xem [review.md mục 7](review.md). Khối "Điền nhanh tài khoản mẫu" ở màn đăng nhập chỉ hiện ở `Development` (07/11/2026).
 - **Nguồn:** đợt rà soát toàn bộ `master` ngày 05/11/2026 (build và bốn bộ test PASS; phát hiện hai lỗ hổng mức cao ở xác thực và các điểm trung bình liên quan).
 - **Schema:** không đổi (ép đổi mật khẩu dựa vào nhận diện mật khẩu lúc đăng nhập, không cần cột mới).
 - **Không đụng:** `Program.cs`, `.csproj`, `appsettings.json`, fixture và test kiến trúc.

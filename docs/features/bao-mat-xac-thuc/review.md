@@ -1,6 +1,6 @@
 # Review: Bảo mật xác thực
 
-- **Ngày:** 06/11/2026. Nhánh `feature/bao-mat-xac-thuc` (từ `master` = `b39f0d0`); code commit `a3c29fb` (07/11/2026), chưa gộp `master`.
+- **Ngày:** 06/11/2026. Nhánh `feature/bao-mat-xac-thuc` (từ `master` = `b39f0d0`); code commit `a3c29fb` (07/11/2026), đã gộp `master` ngày 07/11/2026 (merge `809772c`, xem mục 7).
 - **Cách làm:** `/ship` bắt đầu từ coder (plan đã duyệt): coder (Opus) → tester → reviewer (Opus), bàn giao ở `.bangiao/`. Điều phối sửa thêm N1–N3 theo review và kiểm trên trình duyệt.
 - **Phán quyết reviewer:** ĐẠT CÓ ĐIỀU KIỆN, không có lỗi chặn. Ba điểm nên sửa (N1–N3) đã sửa ở mục 3.
 - **Schema:** không đổi (`has-pending-model-changes` PASS). Không đổi `Program.cs`, `.csproj`, `appsettings.json`, fixture, test kiến trúc cũ.
@@ -66,7 +66,7 @@ Sửa kèm để script soát giao diện đạt 0 LỖI: icon mặt trời ở 
 - **G5** Nhân viên sửa số điện thoại hồ sơ trước lần đăng nhập đầu thì mật khẩu (số cũ) không còn bị nhận diện, khách không bị ép (giới hạn của D2).
 - **G6** Người đang bị ép đổi vẫn gọi được `/api/ThongBao/*`, hub, `Phong/*`, `ReservationPayment/*` (ngoài hai cổng; plan đã chấp nhận).
 - **G7** Thêm `?doiMatKhau=1` là banner hiện cả khi không bị ép (không ảnh hưởng an toàn).
-- **G8** Đăng ký khách vãng lai bị từ chối theo chính sách mới nhưng chỉ nhận câu chung "Thông tin đăng ký không hợp lệ." (cổng của `thuan`, không tự sửa).
+- **G8** ~~Đăng ký khách vãng lai bị từ chối theo chính sách mới nhưng chỉ nhận câu chung "Thông tin đăng ký không hợp lệ."~~ Đã hết khi gộp nhánh của `thuan` (07/11/2026, mục 7): đăng ký khách nay trả đúng thông báo của `PasswordPolicy`.
 - **G9** Test đỏ có sẵn ở `Application.UnitTests` (mục 2).
 - **Mới phát hiện khi kiểm tay (đã xử lý 07/11/2026, người dùng chọn "chỉ hiện ở Development"):** màn đăng nhập có khối "Điền nhanh tài khoản mẫu" điền `admin`/`admin` và `khachthue01`/`123456`. Nay cả khối HTML lẫn đoạn JS chứa mật khẩu mẫu chỉ được render khi môi trường là `Development` (`DangNhap.cshtml`, `@inject IWebHostEnvironment`). Lưu ý: `docker-compose.yml` hiện đặt `ASPNETCORE_ENVIRONMENT=Development` (ngoài phạm vi, spec mục 8), nên chạy bằng Docker vẫn thấy khối này; triển khai thật cần đổi môi trường. Nút Admin vẫn điền `admin`/`admin`, sẽ sai sau khi admin đổi mật khẩu.
 
@@ -74,3 +74,9 @@ Sửa kèm để script soát giao diện đạt 0 LỖI: icon mặt trời ở 
 
 - `AdminSeed__Password` chỉ khi chạy trên DB chưa có `admin` (tối thiểu 8 ký tự, không dùng `admin`). DB phát triển hiện có `admin`/`admin` nên không cần; lần đăng nhập kế tiếp sẽ bị yêu cầu đổi.
 - Triển khai sau proxy: cân nhắc `LoginThrottle__MaxFailuresPerClient=0` (G1).
+
+## 7. Gộp vào `master` (07/11/2026)
+
+- Gộp `feature/bao-mat-xac-thuc` vào `master` cùng nhánh `codex/khach-vang-lai-tiep-tuc` của `thuan` (6 commit, `d436c3c`…`e940d91`), commit merge `809772c`. Một xung đột nội dung ở `Application/Features/GuestAccounts/GuestRegistrationService.cs`: giữ cách kiểm từng trường của nhánh khách vãng lai, thay kiểm độ dài mật khẩu bằng `PasswordPolicy.Validate(request.Password, username, request.Phone?.Trim())` để chính sách mật khẩu vẫn áp cho đăng ký khách. `DependencyInjection.cs` tự gộp được.
+- Kiểm sau gộp (một lượt `dotnet test` toàn solution, DB `quanlyphongtro_test`): build PASS 0 lỗi; Domain PASS 140/140; Application 2761/2762 (1 FAIL có sẵn ở mục 2); Web PASS 819/819; `has-pending-model-changes` PASS (không đổi schema). Infrastructure 718/720 trong lượt toàn solution do 1 FAIL chập chờn `AutoInvoiceChainTests.StaffManualClose_ThroughDienNuocService_CreatesDraftInvoice_EvenWhenTenantHasNoChannel` (chưa bắt được thông báo lỗi; xanh khi chạy riêng lớp 11/11 và khi chạy riêng project 719 PASS, 1 bỏ qua; cùng commit chạy lượt trước cũng xanh; nguyên nhân chưa rõ, diff không đụng service mà test gọi).
+- Nhánh của `thuan` thêm hàm `CreateReservationSettlementStore` vào fixture `PostgreSqlFixture.cs`. Mục này chưa được duyệt riêng theo quy tắc "Giữ setup của `master`".
