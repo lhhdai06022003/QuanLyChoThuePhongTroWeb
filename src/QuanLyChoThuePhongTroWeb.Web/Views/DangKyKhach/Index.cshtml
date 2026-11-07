@@ -17,18 +17,20 @@
         <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
         <h2>Thông tin tài khoản</h2>
         <label asp-for="Username">Tên đăng nhập</label>
-        <input asp-for="Username" type="text" autocomplete="username" placeholder="Tên đăng nhập của bạn" required />
+        <input asp-for="Username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" aria-describedby="username-hint" required />
         <span asp-validation-for="Username" class="text-danger"></span>
+        <p id="username-hint" class="guest-field-hint">Từ 3 đến 50 ký tự, không có khoảng trắng. Bạn có thể dùng email nếu vừa độ dài.</p>
         <label asp-for="Password">Mật khẩu</label>
-        <input asp-for="Password" type="password" autocomplete="new-password" placeholder="Ít nhất 8 ký tự" required />
+        <input asp-for="Password" type="password" autocomplete="new-password" aria-describedby="password-hint" required />
         <span asp-validation-for="Password" class="text-danger"></span>
+        <p id="password-hint" class="guest-field-hint">Ít nhất 8 ký tự. Có thể dùng một cụm từ dễ nhớ.</p>
         <div class="guest-form-divider"></div>
         <h2>Thông tin liên hệ</h2>
         <label asp-for="FullName">Họ và tên</label>
         <input asp-for="FullName" type="text" autocomplete="name" placeholder="Nguyễn Văn A" required />
         <span asp-validation-for="FullName" class="text-danger"></span>
         <label asp-for="Phone">Số điện thoại</label>
-        <input asp-for="Phone" type="tel" autocomplete="tel" placeholder="09..." required />
+        <input asp-for="Phone" type="tel" autocomplete="tel" placeholder="0912 345 678" required />
         <span asp-validation-for="Phone" class="text-danger"></span>
         <label asp-for="Email">Email</label>
         <input asp-for="Email" type="email" autocomplete="email" placeholder="ban@example.com" required />

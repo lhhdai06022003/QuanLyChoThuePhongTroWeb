@@ -3,46 +3,83 @@
 @{
     ViewData["Title"] = "Chi tiết giữ chỗ";
     var reservation = Model.Reservation;
+    var paymentComplete = reservation.PaymentStatus == "DaHoanTat";
 }
 
-<div class="container-xl py-4 guest-admin">
-    <a asp-area="QuanLyNhaTro" asp-controller="GiuCho" asp-action="Index">← Yêu cầu giữ chỗ</a>
-    <h1 class="page-title mt-3">Phòng @reservation.RoomNumber · yêu cầu #@reservation.Id</h1>
-    <p>Khách: @reservation.GuestName · Trạng thái: @GuestStatusText.Reservation(reservation.Status)</p>
-    @if (reservation.Status == "DangGiuCho")
-    {
-        <a class="btn btn-primary mb-3" asp-action="XacNhanThue" asp-route-id="@reservation.Id">Xác nhận thuê</a>
-    }
-    @if (reservation.Status is "DangGiuCho" or "DaChuyenHopDong")
-    {
-        <a class="btn btn-outline-primary mb-3" asp-area="QuanLyNhaTro" asp-controller="GiuCho" asp-action="ThongBaoDatCoc" asp-route-roomId="@reservation.RoomId">Xem trước email báo phòng đã có người cọc</a>
-    }
+<div class="container-xl py-4 guest-admin reservation-admin">
+    <a class="d-inline-flex align-items-center gap-2 mb-2 small" asp-area="QuanLyNhaTro" asp-controller="GiuCho" asp-action="Index">
+        <i class="ti ti-arrow-left" aria-hidden="true"></i> Yêu cầu giữ chỗ
+    </a>
+    <header class="d-flex flex-wrap align-items-end justify-content-between gap-3 mb-3">
+        <div>
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                <h1 class="page-title mb-0">Phòng @reservation.RoomNumber <span class="text-secondary">#@reservation.Id</span></h1>
+                <partial name="_ReservationStatus" model="reservation.Status" />
+            </div>
+            <p class="text-secondary mb-0">@reservation.GuestName</p>
+        </div>
+        @if (reservation.Status is "DangGiuCho" or "DaChuyenHopDong")
+        {
+            <div class="d-flex flex-wrap gap-2">
+                @if (reservation.Status == "DangGiuCho")
+                {
+                    <a class="btn btn-primary" asp-action="XacNhanThue" asp-route-id="@reservation.Id">Xác nhận thuê</a>
+                }
+                <a class="btn btn-link" asp-area="QuanLyNhaTro" asp-controller="GiuCho" asp-action="ThongBaoDatCoc" asp-route-roomId="@reservation.RoomId">Xem trước email báo cọc</a>
+            </div>
+        }
+    </header>
     @if (TempData["ReservationAdminMessage"] is string message)
     {
         <div class="alert alert-info" role="status">@message</div>
     }
-    <div class="card mb-4"><div class="card-body">
-        <p>@(reservation.IsSelfService ? "Tiền cọc theo tin công khai:" : "Số tiền giữ chỗ được duyệt:") @(reservation.HoldAmount is { } holdAmount ? VndFormat.Money(holdAmount) : "Chờ duyệt")</p>
-        <p>Tiền đã đối soát: @VndFormat.Money(reservation.ConfirmedAmount)</p>
-        <p>Mã nội dung chuyển khoản: @reservation.PaymentCode</p>
-        <p>Trạng thái thanh toán: @GuestStatusText.Payment(reservation.PaymentStatus)</p>
+    <section class="card mb-3" aria-label="Thông tin tiền cọc">
+        <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <dl class="reservation-admin-facts d-flex flex-wrap gap-4 mb-0">
+                <div>
+                    <dt>Tiền đã đối soát</dt>
+                    <dd class="@(paymentComplete ? "reservation-admin-positive" : null)">@VndFormat.Money(reservation.ConfirmedAmount)</dd>
+                </div>
+                <div>
+                    <dt>@(reservation.IsSelfService ? "Mức cọc" : "Cọc được duyệt")</dt>
+                    <dd>@(reservation.HoldAmount is { } holdAmount ? VndFormat.Money(holdAmount) : "Chờ duyệt")</dd>
+                </div>
+            </dl>
+            <div class="small text-secondary reservation-admin-numeric">
+                @if (!string.IsNullOrWhiteSpace(reservation.PaymentCode))
+                {
+                    <div>Mã chuyển khoản <strong class="text-body text-break">@reservation.PaymentCode</strong></div>
+                }
+                @if (reservation.Status == "DangGiuCho" && ReservationContractDeadline.Shown(reservation) is { } contractDeadline)
+                {
+                    <div>Hạn ký <strong class="text-body">@VietnamTime.Format(contractDeadline, "dd/MM/yyyy HH:mm")</strong></div>
+                }
+                else if ((reservation.Status is "ChoThanhToan" or "ChoXacNhanTien") && reservation.PaymentDeadlineUtc is { } paymentDeadline)
+                {
+                    <div>Hạn chuyển <strong class="text-body">@VietnamTime.Format(paymentDeadline, "dd/MM/yyyy HH:mm")</strong></div>
+                }
+            </div>
+        </div>
         @if (Model.Settlement is { } closure && (closure.RetainedDepositAmount > 0 ||
             (reservation.Status == "DaHuy" && closure.UsesPriorRefundForClosure)))
         {
-            @if (reservation.Status == "DaHuy")
-            {
-                <p>Đã hủy giữ chỗ theo quyết định hoàn tiền trước đó.</p>
-            }
-            @if (closure.RetainedDepositAmount > 0)
-            {
-                <p><strong>Cọc giữ lại: @VndFormat.Money(closure.RetainedDepositAmount)</strong></p>
-            }
-            <p>Lý do: @closure.ClosureReason</p>
+            <div class="card-footer">
+                @if (reservation.Status == "DaHuy")
+                {
+                    <p class="mb-2">Đã hủy giữ chỗ theo quyết định hoàn tiền trước đó.</p>
+                }
+                @if (closure.RetainedDepositAmount > 0)
+                {
+                    <p class="mb-2"><strong>Cọc giữ lại: @VndFormat.Money(closure.RetainedDepositAmount)</strong></p>
+                }
+                <p class="mb-0">Lý do: @closure.ClosureReason</p>
+            </div>
         }
-    </div></div>
+    </section>
     @if (Model.Settlement is { CanCloseWithoutRent: true } closeOption)
     {
-        <div class="card mb-4"><div class="card-header"><h2 class="card-title">Khách không thuê</h2></div>
+        <details class="card reservation-admin-disclosure mb-3">
+            <summary class="card-header fw-semibold">Khách không thuê</summary>
             <div class="card-body">
                 @if (closeOption.UsesPriorRefundForClosure)
                 {
@@ -63,7 +100,7 @@
                     <button class="btn btn-outline-danger" type="submit">Xác nhận khách không thuê</button>
                 </form>
             </div>
-        </div>
+        </details>
     }
     @if (reservation.Status == "DangGiuCho" &&
         reservation.ContractDeadlineUtc is { } deadlineUtc && deadlineUtc <= DateTime.UtcNow)
@@ -89,7 +126,7 @@
             </div>
         </div>
     }
-    <div class="card mb-4">
+    <div class="card mb-3">
         <div class="card-header"><h2 class="card-title">Lịch sử giao dịch giữ chỗ</h2></div>
         <div class="card-body">
             @if (Model.Transactions.Count == 0)
@@ -159,29 +196,29 @@
             }
         </div>
     </div>
-    <div class="card mb-4">
-        <div class="card-header"><h2 class="card-title">Minh chứng khách gửi</h2></div>
-        <div class="card-body">
-            @if (Model.Evidence.Count == 0)
-            {
-                <p>Chưa có ảnh minh chứng. Vẫn có thể đối soát khoản thực nhận từ sao kê ngân hàng.</p>
-            }
-            @foreach (var evidence in Model.Evidence)
-            {
-                <div class="mb-3">
-                    <strong>#@evidence.Id · @GuestStatusText.Evidence(evidence.Status)</strong> — @VndFormat.Money(evidence.ClaimedAmount)
-                    <a href="/tai-khoan/yeu-cau-phong/minh-chung/@evidence.Id" target="_blank" rel="noopener">Xem ảnh riêng tư</a>
-                    @if (!string.IsNullOrWhiteSpace(evidence.BankReference))
-                    {
-                        <span>· Mã khách khai: @evidence.BankReference</span>
-                    }
-                </div>
-            }
-        </div>
-    </div>
+    @if (Model.Evidence.Count > 0)
+    {
+        <details class="card reservation-admin-disclosure mb-3">
+            <summary class="card-header fw-semibold">Minh chứng khách gửi (@Model.Evidence.Count)</summary>
+            <div class="card-body">
+                @foreach (var evidence in Model.Evidence)
+                {
+                    <div class="mb-3">
+                        <strong>#@evidence.Id · @GuestStatusText.Evidence(evidence.Status)</strong> — @VndFormat.Money(evidence.ClaimedAmount)
+                        <a href="/tai-khoan/yeu-cau-phong/minh-chung/@evidence.Id" target="_blank" rel="noopener">Xem ảnh riêng tư</a>
+                        @if (!string.IsNullOrWhiteSpace(evidence.BankReference))
+                        {
+                            <span>· Mã khách khai: @evidence.BankReference</span>
+                        }
+                    </div>
+                }
+            </div>
+        </details>
+    }
     @if (reservation.PaymentRequestId.HasValue)
     {
-        <div class="card"><div class="card-header"><h2 class="card-title">Đối soát khoản thực nhận</h2></div>
+        <details class="card reservation-admin-disclosure mb-3">
+            <summary class="card-header fw-semibold">Đối soát khoản thực nhận</summary>
             <div class="card-body">
                 <p>Kiểm tra giao dịch trong tài khoản ngân hàng trước khi xác nhận. Nhập thời điểm tiền thực vào tài khoản theo sao kê; ảnh khách gửi không quyết định khoản tiền đúng hạn. Có thể ghi nhiều giao dịch; mỗi mã giao dịch chỉ được dùng một lần.</p>
                 <form method="post" asp-area="QuanLyNhaTro" asp-controller="GiuCho" asp-action="XacNhanTien" class="row g-3">
@@ -200,11 +237,12 @@
                     <div class="col-md-3"><button class="btn btn-primary mt-md-4" type="submit">Xác nhận thực nhận</button></div>
                 </form>
             </div>
-        </div>
+        </details>
     }
     @if (Model.Settlement is { } settlement && settlement.ConfirmedAmount > 0)
     {
-        <div class="card mt-4"><div class="card-header"><h2 class="card-title">Áp dụng vào cọc hợp đồng và hoàn tiền</h2></div>
+        <details class="card reservation-admin-disclosure mb-3">
+            <summary class="card-header fw-semibold">Áp dụng vào cọc hợp đồng và hoàn tiền</summary>
             <div class="card-body">
                 <p>Đã xác nhận: @VndFormat.Money(settlement.ConfirmedAmount) · Đã áp dụng cọc: @VndFormat.Money(settlement.AppliedToContractDeposit) · Đã hoàn: @VndFormat.Money(settlement.RefundedAmount)</p>
                 <p>@(reservation.Status == "DaHuy" && settlement.UsesPriorRefundForClosure ? "Phải hoàn theo quyết định trước và tiền dư/đến muộn:" : "Phải hoàn tối thiểu theo tiền dư/đến muộn:") @VndFormat.Money(settlement.MandatoryRefundAmount)</p>
@@ -244,7 +282,7 @@
                     </form>
                 }
             </div>
-        </div>
+        </details>
     }
 </div>
 

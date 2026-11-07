@@ -95,7 +95,7 @@ public sealed class ReservationReconciliationScreenTests(CustomWebApplicationFac
             var detailHtml = await client.GetStringAsync(detailPath);
             Assert.Matches($"<option value=\"{evidenceId}\" selected=\"selected\">", detailHtml);
             var decodedDetail = WebUtility.HtmlDecode(detailHtml);
-            Assert.Contains("Số tiền giữ chỗ được duyệt: 1.500.000 ₫", decodedDetail);
+            Assert.Matches(@"<dt>Cọc được duyệt</dt>\s*<dd[^>]*>1\.500\.000 ₫</dd>", decodedDetail);
             Assert.DoesNotContain("1,500,000", decodedDetail);
             Assert.Contains("1.500.000 ₫",
                 WebUtility.HtmlDecode(await client.GetStringAsync("/QuanLyNhaTro/GiuCho")));
@@ -116,7 +116,7 @@ public sealed class ReservationReconciliationScreenTests(CustomWebApplicationFac
             Assert.Equal(HttpStatusCode.Redirect, confirm.StatusCode);
             var afterHtml = WebUtility.HtmlDecode(await client.GetStringAsync(detailPath));
             Assert.Contains("Thời điểm thực nhận sớm hơn lúc duyệt giữ chỗ", afterHtml);
-            Assert.Contains("Tiền đã đối soát: 0 ₫", afterHtml);
+            Assert.Matches(@"<dt>Tiền đã đối soát</dt>\s*<dd[^>]*>0 ₫</dd>", afterHtml);
         }
         finally
         {

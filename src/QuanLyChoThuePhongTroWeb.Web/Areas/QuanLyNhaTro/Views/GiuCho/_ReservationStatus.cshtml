@@ -1,0 +1,13 @@
+@using QuanLyChoThuePhongTroWeb.Web.Helpers
+@model string
+@{
+    var tone = Model switch
+    {
+        "DangGiuCho" => "bg-success-lt",
+        "DaChuyenHopDong" => "bg-primary-lt",
+        "MoiTao" or "ChoThanhToan" or "ChoXacNhanTien" => "bg-warning-lt",
+        "KhachKhongThue" or "TuChoi" => "bg-danger-lt",
+        _ => "bg-secondary-lt"
+    };
+}
+<span class="badge @tone reservation-admin-status">@GuestStatusText.Reservation(Model)</span>
