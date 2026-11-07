@@ -101,6 +101,14 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure
             telegramOptions.Validate();
             services.AddSingleton(telegramOptions);
 
+            var adminSeedOptions = configuration.GetSection(QuanLyChoThuePhongTroWeb.Application.Common.Configurations.AdminSeedOptions.SectionName).Get<QuanLyChoThuePhongTroWeb.Application.Common.Configurations.AdminSeedOptions>() ?? new QuanLyChoThuePhongTroWeb.Application.Common.Configurations.AdminSeedOptions();
+            adminSeedOptions.Validate();
+            services.AddSingleton(adminSeedOptions);
+
+            var loginThrottleOptions = configuration.GetSection(QuanLyChoThuePhongTroWeb.Application.Common.Configurations.LoginThrottleOptions.SectionName).Get<QuanLyChoThuePhongTroWeb.Application.Common.Configurations.LoginThrottleOptions>() ?? new QuanLyChoThuePhongTroWeb.Application.Common.Configurations.LoginThrottleOptions();
+            loginThrottleOptions.Validate();
+            services.AddSingleton(loginThrottleOptions);
+
             var onlinePaymentOptions = configuration.GetSection(QuanLyChoThuePhongTroWeb.Application.Common.Configurations.OnlinePaymentOptions.SectionName).Get<QuanLyChoThuePhongTroWeb.Application.Common.Configurations.OnlinePaymentOptions>() ?? new QuanLyChoThuePhongTroWeb.Application.Common.Configurations.OnlinePaymentOptions();
             onlinePaymentOptions.Validate();
             services.AddSingleton(onlinePaymentOptions);

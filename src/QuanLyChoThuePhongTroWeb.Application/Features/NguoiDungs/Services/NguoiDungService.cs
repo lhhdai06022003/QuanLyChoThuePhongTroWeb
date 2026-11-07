@@ -4,8 +4,10 @@ using System.Linq;
 using System.Threading.Tasks;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Persistence;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Security;
+using QuanLyChoThuePhongTroWeb.Application.Common.Configurations;
 using QuanLyChoThuePhongTroWeb.Application.Common.Enums;
 using QuanLyChoThuePhongTroWeb.Application.Common.Models;
+using QuanLyChoThuePhongTroWeb.Application.Common.Security;
 using QuanLyChoThuePhongTroWeb.Application.Features.NguoiDungs.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.NguoiDungs.Persistence;
 using QuanLyChoThuePhongTroWeb.Domain.Entities;
@@ -18,79 +20,122 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.NguoiDungs.Services
         private readonly INguoiDungStore _store;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IPasswordService _passwordService;
+        private readonly AdminSeedOptions _adminSeedOptions;
+        private readonly ILoginAttemptThrottle _loginThrottle;
+
+        // Hash giả để tên đăng nhập không tồn tại vẫn tốn một phép băm, thời gian phản hồi gần bằng tên có thật.
+        private static string? _dummyHash;
 
         public NguoiDungService(
             INguoiDungStore store,
             IUnitOfWork unitOfWork,
-            IPasswordService passwordService)
+            IPasswordService passwordService,
+            AdminSeedOptions adminSeedOptions,
+            ILoginAttemptThrottle loginThrottle)
         {
             _store = store;
             _unitOfWork = unitOfWork;
             _passwordService = passwordService;
+            _adminSeedOptions = adminSeedOptions;
+            _loginThrottle = loginThrottle;
         }
 
         // --- CHỨC NĂNG ĐĂNG NHẬP & SEED DATA ---
 
-        public async Task SeedAdminAccountAsync()
+        // Chỉ tạo admin khi người vận hành cấp AdminSeed:Password; không có mật khẩu mặc định (spec bảo mật xác thực §2.1).
+        public async Task<SeedAdminResult> SeedAdminAccountAsync()
         {
             var admin = await _store.GetActiveByUsernameAsync("admin");
-            if (admin == null)
+            if (admin != null)
             {
-                admin = new NguoiDung
-                {
-                    TenDangNhap = "admin",
-                    Role = Role.Admin,
-                    IsActive = true,
-                    NgayTao = DateTime.UtcNow
-                };
-                admin.MatKhauHash = _passwordService.HashPassword("admin");
-                await _store.AddAsync(admin);
-                await _unitOfWork.SaveChangesAsync();
+                // Hash SHA256 cũ được nâng cấp khi chính người đó đăng nhập (needsRehash), không đặt lại ở đây.
+                return SeedAdminResult.DaCo;
             }
-            else
+
+            if (string.IsNullOrEmpty(_adminSeedOptions.Password))
             {
-                // Tự động nâng cấp mật khẩu của admin cũ từ SHA256 sang PBKDF2
-                if (admin.MatKhauHash == "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918")
-                {
-                    admin.MatKhauHash = _passwordService.HashPassword("admin");
-                    _store.Update(admin);
-                    await _unitOfWork.SaveChangesAsync();
-                }
+                return SeedAdminResult.ThieuMatKhau;
             }
+
+            admin = new NguoiDung
+            {
+                TenDangNhap = "admin",
+                Role = Role.Admin,
+                IsActive = true,
+                NgayTao = DateTime.UtcNow
+            };
+            admin.MatKhauHash = _passwordService.HashPassword(_adminSeedOptions.Password);
+            await _store.AddAsync(admin);
+            await _unitOfWork.SaveChangesAsync();
+            return SeedAdminResult.DaTao;
         }
 
         public async Task<UserAuthDto?> ValidateUserAsync(string username, string password)
         {
-            var user = await _store.GetActiveByUsernameAsync(username);
+            var result = await LoginAsync(username, password, null);
+            return result.Status == LoginStatus.ThanhCong ? result.User : null;
+        }
 
-            if (user != null && user.IsActive)
+        public async Task<LoginResult> LoginAsync(string tenDangNhap, string matKhau, string? clientKey)
+        {
+            tenDangNhap ??= string.Empty;
+            matKhau ??= string.Empty;
+
+            // Đang khóa: từ chối ngay, không kiểm mật khẩu (kể cả mật khẩu đúng).
+            var lockRemaining = _loginThrottle.GetLockRemaining(tenDangNhap, clientKey);
+            if (lockRemaining.HasValue)
             {
-                if (_passwordService.VerifyPassword(user.MatKhauHash, password, out bool needsRehash))
-                {
-                    user.LanDangNhapCuoi = DateTime.UtcNow;
-
-                    if (needsRehash)
-                    {
-                        user.MatKhauHash = _passwordService.HashPassword(password);
-                    }
-
-                    _store.Update(user);
-                    await _unitOfWork.SaveChangesAsync();
-
-                    return new UserAuthDto
-                    {
-                        NguoiDungId = user.NguoiDungId,
-                        TenDangNhap = user.TenDangNhap,
-                        Role = (AppRole)(int)user.Role,
-                        NguoiThueId = user.NguoiThueId,
-                        HoVaTen = user.NguoiThue?.HoVaTen ?? user.KhachVangLai?.HoTen,
-                        Email = user.NguoiThue?.Email ?? user.KhachVangLai?.Email,
-                        IsActive = user.IsActive
-                    };
-                }
+                return LoginResult.TamKhoa(Math.Max(1, (int)Math.Ceiling(lockRemaining.Value.TotalMinutes)));
             }
 
-            return null;
+            var user = await _store.GetActiveByUsernameAsync(tenDangNhap);
+            if (user == null || !user.IsActive)
+            {
+                _passwordService.VerifyPassword(GetDummyHash(), matKhau, out _);
+                _loginThrottle.RecordFailure(tenDangNhap, clientKey);
+                return LoginResult.Sai();
+            }
+
+            if (!_passwordService.VerifyPassword(user.MatKhauHash, matKhau, out bool needsRehash))
+            {
+                _loginThrottle.RecordFailure(tenDangNhap, clientKey);
+                return LoginResult.Sai();
+            }
+
+            _loginThrottle.RecordSuccess(tenDangNhap);
+            user.LanDangNhapCuoi = DateTime.UtcNow;
+
+            if (needsRehash)
+            {
+                user.MatKhauHash = _passwordService.HashPassword(matKhau);
+            }
+
+            _store.Update(user);
+            await _unitOfWork.SaveChangesAsync();
+
+            // Không áp cho khách vãng lai: họ chưa có màn đổi mật khẩu (spec §2.2).
+            var batBuocDoiMatKhau = user.Role != Role.KhachVangLai &&
+                PasswordPolicy.LaMatKhauMacDinh(
+                    matKhau,
+                    user.TenDangNhap,
+                    user.Role == Role.KhachThue ? user.NguoiThue?.SoDienThoai : null);
+
+            return LoginResult.ThanhCong(new UserAuthDto
+            {
+                NguoiDungId = user.NguoiDungId,
+                TenDangNhap = user.TenDangNhap,
+                Role = (AppRole)(int)user.Role,
+                NguoiThueId = user.NguoiThueId,
+                HoVaTen = user.NguoiThue?.HoVaTen ?? user.KhachVangLai?.HoTen,
+                Email = user.NguoiThue?.Email ?? user.KhachVangLai?.Email,
+                IsActive = user.IsActive,
+                BatBuocDoiMatKhau = batBuocDoiMatKhau
+            });
+        }
+
+        private string GetDummyHash()
+        {
+            return _dummyHash ??= _passwordService.HashPassword("TroSync-dummy-password-for-timing");
         }
 
         // --- CÁC CHỨC NĂNG CRUD ---
@@ -144,6 +189,17 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.NguoiDungs.Services
             if (domainRole == Role.KhachVangLai)
             {
                 return ServiceResult.Fail("Tài khoản khách vãng lai do khách tự đăng ký, không tạo ở màn quản lý tài khoản.");
+            }
+
+            // Áp chính sách cho cả nhánh tạo mới và nhánh khôi phục xóa mềm. Chưa nạp người thuê nên không so số điện thoại;
+            // Admin đặt trùng số điện thoại thì khách bị ép đổi ở lần đăng nhập đầu.
+            if (!string.IsNullOrEmpty(req.MatKhau))
+            {
+                var loiMatKhau = PasswordPolicy.Validate(req.MatKhau, req.TenDangNhap, null);
+                if (loiMatKhau != null)
+                {
+                    return ServiceResult.Fail(loiMatKhau);
+                }
             }
 
             if (domainRole == Role.KhachThue && req.NguoiThueId.HasValue)
@@ -230,6 +286,15 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.NguoiDungs.Services
                 }
             }
 
+            if (!string.IsNullOrEmpty(newPassword))
+            {
+                var loiMatKhau = PasswordPolicy.Validate(newPassword, existingUser.TenDangNhap, existingUser.NguoiThue?.SoDienThoai);
+                if (loiMatKhau != null)
+                {
+                    return ServiceResult.Fail(loiMatKhau);
+                }
+            }
+
             existingUser.Role = domainRole;
             existingUser.IsActive = isActive;
             existingUser.NguoiThueId = nguoiThueId;
@@ -255,6 +320,17 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.NguoiDungs.Services
             if (!_passwordService.VerifyPassword(user.MatKhauHash, oldPassword))
             {
                 return ServiceResult.Fail("Mật khẩu hiện tại không chính xác.");
+            }
+
+            if (newPassword == oldPassword)
+            {
+                return ServiceResult.Fail("Mật khẩu mới phải khác mật khẩu hiện tại.");
+            }
+
+            var loiMatKhau = PasswordPolicy.Validate(newPassword, user.TenDangNhap, user.NguoiThue?.SoDienThoai);
+            if (loiMatKhau != null)
+            {
+                return ServiceResult.Fail(loiMatKhau);
             }
 
             user.MatKhauHash = _passwordService.HashPassword(newPassword);

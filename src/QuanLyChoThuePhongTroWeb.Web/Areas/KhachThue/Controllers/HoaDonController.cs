@@ -5,11 +5,13 @@ using System.Linq;
 using System.Threading.Tasks;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services;
 using QuanLyChoThuePhongTroWeb.Web.Helpers;
+using QuanLyChoThuePhongTroWeb.Filters;
 
 namespace QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers
 {
     [Area("KhachThue")]
     [Authorize(Roles = "KhachThue")]
+    [YeuCauDoiMatKhau]
     public class HoaDonController : Controller
     {
         private readonly IHoaDonService _hoaDonService;

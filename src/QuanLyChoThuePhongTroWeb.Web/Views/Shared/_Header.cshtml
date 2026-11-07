@@ -11,7 +11,7 @@
                     <i class="ti ti-moon" style="font-size: 1.15rem;"></i>
                 </a>
                 <a href="#" class="nav-link px-2" title="Bật chế độ sáng" data-bs-toggle="tooltip" data-bs-placement="bottom" id="btnToggleLightTheme" style="display: none;">
-                    <i class="ti ti-sun" style="font-size: 1.15rem; color: #f1c40f;"></i>
+                    <i class="ti ti-sun text-yellow" style="font-size: 1.15rem;"></i>
                 </a>
                 
                 @if (User.Identity != null && User.Identity.IsAuthenticated)
@@ -56,6 +56,13 @@
                         </div>
                     </a>
                     <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
+                        @if (User.IsInRole("Admin") || User.IsInRole("NhanVien"))
+                        {
+                            <a href="/QuanLyNhaTro/DoiMatKhau" class="dropdown-item py-2">
+                                <i class="ti ti-key me-2"></i> Đổi mật khẩu
+                            </a>
+                            <div class="dropdown-divider"></div>
+                        }
                         <form id="logoutForm" action="/QuanLyNhaTro/DangXuat" method="post" class="d-none">
                             @Html.AntiForgeryToken()
                         </form>

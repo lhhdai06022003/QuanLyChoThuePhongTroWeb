@@ -4,11 +4,13 @@ using System.Security.Claims;
 using QuanLyChoThuePhongTroWeb.Application.Features.Reservations;
 using QuanLyChoThuePhongTroWeb.Application.Features.Viewings;
 using QuanLyChoThuePhongTroWeb.ViewModels;
+using QuanLyChoThuePhongTroWeb.Filters;
 
 namespace QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers;
 
 [Area("KhachThue")]
 [Authorize(Roles = "KhachThue,KhachVangLai")]
+[YeuCauDoiMatKhau]
 public class DashboardController(
     INguoiThueService nguoiThueService,
     IHoaDonService hoaDonService,

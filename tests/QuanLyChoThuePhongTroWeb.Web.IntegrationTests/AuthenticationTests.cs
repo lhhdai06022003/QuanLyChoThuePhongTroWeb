@@ -25,6 +25,25 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             _factory = factory;
         }
 
+        // Khối "Điền nhanh tài khoản mẫu" chứa mật khẩu mẫu (admin/admin...) chỉ được render ở Development
+        // (spec bảo mật xác thực, review mục 5). Môi trường test là "IntegrationTests" nên trang không được có khối này.
+        [Fact]
+        public async Task LoginPage_OutsideDevelopment_DoesNotRenderSampleAccounts()
+        {
+            var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+            var response = await client.GetAsync("/QuanLyNhaTro/DangNhap");
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var html = await response.Content.ReadAsStringAsync();
+
+            Assert.Contains("txtTenDangNhap", html);
+            Assert.DoesNotContain("btnFillAdmin", html);
+            Assert.DoesNotContain("btnFillTenant", html);
+            Assert.DoesNotContain("quick-demo-section\">", html);
+            Assert.DoesNotContain("txtMatKhau.value = 'admin'", html);
+            Assert.DoesNotContain("khachthue01", html);
+        }
+
         [Fact]
         public async Task Login_WithInvalidCredentials_ShouldFailAndNotSetAuthCookie()
         {

@@ -1,6 +1,9 @@
+@using QuanLyChoThuePhongTroWeb.Web.Helpers
 @model QuanLyChoThuePhongTroWeb.Application.Features.NguoiThues.DTOs.NguoiThueRes
 @{
     ViewBag.Title = "Hồ sơ của tôi";
+    var batBuocDoiMatKhau = ForcedPasswordChange.IsRequired(User);
+    var moFormDoiMatKhau = batBuocDoiMatKhau || Context.Request.Query["doiMatKhau"] == "1";
 }
 
 <div class="page-header d-print-none">
@@ -15,6 +18,15 @@
 
 <div class="page-body">
     <div class="container-xl">
+        @if (moFormDoiMatKhau)
+        {
+            <div class="alert alert-warning" role="alert" id="bannerDoiMatKhau">
+                <div class="d-flex">
+                    <div><i class="ti ti-alert-triangle me-2"></i></div>
+                    <div>Mật khẩu hiện tại là mật khẩu mặc định. Bạn cần đặt mật khẩu mới trước khi tiếp tục.</div>
+                </div>
+            </div>
+        }
         <div class="row row-cards">
             <!-- Thông tin cá nhân -->
             <div class="col-md-7">
@@ -28,7 +40,7 @@
                                 <span class="avatar avatar-xl rounded-circle" style="background-image: url('https://ui-avatars.com/api/?name=@Uri.EscapeDataString(Model.HoVaTen)&background=random&color=ffffff')"></span>
                             </div>
                             <div class="col">
-                                <h3 class="mb-0 font-weight-bold">@Model.HoVaTen</h3>
+                                <h3 class="mb-0 fw-bold">@Model.HoVaTen</h3>
                                 <div class="text-muted mt-1"><i class="ti ti-mail me-1"></i> @Model.Email</div>
                                 <div class="mt-2">
                                     <span class="badge bg-success-lt"><i class="ti ti-circle-check me-1"></i> Đang hoạt động</span>
@@ -38,15 +50,15 @@
 
                         <div class="row mb-3">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label text-muted font-weight-bold"><i class="ti ti-id me-1"></i> CCCD</label>
+                                <label class="form-label text-muted fw-bold"><i class="ti ti-id me-1"></i> CCCD</label>
                                 <input type="text" class="form-control" value="@Model.CCCD" readonly />
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label text-muted font-weight-bold"><i class="ti ti-phone me-1"></i> Số điện thoại</label>
+                                <label class="form-label text-muted fw-bold"><i class="ti ti-phone me-1"></i> Số điện thoại</label>
                                 <input type="text" class="form-control" value="@Model.SoDienThoai" readonly />
                             </div>
                             <div class="col-md-12 mb-3">
-                                <label class="form-label text-muted font-weight-bold"><i class="ti ti-map-pin me-1"></i> Quê quán</label>
+                                <label class="form-label text-muted fw-bold"><i class="ti ti-map-pin me-1"></i> Quê quán</label>
                                 <input type="text" class="form-control" value="@Model.QueQuan" readonly />
                             </div>
                         </div>
@@ -64,7 +76,7 @@
 
             <!-- Đổi mật khẩu -->
             <div class="col-md-5">
-                <div class="card">
+                <div class="card" id="cardDoiMatKhau">
                     <div class="card-header bg-warning-lt">
                         <h3 class="card-title"><i class="ti ti-key me-2"></i> Đổi mật khẩu</h3>
                     </div>
@@ -91,7 +103,7 @@
                                         </a>
                                     </span>
                                 </div>
-                                <div class="form-hint">Mật khẩu phải có ít nhất 6 ký tự.</div>
+                                <div class="form-hint">Tối thiểu 8 ký tự, không trùng email đăng nhập hoặc số điện thoại.</div>
                             </div>
                             <div class="mb-4">
                                 <label class="form-label required">Xác nhận mật khẩu mới</label>
@@ -141,6 +153,13 @@
                 }
             });
 
+            // Vào từ ép đổi mật khẩu (?doiMatKhau=1): cuộn tới form và đặt con trỏ vào ô mật khẩu hiện tại.
+            if (@Json.Serialize(moFormDoiMatKhau)) {
+                var card = document.getElementById('cardDoiMatKhau');
+                if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                $('#MatKhauCu').trigger('focus');
+            }
+
             // Handle submit form
             $('#frmDoiMatKhau').submit(function (e) {
                 e.preventDefault();
@@ -149,8 +168,8 @@
                 let mkMoi = $('#MatKhauMoi').val();
                 let mkXacNhan = $('#XacNhanMatKhau').val();
 
-                if (mkMoi.length < 6) {
-                    Swal.fire('Lỗi', 'Mật khẩu mới phải có ít nhất 6 ký tự.', 'warning');
+                if (mkMoi.length < 8) {
+                    Swal.fire('Lỗi', 'Mật khẩu mới phải có ít nhất 8 ký tự.', 'warning');
                     return;
                 }
 
@@ -187,6 +206,10 @@
                                 text: res.message,
                                 confirmButtonText: 'Đóng'
                             }).then(() => {
+                                if (res.redirectUrl) {
+                                    window.location.href = res.redirectUrl;
+                                    return;
+                                }
                                 $('#frmDoiMatKhau')[0].reset();
                                 $('#XacNhanMatKhau').removeClass('is-invalid');
                                 $('#pw-match-error').hide();

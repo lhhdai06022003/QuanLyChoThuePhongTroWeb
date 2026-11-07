@@ -2,11 +2,13 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QuanLyChoThuePhongTroWeb.Models;
 using System.Threading.Tasks;
+using QuanLyChoThuePhongTroWeb.Filters;
 
 namespace QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers
 {
     [Area("KhachThue")]
     [Authorize(Roles = "KhachThue")]
+    [YeuCauDoiMatKhau]
     public class HopDongController : Controller
     {
         private readonly IHopDongService _hopDongService;

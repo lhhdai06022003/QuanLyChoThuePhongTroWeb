@@ -1,0 +1,77 @@
+@model QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.DoiMatKhauPageModel
+@{
+    ViewData["Title"] = "Đổi mật khẩu";
+}
+
+<div class="container-xl mt-3 doi-mat-khau-page">
+    <div class="page-header d-print-none mb-3">
+        <div class="row align-items-center g-2">
+            <div class="col">
+                <h2 class="page-title text-primary fw-bold d-flex align-items-center">
+                    <i class="ti ti-key me-2"></i> Đổi mật khẩu
+                </h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-12 col-md-8 col-lg-6">
+            @if (Model.BatBuoc)
+            {
+                <div class="alert alert-warning" role="alert">
+                    <div class="d-flex">
+                        <div><i class="ti ti-alert-triangle me-2"></i></div>
+                        <div>Mật khẩu hiện tại là mật khẩu mặc định. Bạn cần đặt mật khẩu mới trước khi tiếp tục.</div>
+                    </div>
+                </div>
+            }
+
+            <div class="card">
+                <div class="card-body">
+                    <form id="dmkForm" autocomplete="off" novalidate>
+                        <div class="mb-3">
+                            <label class="form-label required" for="dmkMatKhauHienTai">Mật khẩu hiện tại</label>
+                            <div class="input-group input-group-flat">
+                                <input type="password" class="form-control" id="dmkMatKhauHienTai" autocomplete="current-password" maxlength="128" required />
+                                <span class="input-group-text">
+                                    <a href="#" class="link-secondary dmk-hien-mat-khau" title="Hiện mật khẩu" aria-label="Hiện mật khẩu"><i class="ti ti-eye"></i></a>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label required" for="dmkMatKhauMoi">Mật khẩu mới</label>
+                            <div class="input-group input-group-flat">
+                                <input type="password" class="form-control" id="dmkMatKhauMoi" autocomplete="new-password" minlength="8" maxlength="128" required aria-describedby="dmkGoiY" />
+                                <span class="input-group-text">
+                                    <a href="#" class="link-secondary dmk-hien-mat-khau" title="Hiện mật khẩu" aria-label="Hiện mật khẩu"><i class="ti ti-eye"></i></a>
+                                </span>
+                            </div>
+                            <div class="form-hint" id="dmkGoiY">
+                                Từ 8 đến 128 ký tự, khác mật khẩu hiện tại, không trùng tên đăng nhập và không dùng mật khẩu dễ đoán (ví dụ 12345678).
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label required" for="dmkXacNhan">Xác nhận mật khẩu mới</label>
+                            <input type="password" class="form-control" id="dmkXacNhan" autocomplete="new-password" maxlength="128" required />
+                            <div class="invalid-feedback">Mật khẩu xác nhận không khớp.</div>
+                        </div>
+                        <div class="form-footer mt-0">
+                            <button type="submit" class="btn btn-primary w-100" id="dmkLuu">
+                                <i class="ti ti-device-floppy me-1"></i> Đổi mật khẩu
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        window.doiMatKhauConfig = {
+            urlDoiMatKhau: @Html.Raw(Json.Serialize(Url.Action("DoiMatKhau", "DoiMatKhau", new { area = "QuanLyNhaTro" })))
+        };
+    </script>
+    <script src="~/js/doi-mat-khau.js" asp-append-version="true"></script>
+}

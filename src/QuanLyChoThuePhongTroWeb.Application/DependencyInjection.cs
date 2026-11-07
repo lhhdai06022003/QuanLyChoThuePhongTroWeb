@@ -111,6 +111,10 @@ namespace QuanLyChoThuePhongTroWeb.Application
 
             Microsoft.Extensions.DependencyInjection.Extensions.ServiceCollectionDescriptorExtensions.TryAddSingleton(services, System.TimeProvider.System);
 
+            // Giới hạn đăng nhập sai: AddInfrastructure đã bind LoginThrottleOptions từ cấu hình thì giữ bản đó.
+            Microsoft.Extensions.DependencyInjection.Extensions.ServiceCollectionDescriptorExtensions.TryAddSingleton(services, new Common.Configurations.LoginThrottleOptions());
+            Microsoft.Extensions.DependencyInjection.Extensions.ServiceCollectionDescriptorExtensions.TryAddSingleton<Abstractions.Security.ILoginAttemptThrottle, Features.NguoiDungs.Services.InMemoryLoginAttemptThrottle>(services);
+
             return services;
         }
     }

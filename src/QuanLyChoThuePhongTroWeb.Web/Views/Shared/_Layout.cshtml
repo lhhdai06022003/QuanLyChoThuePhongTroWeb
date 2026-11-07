@@ -193,10 +193,18 @@
         }
     </script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.12/signalr.min.js"></script>
+    @* Hub thông báo yêu cầu đăng nhập: trang dùng layout này khi ẩn danh (Privacy, trang lỗi) không nối hub. *@
+    @if (User.Identity?.IsAuthenticated == true)
+    {
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.12/signalr.min.js"></script>
+    }
     <script src="~/js/site.js" asp-append-version="true"></script>
-    <script src="~/js/thongbao.js" asp-append-version="true"></script>
-    @if (User.IsInRole("Admin") || User.IsInRole("NhanVien"))
+    @if (User.Identity?.IsAuthenticated == true)
+    {
+        <script src="~/js/thongbao.js" asp-append-version="true"></script>
+    }
+    @* Đang bị ép đổi mật khẩu thì API việc cần làm trả 403, không nạp badge để tránh lỗi console. *@
+    @if ((User.IsInRole("Admin") || User.IsInRole("NhanVien")) && !QuanLyChoThuePhongTroWeb.Web.Helpers.ForcedPasswordChange.IsRequired(User))
     {
         <script src="~/js/viec-can-lam-badge.js" asp-append-version="true"></script>
     }

@@ -13,6 +13,7 @@ using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services;
 using QuanLyChoThuePhongTroWeb.Application.Features.OnlinePayments;
 using QuanLyChoThuePhongTroWeb.Models.ThanhToan;
 using QuanLyChoThuePhongTroWeb.Web.Helpers;
+using QuanLyChoThuePhongTroWeb.Filters;
 
 namespace QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers
 {
@@ -22,6 +23,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers
     [Area("KhachThue")]
     [Authorize(Roles = "KhachThue")]
     [AutoValidateAntiforgeryToken]
+    [YeuCauDoiMatKhau]
     public class ThanhToanHoaDonController : Controller
     {
         private readonly ITenantPaymentPanelService _panel;

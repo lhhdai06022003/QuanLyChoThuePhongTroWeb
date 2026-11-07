@@ -22,6 +22,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
         {
             return await _context.NguoiDungs
                 .Include(x => x.KhachVangLai)
+                .Include(x => x.NguoiThue)
                 .FirstOrDefaultAsync(x => x.TenDangNhap == username && !x.IsDeleted, cancellationToken);
         }
 

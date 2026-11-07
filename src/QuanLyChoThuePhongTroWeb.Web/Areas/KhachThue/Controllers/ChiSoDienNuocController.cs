@@ -14,12 +14,14 @@ using QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services;
 using QuanLyChoThuePhongTroWeb.Models.ChiSoDienNuoc;
 using QuanLyChoThuePhongTroWeb.Web.Helpers;
+using QuanLyChoThuePhongTroWeb.Filters;
 
 namespace QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers
 {
     [Area("KhachThue")]
     [Authorize(Roles = "KhachThue")]
     [AutoValidateAntiforgeryToken]
+    [YeuCauDoiMatKhau]
     public class ChiSoDienNuocController : Controller
     {
         private readonly IMeterImagePortalService _portalService;

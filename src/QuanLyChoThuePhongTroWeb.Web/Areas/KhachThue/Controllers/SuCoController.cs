@@ -8,11 +8,13 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using QuanLyChoThuePhongTroWeb.Filters;
 
 namespace QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers
 {
     [Area("KhachThue")]
     [Authorize(Roles = "KhachThue")]
+    [YeuCauDoiMatKhau]
     public class SuCoController : Controller
     {
         private readonly IYeuCauSuCoService _yeuCauSuCoService;

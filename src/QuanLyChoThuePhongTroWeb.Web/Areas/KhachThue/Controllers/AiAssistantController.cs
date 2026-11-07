@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using QuanLyChoThuePhongTroWeb.Application.Common.Models;
 using QuanLyChoThuePhongTroWeb.Application.Features.AiAssistants.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.AiAssistants.Services;
+using QuanLyChoThuePhongTroWeb.Filters;
 
 namespace QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers
 {
@@ -15,6 +16,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers
     [Area("KhachThue")]
     [Authorize(Roles = "KhachThue")]
     [AutoValidateAntiforgeryToken]
+    [YeuCauDoiMatKhau]
     public class AiAssistantController : Controller
     {
         private readonly IAiAssistantService _aiService;

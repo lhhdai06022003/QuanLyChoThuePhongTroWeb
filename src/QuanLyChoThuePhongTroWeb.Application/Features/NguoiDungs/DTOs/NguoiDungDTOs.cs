@@ -12,6 +12,9 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.NguoiDungs.DTOs
         public string? HoVaTen { get; set; }
         public string? Email { get; set; }
         public bool IsActive { get; set; }
+
+        // Mật khẩu vừa đăng nhập là mật khẩu mặc định hoặc do người khác cấp: phải đổi trước khi dùng tiếp.
+        public bool BatBuocDoiMatKhau { get; set; }
     }
 
     public class NguoiDungRes

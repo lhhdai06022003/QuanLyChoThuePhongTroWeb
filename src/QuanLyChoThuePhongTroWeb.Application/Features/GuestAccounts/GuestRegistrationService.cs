@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Text.RegularExpressions;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Security;
 using QuanLyChoThuePhongTroWeb.Application.Common.Models;
+using QuanLyChoThuePhongTroWeb.Application.Common.Security;
 using QuanLyChoThuePhongTroWeb.Domain.Entities;
 using QuanLyChoThuePhongTroWeb.Domain.Enums;
 
@@ -16,7 +17,7 @@ public sealed class GuestRegistrationService(
         if (request is null ||
             string.IsNullOrWhiteSpace(request.Username) ||
             !Regex.IsMatch(request.Username.Trim(), "^[A-Za-z0-9._-]{3,50}$") ||
-            string.IsNullOrWhiteSpace(request.Password) || request.Password.Length is < 8 or > 128 ||
+            PasswordPolicy.Validate(request.Password, request.Username.Trim(), request.Phone?.Trim()) != null ||
             string.IsNullOrWhiteSpace(request.FullName) || request.FullName.Trim().Length > 100 ||
             string.IsNullOrWhiteSpace(request.Phone) ||
             !Regex.IsMatch(request.Phone.Trim(), "^\\+?[0-9]{9,15}$") ||

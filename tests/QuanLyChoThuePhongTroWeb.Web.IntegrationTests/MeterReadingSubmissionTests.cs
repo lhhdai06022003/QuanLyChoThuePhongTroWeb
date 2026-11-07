@@ -463,27 +463,45 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
         [Fact]
         public async Task GetChotDienNuocPage_DoesNotContainDefaultManualReason_AndAsksReasonInConfirmDialog()
         {
-            var (client, token) = await CreateClientWithAntiforgeryAsync();
-            var loginRes = await client.PostAsync("/QuanLyNhaTro/DangNhap", new FormUrlEncodedContent(new[]
+            // Không dựa vào tài khoản admin của bản seed (không còn mật khẩu mặc định): tự tạo một Admin riêng.
+            var username = $"admin_{Guid.NewGuid().ToString("N").Substring(0, 8)}";
+            const string password = "StaffPassword123!";
+
+            using var scope = _factory.Services.CreateScope();
+            var nguoiDungService = scope.ServiceProvider.GetRequiredService<INguoiDungService>();
+            var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var createResult = await nguoiDungService.AddAsync(new CreateNguoiDungReq { TenDangNhap = username, MatKhau = password, Role = AppRole.Admin });
+            Assert.True(createResult.Success, createResult.Message);
+            var adminUser = await dbContext.NguoiDungs.FirstAsync(u => u.TenDangNhap == username);
+            try
             {
-                new KeyValuePair<string, string>("__RequestVerificationToken", token),
-                new KeyValuePair<string, string>("TenDangNhap", "admin"),
-                new KeyValuePair<string, string>("MatKhau", "admin")
-            }));
-            Assert.Equal(HttpStatusCode.Redirect, loginRes.StatusCode);
+                var (client, token) = await CreateClientWithAntiforgeryAsync();
+                var loginRes = await client.PostAsync("/QuanLyNhaTro/DangNhap", new FormUrlEncodedContent(new[]
+                {
+                    new KeyValuePair<string, string>("__RequestVerificationToken", token),
+                    new KeyValuePair<string, string>("TenDangNhap", username),
+                    new KeyValuePair<string, string>("MatKhau", password)
+                }));
+                Assert.Equal(HttpStatusCode.Redirect, loginRes.StatusCode);
 
-            var pageRes = await client.GetAsync("/QuanLyNhaTro/ChotDienNuoc");
-            Assert.Equal(HttpStatusCode.OK, pageRes.StatusCode);
-            var html = await pageRes.Content.ReadAsStringAsync();
+                var pageRes = await client.GetAsync("/QuanLyNhaTro/ChotDienNuoc");
+                Assert.Equal(HttpStatusCode.OK, pageRes.StatusCode);
+                var html = await pageRes.Content.ReadAsStringAsync();
 
-            Assert.DoesNotContain("Ghi nhận trực tiếp tại phòng", html);
-            Assert.DoesNotContain("value=\"${item.lyDoNhapThuCong", html);
-            Assert.DoesNotContain("lyDoNhapThuCongDien ||", html);
-            Assert.DoesNotContain("lyDoNhapThuCongNuoc ||", html);
-            // Lý do nhập tay hỏi trong hộp xác nhận khi chốt (chip chọn nhanh), không còn ô nhập trên bảng.
-            Assert.DoesNotContain("in-lydo-dien", html);
-            Assert.DoesNotContain("in-lydo-nuoc", html);
-            Assert.Contains("chip-reason", html);
+                Assert.DoesNotContain("Ghi nhận trực tiếp tại phòng", html);
+                Assert.DoesNotContain("value=\"${item.lyDoNhapThuCong", html);
+                Assert.DoesNotContain("lyDoNhapThuCongDien ||", html);
+                Assert.DoesNotContain("lyDoNhapThuCongNuoc ||", html);
+                // Lý do nhập tay hỏi trong hộp xác nhận khi chốt (chip chọn nhanh), không còn ô nhập trên bảng.
+                Assert.DoesNotContain("in-lydo-dien", html);
+                Assert.DoesNotContain("in-lydo-nuoc", html);
+                Assert.Contains("chip-reason", html);
+            }
+            finally
+            {
+                // Dọn cả khi test rớt giữa chừng, để không bỏ lại Admin đang hoạt động trong DB test.
+                await nguoiDungService.DeleteAsync(adminUser.NguoiDungId);
+            }
         }
 
         [Fact]

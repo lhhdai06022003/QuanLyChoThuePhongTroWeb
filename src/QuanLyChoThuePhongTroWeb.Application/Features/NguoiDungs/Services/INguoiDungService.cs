@@ -12,8 +12,9 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.NguoiDungs.Services
         Task<NguoiDungRes?> GetByIdAsync(int id);
         Task<ServiceResult> AddAsync(CreateNguoiDungReq req);
         Task<ServiceResult> DeleteAsync(int id);
-        Task SeedAdminAccountAsync();
+        Task<SeedAdminResult> SeedAdminAccountAsync();
         Task<UserAuthDto?> ValidateUserAsync(string username, string password);
+        Task<LoginResult> LoginAsync(string tenDangNhap, string matKhau, string? clientKey);
         Task<ServiceResult> UpdateUserAsync(int id, AppRole role, bool isActive, string? newPassword, int? nguoiThueId);
         Task<ServiceResult> ChangePasswordAsync(int userId, string oldPassword, string newPassword);
         Task<ServiceResult> ResetPasswordToPhoneAsync(int id);

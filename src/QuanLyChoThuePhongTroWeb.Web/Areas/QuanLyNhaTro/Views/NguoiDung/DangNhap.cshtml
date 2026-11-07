@@ -1,6 +1,9 @@
 @model QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.DangNhapReq
+@inject Microsoft.AspNetCore.Hosting.IWebHostEnvironment HostEnvironment
 @{
     Layout = null;
+    // Nút điền nhanh tài khoản mẫu chứa mật khẩu mẫu: chỉ hiện khi chạy Development (máy dev, buổi demo).
+    var hienTaiKhoanMau = HostEnvironment.EnvironmentName == "Development";
 }
 <!DOCTYPE html>
 <html lang="vi">
@@ -698,20 +701,23 @@
                     Chưa có tài khoản? <a href="/dang-ky-khach?returnUrl=@Uri.EscapeDataString(ViewBag.ReturnUrl as string ?? "/phong")" style="color: #b45309; font-weight: 600;">Tạo tài khoản khách vãng lai</a>
                 </p>
 
-                <!-- Thử nghiệm nhanh tài khoản demo -->
-                <div class="quick-demo-section">
-                    <div class="quick-demo-title">Điền nhanh tài khoản mẫu:</div>
-                    <div class="quick-demo-pills">
-                        <button type="button" class="demo-pill" id="btnFillAdmin">
-                            <i class="ti ti-shield"></i>
-                            <span>Admin / Quản lý</span>
-                        </button>
-                        <button type="button" class="demo-pill" id="btnFillTenant">
-                            <i class="ti ti-user-check"></i>
-                            <span>Khách thuê mẫu</span>
-                        </button>
+                @if (hienTaiKhoanMau)
+                {
+                    <!-- Thử nghiệm nhanh tài khoản demo -->
+                    <div class="quick-demo-section">
+                        <div class="quick-demo-title">Điền nhanh tài khoản mẫu:</div>
+                        <div class="quick-demo-pills">
+                            <button type="button" class="demo-pill" id="btnFillAdmin">
+                                <i class="ti ti-shield"></i>
+                                <span>Admin / Quản lý</span>
+                            </button>
+                            <button type="button" class="demo-pill" id="btnFillTenant">
+                                <i class="ti ti-user-check"></i>
+                                <span>Khách thuê mẫu</span>
+                            </button>
+                        </div>
                     </div>
-                </div>
+                }
             </div>
         </main>
     </div>
@@ -735,6 +741,9 @@
             });
         }
 
+        @if (hienTaiKhoanMau)
+        {
+            <text>
         // Điền nhanh tài khoản demo phục vụ kiểm thử / nghiệm thu
         const btnAdmin = document.getElementById('btnFillAdmin');
         const btnTenant = document.getElementById('btnFillTenant');
@@ -754,6 +763,8 @@
                 txtMatKhau.value = '123456';
                 txtTenDangNhap.focus();
             });
+        }
+            </text>
         }
     </script>
 </body>

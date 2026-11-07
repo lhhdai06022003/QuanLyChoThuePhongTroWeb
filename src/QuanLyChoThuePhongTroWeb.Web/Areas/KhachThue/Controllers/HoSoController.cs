@@ -4,11 +4,14 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using System.Linq;
 using System.Diagnostics;
+using QuanLyChoThuePhongTroWeb.Filters;
+using QuanLyChoThuePhongTroWeb.Web.Helpers;
 
 namespace QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers
 {
     [Area("KhachThue")]
     [Authorize(Roles = "KhachThue")]
+    [YeuCauDoiMatKhau]
     public class HoSoController : Controller
     {
         private readonly INguoiThueService _nguoiThueService;
@@ -20,6 +23,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers
             _nguoiDungService = nguoiDungService;
         }
 
+        [BoQuaYeuCauDoiMatKhau]
         public async Task<IActionResult> Index()
         {
             if (!User.IsInRole("KhachThue"))
@@ -41,6 +45,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [BoQuaYeuCauDoiMatKhau]
         public async Task<IActionResult> DoiMatKhau([FromBody] QuanLyChoThuePhongTroWeb.Areas.KhachThue.ViewModels.DoiMatKhauViewModel model)
         {
             if (!ModelState.IsValid)
@@ -55,7 +60,19 @@ namespace QuanLyChoThuePhongTroWeb.Areas.KhachThue.Controllers
             int userId = int.Parse(userIdClaim.Value);
             
             var result = await _nguoiDungService.ChangePasswordAsync(userId, model.MatKhauCu, model.MatKhauMoi);
-            return Json(result);
+            if (!result.Success)
+            {
+                return Json(new { success = false, message = result.Message });
+            }
+
+            // Đổi xong mật khẩu ban đầu: phát hành lại cookie không còn claim ép đổi rồi cho vào trang chủ khách thuê.
+            if (ForcedPasswordChange.IsRequired(User))
+            {
+                await ForcedPasswordChange.ReissueWithoutClaimAsync(HttpContext);
+                return Json(new { success = true, message = result.Message, redirectUrl = "/KhachThue/Dashboard" });
+            }
+
+            return Json(new { success = true, message = result.Message });
         }
     }
 }

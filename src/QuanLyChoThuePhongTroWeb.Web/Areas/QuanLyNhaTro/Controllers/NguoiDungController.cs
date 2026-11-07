@@ -2,8 +2,11 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using QuanLyChoThuePhongTroWeb.Application.Features.NguoiDungs.DTOs;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels;
+using QuanLyChoThuePhongTroWeb.Filters;
 using QuanLyChoThuePhongTroWeb.Models;
+using QuanLyChoThuePhongTroWeb.Web.Helpers;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -24,6 +27,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         }
 
         [AllowAnonymous]
+        [BoQuaYeuCauDoiMatKhau]
         [Route("QuanLyNhaTro/DangNhap")]
         [HttpGet]
         public IActionResult DangNhap(string? returnUrl = null)
@@ -59,6 +63,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         }
 
         [AllowAnonymous]
+        [BoQuaYeuCauDoiMatKhau]
         [Route("QuanLyNhaTro/DangNhap")]
         [HttpPost]
         public async Task<IActionResult> DangNhap([FromForm] DangNhapReq req, string? returnUrl = null)
@@ -71,9 +76,16 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
                 return View(req);
             }
 
-            var user = await _nguoiDungService.ValidateUserAsync(req.TenDangNhap, req.MatKhau);
+            var login = await _nguoiDungService.LoginAsync(req.TenDangNhap, req.MatKhau, HttpContext.Connection.RemoteIpAddress?.ToString());
 
-            if (user == null)
+            if (login.Status == LoginStatus.TamKhoa)
+            {
+                ViewBag.Error = $"Bạn đã nhập sai quá nhiều lần. Vui lòng thử lại sau {login.SoPhutCho} phút.";
+                return View(req);
+            }
+
+            var user = login.User;
+            if (login.Status != LoginStatus.ThanhCong || user == null)
             {
                 ViewBag.Error = "Tên đăng nhập hoặc mật khẩu không chính xác.";
                 return View(req);
@@ -92,6 +104,11 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
                 claims.Add(new Claim("NguoiThueId", user.NguoiThueId.Value.ToString()));
             }
 
+            if (user.BatBuocDoiMatKhau)
+            {
+                claims.Add(new Claim(ForcedPasswordChange.ClaimType, "1"));
+            }
+
             var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme, ClaimTypes.Name, ClaimTypes.Role);
             var principal = new ClaimsPrincipal(identity);
             var props = new AuthenticationProperties
@@ -101,6 +118,14 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             };
 
             await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal, props);
+
+            // Mật khẩu mặc định hoặc do người khác cấp: vào thẳng màn đổi mật khẩu, bỏ returnUrl.
+            if (user.BatBuocDoiMatKhau)
+            {
+                return Redirect(user.Role == QuanLyChoThuePhongTroWeb.Application.Common.Enums.AppRole.KhachThue
+                    ? ForcedPasswordChange.TenantChangeUrl
+                    : ForcedPasswordChange.ManagerChangeUrl);
+            }
 
             if (user.Role == QuanLyChoThuePhongTroWeb.Application.Common.Enums.AppRole.KhachThue)
             {
@@ -153,6 +178,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         }
 
         [AllowAnonymous]
+        [BoQuaYeuCauDoiMatKhau]
         [Route("QuanLyNhaTro/DangXuat")]
         [HttpPost]
         [ValidateAntiForgeryToken]
