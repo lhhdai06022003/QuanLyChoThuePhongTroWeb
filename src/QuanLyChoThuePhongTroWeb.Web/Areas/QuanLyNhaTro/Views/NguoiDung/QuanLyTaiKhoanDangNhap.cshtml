@@ -103,6 +103,10 @@
     </div>
 </div>
 
+@section ThuVienScripts {
+    <partial name="_Select2Js" />
+}
+
 @section Scripts {
     <script>
         $(document).ready(function () {
@@ -477,6 +481,7 @@
     </script>
 }
 @section Styles {
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" />
     <style>
     /* CSS hỗ trợ Select2 tương thích với Dark Mode của Tabler */
     .select2-container--default .select2-selection--single {

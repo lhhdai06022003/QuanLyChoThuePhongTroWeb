@@ -171,6 +171,10 @@
     </div>
 </div>
 
+@section ThuVienScripts {
+    <partial name="_FlatpickrJs" />
+}
+
 @section Scripts {
     <script>
         function escapeHtml(unsafe) {
@@ -509,6 +513,8 @@
 }
 
 @section Styles {
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/themes/material_blue.min.css" />
     <style>
     /* Đồng bộ màu nền bộ lọc trong chế độ tối */
     html[data-bs-theme="dark"] .bg-light,

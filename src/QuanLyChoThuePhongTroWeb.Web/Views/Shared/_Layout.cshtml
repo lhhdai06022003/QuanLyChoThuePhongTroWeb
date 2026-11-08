@@ -25,9 +25,8 @@
     <link rel="stylesheet" href="~/Theme/tabler/dist/css/tabler-vendors.min.css" />
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/themes/material_blue.min.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" />
+    @* CSS của flatpickr, Select2 chỉ nạp ở trang dùng, đầu @section Styles của trang (site.css và trosync-tokens.css
+       không có quy tắc nào chạm phần tử của hai thư viện này nên thứ tự mới không đổi giao diện). *@
     <link rel="manifest" href="~/manifest.json" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/trosync-tokens.css" asp-append-version="true" />
@@ -175,9 +174,9 @@
             };
         }
     </script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/l10n/vn.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.full.min.js"></script>
+    @* flatpickr, Select2, Chart.js chỉ nạp ở trang dùng (partial _FlatpickrJs, _Select2Js, _ChartJs), trước cấu hình
+       tiếng Việt của Select2 bên dưới và trước script của trang. *@
+    @await RenderSectionAsync("ThuVienScripts", required: false)
     <script>
         // Thông báo mặc định của Select2 là tiếng Anh; đặt tiếng Việt cho mọi ô chọn.
         if ($.fn.select2) {
@@ -192,7 +191,6 @@
             });
         }
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     @* Hub thông báo yêu cầu đăng nhập: trang dùng layout này khi ẩn danh (Privacy, trang lỗi) không nối hub. *@
     @if (User.Identity?.IsAuthenticated == true)
     {

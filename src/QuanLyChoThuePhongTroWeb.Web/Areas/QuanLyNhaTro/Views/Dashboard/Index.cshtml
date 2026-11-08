@@ -202,6 +202,10 @@
     </div>
 </div>
 
+@section ThuVienScripts {
+    <partial name="_ChartJs" />
+}
+
 @section Scripts {
     <script>window.dashboardConfig = {
         chartLabels: @Html.Raw(Json.Serialize(Model.ChartLabels)),

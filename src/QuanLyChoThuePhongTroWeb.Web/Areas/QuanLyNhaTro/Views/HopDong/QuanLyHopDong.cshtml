@@ -294,6 +294,11 @@
     </div>
 </div>
 
+@section ThuVienScripts {
+    <partial name="_FlatpickrJs" />
+    <partial name="_Select2Js" />
+}
+
 @section Scripts {
     @await Html.PartialAsync("~/Areas/QuanLyNhaTro/Views/Shared/_DangKyDichVuPartial.cshtml")
 
@@ -1208,6 +1213,9 @@
 }
 
 @section Styles {
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/themes/material_blue.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" />
     <style>
     /* Đồng bộ màu nền bộ lọc trong chế độ tối */
     html[data-bs-theme="dark"] .bg-light,
