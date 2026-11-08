@@ -39,7 +39,8 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             HttpResponseMessage? response = null;
             var count = await _counter.MeasureAsync(async () => response = await client.GetAsync(url));
             Assert.Equal(HttpStatusCode.OK, response!.StatusCode);
-            _output.WriteLine($"GET {url}: {count} lệnh SQL");
+            var bytes = (await response.Content.ReadAsByteArrayAsync()).Length;
+            _output.WriteLine($"GET {url}: {count} lệnh SQL, {bytes:N0} byte");
             return count;
         }
 

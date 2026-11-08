@@ -63,6 +63,11 @@
         document.documentElement.setAttribute('data-bs-theme', savedTheme);
     </script>
     @await RenderSectionAsync("Styles", required: false)
+    @* CSS widget trợ lý AI (_AiChatWidget) đặt sau mọi CSS khác như khi còn nằm trong body. *@
+    @if (User.IsInRole("Admin") || User.IsInRole("NhanVien"))
+    {
+        <link rel="stylesheet" href="~/css/ai-chat-widget.css" asp-append-version="true" />
+    }
 </head>
 
 <body class="layout-fluid">
