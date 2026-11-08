@@ -105,7 +105,11 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             var tomTat0 = await MeasureGetAsync(staff, "/QuanLyNhaTro/ViecCanLam/TomTat");
             await AddHd5CandidatesAsync(w.BranchA, 5);
             var tomTat5 = await MeasureGetAsync(staff, "/QuanLyNhaTro/ViecCanLam/TomTat");
-            _output.WriteLine($"TomTat: 0 ứng viên HD5 = {tomTat0}, 5 ứng viên = {tomTat5}, mỗi ứng viên thêm {(tomTat5 - tomTat0) / 5.0:0.#} lệnh");
+            await AddHd5CandidatesAsync(w.BranchA, 10);
+            var tomTat15 = await MeasureGetAsync(staff, "/QuanLyNhaTro/ViecCanLam/TomTat");
+            _output.WriteLine($"TomTat: 0 ứng viên HD5 = {tomTat0}, 5 ứng viên = {tomTat5}, 15 ứng viên = {tomTat15}");
+            // Huy hiệu chạy trên mọi trang quản lý: số lệnh SQL không được tăng theo số ứng viên HD5.
+            Assert.Equal(tomTat5, tomTat15);
 
             await MeasureGetAsync(staff, "/QuanLyNhaTro/Dashboard");
             await MeasureGetAsync(staff, "/QuanLyNhaTro/ViecCanLam");

@@ -46,6 +46,27 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
             return Task.FromResult(Contexts[index]);
         }
 
+        public int GetContextsBatchCalls { get; private set; }
+
+        // Đọc theo lô: trả đúng như gọi GetRoomContextAsync lần lượt từng khóa (giữ nguyên bộ đếm và RequestedKeys),
+        // khóa có ngữ cảnh null thì không có trong kết quả.
+        public async Task<IReadOnlyDictionary<RoomPeriodKey, AutoInvoiceRoomContext>> GetRoomContextsAsync(
+            IReadOnlyCollection<RoomPeriodKey> keys, int soKyLichSuToiDa, CancellationToken ct = default)
+        {
+            GetContextsBatchCalls++;
+            var result = new Dictionary<RoomPeriodKey, AutoInvoiceRoomContext>();
+            foreach (var key in keys.Distinct())
+            {
+                var ctx = await GetRoomContextAsync(key.PhongTroId, key.Thang, key.Nam, soKyLichSuToiDa, ct);
+                if (ctx != null)
+                {
+                    result[key] = ctx;
+                }
+            }
+
+            return result;
+        }
+
         public Task<int?> FindFallbackActorAsync(int chiNhanhId, CancellationToken ct = default)
         {
             Log?.Add("FindFallbackActor");

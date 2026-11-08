@@ -95,6 +95,119 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             return u;
         }
 
+        // Đọc theo lô phải cho đúng kết quả của đọc từng phòng ở mọi tình huống mà các test GetRoomContext bên dưới kiểm.
+        [Fact]
+        public async Task GetRoomContexts_Batch_MatchesSingleReads_ForEveryScenario()
+        {
+            await using var db = _fixture.CreateDbContext();
+            await using var tx = await db.Database.BeginTransactionAsync();
+            var seeder = new DebtTestSeeder(db);
+            var branch = await seeder.BranchAsync("B");
+            var other = await seeder.BranchAsync("O");
+            var tenant = await seeder.TenantAsync("B");
+            var keys = new System.Collections.Generic.List<Application.Features.HoaDons.Persistence.RoomPeriodKey>();
+            void Key(PhongTro r, int thang = Thang, int nam = Nam) => keys.Add(new(r.PhongTroId, thang, nam));
+
+            // Không có kỳ, không hợp đồng.
+            var empty = await seeder.RoomAsync(branch, "BE");
+            Key(empty);
+
+            // Kỳ có ảnh (một ảnh đã xóa), thứ tự ảnh mới nhất trước.
+            var withImages = await seeder.RoomAsync(other, "BI");
+            var p = await PeriodAsync(db, withImages, Thang, Nam, TrangThaiGhiNhan.ChoDuyet, 100, 180, 10, 14);
+            await ImageAsync(db, p, LoaiDongHo.Dien, Utc(2026, 10, 25));
+            await ImageAsync(db, p, LoaiDongHo.Nuoc, Utc(2026, 10, 26));
+            await ImageAsync(db, p, LoaiDongHo.Dien, Utc(2026, 10, 27), deleted: true);
+            Key(withImages);
+
+            // Chỉ có kỳ đã xóa.
+            var deletedPeriod = await seeder.RoomAsync(branch, "BD");
+            await PeriodAsync(db, deletedPeriod, Thang, Nam, TrangThaiGhiNhan.DaDuyet, deleted: true);
+            Key(deletedPeriod);
+
+            // Lịch sử của một hợp đồng, có tháng không trọn (06), nhiều kỳ hơn soKy; hỏi thêm kỳ 09 và kỳ 01/2027 (qua năm).
+            var history = await seeder.RoomAsync(branch, "BH");
+            await seeder.ContractAsync(history, tenant, Utc(2026, 6, 10, 17), null);
+            await PeriodAsync(db, history, 6, 2026, TrangThaiGhiNhan.DaDuyet, 0, 5, 0, 1);
+            await PeriodAsync(db, history, 7, 2026, TrangThaiGhiNhan.DaDuyet, 5, 30, 1, 3);
+            await PeriodAsync(db, history, 8, 2026, TrangThaiGhiNhan.ChoDuyet, 30, 60, 3, 6);
+            await PeriodAsync(db, history, 9, 2026, TrangThaiGhiNhan.DaDuyet, 60, 100, 6, 10);
+            await PeriodAsync(db, history, Thang, Nam, TrangThaiGhiNhan.DaDuyet, 100, 777, 10, 77);
+            Key(history);
+            Key(history, 9, 2026);
+            Key(history, 1, 2027);
+
+            // Nhiều hợp đồng: hợp lệ, đã hủy, đã xóa, hết trước tháng, bắt đầu sau tháng, sát ranh giới giờ VN.
+            var contracts = await seeder.RoomAsync(branch, "BC");
+            await seeder.ContractAsync(contracts, await seeder.TenantAsync("C1"), Utc(2026, 1, 1), Utc(2026, 12, 31));
+            await seeder.ContractAsync(contracts, await seeder.TenantAsync("C2"), Utc(2026, 1, 1), Utc(2026, 12, 31), TrangThaiHopDong.DaHuy);
+            await seeder.ContractAsync(contracts, await seeder.TenantAsync("C3"), Utc(2026, 1, 1), Utc(2026, 12, 31), deleted: true);
+            await seeder.ContractAsync(contracts, await seeder.TenantAsync("C4"), Utc(2026, 1, 1), Utc(2026, 9, 20));
+            await seeder.ContractAsync(contracts, await seeder.TenantAsync("C5"), Utc(2026, 10, 31, 17), null);
+            await seeder.ContractAsync(contracts, await seeder.TenantAsync("C6"), new DateTime(2026, 10, 31, 16, 30, 0, DateTimeKind.Utc), null);
+            Key(contracts);
+            Key(contracts, 11, 2026);
+
+            // Hóa đơn: đã xóa của tháng, hóa đơn tháng khác, rồi hóa đơn của tháng.
+            var invoiced = await seeder.RoomAsync(branch, "BV");
+            var invoicedContract = await seeder.ContractAsync(invoiced, tenant);
+            await seeder.InvoiceAsync(invoicedContract, TrangThaiPhatHanhHoaDon.DaHuy, TrangThaiHoaDon.ChuaThanhToan, 1m, null, deleted: true, month: Thang, year: Nam);
+            await seeder.InvoiceAsync(invoicedContract, TrangThaiPhatHanhHoaDon.Nhap, TrangThaiHoaDon.ChuaThanhToan, 1m, null, month: 9, year: Nam);
+            Key(invoiced);
+            Key(invoiced, 9, Nam);
+
+            // Kỳ trước: chưa có, đã duyệt, chờ duyệt, đã xóa; hợp đồng mới trong tháng; hợp đồng hết trước tháng trước.
+            var prevMissing = await seeder.RoomAsync(branch, "KA");
+            await seeder.ContractAsync(prevMissing, tenant, Utc(2026, 1, 1), null);
+            var prevApproved = await seeder.RoomAsync(branch, "KB");
+            await seeder.ContractAsync(prevApproved, tenant, Utc(2026, 1, 1), null);
+            await PeriodAsync(db, prevApproved, 9, 2026, TrangThaiGhiNhan.DaDuyet);
+            var prevPending = await seeder.RoomAsync(branch, "KC");
+            await seeder.ContractAsync(prevPending, tenant, Utc(2026, 1, 1), null);
+            await PeriodAsync(db, prevPending, 9, 2026, TrangThaiGhiNhan.ChoDuyet);
+            var prevDeleted = await seeder.RoomAsync(branch, "KD");
+            await seeder.ContractAsync(prevDeleted, tenant, Utc(2026, 1, 1), null);
+            await PeriodAsync(db, prevDeleted, 9, 2026, TrangThaiGhiNhan.DaDuyet, deleted: true);
+            var newContract = await seeder.RoomAsync(branch, "KE");
+            await seeder.ContractAsync(newContract, tenant, Utc(2026, 10, 3), null);
+            var endedBefore = await seeder.RoomAsync(branch, "KF");
+            await seeder.ContractAsync(endedBefore, tenant, Utc(2026, 1, 1), Utc(2026, 8, 31));
+            foreach (var r in new[] { prevMissing, prevApproved, prevPending, prevDeleted, newContract, endedBefore })
+            {
+                Key(r);
+            }
+
+            // Phòng đã xóa, phòng không tồn tại, khóa trùng.
+            var deletedRoom = await seeder.RoomAsync(branch, "BX");
+            deletedRoom.IsDeleted = true;
+            await db.SaveChangesAsync();
+            Key(deletedRoom);
+            keys.Add(new(int.MaxValue, Thang, Nam));
+            Key(empty);
+
+            var store = new AutoInvoiceStore(db, new MeterConsumptionHistoryStore(db));
+            foreach (var soKy in new[] { 0, 2, 6 })
+            {
+                var batch = await store.GetRoomContextsAsync(keys, soKy);
+                foreach (var key in keys.Distinct())
+                {
+                    var single = await store.GetRoomContextAsync(key.PhongTroId, key.Thang, key.Nam, soKy);
+                    if (single == null)
+                    {
+                        Assert.False(batch.ContainsKey(key), $"Khóa {key} phải vắng trong kết quả lô");
+                        continue;
+                    }
+
+                    Assert.True(batch.TryGetValue(key, out var fromBatch), $"Thiếu khóa {key} trong kết quả lô");
+                    Assert.Equal(System.Text.Json.JsonSerializer.Serialize(single), System.Text.Json.JsonSerializer.Serialize(fromBatch));
+                }
+            }
+
+            Assert.Empty(await store.GetRoomContextsAsync(Array.Empty<Application.Features.HoaDons.Persistence.RoomPeriodKey>(), 3));
+
+            await tx.RollbackAsync();
+        }
+
         [Fact]
         public async Task GetRoomContext_UnknownOrDeletedRoom_ReturnsNull()
         {

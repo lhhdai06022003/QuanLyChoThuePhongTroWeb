@@ -19,6 +19,9 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence
 
     public sealed record AutoInvoiceContractRef(int HopDongId, int NguoiThueId);
 
+    // Khóa (phòng, kỳ) khi lấy ngữ cảnh hóa đơn tự động theo lô.
+    public readonly record struct RoomPeriodKey(int PhongTroId, int Thang, int Nam);
+
     public sealed class AutoInvoiceRoomContext
     {
         public int PhongTroId { get; init; }
@@ -90,6 +93,10 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence
     {
         // AsNoTracking toàn bộ. Phòng không tồn tại hoặc IsDeleted thì trả null.
         Task<AutoInvoiceRoomContext?> GetRoomContextAsync(int phongTroId, int thang, int nam, int soKyLichSuToiDa, CancellationToken ct = default);
+
+        // Như GetRoomContextAsync cho nhiều khóa nhưng số truy vấn không đổi theo số khóa. Khóa có phòng không tồn tại
+        // hoặc IsDeleted thì không có trong kết quả (tương ứng GetRoomContextAsync trả null).
+        Task<IReadOnlyDictionary<RoomPeriodKey, AutoInvoiceRoomContext>> GetRoomContextsAsync(IReadOnlyCollection<RoomPeriodKey> keys, int soKyLichSuToiDa, CancellationToken ct = default);
 
         // Nhân viên đang được phân công (chưa thu hồi) của chi nhánh, phân công sớm nhất trước; null nếu không có.
         Task<int?> FindFallbackActorAsync(int chiNhanhId, CancellationToken ct = default);

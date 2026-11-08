@@ -325,10 +325,18 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.ViecCanLam.Services
                 Math.Max(1, _settings.SoKyPhongDanhGiaHoaDonTuDong), ct);
 
             var biDung = new List<(KyDaChotChuaCoHoaDonRow Ky, IReadOnlyList<AutoInvoiceReason> LyDos)>();
+            if (ungViens.Count == 0)
+            {
+                return;
+            }
+
+            // Đọc ngữ cảnh mọi ứng viên trong một lần (số truy vấn không tăng theo số phòng); huy hiệu gọi mục này trên mọi trang.
+            var contexts = await _autoInvoiceStore.GetRoomContextsAsync(
+                ungViens.Select(k => new RoomPeriodKey(k.PhongTroId, k.Thang, k.Nam)).ToList(),
+                _autoInvoiceOptions.SoKyLichSuToiDa, ct);
             foreach (var ky in ungViens)
             {
-                var ctx = await _autoInvoiceStore.GetRoomContextAsync(ky.PhongTroId, ky.Thang, ky.Nam, _autoInvoiceOptions.SoKyLichSuToiDa, ct);
-                if (ctx == null)
+                if (!contexts.TryGetValue(new RoomPeriodKey(ky.PhongTroId, ky.Thang, ky.Nam), out var ctx))
                 {
                     continue;
                 }
