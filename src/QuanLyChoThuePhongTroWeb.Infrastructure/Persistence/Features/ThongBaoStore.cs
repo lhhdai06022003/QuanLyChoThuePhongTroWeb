@@ -54,6 +54,22 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 .Select(p => (int?)p.ChiNhanhId)
                 .FirstOrDefaultAsync(cancellationToken);
 
+            // Store Scoped (một request hoặc một lượt tác vụ nền): nhiều phòng cùng chi nhánh (chốt kỳ, cảnh báo hết hạn)
+            // chỉ đọc người nhận một lần. Trả bản sao để người gọi sửa danh sách không ảnh hưởng lần sau.
+            var key = chiNhanhId ?? 0;
+            if (!_nguoiNhanTheoChiNhanh.TryGetValue(key, out var userIds))
+            {
+                userIds = await LoadResponsibleUserIdsAsync(chiNhanhId, cancellationToken);
+                _nguoiNhanTheoChiNhanh[key] = userIds;
+            }
+
+            return new List<int>(userIds);
+        }
+
+        private readonly Dictionary<int, List<int>> _nguoiNhanTheoChiNhanh = new();
+
+        private async Task<List<int>> LoadResponsibleUserIdsAsync(int? chiNhanhId, CancellationToken cancellationToken)
+        {
             return await _context.NguoiDungs
                 .AsNoTracking()
                 .Where(u => u.IsActive && !u.IsDeleted &&
