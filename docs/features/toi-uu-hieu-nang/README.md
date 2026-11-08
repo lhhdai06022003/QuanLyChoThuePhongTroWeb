@@ -39,7 +39,7 @@ Thư viện CDN, dung lượng tải đã nén (`curl --compressed`):
 | Chart.js (`npm/chart.js`, không ghim phiên bản) | 61.412 B | 2 file |
 | Select2 JS + CSS | 18.254 + 1.640 B | 2 file |
 | flatpickr JS + 2 CSS + locale | 12.989 + 2.610 + 2.577 + 470 B | 2 file |
-| Font Awesome CSS (layout quản lý) | 18.778 B | 0 icon, chỉ lớp cỡ `fa-lg/2x/3x` |
+| Font Awesome CSS (layout quản lý) | 18.778 B | Widget AI (7 icon `fa-solid`) và 24 nút đang tải (`fa-spin`): vẫn cần, giữ lại |
 | DataTables JS | 28.496 B | 19 file |
 | SweetAlert2 | 18.357 B | nhiều |
 | SignalR | 11.163 B | chuông thông báo |
