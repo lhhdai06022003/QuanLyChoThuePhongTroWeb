@@ -1,6 +1,6 @@
 # Tối ưu hiệu năng cổng quản lý và cổng khách thuê
 
-Nhánh `feature/toi-uu-hieu-nang`. Phạm vi đã duyệt (08/11/2026): bước 0–4. Ràng buộc: không đổi hành vi, API, giao diện; mỗi bước một commit; không thêm thư viện.
+Nhánh `feature/toi-uu-hieu-nang`. Phạm vi đã duyệt (08/11/2026): bước 0–4, sau đó bước 5–8 (giai đoạn 2, có duyệt sửa `Program.cs`). Ràng buộc: không đổi hành vi, API, giao diện; mỗi bước một commit; không thêm thư viện.
 
 | Bước | Nội dung |
 | --- | --- |
@@ -9,7 +9,10 @@ Nhánh `feature/toi-uu-hieu-nang`. Phạm vi đã duyệt (08/11/2026): bước 
 | 2 | Nhớ phạm vi chi nhánh của người dùng trong một request |
 | 3 | Bỏ Chart.js, Select2, flatpickr khỏi layout chung, chỉ nạp ở trang dùng (Font Awesome giữ lại: widget AI dùng icon `fa-solid`, 24 nút đang tải dùng `fa-spin`) |
 | 4 | Tách JS/CSS của widget trợ lý AI ra file tĩnh |
-| 5 (chưa duyệt) | Nén CSS/JS/font và `Cache-Control` cho file tĩnh: cần sửa `Program.cs` |
+| 5 | Nén CSS/JS/SVG (Brotli/Gzip có sẵn trong ASP.NET Core), không nén HTML/JSON; file gắn `?v=` cache một năm (`Helpers/StaticAssetDelivery.cs`) |
+| 6 | Duyệt chỉ số nhiều phòng: tra chi nhánh cả danh sách một lần (`IMeterImageStore.GetBranchIdsByRoomsAsync`) |
+| 7 | Hóa đơn tự động: không đọc lại ngữ cảnh phòng sau bước xác nhận ảnh khi không có ảnh nào được xác nhận |
+| 8 | Trang Hợp đồng: danh sách người thuê in một lần dạng JSON, JS đổ vào ô lọc và ô chọn trong modal |
 
 ## Số đo gốc (commit bước 0)
 
@@ -80,13 +83,29 @@ Lệnh: `dotnet test tests/QuanLyChoThuePhongTroWeb.Web.IntegrationTests --filte
 
 Trang Hợp đồng trên DB test (43.945 người thuê, 41.389 phòng tích lũy từ các lượt test): nhân viên 2.924.998 B, Admin 22.881.866 B, cùng 6 lệnh SQL. Khoảng 270 B cho mỗi người thuê hoặc phòng; dữ liệu thật vài trăm người thuê thì khoảng 100–200 KB.
 
+## Kết quả sau bước 5–8 (08/11/2026)
+
+Cùng lệnh đo. DB test lúc đo lại có 45.522 người thuê, 42.865 phòng (nhiều hơn lượt gốc).
+
+| Request | Trước | Sau |
+| --- | --- | --- |
+| Chốt kỳ, 1 phòng | 72 | 65 |
+| Chốt kỳ, 5 phòng | 332 | 293 (mỗi phòng thêm 65 → 57) |
+| Phát sinh hóa đơn, 1 và 5 phòng | 14 và 18 | không đổi (không nằm trong phạm vi) |
+| Trang Hợp đồng, nhân viên | 2.924.998 B | 890.043 B (−70%) |
+| Trang Hợp đồng, Admin | 22.881.866 B | 14.302.593 B (−37%; phần còn lại chủ yếu là JSON toàn bộ phòng) |
+
+Bước 5, nén Gzip mức nhanh (Brotli thường nhỏ hơn): `tabler.min.css` 536.149 → 90.792 B, `tabler-icons.min.css` 203.697 → 43.095 B, `jquery.min.js` 89.503 → 36.053 B, `tabler.min.js` 83.567 → 29.236 B; tổng bốn file 912.916 → 199.176 B. HTML và JSON không nén.
+
+Test chặn hồi quy: `StaticFilesTests` (nén đúng loại file, nội dung giải nén giống bản gốc, HTML không nén, cache file `?v=`), `MeterReadingWorkflowTests` (thứ tự báo lỗi, tra chi nhánh một lần), `MeterImageStoreTests.GetBranchIdsByRooms_MatchesSingleLookup_ExcludesDeletedAndMissing`, `AutoInvoiceServiceTests` (số lần đọc ngữ cảnh khi có/không có xác nhận ảnh), `ContractPagePayloadTests`.
+
 ## Còn có thể làm tiếp (chưa duyệt)
 
-- **Trang Hợp đồng nặng 2,88 MB HTML trên DB test:** `HopDongController` đưa toàn bộ người thuê qua `ViewBag.ListNguoiThue` và view in ra 3 lần (2 ô chọn, 1 khối JSON dòng 420), kèm toàn bộ phòng trống dạng JSON. Kích thước tăng theo số người thuê. Hướng sửa: Select2 tải theo từ khóa (`SearchAutocompleteAsync` đã có). Đổi cách ô chọn hoạt động nên cần duyệt.
-- Bước 5: nén CSS/JS/font và `Cache-Control` cho file tĩnh (sửa `Program.cs`, cần duyệt riêng). `tabler.min.css` 536 KB đang gửi nguyên bản.
-- N+1 trong luồng hằng tháng: `InvoiceIssuanceService.cs` (đếm hóa đơn hủy từng hợp đồng), `InvoicePublicationService.cs` (snapshot từng hóa đơn), `MeterReadingWorkflowService.cs` (chi nhánh từng phòng), `DienNuocService.cs` (hóa đơn tự động từng phòng). Nằm trên luồng tiền/transaction, nên đo bằng `QueryCounter` trước khi quyết.
-- Bảng điều khiển vẫn tính Việc cần làm hai lần (trang và huy hiệu); sau bước 1 mỗi lần chỉ khoảng 16–20 lệnh.
+- **Chốt kỳ vẫn khoảng 57 lệnh mỗi phòng:** hóa đơn tự động chạy lần lượt từng phòng (`DienNuocService.cs`, vòng `RunForRoomAsync`), mỗi phòng tự tạo hóa đơn nháp riêng. Giảm mạnh hơn phải tạo theo lô cho cả chi nhánh, đổi cách mỗi phòng chạy độc lập và báo lỗi riêng.
+- **Trang Hợp đồng của Admin** còn in toàn bộ phòng dạng JSON (`ViewBag.ListPhongTro`, mọi trạng thái, mọi chi nhánh) và người thuê một lần. Muốn nhỏ hơn nữa phải tải theo chi nhánh/từ khóa (`SearchAutocompleteAsync` đã có), đổi cách ô chọn hoạt động.
+- Phát sinh hóa đơn đếm hóa đơn đã hủy từng hợp đồng (`InvoiceIssuanceService.cs`), +1 lệnh mỗi phòng.
+- Bảng điều khiển vẫn tính Việc cần làm hai lần (trang và huy hiệu), khoảng 20 lệnh.
 
 ## Giới hạn kiểm chứng
 
-- Chưa xem trên trình duyệt sau đăng nhập (sáng, tối, 375px, console): tài khoản mẫu `admin`, `khachthue01` và tài khoản admin do test tạo đều không đăng nhập được trên DB `quanlyphongtro_test`. **CHƯA CHẠY.** Thứ tự nạp script, CSS và widget được kiểm trên HTML thật bằng `LayoutLibraryPageTests`.
+- Chưa xem trên trình duyệt sau đăng nhập (sáng, tối, 375px, console): tài khoản mẫu `admin`, `khachthue01` và tài khoản admin do test tạo đều không đăng nhập được trên DB `quanlyphongtro_test`. **CHƯA CHẠY.** Thứ tự nạp script, CSS và widget được kiểm trên HTML thật bằng `LayoutLibraryPageTests`; đoạn JS đổ người thuê của trang Hợp đồng chỉ được kiểm vị trí trong HTML (`ContractPagePayloadTests`), chưa chạy trên trình duyệt.
