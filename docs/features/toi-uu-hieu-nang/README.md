@@ -111,12 +111,24 @@ Test: `AutoInvoiceAdjustmentEndpointTests.MonthlyClose_QueryCount_Breakdown`, `Q
 | 4. Bảng điều khiển | Trang 28 lệnh (Việc cần làm chiếm 19) + huy hiệu 20 = 48 lệnh mỗi lần mở; đổi bộ lọc 28 |
 | 5. Màn 375px | Cổng quản lý: 15/21 màn tràn ngang cả trang (bảng rộng 486–1.205 px); không tràn: Giữ chỗ, Chốt điện nước, Lịch sử thanh toán, Báo cáo, Phòng trọ (và Đối chiếu chỉ lệch 8 px). Cổng khách thuê: 4/8 (Hợp đồng, Lịch sử thanh toán, Sự cố, Thông báo). Nguyên nhân chung: `site.css` dòng 79–83 ép `.table-responsive, .dataTables_wrapper { overflow: visible !important }` để menu ⋯ không bị cắt; màn nào có CSS riêng đặt lại `overflow-x` thì không tràn |
 
+## Kết quả sau bước 9–11 (08/11/2026)
+
+| Bước | Thay đổi | Trước | Sau |
+| --- | --- | --- | --- |
+| 9 | Bảng điều khiển (không lọc chi nhánh) in sẵn số cho huy hiệu (`Helpers/ViecCanLamBadge.cs`, `window.viecCanLamTomTat`); có lọc chi nhánh và trang khác vẫn gọi `TomTat` | Mở trang 48 lệnh (28 + huy hiệu 20) | 28 |
+| 10a | `IAutoInvoiceService.RunForRoomsAsync`: ngữ cảnh ban đầu của các phòng đọc một lượt bằng `GetRoomContextsAsync`; mỗi phòng vẫn đánh giá lại trước khi tạo hóa đơn; đọc lô lỗi thì cảnh báo và đọc từng phòng | Chốt kỳ 1 phòng 65, 5 phòng 293 | 62 và 254 (mỗi phòng thêm 57 → 48) |
+| 10b | `ThongBaoStore` nhớ người nhận theo chi nhánh trong một store (Scoped; tác vụ nền tạo scope mỗi lượt) | (gộp trong 10a) | (gộp trong 10a) |
+| 11 | `CountCancelledInvoicesByContractAsync`: đếm bản hủy của mọi hợp đồng trong một truy vấn, sau khi khóa hợp đồng | Phát sinh 1/5/20 phòng: 14/18/33 | 14/14/14 |
+
+Kiểm chứng: Application 2775/2776 (đỏ có sẵn `ExpiryAlert_AppFailure_DoesNotBlockEmail`), Infrastructure 722 PASS (1 skip), Web 840/840. Trình duyệt (DB test, tài khoản test): Bảng điều khiển không gọi `TomTat`, huy hiệu hiện đúng số và màu; trang Hóa đơn và Bảng điều khiển có lọc chi nhánh vẫn gọi `TomTat`, cùng số; console không có lỗi mới. Ảnh `hieu-nang-09-dashboard-huy-hieu-in-san.jpg`.
+
+Test chặn hồi quy: `ViecCanLamEndpointTests` (số in sẵn bằng `TomTat`, chỉ có khi không lọc chi nhánh, JS dùng trước khi gọi), `AutoInvoiceServiceTests` (`RunForRooms_*`: cùng kết quả và tác dụng phụ như chạy từng phòng, đọc lô lỗi, phòng lặp, tham số sai), `ThongBaoStoreTests.GetRoomResponsibleUserIds_CachedPerBranch_*`, `InvoiceDraftWorkflowTests.CreateDrafts_ManyContracts_CountsCancelledOnce_SuffixPerContract`, `InvoiceDraftConcurrencyTests.CountCancelledInvoices_*`.
+
 ## Còn có thể làm tiếp (chưa duyệt)
 
-- **Chốt kỳ vẫn khoảng 57 lệnh mỗi phòng:** hóa đơn tự động chạy lần lượt từng phòng (`DienNuocService.cs`, vòng `RunForRoomAsync`), mỗi phòng tự tạo hóa đơn nháp riêng. Giảm mạnh hơn phải tạo theo lô cho cả chi nhánh, đổi cách mỗi phòng chạy độc lập và báo lỗi riêng.
-- **Trang Hợp đồng của Admin** còn in toàn bộ phòng dạng JSON (`ViewBag.ListPhongTro`, mọi trạng thái, mọi chi nhánh) và người thuê một lần. Muốn nhỏ hơn nữa phải tải theo chi nhánh/từ khóa (`SearchAutocompleteAsync` đã có), đổi cách ô chọn hoạt động.
-- Phát sinh hóa đơn đếm hóa đơn đã hủy từng hợp đồng (`InvoiceIssuanceService.cs`), +1 lệnh mỗi phòng.
-- Bảng điều khiển vẫn tính Việc cần làm hai lần (trang và huy hiệu), khoảng 20 lệnh.
+- **Chốt kỳ còn khoảng 48 lệnh mỗi phòng trên DB test** (khoảng 34 với dữ liệu thật vì thông báo không còn bị phồng): duyệt khoảng 12, đánh giá lại 8, tạo hóa đơn nháp 13, báo nhân viên. Giảm tiếp phải tạo hóa đơn nháp theo lô cho cả chi nhánh, đổi cách mỗi phòng chạy độc lập và báo lỗi riêng: chưa đề xuất.
+- **Trang Hợp đồng của Admin:** với dữ liệu thật chỉ thêm khoảng 40 KB; DB test phồng vì 37.818 chi nhánh in hai lần. Nếu làm, gộp vào đợt giao diện (tải theo chi nhánh/từ khóa, `SearchAutocompleteAsync` đã có).
+- **Bảng tràn ngang ở 375px** (15/21 màn quản lý, 4/8 màn khách thuê): do `site.css` dòng 79–83. Thuộc đợt giao diện: cho bảng cuộn ngang trên điện thoại mà menu ⋯ không bị cắt.
 
 ## Giới hạn kiểm chứng
 
