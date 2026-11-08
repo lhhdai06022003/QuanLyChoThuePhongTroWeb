@@ -108,4 +108,15 @@ Test chặn hồi quy: `StaticFilesTests` (nén đúng loại file, nội dung g
 
 ## Giới hạn kiểm chứng
 
-- Chưa xem trên trình duyệt sau đăng nhập (sáng, tối, 375px, console): tài khoản mẫu `admin`, `khachthue01` và tài khoản admin do test tạo đều không đăng nhập được trên DB `quanlyphongtro_test`. **CHƯA CHẠY.** Thứ tự nạp script, CSS và widget được kiểm trên HTML thật bằng `LayoutLibraryPageTests`; đoạn JS đổ người thuê của trang Hợp đồng chỉ được kiểm vị trí trong HTML (`ContractPagePayloadTests`), chưa chạy trên trình duyệt.
+- Kiểm trên trình duyệt 08/11/2026 (sau bước 8): web chạy cấu hình `web-test-db` (`.claude/launch.json`), đăng nhập bằng tài khoản do `BranchScopeKit` tạo (`ad_…`, khách thuê `kt_…`, mật khẩu là hằng `Password` của kit). Ảnh `hieu-nang-01` … `08` trong `hinhanhprojectdemo`.
+
+| Màn | Kết quả |
+| --- | --- |
+| Bảng điều khiển | 2 biểu đồ vẽ được; không nạp flatpickr/Select2; widget AI đủ `data-*`; console sạch |
+| File tĩnh | Trình duyệt nhận bản nén: `tabler.min.css` 536.149 → 102.519 B, `jquery.min.js` 89.503 → 39.250 B (đo bằng Resource Timing của trình duyệt) |
+| Hợp đồng | Ô lọc và ô chọn trong modal đều có 45.967 người thuê, cùng thứ tự; lọc theo người thuê gửi đúng `nguoiThueId`; Select2 trong modal tìm được; flatpickr chạy; console sạch; chế độ tối ổn |
+| Hợp đồng 375px | Bảng tràn ngang khỏi thẻ: **có sẵn**, bước 8 không đụng bảng; ghi lại, chưa sửa |
+| Báo cáo | Chart.js 4.6.1 vẽ được; console sạch |
+| Lịch sử thanh toán | flatpickr tiếng Việt (T2, "Tháng mười một"); console sạch |
+| Tài khoản đăng nhập | Select2 trong modal chạy, câu "Không tìm thấy kết quả" tiếng Việt; không lưu dữ liệu |
+| Khách thuê | Widget AI nạp CSS/JS tĩnh, endpoint `/KhachThue/AiAssistant/Chat`, mở được ở sáng/tối, 7 icon Font Awesome; không gửi tin (tránh gọi AI thật) |
