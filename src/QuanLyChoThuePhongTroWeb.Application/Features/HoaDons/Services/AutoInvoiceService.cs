@@ -49,7 +49,52 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        public async Task<ServiceResult<AutoInvoiceRunResult>> RunForRoomAsync(int actorId, AutoInvoiceTrigger trigger, int phongTroId, int thang, int nam)
+        public Task<ServiceResult<AutoInvoiceRunResult>> RunForRoomAsync(int actorId, AutoInvoiceTrigger trigger, int phongTroId, int thang, int nam)
+            => RunCoreAsync(actorId, trigger, phongTroId, thang, nam, preloaded: null);
+
+        public async Task<IReadOnlyList<ServiceResult<AutoInvoiceRunResult>>> RunForRoomsAsync(int actorId, AutoInvoiceTrigger trigger, IReadOnlyList<int> phongTroIds, int thang, int nam)
+        {
+            var ids = phongTroIds ?? Array.Empty<int>();
+            var results = new List<ServiceResult<AutoInvoiceRunResult>>(ids.Count);
+
+            // Đọc ngữ cảnh ban đầu của cả danh sách một lượt (cùng kết quả với đọc từng phòng: AutoInvoiceStoreTests).
+            // Đọc lô lỗi thì ghi cảnh báo và quay về đọc từng phòng như RunForRoomAsync.
+            IReadOnlyDictionary<RoomPeriodKey, AutoInvoiceRoomContext>? contexts = null;
+            if (actorId > 0 && thang >= 1 && thang <= 12 && nam >= 2000)
+            {
+                var keys = ids.Where(id => id > 0).Distinct().Select(id => new RoomPeriodKey(id, thang, nam)).ToList();
+                if (keys.Count > 0)
+                {
+                    try
+                    {
+                        _store.DiscardPendingChanges();
+                        contexts = await _store.GetRoomContextsAsync(keys, _options.SoKyLichSuToiDa, CancellationToken.None);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Không đọc được ngữ cảnh {SoPhong} phòng theo lô (kỳ {Thang}/{Nam}); chuyển sang đọc từng phòng.", keys.Count, thang, nam);
+                        contexts = null;
+                    }
+                }
+            }
+
+            var used = new HashSet<int>();
+            foreach (var id in ids)
+            {
+                // Phòng lặp lại trong danh sách: lần sau đọc mới vì lần trước có thể đã tạo hóa đơn.
+                var preloaded = contexts != null && used.Add(id)
+                    ? new PreloadedContext(contexts.TryGetValue(new RoomPeriodKey(id, thang, nam), out var c) ? c : null)
+                    : null;
+                results.Add(await RunCoreAsync(actorId, trigger, id, thang, nam, preloaded));
+            }
+
+            return results;
+        }
+
+        // Ngữ cảnh đã đọc sẵn của một phòng; Context null nghĩa là đã đọc và không tìm thấy phòng.
+        private sealed record PreloadedContext(AutoInvoiceRoomContext? Context);
+
+        private async Task<ServiceResult<AutoInvoiceRunResult>> RunCoreAsync(int actorId, AutoInvoiceTrigger trigger, int phongTroId, int thang, int nam, PreloadedContext? preloaded)
         {
             AutoInvoiceRoomContext? ctx = null;
             try
@@ -61,7 +106,9 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                 }
 
                 _store.DiscardPendingChanges();
-                ctx = await _store.GetRoomContextAsync(phongTroId, thang, nam, _options.SoKyLichSuToiDa, CancellationToken.None);
+                ctx = preloaded != null
+                    ? preloaded.Context
+                    : await _store.GetRoomContextAsync(phongTroId, thang, nam, _options.SoKyLichSuToiDa, CancellationToken.None);
                 if (ctx == null)
                 {
                     _logger.LogInformation("Hóa đơn tự động bỏ qua: không tìm thấy phòng {PhongTroId}.", phongTroId);

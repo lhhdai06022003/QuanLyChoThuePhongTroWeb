@@ -18,5 +18,16 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
                 Outcome = AutoInvoiceOutcome.DungImLang
             }));
         }
+
+        public async Task<IReadOnlyList<ServiceResult<AutoInvoiceRunResult>>> RunForRoomsAsync(int actorId, AutoInvoiceTrigger trigger, IReadOnlyList<int> phongTroIds, int thang, int nam)
+        {
+            var results = new List<ServiceResult<AutoInvoiceRunResult>>();
+            foreach (var id in phongTroIds)
+            {
+                results.Add(await RunForRoomAsync(actorId, trigger, id, thang, nam));
+            }
+
+            return results;
+        }
     }
 }

@@ -21,9 +21,18 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
         public int? LastSoKyLichSuToiDa { get; private set; }
         public List<string>? Log { get; set; }
 
+        // Số lần đọc ngữ cảnh từng phòng gọi thẳng từ service (không tính lượt đọc bên trong GetRoomContextsAsync).
+        public int SingleContextCalls { get; private set; }
+        public Exception? ThrowOnBatch { get; set; }
+        private bool _inBatch;
+
         public Task<AutoInvoiceRoomContext?> GetRoomContextAsync(int phongTroId, int thang, int nam, int soKyLichSuToiDa, CancellationToken ct = default)
         {
             GetContextCalls++;
+            if (!_inBatch)
+            {
+                SingleContextCalls++;
+            }
             LastSoKyLichSuToiDa = soKyLichSuToiDa;
             Log?.Add("GetContext");
             if (ThrowOnGetContext != null)
@@ -54,14 +63,27 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
             IReadOnlyCollection<RoomPeriodKey> keys, int soKyLichSuToiDa, CancellationToken ct = default)
         {
             GetContextsBatchCalls++;
-            var result = new Dictionary<RoomPeriodKey, AutoInvoiceRoomContext>();
-            foreach (var key in keys.Distinct())
+            if (ThrowOnBatch != null)
             {
-                var ctx = await GetRoomContextAsync(key.PhongTroId, key.Thang, key.Nam, soKyLichSuToiDa, ct);
-                if (ctx != null)
+                throw ThrowOnBatch;
+            }
+
+            var result = new Dictionary<RoomPeriodKey, AutoInvoiceRoomContext>();
+            _inBatch = true;
+            try
+            {
+                foreach (var key in keys.Distinct())
                 {
-                    result[key] = ctx;
+                    var ctx = await GetRoomContextAsync(key.PhongTroId, key.Thang, key.Nam, soKyLichSuToiDa, ct);
+                    if (ctx != null)
+                    {
+                        result[key] = ctx;
+                    }
                 }
+            }
+            finally
+            {
+                _inBatch = false;
             }
 
             return result;

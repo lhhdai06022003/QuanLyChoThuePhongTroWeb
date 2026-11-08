@@ -324,6 +324,98 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.Equal(3, h.Store.GetContextCalls);
         }
 
+        // ---------- Nhiều phòng một lượt (chốt kỳ; docs/features/toi-uu-hieu-nang, bước 10) ----------
+
+        private static void SetRooms(Harness h)
+        {
+            h.Store.ContextsByKey[(101, 10, 2026)] = Approved();
+            h.Store.ContextsByKey[(102, 10, 2026)] = Ctx(status: TrangThaiGhiNhan.DaDuyet, dienMoi: 120, nuocMoi: 60, coHoaDon: true);
+            h.Store.ContextsByKey[(103, 10, 2026)] = null;
+            h.Store.ContextsByKey[(104, 10, 2026)] = Good(images: new[] { Img(1, LoaiDongHo.Dien, ai: 120m, tinCay: 0.85), Img(2, LoaiDongHo.Nuoc, ai: 60m) });
+        }
+
+        private static string Summary(IEnumerable<ServiceResult<AutoInvoiceRunResult>> results)
+            => string.Join(" | ", results.Select(r => $"{r.Success}:{r.Data!.Outcome}:{string.Join(",", r.Data.LyDos)}:{r.Data.HoaDonId}"));
+
+        private static string SideEffects(Harness h)
+            => $"create={string.Join(",", h.Issuance.CreateCalls.Select(c => string.Join("+", c.Request.PhongTroIds)))};"
+             + $"sent={string.Join(",", h.ThongBao.Sent.Select(n => n.Kind + n.TargetId))}";
+
+        [Fact]
+        public async Task RunForRooms_SameResultsAsOneByOne_ReadsInitialContextsInOneBatch()
+        {
+            var rooms = new[] { 101, 102, 103, 104 };
+            var oneByOne = new Harness(Approved());
+            SetRooms(oneByOne);
+            var expected = new List<ServiceResult<AutoInvoiceRunResult>>();
+            foreach (var id in rooms)
+            {
+                expected.Add(await oneByOne.Service.RunForRoomAsync(Actor, AutoInvoiceTrigger.ChotKy, id, 10, 2026));
+            }
+
+            var batch = new Harness(Approved());
+            SetRooms(batch);
+            var actual = await batch.Service.RunForRoomsAsync(Actor, AutoInvoiceTrigger.ChotKy, rooms, 10, 2026);
+
+            Assert.Equal(Summary(expected), Summary(actual));
+            Assert.Equal(SideEffects(oneByOne), SideEffects(batch));
+            Assert.Equal(1, batch.Store.GetContextsBatchCalls);
+            // Mỗi phòng đi tiếp tới bước tạo hóa đơn vẫn được đọc lại ngay trước khi tạo (chỉ phòng 101).
+            Assert.Equal(1, batch.Store.SingleContextCalls);
+            Assert.Equal(oneByOne.Store.SingleContextCalls - rooms.Length, batch.Store.SingleContextCalls);
+        }
+
+        [Fact]
+        public async Task RunForRooms_BatchReadFails_FallsBackToOneByOne_WithWarning()
+        {
+            var rooms = new[] { 101, 102, 103, 104 };
+            var oneByOne = new Harness(Approved());
+            SetRooms(oneByOne);
+            var expected = new List<ServiceResult<AutoInvoiceRunResult>>();
+            foreach (var id in rooms)
+            {
+                expected.Add(await oneByOne.Service.RunForRoomAsync(Actor, AutoInvoiceTrigger.ChotKy, id, 10, 2026));
+            }
+
+            var batch = new Harness(Approved());
+            SetRooms(batch);
+            batch.Store.ThrowOnBatch = new InvalidOperationException("Lỗi đọc theo lô");
+            var actual = await batch.Service.RunForRoomsAsync(Actor, AutoInvoiceTrigger.ChotKy, rooms, 10, 2026);
+
+            Assert.Equal(Summary(expected), Summary(actual));
+            Assert.Equal(SideEffects(oneByOne), SideEffects(batch));
+            Assert.Equal(oneByOne.Store.SingleContextCalls, batch.Store.SingleContextCalls);
+            Assert.Contains(batch.Logger.Entries, e => e.Level == Microsoft.Extensions.Logging.LogLevel.Warning);
+            Assert.DoesNotContain(batch.Logger.Entries, e => e.Level >= Microsoft.Extensions.Logging.LogLevel.Error);
+        }
+
+        [Fact]
+        public async Task RunForRooms_InvalidArguments_AreSilent_AndDoNotTouchStore()
+        {
+            var h = new Harness(Approved());
+
+            var results = await h.Service.RunForRoomsAsync(0, AutoInvoiceTrigger.ChotKy, new[] { 101, 102 }, 10, 2026);
+
+            Assert.Equal(2, results.Count);
+            Assert.All(results, r => Assert.Equal(AutoInvoiceOutcome.DungImLang, r.Data!.Outcome));
+            Assert.Equal(0, h.Store.GetContextsBatchCalls);
+            Assert.Equal(0, h.Store.GetContextCalls);
+        }
+
+        [Fact]
+        public async Task RunForRooms_DuplicateRoom_SecondRunReadsFreshContext()
+        {
+            var h = new Harness(Approved());
+            h.Store.ContextsByKey[(101, 10, 2026)] = Approved();
+
+            var results = await h.Service.RunForRoomsAsync(Actor, AutoInvoiceTrigger.ChotKy, new[] { 101, 101 }, 10, 2026);
+
+            Assert.Equal(2, results.Count);
+            Assert.Equal(1, h.Store.GetContextsBatchCalls);
+            // Lần 1: một lần đọc lại trước khi tạo. Lần 2 (trùng phòng): đọc mới từ đầu như RunForRoomAsync, cộng một lần đọc lại.
+            Assert.Equal(3, h.Store.SingleContextCalls);
+        }
+
         [Fact]
         public async Task RoomNotFound_IsSilent()
         {

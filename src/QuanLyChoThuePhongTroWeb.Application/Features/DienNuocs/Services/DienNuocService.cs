@@ -247,10 +247,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
 
             if (_autoInvoiceService != null)
             {
-                foreach (var phongTroId in phongTroIds.OrderBy(x => x))
-                {
-                    await _autoInvoiceService.RunForRoomAsync(actorId, AutoInvoiceTrigger.ChotKy, phongTroId, input.Thang, input.Nam);
-                }
+                // Từng phòng như trước, nhưng ngữ cảnh ban đầu của cả danh sách đọc một lượt.
+                await _autoInvoiceService.RunForRoomsAsync(actorId, AutoInvoiceTrigger.ChotKy, phongTroIds.OrderBy(x => x).ToList(), input.Thang, input.Nam);
             }
 
             return (true, string.Empty);
