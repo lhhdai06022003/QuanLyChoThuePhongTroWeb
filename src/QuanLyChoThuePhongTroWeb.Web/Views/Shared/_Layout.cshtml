@@ -209,6 +209,11 @@
     @* Đang bị ép đổi mật khẩu thì API việc cần làm trả 403, không nạp badge để tránh lỗi console. *@
     @if ((User.IsInRole("Admin") || User.IsInRole("NhanVien")) && !QuanLyChoThuePhongTroWeb.Web.Helpers.ForcedPasswordChange.IsRequired(User))
     {
+        @* Trang đã tính sẵn số việc cần làm (Bảng điều khiển không lọc chi nhánh) thì in ra để huy hiệu không gọi lại TomTat. *@
+        @if (ViewData[QuanLyChoThuePhongTroWeb.Web.Helpers.ViecCanLamBadge.ViewDataKey] is QuanLyChoThuePhongTroWeb.Application.Features.ViecCanLam.DTOs.ViecCanLamTongHopDto tomTat)
+        {
+            <script>window.viecCanLamTomTat = @Json.Serialize(QuanLyChoThuePhongTroWeb.Web.Helpers.ViecCanLamBadge.Payload(tomTat));</script>
+        }
         <script src="~/js/viec-can-lam-badge.js" asp-append-version="true"></script>
     }
 

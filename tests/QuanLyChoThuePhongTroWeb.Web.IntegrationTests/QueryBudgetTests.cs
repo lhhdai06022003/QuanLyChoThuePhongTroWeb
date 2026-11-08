@@ -166,7 +166,9 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
                 var viec = scope.ServiceProvider.GetRequiredService<QuanLyChoThuePhongTroWeb.Application.Features.ViecCanLam.Services.IViecCanLamService>();
                 tongHop = await _counter.MeasureAsync(() => viec.GetTongHopAsync(staffId, null));
             }
-            _output.WriteLine($"Bảng điều khiển: trang {dashboard} (trong đó Việc cần làm khoảng {tongHop}), huy hiệu {badge}, đổi bộ lọc {ajax}; mở trang = {dashboard + badge} lệnh SQL");
+            // Từ bước 9, trang Bảng điều khiển (không lọc chi nhánh) in sẵn số cho huy hiệu nên huy hiệu không gọi TomTat nữa.
+            _output.WriteLine($"Bảng điều khiển: trang {dashboard} (trong đó Việc cần làm khoảng {tongHop}), đổi bộ lọc {ajax}; "
+                + $"mở trang = {dashboard} lệnh SQL (trước bước 9 cộng thêm huy hiệu {badge} = {dashboard + badge})");
 
             var (admin, _) = await LoginAsync(_factory, w.Admin);
             var html = await (await admin.GetAsync("/QuanLyNhaTro/QuanLyHopDong")).Content.ReadAsStringAsync();

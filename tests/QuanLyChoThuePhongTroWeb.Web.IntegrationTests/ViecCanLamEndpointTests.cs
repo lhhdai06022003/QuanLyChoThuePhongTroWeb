@@ -132,6 +132,53 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             Assert.True(tomTat.TryGetProperty("soTheoDoi", out _));
         }
 
+        // Bảng điều khiển không lọc chi nhánh đã tính đúng số của huy hiệu: in sẵn để huy hiệu không gọi lại TomTat
+        // (docs/features/toi-uu-hieu-nang, bước 9). Có lọc chi nhánh hoặc trang khác thì huy hiệu vẫn tự gọi TomTat.
+        private static readonly Regex InlineTomTat = new(@"window\.viecCanLamTomTat = (\{[^;<]*\});", RegexOptions.Compiled);
+
+        [Fact]
+        public async Task Dashboard_WithoutBranchFilter_InlinesBadgeCounts_EqualToTomTat_BeforeBadgeScript()
+        {
+            var w = await SeedWithPendingInvoicesAsync();
+            foreach (var user in new[] { w.Staff, w.Admin })
+            {
+                var (client, _) = await LoginAsync(_factory, user);
+                var html = await (await client.GetAsync("/QuanLyNhaTro/Dashboard")).Content.ReadAsStringAsync();
+                var tomTat = await JsonAsync(await client.GetAsync("/QuanLyNhaTro/ViecCanLam/TomTat"));
+
+                var match = InlineTomTat.Match(html);
+                Assert.True(match.Success, $"{user}: thiếu số in sẵn cho huy hiệu");
+                using var inline = JsonDocument.Parse(match.Groups[1].Value);
+                Assert.Equal(tomTat.GetProperty("tongSo").GetInt32(), inline.RootElement.GetProperty("tongSo").GetInt32());
+                Assert.Equal(tomTat.GetProperty("soKhan").GetInt32(), inline.RootElement.GetProperty("soKhan").GetInt32());
+                Assert.True(match.Index < html.IndexOf("/js/viec-can-lam-badge.js", StringComparison.Ordinal));
+            }
+        }
+
+        [Fact]
+        public async Task DashboardWithBranchFilter_AndOtherPages_DoNotInlineBadgeCounts()
+        {
+            var w = await SeedWithPendingInvoicesAsync();
+            var (admin, _) = await LoginAsync(_factory, w.Admin);
+
+            foreach (var url in new[] { $"/QuanLyNhaTro/Dashboard?branchId={w.BranchA}", "/QuanLyNhaTro/QuanLyHoaDon", "/QuanLyNhaTro/ViecCanLam" })
+            {
+                var html = await (await admin.GetAsync(url)).Content.ReadAsStringAsync();
+                Assert.Contains("/js/viec-can-lam-badge.js", html);
+                Assert.DoesNotContain("window.viecCanLamTomTat", html);
+            }
+        }
+
+        [Fact]
+        public async Task BadgeScript_UsesInlineCounts_BeforeFetching()
+        {
+            var js = await (await NewClient(_factory).GetAsync("/js/viec-can-lam-badge.js")).Content.ReadAsStringAsync();
+
+            var inline = js.IndexOf("window.viecCanLamTomTat", StringComparison.Ordinal);
+            Assert.True(inline >= 0);
+            Assert.True(inline < js.IndexOf("fetch(", StringComparison.Ordinal));
+        }
+
         [Fact]
         public async Task DashboardHtml_StaffDoesNotSeeAdminOnlyJob_AdminDoes()
         {

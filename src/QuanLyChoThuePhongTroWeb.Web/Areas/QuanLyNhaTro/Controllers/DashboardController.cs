@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Responses;
+using QuanLyChoThuePhongTroWeb.Web.Helpers;
 
 namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
 {
@@ -32,6 +33,11 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             var dto = await _dashboardService.GetDashboardDataAsync(CurrentActorId, branchId, selectedYear, selectedMonth);
             var viec = await _viecCanLamService.GetTongHopAsync(CurrentActorId, branchId, cancellationToken);
             var model = DashboardViewModel.FromDto(dto, viec);
+            if (branchId == null)
+            {
+                // Cùng phạm vi với huy hiệu (TomTat tính với branchId null): layout in sẵn để huy hiệu không gọi lại.
+                ViewData[ViecCanLamBadge.ViewDataKey] = viec;
+            }
             return View(model);
         }
 
