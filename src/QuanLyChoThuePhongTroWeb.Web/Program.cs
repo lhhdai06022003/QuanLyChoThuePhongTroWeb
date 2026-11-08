@@ -82,6 +82,8 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         };
     });
 
+builder.Services.AddStaticAssetCompression();
+
 var app = builder.Build();
 
 // Khởi tạo Database và Seed data qua Infrastructure Initializer
@@ -99,7 +101,9 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseStaticFiles();
+// Nén CSS/JS/SVG và cache lâu file có ?v= (Helpers/StaticAssetDelivery.cs); HTML và JSON không nén.
+app.UseResponseCompression();
+app.UseStaticFiles(StaticAssetDelivery.FileOptions());
 
 app.UseRouting();
 
