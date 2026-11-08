@@ -15,8 +15,9 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence
         // FOR UPDATE, !IsDeleted, Include ChiTietHoaDonDichVus + DichVuDienNuocCuaPhong + HopDong
         Task<HoaDon?> GetInvoiceForUpdateAsync(int hoaDonId, CancellationToken ct = default);
 
-        // Đếm bản DaHuy (IsDeleted = true) cùng hợp đồng/kỳ, để cấp hậu tố -R{n}
-        Task<int> CountCancelledInvoicesAsync(int hopDongId, int thang, int nam, CancellationToken ct = default);
+        // Đếm bản DaHuy (IsDeleted = true) cùng kỳ theo từng hợp đồng, để cấp hậu tố -R{n}.
+        // Một truy vấn cho cả danh sách; hợp đồng không có bản hủy thì không có trong kết quả.
+        Task<IReadOnlyDictionary<int, int>> CountCancelledInvoicesByContractAsync(IReadOnlyCollection<int> hopDongIds, int thang, int nam, CancellationToken ct = default);
 
         // Có hóa đơn khác (!IsDeleted) cùng hợp đồng/kỳ, không tính excludeHoaDonId
         Task<bool> HasOtherActiveInvoiceAsync(int hopDongId, int thang, int nam, int excludeHoaDonId, CancellationToken ct = default);

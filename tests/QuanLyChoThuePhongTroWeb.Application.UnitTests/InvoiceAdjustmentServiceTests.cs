@@ -55,7 +55,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
                 return Task.FromResult<TrangThaiGhiNhan?>(TrangThaiGhiNhan.DaDuyet);
             }
 
-            public Task<int> CountCancelledInvoicesAsync(int hopDongId, int thang, int nam, CancellationToken ct = default) => throw new NotSupportedException();
+            public Task<IReadOnlyDictionary<int, int>> CountCancelledInvoicesByContractAsync(IReadOnlyCollection<int> hopDongIds, int thang, int nam, CancellationToken ct = default) => throw new NotSupportedException();
             public Task<bool> HasOtherActiveInvoiceAsync(int hopDongId, int thang, int nam, int excludeHoaDonId, CancellationToken ct = default) => throw new NotSupportedException();
             public Task AddInvoiceAsync(HoaDon hoaDon, CancellationToken ct = default) => throw new NotSupportedException();
             public Task<IReadOnlyList<YeuCauSuCo>> GetBillableIncidentsInPeriodAsync(IReadOnlyList<int> roomIds, DateTime startUtc, DateTime nextMonthStartUtc, CancellationToken ct = default) => throw new NotSupportedException();

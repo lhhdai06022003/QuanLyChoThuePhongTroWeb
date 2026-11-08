@@ -322,8 +322,12 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             await ctx.SaveChangesAsync();
 
             var store = new InvoiceIssuanceStore(ctx);
-            var count = await store.CountCancelledInvoicesAsync(contract.HopDongId, 9, 2026);
-            Assert.Equal(2, count);
+            // Đếm theo lô: hợp đồng không có bản hủy (ở đây là id không tồn tại) thì không có trong kết quả.
+            var counts = await store.CountCancelledInvoicesByContractAsync(new[] { contract.HopDongId, int.MaxValue }, 9, 2026);
+            Assert.Equal(2, counts[contract.HopDongId]);
+            Assert.False(counts.ContainsKey(int.MaxValue));
+            Assert.Empty(await store.CountCancelledInvoicesByContractAsync(System.Array.Empty<int>(), 9, 2026));
+            Assert.False((await store.CountCancelledInvoicesByContractAsync(new[] { contract.HopDongId }, 7, 2026)).ContainsKey(contract.HopDongId));
         }
 
         [Fact]

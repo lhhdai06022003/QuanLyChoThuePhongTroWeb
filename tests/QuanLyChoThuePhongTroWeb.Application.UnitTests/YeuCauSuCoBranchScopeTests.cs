@@ -167,7 +167,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             private static Exception NotUsed() => new InvalidOperationException("Không được gọi trong test này.");
             public Task<IReadOnlyList<int>> LockContractsAsync(IReadOnlyList<int> hopDongIds, CancellationToken ct = default) => throw NotUsed();
             public Task<HoaDon?> GetInvoiceForUpdateAsync(int hoaDonId, CancellationToken ct = default) => throw NotUsed();
-            public Task<int> CountCancelledInvoicesAsync(int hopDongId, int thang, int nam, CancellationToken ct = default) => throw NotUsed();
+            public Task<IReadOnlyDictionary<int, int>> CountCancelledInvoicesByContractAsync(IReadOnlyCollection<int> hopDongIds, int thang, int nam, CancellationToken ct = default) => throw NotUsed();
             public Task<bool> HasOtherActiveInvoiceAsync(int hopDongId, int thang, int nam, int excludeHoaDonId, CancellationToken ct = default) => throw NotUsed();
             public Task AddInvoiceAsync(HoaDon hoaDon, CancellationToken ct = default) => throw NotUsed();
             public Task<IReadOnlyList<YeuCauSuCo>> GetBillableIncidentsInPeriodAsync(IReadOnlyList<int> roomIds, DateTime startUtc, DateTime nextMonthStartUtc, CancellationToken ct = default) => throw NotUsed();

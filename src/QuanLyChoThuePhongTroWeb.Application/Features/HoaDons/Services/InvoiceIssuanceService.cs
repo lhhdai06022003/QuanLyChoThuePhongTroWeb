@@ -172,6 +172,9 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
             var existingInvoiceContractIds = await _hoaDonStore.GetExistingInvoiceContractIdsAsync(hopDongIds, request.Thang, request.Nam, ct);
             var existingInvoiceSet = new HashSet<int>(existingInvoiceContractIds);
 
+            // Số bản đã hủy cùng kỳ của mọi hợp đồng (đọc sau khi khóa hợp đồng), dùng cấp hậu tố -R{n} cho mã hóa đơn.
+            var cancelledCounts = await _issuanceStore.CountCancelledInvoicesByContractAsync(hopDongIds, request.Thang, request.Nam, ct);
+
             var meterReadings = await _hoaDonStore.GetDichVuDienNuocByRoomIdsAsync(distinctSelectedRoomIds, request.Thang, request.Nam, ct);
             var meterDict = meterReadings.ToDictionary(x => x.PhongTroId);
 
@@ -360,7 +363,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                 }
 
                 var baseInvoiceCode = $"HD-{chiNhanh.MaChiNhanh}-P{baseRoomName}-{hd.HopDongId}-{request.Thang:D2}{request.Nam}";
-                var cancelledCount = await _issuanceStore.CountCancelledInvoicesAsync(hd.HopDongId, request.Thang, request.Nam, ct);
+                var cancelledCount = cancelledCounts.TryGetValue(hd.HopDongId, out var soBanHuy) ? soBanHuy : 0;
                 var finalInvoiceCode = cancelledCount > 0 ? $"{baseInvoiceCode}-R{cancelledCount}" : baseInvoiceCode;
 
                 var hoaDon = new HoaDon

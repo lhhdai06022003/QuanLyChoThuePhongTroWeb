@@ -246,7 +246,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         {
             public Task<IReadOnlyList<int>> LockContractsAsync(IReadOnlyList<int> hopDongIds, CancellationToken ct = default) => Task.FromResult<IReadOnlyList<int>>(hopDongIds);
             public Task<HoaDon?> GetInvoiceForUpdateAsync(int hoaDonId, CancellationToken ct = default) => Task.FromResult<HoaDon?>(null);
-            public Task<int> CountCancelledInvoicesAsync(int hopDongId, int thang, int nam, CancellationToken ct = default) => Task.FromResult(0);
+            public Task<IReadOnlyDictionary<int, int>> CountCancelledInvoicesByContractAsync(IReadOnlyCollection<int> hopDongIds, int thang, int nam, CancellationToken ct = default) => Task.FromResult<IReadOnlyDictionary<int, int>>(new Dictionary<int, int>());
             public Task<bool> HasOtherActiveInvoiceAsync(int hopDongId, int thang, int nam, int excludeHoaDonId, CancellationToken ct = default) => Task.FromResult(false);
             public Task AddInvoiceAsync(HoaDon hoaDon, CancellationToken ct = default) => Task.CompletedTask;
             public Task<IReadOnlyList<YeuCauSuCo>> GetBillableIncidentsInPeriodAsync(IReadOnlyList<int> roomIds, DateTime startUtc, DateTime nextMonthStartUtc, CancellationToken ct = default) => Task.FromResult<IReadOnlyList<YeuCauSuCo>>(new List<YeuCauSuCo>());

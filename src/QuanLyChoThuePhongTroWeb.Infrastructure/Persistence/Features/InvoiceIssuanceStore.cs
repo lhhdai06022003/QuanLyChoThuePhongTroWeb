@@ -48,11 +48,18 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 .FirstOrDefaultAsync(ct);
         }
 
-        public async Task<int> CountCancelledInvoicesAsync(int hopDongId, int thang, int nam, CancellationToken ct = default)
+        public async Task<IReadOnlyDictionary<int, int>> CountCancelledInvoicesByContractAsync(IReadOnlyCollection<int> hopDongIds, int thang, int nam, CancellationToken ct = default)
         {
+            if (hopDongIds.Count == 0)
+            {
+                return new Dictionary<int, int>();
+            }
+
             return await _context.HoaDons
-                .Where(h => h.HopDongId == hopDongId && h.Thang == thang && h.Nam == nam && h.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaHuy && h.IsDeleted)
-                .CountAsync(ct);
+                .Where(h => hopDongIds.Contains(h.HopDongId) && h.Thang == thang && h.Nam == nam && h.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaHuy && h.IsDeleted)
+                .GroupBy(h => h.HopDongId)
+                .Select(g => new { HopDongId = g.Key, SoBanHuy = g.Count() })
+                .ToDictionaryAsync(x => x.HopDongId, x => x.SoBanHuy, ct);
         }
 
         public async Task<bool> HasOtherActiveInvoiceAsync(int hopDongId, int thang, int nam, int excludeHoaDonId, CancellationToken ct = default)

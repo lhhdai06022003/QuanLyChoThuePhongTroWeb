@@ -180,10 +180,18 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
                 return Task.FromResult(inv);
             }
 
-            public Task<int> CountCancelledInvoicesAsync(int hopDongId, int thang, int nam, CancellationToken ct = default)
+            public int CountCancelledCalls { get; private set; }
+            public List<int> LastCountedContractIds { get; } = new();
+
+            public Task<IReadOnlyDictionary<int, int>> CountCancelledInvoicesByContractAsync(IReadOnlyCollection<int> hopDongIds, int thang, int nam, CancellationToken ct = default)
             {
-                CancelledCounts.TryGetValue(hopDongId, out var count);
-                return Task.FromResult(count);
+                CountCancelledCalls++;
+                LastCountedContractIds.Clear();
+                LastCountedContractIds.AddRange(hopDongIds);
+                return Task.FromResult<IReadOnlyDictionary<int, int>>(hopDongIds
+                    .Where(id => CancelledCounts.TryGetValue(id, out var c) && c > 0)
+                    .Distinct()
+                    .ToDictionary(id => id, id => CancelledCounts[id]));
             }
 
             public Task<bool> HasOtherActiveInvoiceAsync(int hopDongId, int thang, int nam, int excludeHoaDonId, CancellationToken ct = default)
@@ -498,6 +506,24 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             var res3 = await service.CreateDraftsAsync(req, actorId: 1);
             Assert.True(res3.Success);
             Assert.Equal("HD-CN1-P101-10-092026-R2", issuanceStore.AddedInvoices[0].MaHoaDon);
+        }
+
+        // Đếm bản hủy của mọi hợp đồng trong một lần (docs/features/toi-uu-hieu-nang, bước 11); hậu tố -R{n} vẫn theo từng hợp đồng.
+        [Fact]
+        public async Task CreateDrafts_ManyContracts_CountsCancelledOnce_SuffixPerContract()
+        {
+            var (service, issuanceStore, hoaDonStore, access, _, _) = CreateService();
+            SetupValidBranchAndRoom(hoaDonStore, access, roomId: 101, contractId: 10);
+            SetupValidBranchAndRoom(hoaDonStore, access, roomId: 102, contractId: 11);
+            issuanceStore.CancelledCounts[10] = 2;
+
+            var res = await service.CreateDraftsAsync(new CreateInvoiceDraftsRequest { ChiNhanhId = 1, Thang = 9, Nam = 2026, PhongTroIds = new[] { 101, 102 } }, actorId: 1);
+
+            Assert.True(res.Success, res.Message);
+            Assert.Equal(1, issuanceStore.CountCancelledCalls);
+            Assert.Equal(new[] { 10, 11 }, issuanceStore.LastCountedContractIds);
+            Assert.Equal(new[] { "HD-CN1-P101-10-092026-R2", "HD-CN1-P101-11-092026" },
+                issuanceStore.AddedInvoices.OrderBy(x => x.HopDongId).Select(x => x.MaHoaDon));
         }
 
         [Fact]
