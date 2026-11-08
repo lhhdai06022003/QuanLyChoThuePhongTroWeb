@@ -69,6 +69,17 @@ Tài nguyên trang:
 
 Test chặn hồi quy: `QueryBudgetTests` (số lệnh của huy hiệu không tăng theo số ứng viên), `AutoInvoiceStoreTests.GetRoomContexts_Batch_MatchesSingleReads_ForEveryScenario`, `EmployeeAccessTests` (đọc phân công một lần mỗi request), `LayoutLibraryStaticGuardTests`, `LayoutLibraryPageTests`.
 
+## Số đo gốc giai đoạn 2 (08/11/2026, chưa sửa code)
+
+Lệnh: `dotnet test tests/QuanLyChoThuePhongTroWeb.Web.IntegrationTests --filter "FullyQualifiedName~QueryBudgetTests|FullyQualifiedName~MonthlyFlows_QueryCount" --logger "console;verbosity=detailed"`.
+
+| Request | 1 phòng | 5 phòng | Mỗi phòng thêm |
+| --- | --- | --- | --- |
+| `POST /DienNuoc/SaveChotDienNuoc` (chốt kỳ, kèm hóa đơn nháp tự động từng phòng) | 72 | 332 | +65 |
+| `POST /HoaDon/PhatSinh` (phát sinh hóa đơn tay) | 14 | 18 | +1 |
+
+Trang Hợp đồng trên DB test (43.945 người thuê, 41.389 phòng tích lũy từ các lượt test): nhân viên 2.924.998 B, Admin 22.881.866 B, cùng 6 lệnh SQL. Khoảng 270 B cho mỗi người thuê hoặc phòng; dữ liệu thật vài trăm người thuê thì khoảng 100–200 KB.
+
 ## Còn có thể làm tiếp (chưa duyệt)
 
 - **Trang Hợp đồng nặng 2,88 MB HTML trên DB test:** `HopDongController` đưa toàn bộ người thuê qua `ViewBag.ListNguoiThue` và view in ra 3 lần (2 ô chọn, 1 khối JSON dòng 420), kèm toàn bộ phòng trống dạng JSON. Kích thước tăng theo số người thuê. Hướng sửa: Select2 tải theo từ khóa (`SearchAutocompleteAsync` đã có). Đổi cách ô chọn hoạt động nên cần duyệt.

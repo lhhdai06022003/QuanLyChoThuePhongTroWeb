@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -123,6 +124,15 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
                 new Dictionary<string, string> { ["draw"] = "1", ["start"] = "0", ["length"] = "10" }));
             Assert.Equal(HttpStatusCode.OK, list!.StatusCode);
             _output.WriteLine($"POST /HoaDon/GetList: {listCount} lệnh SQL");
+
+            // Admin thấy mọi chi nhánh: trang Hợp đồng in danh sách người thuê và phòng của toàn hệ thống.
+            var (admin, _) = await LoginAsync(_factory, w.Admin);
+            await MeasureGetAsync(admin, "/QuanLyNhaTro/QuanLyHopDong");
+            using (var scope = _factory.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                _output.WriteLine($"DB test hiện có {db.NguoiThues.Count(x => !x.IsDeleted)} người thuê, {db.PhongTros.Count(x => !x.IsDeleted)} phòng");
+            }
 
             var tenant = await LoginTenantAsync(w);
             await MeasureGetAsync(tenant, "/KhachThue/Dashboard");

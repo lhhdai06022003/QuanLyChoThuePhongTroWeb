@@ -32,10 +32,12 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
         private const int DaChot = (int)TrangThaiPhatHanhHoaDon.DaChot;
 
         private readonly CustomWebApplicationFactory _factory;
+        private readonly Xunit.Abstractions.ITestOutputHelper _output;
 
-        public AutoInvoiceAdjustmentEndpointTests(CustomWebApplicationFactory factory)
+        public AutoInvoiceAdjustmentEndpointTests(CustomWebApplicationFactory factory, Xunit.Abstractions.ITestOutputHelper output)
         {
             _factory = factory;
+            _output = output;
         }
 
         private sealed class Seed
@@ -625,6 +627,54 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
             Assert.Contains("Không có thay đổi", await response.Content.ReadAsStringAsync());
             Assert.Equal(seed.Invoice.TongTien, (await ReloadInvoiceAsync(seed.Invoice.HoaDonId)).TongTien);
+        }
+
+        // Số lệnh SQL của chốt kỳ và phát sinh hóa đơn theo số phòng (docs/features/toi-uu-hieu-nang).
+        // Chỉ in số đo để so trước/sau; kết quả nghiệp vụ đã có test riêng.
+        [Fact]
+        public async Task MonthlyFlows_QueryCount_ByRoomCount()
+        {
+            using var counter = new QueryCounter();
+            foreach (var n in new[] { 1, 5 })
+            {
+                var chotSeed = await SeedAsync(roomCount: n, withInvoice: false);
+                var (chotClient, chotCsrf) = await LoginAsync(chotSeed.StaffUsername);
+                var chotRequest = new ChotDienNuocReq
+                {
+                    ChiNhanhId = chotSeed.Branch.ChiNhanhId, Thang = 10, Nam = 2026,
+                    DanhSachPhong = chotSeed.Rooms.Select(r => new DienNuocPhongReq
+                    {
+                        PhongTroId = r.Room.PhongTroId,
+                        DienMode = MeterReadingSubmissionMode.Manual, NuocMode = MeterReadingSubmissionMode.Manual,
+                        ChiSoDienCu = 0, ChiSoDienMoi = 50, ChiSoNuocCu = 0, ChiSoNuocMoi = 10,
+                        LyDoNhapThuCongDien = "Đồng hồ mờ số", LyDoNhapThuCongNuoc = "Khách vắng nhà"
+                    }).ToList()
+                };
+                HttpResponseMessage? chot = null;
+                var chotCount = await counter.MeasureAsync(async () => chot = await chotClient.SendAsync(Post("/DienNuoc/SaveChotDienNuoc", chotCsrf, chotRequest)));
+                Assert.Equal(HttpStatusCode.OK, chot!.StatusCode);
+                _output.WriteLine($"POST /DienNuoc/SaveChotDienNuoc, {n} phòng (kèm hóa đơn tự động): {chotCount} lệnh SQL");
+
+                // Phát sinh hóa đơn tay: kỳ đã duyệt sẵn, chưa có hóa đơn.
+                var issueSeed = await SeedAsync(roomCount: n, withInvoice: false);
+                using (var scope = _factory.Services.CreateScope())
+                {
+                    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                    db.DichVuDienNuocCuaPhongs.AddRange(issueSeed.Rooms.Select(r => new DichVuDienNuocCuaPhong
+                    {
+                        PhongTroId = r.Room.PhongTroId, Thang = 10, Nam = 2026,
+                        ChiSoDienCu = 100, ChiSoDienMoi = 120, ChiSoNuocCu = 50, ChiSoNuocMoi = 60,
+                        DonGiaDien = 3500, DonGiaNuoc = 20000, TrangThaiGhiNhan = TrangThaiGhiNhan.DaDuyet
+                    }));
+                    await db.SaveChangesAsync();
+                }
+                var (issueClient, issueCsrf) = await LoginAsync(issueSeed.StaffUsername);
+                var issueBody = new { chiNhanhId = issueSeed.Branch.ChiNhanhId, thang = 10, nam = 2026, selectedPhongTroIds = issueSeed.Rooms.Select(r => r.Room.PhongTroId).ToList() };
+                HttpResponseMessage? issue = null;
+                var issueCount = await counter.MeasureAsync(async () => issue = await issueClient.SendAsync(Post("/HoaDon/PhatSinh", issueCsrf, issueBody)));
+                Assert.True(issue!.StatusCode == HttpStatusCode.OK, await issue.Content.ReadAsStringAsync());
+                _output.WriteLine($"POST /HoaDon/PhatSinh, {n} phòng: {issueCount} lệnh SQL");
+            }
         }
     }
 }
