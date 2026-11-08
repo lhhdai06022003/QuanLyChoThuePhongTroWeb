@@ -634,6 +634,72 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.True(_uow.CurrentTransaction.Committed);
         }
 
+        private static ApproveMeterPeriodsRequest ManualApproveRequestForRooms(int thang, int nam, params int[] phongTroIds) => new()
+        {
+            Thang = thang,
+            Nam = nam,
+            DanhSachPhong = phongTroIds.Select(id => new ApproveMeterPeriodItem
+            {
+                PhongTroId = id,
+                DienMode = MeterReadingSubmissionMode.Manual,
+                ChiSoDienMoiThuCong = 160m,
+                LyDoDienThuCong = "Ghi trực tiếp",
+                NuocMode = MeterReadingSubmissionMode.Manual,
+                ChiSoNuocMoiThuCong = 65m,
+                LyDoNuocThuCong = "Ghi trực tiếp"
+            }).ToList()
+        };
+
+        // Tra chi nhánh của cả danh sách trong một lần (docs/features/toi-uu-hieu-nang, bước 6);
+        // thông báo lỗi giữ như khi tra từng phòng theo id tăng dần: gặp lỗi nào trước thì báo lỗi đó.
+        [Fact]
+        public async Task ApprovePeriodsAsync_BranchesDiffer_BeforeMissingRoom_ReportsBranchMismatch()
+        {
+            _store.RoomBranches[1] = 10;
+            _store.RoomBranches[2] = 20;
+            _access.Permissions.Add((2, 10, EmployeeActionCodes.MeterReview));
+
+            var result = await _service.ApprovePeriodsAsync(ManualApproveRequestForRooms(10, 2026, 3, 2, 1), 2);
+
+            Assert.False(result.Success);
+            Assert.Equal("Danh sách phòng không thuộc cùng một chi nhánh.", result.Message);
+        }
+
+        [Fact]
+        public async Task ApprovePeriodsAsync_MissingRoom_BeforeBranchMismatch_ReportsMissingRoom()
+        {
+            _store.RoomBranches[1] = 10;
+            _store.RoomBranches[3] = 20;
+            _access.Permissions.Add((2, 10, EmployeeActionCodes.MeterReview));
+
+            var result = await _service.ApprovePeriodsAsync(ManualApproveRequestForRooms(10, 2026, 3, 2, 1), 2);
+
+            Assert.False(result.Success);
+            Assert.Equal("Phòng trọ 2 không tồn tại hoặc đã bị xóa.", result.Message);
+        }
+
+        [Fact]
+        public async Task ApprovePeriodsAsync_ManyRooms_LooksUpBranchesOnce()
+        {
+            for (var id = 1; id <= 3; id++)
+            {
+                _store.RoomBranches[id] = 10;
+                _store.Periods[id] = new DichVuDienNuocCuaPhong
+                {
+                    DichVuDienNuocCuaPhongId = id, PhongTroId = id, Thang = 10, Nam = 2026,
+                    ChiSoDienCu = 100, ChiSoNuocCu = 50, TrangThaiGhiNhan = TrangThaiGhiNhan.Nhap
+                };
+            }
+            _access.Permissions.Add((2, 10, EmployeeActionCodes.MeterReview));
+
+            var result = await _service.ApprovePeriodsAsync(ManualApproveRequestForRooms(10, 2026, 1, 2, 3), 2);
+
+            Assert.True(result.Success, result.Message);
+            Assert.Equal(1, _store.GetBranchIdsByRoomsCalls);
+            Assert.Equal(0, _store.GetBranchIdByRoomCalls);
+            Assert.All(_store.Periods.Values, p => Assert.Equal(TrangThaiGhiNhan.DaDuyet, p.TrangThaiGhiNhan));
+        }
+
         private static ApproveMeterPeriodsRequest ManualApproveRequest(int thang, int nam, int phongTroId = 1) => new()
         {
             Thang = thang,

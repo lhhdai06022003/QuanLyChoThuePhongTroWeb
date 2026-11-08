@@ -29,6 +29,13 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 .FirstOrDefaultAsync(cancellationToken);
         }
 
+        public async Task<IReadOnlyDictionary<int, int>> GetBranchIdsByRoomsAsync(IReadOnlyList<int> roomIds, CancellationToken cancellationToken = default)
+        {
+            return await _context.PhongTros
+                .Where(p => roomIds.Contains(p.PhongTroId) && !p.IsDeleted)
+                .ToDictionaryAsync(p => p.PhongTroId, p => p.ChiNhanhId, cancellationToken);
+        }
+
         public async Task<bool> HasActiveContractForTenantInPeriodAsync(int phongTroId, int tenantUserId, int thang, int nam, CancellationToken cancellationToken = default)
         {
             var user = await _context.NguoiDungs

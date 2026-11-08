@@ -33,6 +33,38 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             _fixture = fixture;
         }
 
+        // Bản theo lô phải ra cùng kết quả với GetBranchIdByRoomAsync cho từng phòng (phòng đã xóa, không có: vắng mặt).
+        [Fact]
+        public async Task GetBranchIdsByRooms_MatchesSingleLookup_ExcludesDeletedAndMissing()
+        {
+            await using var context = _fixture.CreateDbContext();
+            await using var tx = await context.Database.BeginTransactionAsync();
+
+            var suffix = Guid.NewGuid().ToString("N").Substring(0, 6);
+            var branchA = new ChiNhanh { TenChiNhanh = $"CNA_{suffix}", MaChiNhanh = TestCodes.MaChiNhanh("BA"), DiaChi = "A", SoDienThoai = "0900000000", MoTa = "M" };
+            var branchB = new ChiNhanh { TenChiNhanh = $"CNB_{suffix}", MaChiNhanh = TestCodes.MaChiNhanh("BB"), DiaChi = "B", SoDienThoai = "0900000001", MoTa = "M" };
+            context.ChiNhanhs.AddRange(branchA, branchB);
+            await context.SaveChangesAsync();
+
+            var roomA = new PhongTro { ChiNhanhId = branchA.ChiNhanhId, SoPhong = $"A_{suffix}", GiaThue = 1000000m, DienTich = 20, MoTa = "M" };
+            var roomB = new PhongTro { ChiNhanhId = branchB.ChiNhanhId, SoPhong = $"B_{suffix}", GiaThue = 1000000m, DienTich = 20, MoTa = "M" };
+            var deleted = new PhongTro { ChiNhanhId = branchA.ChiNhanhId, SoPhong = $"X_{suffix}", GiaThue = 1000000m, DienTich = 20, MoTa = "M", IsDeleted = true };
+            context.PhongTros.AddRange(roomA, roomB, deleted);
+            await context.SaveChangesAsync();
+
+            var store = new MeterImageStore(context);
+            var ids = new[] { roomA.PhongTroId, roomB.PhongTroId, deleted.PhongTroId, int.MaxValue };
+
+            var batch = await store.GetBranchIdsByRoomsAsync(ids);
+
+            Assert.Equal(2, batch.Count);
+            foreach (var id in ids)
+            {
+                var single = await store.GetBranchIdByRoomAsync(id);
+                Assert.Equal(single, batch.TryGetValue(id, out var b) ? b : (int?)null);
+            }
+        }
+
         [Fact]
         public async Task PersistAndReload_ImageAndPeriod_StoresUrlPublicIdAndRelationships()
         {

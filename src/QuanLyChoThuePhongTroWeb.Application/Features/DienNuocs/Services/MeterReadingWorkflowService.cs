@@ -1184,9 +1184,11 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
             var distinctRoomIds = request.DanhSachPhong.Select(p => p.PhongTroId).Distinct().OrderBy(id => id).ToList();
             int? commonBranchId = null;
 
+            // Tra chi nhánh cả danh sách một lần, rồi xét theo id tăng dần như khi tra từng phòng.
+            var roomBranchIds = await _store.GetBranchIdsByRoomsAsync(distinctRoomIds, cancellationToken);
             foreach (var roomId in distinctRoomIds)
             {
-                var branchId = await _store.GetBranchIdByRoomAsync(roomId, cancellationToken);
+                int? branchId = roomBranchIds.TryGetValue(roomId, out var foundBranchId) ? foundBranchId : null;
                 if (!branchId.HasValue)
                 {
                     return ServiceResult<MeterPeriodsApprovalResult>.Fail($"Phòng trọ {roomId} không tồn tại hoặc đã bị xóa.");

@@ -10,6 +10,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Persistence
     public interface IMeterImageStore
     {
         Task<int?> GetBranchIdByRoomAsync(int phongTroId, CancellationToken cancellationToken = default);
+        // Chi nhánh của nhiều phòng trong một truy vấn; phòng không có hoặc đã xóa thì không có trong kết quả.
+        Task<IReadOnlyDictionary<int, int>> GetBranchIdsByRoomsAsync(IReadOnlyList<int> roomIds, CancellationToken cancellationToken = default);
         Task<bool> HasActiveContractForTenantInPeriodAsync(int phongTroId, int tenantUserId, int thang, int nam, CancellationToken cancellationToken = default);
         Task<bool> HasContractInMonthAsync(int phongTroId, int thang, int nam, CancellationToken cancellationToken = default);
         Task<MeterImageAccessContext?> GetImageAccessContextAsync(int imageId, CancellationToken cancellationToken = default);

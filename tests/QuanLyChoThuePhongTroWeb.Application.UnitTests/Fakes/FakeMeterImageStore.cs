@@ -22,9 +22,19 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
         private int _periodIdSeq = 1;
         private int _imageIdSeq = 1;
 
+        public int GetBranchIdByRoomCalls { get; private set; }
+        public int GetBranchIdsByRoomsCalls { get; private set; }
+
         public Task<int?> GetBranchIdByRoomAsync(int phongTroId, CancellationToken cancellationToken = default)
         {
+            GetBranchIdByRoomCalls++;
             return Task.FromResult(RoomBranches.TryGetValue(phongTroId, out var bId) ? (int?)bId : null);
+        }
+
+        public Task<IReadOnlyDictionary<int, int>> GetBranchIdsByRoomsAsync(IReadOnlyList<int> roomIds, CancellationToken cancellationToken = default)
+        {
+            GetBranchIdsByRoomsCalls++;
+            return Task.FromResult<IReadOnlyDictionary<int, int>>(roomIds.Where(RoomBranches.ContainsKey).Distinct().ToDictionary(id => id, id => RoomBranches[id]));
         }
 
         public Task<bool> HasActiveContractForTenantInPeriodAsync(int phongTroId, int tenantUserId, int thang, int nam, CancellationToken cancellationToken = default)
