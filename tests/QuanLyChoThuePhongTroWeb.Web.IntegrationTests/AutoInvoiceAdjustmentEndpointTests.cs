@@ -629,6 +629,110 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             Assert.Equal(seed.Invoice.TongTien, (await ReloadInvoiceAsync(seed.Invoice.HoaDonId)).TongTien);
         }
 
+        // Tách số lệnh SQL của chốt kỳ theo từng phần (docs/features/toi-uu-hieu-nang, đo trước hạng mục 1 và 3).
+        // Gọi thẳng service trong một scope như một request; chỉ in số đo.
+        [Fact]
+        public async Task MonthlyClose_QueryCount_Breakdown()
+        {
+            using var counter = new QueryCounter();
+            const int n = 5;
+            var seed = await SeedAsync(roomCount: n, withInvoice: false);
+            var roomIds = seed.Rooms.Select(r => r.Room.PhongTroId).OrderBy(x => x).ToList();
+
+            using (var scope = _factory.Services.CreateScope())
+            {
+                var sp = scope.ServiceProvider;
+                var db = sp.GetRequiredService<ApplicationDbContext>();
+                var staffId = (await db.NguoiDungs.AsNoTracking().SingleAsync(u => u.TenDangNhap == seed.StaffUsername)).NguoiDungId;
+                var workflow = sp.GetRequiredService<QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services.IMeterReadingWorkflowService>();
+                var autoInvoice = sp.GetRequiredService<QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services.IAutoInvoiceService>();
+
+                var approve = await counter.MeasureAsync(async () =>
+                {
+                    var r = await workflow.ApprovePeriodsAsync(new ApproveMeterPeriodsRequest
+                    {
+                        Thang = 10, Nam = 2026,
+                        DanhSachPhong = roomIds.Select(id => new ApproveMeterPeriodItem
+                        {
+                            PhongTroId = id,
+                            DienMode = MeterReadingSubmissionMode.Manual, ChiSoDienMoiThuCong = 50, LyDoDienThuCong = "Ghi trực tiếp",
+                            NuocMode = MeterReadingSubmissionMode.Manual, ChiSoNuocMoiThuCong = 10, LyDoNuocThuCong = "Ghi trực tiếp"
+                        }).ToList()
+                    }, staffId);
+                    Assert.True(r.Success, r.Message);
+                });
+                _output.WriteLine($"Duyệt chỉ số {n} phòng (một transaction): {approve} lệnh SQL");
+
+                var perRoom = new List<int>();
+                foreach (var id in roomIds)
+                {
+                    perRoom.Add(await counter.MeasureAsync(async () =>
+                    {
+                        var r = await autoInvoice.RunForRoomAsync(staffId, QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs.AutoInvoiceTrigger.ChotKy, id, 10, 2026);
+                        Assert.Equal(QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs.AutoInvoiceOutcome.DaTaoNhap, r.Data!.Outcome);
+                    }));
+                }
+                _output.WriteLine($"Hóa đơn tự động từng phòng: {string.Join(", ", perRoom)} lệnh SQL");
+            }
+
+            // Chi tiết một phòng có kỳ đã duyệt: các phần bên trong RunForRoomAsync.
+            var one = await SeedAsync(roomCount: 1, withInvoice: false);
+            var roomId = one.Rooms[0].Room.PhongTroId;
+            using (var scope = _factory.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                db.DichVuDienNuocCuaPhongs.Add(new DichVuDienNuocCuaPhong
+                {
+                    PhongTroId = roomId, Thang = 10, Nam = 2026,
+                    ChiSoDienCu = 100, ChiSoDienMoi = 120, ChiSoNuocCu = 50, ChiSoNuocMoi = 60,
+                    DonGiaDien = 3500, DonGiaNuoc = 20000, TrangThaiGhiNhan = TrangThaiGhiNhan.DaDuyet
+                });
+                await db.SaveChangesAsync();
+            }
+            using (var scope = _factory.Services.CreateScope())
+            {
+                var sp = scope.ServiceProvider;
+                var db = sp.GetRequiredService<ApplicationDbContext>();
+                var staffId = (await db.NguoiDungs.AsNoTracking().SingleAsync(u => u.TenDangNhap == one.StaffUsername)).NguoiDungId;
+                var store = sp.GetRequiredService<QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence.IAutoInvoiceStore>();
+                var options = sp.GetRequiredService<QuanLyChoThuePhongTroWeb.Application.Common.Configurations.AutoInvoiceOptions>();
+                var issuance = sp.GetRequiredService<QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services.IInvoiceIssuanceService>();
+                var thongBao = sp.GetRequiredService<QuanLyChoThuePhongTroWeb.Application.Features.ThongBaos.Services.IThongBaoService>();
+
+                var ctx = await counter.MeasureAsync(() => store.GetRoomContextAsync(roomId, 10, 2026, options.SoKyLichSuToiDa));
+                var draft = await counter.MeasureAsync(async () =>
+                {
+                    var r = await issuance.CreateDraftsAsync(new QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs.CreateInvoiceDraftsRequest
+                    {
+                        ChiNhanhId = one.Branch.ChiNhanhId, Thang = 10, Nam = 2026, PhongTroIds = new[] { roomId }
+                    }, staffId);
+                    Assert.True(r.Success, r.Message);
+                });
+                var notify = await counter.MeasureAsync(() => thongBao.GuiChoNguoiPhuTrachPhongAsync(roomId, "Đo", "Đo số lệnh SQL", "HoaDon", "/"));
+                _output.WriteLine($"Một phòng: đọc ngữ cảnh {ctx}, tạo hóa đơn nháp {draft}, báo nhân viên {notify} lệnh SQL");
+            }
+
+            // Phát sinh hóa đơn tay 20 phòng (hạng mục 3: đếm hóa đơn đã hủy từng hợp đồng).
+            var many = await SeedAsync(roomCount: 20, withInvoice: false);
+            using (var scope = _factory.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                db.DichVuDienNuocCuaPhongs.AddRange(many.Rooms.Select(r => new DichVuDienNuocCuaPhong
+                {
+                    PhongTroId = r.Room.PhongTroId, Thang = 10, Nam = 2026,
+                    ChiSoDienCu = 100, ChiSoDienMoi = 120, ChiSoNuocCu = 50, ChiSoNuocMoi = 60,
+                    DonGiaDien = 3500, DonGiaNuoc = 20000, TrangThaiGhiNhan = TrangThaiGhiNhan.DaDuyet
+                }));
+                await db.SaveChangesAsync();
+            }
+            var (client, csrf) = await LoginAsync(many.StaffUsername);
+            var body = new { chiNhanhId = many.Branch.ChiNhanhId, thang = 10, nam = 2026, selectedPhongTroIds = many.Rooms.Select(r => r.Room.PhongTroId).ToList() };
+            HttpResponseMessage? issue = null;
+            var issueCount = await counter.MeasureAsync(async () => issue = await client.SendAsync(Post("/HoaDon/PhatSinh", csrf, body)));
+            Assert.True(issue!.StatusCode == HttpStatusCode.OK, await issue.Content.ReadAsStringAsync());
+            _output.WriteLine($"POST /HoaDon/PhatSinh, 20 phòng: {issueCount} lệnh SQL");
+        }
+
         // Số lệnh SQL của chốt kỳ và phát sinh hóa đơn theo số phòng (docs/features/toi-uu-hieu-nang).
         // Chỉ in số đo để so trước/sau; kết quả nghiệp vụ đã có test riêng.
         [Fact]

@@ -99,6 +99,18 @@ Bước 5, nén Gzip mức nhanh (Brotli thường nhỏ hơn): `tabler.min.css`
 
 Test chặn hồi quy: `StaticFilesTests` (nén đúng loại file, nội dung giải nén giống bản gốc, HTML không nén, cache file `?v=`), `MeterReadingWorkflowTests` (thứ tự báo lỗi, tra chi nhánh một lần), `MeterImageStoreTests.GetBranchIdsByRooms_MatchesSingleLookup_ExcludesDeletedAndMissing`, `AutoInvoiceServiceTests` (số lần đọc ngữ cảnh khi có/không có xác nhận ảnh), `ContractPagePayloadTests`.
 
+## Số đo trước giai đoạn 3 (08/11/2026, chưa sửa code)
+
+Test: `AutoInvoiceAdjustmentEndpointTests.MonthlyClose_QueryCount_Breakdown`, `QueryBudgetTests.Breakdown_Dashboard_And_ContractPage`. DB test lúc đo: 37.818 chi nhánh, 15.280 Admin, 45.999 người thuê, 43.197 phòng (tích lũy qua các lượt test, làm phồng hai số có ghi chú).
+
+| Hạng mục | Số đo |
+| --- | --- |
+| 1. Chốt kỳ, mỗi phòng | Duyệt chỉ số 61 lệnh cho 5 phòng (khoảng 12/phòng, một transaction). Hóa đơn tự động 46 lệnh mỗi phòng = đọc ngữ cảnh 8 × 2 lần + tạo hóa đơn nháp 13 + báo nhân viên 18. Số 18 bị phồng: thông báo gửi cho mọi Admin (DB test có 15.280 Admin nên lệnh INSERT bị chia nhiều lô); dữ liệu thật vài Admin thì khoảng 3. Ước tính dữ liệu thật: khoảng 44 lệnh mỗi phòng |
+| 2. Trang Hợp đồng (Admin) | 14.424.821 B = JSON người thuê 3.365.193 B (73 B/người) + JSON phòng 4.161.258 B (96 B/phòng) + phần còn lại 6.898.370 B, chủ yếu là 75.575 thẻ `<option>` chi nhánh (37.818 chi nhánh × 2 ô chọn). Ước tính dữ liệu thật (vài chi nhánh, 300 người thuê, 200 phòng): khoảng 40 KB dữ liệu trên nền trang |
+| 3. Phát sinh hóa đơn | 1 phòng 14, 5 phòng 18, 20 phòng 33 lệnh: đúng +1 mỗi phòng |
+| 4. Bảng điều khiển | Trang 28 lệnh (Việc cần làm chiếm 19) + huy hiệu 20 = 48 lệnh mỗi lần mở; đổi bộ lọc 28 |
+| 5. Màn 375px | Cổng quản lý: 15/21 màn tràn ngang cả trang (bảng rộng 486–1.205 px); không tràn: Giữ chỗ, Chốt điện nước, Lịch sử thanh toán, Báo cáo, Phòng trọ (và Đối chiếu chỉ lệch 8 px). Cổng khách thuê: 4/8 (Hợp đồng, Lịch sử thanh toán, Sự cố, Thông báo). Nguyên nhân chung: `site.css` dòng 79–83 ép `.table-responsive, .dataTables_wrapper { overflow: visible !important }` để menu ⋯ không bị cắt; màn nào có CSS riêng đặt lại `overflow-x` thì không tràn |
+
 ## Còn có thể làm tiếp (chưa duyệt)
 
 - **Chốt kỳ vẫn khoảng 57 lệnh mỗi phòng:** hóa đơn tự động chạy lần lượt từng phòng (`DienNuocService.cs`, vòng `RunForRoomAsync`), mỗi phòng tự tạo hóa đơn nháp riêng. Giảm mạnh hơn phải tạo theo lô cho cả chi nhánh, đổi cách mỗi phòng chạy độc lập và báo lỗi riêng.

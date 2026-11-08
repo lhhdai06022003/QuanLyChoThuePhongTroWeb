@@ -140,5 +140,59 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
 
             Assert.True(tomTat5 >= tomTat0);
         }
+
+        // Đo trước hạng mục 2 và 4 (docs/features/toi-uu-hieu-nang): Bảng điều khiển tách phần Việc cần làm,
+        // trang Hợp đồng của Admin tách theo khối dữ liệu in vào HTML. Chỉ in số đo.
+        [Fact]
+        public async Task Breakdown_Dashboard_And_ContractPage()
+        {
+            var w = await SeedAsync(_factory);
+            await AddHd5CandidatesAsync(w.BranchA, 5);
+            var (staff, _) = await LoginAsync(_factory, w.Staff);
+
+            int staffId;
+            using (var scope = _factory.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                staffId = db.NguoiDungs.Single(u => u.TenDangNhap == w.Staff).NguoiDungId;
+            }
+
+            var dashboard = await MeasureGetAsync(staff, "/QuanLyNhaTro/Dashboard");
+            var ajax = await MeasureGetAsync(staff, $"/QuanLyNhaTro/Dashboard/GetAjaxData?year=2026&month=10");
+            var badge = await MeasureGetAsync(staff, "/QuanLyNhaTro/ViecCanLam/TomTat");
+            int tongHop;
+            using (var scope = _factory.Services.CreateScope())
+            {
+                var viec = scope.ServiceProvider.GetRequiredService<QuanLyChoThuePhongTroWeb.Application.Features.ViecCanLam.Services.IViecCanLamService>();
+                tongHop = await _counter.MeasureAsync(() => viec.GetTongHopAsync(staffId, null));
+            }
+            _output.WriteLine($"Bảng điều khiển: trang {dashboard} (trong đó Việc cần làm khoảng {tongHop}), huy hiệu {badge}, đổi bộ lọc {ajax}; mở trang = {dashboard + badge} lệnh SQL");
+
+            var (admin, _) = await LoginAsync(_factory, w.Admin);
+            var html = await (await admin.GetAsync("/QuanLyNhaTro/QuanLyHopDong")).Content.ReadAsStringAsync();
+            int Segment(string start)
+            {
+                var from = html.IndexOf(start, StringComparison.Ordinal);
+                if (from < 0) return -1;
+                var to = html.IndexOf(";", from, StringComparison.Ordinal);
+                return System.Text.Encoding.UTF8.GetByteCount(html.AsSpan(from, to - from).ToString());
+            }
+            var total = System.Text.Encoding.UTF8.GetByteCount(html);
+            var tenants = Segment("allNguoiThues = [{");
+            var rooms = Segment("let allPhongTros = [");
+            int soNguoiThue, soPhong;
+            using (var scope = _factory.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                soNguoiThue = db.NguoiThues.Count(x => !x.IsDeleted);
+                soPhong = db.PhongTros.Count(x => !x.IsDeleted);
+                // Dữ liệu tích lũy của DB test làm phồng số đo: chi nhánh in vào ô chọn, Admin nhận mọi thông báo phòng.
+                _output.WriteLine($"DB test: {db.ChiNhanhs.Count():N0} chi nhánh, {db.NguoiDungs.Count(u => u.Role == QuanLyChoThuePhongTroWeb.Domain.Enums.Role.Admin && u.IsActive && !u.IsDeleted):N0} Admin đang hoạt động");
+            }
+            var optionCount = System.Text.RegularExpressions.Regex.Matches(html, "<option ").Count;
+            _output.WriteLine($"Hợp đồng (Admin): {optionCount:N0} thẻ <option> in sẵn trong HTML");
+            _output.WriteLine($"Hợp đồng (Admin): tổng {total:N0} B; JSON người thuê {tenants:N0} B ({soNguoiThue:N0} người, {(double)tenants / soNguoiThue:N0} B/người); "
+                + $"JSON phòng {rooms:N0} B ({soPhong:N0} phòng, {(double)rooms / soPhong:N0} B/phòng); phần còn lại {total - tenants - rooms:N0} B");
+        }
     }
 }
