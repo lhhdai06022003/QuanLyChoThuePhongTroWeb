@@ -49,15 +49,9 @@
                         <label for="filterNguoiThue" class="form-label fw-bold text-secondary mb-1">
                             <i class="ti ti-user me-1"></i> Người Thuê
                         </label>
+                        @* Người thuê đổ từ khối JSON allNguoiThues trong script (in một lần cho cả hai ô chọn). *@
                         <select id="filterNguoiThue" class="form-select form-select-sm">
                             <option value="0">-- Tất cả --</option>
-                            @if (ViewBag.ListNguoiThue != null)
-                            {
-                                foreach (var nt in ViewBag.ListNguoiThue)
-                                {
-                                    <option value="@nt.Value">@nt.Text</option>
-                                }
-                            }
                         </select>
                     </div>
                     <div class="col-md-3">
@@ -167,13 +161,6 @@
                                     <label for="NguoiThueId" class="form-label">Người Đại Diện <span class="text-danger">*</span></label>
                                     <select class="form-control select2" id="NguoiThueId" style="width: 100%;">
                                         <option value="">-- Chọn khách thuê --</option>
-                                        @if (ViewBag.ListNguoiThue != null)
-                                        {
-                                            foreach (var nt in ViewBag.ListNguoiThue)
-                                            {
-                                                <option value="@nt.Value">@nt.Text</option>
-                                            }
-                                        }
                                     </select>
                                     <div id="canhBaoNoCu"></div>
                                 </div>
@@ -423,6 +410,15 @@
                 allNguoiThues = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.ListNguoiThue, new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }));
                 </text>
             }
+            // Đổ người thuê vào ô lọc và ô chọn trong modal trước khi khởi tạo Select2 và bảng.
+            // new Option() gán chữ bằng textContent nên không cần escape.
+            ['filterNguoiThue', 'NguoiThueId'].forEach(function (id) {
+                const select = document.getElementById(id);
+                if (!select) return;
+                const options = document.createDocumentFragment();
+                allNguoiThues.forEach(function (nt) { options.appendChild(new Option(nt.text, nt.value)); });
+                select.appendChild(options);
+            });
             if (typeof initThanhVienModule === "function") {
                 initThanhVienModule(allNguoiThues);
             }
