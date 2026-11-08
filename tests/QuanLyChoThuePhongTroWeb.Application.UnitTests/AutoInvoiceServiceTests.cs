@@ -284,6 +284,46 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             }
         }
 
+        // Số lần đọc ngữ cảnh phòng (docs/features/toi-uu-hieu-nang, bước 7): không có ảnh nào phải tự xác nhận
+        // (ví dụ chốt kỳ bằng chỉ số tay) thì không đọc lại sau bước xác nhận; lần đọc lại trước khi tạo hóa đơn vẫn giữ.
+        [Fact]
+        public async Task NothingToConfirm_ReadsContextTwice_StillReevaluatesBeforeCreating()
+        {
+            var h = new Harness(Approved());
+
+            var result = await h.Run(AutoInvoiceTrigger.ChotKy);
+
+            Assert.Equal(AutoInvoiceOutcome.DaTaoNhap, result.Data!.Outcome);
+            Assert.Empty(h.Confirms);
+            Assert.Empty(h.Workflow.ApprovedBatchRequests);
+            Assert.Equal(2, h.Store.GetContextCalls);
+            Assert.Single(h.Issuance.CreateCalls);
+        }
+
+        [Fact]
+        public async Task NothingToConfirm_ReevaluationSeesInvoice_StopsSilently()
+        {
+            var h = new Harness(Approved());
+            h.Store.Contexts.Add(Ctx(status: TrangThaiGhiNhan.DaDuyet, dienMoi: 120, nuocMoi: 60, coHoaDon: true));
+
+            var result = await h.Run(AutoInvoiceTrigger.ChotKy);
+
+            Assert.Equal(AutoInvoiceOutcome.DungImLang, result.Data!.Outcome);
+            Assert.Empty(h.Issuance.CreateCalls);
+        }
+
+        [Fact]
+        public async Task ImagesConfirmed_ReloadsAfterConfirm_AndBeforeCreating()
+        {
+            var h = new Harness(Good());
+
+            var result = await h.Run();
+
+            Assert.Equal(AutoInvoiceOutcome.DaTaoNhap, result.Data!.Outcome);
+            Assert.Equal(2, h.Confirms.Count);
+            Assert.Equal(3, h.Store.GetContextCalls);
+        }
+
         [Fact]
         public async Task RoomNotFound_IsSilent()
         {

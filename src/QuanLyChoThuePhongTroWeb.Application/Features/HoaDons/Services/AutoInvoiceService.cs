@@ -102,12 +102,15 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                 }
 
                 // Bước 1: tự xác nhận ảnh đạt ngưỡng.
+                var daGoiXacNhanAnh = false;
                 foreach (var meter in new[] { decision.Dien!, decision.Nuoc! })
                 {
                     if (meter.AnhTuXacNhanId == null)
                     {
                         continue;
                     }
+
+                    daGoiXacNhanAnh = true;
 
                     var confirm = await _workflowService.ConfirmImageAsync(new ConfirmMeterImageRequest
                     {
@@ -136,7 +139,9 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                 }
 
                 // Bước 2: chốt kỳ bằng ảnh chính thức.
-                var afterConfirm = await ReloadAsync(phongTroId, thang, nam);
+                // Bước 1 không xác nhận ảnh nào (ví dụ chốt kỳ bằng chỉ số tay) thì chuỗi chưa đổi dữ liệu kể từ lần đọc đầu:
+                // dùng lại ngữ cảnh đó. Thay đổi đồng thời vẫn bị bắt ở lần đánh giá lại ngay trước khi tạo hóa đơn.
+                var afterConfirm = daGoiXacNhanAnh ? await ReloadAsync(phongTroId, thang, nam) : ctx;
                 if (afterConfirm == null || afterConfirm.CoHoaDonHoatDong)
                 {
                     return Done(AutoInvoiceOutcome.DungImLang, new[] { AutoInvoiceReason.DaCoHoaDon });
