@@ -15,9 +15,11 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         private class FakeEmployeeBranchStore : IEmployeeBranchStore
         {
             public Dictionary<int, EmployeeBranchActorDto> Actors { get; } = new();
+            public Dictionary<int, int> GetActorCalls { get; } = new();
 
             public Task<EmployeeBranchActorDto?> GetActorWithActiveBranchesAsync(int actorId, CancellationToken cancellationToken = default)
             {
+                GetActorCalls[actorId] = GetActorCalls.GetValueOrDefault(actorId) + 1;
                 Actors.TryGetValue(actorId, out var actor);
                 return Task.FromResult(actor);
             }
@@ -379,6 +381,54 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
 
             Assert.Null(inactiveScope);
             Assert.Null(nonEmployeeScope);
+        }
+
+        // Service đăng ký Scoped (một instance mỗi request): đọc phân công của một người dùng một lần cho cả request,
+        // dù service khác nhau gọi GetScopeAsync/CanPerformAsync nhiều lần.
+        [Fact]
+        public async Task SameInstance_ReadsActorOnce_ForScopeAndPermissionChecks()
+        {
+            _store.Actors[40] = new EmployeeBranchActorDto { NguoiDungId = 40, Role = Role.NhanVien, IsActive = true, ActiveBranchIds = new List<int> { 1 } };
+            _store.Actors[41] = new EmployeeBranchActorDto { NguoiDungId = 41, Role = Role.Admin, IsActive = true, ActiveBranchIds = new List<int>() };
+
+            var scope1 = await _service.GetScopeAsync(40);
+            var scope2 = await _service.GetScopeAsync(40);
+            var canBranch1 = await _service.CanPerformAsync(40, 1, EmployeeActionCodes.MeterUpload);
+            var canBranch2 = await _service.CanPerformAsync(40, 2, EmployeeActionCodes.MeterUpload);
+            var adminScope = await _service.GetScopeAsync(41);
+
+            Assert.Equal(new[] { 1 }, scope1!.AllowedBranchIds);
+            Assert.Equal(new[] { 1 }, scope2!.AllowedBranchIds);
+            Assert.True(canBranch1);
+            Assert.False(canBranch2);
+            Assert.True(adminScope!.IsAdmin);
+            Assert.Equal(1, _store.GetActorCalls[40]);
+            Assert.Equal(1, _store.GetActorCalls[41]);
+        }
+
+        // Người dùng không tồn tại cũng chỉ đọc một lần; actorId không hợp lệ không chạm store.
+        [Fact]
+        public async Task SameInstance_UnknownActor_ReadOnce_InvalidActor_NotRead()
+        {
+            Assert.Null(await _service.GetScopeAsync(77));
+            Assert.False(await _service.CanPerformAsync(77, 1, EmployeeActionCodes.MeterUpload));
+            Assert.Null(await _service.GetScopeAsync(0));
+
+            Assert.Equal(1, _store.GetActorCalls[77]);
+            Assert.False(_store.GetActorCalls.ContainsKey(0));
+        }
+
+        // Instance mới (request mới) đọc lại dữ liệu: thu hồi phân công có hiệu lực từ request kế tiếp.
+        [Fact]
+        public async Task NewInstance_SeesChangedAssignment()
+        {
+            _store.Actors[50] = new EmployeeBranchActorDto { NguoiDungId = 50, Role = Role.NhanVien, IsActive = true, ActiveBranchIds = new List<int> { 1 } };
+            Assert.True(await _service.CanPerformAsync(50, 1, EmployeeActionCodes.MeterUpload));
+
+            _store.Actors[50] = new EmployeeBranchActorDto { NguoiDungId = 50, Role = Role.NhanVien, IsActive = true, ActiveBranchIds = new List<int>() };
+            var nextRequest = new EmployeeAccessService(_store);
+
+            Assert.False(await nextRequest.CanPerformAsync(50, 1, EmployeeActionCodes.MeterUpload));
         }
     }
 }

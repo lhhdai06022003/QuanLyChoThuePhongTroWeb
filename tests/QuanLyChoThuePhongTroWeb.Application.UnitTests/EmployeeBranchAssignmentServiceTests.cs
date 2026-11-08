@@ -311,7 +311,10 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             var revokeResult = await _service.RevokeAsync(new RevokeEmployeeBranchRequest { NguoiDungId = StaffId, ChiNhanhId = BranchId, LyDo = "Nghỉ việc" }, actorId: AdminId);
             Assert.True(revokeResult.Success);
 
-            var canAfter = await accessService.CanPerformAsync(StaffId, BranchId, QuanLyChoThuePhongTroWeb.Application.Common.Security.EmployeeActionCodes.MeterReview);
+            // EmployeeAccessService là Scoped và nhớ phân công trong một request; request kế tiếp của nhân viên dùng
+            // instance mới nên thấy ngay việc thu hồi.
+            var nextRequestAccess = new EmployeeAccessService(_branchStore);
+            var canAfter = await nextRequestAccess.CanPerformAsync(StaffId, BranchId, QuanLyChoThuePhongTroWeb.Application.Common.Security.EmployeeActionCodes.MeterReview);
             Assert.False(canAfter);
         }
 

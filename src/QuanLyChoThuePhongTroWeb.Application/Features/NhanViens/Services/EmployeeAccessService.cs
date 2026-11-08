@@ -1,9 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Security;
 using QuanLyChoThuePhongTroWeb.Application.Common.Security;
+using QuanLyChoThuePhongTroWeb.Application.Features.NhanViens.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.NhanViens.Persistence;
 using QuanLyChoThuePhongTroWeb.Domain.Enums;
 
@@ -13,9 +15,26 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.NhanViens.Services
     {
         private readonly IEmployeeBranchStore _store;
 
+        // Service đăng ký Scoped nên mỗi request có một instance: nhớ phân công của người dùng trong request để các lần
+        // kiểm tra quyền/phạm vi sau không truy vấn lại (trước đây một trang có thể đọc 2-3 lần). Request kế tiếp đọc lại
+        // từ DB nên thu hồi phân công hay khóa tài khoản vẫn có hiệu lực ngay ở request sau.
+        private readonly Dictionary<int, EmployeeBranchActorDto?> _actors = new();
+
         public EmployeeAccessService(IEmployeeBranchStore store)
         {
             _store = store ?? throw new ArgumentNullException(nameof(store));
+        }
+
+        private async Task<EmployeeBranchActorDto?> GetActorAsync(int actorId, CancellationToken cancellationToken)
+        {
+            if (_actors.TryGetValue(actorId, out var cached))
+            {
+                return cached;
+            }
+
+            var actor = await _store.GetActorWithActiveBranchesAsync(actorId, cancellationToken);
+            _actors[actorId] = actor;
+            return actor;
         }
 
         public async Task<bool> CanPerformAsync(int actorId, int chiNhanhId, string action, CancellationToken cancellationToken = default)
@@ -25,7 +44,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.NhanViens.Services
                 return false;
             }
 
-            var actor = await _store.GetActorWithActiveBranchesAsync(actorId, cancellationToken);
+            var actor = await GetActorAsync(actorId, cancellationToken);
             if (actor == null || !actor.IsActive)
             {
                 return false;
@@ -65,7 +84,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.NhanViens.Services
                 return null;
             }
 
-            var actor = await _store.GetActorWithActiveBranchesAsync(actorId, cancellationToken);
+            var actor = await GetActorAsync(actorId, cancellationToken);
             if (actor == null || !actor.IsActive)
             {
                 return null;
