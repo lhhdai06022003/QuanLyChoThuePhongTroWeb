@@ -124,9 +124,25 @@ Kiểm chứng: Application 2775/2776 (đỏ có sẵn `ExpiryAlert_AppFailure_D
 
 Test chặn hồi quy: `ViecCanLamEndpointTests` (số in sẵn bằng `TomTat`, chỉ có khi không lọc chi nhánh, JS dùng trước khi gọi), `AutoInvoiceServiceTests` (`RunForRooms_*`: cùng kết quả và tác dụng phụ như chạy từng phòng, đọc lô lỗi, phòng lặp, tham số sai), `ThongBaoStoreTests.GetRoomResponsibleUserIds_CachedPerBranch_*`, `InvoiceDraftWorkflowTests.CreateDrafts_ManyContracts_CountsCancelledOnce_SuffixPerContract`, `InvoiceDraftConcurrencyTests.CountCancelledInvoices_*`.
 
+## Kết quả sau bước 12 (09/11/2026)
+
+Bước 12: phần kiểm tra khi duyệt chỉ số (`MeterReadingWorkflowService.ApprovePeriodsAsync`) đọc dữ liệu cả lô trước vòng lặp, mỗi loại một truy vấn: kỳ (khóa `FOR UPDATE` theo `PhongTroId` tăng dần, như khi khóa từng phòng), ảnh (khóa theo `AnhChiSoDongHoId`), kỳ sau đã khóa, hóa đơn đã phát hành, hợp đồng tháng trước, kỳ trước. Vòng lặp vẫn xét từng phòng theo id tăng dần nên lỗi báo ra như trước. Kỳ nháp tạo mới trong lô đọc đơn giá điện/nước của chi nhánh một lần. Phần lan truyền sang kỳ sau (`CascadeSubsequentPeriodsAsync`) giữ nguyên.
+
+| Request | Trước | Sau |
+| --- | --- | --- |
+| Duyệt chỉ số 5 phòng (một transaction) | 61 lệnh | 26 |
+| Chốt kỳ, 1 phòng | 62 | 60 |
+| Chốt kỳ, 5 phòng | 254 | 224 (mỗi phòng thêm 48 → 41) |
+
+Phần "báo nhân viên" tăng 18 → 19 lệnh giữa hai lượt đo vì DB test có thêm Admin (thông báo gửi mọi Admin), không do bước 12.
+
+Kiểm chứng: Application 2780/2781 (đỏ có sẵn `ExpiryAlert_AppFailure_DoesNotBlockEmail`), Infrastructure 723 PASS (1 skip, gồm `ApprovePeriods_ConcurrentBatchesWithOppositeRoomOrder_DoNotDeadlock`), Web 840/840.
+
+Test chặn hồi quy: `MeterImageStoreTests.ApprovalBatchReads_MatchSingleReads_ForEveryRoom` (bản theo lô ra cùng kết quả bản từng phòng: kỳ/ảnh đã xóa, hóa đơn nháp/đã hủy, hợp đồng đã hủy, phòng không có), `MeterReadingWorkflowTests`: `FirstRoomFailsLate_SecondRoomFailsEarly_ReportsFirstRoom`, `SecondRoomHasLockedInvoice_*`, `ManualAndOfficialRooms_UseEachRoomsOwnImages`, `ManyRooms_DoesNotReadChecksRoomByRoom`, `ManyRoomsWithoutPeriod_CreatesDrafts_ReadsBranchPricesOnce`.
+
 ## Còn có thể làm tiếp (chưa duyệt)
 
-- **Chốt kỳ còn khoảng 48 lệnh mỗi phòng trên DB test** (khoảng 34 với dữ liệu thật vì thông báo không còn bị phồng): duyệt khoảng 12, đánh giá lại 8, tạo hóa đơn nháp 13, báo nhân viên. Giảm tiếp phải tạo hóa đơn nháp theo lô cho cả chi nhánh, đổi cách mỗi phòng chạy độc lập và báo lỗi riêng: chưa đề xuất.
+- **Chốt kỳ còn khoảng 41 lệnh mỗi phòng trên DB test** (khoảng 27 với dữ liệu thật vì thông báo không còn bị phồng): đánh giá lại 8, tạo hóa đơn nháp 13, báo nhân viên, phần duyệt còn lại (lan truyền kỳ sau, lưu). Giảm tiếp phải tạo hóa đơn nháp theo lô cho cả chi nhánh, đổi cách mỗi phòng chạy độc lập và báo lỗi riêng: chưa đề xuất.
 - **Trang Hợp đồng của Admin:** với dữ liệu thật chỉ thêm khoảng 40 KB; DB test phồng vì 37.818 chi nhánh in hai lần. Nếu làm, gộp vào đợt giao diện (tải theo chi nhánh/từ khóa, `SearchAutocompleteAsync` đã có).
 - **Bảng tràn ngang ở 375px** (15/21 màn quản lý, 4/8 màn khách thuê): do `site.css` dòng 79–83. Thuộc đợt giao diện: cho bảng cuộn ngang trên điện thoại mà menu ⋯ không bị cắt.
 

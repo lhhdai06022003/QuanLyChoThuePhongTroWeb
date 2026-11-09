@@ -65,6 +65,125 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             }
         }
 
+        // Bước 12 (docs/features/toi-uu-hieu-nang): các hàm đọc theo lô dùng khi duyệt nhiều phòng phải ra
+        // cùng kết quả với bản từng phòng, gồm kỳ đã xóa, ảnh đã xóa, hóa đơn nháp/đã hủy, hợp đồng đã hủy, phòng không có.
+        [Fact]
+        public async Task ApprovalBatchReads_MatchSingleReads_ForEveryRoom()
+        {
+            await using var context = _fixture.CreateDbContext();
+            await using var tx = await context.Database.BeginTransactionAsync();
+
+            var suffix = Guid.NewGuid().ToString("N").Substring(0, 6);
+            var branch = new ChiNhanh { TenChiNhanh = $"CN_{suffix}", MaChiNhanh = TestCodes.MaChiNhanh("L_"), DiaChi = "123", SoDienThoai = "0900", MoTa = "M" };
+            context.ChiNhanhs.Add(branch);
+            await context.SaveChangesAsync();
+
+            PhongTro Room(string so) => new() { ChiNhanhId = branch.ChiNhanhId, SoPhong = $"{so}_{suffix}", GiaThue = 1000m, DienTich = 15, MoTa = "M" };
+            var r1 = Room("R1");
+            var r2 = Room("R2");
+            var r3 = Room("R3");
+            var r4 = Room("R4");
+            context.PhongTros.AddRange(r1, r2, r3, r4);
+            var tenant = new NguoiThue { HoVaTen = $"T_{suffix}", Email = $"t_{suffix}@test.com", SoDienThoai = "0901", CCCD = $"001_{suffix}" };
+            context.NguoiThues.Add(tenant);
+            await context.SaveChangesAsync();
+
+            HopDong Contract(PhongTro room, string ma, TrangThaiHopDong trangThai) => new()
+            {
+                PhongTroId = room.PhongTroId,
+                NguoiThueId = tenant.NguoiThueId,
+                MaHopDong = $"{ma}_{suffix}",
+                ThoiDiemBatDau = new DateTime(2026, 8, 1, 0, 0, 0, DateTimeKind.Utc),
+                ThoiDiemKetThuc = new DateTime(2026, 12, 31, 0, 0, 0, DateTimeKind.Utc),
+                TienCocPhong = 1000m,
+                TienThuePhong = 1000m,
+                TrangThaiHopDong = trangThai
+            };
+            var contract1 = Contract(r1, "HD1", TrangThaiHopDong.DangHoatDong);
+            var contract2 = Contract(r2, "HD2", TrangThaiHopDong.DangHoatDong);
+            context.HopDongs.AddRange(contract1, contract2, Contract(r3, "HD3", TrangThaiHopDong.DaHuy));
+            await context.SaveChangesAsync();
+
+            // r1: kỳ 9 đã duyệt, kỳ 10 có ảnh, kỳ 11 đã duyệt (khóa kỳ 10). r2: kỳ 10 có hóa đơn đã chốt, kỳ 11 chỉ có hóa đơn nháp.
+            // r3: không có kỳ. r4: kỳ 10 đã xóa.
+            var r1p9 = new DichVuDienNuocCuaPhong { PhongTroId = r1.PhongTroId, Thang = 9, Nam = 2026, TrangThaiGhiNhan = TrangThaiGhiNhan.DaDuyet };
+            var r1p10 = new DichVuDienNuocCuaPhong { PhongTroId = r1.PhongTroId, Thang = 10, Nam = 2026 };
+            var r1p11 = new DichVuDienNuocCuaPhong { PhongTroId = r1.PhongTroId, Thang = 11, Nam = 2026, TrangThaiGhiNhan = TrangThaiGhiNhan.DaDuyet };
+            var r2p10 = new DichVuDienNuocCuaPhong { PhongTroId = r2.PhongTroId, Thang = 10, Nam = 2026 };
+            var r2p11 = new DichVuDienNuocCuaPhong { PhongTroId = r2.PhongTroId, Thang = 11, Nam = 2026 };
+            var r4p10 = new DichVuDienNuocCuaPhong { PhongTroId = r4.PhongTroId, Thang = 10, Nam = 2026, IsDeleted = true };
+            context.DichVuDienNuocCuaPhongs.AddRange(r1p9, r1p10, r1p11, r2p10, r2p11, r4p10);
+            await context.SaveChangesAsync();
+
+            AnhChiSoDongHo Image(DichVuDienNuocCuaPhong period, LoaiDongHo loai, bool deleted = false) => new()
+            {
+                DichVuDienNuocCuaPhongId = period.DichVuDienNuocCuaPhongId,
+                LoaiDongHo = loai,
+                Url = $"https://res.cloudinary.com/test/image/upload/{Guid.NewGuid():N}.jpg",
+                PublicId = $"meters/{Guid.NewGuid():N}",
+                IsDeleted = deleted
+            };
+            context.AnhChiSoDongHos.AddRange(
+                Image(r1p10, LoaiDongHo.Dien), Image(r1p10, LoaiDongHo.Nuoc), Image(r1p10, LoaiDongHo.Dien), Image(r1p10, LoaiDongHo.Dien, deleted: true),
+                Image(r2p10, LoaiDongHo.Nuoc));
+            HoaDon Invoice(HopDong hd, DichVuDienNuocCuaPhong period, string ma, TrangThaiPhatHanhHoaDon trangThai) => new()
+            {
+                MaHoaDon = $"{ma}_{suffix}", HopDongId = hd.HopDongId, DichVuDienNuocCuaPhongId = period.DichVuDienNuocCuaPhongId,
+                Thang = period.Thang, Nam = period.Nam, TongTien = 1, TrangThaiPhatHanh = trangThai, IsDeleted = trangThai == TrangThaiPhatHanhHoaDon.DaHuy
+            };
+            context.HoaDons.AddRange(
+                Invoice(contract2, r2p10, "C10", TrangThaiPhatHanhHoaDon.DaChot),
+                Invoice(contract2, r2p11, "N11", TrangThaiPhatHanhHoaDon.Nhap),
+                Invoice(contract1, r1p10, "H10", TrangThaiPhatHanhHoaDon.DaHuy));
+            await context.SaveChangesAsync();
+
+            var store = new MeterImageStore(context);
+            var roomIds = new[] { r4.PhongTroId, r1.PhongTroId, r3.PhongTroId, r2.PhongTroId, int.MaxValue };
+            var periodIds = new[] { r1p9, r1p10, r1p11, r2p10, r2p11 }.Select(p => p.DichVuDienNuocCuaPhongId).ToArray();
+
+            var periods10 = await store.GetPeriodsForUpdateAsync(roomIds, 10, 2026);
+            var images = await store.GetImagesForUpdateByPeriodsAsync(periodIds);
+            var subsequent10 = await store.GetRoomsWithLockingSubsequentPeriodAsync(roomIds, 10, 2026);
+            var subsequent9 = await store.GetRoomsWithLockingSubsequentPeriodAsync(roomIds, 9, 2026);
+            var lockedInvoice = await store.GetPeriodIdsWithLockedInvoiceAsync(periodIds);
+            var contract9 = await store.GetRoomsWithContractInMonthAsync(roomIds, 9, 2026);
+            var records9 = await store.GetPeriodRecordsAsync(roomIds, 9, 2026);
+
+            // Dữ liệu mẫu phải có cả hai phía của từng điều kiện, để phép so khớp bên dưới có ý nghĩa.
+            Assert.Equal(new[] { r1.PhongTroId, r2.PhongTroId }.OrderBy(x => x), periods10.Keys.OrderBy(x => x));
+            Assert.Equal(new[] { r1.PhongTroId }, subsequent10);
+            Assert.Equal(new[] { r2p10.DichVuDienNuocCuaPhongId }, lockedInvoice);
+            Assert.Equal(new[] { r1.PhongTroId, r2.PhongTroId }.OrderBy(x => x), contract9.OrderBy(x => x));
+            Assert.Equal(new[] { r1.PhongTroId }, records9.Keys);
+            Assert.Equal(4, images.Count);
+            Assert.Equal(images.Select(i => i.AnhChiSoDongHoId).OrderBy(x => x), images.Select(i => i.AnhChiSoDongHoId));
+
+            foreach (var roomId in roomIds)
+            {
+                var single = await store.GetPeriodForUpdateAsync(roomId, 10, 2026);
+                Assert.Equal(single?.DichVuDienNuocCuaPhongId, periods10.TryGetValue(roomId, out var p) ? p.DichVuDienNuocCuaPhongId : null);
+                Assert.Equal(await store.HasSubsequentPeriodAsync(roomId, 10, 2026), subsequent10.Contains(roomId));
+                Assert.Equal(await store.HasSubsequentPeriodAsync(roomId, 9, 2026), subsequent9.Contains(roomId));
+                Assert.Equal(await store.HasContractInMonthAsync(roomId, 9, 2026), contract9.Contains(roomId));
+                var record = await store.GetPeriodRecordAsync(roomId, 9, 2026);
+                Assert.Equal(record?.DichVuDienNuocCuaPhongId, records9.TryGetValue(roomId, out var r) ? r.DichVuDienNuocCuaPhongId : null);
+            }
+
+            foreach (var periodId in periodIds)
+            {
+                Assert.Equal(await store.HasLockedInvoiceAsync(periodId), lockedInvoice.Contains(periodId));
+                foreach (var loai in new[] { LoaiDongHo.Dien, LoaiDongHo.Nuoc })
+                {
+                    var single = await store.GetImagesForUpdateAsync(periodId, loai);
+                    var fromBatch = images.Where(i => i.DichVuDienNuocCuaPhongId == periodId && i.LoaiDongHo == loai);
+                    Assert.Equal(single.Select(i => i.AnhChiSoDongHoId), fromBatch.Select(i => i.AnhChiSoDongHoId));
+                }
+            }
+
+            Assert.Empty(await store.GetPeriodsForUpdateAsync(Array.Empty<int>(), 10, 2026));
+            Assert.Empty(await store.GetImagesForUpdateByPeriodsAsync(Array.Empty<int>()));
+        }
+
         [Fact]
         public async Task PersistAndReload_ImageAndPeriod_StoresUrlPublicIdAndRelationships()
         {

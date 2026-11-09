@@ -25,6 +25,15 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
         public int GetBranchIdByRoomCalls { get; private set; }
         public int GetBranchIdsByRoomsCalls { get; private set; }
 
+        // Đếm lời gọi đọc từng phòng/từng kỳ, để test kiểm duyệt nhiều phòng không đọc lặp theo phòng.
+        public int HasContractInMonthCalls { get; private set; }
+        public int GetPeriodRecordCalls { get; private set; }
+        public int GetPeriodForUpdateCalls { get; private set; }
+        public int GetImagesForUpdateCalls { get; private set; }
+        public int HasSubsequentPeriodCalls { get; private set; }
+        public int HasLockedInvoiceCalls { get; private set; }
+        public int GetServicePriceCalls { get; private set; }
+
         public Task<int?> GetBranchIdByRoomAsync(int phongTroId, CancellationToken cancellationToken = default)
         {
             GetBranchIdByRoomCalls++;
@@ -44,11 +53,13 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
 
         public Task<bool> HasContractInMonthAsync(int phongTroId, int thang, int nam, CancellationToken cancellationToken = default)
         {
+            HasContractInMonthCalls++;
             return Task.FromResult(ContractMonths.Contains((phongTroId, thang, nam)));
         }
 
         public Task<DichVuDienNuocCuaPhong?> GetPeriodRecordAsync(int phongTroId, int thang, int nam, CancellationToken cancellationToken = default)
         {
+            GetPeriodRecordCalls++;
             var period = Periods.Values.FirstOrDefault(p => p.PhongTroId == phongTroId && p.Thang == thang && p.Nam == nam && !p.IsDeleted);
             return Task.FromResult(period);
         }
@@ -102,6 +113,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
 
         public Task<bool> HasSubsequentPeriodAsync(int phongTroId, int thang, int nam, CancellationToken cancellationToken = default)
         {
+            HasSubsequentPeriodCalls++;
             return Task.FromResult(SubsequentPeriods.Contains((phongTroId, thang, nam)));
         }
 
@@ -120,7 +132,69 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
         }
 
         public Task<bool> HasLockedInvoiceAsync(int periodRecordId, CancellationToken cancellationToken = default)
-            => HasNonDraftInvoiceAsync(periodRecordId, cancellationToken);
+        {
+            HasLockedInvoiceCalls++;
+            return HasNonDraftInvoiceAsync(periodRecordId, cancellationToken);
+        }
+
+        // Bản theo lô: cùng dữ liệu với bản từng phòng nhưng không tăng bộ đếm từng phòng.
+        public int GetPeriodsForUpdateBatchCalls { get; private set; }
+        public int GetImagesForUpdateBatchCalls { get; private set; }
+        public int SubsequentBatchCalls { get; private set; }
+        public int LockedInvoiceBatchCalls { get; private set; }
+        public int ContractInMonthBatchCalls { get; private set; }
+        public int GetPeriodRecordsBatchCalls { get; private set; }
+
+        public Task<IReadOnlyDictionary<int, DichVuDienNuocCuaPhong>> GetPeriodsForUpdateAsync(IReadOnlyList<int> roomIds, int thang, int nam, CancellationToken cancellationToken = default)
+        {
+            GetPeriodsForUpdateBatchCalls++;
+            var result = new Dictionary<int, DichVuDienNuocCuaPhong>();
+            foreach (var id in roomIds.Distinct())
+            {
+                var period = FindPeriodForUpdate(id, thang, nam);
+                if (period != null) result[id] = period;
+            }
+            return Task.FromResult<IReadOnlyDictionary<int, DichVuDienNuocCuaPhong>>(result);
+        }
+
+        public Task<IReadOnlyList<AnhChiSoDongHo>> GetImagesForUpdateByPeriodsAsync(IReadOnlyList<int> periodRecordIds, CancellationToken cancellationToken = default)
+        {
+            GetImagesForUpdateBatchCalls++;
+            var ids = periodRecordIds.ToHashSet();
+            var list = Images.Values
+                .Where(i => ids.Contains(i.DichVuDienNuocCuaPhongId) && !i.IsDeleted)
+                .OrderBy(i => i.AnhChiSoDongHoId)
+                .ToList();
+            return Task.FromResult<IReadOnlyList<AnhChiSoDongHo>>(list);
+        }
+
+        public Task<IReadOnlySet<int>> GetRoomsWithLockingSubsequentPeriodAsync(IReadOnlyList<int> roomIds, int thang, int nam, CancellationToken cancellationToken = default)
+        {
+            SubsequentBatchCalls++;
+            return Task.FromResult<IReadOnlySet<int>>(roomIds.Where(id => SubsequentPeriods.Contains((id, thang, nam))).ToHashSet());
+        }
+
+        public Task<IReadOnlySet<int>> GetPeriodIdsWithLockedInvoiceAsync(IReadOnlyList<int> periodRecordIds, CancellationToken cancellationToken = default)
+        {
+            LockedInvoiceBatchCalls++;
+            return Task.FromResult<IReadOnlySet<int>>(periodRecordIds.Where(NonDraftInvoicePeriodIds.Contains).ToHashSet());
+        }
+
+        public Task<IReadOnlySet<int>> GetRoomsWithContractInMonthAsync(IReadOnlyList<int> roomIds, int thang, int nam, CancellationToken cancellationToken = default)
+        {
+            ContractInMonthBatchCalls++;
+            return Task.FromResult<IReadOnlySet<int>>(roomIds.Where(id => ContractMonths.Contains((id, thang, nam))).ToHashSet());
+        }
+
+        public Task<IReadOnlyDictionary<int, DichVuDienNuocCuaPhong>> GetPeriodRecordsAsync(IReadOnlyList<int> roomIds, int thang, int nam, CancellationToken cancellationToken = default)
+        {
+            GetPeriodRecordsBatchCalls++;
+            var result = Periods.Values
+                .Where(p => roomIds.Contains(p.PhongTroId) && p.Thang == thang && p.Nam == nam && !p.IsDeleted)
+                .GroupBy(p => p.PhongTroId)
+                .ToDictionary(g => g.Key, g => g.First());
+            return Task.FromResult<IReadOnlyDictionary<int, DichVuDienNuocCuaPhong>>(result);
+        }
 
         public Task<MeterImageAccessContext?> GetImageAccessContextAsync(int imageId, CancellationToken cancellationToken = default)
         {
@@ -150,7 +224,13 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
         public Task LockRoomsAsync(IEnumerable<int> roomIds, CancellationToken cancellationToken = default) => Task.CompletedTask;
 
         public Task<DichVuDienNuocCuaPhong?> GetPeriodForUpdateAsync(int phongTroId, int thang, int nam, CancellationToken cancellationToken = default)
-            => Task.FromResult(PeriodForUpdateOverride ?? Periods.Values.FirstOrDefault(p => p.PhongTroId == phongTroId && p.Thang == thang && p.Nam == nam && !p.IsDeleted));
+        {
+            GetPeriodForUpdateCalls++;
+            return Task.FromResult(FindPeriodForUpdate(phongTroId, thang, nam));
+        }
+
+        private DichVuDienNuocCuaPhong? FindPeriodForUpdate(int phongTroId, int thang, int nam)
+            => PeriodForUpdateOverride ?? Periods.Values.FirstOrDefault(p => p.PhongTroId == phongTroId && p.Thang == thang && p.Nam == nam && !p.IsDeleted);
 
         public Task<DichVuDienNuocCuaPhong?> GetPeriodByIdForUpdateAsync(int periodRecordId, CancellationToken cancellationToken = default)
             => GetPeriodRecordByIdAsync(periodRecordId, cancellationToken);
@@ -159,7 +239,10 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
             => GetImageByIdAsync(imageId, cancellationToken);
 
         public Task<IReadOnlyList<AnhChiSoDongHo>> GetImagesForUpdateAsync(int periodRecordId, LoaiDongHo loaiDongHo, CancellationToken cancellationToken = default)
-            => GetImagesByPeriodAndTypeAsync(periodRecordId, loaiDongHo, cancellationToken);
+        {
+            GetImagesForUpdateCalls++;
+            return GetImagesByPeriodAndTypeAsync(periodRecordId, loaiDongHo, cancellationToken);
+        }
 
         public decimal DefaultChiSoDienMoi { get; set; } = 100m;
         public decimal DefaultChiSoNuocMoi { get; set; } = 50m;
@@ -181,6 +264,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
 
         public Task<decimal> GetServicePriceAsync(string serviceKeyword, int chiNhanhId, CancellationToken cancellationToken = default)
         {
+            GetServicePriceCalls++;
             return Task.FromResult(serviceKeyword.Contains("điện") ? 3500m : 20000m);
         }
 

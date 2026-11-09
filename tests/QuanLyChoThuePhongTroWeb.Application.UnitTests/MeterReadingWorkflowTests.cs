@@ -700,6 +700,139 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.All(_store.Periods.Values, p => Assert.Equal(TrangThaiGhiNhan.DaDuyet, p.TrangThaiGhiNhan));
         }
 
+        // Bước 12 (docs/features/toi-uu-hieu-nang): dữ liệu kiểm tra của mọi phòng đọc một lượt,
+        // nhưng vẫn xét lần lượt từng phòng theo id tăng dần như trước.
+        [Fact]
+        public async Task ApprovePeriodsAsync_FirstRoomFailsLate_SecondRoomFailsEarly_ReportsFirstRoom()
+        {
+            var (room1, _) = SetupTwoRoomsInOctober();
+            room1.ChiSoDienCu = 200; // phòng 1 nhập tay 160 < 200: hỏng ở bước xét chỉ số
+            _store.SubsequentPeriods.Add((2, 10, 2026)); // phòng 2 hỏng ngay bước kiểm kỳ sau
+
+            var result = await _service.ApprovePeriodsAsync(ManualApproveRequestForRooms(10, 2026, 2, 1), 2);
+
+            Assert.False(result.Success);
+            Assert.Equal("Phòng 1: chỉ số điện mới không được nhỏ hơn chỉ số điện cũ.", result.Message);
+            Assert.True(_uow.CurrentTransaction.RolledBack);
+        }
+
+        [Fact]
+        public async Task ApprovePeriodsAsync_SecondRoomHasLockedInvoice_ReportsSecondRoom_AndRollsBack()
+        {
+            var (_, room2) = SetupTwoRoomsInOctober();
+            room2.ChiSoDienCu = 100;
+            room2.ChiSoNuocCu = 50;
+            _store.NonDraftInvoicePeriodIds.Add(2);
+
+            var result = await _service.ApprovePeriodsAsync(ManualApproveRequestForRooms(10, 2026, 1, 2), 2);
+
+            Assert.False(result.Success);
+            Assert.Equal("Phòng 2 kỳ này đã có hóa đơn đã phát hành, không thể duyệt.", result.Message);
+            Assert.True(_uow.CurrentTransaction.RolledBack);
+            Assert.False(_uow.CurrentTransaction.Committed);
+            Assert.NotEqual(TrangThaiGhiNhan.DaDuyet, room2.TrangThaiGhiNhan);
+        }
+
+        [Fact]
+        public async Task ApprovePeriodsAsync_ManualAndOfficialRooms_UseEachRoomsOwnImages()
+        {
+            var (room1, room2) = SetupTwoRoomsInOctober();
+            void Image(int id, int periodId, LoaiDongHo loai, bool official, decimal value) => _store.Images[id] = new AnhChiSoDongHo
+            {
+                AnhChiSoDongHoId = id,
+                DichVuDienNuocCuaPhongId = periodId,
+                LoaiDongHo = loai,
+                DuocChonLamChiSoChinhThuc = official,
+                TrangThaiXuLy = TrangThaiXuLyAnhChiSo.DaXacNhan,
+                GiaTriXacNhan = value
+            };
+            Image(101, 1, LoaiDongHo.Dien, official: true, 150m);   // phòng 1 nhập tay: ảnh chính thức cũ bị bỏ chọn
+            Image(102, 2, LoaiDongHo.Dien, official: false, 999m);  // phòng 2: ảnh không chính thức, không được dùng
+            Image(103, 2, LoaiDongHo.Dien, official: true, 260m);
+            Image(104, 2, LoaiDongHo.Nuoc, official: true, 95m);
+
+            var request = ManualApproveRequestForRooms(10, 2026, 1, 2);
+            var item2 = request.DanhSachPhong.Single(i => i.PhongTroId == 2);
+            item2.DienMode = MeterReadingSubmissionMode.OfficialImage;
+            item2.NuocMode = MeterReadingSubmissionMode.OfficialImage;
+
+            var result = await _service.ApprovePeriodsAsync(request, 2);
+
+            Assert.True(result.Success, result.Message);
+            Assert.Equal((160m, 65m), (room1.ChiSoDienMoi, room1.ChiSoNuocMoi));
+            Assert.Equal((260m, 95m), (room2.ChiSoDienMoi, room2.ChiSoNuocMoi));
+            Assert.False(_store.Images[101].DuocChonLamChiSoChinhThuc);
+            Assert.True(_store.Images[103].DuocChonLamChiSoChinhThuc);
+            Assert.True(_store.Images[104].DuocChonLamChiSoChinhThuc);
+            var items = result.Data!.Items.ToDictionary(i => i.PhongTroId);
+            Assert.Equal(MeterReadingEvidenceSource.NhapThuCong, items[1].NguonBangChungDien);
+            Assert.Equal(MeterReadingEvidenceSource.AnhXacNhan, items[2].NguonBangChungDien);
+            Assert.Equal(MeterReadingEvidenceSource.AnhXacNhan, items[2].NguonBangChungNuoc);
+        }
+
+        [Fact]
+        public async Task ApprovePeriodsAsync_ManyRooms_DoesNotReadChecksRoomByRoom()
+        {
+            for (var id = 1; id <= 3; id++)
+            {
+                _store.RoomBranches[id] = 10;
+                _store.ContractMonths.Add((id, 9, 2026));
+                _store.Periods[10 + id] = new DichVuDienNuocCuaPhong
+                {
+                    DichVuDienNuocCuaPhongId = 10 + id, PhongTroId = id, Thang = 9, Nam = 2026, TrangThaiGhiNhan = TrangThaiGhiNhan.DaDuyet
+                };
+                _store.Periods[id] = new DichVuDienNuocCuaPhong
+                {
+                    DichVuDienNuocCuaPhongId = id, PhongTroId = id, Thang = 10, Nam = 2026,
+                    ChiSoDienCu = 100, ChiSoNuocCu = 50, TrangThaiGhiNhan = TrangThaiGhiNhan.Nhap
+                };
+            }
+            _access.Permissions.Add((2, 10, EmployeeActionCodes.MeterReview));
+
+            var result = await _service.ApprovePeriodsAsync(ManualApproveRequestForRooms(10, 2026, 3, 1, 2), 2);
+
+            Assert.True(result.Success, result.Message);
+            Assert.Equal(new[] { 1, 2, 3 }, result.Data!.Items.Select(i => i.PhongTroId));
+            Assert.All(new[] { 1, 2, 3 }, id => Assert.Equal(TrangThaiGhiNhan.DaDuyet, _store.Periods[id].TrangThaiGhiNhan));
+            Assert.Equal(0, _store.GetPeriodForUpdateCalls);
+            Assert.Equal(0, _store.GetImagesForUpdateCalls);
+            Assert.Equal(0, _store.HasSubsequentPeriodCalls);
+            Assert.Equal(0, _store.HasLockedInvoiceCalls);
+            Assert.Equal(0, _store.HasContractInMonthCalls);
+            Assert.Equal(0, _store.GetPeriodRecordCalls);
+            Assert.Equal(1, _store.GetPeriodsForUpdateBatchCalls);
+            Assert.Equal(1, _store.GetImagesForUpdateBatchCalls);
+            Assert.Equal(1, _store.SubsequentBatchCalls);
+            Assert.Equal(1, _store.LockedInvoiceBatchCalls);
+            Assert.Equal(1, _store.ContractInMonthBatchCalls);
+            Assert.Equal(1, _store.GetPeriodRecordsBatchCalls);
+        }
+
+        [Fact]
+        public async Task ApprovePeriodsAsync_ManyRoomsWithoutPeriod_CreatesDrafts_ReadsBranchPricesOnce()
+        {
+            for (var id = 1; id <= 3; id++)
+            {
+                _store.RoomBranches[id] = 10;
+            }
+            _access.Permissions.Add((2, 10, EmployeeActionCodes.MeterReview));
+
+            var result = await _service.ApprovePeriodsAsync(ManualApproveRequestForRooms(10, 2026, 1, 2, 3), 2);
+
+            Assert.True(result.Success, result.Message);
+            var created = _store.Periods.Values.Where(p => p.Thang == 10 && p.Nam == 2026).OrderBy(p => p.PhongTroId).ToList();
+            Assert.Equal(new[] { 1, 2, 3 }, created.Select(p => p.PhongTroId));
+            Assert.All(created, p =>
+            {
+                Assert.Equal(TrangThaiGhiNhan.DaDuyet, p.TrangThaiGhiNhan);
+                Assert.Equal(3500m, p.DonGiaDien);
+                Assert.Equal(20000m, p.DonGiaNuoc);
+                Assert.Equal((100m, 160m), (p.ChiSoDienCu, p.ChiSoDienMoi));
+                Assert.Equal((50m, 65m), (p.ChiSoNuocCu, p.ChiSoNuocMoi));
+            });
+            Assert.Equal(2, _store.GetServicePriceCalls);
+        }
+
         private static ApproveMeterPeriodsRequest ManualApproveRequest(int thang, int nam, int phongTroId = 1) => new()
         {
             Thang = thang,

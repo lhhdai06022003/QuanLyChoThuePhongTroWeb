@@ -38,6 +38,20 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Persistence
         Task<IReadOnlyList<DichVuDienNuocCuaPhong>> GetSubsequentPeriodsForUpdateAsync(int phongTroId, int thang, int nam, CancellationToken cancellationToken = default);
         Task<bool> HasNonDraftInvoiceAsync(int periodRecordId, CancellationToken cancellationToken = default);
         Task<bool> HasLockedInvoiceAsync(int periodRecordId, CancellationToken cancellationToken = default);
+
+        // Duyệt chỉ số nhiều phòng: mỗi hàm dưới đây là một truy vấn cho cả danh sách, cùng điều kiện với bản từng phòng ở trên.
+        // Kỳ chưa xóa của các phòng trong tháng, khóa FOR UPDATE theo PhongTroId tăng dần, kèm ảnh; khóa của từ điển là PhongTroId.
+        Task<IReadOnlyDictionary<int, DichVuDienNuocCuaPhong>> GetPeriodsForUpdateAsync(IReadOnlyList<int> roomIds, int thang, int nam, CancellationToken cancellationToken = default);
+        // Ảnh chưa xóa (mọi loại đồng hồ) của các kỳ, khóa FOR UPDATE theo AnhChiSoDongHoId tăng dần.
+        Task<IReadOnlyList<AnhChiSoDongHo>> GetImagesForUpdateByPeriodsAsync(IReadOnlyList<int> periodRecordIds, CancellationToken cancellationToken = default);
+        // Phòng mà HasSubsequentPeriodAsync(phòng, thang, nam) trả true.
+        Task<IReadOnlySet<int>> GetRoomsWithLockingSubsequentPeriodAsync(IReadOnlyList<int> roomIds, int thang, int nam, CancellationToken cancellationToken = default);
+        // Kỳ mà HasLockedInvoiceAsync(kỳ) trả true.
+        Task<IReadOnlySet<int>> GetPeriodIdsWithLockedInvoiceAsync(IReadOnlyList<int> periodRecordIds, CancellationToken cancellationToken = default);
+        // Phòng mà HasContractInMonthAsync(phòng, thang, nam) trả true.
+        Task<IReadOnlySet<int>> GetRoomsWithContractInMonthAsync(IReadOnlyList<int> roomIds, int thang, int nam, CancellationToken cancellationToken = default);
+        // Như GetPeriodRecordAsync cho nhiều phòng (theo dõi thay đổi, kèm ảnh); khóa của từ điển là PhongTroId.
+        Task<IReadOnlyDictionary<int, DichVuDienNuocCuaPhong>> GetPeriodRecordsAsync(IReadOnlyList<int> roomIds, int thang, int nam, CancellationToken cancellationToken = default);
         Task<(decimal ChiSoDienMoi, decimal ChiSoNuocMoi)> GetNearestPreviousReadingAsync(int phongTroId, int thang, int nam, CancellationToken cancellationToken = default);
         // Kỳ chưa xóa gần nhất trước (thang, nam) của phòng; null khi chưa có kỳ trước.
         Task<DichVuDienNuocCuaPhong?> GetNearestPreviousPeriodAsync(int phongTroId, int thang, int nam, CancellationToken cancellationToken = default);

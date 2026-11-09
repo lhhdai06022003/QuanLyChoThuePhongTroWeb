@@ -1227,36 +1227,51 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
                 // Sắp xếp items theo RoomId tăng dần
                 var orderedItems = request.DanhSachPhong.OrderBy(p => p.PhongTroId).ToList();
 
+                // Đọc trước dữ liệu kiểm tra của cả lô, mỗi loại một truy vấn thay vì mỗi phòng một truy vấn
+                // (bước 12, docs/features/toi-uu-hieu-nang). Cùng thứ tự khóa: phòng → kỳ (PhongTroId tăng dần) → ảnh.
+                // Vòng dưới vẫn xét lần lượt từng phòng theo id tăng dần nên gặp lỗi nào trước thì báo lỗi đó như trước;
+                // duyệt một phòng không đổi dữ liệu kiểm tra của phòng khác trong lô (kỳ, ảnh, hợp đồng đều theo phòng).
+                var existingPeriods = await _store.GetPeriodsForUpdateAsync(distinctRoomIds, request.Thang, request.Nam, cancellationToken);
+                var existingPeriodIds = existingPeriods.Values.Select(p => p.DichVuDienNuocCuaPhongId).OrderBy(id => id).ToList();
+                var imagesByPeriod = (await _store.GetImagesForUpdateByPeriodsAsync(existingPeriodIds, cancellationToken))
+                    .ToLookup(a => (a.DichVuDienNuocCuaPhongId, a.LoaiDongHo));
+                var roomsWithLockingSubsequent = await _store.GetRoomsWithLockingSubsequentPeriodAsync(distinctRoomIds, request.Thang, request.Nam, cancellationToken);
+                var periodsWithLockedInvoice = await _store.GetPeriodIdsWithLockedInvoiceAsync(existingPeriodIds, cancellationToken);
+                var roomsWithPreviousContract = await _store.GetRoomsWithContractInMonthAsync(distinctRoomIds, kyTruoc.Thang, kyTruoc.Nam, cancellationToken);
+                var previousPeriods = await _store.GetPeriodRecordsAsync(roomsWithPreviousContract.OrderBy(id => id).ToList(), kyTruoc.Thang, kyTruoc.Nam, cancellationToken);
+                var draftPrices = new DraftPriceCache();
+
                 foreach (var item in orderedItems)
                 {
-                    var period = await _store.GetPeriodForUpdateAsync(item.PhongTroId, request.Thang, request.Nam, cancellationToken);
+                    existingPeriods.TryGetValue(item.PhongTroId, out var period);
                     if (period == null)
                     {
-                        period = await CreateDraftPeriodAsync(item.PhongTroId, request.Thang, request.Nam, commonBranchId.Value, actorUserId, cancellationToken);
+                        period = await CreateDraftPeriodAsync(item.PhongTroId, request.Thang, request.Nam, commonBranchId.Value, actorUserId, cancellationToken, draftPrices);
                         await _unitOfWork.SaveChangesAsync(cancellationToken);
                     }
 
-                    // Lock sibling images
-                    var dienImages = await _store.GetImagesForUpdateAsync(period.DichVuDienNuocCuaPhongId, LoaiDongHo.Dien, cancellationToken);
-                    var nuocImages = await _store.GetImagesForUpdateAsync(period.DichVuDienNuocCuaPhongId, LoaiDongHo.Nuoc, cancellationToken);
+                    // Ảnh của kỳ đã khóa ở trên; kỳ vừa tạo chưa có ảnh nào.
+                    var dienImages = imagesByPeriod[(period.DichVuDienNuocCuaPhongId, LoaiDongHo.Dien)].ToList();
+                    var nuocImages = imagesByPeriod[(period.DichVuDienNuocCuaPhongId, LoaiDongHo.Nuoc)].ToList();
 
                     // Revalidate trong transaction
-                    if (await _store.HasSubsequentPeriodAsync(item.PhongTroId, request.Thang, request.Nam, cancellationToken))
+                    if (roomsWithLockingSubsequent.Contains(item.PhongTroId))
                     {
                         await tx.RollbackAsync(cancellationToken);
                         return ServiceResult<MeterPeriodsApprovalResult>.Fail($"Phòng {Room(item.PhongTroId)}: kỳ sau đã được chốt hoặc đã có hóa đơn phát hành, không thể duyệt kỳ này.");
                     }
 
-                    if (await _store.HasLockedInvoiceAsync(period.DichVuDienNuocCuaPhongId, cancellationToken))
+                    // Kỳ vừa tạo chưa có hóa đơn nên không có trong tập này.
+                    if (periodsWithLockedInvoice.Contains(period.DichVuDienNuocCuaPhongId))
                     {
                         await tx.RollbackAsync(cancellationToken);
                         return ServiceResult<MeterPeriodsApprovalResult>.Fail($"Phòng {Room(item.PhongTroId)} kỳ này đã có hóa đơn đã phát hành, không thể duyệt.");
                     }
 
                     // Phòng có hợp đồng tháng trước thì kỳ trước phải chốt trước (giống quy tắc 6 khi tải ảnh).
-                    if (await _store.HasContractInMonthAsync(item.PhongTroId, kyTruoc.Thang, kyTruoc.Nam, cancellationToken))
+                    if (roomsWithPreviousContract.Contains(item.PhongTroId))
                     {
-                        var prevPeriod = await _store.GetPeriodRecordAsync(item.PhongTroId, kyTruoc.Thang, kyTruoc.Nam, cancellationToken);
+                        previousPeriods.TryGetValue(item.PhongTroId, out var prevPeriod);
                         if (prevPeriod == null || prevPeriod.TrangThaiGhiNhan != TrangThaiGhiNhan.DaDuyet)
                         {
                             await tx.RollbackAsync(cancellationToken);
@@ -1787,11 +1802,30 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services
             }
         }
 
-        private async Task<DichVuDienNuocCuaPhong> CreateDraftPeriodAsync(int phongTroId, int thang, int nam, int chiNhanhId, int actorUserId, CancellationToken ct)
+        // Đơn giá điện/nước của chi nhánh, nhớ trong một lần duyệt nhiều phòng (mọi phòng của lô cùng chi nhánh, cùng giao dịch).
+        private sealed class DraftPriceCache
+        {
+            public (decimal Dien, decimal Nuoc)? Value { get; set; }
+        }
+
+        private async Task<DichVuDienNuocCuaPhong> CreateDraftPeriodAsync(int phongTroId, int thang, int nam, int chiNhanhId, int actorUserId, CancellationToken ct, DraftPriceCache? priceCache = null)
         {
             var (prevDien, prevNuoc) = await _store.GetNearestPreviousReadingAsync(phongTroId, thang, nam, ct);
-            var donGiaDien = await _store.GetServicePriceAsync("điện", chiNhanhId, ct);
-            var donGiaNuoc = await _store.GetServicePriceAsync("nước", chiNhanhId, ct);
+            decimal donGiaDien;
+            decimal donGiaNuoc;
+            if (priceCache?.Value is { } cached)
+            {
+                (donGiaDien, donGiaNuoc) = cached;
+            }
+            else
+            {
+                donGiaDien = await _store.GetServicePriceAsync("điện", chiNhanhId, ct);
+                donGiaNuoc = await _store.GetServicePriceAsync("nước", chiNhanhId, ct);
+                if (priceCache != null)
+                {
+                    priceCache.Value = (donGiaDien, donGiaNuoc);
+                }
+            }
 
             var period = new DichVuDienNuocCuaPhong
             {

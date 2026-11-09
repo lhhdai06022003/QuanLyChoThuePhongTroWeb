@@ -264,6 +264,102 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
         public Task<bool> HasNonDraftInvoiceAsync(int periodRecordId, CancellationToken cancellationToken = default)
             => HasLockedInvoiceAsync(periodRecordId, cancellationToken);
 
+        public async Task<IReadOnlyDictionary<int, DichVuDienNuocCuaPhong>> GetPeriodsForUpdateAsync(IReadOnlyList<int> roomIds, int thang, int nam, CancellationToken cancellationToken = default)
+        {
+            if (roomIds.Count == 0) return new Dictionary<int, DichVuDienNuocCuaPhong>();
+
+            // Khóa theo PhongTroId tăng dần: cùng thứ tự với khi khóa từng phòng trong vòng duyệt.
+            var ids = roomIds.Distinct().OrderBy(id => id).ToArray();
+            var periods = await _context.DichVuDienNuocCuaPhongs
+                .FromSqlInterpolated($"SELECT * FROM dich_vu_dien_nuoc_cua_phong WHERE \"PhongTroId\" = ANY({ids}) AND \"Thang\" = {thang} AND \"Nam\" = {nam} AND \"IsDeleted\" = false ORDER BY \"PhongTroId\" FOR UPDATE")
+                .Include(d => d.AnhChiSoDongHos)
+                .ToListAsync(cancellationToken);
+
+            // Chỉ mục duy nhất (PhongTroId, Thang, Nam) lọc IsDeleted = false nên mỗi phòng có tối đa một kỳ.
+            return periods.ToDictionary(p => p.PhongTroId);
+        }
+
+        public async Task<IReadOnlyList<AnhChiSoDongHo>> GetImagesForUpdateByPeriodsAsync(IReadOnlyList<int> periodRecordIds, CancellationToken cancellationToken = default)
+        {
+            if (periodRecordIds.Count == 0) return Array.Empty<AnhChiSoDongHo>();
+
+            var ids = periodRecordIds.Distinct().ToArray();
+            return await _context.AnhChiSoDongHos
+                .FromSqlInterpolated($"SELECT * FROM anh_chi_so_dong_ho WHERE \"DichVuDienNuocCuaPhongId\" = ANY({ids}) AND \"IsDeleted\" = false ORDER BY \"AnhChiSoDongHoId\" FOR UPDATE")
+                .ToListAsync(cancellationToken);
+        }
+
+        public async Task<IReadOnlySet<int>> GetRoomsWithLockingSubsequentPeriodAsync(IReadOnlyList<int> roomIds, int thang, int nam, CancellationToken cancellationToken = default)
+        {
+            if (roomIds.Count == 0) return new HashSet<int>();
+
+            var ids = roomIds.Distinct().ToArray();
+            var rooms = await _context.DichVuDienNuocCuaPhongs
+                .Where(d => ids.Contains(d.PhongTroId) && !d.IsDeleted &&
+                            (d.Nam > nam || (d.Nam == nam && d.Thang > thang)) &&
+                            (d.TrangThaiGhiNhan == TrangThaiGhiNhan.DaDuyet ||
+                             _context.HoaDons.IgnoreQueryFilters().Any(h => h.DichVuDienNuocCuaPhongId == d.DichVuDienNuocCuaPhongId &&
+                                                                            h.TrangThaiPhatHanh != TrangThaiPhatHanhHoaDon.Nhap &&
+                                                                            h.TrangThaiPhatHanh != TrangThaiPhatHanhHoaDon.DaHuy)))
+                .Select(d => d.PhongTroId)
+                .Distinct()
+                .ToListAsync(cancellationToken);
+
+            return rooms.ToHashSet();
+        }
+
+        public async Task<IReadOnlySet<int>> GetPeriodIdsWithLockedInvoiceAsync(IReadOnlyList<int> periodRecordIds, CancellationToken cancellationToken = default)
+        {
+            if (periodRecordIds.Count == 0) return new HashSet<int>();
+
+            var ids = periodRecordIds.Distinct().ToArray();
+            var periods = await _context.HoaDons
+                .IgnoreQueryFilters()
+                .Where(h => h.DichVuDienNuocCuaPhongId.HasValue &&
+                            ids.Contains(h.DichVuDienNuocCuaPhongId.Value) &&
+                            h.TrangThaiPhatHanh != TrangThaiPhatHanhHoaDon.Nhap &&
+                            h.TrangThaiPhatHanh != TrangThaiPhatHanhHoaDon.DaHuy)
+                .Select(h => h.DichVuDienNuocCuaPhongId!.Value)
+                .Distinct()
+                .ToListAsync(cancellationToken);
+
+            return periods.ToHashSet();
+        }
+
+        public async Task<IReadOnlySet<int>> GetRoomsWithContractInMonthAsync(IReadOnlyList<int> roomIds, int thang, int nam, CancellationToken cancellationToken = default)
+        {
+            if (roomIds.Count == 0) return new HashSet<int>();
+
+            var (startUtc, endExclusiveUtc) = QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services.MeterPeriodPolicy.MonthRangeUtc(
+                new QuanLyChoThuePhongTroWeb.Application.Features.DienNuocs.Services.MeterPeriod(thang, nam));
+            var ids = roomIds.Distinct().ToArray();
+
+            var rooms = await _context.HopDongs
+                .Where(h => ids.Contains(h.PhongTroId) &&
+                            !h.IsDeleted &&
+                            h.TrangThaiHopDong != TrangThaiHopDong.DaHuy &&
+                            h.ThoiDiemBatDau < endExclusiveUtc &&
+                            (h.ThoiDiemKetThuc == null || h.ThoiDiemKetThuc.Value >= startUtc))
+                .Select(h => h.PhongTroId)
+                .Distinct()
+                .ToListAsync(cancellationToken);
+
+            return rooms.ToHashSet();
+        }
+
+        public async Task<IReadOnlyDictionary<int, DichVuDienNuocCuaPhong>> GetPeriodRecordsAsync(IReadOnlyList<int> roomIds, int thang, int nam, CancellationToken cancellationToken = default)
+        {
+            if (roomIds.Count == 0) return new Dictionary<int, DichVuDienNuocCuaPhong>();
+
+            var ids = roomIds.Distinct().ToArray();
+            var periods = await _context.DichVuDienNuocCuaPhongs
+                .Include(d => d.AnhChiSoDongHos)
+                .Where(d => ids.Contains(d.PhongTroId) && d.Thang == thang && d.Nam == nam && !d.IsDeleted)
+                .ToListAsync(cancellationToken);
+
+            return periods.ToDictionary(p => p.PhongTroId);
+        }
+
         public async Task<(decimal ChiSoDienMoi, decimal ChiSoNuocMoi)> GetNearestPreviousReadingAsync(int phongTroId, int thang, int nam, CancellationToken cancellationToken = default)
         {
             var record = await _context.DichVuDienNuocCuaPhongs
