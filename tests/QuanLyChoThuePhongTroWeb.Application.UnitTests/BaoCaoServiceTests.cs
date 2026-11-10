@@ -158,10 +158,10 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.Equal("05/11/2026 10:00", admin.Data.PhamVi.ThoiDiemTinhText);
 
             DatNhanVien(1, 2);
-            var nv = await _service.GetDoanhThuAsync(10, Filter());
+            var nv = await _service.GetCongSuatPhongAsync(10, Filter());
             Assert.Equal("Tất cả chi nhánh của tôi", nv.Data!.PhamVi.TenChiNhanh);
 
-            var mot = await _service.GetDoanhThuAsync(10, Filter(chiNhanhId: 2));
+            var mot = await _service.GetCongSuatPhongAsync(10, Filter(chiNhanhId: 2));
             Assert.Equal("Chi nhánh B", mot.Data!.PhamVi.TenChiNhanh);
             Assert.Equal(2, mot.Data.PhamVi.ChiNhanhId);
             Assert.Empty(mot.Data.TheoChiNhanh);
@@ -199,6 +199,76 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.False(r.Success);
             Assert.Equal(ServiceErrorKind.Forbidden, r.ErrorKind);
             Assert.Empty(_exporter.Calls);
+        }
+
+        [Fact]
+        public async Task NhanVien_DoanhThu_BiTuChoi_VaKhongGoiStore()
+        {
+            DatNhanVien(1);
+            var khongChon = await _service.GetDoanhThuAsync(10, Filter());
+            var cuaMinh = await _service.GetDoanhThuAsync(10, Filter(chiNhanhId: 1));
+            Assert.Equal(ServiceErrorKind.Forbidden, khongChon.ErrorKind);
+            Assert.Equal(ServiceErrorKind.Forbidden, cuaMinh.ErrorKind);
+            Assert.Equal("Chỉ Admin được xem báo cáo doanh thu.", khongChon.Message);
+            Assert.Equal(0, _store.CallCount);
+        }
+
+        [Fact]
+        public async Task NhanVien_DoanhThuKhoangSai_Tra403TruocValidation()
+        {
+            DatNhanVien(1);
+            var r = await _service.GetDoanhThuAsync(10, Filter(tuThang: 1, tuNam: 2024, denThang: 1, denNam: 2026));
+            Assert.Equal(ServiceErrorKind.Forbidden, r.ErrorKind);
+            Assert.Equal(0, _store.CallCount);
+        }
+
+        [Fact]
+        public async Task NhanVien_XuatExcelDoanhThu_BiTuChoi_KhongGoiExporter()
+        {
+            DatNhanVien(1);
+            var r = await _service.XuatExcelAsync(10, BaoCaoTab.DoanhThu, Filter(chiNhanhId: 1));
+            Assert.False(r.Success);
+            Assert.Equal(ServiceErrorKind.Forbidden, r.ErrorKind);
+            Assert.Empty(_exporter.Calls);
+            Assert.Equal(0, _store.CallCount);
+        }
+
+        // Fail closed: IEmployeeAccessService không trả phạm vi thì doanh thu bị từ chối, store/exporter không được gọi.
+        [Fact]
+        public async Task ScopeNull_DoanhThuVaXuatExcelDoanhThu_BiTuChoi_KhongGoiStoreHayExporter()
+        {
+            _access.ScopeToReturn = null;
+
+            var data = await _service.GetDoanhThuAsync(5, Filter());
+            var excel = await _service.XuatExcelAsync(5, BaoCaoTab.DoanhThu, Filter());
+
+            Assert.Equal(ServiceErrorKind.Forbidden, data.ErrorKind);
+            Assert.Equal(ServiceErrorKind.Forbidden, excel.ErrorKind);
+            Assert.Equal(0, _store.CallCount);
+            Assert.Empty(_exporter.Calls);
+        }
+
+        // Nhân viên chưa phân công vào tab Doanh thu nhận 403 "chỉ Admin" (không phải thông báo chưa phân công).
+        [Fact]
+        public async Task NhanVienChuaPhanCong_DoanhThu_Tra403ChiAdmin()
+        {
+            _access.ScopeToReturn = new EmployeeAccessScope(10, false);
+
+            var r = await _service.GetDoanhThuAsync(10, Filter());
+
+            Assert.Equal(ServiceErrorKind.Forbidden, r.ErrorKind);
+            Assert.Equal("Chỉ Admin được xem báo cáo doanh thu.", r.Message);
+            Assert.Equal(0, _store.CallCount);
+        }
+
+        [Fact]
+        public async Task NhanVien_CacTabKhac_VanThanhCong()
+        {
+            DatNhanVien(1);
+            Assert.True((await _service.GetCongNoAsync(10, Filter())).Success);
+            Assert.True((await _service.GetCongSuatPhongAsync(10, Filter())).Success);
+            Assert.True((await _service.GetHopDongAsync(10, Filter())).Success);
+            Assert.True((await _service.GetDienNuocAsync(10, Filter())).Success);
         }
 
         [Fact]

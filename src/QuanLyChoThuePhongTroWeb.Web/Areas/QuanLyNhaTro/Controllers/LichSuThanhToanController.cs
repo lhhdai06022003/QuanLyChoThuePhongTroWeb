@@ -7,7 +7,9 @@ using System.Linq;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
+using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Payments;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services;
+using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Responses;
 using QuanLyChoThuePhongTroWeb.Web.Helpers;
 
 namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
@@ -18,15 +20,21 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         private readonly ILichSuThanhToanService _lichSuThanhToanService;
         private readonly IPhongTroService _phongTroService;
         private readonly IInvoiceLedgerService _ledgerService;
+        private readonly INguoiDungService _nguoiDungService;
+        private readonly Microsoft.Extensions.Configuration.IConfiguration _configuration;
 
         public LichSuThanhToanController(
             ILichSuThanhToanService lichSuThanhToanService,
             IPhongTroService phongTroService,
-            IInvoiceLedgerService ledgerService)
+            IInvoiceLedgerService ledgerService,
+            INguoiDungService nguoiDungService,
+            Microsoft.Extensions.Configuration.IConfiguration configuration)
         {
             _lichSuThanhToanService = lichSuThanhToanService;
             _phongTroService = phongTroService;
             _ledgerService = ledgerService;
+            _nguoiDungService = nguoiDungService;
+            _configuration = configuration;
         }
 
         public class HuyGhiNhanReq
@@ -34,20 +42,81 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             public string? LyDo { get; set; }
         }
 
+        // Các tham số lọc nhận dạng chuỗi và parse mềm: giá trị sai thì bỏ qua, trang vẫn mở bình thường.
         [Route("QuanLyNhaTro/LichSuThanhToan")]
         [ApiExplorerSettings(IgnoreApi = true)]
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string? kyThang, string? kyNam, string? nguoiThu, string? phuongThuc, string? tuNgay, string? denNgay, string? chiNhanhId)
         {
-            ViewBag.ListChiNhanh = await _phongTroService.GetDanhSachChiNhanhDropdownAsync(CurrentActorId);
-            return View();
+            var laAdmin = User.IsInRole("Admin");
+            var chiNhanhs = await _phongTroService.GetDanhSachChiNhanhDropdownAsync(CurrentActorId);
+
+            var chonChiNhanh = 0;
+            if (int.TryParse(chiNhanhId, NumberStyles.None, CultureInfo.InvariantCulture, out var cn)
+                && chiNhanhs.Any(c => c.Value == cn.ToString(CultureInfo.InvariantCulture)))
+            {
+                chonChiNhanh = cn;
+            }
+
+            var slugKenh = KenhThuSlugs.TryParse(phuongThuc, out var kenh) ? KenhThuSlugs.Slug(kenh) : "";
+
+            // Kỳ hóa đơn chỉ dành cho Admin (máy chủ cũng bỏ qua với nhân viên).
+            int? ky1 = null, ky2 = null;
+            if (laAdmin
+                && int.TryParse(kyThang, NumberStyles.None, CultureInfo.InvariantCulture, out var m) && m is >= 1 and <= 12
+                && int.TryParse(kyNam, NumberStyles.None, CultureInfo.InvariantCulture, out var y) && y is >= 2000 and <= 2100)
+            {
+                ky1 = m;
+                ky2 = y;
+            }
+
+            var tu = ParseNgayIso(tuNgay);
+            var den = ParseNgayIso(denNgay);
+            var coKhoang = tu.HasValue && den.HasValue && tu.Value <= den.Value;
+
+            var (nguoiThuChon, tenNguoiThu) = await ChonNguoiThuAsync(nguoiThu, laAdmin);
+
+            var model = LichSuThanhToanPageViewModel.From(
+                chiNhanhs, laAdmin, chonChiNhanh, slugKenh, nguoiThuChon, tenNguoiThu, ky1, ky2,
+                coKhoang ? tu!.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) : "",
+                coKhoang ? den!.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) : "",
+                _configuration["VietQRSettings:BankId"] ?? "MB",
+                _configuration["VietQRSettings:AccountNumber"] ?? "",
+                _configuration["VietQRSettings:AccountName"] ?? "");
+            return View(model);
+        }
+
+        // "", "toi", "he-thong" ai cũng dùng được; NguoiDungId chỉ Admin (nhân viên gửi số thì về "tất cả").
+        private async Task<(string Chon, string? Ten)> ChonNguoiThuAsync(string? nguoiThu, bool laAdmin)
+        {
+            var s = nguoiThu?.Trim().ToLowerInvariant();
+            if (s == "toi" || s == "he-thong")
+            {
+                return (s, null);
+            }
+
+            if (laAdmin && int.TryParse(s, NumberStyles.None, CultureInfo.InvariantCulture, out var id) && id > 0)
+            {
+                var user = await _nguoiDungService.GetByIdAsync(id);
+                return (id.ToString(CultureInfo.InvariantCulture), user?.TenDangNhap ?? $"Người dùng #{id}");
+            }
+
+            return ("", null);
+        }
+
+        private static DateTime? ParseNgayIso(string? text)
+        {
+            return DateTime.TryParseExact(text, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var ngay) ? ngay.Date : null;
         }
 
         [HttpPost("/LichSuThanhToan/GetList")]
         public async Task<IActionResult> GetList(
             [FromForm] int chiNhanhId = 0, 
-            [FromForm] int phuongThuc = -1, 
+            [FromForm] string? phuongThuc = null,
             [FromForm] string dateRange = "",
-            [FromForm] bool coTienThua = false)
+            [FromForm] bool coTienThua = false,
+            [FromForm] string? nguoiThu = null,
+            [FromForm] int? kyThang = null,
+            [FromForm] int? kyNam = null)
         {
             if (!TryGetActorId(out var actorId))
             {
@@ -65,12 +134,29 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
 
             var (tuNgay, denNgay) = TachKhoangNgay(dateRange);
 
-            var data = await _lichSuThanhToanService.GetDanhSachThanhToanAsync(actorId, request, chiNhanhId, phuongThuc, tuNgay, denNgay, coTienThua);
+            var loc = new LichSuThanhToanLocReq
+            {
+                ChiNhanhId = chiNhanhId,
+                PhuongThuc = phuongThuc,
+                TuNgay = tuNgay,
+                DenNgay = denNgay,
+                ChiCoTienThua = coTienThua,
+                NguoiThu = nguoiThu,
+                KyThang = kyThang,
+                KyNam = kyNam
+            };
+
+            var data = await _lichSuThanhToanService.GetDanhSachThanhToanAsync(actorId, request, loc);
             return Ok(data);
         }
 
         [HttpGet("/LichSuThanhToan/GetStats")]
-        public async Task<IActionResult> GetStats([FromQuery] int chiNhanhId = 0, [FromQuery] string dateRange = "")
+        public async Task<IActionResult> GetStats(
+            [FromQuery] int chiNhanhId = 0,
+            [FromQuery] string dateRange = "",
+            [FromQuery] string? nguoiThu = null,
+            [FromQuery] int? kyThang = null,
+            [FromQuery] int? kyNam = null)
         {
             if (!TryGetActorId(out var actorId))
             {
@@ -79,7 +165,15 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
 
             var (tuNgay, denNgay) = TachKhoangNgay(dateRange);
 
-            var stats = await _lichSuThanhToanService.GetThongKeThanhToanAsync(actorId, chiNhanhId, tuNgay, denNgay);
+            var stats = await _lichSuThanhToanService.GetThongKeThanhToanAsync(actorId, new LichSuThanhToanLocReq
+            {
+                ChiNhanhId = chiNhanhId,
+                TuNgay = tuNgay,
+                DenNgay = denNgay,
+                NguoiThu = nguoiThu,
+                KyThang = kyThang,
+                KyNam = kyNam
+            });
             return Ok(stats);
         }
 

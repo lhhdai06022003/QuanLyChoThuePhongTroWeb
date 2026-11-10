@@ -36,8 +36,9 @@
         };
     }
 
-    // Biểu đồ cột chồng doanh thu
-    var revenueChart = new Chart(document.getElementById('revenueBarChart').getContext('2d'), {
+    // Biểu đồ cột chồng doanh thu: chỉ Admin có khối này (nhân viên không có canvas).
+    var revenueCanvas = cfg.coXemDoanhThu ? document.getElementById('revenueBarChart') : null;
+    var revenueChart = revenueCanvas ? new Chart(revenueCanvas.getContext('2d'), {
         type: 'bar',
         data: {
             labels: cfg.chartLabels,
@@ -67,7 +68,7 @@
                 }
             }
         }
-    });
+    }) : null;
 
     // Biểu đồ tròn tình trạng phòng
     var roomChart = new Chart(document.getElementById('roomStatusChart').getContext('2d'), {
@@ -90,13 +91,15 @@
 
     function apDungMauTheme() {
         var mau = mauTheme();
-        ['x', 'y'].forEach(function (truc) {
-            revenueChart.options.scales[truc].ticks.color = mau.chu;
-            revenueChart.options.scales[truc].grid.color = mau.luoi;
-        });
-        revenueChart.options.plugins.legend.labels.color = mau.chu;
+        if (revenueChart) {
+            ['x', 'y'].forEach(function (truc) {
+                revenueChart.options.scales[truc].ticks.color = mau.chu;
+                revenueChart.options.scales[truc].grid.color = mau.luoi;
+            });
+            revenueChart.options.plugins.legend.labels.color = mau.chu;
+            revenueChart.update();
+        }
         roomChart.options.plugins.legend.labels.color = mau.chu;
-        revenueChart.update();
         roomChart.update();
     }
     apDungMauTheme();
@@ -152,6 +155,70 @@
         list.appendChild(group);
     }
 
+    function datLink(id, url, nhan) {
+        var el = document.getElementById(id);
+        if (!el || !url) return;
+        el.setAttribute('href', safeLink(url));
+        if (nhan) el.setAttribute('aria-label', nhan);
+    }
+
+    // Khối "Chờ bạn duyệt" (chỉ Admin): dòng hóa đơn chờ chốt, hoặc dòng "Không có việc chờ duyệt".
+    function renderChoDuyet(choDuyet) {
+        var box = document.getElementById('choDuyetHd2');
+        if (!box || !choDuyet) return;
+        var soLuong = Number(choDuyet.soLuong) || 0;
+        $('#choDuyetTongSo').text('(' + soLuong + ')');
+        box.replaceChildren();
+        if (soLuong === 0) {
+            box.appendChild(tao('div', 'list-group-item text-secondary', 'Không có việc chờ duyệt'));
+            return;
+        }
+        var a = tao('a', 'list-group-item list-group-item-action');
+        a.setAttribute('href', safeLink(choDuyet.link));
+        var hang = tao('div', 'd-flex align-items-center gap-2');
+        var cham = tao('span', 'status-dot status-orange');
+        cham.setAttribute('aria-hidden', 'true');
+        hang.appendChild(cham);
+        hang.appendChild(tao('div', 'dashboard-viec-text flex-fill fw-medium', choDuyet.tieuDe));
+        hang.appendChild(tao('span', 'fw-bold ms-2', String(soLuong)));
+        a.appendChild(hang);
+        box.appendChild(a);
+    }
+
+    // Bảng "Tiền mặt nhân viên đang giữ" (chỉ Admin): mỗi dòng là link sang Lịch sử thanh toán của người thu đó.
+    function renderTienMatNhanVien(ds, ky) {
+        var body = document.getElementById('tienMatBody');
+        if (!body || !Array.isArray(ds)) return;
+        $('#tienMatKy').text(ky);
+        body.replaceChildren();
+        var tongKhoan = 0;
+        var tongTien = 0;
+        if (ds.length === 0) {
+            var tr = tao('tr');
+            var td = tao('td', 'text-center text-secondary py-3', 'Tháng này chưa có khoản tiền mặt nào');
+            td.setAttribute('colspan', '3');
+            tr.appendChild(td);
+            body.appendChild(tr);
+        }
+        ds.forEach(function (n) {
+            tongKhoan += Number(n.soKhoan) || 0;
+            tongTien += Number(n.tongTien) || 0;
+            var tr = tao('tr');
+            [[n.ten, 'text-reset d-block fw-medium', ''], [String(Number(n.soKhoan) || 0), 'text-reset d-block', 'text-end num-tabular'],
+                [dinhDangTien(n.tongTien), 'text-reset d-block', 'text-end num-tabular']].forEach(function (cot) {
+                var td = tao('td', cot[2]);
+                var a = tao('a', cot[1], cot[0]);
+                a.setAttribute('href', safeLink(n.link));
+                td.appendChild(a);
+                tr.appendChild(td);
+            });
+            body.appendChild(tr);
+        });
+        $('#tienMatFoot').toggleClass('d-none', ds.length === 0);
+        $('#tienMatTongKhoan').text(tongKhoan);
+        $('#tienMatTongTien').text(dinhDangTien(tongTien));
+    }
+
     function renderHoatDong(activities) {
         var box = document.getElementById('activitiesContainer');
         box.replaceChildren();
@@ -177,7 +244,7 @@
             var noiDung = tao('div', 'ms-2');
             noiDung.appendChild(tao('div', 'fw-bold fs-4', act.title));
             noiDung.appendChild(tao('div', 'text-secondary small', act.description));
-            var thoiGian = tao('span', 'badge bg-light-lt text-secondary mt-1');
+            var thoiGian = tao('span', 'badge bg-secondary-lt text-secondary mt-1');
             thoiGian.appendChild(tao('i', 'ti ti-clock me-1'));
             thoiGian.appendChild(document.createTextNode(act.timeText || ''));
             noiDung.appendChild(thoiGian);
@@ -202,9 +269,29 @@
             type: 'GET',
             data: { branchId: branchId, month: month, year: year }
         }).done(function (res) {
-            $('#chartYearText').text(year);
-            $('#kpiDaThuTitle').text('Đã thu T' + month + '/' + year);
-            $('#statDoanhThu').text(dinhDangTien(res.doanhThuThangNay));
+            if (res.coXemDoanhThu) {
+                $('#chartYearText').text(year);
+                $('#kpiDaThuTitle').text('Đã thu kỳ T' + month + '/' + year);
+                $('#statDoanhThu').text(dinhDangTien(res.doanhThuThangNay));
+            }
+            $('#kpiChoThuTitle').text('Chờ thu kỳ T' + month + '/' + year);
+            var ky = 'T' + month + '/' + year;
+            var links = res.links || {};
+            datLink('cardQuaHan', links.quaHan);
+            datLink('cardChoThu', links.choThu, 'Mở danh sách hóa đơn chưa thu đủ của kỳ ' + ky);
+            datLink('cardPhongDangNo', links.phongDangNo);
+            if (res.coXemDoanhThu) {
+                datLink('cardDaThu', links.daThuKy, 'Mở báo cáo doanh thu của kỳ ' + ky);
+                datLink('linkBaoCaoNam', links.baoCaoNam, 'Mở báo cáo doanh thu năm ' + year);
+            }
+            if (res.tienMatCuaToi && document.getElementById('statTienMat')) {
+                $('#kpiTienMatTitle').text('Tiền mặt bạn đã thu ' + ky);
+                $('#statTienMat').text(dinhDangTien(res.tienMatCuaToi.tongTien));
+                $('#statTienMatChuThich').text('Tháng ' + month + '/' + year + ', chưa gồm tiền giữ chỗ');
+                datLink('cardTienMat', links.tienMatCuaToi, 'Mở lịch sử thanh toán tiền mặt bạn đã thu trong kỳ ' + ky);
+            }
+            renderTienMatNhanVien(res.tienMatNhanVien, ky);
+            renderChoDuyet(res.choDuyet);
             $('#statChoThu').text(dinhDangTien(res.tongTienChoThu));
             $('#statQuaHan').text(dinhDangTien(res.tienQuaHan));
             $('#statSoHoaDonQuaHan').text((Number(res.soHoaDonQuaHan) || 0) + ' hóa đơn');
@@ -213,10 +300,12 @@
             $('#statTyLeLapDay').text(dinhDangPhanTram(res.tyLeLapDay));
             $('#statPhongLapDay').text(res.soPhongDaThue + '/' + res.tongSoPhong + ' phòng');
 
-            revenueChart.data.labels = res.chartLabels;
-            revenueChart.data.datasets[0].data = res.chartData;
-            revenueChart.data.datasets[1].data = res.chartDataChoThu;
-            revenueChart.update();
+            if (revenueChart && res.coXemDoanhThu) {
+                revenueChart.data.labels = res.chartLabels;
+                revenueChart.data.datasets[0].data = res.chartData;
+                revenueChart.data.datasets[1].data = res.chartDataChoThu;
+                revenueChart.update();
+            }
 
             roomChart.data.labels = res.roomStatusLabels;
             roomChart.data.datasets[0].data = res.roomStatusData;

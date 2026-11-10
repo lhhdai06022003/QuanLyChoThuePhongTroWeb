@@ -244,6 +244,12 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
 
             Assert.Equal(HttpStatusCode.OK, res.StatusCode);
             var html = WebUtility.HtmlDecode(await res.Content.ReadAsStringAsync());
+            // Lịch sử thanh toán đã tách script ra file riêng: khối QR nằm trong file JS đó.
+            if (page == "/QuanLyNhaTro/LichSuThanhToan")
+            {
+                html += await (await admin.GetAsync("/js/lich-su-thanh-toan.js")).Content.ReadAsStringAsync();
+            }
+
             Assert.Contains("TTPTHD", html);
             Assert.DoesNotContain("THANH TOAN", html);
         }

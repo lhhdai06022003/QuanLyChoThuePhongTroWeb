@@ -44,6 +44,10 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.AiAssistants.Tools
                 }),
         };
 
+        // Doanh thu theo kỳ chỉ Admin (spec bang-dieu-khien-van-hanh mục 4); nhân viên không thấy công cụ này.
+        private static readonly IReadOnlyList<AiToolDefinition> StaffTools =
+            ManagerTools.Where(t => t.Name != AiToolNames.DoanhThuChiNhanh).ToList();
+
         private static readonly IReadOnlyList<AiToolDefinition> TenantTools = new List<AiToolDefinition>
         {
             new(AiToolNames.MyHopDongInfo, "Xem thông tin hợp đồng đang hoạt động của chính khách thuê (phòng, thời hạn, giá thuê, tiền cọc).",
@@ -55,7 +59,12 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.AiAssistants.Tools
         };
 
         public static IReadOnlyList<AiToolDefinition> ForRole(AiCallerRole role)
-            => role == AiCallerRole.KhachThue ? TenantTools : ManagerTools;
+            => role switch
+            {
+                AiCallerRole.KhachThue => TenantTools,
+                AiCallerRole.Admin => ManagerTools,
+                _ => StaffTools,
+            };
 
         public static bool IsAllowed(AiCallerRole role, string? toolName)
             => !string.IsNullOrEmpty(toolName) && ForRole(role).Any(t => t.Name == toolName);

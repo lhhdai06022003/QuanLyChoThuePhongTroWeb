@@ -33,5 +33,15 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Payments
 
             return phuongThuc == PhuongThucThanhToan.TienMat ? KenhThu.TienMat : KenhThu.ChuyenKhoan;
         }
+
+        // Tên kênh hiển thị, cùng chữ với ô theo kênh ở Lịch sử thanh toán và cột của Báo cáo.
+        public static string Label(KenhThu kenh) => kenh switch
+        {
+            KenhThu.TienMat => "Tiền mặt",
+            KenhThu.SePay => "SePay",
+            KenhThu.VnPay => "VNPay",
+            KenhThu.CanTruCoc => "Cấn trừ cọc",
+            _ => "Chuyển khoản"
+        };
     }
 }

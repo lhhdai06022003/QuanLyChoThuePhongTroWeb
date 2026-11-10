@@ -330,10 +330,13 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             var (staff, _) = await LoginAsync(_factory, w.Staff);
             var (other, _) = await LoginAsync(_factory, otherStaff);
 
-            var adminItems = Items(await JsonAsync(await admin.GetAsync(DashboardUrl(w.BranchA))));
-            var hd2 = adminItems.Single(i => i.GetProperty("maViec").GetString() == "HD2");
-            Assert.Equal(1, hd2.GetProperty("soLuong").GetInt32());
-            Assert.Equal("Hóa đơn chờ Admin chốt", hd2.GetProperty("tieuDe").GetString());
+            // HD2 nằm ở khối "Chờ bạn duyệt" (choDuyet) của Admin, không nằm trong danh sách việc cần làm.
+            var adminRoot = await JsonAsync(await admin.GetAsync(DashboardUrl(w.BranchA)));
+            var adminItems = Items(adminRoot);
+            var choDuyet = adminRoot.GetProperty("choDuyet");
+            Assert.Equal(1, choDuyet.GetProperty("soLuong").GetInt32());
+            Assert.Equal("Hóa đơn chờ Admin chốt", choDuyet.GetProperty("tieuDe").GetString());
+            Assert.DoesNotContain(adminItems, i => i.GetProperty("maViec").GetString() == "HD2");
             Assert.DoesNotContain(adminItems, i => i.GetProperty("maViec").GetString() == "HD4");
 
             // HD2 chỉ Admin; nhân viên không còn việc HD4 nào.

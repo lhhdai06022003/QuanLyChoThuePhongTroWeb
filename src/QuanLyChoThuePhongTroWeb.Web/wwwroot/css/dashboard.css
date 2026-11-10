@@ -26,39 +26,26 @@
     border: 3px solid var(--tblr-card-bg, #fff);
 }
 
-/* Bố cục vùng chính của Dashboard */
-.dashboard-layout {
-    display: grid;
-    gap: 1rem;
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas:
-        "chart"
-        "viec"
-        "phong"
-        "hoatdong";
-}
-.dashboard-chart { grid-area: chart; }
-.dashboard-phong { grid-area: phong; }
-.dashboard-hoatdong { grid-area: hoatdong; }
-.dashboard-viec { grid-area: viec; }
-
-@media (min-width: 768px) {
-    .dashboard-layout {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        grid-template-areas:
-            "chart chart"
-            "viec viec"
-            "phong hoatdong";
-    }
+/* Ô số bấm được: bỏ gạch chân của liên kết, giữ chữ trắng trên nền màu. */
+.dashboard-kpi a.card,
+.dashboard-kpi a.card:hover {
+    text-decoration: none;
+    color: #fff;
 }
 
-@media (min-width: 992px) {
-    .dashboard-layout {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        grid-template-areas:
-            "chart chart viec"
-            "phong hoatdong viec";
-    }
+/* Nền vàng, xanh lá, xanh ngọc của Tabler quá sáng cho chữ trắng (khoảng 2:1 - 3:1):
+   pha tối cùng tông để chữ và dòng chú thích đạt từ 4,5:1, và bỏ độ mờ của chú thích. */
+.dashboard-kpi a.card.bg-warning {
+    background-color: color-mix(in srgb, var(--tblr-warning) 65%, var(--tblr-black)) !important;
+}
+.dashboard-kpi a.card.bg-success {
+    background-color: color-mix(in srgb, var(--tblr-success) 75%, var(--tblr-black)) !important;
+}
+.dashboard-kpi a.card.bg-teal {
+    background-color: color-mix(in srgb, var(--tblr-teal) 80%, var(--tblr-black)) !important;
+}
+.dashboard-kpi a.card .text-opacity-75 {
+    --tblr-text-opacity: 1;
 }
 
 .dashboard-viec-text {

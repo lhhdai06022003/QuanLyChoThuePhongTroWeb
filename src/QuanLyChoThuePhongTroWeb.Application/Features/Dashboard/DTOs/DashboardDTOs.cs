@@ -19,7 +19,9 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.DTOs
         public int SoPhongDaThue { get; set; }
         public int SoPhongBaoTri { get; set; }
         public int TongSoHopDongHoatDong { get; set; }
-        public decimal DoanhThuThangNay { get; set; }
+        // Chỉ Admin: nhân viên không xem doanh thu nên các trường này là null và CoXemDoanhThu = false.
+        public bool CoXemDoanhThu { get; set; }
+        public decimal? DoanhThuThangNay { get; set; }
         public decimal TongTienChoThu { get; set; }
         public int SoPhongChuaThanhToan { get; set; }
         public double TyLeLapDay { get; set; }
@@ -28,15 +30,34 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.DTOs
 
         // Chart data
         public List<string> ChartLabels { get; set; } = new();
-        public List<decimal> ChartData { get; set; } = new();
-        public List<decimal> ChartDataChoThu { get; set; } = new();
+        public List<decimal>? ChartData { get; set; }
+        public List<decimal>? ChartDataChoThu { get; set; }
 
         // Room status data
         public List<string> RoomStatusLabels { get; set; } = new();
         public List<int> RoomStatusData { get; set; } = new();
 
+        // Tiền mặt đã thu trong tháng đang chọn (giờ VN): của chính người xem; Admin có thêm bảng theo từng người thu.
+        public DashboardTienMatDto TienMatCuaToi { get; set; } = new();
+        // Chỉ Admin; nhân viên là null.
+        public List<DashboardTienMatNguoiDto>? TienMatNhanVien { get; set; }
+
         // Recent activities
         public List<DashboardRecentActivityDto> RecentActivities { get; set; } = new();
+    }
+
+    public class DashboardTienMatDto
+    {
+        public int SoKhoan { get; set; }
+        public decimal TongTien { get; set; }
+    }
+
+    public class DashboardTienMatNguoiDto
+    {
+        public int NguoiDungId { get; set; }
+        public string Ten { get; set; } = string.Empty;
+        public int SoKhoan { get; set; }
+        public decimal TongTien { get; set; }
     }
 
     public class BranchLookupItemDto
@@ -57,16 +78,20 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.DTOs
     public class DashboardInvoiceStatDto
     {
         public int Thang { get; set; }
-        // Tổng các khoản ghi nhận chưa xóa mềm của mọi hóa đơn chưa xóa trong tháng.
+        // Tổng sổ chưa xóa của hóa đơn đã gửi, chưa xóa trong tháng.
         public decimal DaThu { get; set; }
         // Tổng còn nợ của hóa đơn đã gửi khách, chưa thanh toán đủ trong tháng.
         public decimal ChoThu { get; set; }
     }
 
-    public class DashboardOverdueSummaryDto
+    public class DashboardCongNoDto
     {
-        public int SoHoaDon { get; set; }
-        public decimal TongConNo { get; set; }
+        // Tổng còn nợ của hóa đơn đã gửi khách, chưa thu đủ, thuộc kỳ đang chọn.
+        public decimal ChoThuThang { get; set; }
+        // Số phòng có hóa đơn đã gửi chưa thu đủ (mọi kỳ).
+        public int SoPhongDangNo { get; set; }
+        public int SoHoaDonQuaHan { get; set; }
+        public decimal TienQuaHan { get; set; }
     }
 
     public class DashboardRecentPaymentDto
@@ -75,6 +100,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.DTOs
         public string SoPhong { get; set; } = string.Empty;
         public decimal SoTienThanhToan { get; set; }
         public QuanLyChoThuePhongTroWeb.Domain.Enums.PhuongThucThanhToan PhuongThuc { get; set; }
+        public string? MaGiaoDich { get; set; }
     }
 
     public class DashboardRecentContractDto

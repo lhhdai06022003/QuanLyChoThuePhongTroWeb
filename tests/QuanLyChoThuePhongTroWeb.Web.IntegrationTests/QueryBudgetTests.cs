@@ -196,5 +196,29 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             _output.WriteLine($"Hợp đồng (Admin): tổng {total:N0} B; JSON người thuê {tenants:N0} B ({soNguoiThue:N0} người, {(double)tenants / soNguoiThue:N0} B/người); "
                 + $"JSON phòng {rooms:N0} B ({soPhong:N0} phòng, {(double)rooms / soPhong:N0} B/phòng); phần còn lại {total - tenants - rooms:N0} B");
         }
+
+        // Số lệnh SQL gốc đo ngày 09/11/2026 tại HEAD 5989eb3 (trước khi tách Bảng điều khiển theo vai trò),
+        // cùng dữ liệu seed: nhân viên trang 28, nhân viên GetAjaxData 28, Admin GetAjaxData 30.
+        // Nhân viên không được tăng; Admin được tăng tối đa 2 (bảng tiền mặt theo người thu và khối Chờ bạn duyệt).
+        private const int DashboardNhanVienTrang0 = 28;
+        private const int DashboardNhanVienAjax0 = 28;
+        private const int DashboardAdminAjax0 = 30;
+
+        [Fact]
+        public async Task Dashboard_SoLenhSql_TheoVaiTro()
+        {
+            var w = await SeedAsync(_factory);
+            await AddHd5CandidatesAsync(w.BranchA, 5);
+            var (staff, _) = await LoginAsync(_factory, w.Staff);
+            var (admin, _) = await LoginAsync(_factory, w.Admin);
+
+            var a = await MeasureGetAsync(staff, "/QuanLyNhaTro/Dashboard");
+            var b = await MeasureGetAsync(staff, "/QuanLyNhaTro/Dashboard/GetAjaxData?year=2026&month=10");
+            var c = await MeasureGetAsync(admin, "/QuanLyNhaTro/Dashboard/GetAjaxData?year=2026&month=10");
+            _output.WriteLine($"Dashboard SQL: nhân viên trang {a}, nhân viên GetAjaxData {b}, Admin GetAjaxData {c}");
+            Assert.True(a <= DashboardNhanVienTrang0, $"Nhân viên mở trang: {a} lệnh, gốc {DashboardNhanVienTrang0}");
+            Assert.True(b <= DashboardNhanVienAjax0, $"Nhân viên GetAjaxData: {b} lệnh, gốc {DashboardNhanVienAjax0}");
+            Assert.True(c <= DashboardAdminAjax0 + 2, $"Admin GetAjaxData: {c} lệnh, gốc {DashboardAdminAjax0}");
+        }
     }
 }

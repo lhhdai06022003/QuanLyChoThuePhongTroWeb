@@ -82,8 +82,9 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
 
         public async Task<IReadOnlyList<DashboardInvoiceStatDto>> GetInvoiceMonthlyStatsAsync(int? branchId, int year, IReadOnlyCollection<int>? allowedBranchIds = null, CancellationToken cancellationToken = default)
         {
+            // Chỉ hóa đơn đã gửi khách (khớp Báo cáo): nháp, chờ duyệt, đã chốt chưa phải doanh thu.
             var query = _context.HoaDons
-                .Where(h => !h.IsDeleted && h.Nam == year);
+                .Where(h => !h.IsDeleted && h.Nam == year && h.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaGui);
 
             if (branchId.HasValue)
             {
@@ -122,7 +123,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 .ToList();
         }
 
-        public async Task<int> CountUnpaidRoomsAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds = null, CancellationToken cancellationToken = default)
+        public async Task<DashboardCongNoDto> GetCongNoAsync(int? branchId, int year, int month, DateTime nowUtc, IReadOnlyCollection<int>? allowedBranchIds = null, CancellationToken cancellationToken = default)
         {
             var query = _context.HoaDons.DaGuiChuaThuDu();
 
@@ -136,39 +137,63 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 query = query.Where(h => allowedBranchIds.Contains(h.HopDong.PhongTro.ChiNhanhId));
             }
 
-            return await query
-                .Select(h => h.HopDong.PhongTroId)
-                .Distinct()
-                .CountAsync(cancellationToken);
-        }
-
-        public async Task<DashboardOverdueSummaryDto> GetOverdueSummaryAsync(int? branchId, DateTime nowUtc, IReadOnlyCollection<int>? allowedBranchIds = null, CancellationToken cancellationToken = default)
-        {
-            var query = _context.HoaDons.QuaHan(nowUtc);
-
-            if (branchId.HasValue)
-            {
-                query = query.Where(h => h.HopDong.PhongTro.ChiNhanhId == branchId.Value);
-            }
-
-            if (allowedBranchIds != null)
-            {
-                query = query.Where(h => allowedBranchIds.Contains(h.HopDong.PhongTro.ChiNhanhId));
-            }
-
+            // Một lần đọc hóa đơn đã gửi chưa thu đủ, rồi tính Chờ thu / Phòng đang nợ / Quá hạn trong bộ nhớ.
             var rows = await query
                 .Select(h => new
                 {
+                    h.HopDong.PhongTroId,
+                    h.Thang,
+                    h.Nam,
                     h.TongTien,
+                    h.HanThanhToan,
                     DaThu = h.LichSuThanhToans.Where(l => !l.IsDeleted).Sum(l => l.SoTienThanhToan)
                 })
                 .ToListAsync(cancellationToken);
 
-            return new DashboardOverdueSummaryDto
+            var quaHan = rows.Where(r => r.HanThanhToan != null && r.HanThanhToan < nowUtc).ToList();
+            return new DashboardCongNoDto
             {
-                SoHoaDon = rows.Count,
-                TongConNo = rows.Sum(r => r.TongTien - r.DaThu)
+                ChoThuThang = rows.Where(r => r.Thang == month && r.Nam == year).Sum(r => r.TongTien - r.DaThu),
+                SoPhongDangNo = rows.Select(r => r.PhongTroId).Distinct().Count(),
+                SoHoaDonQuaHan = quaHan.Count,
+                TienQuaHan = quaHan.Sum(r => r.TongTien - r.DaThu)
             };
+        }
+
+        public async Task<IReadOnlyList<DashboardTienMatNguoiDto>> GetTienMatTheoNguoiAsync(int? branchId, DateTime tuUtc, DateTime denUtc, int? nguoiXacNhanId, IReadOnlyCollection<int>? allowedBranchIds = null, CancellationToken cancellationToken = default)
+        {
+            var query = _context.LichSuThanhToans
+                .Where(l => !l.IsDeleted
+                            && l.PhuongThucThanhToan == PhuongThucThanhToan.TienMat
+                            && l.NguoiXacNhanId != null
+                            && l.NgayThanhToan >= tuUtc
+                            && l.NgayThanhToan < denUtc);
+
+            if (nguoiXacNhanId.HasValue)
+            {
+                query = query.Where(l => l.NguoiXacNhanId == nguoiXacNhanId.Value);
+            }
+
+            if (branchId.HasValue)
+            {
+                query = query.Where(l => l.HoaDon.HopDong.PhongTro.ChiNhanhId == branchId.Value);
+            }
+
+            if (allowedBranchIds != null)
+            {
+                query = query.Where(l => allowedBranchIds.Contains(l.HoaDon.HopDong.PhongTro.ChiNhanhId));
+            }
+
+            return await query
+                .GroupBy(l => new { Id = l.NguoiXacNhanId!.Value, l.NguoiXacNhan!.TenDangNhap })
+                .Select(g => new DashboardTienMatNguoiDto
+                {
+                    NguoiDungId = g.Key.Id,
+                    Ten = g.Key.TenDangNhap,
+                    SoKhoan = g.Count(),
+                    TongTien = g.Sum(l => l.SoTienThanhToan)
+                })
+                .ToListAsync(cancellationToken);
         }
 
         public async Task<IReadOnlyList<DashboardRecentPaymentDto>> GetRecentPaymentsAsync(int? branchId, int count = 5, IReadOnlyCollection<int>? allowedBranchIds = null, CancellationToken cancellationToken = default)
@@ -195,7 +220,8 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                     NgayThanhToan = l.NgayThanhToan,
                     SoPhong = l.HoaDon.HopDong.PhongTro.SoPhong,
                     SoTienThanhToan = l.SoTienThanhToan,
-                    PhuongThuc = l.PhuongThucThanhToan
+                    PhuongThuc = l.PhuongThucThanhToan,
+                    MaGiaoDich = l.MaGiaoDich
                 })
                 .ToListAsync(cancellationToken);
         }

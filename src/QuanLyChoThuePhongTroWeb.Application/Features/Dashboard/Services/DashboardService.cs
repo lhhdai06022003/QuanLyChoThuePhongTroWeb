@@ -34,13 +34,15 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.Services
                 ? Array.Empty<int>()
                 : scope.AllowedBranchIds;
 
+            var laAdmin = scope?.IsAdmin == true;
             var nowUtc = _timeProvider.GetUtcNow().UtcDateTime;
             var today = nowUtc.AddHours(7);
             var model = new DashboardDataDto
             {
                 SelectedBranchId = branchId,
                 SelectedYear = selectedYear,
-                SelectedMonth = selectedMonth
+                SelectedMonth = selectedMonth,
+                CoXemDoanhThu = laAdmin
             };
 
             // --- 1. CHUẨN BỊ DROPDOWNS ---
@@ -66,40 +68,63 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.Services
             // --- 3. THỐNG KÊ HỢP ĐỒNG ĐANG HOẠT ĐỘNG ---
             model.TongSoHopDongHoatDong = await _store.CountActiveContractsAsync(branchId, allowedBranchIds: allowed);
 
-            // --- 4. THỐNG KÊ HÓA ĐƠN & DOANH THU THÁNG ---
-            var hoaDonStats = await _store.GetInvoiceMonthlyStatsAsync(branchId, selectedYear, allowedBranchIds: allowed);
+            // --- 4. CÔNG NỢ (đọc một lần cho cả hai vai trò) ---
+            var congNo = await _store.GetCongNoAsync(branchId, selectedYear, selectedMonth, nowUtc, allowedBranchIds: allowed);
+            model.TongTienChoThu = congNo.ChoThuThang;
+            model.SoPhongChuaThanhToan = congNo.SoPhongDangNo;
+            model.TienQuaHan = congNo.TienQuaHan;
+            model.SoHoaDonQuaHan = congNo.SoHoaDonQuaHan;
 
-            // Đã thu tính theo ledger để hóa đơn trả một phần được tính đúng phần đã nhận và phần còn nợ.
-            model.DoanhThuThangNay = hoaDonStats
-                .Where(h => h.Thang == selectedMonth)
-                .Sum(h => h.DaThu);
-
-            // Chờ thu chỉ tính hóa đơn đã gửi khách (khớp màn Công nợ).
-            model.TongTienChoThu = hoaDonStats
-                .Where(h => h.Thang == selectedMonth)
-                .Sum(h => h.ChoThu);
-
-            model.SoPhongChuaThanhToan = await _store.CountUnpaidRoomsAsync(branchId, allowedBranchIds: allowed);
-
-            var quaHan = await _store.GetOverdueSummaryAsync(branchId, nowUtc, allowedBranchIds: allowed);
-            model.TienQuaHan = quaHan.TongConNo;
-            model.SoHoaDonQuaHan = quaHan.SoHoaDon;
-
-            // --- 5. BIỂU ĐỒ DOANH THU 12 THÁNG (Theo năm được chọn) ---
+            // --- 5. DOANH THU & BIỂU ĐỒ 12 THÁNG: chỉ Admin (nhân viên không chạy truy vấn doanh thu) ---
             for (int month = 1; month <= 12; month++)
             {
                 model.ChartLabels.Add($"T{month}");
+            }
 
-                var daThu = hoaDonStats
-                    .Where(h => h.Thang == month)
+            if (laAdmin)
+            {
+                var hoaDonStats = await _store.GetInvoiceMonthlyStatsAsync(branchId, selectedYear, allowedBranchIds: allowed);
+
+                // Đã thu tính theo sổ thanh toán để hóa đơn trả một phần được tính đúng phần đã nhận.
+                model.DoanhThuThangNay = hoaDonStats
+                    .Where(h => h.Thang == selectedMonth)
                     .Sum(h => h.DaThu);
 
-                var choThu = hoaDonStats
-                    .Where(h => h.Thang == month)
-                    .Sum(h => h.ChoThu);
+                model.ChartData = new List<decimal>();
+                model.ChartDataChoThu = new List<decimal>();
+                for (int month = 1; month <= 12; month++)
+                {
+                    model.ChartData.Add(hoaDonStats.Where(h => h.Thang == month).Sum(h => h.DaThu));
+                    model.ChartDataChoThu.Add(hoaDonStats.Where(h => h.Thang == month).Sum(h => h.ChoThu));
+                }
+            }
 
-                model.ChartData.Add(daThu);
-                model.ChartDataChoThu.Add(choThu);
+            // --- 5b. TIỀN MẶT ĐÃ THU TRONG THÁNG (giờ VN) ---
+            // Nhân viên: của chính mình. Admin: gom theo người thu, "của tôi" lấy từ dòng của chính Admin.
+            if (selectedMonth is >= 1 and <= 12 && selectedYear is >= 2000 and <= 2100)
+            {
+                var tuUtc = DateTime.SpecifyKind(new DateTime(selectedYear, selectedMonth, 1), DateTimeKind.Utc).AddHours(-7);
+                var denUtc = DateTime.SpecifyKind(new DateTime(selectedYear, selectedMonth, 1).AddMonths(1), DateTimeKind.Utc).AddHours(-7);
+                if (laAdmin)
+                {
+                    var theoNguoi = await _store.GetTienMatTheoNguoiAsync(branchId, tuUtc, denUtc, null, allowedBranchIds: allowed);
+                    model.TienMatNhanVien = theoNguoi
+                        .OrderByDescending(n => n.TongTien)
+                        .ThenBy(n => n.Ten, StringComparer.OrdinalIgnoreCase)
+                        .ToList();
+                    var cuaToi = theoNguoi.FirstOrDefault(n => n.NguoiDungId == actorId);
+                    model.TienMatCuaToi = new DashboardTienMatDto { SoKhoan = cuaToi?.SoKhoan ?? 0, TongTien = cuaToi?.TongTien ?? 0 };
+                }
+                else
+                {
+                    var cuaToi = (await _store.GetTienMatTheoNguoiAsync(branchId, tuUtc, denUtc, actorId, allowedBranchIds: allowed))
+                        .FirstOrDefault(n => n.NguoiDungId == actorId);
+                    model.TienMatCuaToi = new DashboardTienMatDto { SoKhoan = cuaToi?.SoKhoan ?? 0, TongTien = cuaToi?.TongTien ?? 0 };
+                }
+            }
+            else if (laAdmin)
+            {
+                model.TienMatNhanVien = new List<DashboardTienMatNguoiDto>();
             }
 
             // --- 6. BIỂU ĐỒ TÌNH TRẠNG PHÒNG ---
@@ -119,7 +144,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.Dashboard.Services
             {
                 activities.Add((p.NgayThanhToan,
                     $"Đã thu tiền Phòng {p.SoPhong}",
-                    $"Số tiền: {TienTe.DinhDang(p.SoTienThanhToan)} - {PaymentMethodLabels.Label(p.PhuongThuc)}",
+                    $"Số tiền: {TienTe.DinhDang(p.SoTienThanhToan)} - {PaymentChannels.Label(PaymentChannels.Of(p.MaGiaoDich, p.PhuongThuc))}",
                     "fas fa-check-circle",
                     "bg-success-lt"));
             }

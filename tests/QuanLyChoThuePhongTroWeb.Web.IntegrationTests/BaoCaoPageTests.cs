@@ -84,7 +84,9 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             var world = await BranchScopeKit.SeedAsync(_factory);
             var (client, _) = await BranchScopeKit.LoginAsync(_factory, world.Staff, Page);
 
-            Assert.Equal(HttpStatusCode.OK, (await client.GetAsync($"{Page}/DuLieu?tab=doanh-thu&chiNhanhId={world.BranchA}")).StatusCode);
+            // Doanh thu chỉ dành cho Admin nên nhân viên bị chặn kể cả chi nhánh của mình.
+            Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync($"{Page}/DuLieu?tab=doanh-thu&chiNhanhId={world.BranchA}")).StatusCode);
+            Assert.Equal(HttpStatusCode.OK, (await client.GetAsync($"{Page}/DuLieu?tab=cong-suat&chiNhanhId={world.BranchA}")).StatusCode);
             Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync($"{Page}/DuLieu?tab=doanh-thu&chiNhanhId={world.BranchB}")).StatusCode);
             Assert.Equal(HttpStatusCode.OK, (await client.GetAsync($"{Page}/DuLieu?tab=cong-no")).StatusCode);
             Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync($"{Page}/XuatExcel?tab=doanh-thu&chiNhanhId={world.BranchB}")).StatusCode);
@@ -98,7 +100,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
 
             Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync($"{Page}/DuLieu?tab=xyz")).StatusCode);
             Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync($"{Page}/DuLieu")).StatusCode);
-            Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync($"{Page}/DuLieu?tab=doanh-thu&tuThang=1&tuNam=2024&denThang=1&denNam=2026")).StatusCode);
+            Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync($"{Page}/DuLieu?tab=cong-suat&tuThang=1&tuNam=2024&denThang=1&denNam=2026")).StatusCode);
             Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync($"{Page}/XuatExcel?tab=xyz")).StatusCode);
         }
 
@@ -179,9 +181,13 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             var world = await BranchScopeKit.SeedAsync(_factory);
             var (client, _) = await BranchScopeKit.LoginAsync(_factory, world.Admin, "/QuanLyNhaTro/Dashboard");
 
-            var html = WebUtility.HtmlDecode(await (await client.GetAsync("/QuanLyNhaTro/Dashboard")).Content.ReadAsStringAsync());
+            var html = WebUtility.HtmlDecode(await (await client.GetAsync("/QuanLyNhaTro/Dashboard?year=2030")).Content.ReadAsStringAsync());
 
-            Assert.Contains("href=\"/QuanLyNhaTro/BaoCao?tab=doanh-thu\"", html);
+            // Nút "Xem báo cáo chi tiết" của biểu đồ mở Báo cáo doanh thu cả năm đang xem.
+            Assert.Contains("href=\"/QuanLyNhaTro/BaoCao?tab=doanh-thu&tuThang=1&tuNam=2030&denThang=12&denNam=2030\"", html);
+
+            var htmlChiNhanh = WebUtility.HtmlDecode(await (await client.GetAsync($"/QuanLyNhaTro/Dashboard?branchId={world.BranchA}&year=2030")).Content.ReadAsStringAsync());
+            Assert.Contains($"href=\"/QuanLyNhaTro/BaoCao?tab=doanh-thu&chiNhanhId={world.BranchA}&tuThang=1&tuNam=2030&denThang=12&denNam=2030\"", htmlChiNhanh);
         }
 
         // ----- C3: khoảng ngày của màn Lịch sử thanh toán -----

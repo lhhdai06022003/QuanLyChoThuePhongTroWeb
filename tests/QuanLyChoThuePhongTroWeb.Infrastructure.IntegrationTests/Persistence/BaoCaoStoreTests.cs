@@ -324,6 +324,49 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             await tx.RollbackAsync();
         }
 
+        // Test 4: "Đã thu kỳ" của Bảng điều khiển bằng "Đã thu" của Báo cáo: chỉ hóa đơn đã gửi, chưa xóa;
+        // gồm cấn trừ cọc, SePay, VNPay; bỏ dòng sổ đã hủy, hóa đơn đã hủy và hóa đơn chưa gửi.
+        [Fact]
+        public async Task DaThuKy_DashboardBangBaoCao_KeCaCanTruSePayVaBoHoaDonHuyVaNhap()
+        {
+            await using var db = _fixture.CreateDbContext();
+            await using var tx = await db.Database.BeginTransactionAsync();
+            var w = await NewWorldAsync(db);
+            var day = Utc(2004, 3, 10);
+
+            var sent = await w.Seed.InvoiceAsync(await NewContractAsync(w, w.A), TrangThaiPhatHanhHoaDon.DaGui, TrangThaiHoaDon.ThanhToanMotPhan, 9_000_000m, Now.AddDays(5), month: 3, year: 2004);
+            await AddLedgerAsync(db, sent, 1_000m, PhuongThucThanhToan.TienMat, "TM", "", day);
+            await AddLedgerAsync(db, sent, 2_000m, PhuongThucThanhToan.ChuyenKhoan, "CK", "", day);
+            await AddLedgerAsync(db, sent, 4_000m, PhuongThucThanhToan.ChuyenKhoan, "SEPAY-Y", "", day);
+            await AddLedgerAsync(db, sent, 8_000m, PhuongThucThanhToan.ChuyenKhoan, "VNPAY-Y", "", day);
+            await AddLedgerAsync(db, sent, 16_000m, PhuongThucThanhToan.CanTruTienCoc, "CANTRU-HD1-2", "", day);
+            await AddLedgerAsync(db, sent, 999m, PhuongThucThanhToan.TienMat, "DA-HUY", "", day, deleted: true);
+
+            var cancelled = await w.Seed.InvoiceAsync(await NewContractAsync(w, w.A), TrangThaiPhatHanhHoaDon.DaHuy, TrangThaiHoaDon.ChuaThanhToan, 500_000m, null, deleted: true, month: 3, year: 2004);
+            await AddLedgerAsync(db, cancelled, 32_000m, PhuongThucThanhToan.TienMat, "HD-HUY", "", day);
+
+            var draft = await w.Seed.InvoiceAsync(await NewContractAsync(w, w.A), TrangThaiPhatHanhHoaDon.Nhap, TrangThaiHoaDon.ChuaThanhToan, 500_000m, null, month: 3, year: 2004);
+            await AddLedgerAsync(db, draft, 64_000m, PhuongThucThanhToan.TienMat, "HD-NHAP", "", day);
+
+            var service = new BaoCaoService(new BaoCaoStore(db), new StubAccess(), null!, new FixedTime());
+            var report = await service.GetDoanhThuAsync(1, new BaoCaoFilter { ChiNhanhId = w.A.ChiNhanhId, TuThang = 3, TuNam = 2004, DenThang = 3, DenNam = 2004 });
+            Assert.True(report.Success, report.Message);
+
+            var dashboard = (await new DashboardStore(db).GetInvoiceMonthlyStatsAsync(w.A.ChiNhanhId, 2004)).Single(s => s.Thang == 3).DaThu;
+            var tongSo = report.Data!.TheoKy.Single(k => k.Thang == 3).DaThu;
+
+            Assert.Equal(31_000m, dashboard);
+            Assert.Equal(dashboard, tongSo);
+
+            // Lịch sử thanh toán lọc theo cùng kỳ (3/2004, chi nhánh A) cho đúng số đó, cả ô tổng lẫn tổng các dòng.
+            var lichSu = new LichSuThanhToanStore(db);
+            var loc = new Application.Features.LichSuThanhToans.DTOs.LichSuThanhToanLoc { ChiNhanhId = w.A.ChiNhanhId, KyThang = 3, KyNam = 2004 };
+            Assert.Equal(dashboard, (await lichSu.GetThongKeThanhToanAsync(loc)).TongDoanhThu);
+            var dongs = await lichSu.GetDanhSachThanhToanAsync(new Application.Common.Models.DataTableRequest { Draw = 1, Start = 0, Length = 500 }, loc);
+            Assert.Equal(dashboard, dongs.data.Sum(r => r.SoTienThanhToan));
+            await tx.RollbackAsync();
+        }
+
         // ----- Công nợ -----
 
         [Fact]
@@ -347,9 +390,9 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             Assert.Equal(4, rows.Count);
 
             var builder = BaoCaoCongNoBuilder.Build(new BaoCaoPhamViDto(), rows, Now);
-            var dashboard = await new DashboardStore(db).GetOverdueSummaryAsync(w.A.ChiNhanhId, Now);
-            Assert.Equal(dashboard.TongConNo, builder.QuaHan);
-            Assert.Equal(dashboard.SoHoaDon, builder.SoHoaDonQuaHan);
+            var dashboard = await new DashboardStore(db).GetCongNoAsync(w.A.ChiNhanhId, 2004, 6, Now);
+            Assert.Equal(dashboard.TienQuaHan, builder.QuaHan);
+            Assert.Equal(dashboard.SoHoaDonQuaHan, builder.SoHoaDonQuaHan);
             Assert.Equal(700m + 500m + 400m + 250m, builder.TongConNo);
 
             Assert.Empty(await store.GetHoaDonConNoAsync(null, Array.Empty<int>()));

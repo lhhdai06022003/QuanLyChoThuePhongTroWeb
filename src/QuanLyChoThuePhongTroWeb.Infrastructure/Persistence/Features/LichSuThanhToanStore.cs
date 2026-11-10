@@ -24,12 +24,13 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
         }
 
         public async Task<DataTableResponse<LichSuThanhToanGiaoDichRes>> GetDanhSachThanhToanAsync(
-            DataTableRequest request, int chiNhanhId, int phuongThuc, DateTime? tuNgay, DateTime? denNgay, bool chiCoTienThua = false, IReadOnlyCollection<int>? allowedBranchIds = null, CancellationToken cancellationToken = default)
+            DataTableRequest request, LichSuThanhToanLoc loc, IReadOnlyCollection<int>? allowedBranchIds = null, CancellationToken cancellationToken = default)
         {
+            var chiNhanhId = loc.ChiNhanhId;
             var query = _context.LichSuThanhToans
                 .Where(l => !l.IsDeleted);
 
-            if (chiCoTienThua)
+            if (loc.ChiCoTienThua)
             {
                 query = query.Where(l => l.GhiChu.StartsWith(PaymentNoteTags.TienThuaPrefix));
             }
@@ -44,23 +45,12 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 query = query.Where(l => l.HoaDon.HopDong.PhongTro.ChiNhanhId == chiNhanhId);
             }
 
-            if (phuongThuc >= 0)
+            if (loc.Kenh.HasValue)
             {
-                query = query.Where(l => (int)l.PhuongThucThanhToan == phuongThuc);
+                query = query.TheoKenh(loc.Kenh.Value);
             }
 
-            if (tuNgay.HasValue)
-            {
-                // Đầu ngày Việt Nam = 17:00Z của hôm trước.
-                var utcTu = DateTime.SpecifyKind(tuNgay.Value.Date, DateTimeKind.Utc).AddHours(-7);
-                query = query.Where(l => l.NgayThanhToan >= utcTu);
-            }
-            if (denNgay.HasValue)
-            {
-                // Hết ngày Việt Nam: nhỏ hơn đầu ngày kế tiếp.
-                var utcDenExclusive = DateTime.SpecifyKind(denNgay.Value.Date.AddDays(1), DateTimeKind.Utc).AddHours(-7);
-                query = query.Where(l => l.NgayThanhToan < utcDenExclusive);
-            }
+            query = ApDungKyNguoiThuVaNgay(query, loc);
 
             if (!string.IsNullOrEmpty(request.SearchValue))
             {
@@ -105,8 +95,48 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
             };
         }
 
-        public async Task<ThongKeThanhToanRes> GetThongKeThanhToanAsync(int chiNhanhId, DateTime? tuNgay, DateTime? denNgay, IReadOnlyCollection<int>? allowedBranchIds = null, CancellationToken cancellationToken = default)
+        // Kỳ hóa đơn (nếu có) thay cho khoảng ngày; người thu luôn áp.
+        private static IQueryable<LichSuThanhToan> ApDungKyNguoiThuVaNgay(IQueryable<LichSuThanhToan> query, LichSuThanhToanLoc loc)
         {
+            if (loc.NguoiThu == NguoiThuLoai.NguoiDung && loc.NguoiThuId.HasValue)
+            {
+                var nguoiId = loc.NguoiThuId.Value;
+                query = query.Where(l => l.NguoiXacNhanId == nguoiId);
+            }
+            else if (loc.NguoiThu == NguoiThuLoai.HeThong)
+            {
+                query = query.Where(l => l.NguoiXacNhanId == null);
+            }
+
+            if (loc.KyThang.HasValue && loc.KyNam.HasValue)
+            {
+                var thang = loc.KyThang.Value;
+                var nam = loc.KyNam.Value;
+                return query.Where(l => l.HoaDon.Thang == thang && l.HoaDon.Nam == nam
+                                        && !l.HoaDon.IsDeleted
+                                        && l.HoaDon.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaGui);
+            }
+
+            if (loc.TuNgay.HasValue)
+            {
+                // Đầu ngày Việt Nam = 17:00Z của hôm trước.
+                var utcTu = DateTime.SpecifyKind(loc.TuNgay.Value.Date, DateTimeKind.Utc).AddHours(-7);
+                query = query.Where(l => l.NgayThanhToan >= utcTu);
+            }
+
+            if (loc.DenNgay.HasValue)
+            {
+                // Hết ngày Việt Nam: nhỏ hơn đầu ngày kế tiếp.
+                var utcDenExclusive = DateTime.SpecifyKind(loc.DenNgay.Value.Date.AddDays(1), DateTimeKind.Utc).AddHours(-7);
+                query = query.Where(l => l.NgayThanhToan < utcDenExclusive);
+            }
+
+            return query;
+        }
+
+        public async Task<ThongKeThanhToanRes> GetThongKeThanhToanAsync(LichSuThanhToanLoc loc, IReadOnlyCollection<int>? allowedBranchIds = null, CancellationToken cancellationToken = default)
+        {
+            var chiNhanhId = loc.ChiNhanhId;
             var query = _context.LichSuThanhToans
                 .Where(l => !l.IsDeleted);
 
@@ -120,28 +150,25 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 query = query.Where(l => l.HoaDon.HopDong.PhongTro.ChiNhanhId == chiNhanhId);
             }
 
-            if (tuNgay.HasValue)
-            {
-                // Đầu ngày Việt Nam = 17:00Z của hôm trước.
-                var utcTu = DateTime.SpecifyKind(tuNgay.Value.Date, DateTimeKind.Utc).AddHours(-7);
-                query = query.Where(l => l.NgayThanhToan >= utcTu);
-            }
-            if (denNgay.HasValue)
-            {
-                // Hết ngày Việt Nam: nhỏ hơn đầu ngày kế tiếp.
-                var utcDenExclusive = DateTime.SpecifyKind(denNgay.Value.Date.AddDays(1), DateTimeKind.Utc).AddHours(-7);
-                query = query.Where(l => l.NgayThanhToan < utcDenExclusive);
-            }
+            query = ApDungKyNguoiThuVaNgay(query, loc);
 
+            var vnPay = InvoicePaymentPolicy.VnPayMaGiaoDichPrefix;
+            var sePay = InvoicePaymentPolicy.SePayMaGiaoDichPrefix;
             var stats = await query
                 .GroupBy(x => 1)
                 .Select(g => new ThongKeThanhToanRes
                 {
                     TongDoanhThu = g.Sum(p => p.SoTienThanhToan),
                     TongSoGiaoDich = g.Count(),
-                    DoanhThuTienMat = g.Where(p => p.PhuongThucThanhToan == PhuongThucThanhToan.TienMat).Sum(p => p.SoTienThanhToan),
-                    DoanhThuChuyenKhoan = g.Where(p => p.PhuongThucThanhToan == PhuongThucThanhToan.ChuyenKhoan).Sum(p => p.SoTienThanhToan),
-                    DoanhThuCanTruCoc = g.Where(p => p.PhuongThucThanhToan == PhuongThucThanhToan.CanTruTienCoc).Sum(p => p.SoTienThanhToan)
+                    // 5 ô kênh theo đúng thứ tự xét của PaymentChannels.Of (VNPay, SePay, cấn trừ cọc, tiền mặt, chuyển khoản).
+                    DoanhThuTienMat = g.Where(p => !p.MaGiaoDich.ToUpper().StartsWith(vnPay) && !p.MaGiaoDich.ToUpper().StartsWith(sePay)
+                        && p.PhuongThucThanhToan == PhuongThucThanhToan.TienMat).Sum(p => p.SoTienThanhToan),
+                    DoanhThuChuyenKhoan = g.Where(p => !p.MaGiaoDich.ToUpper().StartsWith(vnPay) && !p.MaGiaoDich.ToUpper().StartsWith(sePay)
+                        && p.PhuongThucThanhToan != PhuongThucThanhToan.TienMat && p.PhuongThucThanhToan != PhuongThucThanhToan.CanTruTienCoc).Sum(p => p.SoTienThanhToan),
+                    DoanhThuSePay = g.Where(p => !p.MaGiaoDich.ToUpper().StartsWith(vnPay) && p.MaGiaoDich.ToUpper().StartsWith(sePay)).Sum(p => p.SoTienThanhToan),
+                    DoanhThuVnPay = g.Where(p => p.MaGiaoDich.ToUpper().StartsWith(vnPay)).Sum(p => p.SoTienThanhToan),
+                    DoanhThuCanTruCoc = g.Where(p => !p.MaGiaoDich.ToUpper().StartsWith(vnPay) && !p.MaGiaoDich.ToUpper().StartsWith(sePay)
+                        && p.PhuongThucThanhToan == PhuongThucThanhToan.CanTruTienCoc).Sum(p => p.SoTienThanhToan)
                 })
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -151,6 +178,8 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 TongSoGiaoDich = 0,
                 DoanhThuTienMat = 0,
                 DoanhThuChuyenKhoan = 0,
+                DoanhThuSePay = 0,
+                DoanhThuVnPay = 0,
                 DoanhThuCanTruCoc = 0
             };
         }

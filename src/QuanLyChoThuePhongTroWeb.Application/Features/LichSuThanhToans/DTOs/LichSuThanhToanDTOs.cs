@@ -27,10 +27,18 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.LichSuThanhToans.DTOs
 
     public class ThongKeThanhToanRes
     {
+        // Tiền đã nhận: tổng mọi dòng sổ chưa hủy trong bộ lọc; bằng tổng 5 ô kênh bên dưới.
         public decimal TongDoanhThu { get; set; }
         public int TongSoGiaoDich { get; set; }
         public decimal DoanhThuTienMat { get; set; }
+        // Chuyển khoản ghi tay, không gồm SePay và VNPay.
         public decimal DoanhThuChuyenKhoan { get; set; }
+        public decimal DoanhThuSePay { get; set; }
+        public decimal DoanhThuVnPay { get; set; }
         public decimal DoanhThuCanTruCoc { get; set; }
+        // Bộ lọc kỳ đã được áp dụng (service điền theo bộ lọc đã chuẩn hóa) để giao diện đổi nhãn đúng cả khi máy chủ bỏ kỳ.
+        public bool LocTheoKy { get; set; }
+        public int? KyThang { get; set; }
+        public int? KyNam { get; set; }
     }
 }

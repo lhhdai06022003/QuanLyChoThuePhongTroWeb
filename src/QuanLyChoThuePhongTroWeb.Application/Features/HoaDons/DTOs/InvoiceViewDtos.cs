@@ -15,6 +15,9 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs
 
     public class InvoiceListFilter
     {
+        // TrangThaiThanhToan = -2: chưa thanh toán hoặc thanh toán một phần ("chưa thu đủ"). -1 = tất cả; 0, 1, 2 = từng trạng thái.
+        public const int ChuaThuDu = -2;
+
         public int ChiNhanhId { get; set; }
         public int Thang { get; set; }
         public int Nam { get; set; }

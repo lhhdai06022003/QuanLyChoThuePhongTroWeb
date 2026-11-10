@@ -6,15 +6,17 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
     var viec = Model.ViecCanLam;
     var viecRong = viec.TongSo == 0;
+    var laAdmin = Model.CoXemDoanhThu;
+    var ky = $"T{Model.SelectedMonth}/{Model.SelectedYear}";
 }
 
-<div class="container-xl mt-3">
+<div class="container-xl mt-3 dashboard-page">
     <!-- Page Header -->
     <div class="page-header d-print-none mb-3">
         <div class="row align-items-center">
             <div class="col">
                 <h2 class="page-title text-primary fw-bold d-flex align-items-center">
-                    <i class="ti ti-chart-line me-2"></i> Bảng Điều Khiển Hệ Thống
+                    <i class="ti ti-chart-line me-2"></i> Bảng điều khiển hệ thống
                 </h2>
             </div>
             <div class="col-12 col-md-auto ms-md-auto mt-2 mt-md-0 d-print-none">
@@ -38,125 +40,44 @@
         </div>
     </div>
 
-    <!-- Hàng KPI -->
-    <div class="row row-cards mb-3 dashboard-kpi">
-        <div class="col-6 col-md-4 col-xxl-2">
-            <div class="card card-sm h-100 text-white bg-success">
-                <div class="card-body">
-                    <div class="subheader text-white text-opacity-75" id="kpiDaThuTitle">Đã thu T@(Model.SelectedMonth)/@(Model.SelectedYear)</div>
-                    <div class="h2 mb-0 fw-bold dashboard-kpi-value" id="statDoanhThu">@TienTe.DinhDang(Model.DoanhThuThangNay)</div>
-                    <div class="small text-white text-opacity-75">theo sổ thanh toán</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-6 col-md-4 col-xxl-2">
-            <div class="card card-sm h-100 text-white bg-warning">
-                <div class="card-body">
-                    <div class="subheader text-white text-opacity-75">Chờ thu</div>
-                    <div class="h2 mb-0 fw-bold dashboard-kpi-value" id="statChoThu">@TienTe.DinhDang(Model.TongTienChoThu)</div>
-                    <div class="small text-white text-opacity-75">hóa đơn đã gửi khách</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-6 col-md-4 col-xxl-2">
-            <div class="card card-sm h-100 text-white bg-danger">
-                <div class="card-body">
-                    <div class="subheader text-white text-opacity-75">Quá hạn</div>
-                    <div class="h2 mb-0 fw-bold dashboard-kpi-value" id="statQuaHan">@TienTe.DinhDang(Model.TienQuaHan)</div>
-                    <div class="small text-white text-opacity-75" id="statSoHoaDonQuaHan">@Model.SoHoaDonQuaHan hóa đơn</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-6 col-md-4 col-xxl-2">
-            <div class="card card-sm h-100 text-white bg-pink">
-                <div class="card-body">
-                    <div class="subheader text-white text-opacity-75">Phòng đang nợ</div>
-                    <div class="h2 mb-0 fw-bold dashboard-kpi-value" id="statChuaThanhToan">@Model.SoPhongChuaThanhToan</div>
-                    <div class="small text-white text-opacity-75">từ trước tới nay</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-6 col-md-4 col-xxl-2">
-            <div class="card card-sm h-100 text-white bg-primary">
-                <div class="card-body">
-                    <div class="subheader text-white text-opacity-75">Hợp đồng hoạt động</div>
-                    <div class="h2 mb-0 fw-bold dashboard-kpi-value" id="statHopDong">@Model.TongSoHopDongHoatDong</div>
-                    <div class="small text-white text-opacity-75">&nbsp;</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-6 col-md-4 col-xxl-2">
-            <div class="card card-sm h-100 text-white bg-cyan">
-                <div class="card-body">
-                    <div class="subheader text-white text-opacity-75">Tỷ lệ lấp đầy</div>
-                    <div class="h2 mb-0 fw-bold dashboard-kpi-value" id="statTyLeLapDay">@Model.TyLeLapDayText</div>
-                    <div class="small text-white text-opacity-75" id="statPhongLapDay">@Model.SoPhongDaThue/@Model.TongSoPhong phòng</div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Vùng chính -->
-    <div class="dashboard-layout mb-5">
-        <div class="card dashboard-chart">
-            <div class="card-body">
-                <h3 class="card-title mb-3"><i class="ti ti-chart-bar me-2 text-primary"></i>Xu hướng doanh thu (Năm <span id="chartYearText">@Model.SelectedYear</span>)<a href="@Url.Action("Index", "BaoCao", new { area = "QuanLyNhaTro", tab = "doanh-thu" })" class="btn btn-sm btn-outline-primary ms-2">Xem báo cáo chi tiết</a></h3>
-                <div style="height: 320px; position: relative;">
-                    <canvas id="revenueBarChart"></canvas>
-                </div>
-            </div>
-        </div>
-
-        <div class="card dashboard-phong">
-            <div class="card-body">
-                <h3 class="card-title mb-3"><i class="ti ti-chart-pie me-2 text-primary"></i>Tình trạng phòng</h3>
-                <div class="d-flex justify-content-center align-items-center" style="height: 260px; position: relative;">
-                    <canvas id="roomStatusChart"></canvas>
-                </div>
-            </div>
-        </div>
-
-        <div class="card dashboard-hoatdong">
+    @if (laAdmin && Model.ChoDuyet != null)
+    {
+        <!-- Admin: chờ bạn duyệt -->
+        <div class="card mb-3" id="choDuyetCard">
             <div class="card-header">
-                <h3 class="card-title mb-0"><i class="ti ti-history text-primary me-2"></i>Hoạt động gần đây</h3>
+                <h3 class="card-title"><i class="ti ti-user-check me-2 text-primary"></i>Chờ bạn duyệt <span id="choDuyetTongSo" class="text-secondary fw-normal ms-1">(@Model.ChoDuyet.SoLuong)</span></h3>
             </div>
-            <div class="card-body" id="activitiesContainer">
-                @if (Model.RecentActivities.Count == 0)
-                {
-                    <div class="text-center text-secondary py-4">
-                        <i class="ti ti-info-circle fs-1 d-block mb-2"></i>
-                        <div>Chưa ghi nhận hoạt động vận hành nào gần đây.</div>
-                    </div>
-                }
-                else
-                {
-                    <div class="timeline">
-                        @foreach (var act in Model.RecentActivities)
-                        {
-                            <div class="timeline-item">
-                                <div class="timeline-badge @act.ColorClass">
-                                    <i class="@act.Icon"></i>
-                                </div>
-                                <div class="ms-2">
-                                    <div class="fw-bold fs-4">@act.Title</div>
-                                    <div class="text-secondary small">@act.Description</div>
-                                    <span class="badge bg-light-lt text-secondary mt-1">
-                                        <i class="ti ti-clock me-1"></i>@act.TimeText
-                                    </span>
-                                </div>
+            <div class="list-group list-group-flush">
+                <div id="choDuyetHd2">
+                    @if (Model.ChoDuyet.SoLuong > 0)
+                    {
+                        <a href="@Model.ChoDuyet.Link" class="list-group-item list-group-item-action">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="status-dot status-orange" aria-hidden="true"></span>
+                                <div class="dashboard-viec-text flex-fill fw-medium">@Model.ChoDuyet.TieuDe</div>
+                                <span class="fw-bold ms-2">@Model.ChoDuyet.SoLuong</span>
                             </div>
-                        }
+                        </a>
+                    }
+                    else
+                    {
+                        <div class="list-group-item text-secondary">Không có việc chờ duyệt</div>
+                    }
+                </div>
+                <a href="/QuanLyNhaTro/GiaoDichSePay" class="list-group-item list-group-item-action">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="ti ti-arrows-exchange text-primary" aria-hidden="true"></i>
+                        <div class="flex-fill fw-medium">Đối soát giao dịch SePay</div>
+                        <i class="ti ti-chevron-right text-secondary" aria-hidden="true"></i>
                     </div>
-                }
+                </a>
             </div>
         </div>
-
-        <div class="card dashboard-viec">
+    }
+    else
+    {
+        <!-- Nhân viên: việc cần làm đứng đầu trang -->
+        <div class="card mb-3 dashboard-viec">
             <div class="card-header">
                 <h3 class="card-title"><i class="ti ti-checklist me-2 text-primary"></i>Việc cần làm <span id="viecTongSo" class="text-secondary fw-normal ms-1">(@viec.TongSo)</span></h3>
             </div>
@@ -199,7 +120,226 @@
                 <a id="viecXemTatCa" href="@Url.Action("Index", "ViecCanLam", new { area = "QuanLyNhaTro", chiNhanhId = Model.SelectedBranchId })">Xem tất cả @viec.TongSo việc →</a>
             </div>
         </div>
+    }
+
+    <!-- Hàng số liệu: mỗi ô bấm được sang màn chi tiết -->
+    <div class="row row-cards mb-3 dashboard-kpi">
+        @if (laAdmin)
+        {
+            <div class="col-6 col-lg-3">
+                <a id="cardDaThu" href="@Model.LinkDaThuKy" aria-label="Mở báo cáo doanh thu của kỳ @ky" class="card card-sm card-link h-100 text-white bg-success">
+                    <div class="card-body">
+                        <div class="subheader text-white text-opacity-75" id="kpiDaThuTitle">Đã thu kỳ @ky</div>
+                        <div class="h2 mb-0 fw-bold dashboard-kpi-value" id="statDoanhThu">@TienTe.DinhDang(Model.DoanhThuThangNay ?? 0)</div>
+                        <div class="small text-white text-opacity-75">Theo kỳ hóa đơn, gồm cấn trừ cọc</div>
+                    </div>
+                </a>
+            </div>
+        }
+
+        <div class="col-6 col-lg-3">
+            <a id="cardQuaHan" href="@Model.LinkQuaHan" aria-label="Mở danh sách hóa đơn quá hạn" class="card card-sm card-link h-100 text-white bg-danger">
+                <div class="card-body">
+                    <div class="subheader text-white text-opacity-75">Quá hạn</div>
+                    <div class="h2 mb-0 fw-bold dashboard-kpi-value" id="statQuaHan">@TienTe.DinhDang(Model.TienQuaHan)</div>
+                    <div class="small text-white text-opacity-75"><span id="statSoHoaDonQuaHan">@Model.SoHoaDonQuaHan hóa đơn</span>. Tính tới hôm nay</div>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-6 col-lg-3">
+            <a id="cardChoThu" href="@Model.LinkChoThu" aria-label="Mở danh sách hóa đơn chưa thu đủ của kỳ @ky" class="card card-sm card-link h-100 text-white bg-warning">
+                <div class="card-body">
+                    <div class="subheader text-white text-opacity-75" id="kpiChoThuTitle">Chờ thu kỳ @ky</div>
+                    <div class="h2 mb-0 fw-bold dashboard-kpi-value" id="statChoThu">@TienTe.DinhDang(Model.TongTienChoThu)</div>
+                    <div class="small text-white text-opacity-75">Hóa đơn đã gửi, chưa thu đủ</div>
+                </div>
+            </a>
+        </div>
+
+        @if (!laAdmin)
+        {
+            <div class="col-6 col-lg-3">
+                <a id="cardTienMat" href="@Model.LinkTienMatCuaToi" aria-label="Mở lịch sử thanh toán tiền mặt bạn đã thu trong kỳ @ky" class="card card-sm card-link h-100 text-white bg-teal">
+                    <div class="card-body">
+                        <div class="subheader text-white text-opacity-75" id="kpiTienMatTitle">Tiền mặt bạn đã thu @ky</div>
+                        <div class="h2 mb-0 fw-bold dashboard-kpi-value" id="statTienMat">@TienTe.DinhDang(Model.TienMatCuaToi.TongTien)</div>
+                        <div class="small text-white text-opacity-75" id="statTienMatChuThich">Tháng @Model.SelectedMonth/@Model.SelectedYear, chưa gồm tiền giữ chỗ</div>
+                    </div>
+                </a>
+            </div>
+        }
+
+        <div class="col-6 col-lg-3">
+            <a id="cardPhongDangNo" href="@Model.LinkPhongDangNo" aria-label="Mở danh sách hóa đơn của các phòng đang nợ" class="card card-sm card-link h-100 text-white bg-pink">
+                <div class="card-body">
+                    <div class="subheader text-white text-opacity-75">Phòng đang nợ</div>
+                    <div class="h2 mb-0 fw-bold dashboard-kpi-value" id="statChuaThanhToan">@Model.SoPhongChuaThanhToan</div>
+                    <div class="small text-white text-opacity-75">Từ trước tới nay</div>
+                </div>
+            </a>
+        </div>
     </div>
+
+    @if (laAdmin)
+    {
+        <!-- Admin: tiền mặt nhân viên đang giữ -->
+        <div class="card mb-3" id="tienMatCard">
+            <div class="card-header">
+                <h3 class="card-title"><i class="ti ti-cash me-2 text-primary"></i>Tiền mặt nhân viên đang giữ <span id="tienMatKy" class="text-secondary fw-normal ms-1">@ky</span></h3>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-vcenter card-table" id="tienMatBang">
+                    <thead>
+                        <tr>
+                            <th>Người thu</th>
+                            <th class="text-end">Số khoản</th>
+                            <th class="text-end">Tổng tiền</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tienMatBody">
+                        @if (Model.TienMatNhanVien == null || Model.TienMatNhanVien.Count == 0)
+                        {
+                            <tr><td colspan="3" class="text-center text-secondary py-3">Tháng này chưa có khoản tiền mặt nào</td></tr>
+                        }
+                        else
+                        {
+                            @foreach (var n in Model.TienMatNhanVien)
+                            {
+                                <tr>
+                                    <td><a href="@n.Link" class="text-reset d-block fw-medium">@n.Ten</a></td>
+                                    <td class="text-end num-tabular"><a href="@n.Link" class="text-reset d-block">@n.SoKhoan</a></td>
+                                    <td class="text-end num-tabular"><a href="@n.Link" class="text-reset d-block">@TienTe.DinhDang(n.TongTien)</a></td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                    <tfoot id="tienMatFoot" class="@(Model.TienMatNhanVien == null || Model.TienMatNhanVien.Count == 0 ? "d-none" : "")">
+                        <tr class="fw-bold">
+                            <td>Tổng</td>
+                            <td class="text-end num-tabular" id="tienMatTongKhoan">@Model.TienMatNhanVienTongKhoan</td>
+                            <td class="text-end num-tabular" id="tienMatTongTien">@TienTe.DinhDang(Model.TienMatNhanVienTongTien)</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    }
+
+    <!-- Biểu đồ -->
+    <div class="row row-cards @(laAdmin ? "mb-3" : "mb-5")">
+        @if (laAdmin)
+        {
+            <div class="col-12 col-lg-8">
+                <div class="card h-100 dashboard-chart">
+                    <div class="card-body">
+                        <h3 class="card-title mb-3"><i class="ti ti-chart-bar me-2 text-primary"></i>Xu hướng doanh thu (Năm <span id="chartYearText">@Model.SelectedYear</span>)<a id="linkBaoCaoNam" href="@Model.LinkBaoCaoNam" aria-label="Mở báo cáo doanh thu năm @Model.SelectedYear" class="btn btn-sm btn-outline-primary ms-2">Xem báo cáo chi tiết</a></h3>
+                        <div style="height: 320px; position: relative;">
+                            <canvas id="revenueBarChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <div class="col-12 @(laAdmin ? "col-lg-4" : "col-lg-5")">
+            <div class="card h-100 dashboard-phong">
+                <div class="card-body">
+                    <h3 class="card-title mb-3"><i class="ti ti-chart-pie me-2 text-primary"></i>Tình trạng phòng</h3>
+                    <div class="d-flex justify-content-center align-items-center" style="height: 260px; position: relative;">
+                        <canvas id="roomStatusChart"></canvas>
+                    </div>
+                    <div class="row text-center mt-3">
+                        <div class="col-6">
+                            <div class="subheader">Hợp đồng hoạt động</div>
+                            <div class="h3 mb-0 fw-bold" id="statHopDong">@Model.TongSoHopDongHoatDong</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="subheader">Tỷ lệ lấp đầy</div>
+                            <div class="h3 mb-0 fw-bold" id="statTyLeLapDay">@Model.TyLeLapDayText</div>
+                            <div class="small text-secondary" id="statPhongLapDay">@Model.SoPhongDaThue/@Model.TongSoPhong phòng</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @if (!laAdmin)
+        {
+            <div class="col-12 col-lg-7">
+                <div class="card h-100 dashboard-hoatdong">
+                    <div class="card-header">
+                        <h3 class="card-title mb-0"><i class="ti ti-history text-primary me-2"></i>Hoạt động gần đây</h3>
+                    </div>
+                    <div class="card-body" id="activitiesContainer">
+                        @await Html.PartialAsync("_HoatDongGanDay", Model.RecentActivities)
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    @if (laAdmin)
+    {
+        <!-- Admin: việc cần làm của nhân viên, thu gọn -->
+        <div class="card mb-3 dashboard-viec">
+            <div class="card-header">
+                <h3 class="card-title"><i class="ti ti-checklist me-2 text-primary"></i>Việc cần làm của nhân viên <span id="viecTongSo" class="text-secondary fw-normal ms-1">(@viec.TongSo)</span></h3>
+                <div class="card-actions">
+                    <button type="button" class="btn btn-sm btn-ghost-secondary" id="viecToggle" data-bs-toggle="collapse" data-bs-target="#viecCanLamBody" aria-expanded="false" aria-controls="viecCanLamBody">Xem chi tiết</button>
+                </div>
+            </div>
+            <div id="viecCanLamBody" class="collapse">
+                <div class="card-body">
+                    <div id="viecCanLamChips" class="d-flex flex-wrap gap-2 mb-2 @(viecRong ? "d-none" : "")">
+                        <span id="viecSoKhan" class="badge bg-red text-red-fg">Khẩn @viec.SoKhan</span>
+                        <span id="viecSoCanLam" class="badge bg-orange text-orange-fg">Cần làm @viec.SoCanLam</span>
+                        <span id="viecSoTheoDoi" class="badge bg-blue text-blue-fg">Theo dõi @viec.SoTheoDoi</span>
+                    </div>
+                    <div id="viecCanLamList">
+                        @if (viecRong)
+                        {
+                            <div class="text-center text-secondary py-4">
+                                <i class="ti ti-circle-check text-success fs-1 d-block mb-2"></i>
+                                Không có việc cần xử lý
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="list-group list-group-flush">
+                                @foreach (var item in viec.Items)
+                                {
+                                    <a href="@item.Link" class="list-group-item list-group-item-action px-0">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="status-dot status-@item.MauUuTien" aria-hidden="true"></span>
+                                            <span class="visually-hidden">@item.TenMucUuTien</span>
+                                            <div class="dashboard-viec-text flex-fill">
+                                                <div class="fw-medium">@item.TieuDe</div>
+                                                <div class="small text-secondary text-truncate" title="@item.MoTa">@item.MoTa</div>
+                                            </div>
+                                            <span class="fw-bold ms-2">@item.SoLuong</span>
+                                        </div>
+                                    </a>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+                <div id="viecCanLamFooter" class="card-footer text-end @(viecRong ? "d-none" : "")">
+                    <a id="viecXemTatCa" href="@Url.Action("Index", "ViecCanLam", new { area = "QuanLyNhaTro", chiNhanhId = Model.SelectedBranchId })">Xem tất cả @viec.TongSo việc →</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-5 dashboard-hoatdong">
+            <div class="card-header">
+                <h3 class="card-title mb-0"><i class="ti ti-history text-primary me-2"></i>Hoạt động gần đây</h3>
+            </div>
+            <div class="card-body" id="activitiesContainer">
+                @await Html.PartialAsync("_HoatDongGanDay", Model.RecentActivities)
+            </div>
+        </div>
+    }
 </div>
 
 @section ThuVienScripts {
@@ -208,6 +348,7 @@
 
 @section Scripts {
     <script>window.dashboardConfig = {
+        coXemDoanhThu: @Html.Raw(Json.Serialize(Model.CoXemDoanhThu)),
         chartLabels: @Html.Raw(Json.Serialize(Model.ChartLabels)),
         chartData: @Html.Raw(Json.Serialize(Model.ChartData)),
         chartDataChoThu: @Html.Raw(Json.Serialize(Model.ChartDataChoThu)),

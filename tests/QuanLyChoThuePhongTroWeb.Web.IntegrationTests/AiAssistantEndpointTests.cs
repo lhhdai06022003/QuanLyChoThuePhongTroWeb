@@ -36,6 +36,9 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             "GetHopDongSapHetHanAsync", "GetThongTinKhachThueAsync", "GetCongNoPhongAsync", "GetDoanhThuChiNhanhAsync", "GetChiSoDienNuocAsync"
         };
 
+        // X12: doanh thu theo kỳ chỉ Admin; nhân viên không được mời công cụ này.
+        private static readonly string[] StaffTools = ManagerTools.Where(t => t != "GetDoanhThuChiNhanhAsync").ToArray();
+
         private static readonly string[] TenantTools = { "GetMyHopDongInfoAsync", "GetMyChiSoDienNuocAsync", "GetMyHoaDonChuaThanhToanAsync" };
 
         private async Task<string> CreateTenantAccountAsync(int nguoiThueId)
@@ -52,7 +55,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             => string.Join("\n", request.Turns.SelectMany(t => t.Parts).OfType<AiFunctionResponsePart>().Select(p => p.ResponseJson));
 
         [Fact]
-        public async Task Staff_AsksVacantRooms_SeesOnlyOwnBranch_AndGetsManagerTools()
+        public async Task Staff_AsksVacantRooms_SeesOnlyOwnBranch_AndGetsStaffTools()
         {
             var w = await BranchScopeKit.SeedAsync(_factory);
             string roomVacantA = "VA" + Guid.NewGuid().ToString("N")[..6];
@@ -81,10 +84,33 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
 
             var requests = fake.Requests;
             Assert.Equal(2, requests.Count);
-            Assert.Equal(ManagerTools.OrderBy(x => x), requests[0].Tools.Select(t => t.Name).OrderBy(x => x));
+            Assert.Equal(StaffTools.OrderBy(x => x), requests[0].Tools.Select(t => t.Name).OrderBy(x => x));
             var responses = FunctionResponses(requests[1]);
             Assert.Contains(roomVacantA, responses);
             Assert.DoesNotContain(roomVacantB, responses);
+        }
+
+        [Fact]
+        public async Task Staff_ModelCallsBranchRevenue_GetsUnavailable_NoRevenueNumbers()
+        {
+            var w = await BranchScopeKit.SeedAsync(_factory);
+            var call = new AiFunctionCall("GetDoanhThuChiNhanhAsync", "{}", "c1");
+            var fake = _factory.FakeAiChatModelInstance;
+            fake.Responder = (_, n) => n == 1
+                ? AiModelResult.Ok(null, new[] { call },
+                    new AiTurn(AiTurnRole.Model, new AiPart[] { new AiFunctionCallPart(call) }, "{\"role\":\"model\",\"parts\":[]}"))
+                : AiModelResult.Ok("Chưa hỗ trợ");
+
+            var (client, token) = await BranchScopeKit.LoginAsync(_factory, w.Staff);
+            var res = await BranchScopeKit.SendJsonAsync(client, token, HttpMethod.Post, "/QuanLyNhaTro/AiAssistant/Chat", new { message = "Doanh thu tháng này?", history = Array.Empty<object>() });
+
+            Assert.Equal(HttpStatusCode.OK, res.StatusCode);
+            var requests = fake.Requests;
+            Assert.Equal(2, requests.Count);
+            Assert.DoesNotContain("GetDoanhThuChiNhanhAsync", requests[0].Tools.Select(t => t.Name));
+            var responses = FunctionResponses(requests[1]);
+            Assert.Contains("CONG_CU_KHONG_KHA_DUNG", responses);
+            Assert.DoesNotContain("tongDoanhThu", responses);
         }
 
         [Fact]

@@ -69,7 +69,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Services
                 ChiNhanhId = filter.ChiNhanhId,
                 Thang = filter.Thang,
                 Nam = filter.Nam,
-                TrangThaiThanhToan = (filter.TrangThaiThanhToan >= 0 && filter.TrangThaiThanhToan <= 2)
+                TrangThaiThanhToan = (filter.TrangThaiThanhToan == InvoiceListFilter.ChuaThuDu || (filter.TrangThaiThanhToan >= 0 && filter.TrangThaiThanhToan <= 2))
                     ? filter.TrangThaiThanhToan
                     : -1,
                 TrangThaiPhatHanh = (filter.TrangThaiPhatHanh >= 0 && filter.TrangThaiPhatHanh <= 4)

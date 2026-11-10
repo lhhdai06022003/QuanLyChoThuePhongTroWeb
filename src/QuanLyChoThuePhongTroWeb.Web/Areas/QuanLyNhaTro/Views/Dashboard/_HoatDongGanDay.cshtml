@@ -1,0 +1,29 @@
+@using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Responses
+@model List<RecentActivityViewModel>
+@if (Model.Count == 0)
+{
+    <div class="text-center text-secondary py-4">
+        <i class="ti ti-info-circle fs-1 d-block mb-2"></i>
+        <div>Chưa ghi nhận hoạt động vận hành nào gần đây.</div>
+    </div>
+}
+else
+{
+    <div class="timeline">
+        @foreach (var act in Model)
+        {
+            <div class="timeline-item">
+                <div class="timeline-badge @act.ColorClass">
+                    <i class="@act.Icon"></i>
+                </div>
+                <div class="ms-2">
+                    <div class="fw-bold fs-4">@act.Title</div>
+                    <div class="text-secondary small">@act.Description</div>
+                    <span class="badge bg-secondary-lt text-secondary mt-1">
+                        <i class="ti ti-clock me-1"></i>@act.TimeText
+                    </span>
+                </div>
+            </div>
+        }
+    </div>
+}

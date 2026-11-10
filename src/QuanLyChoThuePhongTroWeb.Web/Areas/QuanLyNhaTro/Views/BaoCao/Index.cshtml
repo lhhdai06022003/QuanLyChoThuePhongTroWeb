@@ -10,7 +10,7 @@
         (Slug: "cong-suat", Ten: "Công suất phòng", Icon: "ti ti-building"),
         (Slug: "hop-dong", Ten: "Hợp đồng", Icon: "ti ti-file-text"),
         (Slug: "dien-nuoc", Ten: "Điện nước", Icon: "ti ti-bolt")
-    };
+    }.Where(t => t.Slug != "doanh-thu" || Model.CoXemDoanhThu).ToArray();
 }
 
 @section Styles {
@@ -84,6 +84,8 @@
             }
         </ul>
 
+        @if (Model.CoXemDoanhThu)
+        {
         <div id="pane-doanh-thu" class="bc-pane @(Model.Tab == "doanh-thu" ? "" : "d-none")" data-tab="doanh-thu">
             <div class="d-flex justify-content-end mb-2"><button type="button" class="btn btn-outline-primary btn-sm bc-export" data-tab="doanh-thu" disabled><i class="ti ti-file-spreadsheet me-1"></i>Xuất Excel</button></div>
             <div class="row row-cards mb-3" id="cards-doanh-thu"></div>
@@ -92,6 +94,7 @@
             <div class="card mb-3 d-none" id="wrap-doanh-thu-cn"><div class="card-header"><h3 class="card-title">Theo chi nhánh</h3></div><div class="table-responsive"><table class="table table-vcenter card-table" id="bang-doanh-thu-cn"></table></div></div>
             <p class="text-secondary small">Chỉ tính hóa đơn đã gửi khách, theo kỳ của hóa đơn. Đã thu tính theo sổ thanh toán, gồm cả tiền cấn trừ từ cọc.</p>
         </div>
+        }
 
         <div id="pane-cong-no" class="bc-pane @(Model.Tab == "cong-no" ? "" : "d-none")" data-tab="cong-no">
             <div class="d-flex justify-content-between align-items-center mb-2">
@@ -144,9 +147,11 @@
     {
         <script>window.baoCaoConfig = {
             tab: @Html.Raw(Json.Serialize(Model.Tab)),
+            tabs: @Html.Raw(Json.Serialize(tabs.Select(t => t.Slug))),
             urlDuLieu: @Html.Raw(Json.Serialize(Url.Action("DuLieu", "BaoCao", new { area = "QuanLyNhaTro" }))),
             urlXuatExcel: @Html.Raw(Json.Serialize(Url.Action("XuatExcel", "BaoCao", new { area = "QuanLyNhaTro" }))),
             urlHoaDon: "/QuanLyNhaTro/QuanLyHoaDon",
+            urlLichSuThanhToan: "/QuanLyNhaTro/LichSuThanhToan",
             urlHopDong: "/QuanLyNhaTro/QuanLyHopDong",
             urlNguoiThue: "/QuanLyNhaTro/NguoiThue/ChiTiet/"
         };</script>

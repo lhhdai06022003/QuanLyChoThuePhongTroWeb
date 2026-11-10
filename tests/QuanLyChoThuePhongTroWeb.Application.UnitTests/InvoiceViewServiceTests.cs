@@ -141,6 +141,26 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         }
 
         [Fact]
+        public async Task List_ChuaThuDu_DiQuaNguyenVen_VaGiaTriLaVeMinusOne()
+        {
+            var service = CreateService();
+            _accessService.ScopeToReturn = new EmployeeAccessScope(99, true);
+            var req = new DataTableRequest { Draw = 1, Start = 0, Length = 10 };
+
+            await service.GetEmployeeListAsync(req, new InvoiceListFilter { TrangThaiThanhToan = InvoiceListFilter.ChuaThuDu }, 99);
+            Assert.Equal(-2, _viewStore.LastFilter.TrangThaiThanhToan);
+
+            await service.GetEmployeeListAsync(req, new InvoiceListFilter { TrangThaiThanhToan = -3 }, 99);
+            Assert.Equal(-1, _viewStore.LastFilter.TrangThaiThanhToan);
+
+            foreach (var giaTri in new[] { -1, 0, 1, 2 })
+            {
+                await service.GetEmployeeListAsync(req, new InvoiceListFilter { TrangThaiThanhToan = giaTri }, 99);
+                Assert.Equal(giaTri, _viewStore.LastFilter.TrangThaiThanhToan);
+            }
+        }
+
+        [Fact]
         public async Task EmployeeDetail_OtherBranch_Null()
         {
             var service = CreateService();

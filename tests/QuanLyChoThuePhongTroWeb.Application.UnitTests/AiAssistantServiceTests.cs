@@ -37,7 +37,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         private static string[] ToolNames(AiModelRequest r) => r.Tools.Select(t => t.Name).ToArray();
 
         [Fact]
-        public async Task Admin_AndAssignedStaff_GetNineManagerTools()
+        public async Task Admin_GetsNineManagerTools_AssignedStaffEight_WithoutBranchRevenue()
         {
             await _service.ChatQuanLyAsync(1, Ask("xin chào"));
 
@@ -47,10 +47,13 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.Equal(2, _model.Requests.Count);
             Assert.All(_model.Requests, r =>
             {
-                Assert.Equal(9, r.Tools.Count);
                 Assert.Contains(AiToolNames.PhongTrong, ToolNames(r));
                 Assert.DoesNotContain(AiToolNames.MyHopDongInfo, ToolNames(r));
             });
+            Assert.Equal(9, _model.Requests[0].Tools.Count);
+            Assert.Contains(AiToolNames.DoanhThuChiNhanh, ToolNames(_model.Requests[0]));
+            Assert.Equal(8, _model.Requests[1].Tools.Count);
+            Assert.DoesNotContain(AiToolNames.DoanhThuChiNhanh, ToolNames(_model.Requests[1]));
         }
 
         [Fact]

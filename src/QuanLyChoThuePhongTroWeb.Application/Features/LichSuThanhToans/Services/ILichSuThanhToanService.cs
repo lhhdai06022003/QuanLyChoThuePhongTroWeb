@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using QuanLyChoThuePhongTroWeb.Application.Common.Models;
@@ -7,10 +6,9 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.LichSuThanhToans.Service
 {
     public interface ILichSuThanhToanService
     {
-        Task<DataTableResponse<LichSuThanhToanGiaoDichRes>> GetDanhSachThanhToanAsync(
-            int actorId, DataTableRequest request, int chiNhanhId, int phuongThuc, DateTime? tuNgay, DateTime? denNgay, bool chiCoTienThua = false);
+        Task<DataTableResponse<LichSuThanhToanGiaoDichRes>> GetDanhSachThanhToanAsync(int actorId, DataTableRequest request, LichSuThanhToanLocReq loc);
 
-        Task<ThongKeThanhToanRes> GetThongKeThanhToanAsync(int actorId, int chiNhanhId, DateTime? tuNgay, DateTime? denNgay);
+        Task<ThongKeThanhToanRes> GetThongKeThanhToanAsync(int actorId, LichSuThanhToanLocReq loc);
 
         Task<IReadOnlyList<LichSuThanhToanKhachThueDto>> GetLichSuByNguoiThueIdAsync(int nguoiThueId);
     }

@@ -53,7 +53,11 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 query = query.Where(h => h.Nam == filter.Nam);
             }
 
-            if (filter.TrangThaiThanhToan >= 0)
+            if (filter.TrangThaiThanhToan == InvoiceListFilter.ChuaThuDu)
+            {
+                query = query.Where(h => h.TrangThaiHoaDon == TrangThaiHoaDon.ChuaThanhToan || h.TrangThaiHoaDon == TrangThaiHoaDon.ThanhToanMotPhan);
+            }
+            else if (filter.TrangThaiThanhToan >= 0)
             {
                 query = query.Where(h => (int)h.TrangThaiHoaDon == filter.TrangThaiThanhToan);
             }

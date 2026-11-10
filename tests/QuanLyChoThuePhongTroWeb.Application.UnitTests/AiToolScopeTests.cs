@@ -46,7 +46,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             { AiToolNames.HopDongSapHetHan, "{}", "GetExpiringContractsAsync" },
             { AiToolNames.ThongTinKhachThue, "{\"tuKhoa\":\"an\"}", "SearchTenantsAsync" },
             { AiToolNames.CongNoPhong, "{\"soPhong\":\"101\"}", "FindRoomsByNumberAsync" },
-            { AiToolNames.DoanhThuChiNhanh, "{}", "GetRevenueByBranchAsync" },
             { AiToolNames.ChiSoDienNuoc, "{\"soPhong\":\"101\"}", "FindRoomsByNumberAsync" }
         };
 
@@ -107,16 +106,37 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         }
 
         [Fact]
-        public async Task BranchRevenue_ForStaff_TotalsOnlyRowsStoreReturned()
+        public async Task BranchRevenue_AdminOnly_PassesNullScope()
+        {
+            await _executor.ExecuteAsync(Admin, Call(AiToolNames.DoanhThuChiNhanh));
+
+            Assert.Null(_store.CallsOf("GetRevenueByBranchAsync").Single().Allowed);
+        }
+
+        // X12: doanh thu theo kỳ chỉ Admin (spec bang-dieu-khien-van-hanh mục 4); nhân viên bị từ chối, không chạm store.
+        [Fact]
+        public async Task BranchRevenue_ForStaff_IsUnavailable_AndNeverReachesStore()
         {
             _store.BranchRevenue.Add(new AiBranchRevenueRow(10, "CN A", 700_000m, 3));
 
-            var result = await _executor.ExecuteAsync(StaffA, Call(AiToolNames.DoanhThuChiNhanh));
+            foreach (var staff in new[] { StaffA, StaffNoBranch })
+            {
+                var result = await _executor.ExecuteAsync(staff, Call(AiToolNames.DoanhThuChiNhanh));
 
-            var root = JsonDocument.Parse(result.Json).RootElement;
-            Assert.Equal(700_000m, root.GetProperty("tongDoanhThu").GetDecimal());
-            Assert.Equal(1, root.GetProperty("soLuong").GetInt32());
-            Assert.Equal(new[] { 10 }, _store.CallsOf("GetRevenueByBranchAsync").Single().Allowed!.ToArray());
+                Assert.False(result.Success);
+                Assert.Equal(AiToolResult.KhongKhaDung, result.Outcome);
+                Assert.DoesNotContain("700", result.Json);
+            }
+            Assert.Empty(_store.CallsOf("GetRevenueByBranchAsync"));
+        }
+
+        [Fact]
+        public async Task AssignedStaff_ModelIsNotOfferedBranchRevenueTool()
+        {
+            _access.ScopeToReturn = new EmployeeAccessScope(2, false, new[] { 10 });
+            await _service.ChatQuanLyAsync(2, new ChatRequest { Message = "Doanh thu tháng này?" });
+
+            Assert.DoesNotContain(_model.Requests.Single().Tools, t => t.Name == AiToolNames.DoanhThuChiNhanh);
         }
 
         [Fact]

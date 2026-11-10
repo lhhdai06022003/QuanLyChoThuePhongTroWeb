@@ -1,9 +1,11 @@
+@inject TimeProvider TimeProvider
 @{
     ViewData["Title"] = "Quản lý Hóa đơn";
     var isAdmin = User.IsInRole("Admin");
+    // Kỳ mặc định theo giờ Việt Nam (máy chủ có thể chạy UTC).
+    var homNayVn = TimeProvider.GetUtcNow().UtcDateTime.AddHours(7);
 }
 @Html.AntiForgeryToken()
-<link rel="stylesheet" href="~/css/hoadon.css" asp-append-version="true" />
 
 <div class="page-body hd-page">
     <div class="container-xl">
@@ -45,7 +47,7 @@
                             <option value="0">Tất cả</option>
                             @for (int i = 1; i <= 12; i++)
                             {
-                                if (i == DateTime.Now.Month)
+                                if (i == homNayVn.Month)
                                 {
                                     <option value="@i" selected>Tháng @i</option>
                                 }
@@ -58,7 +60,7 @@
                     </div>
                     <div class="col-6 col-sm-3 col-md-1">
                         <label for="filterNam" class="form-label">Năm</label>
-                        <input type="number" id="filterNam" class="form-control form-control-sm" value="@DateTime.Now.Year" style="min-width: 72px;">
+                        <input type="number" id="filterNam" class="form-control form-control-sm" value="@homNayVn.Year" placeholder="Tất cả" style="min-width: 72px;">
                     </div>
                     <div class="col-6 col-sm-6 col-md-3">
                         <label for="filterPhatHanh" class="form-label">Phát hành</label>
@@ -75,6 +77,7 @@
                         <label for="filterTrangThai" class="form-label">Thanh toán</label>
                         <select id="filterTrangThai" class="form-select form-select-sm">
                             <option value="-1">Tất cả</option>
+                            <option value="-2">Chưa thu đủ</option>
                             <option value="0">Chưa thanh toán</option>
                             <option value="1">Đã thanh toán</option>
                             <option value="2">Thanh toán một phần</option>
@@ -211,7 +214,7 @@
                         </div>
                     </div>
                     <!-- Khung bộ chọn dữ liệu phát sinh -->
-                    <div class="card card-body bg-light border border-dashed rounded p-3 mb-3">
+                    <div class="card card-body bg-surface-secondary border border-dashed rounded p-3 mb-3">
                         <div class="row g-3">
                             <div class="col-md-5">
                                 <label for="previewChiNhanh" class="form-label fw-medium text-secondary mb-1">
@@ -235,7 +238,7 @@
                                 <select id="previewThang" class="form-select form-select-sm">
                                     @for (int i = 1; i <= 12; i++)
                                     {
-                                        if (i == DateTime.Now.Month)
+                                        if (i == homNayVn.Month)
                                         {
                                             <option value="@i" selected>Tháng @i</option>
                                         }
@@ -250,7 +253,7 @@
                                 <label for="previewNam" class="form-label fw-medium text-secondary mb-1">
                                     <i class="ti ti-calendar-check me-1"></i> Năm <span class="text-danger">*</span>
                                 </label>
-                                <input type="number" id="previewNam" class="form-control form-control-sm" value="@DateTime.Now.Year">
+                                <input type="number" id="previewNam" class="form-control form-control-sm" value="@homNayVn.Year">
                             </div>
                             <div class="col-md-2 d-flex align-items-end">
                                 <button type="button" class="btn btn-primary btn-sm w-100" id="btnLoadPreview" style="height: 36px;">
@@ -422,7 +425,8 @@
             const urlTrangThai = urlParams.get('trangThai');
             const urlChiNhanh = urlParams.get('chiNhanhId');
             if (urlThang) $('#filterThang').val(urlThang);
-            if (urlNam) $('#filterNam').val(urlNam);
+            // nam=0 (link "Phòng đang nợ"): mọi năm, để trống ô thay vì hiện số 0.
+            if (urlNam) $('#filterNam').val(urlNam === '0' ? '' : urlNam);
             if (urlTrangThai) $('#filterTrangThai').val(urlTrangThai);
             if (urlChiNhanh) $('#filterChiNhanh').val(urlChiNhanh);
             const urlPhatHanh = urlParams.get('trangThaiPhatHanh');
@@ -500,7 +504,7 @@
                     "data": function(d) {
                         d.chiNhanhId = $('#filterChiNhanh').val();
                         d.thang = $('#filterThang').val();
-                        d.nam = $('#filterNam').val();
+                        d.nam = $('#filterNam').val() || 0;
                         d.trangThai = $('#filterTrangThai').val();
                         d.trangThaiPhatHanh = $('#filterPhatHanh').val();
                         d.hopDongDaKetThucConNo = locDaKetThucConNo ? 1 : 0;
@@ -1730,13 +1734,8 @@
 }
 
 @section Styles {
+    <link rel="stylesheet" href="~/css/hoadon.css" asp-append-version="true" />
     <style>
-    /* Đồng bộ màu nền bộ lọc trong chế độ tối */
-    html[data-bs-theme="dark"] .bg-light,
-    [data-bs-theme="dark"] .bg-light {
-        background-color: var(--tblr-bg-surface-secondary, #182120) !important;
-        color: var(--tblr-body-color, #f4f6fa) !important;
-    }
     html[data-bs-theme="dark"] .border-dashed,
     [data-bs-theme="dark"] .border-dashed {
         border-color: rgba(255, 255, 255, 0.15) !important;

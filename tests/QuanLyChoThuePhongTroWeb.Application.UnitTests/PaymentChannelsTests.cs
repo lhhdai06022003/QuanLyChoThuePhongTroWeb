@@ -20,6 +20,17 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.Equal(expected, PaymentChannels.Of(ma, phuongThuc));
         }
 
+        [Theory]
+        [InlineData(KenhThu.TienMat, "Tiền mặt")]
+        [InlineData(KenhThu.ChuyenKhoan, "Chuyển khoản")]
+        [InlineData(KenhThu.SePay, "SePay")]
+        [InlineData(KenhThu.VnPay, "VNPay")]
+        [InlineData(KenhThu.CanTruCoc, "Cấn trừ cọc")]
+        public void Label_TenKenhHienThi(KenhThu kenh, string expected)
+        {
+            Assert.Equal(expected, PaymentChannels.Label(kenh));
+        }
+
         [Fact]
         public void Of_MaNull_KhongNem()
         {

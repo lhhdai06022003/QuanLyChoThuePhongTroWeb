@@ -174,10 +174,14 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
 
         public async Task<IReadOnlyList<AiBranchRevenueRow>> GetRevenueByBranchAsync(int thang, int nam, IReadOnlyCollection<int>? allowedBranchIds, CancellationToken ct = default)
         {
-            // Doanh thu theo kỳ hóa đơn (HoaDon.Thang/Nam), cùng cách tính với ô doanh thu tháng của Dashboard.
+            // Doanh thu theo kỳ hóa đơn (HoaDon.Thang/Nam), chỉ hóa đơn đã gửi: cùng cách tính với "Đã thu kỳ" của Dashboard và Báo cáo.
             var query = _context.LichSuThanhToans
                 .AsNoTracking()
-                .Where(l => !l.IsDeleted && !l.HoaDon.IsDeleted && l.HoaDon.Thang == thang && l.HoaDon.Nam == nam);
+                .Where(l => !l.IsDeleted
+                            && !l.HoaDon.IsDeleted
+                            && l.HoaDon.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaGui
+                            && l.HoaDon.Thang == thang
+                            && l.HoaDon.Nam == nam);
 
             if (allowedBranchIds != null)
             {

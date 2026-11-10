@@ -98,15 +98,16 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             var w = await SeedWithPendingInvoicesAsync();
             var (admin, _) = await LoginAsync(_factory, w.Admin);
 
+            // HD2 nằm ở khối "Chờ bạn duyệt" (choDuyet), không còn trong danh sách việc cần làm.
             var rootA = await JsonAsync(await admin.GetAsync(Url(w.BranchA)));
-            var hd2A = Items(rootA).SingleOrDefault(i => i.GetProperty("maViec").GetString() == "HD2");
-            Assert.NotEqual(default, hd2A);
-            Assert.Equal(1, hd2A.GetProperty("soLuong").GetInt32());
+            Assert.Equal(1, rootA.GetProperty("choDuyet").GetProperty("soLuong").GetInt32());
+            Assert.DoesNotContain(Items(rootA), i => i.GetProperty("maViec").GetString() == "HD2");
 
             var rootB = await JsonAsync(await admin.GetAsync(Url(w.BranchB)));
             var itemsB = Items(rootB);
             Assert.Contains(itemsB, i => i.GetProperty("moTa").GetString()!.Contains(w.BranchNameB));
-            Assert.Contains(itemsB, i => i.GetProperty("maViec").GetString() == "HD2");
+            Assert.True(rootB.GetProperty("choDuyet").GetProperty("soLuong").GetInt32() > 0);
+            Assert.DoesNotContain(itemsB, i => i.GetProperty("maViec").GetString() == "HD2");
             Assert.All(itemsB, i => Assert.DoesNotContain($"CN_A_{w.BranchNameB[5..]}", i.GetProperty("moTa").GetString()));
         }
 
@@ -123,10 +124,12 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             var staffDash = await JsonAsync(await staff.GetAsync(Url(null)));
             var adminA = await JsonAsync(await admin.GetAsync(Url(w.BranchA)));
 
-            var hd2 = Items(adminA).Single(i => i.GetProperty("maViec").GetString() == "HD2").GetProperty("soLuong").GetInt32();
+            var hd2 = adminA.GetProperty("choDuyet").GetProperty("soLuong").GetInt32();
 
+            Assert.True(hd2 > 0);
             Assert.Equal(staffDash.GetProperty("viecCanLam").GetProperty("tongSo").GetInt32(), tomTat.GetProperty("tongSo").GetInt32());
-            Assert.Equal(adminA.GetProperty("viecCanLam").GetProperty("tongSo").GetInt32() - hd2, tomTat.GetProperty("tongSo").GetInt32());
+            // HD2 đã tách khỏi "Việc cần làm" của Admin nên tổng của Admin bằng tổng huy hiệu của nhân viên.
+            Assert.Equal(adminA.GetProperty("viecCanLam").GetProperty("tongSo").GetInt32(), tomTat.GetProperty("tongSo").GetInt32());
             Assert.True(tomTat.TryGetProperty("soKhan", out _));
             Assert.True(tomTat.TryGetProperty("soCanLam", out _));
             Assert.True(tomTat.TryGetProperty("soTheoDoi", out _));

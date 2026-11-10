@@ -13,13 +13,16 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Responses
         // Nhãn của lựa chọn "mọi chi nhánh"; null khi nhân viên chỉ có đúng một chi nhánh.
         public string? NhanTatCa { get; set; }
         public bool ChuaPhanCong { get; set; }
+        // Chỉ Admin thấy tab Doanh thu.
+        public bool CoXemDoanhThu { get; set; }
         // Dạng yyyy-MM cho input type="month".
         public string TuKyMacDinh { get; set; } = "";
         public string DenKyMacDinh { get; set; } = "";
 
-        public static BaoCaoPageViewModel From(string tab, IReadOnlyList<SelectOptionDto> chiNhanhs, int? chiNhanhId, bool isAdmin, int thangHienTai, int namHienTai)
+        public static BaoCaoPageViewModel From(string tab, IReadOnlyList<SelectOptionDto> chiNhanhs, int? chiNhanhId, bool isAdmin, int thangHienTai, int namHienTai,
+            (int TuThang, int TuNam, int DenThang, int DenNam)? khoang = null)
         {
-            var model = new BaoCaoPageViewModel { Tab = tab };
+            var model = new BaoCaoPageViewModel { Tab = tab, CoXemDoanhThu = isAdmin };
 
             var hopLe = chiNhanhId.HasValue && chiNhanhs.Any(c => c.Value == chiNhanhId.Value.ToString(CultureInfo.InvariantCulture));
             int? chon = hopLe ? chiNhanhId : null;
@@ -49,8 +52,9 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Responses
             }
 
             // Mặc định 12 kỳ gần nhất, kết thúc ở tháng hiện tại theo giờ Việt Nam.
-            var den = new System.DateTime(namHienTai, thangHienTai, 1);
-            var tu = den.AddMonths(-11);
+            // hoặc đúng khoảng kỳ truyền vào từ URL (đã kiểm hợp lệ).
+            var den = khoang.HasValue ? new System.DateTime(khoang.Value.DenNam, khoang.Value.DenThang, 1) : new System.DateTime(namHienTai, thangHienTai, 1);
+            var tu = khoang.HasValue ? new System.DateTime(khoang.Value.TuNam, khoang.Value.TuThang, 1) : den.AddMonths(-11);
             model.DenKyMacDinh = den.ToString("yyyy-MM", CultureInfo.InvariantCulture);
             model.TuKyMacDinh = tu.ToString("yyyy-MM", CultureInfo.InvariantCulture);
             return model;

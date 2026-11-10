@@ -32,7 +32,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.BaoCaos.Services
 
         public async Task<ServiceResult<BaoCaoDoanhThuDto>> GetDoanhThuAsync(int actorId, BaoCaoFilter filter, CancellationToken cancellationToken = default)
         {
-            var (loi, b) = await KiemTraAsync(actorId, filter, true, cancellationToken);
+            var (loi, b) = await KiemTraAsync(actorId, filter, true, true, cancellationToken);
             if (loi != null || b == null)
             {
                 return ServiceResult<BaoCaoDoanhThuDto>.FailFrom(loi!);
@@ -49,7 +49,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.BaoCaos.Services
 
         public async Task<ServiceResult<BaoCaoCongNoDto>> GetCongNoAsync(int actorId, BaoCaoFilter filter, CancellationToken cancellationToken = default)
         {
-            var (loi, b) = await KiemTraAsync(actorId, filter, false, cancellationToken);
+            var (loi, b) = await KiemTraAsync(actorId, filter, false, false, cancellationToken);
             if (loi != null || b == null)
             {
                 return ServiceResult<BaoCaoCongNoDto>.FailFrom(loi!);
@@ -61,7 +61,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.BaoCaos.Services
 
         public async Task<ServiceResult<BaoCaoCongSuatDto>> GetCongSuatPhongAsync(int actorId, BaoCaoFilter filter, CancellationToken cancellationToken = default)
         {
-            var (loi, b) = await KiemTraAsync(actorId, filter, true, cancellationToken);
+            var (loi, b) = await KiemTraAsync(actorId, filter, true, false, cancellationToken);
             if (loi != null || b == null)
             {
                 return ServiceResult<BaoCaoCongSuatDto>.FailFrom(loi!);
@@ -74,7 +74,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.BaoCaos.Services
 
         public async Task<ServiceResult<BaoCaoHopDongDto>> GetHopDongAsync(int actorId, BaoCaoFilter filter, CancellationToken cancellationToken = default)
         {
-            var (loi, b) = await KiemTraAsync(actorId, filter, true, cancellationToken);
+            var (loi, b) = await KiemTraAsync(actorId, filter, true, false, cancellationToken);
             if (loi != null || b == null)
             {
                 return ServiceResult<BaoCaoHopDongDto>.FailFrom(loi!);
@@ -86,7 +86,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.BaoCaos.Services
 
         public async Task<ServiceResult<BaoCaoDienNuocDto>> GetDienNuocAsync(int actorId, BaoCaoFilter filter, CancellationToken cancellationToken = default)
         {
-            var (loi, b) = await KiemTraAsync(actorId, filter, true, cancellationToken);
+            var (loi, b) = await KiemTraAsync(actorId, filter, true, false, cancellationToken);
             if (loi != null || b == null)
             {
                 return ServiceResult<BaoCaoDienNuocDto>.FailFrom(loi!);
@@ -153,7 +153,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.BaoCaos.Services
             return ServiceResult<BaoCaoFileDto>.Ok(new BaoCaoFileDto { NoiDung = noiDung, TenFile = tenFile });
         }
 
-        private async Task<(ServiceResult? Loi, Boi? Boi)> KiemTraAsync(int actorId, BaoCaoFilter filter, bool canKhoangKy, CancellationToken cancellationToken)
+        private async Task<(ServiceResult? Loi, Boi? Boi)> KiemTraAsync(int actorId, BaoCaoFilter filter, bool canKhoangKy, bool chiAdmin, CancellationToken cancellationToken)
         {
             const string khongCoQuyen = "Bạn không có quyền xem báo cáo.";
             if (actorId <= 0)
@@ -165,6 +165,11 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.BaoCaos.Services
             if (scope == null)
             {
                 return (ServiceResult.Forbidden(khongCoQuyen), null);
+            }
+
+            if (chiAdmin && !scope.IsAdmin)
+            {
+                return (ServiceResult.Forbidden("Chỉ Admin được xem báo cáo doanh thu."), null);
             }
 
             if (!scope.IsAdmin && scope.ActiveBranchIds.Count == 0)

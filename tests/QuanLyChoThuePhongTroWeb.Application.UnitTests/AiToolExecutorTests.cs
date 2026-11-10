@@ -463,10 +463,14 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         }
 
         [Fact]
-        public void Catalog_ManagerHasNineTools_TenantHasThree_AndTenantToolsHaveNoIdParameter()
+        public void Catalog_AdminHasNineTools_StaffEightWithoutBranchRevenue_TenantHasThree_AndTenantToolsHaveNoIdParameter()
         {
             Assert.Equal(9, AiToolCatalog.ForRole(AiCallerRole.Admin).Count);
-            Assert.Equal(9, AiToolCatalog.ForRole(AiCallerRole.NhanVien).Count);
+            var staffTools = AiToolCatalog.ForRole(AiCallerRole.NhanVien);
+            Assert.Equal(8, staffTools.Count);
+            Assert.DoesNotContain(staffTools, t => t.Name == AiToolNames.DoanhThuChiNhanh);
+            Assert.False(AiToolCatalog.IsAllowed(AiCallerRole.NhanVien, AiToolNames.DoanhThuChiNhanh));
+            Assert.True(AiToolCatalog.IsAllowed(AiCallerRole.Admin, AiToolNames.DoanhThuChiNhanh));
             var tenantTools = AiToolCatalog.ForRole(AiCallerRole.KhachThue);
             Assert.Equal(3, tenantTools.Count);
             Assert.DoesNotContain(tenantTools.SelectMany(t => t.Parameters), p => p.Name.Contains("Id", StringComparison.OrdinalIgnoreCase));

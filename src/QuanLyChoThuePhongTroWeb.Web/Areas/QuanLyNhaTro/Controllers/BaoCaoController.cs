@@ -25,13 +25,27 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         }
 
         [HttpGet("/QuanLyNhaTro/BaoCao")]
-        public async Task<IActionResult> Index(string? tab, int? chiNhanhId, CancellationToken cancellationToken)
+        public async Task<IActionResult> Index(string? tab, int? chiNhanhId, int? tuThang, int? tuNam, int? denThang, int? denNam, CancellationToken cancellationToken)
         {
             if (chiNhanhId <= 0) chiNhanhId = null;
-            var tabHopLe = BaoCaoTabs.TryParse(tab, out var parsed) ? parsed : BaoCaoTab.DoanhThu;
+            // Giao diện theo vai trò; chặn thật nằm ở BaoCaoService (nhân viên không xem doanh thu).
+            var laAdmin = User.IsInRole("Admin");
+            var tabHopLe = BaoCaoTabs.TryParse(tab, out var parsed) ? parsed : (laAdmin ? BaoCaoTab.DoanhThu : BaoCaoTab.CongNo);
+            if (!laAdmin && tabHopLe == BaoCaoTab.DoanhThu)
+            {
+                tabHopLe = BaoCaoTab.CongNo;
+            }
             var chiNhanhs = await _phongTroService.GetDanhSachChiNhanhDropdownAsync(CurrentActorId);
             var homNay = _timeProvider.GetUtcNow().UtcDateTime.AddHours(7);
-            return View(BaoCaoPageViewModel.From(BaoCaoTabs.Slug(tabHopLe), chiNhanhs, chiNhanhId, User.IsInRole("Admin"), homNay.Month, homNay.Year));
+            // Link "Xem giao dịch"/Bảng điều khiển có thể mang sẵn khoảng kỳ; thiếu hoặc sai thì dùng 12 kỳ mặc định.
+            (int TuThang, int TuNam, int DenThang, int DenNam)? khoang = null;
+            if (tuThang.HasValue && tuNam.HasValue && denThang.HasValue && denNam.HasValue
+                && BaoCaoCalculator.KiemTraKhoang(tuThang.Value, tuNam.Value, denThang.Value, denNam.Value) == null)
+            {
+                khoang = (tuThang.Value, tuNam.Value, denThang.Value, denNam.Value);
+            }
+
+            return View(BaoCaoPageViewModel.From(BaoCaoTabs.Slug(tabHopLe), chiNhanhs, chiNhanhId, laAdmin, homNay.Month, homNay.Year, khoang));
         }
 
         [HttpGet("/QuanLyNhaTro/BaoCao/DuLieu")]

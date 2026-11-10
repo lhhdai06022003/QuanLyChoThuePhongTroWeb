@@ -269,6 +269,40 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             await tx.RollbackAsync();
         }
 
+        // X12: chỉ hóa đơn đã gửi, cùng định nghĩa "Đã thu kỳ" của Dashboard và Báo cáo.
+        [Fact]
+        public async Task RevenueByBranch_CountsOnlySentInvoices()
+        {
+            await using var db = _fixture.CreateDbContext();
+            await using var tx = await db.Database.BeginTransactionAsync();
+            var w = await SeedAsync(db);
+            var store = new AiAssistantStore(db);
+
+            var nhap = new HoaDon
+            {
+                MaHoaDon = $"RN{w.Suffix}", HopDongId = w.ContractA2.HopDongId, Thang = 5, Nam = 2002, TongTien = 500_000m,
+                TrangThaiPhatHanh = TrangThaiPhatHanhHoaDon.Nhap, TrangThaiHoaDon = TrangThaiHoaDon.ThanhToanMotPhan
+            };
+            db.HoaDons.Add(nhap);
+            await db.SaveChangesAsync();
+            db.LichSuThanhToans.Add(new LichSuThanhToan
+            {
+                HoaDonId = nhap.HoaDonId, MaGiaoDich = $"AIRN{w.Suffix}", SoTienThanhToan = 123_000m,
+                PhuongThucThanhToan = PhuongThucThanhToan.TienMat, NgayThanhToan = RevenueFrom
+            });
+            w.RevenueInvoiceB.TrangThaiPhatHanh = TrangThaiPhatHanhHoaDon.DaChot;
+            await db.SaveChangesAsync();
+
+            var rows = await store.GetRevenueByBranchAsync(5, 2002, new[] { w.BranchA.ChiNhanhId, w.BranchB.ChiNhanhId });
+
+            var rowA = rows.Single(r => r.ChiNhanhId == w.BranchA.ChiNhanhId);
+            Assert.Equal(350_000m, rowA.TongTien);   // bỏ 123k của hóa đơn Nháp
+            Assert.Equal(3, rowA.SoGiaoDich);
+            Assert.Equal(0m, rows.Single(r => r.ChiNhanhId == w.BranchB.ChiNhanhId).TongTien);   // hóa đơn B chưa gửi
+
+            await tx.RollbackAsync();
+        }
+
         [Fact]
         public async Task RevenueByBranch_ListsBranchesInScopeWithoutRevenue_AsZero()
         {

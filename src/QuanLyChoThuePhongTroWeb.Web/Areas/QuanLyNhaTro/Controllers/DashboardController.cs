@@ -26,9 +26,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         [Route("/QuanLyNhaTro/Dashboard/Index")]
         public async Task<IActionResult> Index(int? branchId, int? year, int? month, CancellationToken cancellationToken)
         {
-            var nowVn = _timeProvider.GetUtcNow().UtcDateTime.AddHours(7);
-            int selectedYear = year ?? nowVn.Year;
-            int selectedMonth = month ?? nowVn.Month;
+            var (selectedYear, selectedMonth) = ChuanHoaKy(year, month);
 
             var dto = await _dashboardService.GetDashboardDataAsync(CurrentActorId, branchId, selectedYear, selectedMonth);
             var viec = await _viecCanLamService.GetTongHopAsync(CurrentActorId, branchId, cancellationToken);
@@ -41,11 +39,24 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             return View(model);
         }
 
+        // Tháng ngoài 1..12 hoặc năm ngoài 2000..2100 (hoặc thiếu) thì dùng tháng/năm hiện tại theo giờ Việt Nam.
+        private (int Year, int Month) ChuanHoaKy(int? year, int? month)
+        {
+            var nowVn = _timeProvider.GetUtcNow().UtcDateTime.AddHours(7);
+            var y = year is >= 2000 and <= 2100 ? year.Value : nowVn.Year;
+            var m = month is >= 1 and <= 12 ? month.Value : nowVn.Month;
+            return (y, m);
+        }
+
         [HttpGet("/QuanLyNhaTro/Dashboard/GetAjaxData")]
         public async Task<IActionResult> GetAjaxData(int? branchId, int year, int month, CancellationToken cancellationToken)
         {
-            var model = await _dashboardService.GetDashboardDataAsync(CurrentActorId, branchId, year, month);
-            var viec = await _viecCanLamService.GetTongHopAsync(CurrentActorId, branchId, cancellationToken);
+            var (selectedYear, selectedMonth) = ChuanHoaKy(year, month);
+            var model = await _dashboardService.GetDashboardDataAsync(CurrentActorId, branchId, selectedYear, selectedMonth);
+            var viecDayDu = await _viecCanLamService.GetTongHopAsync(CurrentActorId, branchId, cancellationToken);
+            // Admin: việc HD2 nằm ở khối "Chờ bạn duyệt" riêng, không nằm trong "Việc cần làm".
+            var (viec, _) = DashboardViecCanLam.TachChoDuyet(viecDayDu, model.CoXemDoanhThu);
+            var vm = DashboardViewModel.FromDto(model, viecDayDu);
 
             return Json(new
             {
@@ -54,6 +65,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
                 soPhongDaThue = model.SoPhongDaThue,
                 soPhongBaoTri = model.SoPhongBaoTri,
                 tongSoHopDongHoatDong = model.TongSoHopDongHoatDong,
+                coXemDoanhThu = model.CoXemDoanhThu,
                 doanhThuThangNay = model.DoanhThuThangNay,
                 tongTienChoThu = model.TongTienChoThu,
                 soPhongChuaThanhToan = model.SoPhongChuaThanhToan,
@@ -62,6 +74,26 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
                 soHoaDonQuaHan = model.SoHoaDonQuaHan,
                 soHopDongSapHetHan = viec.Items.Where(i => i.MaViec == "KH3").Sum(i => i.SoLuong),
                 soPhongChuaChotDienNuoc = viec.Items.Where(i => i.MaViec == "CS1").Sum(i => i.SoLuong),
+
+                tienMatCuaToi = new { soKhoan = vm.TienMatCuaToi.SoKhoan, tongTien = vm.TienMatCuaToi.TongTien },
+                tienMatNhanVien = vm.TienMatNhanVien?.Select(n => new
+                {
+                    nguoiDungId = n.NguoiDungId,
+                    ten = n.Ten,
+                    soKhoan = n.SoKhoan,
+                    tongTien = n.TongTien,
+                    link = n.Link
+                }),
+                choDuyet = vm.ChoDuyet == null ? null : new { soLuong = vm.ChoDuyet.SoLuong, tieuDe = vm.ChoDuyet.TieuDe, link = vm.ChoDuyet.Link },
+                links = new
+                {
+                    quaHan = vm.LinkQuaHan,
+                    choThu = vm.LinkChoThu,
+                    phongDangNo = vm.LinkPhongDangNo,
+                    tienMatCuaToi = vm.LinkTienMatCuaToi,
+                    daThuKy = vm.LinkDaThuKy,
+                    baoCaoNam = vm.LinkBaoCaoNam
+                },
                 
                 chartLabels = model.ChartLabels,
                 chartData = model.ChartData,

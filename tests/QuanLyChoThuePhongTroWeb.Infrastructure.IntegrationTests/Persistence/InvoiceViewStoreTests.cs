@@ -366,6 +366,38 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
             Assert.DoesNotContain(data.InvoiceNhap.HoaDonId, returnedIds);
         }
 
+        // Test 7: bộ lọc "Chưa thu đủ" (-2) lấy hóa đơn chưa thanh toán và thanh toán một phần.
+        [Fact]
+        public async Task List_ChuaThuDu_LayChuaThanhToanVaMotPhan()
+        {
+            await using var context = _fixture.CreateDbContext();
+            await using var tx = await context.Database.BeginTransactionAsync();
+            var seed = new DebtTestSeeder(context);
+            var branch = await seed.BranchAsync("U");
+            var tenant = await seed.TenantAsync("U");
+            var chua = await seed.InvoiceAsync(await seed.ContractAsync(await seed.RoomAsync(branch, "U"), tenant), TrangThaiPhatHanhHoaDon.DaGui, TrangThaiHoaDon.ChuaThanhToan, 100m, null, month: 1, year: 2003);
+            var motPhan = await seed.InvoiceAsync(await seed.ContractAsync(await seed.RoomAsync(branch, "U"), tenant), TrangThaiPhatHanhHoaDon.DaGui, TrangThaiHoaDon.ThanhToanMotPhan, 100m, null, paid: 40m, month: 1, year: 2003);
+            var daThu = await seed.InvoiceAsync(await seed.ContractAsync(await seed.RoomAsync(branch, "U"), tenant), TrangThaiPhatHanhHoaDon.DaGui, TrangThaiHoaDon.DaThanhToan, 100m, null, paid: 100m, month: 1, year: 2003);
+            var nhapChua = await seed.InvoiceAsync(await seed.ContractAsync(await seed.RoomAsync(branch, "U"), tenant), TrangThaiPhatHanhHoaDon.Nhap, TrangThaiHoaDon.ChuaThanhToan, 100m, null, month: 1, year: 2003);
+
+            var store = new InvoiceViewStore(context);
+            var req = new DataTableRequest { Start = 0, Length = 50 };
+
+            var chuaThuDu = await store.GetEmployeeListAsync(req, new InvoiceListFilter { ChiNhanhId = branch.ChiNhanhId, TrangThaiThanhToan = InvoiceListFilter.ChuaThuDu }, null);
+            Assert.Equal(new[] { chua.HoaDonId, motPhan.HoaDonId, nhapChua.HoaDonId }.OrderBy(x => x), chuaThuDu.data.Select(x => x.HoaDonId).OrderBy(x => x));
+
+            var daGuiChuaThuDu = await store.GetEmployeeListAsync(req, new InvoiceListFilter
+            {
+                ChiNhanhId = branch.ChiNhanhId,
+                TrangThaiThanhToan = InvoiceListFilter.ChuaThuDu,
+                TrangThaiPhatHanh = (int)TrangThaiPhatHanhHoaDon.DaGui
+            }, null);
+            Assert.Equal(new[] { chua.HoaDonId, motPhan.HoaDonId }.OrderBy(x => x), daGuiChuaThuDu.data.Select(x => x.HoaDonId).OrderBy(x => x));
+            Assert.DoesNotContain(daThu.HoaDonId, daGuiChuaThuDu.data.Select(x => x.HoaDonId));
+
+            await tx.RollbackAsync();
+        }
+
         [Fact]
         public async Task List_AllowedBranches_ScopedToThoseBranches()
         {

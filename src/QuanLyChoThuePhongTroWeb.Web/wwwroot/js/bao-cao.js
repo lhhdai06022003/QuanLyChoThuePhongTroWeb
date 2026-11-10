@@ -2,14 +2,14 @@
     'use strict';
 
     var cfg = window.baoCaoConfig || {};
-    var TABS = ['doanh-thu', 'cong-no', 'cong-suat', 'hop-dong', 'dien-nuoc'];
+    var TABS = Array.isArray(cfg.tabs) && cfg.tabs.length ? cfg.tabs : ['doanh-thu', 'cong-no', 'cong-suat', 'hop-dong', 'dien-nuoc'];
     var fmtTien = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' });
     var fmtSo = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 3 });
     var fmtNguyen = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 });
     var fmtTyLe = new Intl.NumberFormat('vi-VN', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
     var state = {
-        current: TABS.indexOf(cfg.tab) >= 0 ? cfg.tab : 'doanh-thu',
+        current: TABS.indexOf(cfg.tab) >= 0 ? cfg.tab : TABS[0],
         filter: null,        // bộ lọc đã chốt lúc bấm "Xem"
         stale: {},           // tab cần tải lại
         used: {},            // bộ lọc của lần tải thành công gần nhất theo tab
@@ -186,8 +186,8 @@
             }
         });
 
-        function cotChung(nhanCot, conNoHref) {
-            return [
+        function cotChung(nhanCot, conNoHref, giaoDichHref) {
+            var cols = [
                 { h: nhanCot, f: function (r) { return r.nhan; } },
                 { h: 'Phát sinh', so: true, f: function (r) { return tien(r.phatSinh); } },
                 { h: 'Thu tiền', so: true, f: function (r) { return tien(r.thuTien); } },
@@ -201,11 +201,21 @@
                 { h: 'VNPay', so: true, f: function (r) { return tien(r.vnPay); } },
                 { h: 'Thu khác', so: true, f: function (r) { return tien(r.thuKhacGiuCho); } }
             ];
+            if (giaoDichHref) {
+                cols.push({ h: 'Giao dịch', f: function (r) { var h = giaoDichHref(r); return h ? link('Xem giao dịch', h) : ''; } });
+            }
+            return cols;
         }
         // Chỉ dòng của từng kỳ mới có link: màn hóa đơn lọc theo một tháng, không lọc được khoảng kỳ.
         veBang('bang-doanh-thu-ky', cotChung('Kỳ', function (r) {
             if (r.thang == null || r.nam == null) return null;
             return linkHoaDon({ thang: r.thang, nam: r.nam, trangThaiPhatHanh: 3 }, f);
+        }, function (r) {
+            // Sang Lịch sử thanh toán lọc theo kỳ hóa đơn: tổng ở đó khớp "Đã thu" của dòng kỳ này.
+            if (r.thang == null || r.nam == null) return null;
+            var p = { kyThang: r.thang, kyNam: r.nam };
+            if (f && f.chiNhanhId) p.chiNhanhId = f.chiNhanhId;
+            return cfg.urlLichSuThanhToan + '?' + $.param(p);
         }), d.theoKy, t);
         $('#wrap-doanh-thu-cn').toggleClass('d-none', !d.theoChiNhanh.length);
         veBang('bang-doanh-thu-cn', cotChung('Chi nhánh', null), d.theoChiNhanh);

@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
@@ -59,12 +60,17 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             var world = await BranchScopeKit.SeedAsync(_factory);
             var (client, _) = await BranchScopeKit.LoginAsync(_factory, world.Staff, Page);
 
-            foreach (var tab in Tabs)
+            foreach (var tab in Tabs.Where(t => t != "doanh-thu"))
             {
                 Assert.Equal(HttpStatusCode.OK, (await client.GetAsync($"{Page}/DuLieu?tab={tab}")).StatusCode);
                 Assert.Equal(HttpStatusCode.OK, (await client.GetAsync($"{Page}/DuLieu?tab={tab}&chiNhanhId={world.BranchA}")).StatusCode);
                 Assert.Equal(HttpStatusCode.OK, (await client.GetAsync($"{Page}/XuatExcel?tab={tab}")).StatusCode);
             }
+
+            // Doanh thu chỉ dành cho Admin: nhân viên nhận 403 dù chi nhánh của mình.
+            Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync($"{Page}/DuLieu?tab=doanh-thu")).StatusCode);
+            Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync($"{Page}/DuLieu?tab=doanh-thu&chiNhanhId={world.BranchA}")).StatusCode);
+            Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync($"{Page}/XuatExcel?tab=doanh-thu")).StatusCode);
         }
 
         [Fact]
@@ -92,12 +98,13 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             var (staff, _) = await BranchScopeKit.LoginAsync(_factory, world.Staff, Page);
             const string q = "tuThang=1&tuNam=2024&denThang=1&denNam=2026";
 
-            foreach (var client in new[] { admin, staff })
+            // Nhân viên không xem doanh thu nên kiểm khoảng kỳ bằng tab khác.
+            foreach (var (client, tab) in new[] { (admin, "doanh-thu"), (staff, "cong-suat") })
             {
-                Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync($"{Page}/DuLieu?tab=doanh-thu&{q}")).StatusCode);
-                Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync($"{Page}/XuatExcel?tab=doanh-thu&{q}")).StatusCode);
+                Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync($"{Page}/DuLieu?tab={tab}&{q}")).StatusCode);
+                Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync($"{Page}/XuatExcel?tab={tab}&{q}")).StatusCode);
                 // 24 kỳ vẫn hợp lệ.
-                Assert.Equal(HttpStatusCode.OK, (await client.GetAsync($"{Page}/DuLieu?tab=doanh-thu&tuThang=1&tuNam=2024&denThang=12&denNam=2025")).StatusCode);
+                Assert.Equal(HttpStatusCode.OK, (await client.GetAsync($"{Page}/DuLieu?tab={tab}&tuThang=1&tuNam=2024&denThang=12&denNam=2025")).StatusCode);
             }
         }
 
