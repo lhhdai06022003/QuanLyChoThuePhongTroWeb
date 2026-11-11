@@ -4,6 +4,7 @@
     var cfg = window.dashboardConfig || {};
     var MAU = { Khan: 'red', CanLam: 'orange', TheoDoi: 'blue' };
     var TEN_MUC = { Khan: 'Khẩn', CanLam: 'Cần làm', TheoDoi: 'Theo dõi' };
+    var NHAN_NUT = { ChiSo: 'Chốt số', HoaDon: 'Xem hóa đơn', ThuTien: 'Thu tiền', KhachThueHopDong: 'Xử lý' };
 
     function dinhDangTien(n) {
         var so = Math.round(Number(n) || 0);
@@ -142,8 +143,11 @@
         var group = tao('div', 'list-group list-group-flush');
         viec.items.forEach(function (item) {
             var muc = MAU[item.mucUuTien] ? item.mucUuTien : 'TheoDoi';
-            var a = tao('a', 'list-group-item list-group-item-action px-0');
-            a.setAttribute('href', safeLink(item.link));
+            var nhan = NHAN_NUT[item.nhom] || 'Xử lý';
+            var link = safeLink(item.link);
+            var the = tao('div', 'list-group-item px-0');
+            the.setAttribute('data-nhom', item.nhom || '');
+            the.setAttribute('data-muc', muc);
 
             var hang = tao('div', 'd-flex align-items-center gap-2');
             var cham = tao('span', 'status-dot status-' + MAU[muc]);
@@ -151,16 +155,23 @@
             hang.appendChild(cham);
             hang.appendChild(tao('span', 'visually-hidden', TEN_MUC[muc]));
 
-            var text = tao('div', 'dashboard-viec-text flex-fill');
+            var text = tao('a', 'dashboard-viec-text flex-fill text-reset text-decoration-none');
+            text.setAttribute('href', link);
             text.appendChild(tao('div', 'fw-medium', item.tieuDe));
             var moTa = tao('div', 'small text-secondary text-truncate', item.moTa);
             moTa.setAttribute('title', item.moTa || '');
             text.appendChild(moTa);
             hang.appendChild(text);
 
-            hang.appendChild(tao('span', 'fw-bold ms-2', String(Number(item.soLuong) || 0)));
-            a.appendChild(hang);
-            group.appendChild(a);
+            hang.appendChild(tao('span', 'fw-bold ms-2 num-tabular', String(Number(item.soLuong) || 0)));
+
+            var nut = tao('a', 'btn btn-sm ' + (muc === 'Khan' ? 'btn-primary' : 'btn-outline-secondary') + ' dashboard-viec-nut flex-shrink-0', nhan);
+            nut.setAttribute('href', link);
+            nut.setAttribute('aria-label', nhan + ': ' + (item.tieuDe || ''));
+            hang.appendChild(nut);
+
+            the.appendChild(hang);
+            group.appendChild(the);
         });
         list.appendChild(group);
     }

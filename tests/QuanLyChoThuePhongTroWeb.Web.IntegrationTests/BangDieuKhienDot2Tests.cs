@@ -111,6 +111,26 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             await db.SaveChangesAsync();
         }
 
+        // Hóa đơn đã gửi, quá hạn ở kỳ cũ: thành việc "Hóa đơn quá hạn" (nhóm ThuTien, mức Khẩn).
+        private async Task ThemHoaDonQuaHanAsync(int hopDongId)
+        {
+            using var scope = _factory.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            db.HoaDons.Add(new HoaDon
+            {
+                MaHoaDon = $"QH{Guid.NewGuid():N}"[..20],
+                HopDongId = hopDongId,
+                Thang = 1,
+                Nam = 2031,
+                TongTien = 500_000m,
+                TrangThaiPhatHanh = TrangThaiPhatHanhHoaDon.DaGui,
+                TrangThaiHoaDon = TrangThaiHoaDon.ChuaThanhToan,
+                NgayGui = DateTime.UtcNow.AddDays(-10),
+                HanThanhToan = DateTime.UtcNow.AddDays(-3)
+            });
+            await db.SaveChangesAsync();
+        }
+
         private static string ThuMucGoc()
         {
             var dir = new DirectoryInfo(AppContext.BaseDirectory);
@@ -176,6 +196,72 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             {
                 Assert.Equal(0, DemId(html, id));
             }
+        }
+
+        [Fact]
+        public async Task NhanVien_MoiViecCoNutCungDuongDan_ChuNutTheoNhom()
+        {
+            var w = await SeedAsync(_factory);
+            await ThemHoaDonQuaHanAsync(w.ContractA);
+            var (staff, _) = await LoginAsync(_factory, w.Staff);
+
+            var html = await HtmlAsync(staff, Dashboard);
+
+            var dau = html.IndexOf("id=\"viecCanLamList\"", StringComparison.Ordinal);
+            var cuoi = html.IndexOf("id=\"viecCanLamFooter\"", StringComparison.Ordinal);
+            Assert.True(dau >= 0 && cuoi > dau, "Không cắt được đoạn danh sách việc");
+            var doan = html.Substring(dau, cuoi - dau);
+
+            var nhan = new System.Collections.Generic.Dictionary<string, string>
+            {
+                ["ChiSo"] = "Chốt số",
+                ["HoaDon"] = "Xem hóa đơn",
+                ["ThuTien"] = "Thu tiền",
+                ["KhachThueHopDong"] = "Xử lý"
+            };
+
+            var cacPhan = doan.Split("data-nhom=\"").Skip(1).ToList();
+            Assert.NotEmpty(cacPhan);
+
+            var coThuTienKhan = false;
+            foreach (var phan in cacPhan)
+            {
+                var nhom = phan[..phan.IndexOf('"')];
+                var muc = Regex.Match(phan, "data-muc=\"(\\w+)\"").Groups[1].Value;
+                var hrefs = Regex.Matches(phan, "href=\"([^\"]+)\"").Select(m => m.Groups[1].Value).ToList();
+                Assert.True(hrefs.Count == 2, $"Dòng việc nhóm {nhom} có {hrefs.Count} href, cần đúng 2");
+                Assert.Equal(hrefs[0], hrefs[1]);
+
+                var lop = Regex.Match(phan, "class=\"btn btn-sm (btn-primary|btn-outline-secondary) dashboard-viec-nut");
+                Assert.True(lop.Success, $"Dòng việc nhóm {nhom} thiếu nút làm luôn");
+                Assert.Equal(muc == "Khan", lop.Groups[1].Value == "btn-primary");
+
+                var chu = Regex.Match(phan, "dashboard-viec-nut[^\"]*\"[^>]*>([^<]+)<").Groups[1].Value.Trim();
+                Assert.Equal(nhan.TryGetValue(nhom, out var mong) ? mong : "Xử lý", chu);
+
+                if (nhom == "ThuTien" && chu == "Thu tiền" && lop.Groups[1].Value == "btn-primary")
+                {
+                    coThuTienKhan = true;
+                }
+            }
+
+            Assert.True(coThuTienKhan, "Không có dòng ThuTien nào với chữ \"Thu tiền\" và nút chính");
+        }
+
+        [Fact]
+        public void DashboardJs_DungCungBangTraChuNut()
+        {
+            var goc = Path.Combine(ThuMucGoc(), "src", "QuanLyChoThuePhongTroWeb.Web");
+            var js = File.ReadAllText(Path.Combine(goc, "wwwroot", "js", "dashboard.js"));
+            foreach (var chuoi in new[] { "Chốt số", "Xem hóa đơn", "Thu tiền", "dashboard-viec-nut", "data-nhom", "btn-outline-secondary" })
+            {
+                Assert.Contains(chuoi, js);
+            }
+
+            var view = File.ReadAllText(Path.Combine(goc, "Areas", "QuanLyNhaTro", "Views", "Dashboard", "Index.cshtml"));
+            Assert.Contains("dashboard-viec-nut", view);
+            Assert.Contains("data-nhom", view);
+            Assert.DoesNotContain("list-group-item list-group-item-action px-0", view);
         }
 
         [Fact]

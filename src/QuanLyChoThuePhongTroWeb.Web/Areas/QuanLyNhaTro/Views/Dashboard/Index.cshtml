@@ -13,6 +13,34 @@
     var phaiThu = daThu + Model.TongTienChoThu;
     var phanTram = phaiThu > 0 ? (int)Math.Clamp(Math.Round(daThu * 100m / phaiThu, MidpointRounding.AwayFromZero), 0m, 100m) : 0;
     var phanTramChoThu = phaiThu > 0 ? 100 - phanTram : 0;
+
+    // Chữ nút làm luôn theo nhóm việc; nhóm lạ hoặc rỗng là "Xử lý". Phải khớp NHAN_NUT trong dashboard.js.
+    string NhanNutViec(string nhom) => nhom switch
+    {
+        "ChiSo" => "Chốt số",
+        "HoaDon" => "Xem hóa đơn",
+        "ThuTien" => "Thu tiền",
+        _ => "Xử lý"
+    };
+
+    // Một dòng việc: chữ và nút cùng đường dẫn. Phải khớp renderViec trong dashboard.js.
+    void DongViec(ViecCanLamItemViewModel item)
+    {
+        var nhanNut = NhanNutViec(item.Nhom);
+        var mauNut = item.MucUuTien == QuanLyChoThuePhongTroWeb.Application.Features.ViecCanLam.DTOs.MucUuTienViec.Khan ? "btn-primary" : "btn-outline-secondary";
+        <div class="list-group-item px-0" data-nhom="@item.Nhom" data-muc="@item.MucUuTien">
+            <div class="d-flex align-items-center gap-2">
+                <span class="status-dot status-@item.MauUuTien" aria-hidden="true"></span>
+                <span class="visually-hidden">@item.TenMucUuTien</span>
+                <a class="dashboard-viec-text flex-fill text-reset text-decoration-none" href="@item.Link">
+                    <div class="fw-medium">@item.TieuDe</div>
+                    <div class="small text-secondary text-truncate" title="@item.MoTa">@item.MoTa</div>
+                </a>
+                <span class="fw-bold ms-2 num-tabular">@item.SoLuong</span>
+                <a class="btn btn-sm @mauNut dashboard-viec-nut flex-shrink-0" href="@item.Link" aria-label="@nhanNut: @item.TieuDe">@nhanNut</a>
+            </div>
+        </div>
+    }
 }
 
 <div class="container-xl mt-3 dashboard-page">
@@ -94,17 +122,7 @@
                         <div class="list-group list-group-flush">
                             @foreach (var item in viec.Items)
                             {
-                                <a href="@item.Link" class="list-group-item list-group-item-action px-0">
-                                    <div class="d-flex align-items-center gap-2">
-                                        <span class="status-dot status-@item.MauUuTien" aria-hidden="true"></span>
-                                        <span class="visually-hidden">@item.TenMucUuTien</span>
-                                        <div class="dashboard-viec-text flex-fill">
-                                            <div class="fw-medium">@item.TieuDe</div>
-                                            <div class="small text-secondary text-truncate" title="@item.MoTa">@item.MoTa</div>
-                                        </div>
-                                        <span class="fw-bold ms-2">@item.SoLuong</span>
-                                    </div>
-                                </a>
+                                DongViec(item);
                             }
                         </div>
                     }
@@ -366,17 +384,7 @@
                             <div class="list-group list-group-flush">
                                 @foreach (var item in viec.Items)
                                 {
-                                    <a href="@item.Link" class="list-group-item list-group-item-action px-0">
-                                        <div class="d-flex align-items-center gap-2">
-                                            <span class="status-dot status-@item.MauUuTien" aria-hidden="true"></span>
-                                            <span class="visually-hidden">@item.TenMucUuTien</span>
-                                            <div class="dashboard-viec-text flex-fill">
-                                                <div class="fw-medium">@item.TieuDe</div>
-                                                <div class="small text-secondary text-truncate" title="@item.MoTa">@item.MoTa</div>
-                                            </div>
-                                            <span class="fw-bold ms-2">@item.SoLuong</span>
-                                        </div>
-                                    </a>
+                                    DongViec(item);
                                 }
                             </div>
                         }
