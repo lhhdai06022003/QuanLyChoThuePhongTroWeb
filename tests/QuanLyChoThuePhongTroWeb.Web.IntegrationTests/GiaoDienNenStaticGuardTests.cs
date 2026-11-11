@@ -72,7 +72,8 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
         public void VoKhachThue_DungTenTroSync_VaIconTabler()
         {
             var sidebar = Read("Areas", "KhachThue", "Views", "Shared", "_SidebarKhachThue.cshtml");
-            Assert.Contains("TroSync", sidebar);
+            Assert.Contains("brand-title", sidebar);
+            Assert.Contains("troSyncBgKhach", sidebar);
             Assert.Contains("Cổng khách thuê", sidebar);
             Assert.Contains("js-badge-thong-bao", sidebar);
             Assert.Contains("/KhachThue/ThongBao", sidebar);

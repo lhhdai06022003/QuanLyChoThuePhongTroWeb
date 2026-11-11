@@ -12,7 +12,8 @@ namespace QuanLyChoThuePhongTroWeb.Services
                 {
                     Name = "Bảng điều khiển",
                     Icon = "ti ti-layout-dashboard",
-                    Url = "/Home/Index"
+                    Url = "/Home/Index",
+                    ActivePrefixes = new List<string> { "/QuanLyNhaTro/Dashboard" }
                 },
                 new MenuItem { Name = "Việc cần làm", Icon = "ti ti-checklist", Url = "/QuanLyNhaTro/ViecCanLam", BadgeId = "badge-viec-can-lam" },
                 new MenuItem

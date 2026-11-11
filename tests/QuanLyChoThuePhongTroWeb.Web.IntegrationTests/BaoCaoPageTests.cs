@@ -114,7 +114,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             Assert.Equal(HttpStatusCode.OK, res.StatusCode);
             var html = WebUtility.HtmlDecode(await res.Content.ReadAsStringAsync());
 
-            Assert.Matches(@"<a[^>]*class=""dropdown-item[^""]*active[^""]*""[^>]*href=""/QuanLyNhaTro/BaoCao""", html);
+            Assert.Matches(@"<a[^>]*class=""nav-link[^""]*active[^""]*""[^>]*href=""/QuanLyNhaTro/BaoCao""", html);
             Assert.Contains("id=\"bcChiNhanh\"", html);
             Assert.Contains("Tất cả chi nhánh", html);
             Assert.Contains("id=\"tab-dien-nuoc\"", html);

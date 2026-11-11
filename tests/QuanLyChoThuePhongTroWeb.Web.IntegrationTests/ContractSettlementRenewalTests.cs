@@ -405,13 +405,13 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             var hopDongRes = await client.GetAsync($"/QuanLyNhaTro/HopDong/ChiTiet/{world.ContractA}");
             Assert.Equal(HttpStatusCode.OK, hopDongRes.StatusCode);
             var hopDongHtml = await HtmlTextAsync(hopDongRes);
-            Assert.Matches(@"<a[^>]*class=""dropdown-item[^""]*active[^""]*""[^>]*href=""/QuanLyNhaTro/QuanLyHopDong""", hopDongHtml);
+            Assert.Matches(@"<a[^>]*class=""nav-link[^""]*active[^""]*""[^>]*href=""/QuanLyNhaTro/QuanLyHopDong""", hopDongHtml);
 
             // 2. Chi tiết người thuê -> Menu Người thuê active
             var nguoiThueRes = await client.GetAsync($"/QuanLyNhaTro/NguoiThue/ChiTiet/{world.TenantA}");
             Assert.Equal(HttpStatusCode.OK, nguoiThueRes.StatusCode);
             var nguoiThueHtml = await HtmlTextAsync(nguoiThueRes);
-            Assert.Matches(@"<a[^>]*class=""dropdown-item[^""]*active[^""]*""[^>]*href=""/QuanLyNhaTro/QuanLyNguoiThue""", nguoiThueHtml);
+            Assert.Matches(@"<a[^>]*class=""nav-link[^""]*active[^""]*""[^>]*href=""/QuanLyNhaTro/QuanLyNguoiThue""", nguoiThueHtml);
         }
     }
 }

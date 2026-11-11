@@ -15,6 +15,9 @@ body {
   color: var(--tblr-muted, #656d77) !important;
   font-weight: 500 !important;
   font-size: 0.8125rem;
+  /* Tabler mặc định viết hoa và giãn chữ đầu cột; chữ thường dễ đọc hơn với tiếng Việt có dấu. */
+  text-transform: none;
+  letter-spacing: normal;
 }
 
 /* ==========================================
@@ -158,6 +161,11 @@ body {
   background-color: rgba(255, 255, 255, 0.2);
 }
 
+/* Dưới 992px menu là thanh trên cùng, không phải cột cuộn: bỏ cắt tràn để menu người dùng thả xuống không bị che. */
+@media (max-width: 991.98px) {
+  .navbar-vertical { overflow: visible !important; }
+}
+
 /* Menu nhóm theo việc */
 .navbar-vertical .nav-item:after,
 .navbar-vertical .nav-item.active:after { display: none !important; }
@@ -170,13 +178,21 @@ body {
   color: var(--tblr-secondary);
 }
 
-.navbar-vertical .navbar-nav .nav-link {
+/* Bộ chọn dài để thắng quy tắc đệm của Tabler từ 992px (.navbar-vertical.navbar-expand-lg .navbar-collapse .navbar-nav .nav-link). */
+.navbar-vertical .navbar-nav .nav-link,
+.navbar-vertical.navbar-expand-lg .navbar-collapse .navbar-nav .nav-link {
   margin: 1px 0.5rem;
-  padding: 0.4rem 0.6rem;
+  padding: 0.35rem 0.6rem;
   border-radius: 6px;
   font-size: 0.875rem;
   color: var(--tblr-body-color);
   transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+/* Trên máy tính dòng menu thấp hơn mức 40px của Tabler để 20 mục vừa một màn 1080p; điện thoại giữ 40px cho dễ chạm. */
+@media (min-width: 992px) {
+  .navbar-vertical.navbar-expand-lg .navbar-collapse .navbar-nav .nav-link { min-height: 2.125rem; }
+  .navbar-vertical .ts-nav-group-label { padding-top: 0.75rem; }
 }
 
 .navbar-vertical .navbar-nav .nav-link .nav-link-icon { color: var(--tblr-secondary); }
@@ -194,11 +210,17 @@ body {
 
 .navbar-vertical .navbar-nav .nav-item.active > .nav-link .nav-link-icon { color: var(--ts-brand-text); }
 
-/* Huy hiệu việc cần làm nằm trong dòng, không bị cắt ở mép menu */
-.navbar-vertical .navbar-nav .nav-link .badge {
+/* Huy hiệu việc cần làm nằm trong dòng, không bị cắt ở mép menu (chỉ trong danh sách menu, không áp cho chuông ở thanh trên điện thoại) */
+.navbar-vertical .navbar-collapse .navbar-nav .nav-link .badge {
   position: static;
   transform: none;
   margin-left: auto;
+}
+
+/* Chấm số chưa đọc trên chuông của thanh trên điện thoại: kéo vào trong để không bị mép trên màn hình cắt. */
+.navbar-vertical .js-badge-thong-bao {
+  top: 0.75rem !important;
+  right: 0.5rem !important;
 }
 
 /* Đồng bộ bg-light và đường viền trong chế độ Dark Mode */
