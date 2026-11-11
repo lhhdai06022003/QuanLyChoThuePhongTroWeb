@@ -45,6 +45,54 @@
 
     window.TroFocus = { row: focusRow };
 
+    // Chế độ sáng/tối: đặt data-bs-theme trên <html>, nhớ lựa chọn trong localStorage, đồng bộ mọi nút đổi giao diện
+    // (hai nút ở header từ 992px và mục "Chế độ tối/sáng" trong menu người dùng của thanh trên điện thoại).
+    function giaoDienHienTai() {
+        return document.documentElement.getAttribute('data-bs-theme') === 'dark' ? 'dark' : 'light';
+    }
+
+    function apDungGiaoDien() {
+        var toi = giaoDienHienTai() === 'dark';
+        var nutToi = document.getElementById('btnToggleDarkTheme');
+        var nutSang = document.getElementById('btnToggleLightTheme');
+        if (nutToi) { nutToi.style.display = toi ? 'none' : 'inline-block'; }
+        if (nutSang) { nutSang.style.display = toi ? 'inline-block' : 'none'; }
+
+        document.querySelectorAll('.js-doi-giao-dien').forEach(function (muc) {
+            var icon = muc.querySelector('i');
+            var chu = muc.querySelector('span');
+            if (icon) { icon.className = 'ti ' + (toi ? 'ti-sun' : 'ti-moon') + ' me-2'; }
+            if (chu) { chu.textContent = toi ? 'Chế độ sáng' : 'Chế độ tối'; }
+        });
+    }
+
+    function datGiaoDien(giaoDien) {
+        document.documentElement.setAttribute('data-bs-theme', giaoDien);
+        try {
+            localStorage.setItem('tablerTheme', giaoDien);
+        } catch (err) {
+            // Trình duyệt chặn lưu trữ: vẫn đổi giao diện cho phiên hiện tại.
+        }
+        apDungGiaoDien();
+    }
+
+    document.addEventListener('click', function (e) {
+        var nut = e.target.closest('#btnToggleDarkTheme, #btnToggleLightTheme, .js-doi-giao-dien');
+        if (!nut) {
+            return;
+        }
+        e.preventDefault();
+        if (nut.id === 'btnToggleDarkTheme') {
+            datGiaoDien('dark');
+        } else if (nut.id === 'btnToggleLightTheme') {
+            datGiaoDien('light');
+        } else {
+            datGiaoDien(giaoDienHienTai() === 'dark' ? 'light' : 'dark');
+        }
+    });
+
+    window.TroTheme = { apDung: apDungGiaoDien };
+
     // Menu quản lý luôn mở: cuộn mục đang chọn vào tầm nhìn nếu nó nằm dưới mép khung menu.
     function cuonMucMenuDangMo() {
         var muc = document.querySelector('#sidebar-menu .nav-link.active');
@@ -57,9 +105,14 @@
         }
     }
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', cuonMucMenuDangMo);
-    } else {
+    function khoiTaoVo() {
+        apDungGiaoDien();
         cuonMucMenuDangMo();
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', khoiTaoVo);
+    } else {
+        khoiTaoVo();
     }
 })(window, window.jQuery);

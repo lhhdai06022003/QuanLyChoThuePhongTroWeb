@@ -36,11 +36,24 @@
         <div class="navbar-nav flex-row d-lg-none">
             @if (User.Identity != null && User.Identity.IsAuthenticated)
             {
+                <!-- Chuông là liên kết tới trang Thông báo; chấm số chưa đọc cập nhật theo lớp js-badge-thong-bao (thongbao.js) -->
+                <a href="/QuanLyNhaTro/ThongBao" class="nav-link px-2 position-relative" aria-label="Thông báo">
+                    <i class="ti ti-bell fs-2"></i>
+                    <span class="badge bg-red badge-notification js-badge-thong-bao d-none"></span>
+                </a>
                 <div class="nav-item dropdown">
                     <a href="#" class="nav-link d-flex lh-1 text-reset p-0" data-bs-toggle="dropdown" aria-label="Mở menu người dùng">
-                        <span class="avatar avatar-sm rounded-circle bg-blue-lt"><i class="ti ti-user-circle fa-lg text-blue"></i></span>
+                        <span class="avatar avatar-sm rounded-circle bg-blue-lt"><i class="ti ti-user-circle fs-2 text-blue"></i></span>
                     </a>
                     <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
+                        <a href="#" class="dropdown-item py-2 js-doi-giao-dien"><i class="ti ti-moon me-2"></i><span>Chế độ tối</span></a>
+                        @if (User.IsInRole("Admin") || User.IsInRole("NhanVien"))
+                        {
+                            <a href="/QuanLyNhaTro/DoiMatKhau" class="dropdown-item py-2">
+                                <i class="ti ti-key me-2"></i> Đổi mật khẩu
+                            </a>
+                        }
+                        <div class="dropdown-divider"></div>
                         <form action="/QuanLyNhaTro/DangXuat" method="post" class="d-none" id="mobileLogoutForm">
                             @Html.AntiForgeryToken()
                         </form>

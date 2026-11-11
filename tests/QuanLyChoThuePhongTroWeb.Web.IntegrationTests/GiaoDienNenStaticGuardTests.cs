@@ -48,5 +48,24 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             foreach (var bien in new[] { "--ts-brand:", "--ts-brand-text:", "--ts-brand-soft:", "--ts-ok:", "--ts-wait:", "--ts-bad:", "--tblr-primary:", "--tblr-primary-rgb:", "--tblr-body-bg:" })
                 Assert.True(css.Split(bien).Length - 1 >= 2, $"{bien} phải có ở cả khối sáng và khối tối");
         }
+
+        [Fact]
+        public void ThanhTrenDienThoai_CoChuongVaDoiGiaoDien_KhongTrungId()
+        {
+            var sidebar = Read("Views", "Shared", "_Sidebar.cshtml");
+            Assert.Contains("js-badge-thong-bao", sidebar);
+            Assert.Contains("js-doi-giao-dien", sidebar);
+            Assert.Contains("/QuanLyNhaTro/DoiMatKhau", sidebar);
+            Assert.Contains("/QuanLyNhaTro/ThongBao", sidebar);
+            Assert.DoesNotContain("id=\"badge-thong-bao\"", sidebar);
+            Assert.DoesNotContain("id=\"list-thong-bao\"", sidebar);
+            Assert.DoesNotContain("id=\"logoutForm\"", sidebar);
+
+            Assert.Contains(".js-badge-thong-bao", Read("wwwroot", "js", "thongbao.js"));
+
+            var header = Read("Views", "Shared", "_Header.cshtml");
+            Assert.Contains("badge-notification", header);
+            Assert.Contains("id=\"btnToggleDarkTheme\"", header);
+        }
     }
 }

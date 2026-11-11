@@ -1,4 +1,4 @@
-<header class="navbar navbar-expand-md d-none d-lg-flex d-print-none border-bottom shadow-sm">
+<header class="navbar navbar-expand-md d-none d-lg-flex d-print-none border-bottom">
     <div class="container-fluid">
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar-menu" aria-controls="navbar-menu" aria-expanded="false" aria-label="Bật/tắt thanh điều hướng">
             <span class="navbar-toggler-icon"></span>
@@ -91,41 +91,3 @@
         </div>
     </div>
 </header>
-
-<script>
-    document.addEventListener("DOMContentLoaded", function() {
-        const toggleDarkBtn = document.getElementById("btnToggleDarkTheme");
-        const toggleLightBtn = document.getElementById("btnToggleLightTheme");
-        
-        function applyThemeToggle() {
-            const currentTheme = document.documentElement.getAttribute("data-bs-theme") || "light";
-            if (currentTheme === "dark") {
-                if (toggleDarkBtn) toggleDarkBtn.style.display = "none";
-                if (toggleLightBtn) toggleLightBtn.style.display = "inline-block";
-            } else {
-                if (toggleDarkBtn) toggleDarkBtn.style.display = "inline-block";
-                if (toggleLightBtn) toggleLightBtn.style.display = "none";
-            }
-        }
-        
-        applyThemeToggle();
-        
-        if (toggleDarkBtn) {
-            toggleDarkBtn.addEventListener("click", function(e) {
-                e.preventDefault();
-                document.documentElement.setAttribute("data-bs-theme", "dark");
-                localStorage.setItem("tablerTheme", "dark");
-                applyThemeToggle();
-            });
-        }
-        
-        if (toggleLightBtn) {
-            toggleLightBtn.addEventListener("click", function(e) {
-                e.preventDefault();
-                document.documentElement.setAttribute("data-bs-theme", "light");
-                localStorage.setItem("tablerTheme", "light");
-                applyThemeToggle();
-            });
-        }
-    });
-</script> 

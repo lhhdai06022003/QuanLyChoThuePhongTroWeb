@@ -138,7 +138,8 @@ function loadThongBaos() {
 }
 
 function updateBadge(count) {
-    var $badge = $('#badge-thong-bao');
+    // Chuông ở header (từ 992px) và chuông ở thanh trên điện thoại (lớp js-badge-thong-bao) cùng hiện số chưa đọc.
+    var $badge = $('#badge-thong-bao, .js-badge-thong-bao');
     var $headerBadge = $('#badge-thong-bao-header');
     var $markAll = $('#btn-danh-dau-tat-ca');
     if (count > 0) {
