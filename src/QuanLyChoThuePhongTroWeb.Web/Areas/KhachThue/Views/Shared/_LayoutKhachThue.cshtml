@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-    <title>Khách Thuê - Quản Lý Trọ</title>
+    <title>@(string.IsNullOrEmpty(ViewBag.Title?.ToString()) ? "TroSync - Cổng khách thuê" : ViewBag.Title + " | TroSync")</title>
 
     <!-- Google Font Be Vietnam Pro -->
     <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -52,7 +52,7 @@
     }
 </head>
 
-<body class="layout-fluid">
+<body class="layout-fluid ts-cong-khach-thue">
     @Html.AntiForgeryToken()
     <div class="page">
         <!-- Sidebar -->

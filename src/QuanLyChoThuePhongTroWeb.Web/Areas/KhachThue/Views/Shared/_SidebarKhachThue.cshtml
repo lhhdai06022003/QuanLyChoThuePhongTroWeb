@@ -1,83 +1,91 @@
+@{
+    var duongDan = Context.Request.Path.Value ?? "";
+    var mucMenu = new[]
+    {
+        (Ten: "Tổng quan", Url: "/KhachThue/Dashboard", Icon: "ti ti-home"),
+        (Ten: "Lịch xem và đặt phòng", Url: "/tai-khoan/yeu-cau-phong", Icon: "ti ti-calendar-event"),
+        (Ten: "Hồ sơ của tôi", Url: "/KhachThue/HoSo", Icon: "ti ti-user"),
+        (Ten: "Hợp đồng thuê phòng", Url: "/KhachThue/HopDong", Icon: "ti ti-file-text"),
+        (Ten: "Hóa đơn và thanh toán", Url: "/KhachThue/HoaDon", Icon: "ti ti-file-invoice"),
+        (Ten: "Chỉ số điện nước", Url: "/KhachThue/ChiSoDienNuoc", Icon: "ti ti-bolt"),
+        (Ten: "Lịch sử thanh toán", Url: "/KhachThue/LichSuThanhToan", Icon: "ti ti-history"),
+        (Ten: "Báo sự cố", Url: "/KhachThue/SuCo", Icon: "ti ti-tools")
+    };
+}
+
 <aside class="navbar navbar-vertical navbar-expand-lg">
     <div class="container-fluid">
         <!-- Toggle button for mobile -->
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#sidebar-menu" aria-controls="sidebar-menu" aria-expanded="false" aria-label="Bật/tắt thanh điều hướng">
             <span class="navbar-toggler-icon"></span>
         </button>
-        
-        <!-- Logo -->
-        <h1 class="navbar-brand navbar-brand-autodark py-2">
-            <a href="/KhachThue/Dashboard" class="d-flex align-items-center justify-content-center text-decoration-none">
-                <i class="fa-solid fa-house-user fa-lg text-primary me-2"></i>
-                <span class="brand-text font-weight-bold text-primary" style="font-size: 1.05rem; letter-spacing: 0.5px;">Cổng khách thuê</span>
+
+        <!-- Logo & Brand -->
+        <h1 class="navbar-brand navbar-brand-autodark px-3 py-2 m-0">
+            <a href="/KhachThue/Dashboard" class="d-flex align-items-center text-decoration-none">
+                <svg class="brand-logo-icon flex-shrink-0" width="34" height="34" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <defs>
+                        <linearGradient id="troSyncBgKhach" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#2563eb" />
+                            <stop offset="100%" stop-color="#1d4ed8" />
+                        </linearGradient>
+                    </defs>
+                    <rect width="36" height="36" rx="9" fill="url(#troSyncBgKhach)" />
+                    <!-- Khối kiến trúc đa chi nhánh & đồng bộ -->
+                    <path d="M8 25V17L14.5 12V25H8Z" fill="#ffffff" fill-opacity="0.4" />
+                    <path d="M13.5 25V14L20.5 8.5L27.5 14V25H22.5V17.5H18.5V25H13.5Z" fill="#ffffff" />
+                    <circle cx="20.5" cy="8.5" r="2.2" fill="#38bdf8" />
+                    <circle cx="20.5" cy="8.5" r="0.9" fill="#ffffff" />
+                </svg>
+                <div class="brand-text-wrapper ms-2 d-flex flex-column text-start">
+                    <span class="brand-title lh-1">Tro<span class="text-primary fw-bold">Sync</span></span>
+                    <span class="brand-subtitle mt-1">Cổng khách thuê</span>
+                </div>
             </a>
         </h1>
+
+        <!-- Mobile top user control -->
+        <div class="navbar-nav flex-row d-lg-none">
+            @if (User.Identity != null && User.Identity.IsAuthenticated)
+            {
+                <!-- Chuông là liên kết tới trang Thông báo; chấm số chưa đọc cập nhật theo lớp js-badge-thong-bao (thongbao.js) -->
+                <a href="/KhachThue/ThongBao" class="nav-link px-2 position-relative" aria-label="Thông báo">
+                    <i class="ti ti-bell fs-2"></i>
+                    <span class="badge bg-red badge-notification js-badge-thong-bao d-none"></span>
+                </a>
+                <div class="nav-item dropdown">
+                    <a href="#" class="nav-link d-flex lh-1 text-reset p-0" data-bs-toggle="dropdown" aria-label="Mở menu người dùng">
+                        <span class="avatar avatar-sm rounded-circle bg-blue-lt"><i class="ti ti-user-circle fs-2 text-blue"></i></span>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
+                        <a href="#" class="dropdown-item py-2 js-doi-giao-dien"><i class="ti ti-moon me-2"></i><span>Chế độ tối</span></a>
+                        <div class="dropdown-divider"></div>
+                        <form action="/QuanLyNhaTro/DangXuat" method="post" class="d-none" id="mobileLogoutForm">
+                            @Html.AntiForgeryToken()
+                        </form>
+                        <a href="javascript:void(0);" onclick="document.getElementById('mobileLogoutForm').submit();" class="dropdown-item text-danger py-2">
+                            <i class="ti ti-logout me-2"></i> Đăng xuất
+                        </a>
+                    </div>
+                </div>
+            }
+        </div>
 
         <!-- Sidebar Menu -->
         <div class="collapse navbar-collapse" id="sidebar-menu">
             <ul class="navbar-nav pt-lg-3">
-                <li class="nav-item">
-                    <a class="nav-link" href="/KhachThue/Dashboard">
-                        <span class="nav-link-icon d-md-none d-lg-inline-block">
-                            <i class="fa-solid fa-chart-pie"></i>
-                        </span>
-                        <span class="nav-link-title">Tổng quan</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/tai-khoan/yeu-cau-phong">
-                        <span class="nav-link-icon d-md-none d-lg-inline-block"><i class="fa-solid fa-calendar-check"></i></span>
-                        <span class="nav-link-title">Lịch xem và đặt phòng</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/KhachThue/HoSo">
-                        <span class="nav-link-icon d-md-none d-lg-inline-block">
-                            <i class="fa-solid fa-user"></i>
-                        </span>
-                        <span class="nav-link-title">Hồ sơ của tôi</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/KhachThue/HopDong">
-                        <span class="nav-link-icon d-md-none d-lg-inline-block">
-                            <i class="fa-solid fa-file-contract"></i>
-                        </span>
-                        <span class="nav-link-title">Hợp đồng thuê phòng</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/KhachThue/HoaDon">
-                        <span class="nav-link-icon d-md-none d-lg-inline-block">
-                            <i class="fa-solid fa-file-invoice-dollar"></i>
-                        </span>
-                        <span class="nav-link-title">Hóa đơn & Thanh toán</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/KhachThue/ChiSoDienNuoc">
-                        <span class="nav-link-icon d-md-none d-lg-inline-block">
-                            <i class="fa-solid fa-bolt"></i>
-                        </span>
-                        <span class="nav-link-title">Chỉ số điện nước</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/KhachThue/LichSuThanhToan">
-                        <span class="nav-link-icon d-md-none d-lg-inline-block">
-                            <i class="fa-solid fa-history"></i>
-                        </span>
-                        <span class="nav-link-title">Lịch sử thanh toán</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/KhachThue/SuCo">
-                        <span class="nav-link-icon d-md-none d-lg-inline-block">
-                            <i class="fa-solid fa-wrench"></i>
-                        </span>
-                        <span class="nav-link-title">Báo cáo Sự cố</span>
-                    </a>
-                </li>
+                @foreach (var muc in mucMenu)
+                {
+                    var dangMo = duongDan.StartsWith(muc.Url, StringComparison.OrdinalIgnoreCase);
+                    <li class="nav-item @(dangMo ? "active" : "")">
+                        <a class="nav-link @(dangMo ? "active" : "")" href="@muc.Url" aria-current="@(dangMo ? "page" : null)">
+                            <span class="nav-link-icon d-md-none d-lg-inline-block">
+                                <i class="@muc.Icon"></i>
+                            </span>
+                            <span class="nav-link-title">@muc.Ten</span>
+                        </a>
+                    </li>
+                }
             </ul>
         </div>
     </div>

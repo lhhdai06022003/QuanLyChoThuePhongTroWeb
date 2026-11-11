@@ -67,5 +67,25 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             Assert.Contains("badge-notification", header);
             Assert.Contains("id=\"btnToggleDarkTheme\"", header);
         }
+
+        [Fact]
+        public void VoKhachThue_DungTenTroSync_VaIconTabler()
+        {
+            var sidebar = Read("Areas", "KhachThue", "Views", "Shared", "_SidebarKhachThue.cshtml");
+            Assert.Contains("TroSync", sidebar);
+            Assert.Contains("Cổng khách thuê", sidebar);
+            Assert.Contains("js-badge-thong-bao", sidebar);
+            Assert.Contains("/KhachThue/ThongBao", sidebar);
+            Assert.DoesNotContain("fa-solid", sidebar);
+            Assert.DoesNotContain("font-weight-bold", sidebar);
+            Assert.DoesNotContain("style=", sidebar);
+            Assert.DoesNotContain("& Thanh toán", sidebar);
+            Assert.DoesNotContain("Báo cáo Sự cố", sidebar);
+
+            var layout = Read("Areas", "KhachThue", "Views", "Shared", "_LayoutKhachThue.cshtml");
+            Assert.Contains("| TroSync", layout);
+            Assert.Contains("ts-cong-khach-thue", layout);
+            Assert.DoesNotContain("Khách Thuê - Quản Lý Trọ", layout);
+        }
     }
 }
