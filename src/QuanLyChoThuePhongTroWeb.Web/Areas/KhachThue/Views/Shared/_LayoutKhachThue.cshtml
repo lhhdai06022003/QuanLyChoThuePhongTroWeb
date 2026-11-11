@@ -52,7 +52,7 @@
     }
 </head>
 
-<body class="layout-fluid ts-cong-khach-thue">
+<body class="layout-fluid ts-cong-khach-thue ts-co-thanh-tab">
     @Html.AntiForgeryToken()
     <div class="page">
         <!-- Sidebar -->
@@ -72,27 +72,27 @@
             <partial name="~/Views/Shared/_Footer.cshtml" />
         </div>
 
-        <!-- Mobile Bottom Navigation Bar (< 768px) -->
-        <nav class="tenant-bottom-nav d-md-none" aria-label="Điều hướng chính di động">
-            <a href="/KhachThue/Dashboard" class="tenant-bottom-nav-item @(Context.Request.Path.StartsWithSegments("/KhachThue/Dashboard") ? "active" : "")">
-                <i class="ti ti-layout-dashboard"></i>
-                <span>Tổng quan</span>
+        <!-- Thanh tab dưới (< 768px), dùng chung lớp ts-bottom-nav với cổng quản lý -->
+        <nav class="tenant-bottom-nav ts-bottom-nav d-md-none" aria-label="Điều hướng nhanh">
+            <a href="/KhachThue/Dashboard" class="tenant-bottom-nav-item ts-bottom-nav-item @(Context.Request.Path.StartsWithSegments("/KhachThue/Dashboard", StringComparison.OrdinalIgnoreCase) ? "active" : "")" aria-current="@(Context.Request.Path.StartsWithSegments("/KhachThue/Dashboard", StringComparison.OrdinalIgnoreCase) ? "page" : null)">
+                <i class="ti ti-home" aria-hidden="true"></i>
+                <span>Trang chủ</span>
             </a>
-            <a href="/KhachThue/HoaDon" class="tenant-bottom-nav-item @(Context.Request.Path.StartsWithSegments("/KhachThue/HoaDon") ? "active" : "")">
-                <i class="ti ti-receipt-2"></i>
+            <a href="/KhachThue/HoaDon" class="tenant-bottom-nav-item ts-bottom-nav-item @(Context.Request.Path.StartsWithSegments("/KhachThue/HoaDon", StringComparison.OrdinalIgnoreCase) ? "active" : "")" aria-current="@(Context.Request.Path.StartsWithSegments("/KhachThue/HoaDon", StringComparison.OrdinalIgnoreCase) ? "page" : null)">
+                <i class="ti ti-file-invoice" aria-hidden="true"></i>
                 <span>Hóa đơn</span>
             </a>
-            <a href="/KhachThue/ChiSoDienNuoc" class="tenant-bottom-nav-item @(Context.Request.Path.StartsWithSegments("/KhachThue/ChiSoDienNuoc") ? "active" : "")">
-                <i class="ti ti-bolt"></i>
+            <a href="/KhachThue/ChiSoDienNuoc" class="tenant-bottom-nav-item ts-bottom-nav-item @(Context.Request.Path.StartsWithSegments("/KhachThue/ChiSoDienNuoc", StringComparison.OrdinalIgnoreCase) ? "active" : "")" aria-current="@(Context.Request.Path.StartsWithSegments("/KhachThue/ChiSoDienNuoc", StringComparison.OrdinalIgnoreCase) ? "page" : null)">
+                <i class="ti ti-bolt" aria-hidden="true"></i>
                 <span>Điện nước</span>
             </a>
-            <a href="/KhachThue/SuCo" class="tenant-bottom-nav-item @(Context.Request.Path.StartsWithSegments("/KhachThue/SuCo") ? "active" : "")">
-                <i class="ti ti-tool"></i>
-                <span>Báo sự cố</span>
+            <a href="/KhachThue/SuCo" class="tenant-bottom-nav-item ts-bottom-nav-item @(Context.Request.Path.StartsWithSegments("/KhachThue/SuCo", StringComparison.OrdinalIgnoreCase) ? "active" : "")" aria-current="@(Context.Request.Path.StartsWithSegments("/KhachThue/SuCo", StringComparison.OrdinalIgnoreCase) ? "page" : null)">
+                <i class="ti ti-tools" aria-hidden="true"></i>
+                <span>Sự cố</span>
             </a>
-            <a href="/KhachThue/HopDong" class="tenant-bottom-nav-item @(Context.Request.Path.StartsWithSegments("/KhachThue/HopDong") ? "active" : "")">
-                <i class="ti ti-file-text"></i>
-                <span>Hợp đồng</span>
+            <a href="/KhachThue/HoSo" class="tenant-bottom-nav-item ts-bottom-nav-item @(Context.Request.Path.StartsWithSegments("/KhachThue/HoSo", StringComparison.OrdinalIgnoreCase) ? "active" : "")" aria-current="@(Context.Request.Path.StartsWithSegments("/KhachThue/HoSo", StringComparison.OrdinalIgnoreCase) ? "page" : null)">
+                <i class="ti ti-user" aria-hidden="true"></i>
+                <span>Tôi</span>
             </a>
         </nav>
     </div>

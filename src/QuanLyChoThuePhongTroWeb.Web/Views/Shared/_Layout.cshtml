@@ -2,6 +2,8 @@
 
 @{
     var menus = MenuService.GetMenu();
+    var coThanhTab = User.IsInRole("Admin") || User.IsInRole("NhanVien");
+    var duongDan = Context.Request.Path;
 }
 
 <!DOCTYPE html>
@@ -71,7 +73,7 @@
     }
 </head>
 
-<body class="layout-fluid">
+<body class="layout-fluid@(coThanhTab ? " ts-co-thanh-tab" : "")">
     @Html.AntiForgeryToken()
     <div class="page">
         <!-- Sidebar -->
@@ -90,6 +92,28 @@
             <!-- Footer -->
             <partial name="_Footer" />
         </div>
+
+        @if (coThanhTab)
+        {
+            <!-- Thanh tab dưới (< 768px): lối tắt tới bốn màn dùng nhiều, nút Thêm mở menu đầy đủ -->
+            <nav class="ts-bottom-nav d-md-none" aria-label="Điều hướng nhanh">
+                <a href="/QuanLyNhaTro/ViecCanLam" class="ts-bottom-nav-item @(duongDan.StartsWithSegments("/QuanLyNhaTro/ViecCanLam", StringComparison.OrdinalIgnoreCase) ? "active" : "")" aria-current="@(duongDan.StartsWithSegments("/QuanLyNhaTro/ViecCanLam", StringComparison.OrdinalIgnoreCase) ? "page" : null)">
+                    <i class="ti ti-checklist" aria-hidden="true"></i><span>Việc</span>
+                </a>
+                <a href="/PhongTros/QuanLyPhongTro" class="ts-bottom-nav-item @(duongDan.StartsWithSegments("/PhongTros/QuanLyPhongTro", StringComparison.OrdinalIgnoreCase) ? "active" : "")" aria-current="@(duongDan.StartsWithSegments("/PhongTros/QuanLyPhongTro", StringComparison.OrdinalIgnoreCase) ? "page" : null)">
+                    <i class="ti ti-bed" aria-hidden="true"></i><span>Phòng</span>
+                </a>
+                <a href="/QuanLyNhaTro/ChotDienNuoc" class="ts-bottom-nav-item @(duongDan.StartsWithSegments("/QuanLyNhaTro/ChotDienNuoc", StringComparison.OrdinalIgnoreCase) ? "active" : "")" aria-current="@(duongDan.StartsWithSegments("/QuanLyNhaTro/ChotDienNuoc", StringComparison.OrdinalIgnoreCase) ? "page" : null)">
+                    <i class="ti ti-bolt" aria-hidden="true"></i><span>Điện nước</span>
+                </a>
+                <a href="/QuanLyNhaTro/QuanLyHoaDon" class="ts-bottom-nav-item @(duongDan.StartsWithSegments("/QuanLyNhaTro/QuanLyHoaDon", StringComparison.OrdinalIgnoreCase) ? "active" : "")" aria-current="@(duongDan.StartsWithSegments("/QuanLyNhaTro/QuanLyHoaDon", StringComparison.OrdinalIgnoreCase) ? "page" : null)">
+                    <i class="ti ti-file-invoice" aria-hidden="true"></i><span>Hóa đơn</span>
+                </a>
+                <button type="button" class="ts-bottom-nav-item js-mo-menu-day-du" aria-controls="sidebar-menu" aria-label="Mở menu đầy đủ">
+                    <i class="ti ti-menu-2" aria-hidden="true"></i><span>Thêm</span>
+                </button>
+            </nav>
+        }
     </div>
 
     <!-- JS -->

@@ -93,6 +93,22 @@
 
     window.TroTheme = { apDung: apDungGiaoDien };
 
+    // Nút "Thêm" của thanh tab dưới (điện thoại): mở menu đầy đủ rồi đưa về đầu trang để thấy menu.
+    document.addEventListener('click', function (e) {
+        var nut = e.target.closest('.js-mo-menu-day-du');
+        if (!nut) {
+            return;
+        }
+        var menu = document.getElementById('sidebar-menu');
+        if (!menu) {
+            return;
+        }
+        if (window.bootstrap && window.bootstrap.Collapse) {
+            window.bootstrap.Collapse.getOrCreateInstance(menu, { toggle: false }).show();
+        }
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
     // Menu quản lý luôn mở: cuộn mục đang chọn vào tầm nhìn nếu nó nằm dưới mép khung menu.
     function cuonMucMenuDangMo() {
         var muc = document.querySelector('#sidebar-menu .nav-link.active');

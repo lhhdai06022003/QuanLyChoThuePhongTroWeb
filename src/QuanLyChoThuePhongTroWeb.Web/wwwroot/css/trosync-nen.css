@@ -96,5 +96,62 @@
 /* Chừa chỗ để dòng cuối và nút phân trang cuộn lên khỏi nút trợ lý AI. */
 .page-wrapper { padding-bottom: 4.5rem; }
 @media (max-width: 767.98px) {
-    .ts-cong-khach-thue .page-wrapper { padding-bottom: 9rem !important; }
+    .ts-co-thanh-tab .page-wrapper { padding-bottom: 9rem !important; }
+}
+
+/* Thanh tab dưới (dưới 768px) dùng chung cho cổng quản lý và cổng khách thuê. */
+.ts-bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 64px;
+    background: var(--tblr-bg-surface);
+    border-top: 1px solid var(--tblr-border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    z-index: 1030;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.ts-bottom-nav-item {
+    flex: 1;
+    /* Năm mục chia đều 375px: cho phép co dưới bề rộng chữ để thanh tab không đẩy trang rộng hơn màn hình. */
+    min-width: 0;
+    white-space: nowrap;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--tblr-secondary);
+    text-decoration: none;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    transition: color 0.15s ease, transform 0.1s ease;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+button.ts-bottom-nav-item {
+    background: none;
+    border: 0;
+    padding: 0;
+}
+
+.ts-bottom-nav-item i {
+    font-size: 1.35rem;
+    margin-bottom: 2px;
+}
+
+.ts-bottom-nav-item:hover,
+.ts-bottom-nav-item:focus {
+    color: var(--ts-brand-text);
+    text-decoration: none;
+}
+
+.ts-bottom-nav-item.active {
+    color: var(--ts-brand-text);
+    font-weight: 600;
 }

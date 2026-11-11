@@ -249,8 +249,8 @@
     opacity: 0.9;
 }
 
-/* Cổng khách thuê trên điện thoại: nằm trên thanh tab dưới (cao 64px). */
+/* Trang có thanh tab dưới (cao 64px) trên điện thoại: nút nằm trên thanh tab. */
 @media (max-width: 767.98px) {
-    .ts-cong-khach-thue .btn-ai-fab { bottom: 76px; }
-    .ts-cong-khach-thue .ai-chat-box { bottom: 136px; max-height: calc(100vh - 156px); }
+    .ts-co-thanh-tab .btn-ai-fab { bottom: 76px; }
+    .ts-co-thanh-tab .ai-chat-box { bottom: 136px; max-height: calc(100vh - 156px); }
 }
