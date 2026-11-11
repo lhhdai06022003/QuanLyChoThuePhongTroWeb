@@ -8,6 +8,11 @@
     var viecRong = viec.TongSo == 0;
     var laAdmin = Model.CoXemDoanhThu;
     var ky = $"T{Model.SelectedMonth}/{Model.SelectedYear}";
+    // Chỉ dùng khi laAdmin: thanh thu tiền hai đoạn (đã thu / chờ thu).
+    var daThu = Model.DoanhThuThangNay ?? 0m;
+    var phaiThu = daThu + Model.TongTienChoThu;
+    var phanTram = phaiThu > 0 ? (int)Math.Clamp(Math.Round(daThu * 100m / phaiThu, MidpointRounding.AwayFromZero), 0m, 100m) : 0;
+    var phanTramChoThu = phaiThu > 0 ? 100 - phanTram : 0;
 }
 
 <div class="container-xl mt-3 dashboard-page">
@@ -15,9 +20,7 @@
     <div class="page-header d-print-none mb-3">
         <div class="row align-items-center">
             <div class="col">
-                <h2 class="page-title text-primary fw-bold d-flex align-items-center">
-                    <i class="ti ti-chart-line me-2"></i> Bảng điều khiển hệ thống
-                </h2>
+                <h2 class="page-title">Bảng điều khiển hệ thống</h2>
             </div>
             <div class="col-12 col-md-auto ms-md-auto mt-2 mt-md-0 d-print-none">
                 <div class="d-flex flex-wrap gap-2 align-items-center">
@@ -40,41 +43,32 @@
         </div>
     </div>
 
-    @if (laAdmin && Model.ChoDuyet != null)
+    @if (laAdmin)
     {
-        <!-- Admin: chờ bạn duyệt -->
-        <div class="card mb-3" id="choDuyetCard">
-            <div class="card-header">
-                <h3 class="card-title"><i class="ti ti-user-check me-2 text-primary"></i>Chờ bạn duyệt <span id="choDuyetTongSo" class="text-secondary fw-normal ms-1">(@Model.ChoDuyet.SoLuong)</span></h3>
-            </div>
-            <div class="list-group list-group-flush">
-                <div id="choDuyetHd2">
-                    @if (Model.ChoDuyet.SoLuong > 0)
-                    {
-                        <a href="@Model.ChoDuyet.Link" class="list-group-item list-group-item-action">
-                            <div class="d-flex align-items-center gap-2">
-                                <span class="status-dot status-orange" aria-hidden="true"></span>
-                                <div class="dashboard-viec-text flex-fill fw-medium">@Model.ChoDuyet.TieuDe</div>
-                                <span class="fw-bold ms-2">@Model.ChoDuyet.SoLuong</span>
-                            </div>
-                        </a>
-                    }
-                    else
-                    {
-                        <div class="list-group-item text-secondary">Không có việc chờ duyệt</div>
-                    }
+        <!-- Admin: thanh thu tiền của kỳ đang chọn -->
+        <div class="card mb-3" id="thuTienCard">
+            <div class="card-body">
+                <div class="d-flex flex-wrap justify-content-between align-items-baseline gap-2">
+                    <div class="fw-medium" id="kpiDaThuTitle">Thu tiền kỳ @ky</div>
+                    <div class="text-secondary small">Phải thu <span id="thuTienPhaiThu" class="num-tabular">@TienTe.DinhDang(phaiThu)</span></div>
                 </div>
-                <a href="/QuanLyNhaTro/GiaoDichSePay" class="list-group-item list-group-item-action">
-                    <div class="d-flex align-items-center gap-2">
-                        <i class="ti ti-arrows-exchange text-primary" aria-hidden="true"></i>
-                        <div class="flex-fill fw-medium">Đối soát giao dịch SePay</div>
-                        <i class="ti ti-chevron-right text-secondary" aria-hidden="true"></i>
-                    </div>
-                </a>
+                <div class="d-flex flex-wrap align-items-baseline gap-2 mt-1">
+                    <div class="h1 mb-0 fw-bold num-tabular" id="statDoanhThu">@TienTe.DinhDang(daThu)</div>
+                    <div class="text-secondary" id="thuTienPhanTram">đã thu, @(phanTram)%</div>
+                </div>
+                <div class="dashboard-thu-tien-thanh mt-3" id="thuTienThanh" role="img" aria-label="Đã thu @TienTe.DinhDang(daThu), chờ thu @TienTe.DinhDang(Model.TongTienChoThu)">
+                    <div class="dashboard-thu-tien-doan is-ok" id="thuTienDoanDaThu" style="width: @(phanTram)%"></div>
+                    <div class="dashboard-thu-tien-doan is-wait" id="thuTienDoanChoThu" style="width: @(phanTramChoThu)%"></div>
+                </div>
+                <div class="d-flex flex-wrap gap-3 mt-2 small text-secondary">
+                    <span><span class="dashboard-cham is-ok" aria-hidden="true"></span>Đã thu</span>
+                    <span><span class="dashboard-cham is-wait" aria-hidden="true"></span>Chờ thu</span>
+                </div>
             </div>
         </div>
     }
-    else
+
+    @if (!laAdmin)
     {
         <!-- Nhân viên: việc cần làm đứng đầu trang -->
         <div class="card mb-3 dashboard-viec">
@@ -127,101 +121,164 @@
         @if (laAdmin)
         {
             <div class="col-6 col-lg-3">
-                <a id="cardDaThu" href="@Model.LinkDaThuKy" aria-label="Mở báo cáo doanh thu của kỳ @ky" class="card card-sm card-link h-100 text-white bg-success">
+                <a id="cardDaThu" href="@Model.LinkDaThuKy" aria-label="Mở báo cáo doanh thu của kỳ @ky" class="card card-sm card-link h-100">
                     <div class="card-body">
-                        <div class="subheader text-white text-opacity-75" id="kpiDaThuTitle">Đã thu kỳ @ky</div>
-                        <div class="h2 mb-0 fw-bold dashboard-kpi-value" id="statDoanhThu">@TienTe.DinhDang(Model.DoanhThuThangNay ?? 0)</div>
-                        <div class="small text-white text-opacity-75">Theo kỳ hóa đơn, gồm cấn trừ cọc</div>
+                        <div class="dashboard-o-nhan is-ok" id="kpiDaThuNhan">Đã thu kỳ @ky</div>
+                        <div class="h2 mb-0 fw-bold num-tabular dashboard-kpi-value" id="statDaThuO">@TienTe.DinhDang(daThu)</div>
+                        <div class="small text-secondary">Theo kỳ hóa đơn, gồm cấn trừ cọc</div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-6 col-lg-3">
+                <a id="cardChoThu" href="@Model.LinkChoThu" aria-label="Mở danh sách hóa đơn chưa thu đủ của kỳ @ky" class="card card-sm card-link h-100">
+                    <div class="card-body">
+                        <div class="dashboard-o-nhan is-wait" id="kpiChoThuTitle">Chờ thu kỳ @ky</div>
+                        <div class="h2 mb-0 fw-bold num-tabular dashboard-kpi-value" id="statChoThu">@TienTe.DinhDang(Model.TongTienChoThu)</div>
+                        <div class="small text-secondary">Hóa đơn đã gửi, chưa thu đủ</div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-6 col-lg-3">
+                <a id="cardQuaHan" href="@Model.LinkQuaHan" aria-label="Mở danh sách hóa đơn quá hạn" class="card card-sm card-link h-100">
+                    <div class="card-body">
+                        <div class="dashboard-o-nhan is-bad">Quá hạn, mọi kỳ</div>
+                        <div class="h2 mb-0 fw-bold num-tabular dashboard-kpi-value" id="statQuaHan">@TienTe.DinhDang(Model.TienQuaHan)</div>
+                        <div class="small text-secondary"><span id="statSoHoaDonQuaHan">@Model.SoHoaDonQuaHan hóa đơn</span>. Tính tới hôm nay</div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-6 col-lg-3">
+                <a id="cardPhongDangNo" href="@Model.LinkPhongDangNo" aria-label="Mở danh sách hóa đơn của các phòng đang nợ" class="card card-sm card-link h-100">
+                    <div class="card-body">
+                        <div class="dashboard-o-nhan is-bad">Phòng đang nợ</div>
+                        <div class="h2 mb-0 fw-bold num-tabular dashboard-kpi-value" id="statChuaThanhToan">@Model.SoPhongChuaThanhToan</div>
+                        <div class="small text-secondary">Từ trước tới nay</div>
                     </div>
                 </a>
             </div>
         }
-
-        <div class="col-6 col-lg-3">
-            <a id="cardQuaHan" href="@Model.LinkQuaHan" aria-label="Mở danh sách hóa đơn quá hạn" class="card card-sm card-link h-100 text-white bg-danger">
-                <div class="card-body">
-                    <div class="subheader text-white text-opacity-75">Quá hạn</div>
-                    <div class="h2 mb-0 fw-bold dashboard-kpi-value" id="statQuaHan">@TienTe.DinhDang(Model.TienQuaHan)</div>
-                    <div class="small text-white text-opacity-75"><span id="statSoHoaDonQuaHan">@Model.SoHoaDonQuaHan hóa đơn</span>. Tính tới hôm nay</div>
-                </div>
-            </a>
-        </div>
-
-        <div class="col-6 col-lg-3">
-            <a id="cardChoThu" href="@Model.LinkChoThu" aria-label="Mở danh sách hóa đơn chưa thu đủ của kỳ @ky" class="card card-sm card-link h-100 text-white bg-warning">
-                <div class="card-body">
-                    <div class="subheader text-white text-opacity-75" id="kpiChoThuTitle">Chờ thu kỳ @ky</div>
-                    <div class="h2 mb-0 fw-bold dashboard-kpi-value" id="statChoThu">@TienTe.DinhDang(Model.TongTienChoThu)</div>
-                    <div class="small text-white text-opacity-75">Hóa đơn đã gửi, chưa thu đủ</div>
-                </div>
-            </a>
-        </div>
-
-        @if (!laAdmin)
+        else
         {
             <div class="col-6 col-lg-3">
-                <a id="cardTienMat" href="@Model.LinkTienMatCuaToi" aria-label="Mở lịch sử thanh toán tiền mặt bạn đã thu trong kỳ @ky" class="card card-sm card-link h-100 text-white bg-teal">
+                <a id="cardQuaHan" href="@Model.LinkQuaHan" aria-label="Mở danh sách hóa đơn quá hạn" class="card card-sm card-link h-100">
                     <div class="card-body">
-                        <div class="subheader text-white text-opacity-75" id="kpiTienMatTitle">Tiền mặt bạn đã thu @ky</div>
-                        <div class="h2 mb-0 fw-bold dashboard-kpi-value" id="statTienMat">@TienTe.DinhDang(Model.TienMatCuaToi.TongTien)</div>
-                        <div class="small text-white text-opacity-75" id="statTienMatChuThich">Tháng @Model.SelectedMonth/@Model.SelectedYear, chưa gồm tiền giữ chỗ</div>
+                        <div class="dashboard-o-nhan is-bad">Quá hạn, mọi kỳ</div>
+                        <div class="h2 mb-0 fw-bold num-tabular dashboard-kpi-value" id="statQuaHan">@TienTe.DinhDang(Model.TienQuaHan)</div>
+                        <div class="small text-secondary"><span id="statSoHoaDonQuaHan">@Model.SoHoaDonQuaHan hóa đơn</span>. Tính tới hôm nay</div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-6 col-lg-3">
+                <a id="cardChoThu" href="@Model.LinkChoThu" aria-label="Mở danh sách hóa đơn chưa thu đủ của kỳ @ky" class="card card-sm card-link h-100">
+                    <div class="card-body">
+                        <div class="dashboard-o-nhan is-wait" id="kpiChoThuTitle">Chờ thu kỳ @ky</div>
+                        <div class="h2 mb-0 fw-bold num-tabular dashboard-kpi-value" id="statChoThu">@TienTe.DinhDang(Model.TongTienChoThu)</div>
+                        <div class="small text-secondary">Hóa đơn đã gửi, chưa thu đủ</div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-6 col-lg-3">
+                <a id="cardTienMat" href="@Model.LinkTienMatCuaToi" aria-label="Mở lịch sử thanh toán tiền mặt bạn đã thu trong kỳ @ky" class="card card-sm card-link h-100">
+                    <div class="card-body">
+                        <div class="dashboard-o-nhan is-ok" id="kpiTienMatTitle">Tiền mặt bạn đã thu @ky</div>
+                        <div class="h2 mb-0 fw-bold num-tabular dashboard-kpi-value" id="statTienMat">@TienTe.DinhDang(Model.TienMatCuaToi.TongTien)</div>
+                        <div class="small text-secondary" id="statTienMatChuThich">Tháng @Model.SelectedMonth/@Model.SelectedYear, chưa gồm tiền giữ chỗ</div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-6 col-lg-3">
+                <a id="cardPhongDangNo" href="@Model.LinkPhongDangNo" aria-label="Mở danh sách hóa đơn của các phòng đang nợ" class="card card-sm card-link h-100">
+                    <div class="card-body">
+                        <div class="dashboard-o-nhan is-bad">Phòng đang nợ</div>
+                        <div class="h2 mb-0 fw-bold num-tabular dashboard-kpi-value" id="statChuaThanhToan">@Model.SoPhongChuaThanhToan</div>
+                        <div class="small text-secondary">Từ trước tới nay</div>
                     </div>
                 </a>
             </div>
         }
-
-        <div class="col-6 col-lg-3">
-            <a id="cardPhongDangNo" href="@Model.LinkPhongDangNo" aria-label="Mở danh sách hóa đơn của các phòng đang nợ" class="card card-sm card-link h-100 text-white bg-pink">
-                <div class="card-body">
-                    <div class="subheader text-white text-opacity-75">Phòng đang nợ</div>
-                    <div class="h2 mb-0 fw-bold dashboard-kpi-value" id="statChuaThanhToan">@Model.SoPhongChuaThanhToan</div>
-                    <div class="small text-white text-opacity-75">Từ trước tới nay</div>
-                </div>
-            </a>
-        </div>
     </div>
 
     @if (laAdmin)
     {
-        <!-- Admin: tiền mặt nhân viên đang giữ -->
-        <div class="card mb-3" id="tienMatCard">
-            <div class="card-header">
-                <h3 class="card-title"><i class="ti ti-cash me-2 text-primary"></i>Tiền mặt nhân viên đang giữ <span id="tienMatKy" class="text-secondary fw-normal ms-1">@ky</span></h3>
-            </div>
-            <div class="table-responsive">
-                <table class="table table-vcenter card-table" id="tienMatBang">
-                    <thead>
-                        <tr>
-                            <th>Người thu</th>
-                            <th class="text-end">Số khoản</th>
-                            <th class="text-end">Tổng tiền</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tienMatBody">
-                        @if (Model.TienMatNhanVien == null || Model.TienMatNhanVien.Count == 0)
-                        {
-                            <tr><td colspan="3" class="text-center text-secondary py-3">Tháng này chưa có khoản tiền mặt nào</td></tr>
-                        }
-                        else
-                        {
-                            @foreach (var n in Model.TienMatNhanVien)
-                            {
+        <div class="row row-cards mb-3">
+            @if (Model.ChoDuyet != null)
+            {
+                <div class="col-12 col-lg-6">
+                    <!-- Admin: chờ bạn duyệt -->
+                    <div class="card h-100" id="choDuyetCard">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="ti ti-user-check me-2 text-primary"></i>Chờ bạn duyệt <span id="choDuyetTongSo" class="text-secondary fw-normal ms-1">(@Model.ChoDuyet.SoLuong)</span></h3>
+                        </div>
+                        <div class="list-group list-group-flush">
+                            <div id="choDuyetHd2">
+                                @if (Model.ChoDuyet.SoLuong > 0)
+                                {
+                                    <a href="@Model.ChoDuyet.Link" class="list-group-item list-group-item-action">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="status-dot status-orange" aria-hidden="true"></span>
+                                            <div class="dashboard-viec-text flex-fill fw-medium">@Model.ChoDuyet.TieuDe</div>
+                                            <span class="fw-bold ms-2">@Model.ChoDuyet.SoLuong</span>
+                                        </div>
+                                    </a>
+                                }
+                                else
+                                {
+                                    <div class="list-group-item text-secondary">Không có việc chờ duyệt</div>
+                                }
+                            </div>
+                            <a href="/QuanLyNhaTro/GiaoDichSePay" class="list-group-item list-group-item-action">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="ti ti-arrows-exchange text-primary" aria-hidden="true"></i>
+                                    <div class="flex-fill fw-medium">Đối soát giao dịch SePay</div>
+                                    <i class="ti ti-chevron-right text-secondary" aria-hidden="true"></i>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            }
+            <div class="col-12 col-lg-6">
+                <!-- Admin: tiền mặt nhân viên đang giữ -->
+                <div class="card h-100" id="tienMatCard">
+                    <div class="card-header">
+                        <h3 class="card-title"><i class="ti ti-cash me-2 text-primary"></i>Tiền mặt nhân viên đang giữ <span id="tienMatKy" class="text-secondary fw-normal ms-1">@ky</span></h3>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-vcenter card-table" id="tienMatBang">
+                            <thead>
                                 <tr>
-                                    <td><a href="@n.Link" class="text-reset d-block fw-medium">@n.Ten</a></td>
-                                    <td class="text-end num-tabular"><a href="@n.Link" class="text-reset d-block">@n.SoKhoan</a></td>
-                                    <td class="text-end num-tabular"><a href="@n.Link" class="text-reset d-block">@TienTe.DinhDang(n.TongTien)</a></td>
+                                    <th>Người thu</th>
+                                    <th class="text-end">Số khoản</th>
+                                    <th class="text-end">Tổng tiền</th>
                                 </tr>
-                            }
-                        }
-                    </tbody>
-                    <tfoot id="tienMatFoot" class="@(Model.TienMatNhanVien == null || Model.TienMatNhanVien.Count == 0 ? "d-none" : "")">
-                        <tr class="fw-bold">
-                            <td>Tổng</td>
-                            <td class="text-end num-tabular" id="tienMatTongKhoan">@Model.TienMatNhanVienTongKhoan</td>
-                            <td class="text-end num-tabular" id="tienMatTongTien">@TienTe.DinhDang(Model.TienMatNhanVienTongTien)</td>
-                        </tr>
-                    </tfoot>
-                </table>
+                            </thead>
+                            <tbody id="tienMatBody">
+                                @if (Model.TienMatNhanVien == null || Model.TienMatNhanVien.Count == 0)
+                                {
+                                    <tr><td colspan="3" class="text-center text-secondary py-3">Tháng này chưa có khoản tiền mặt nào</td></tr>
+                                }
+                                else
+                                {
+                                    @foreach (var n in Model.TienMatNhanVien)
+                                    {
+                                        <tr>
+                                            <td><a href="@n.Link" class="text-reset d-block fw-medium text-truncate dashboard-nguoi-thu" title="@n.Ten">@n.Ten</a></td>
+                                            <td class="text-end num-tabular"><a href="@n.Link" class="text-reset d-block">@n.SoKhoan</a></td>
+                                            <td class="text-end num-tabular"><a href="@n.Link" class="text-reset d-block">@TienTe.DinhDang(n.TongTien)</a></td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                            <tfoot id="tienMatFoot" class="@(Model.TienMatNhanVien == null || Model.TienMatNhanVien.Count == 0 ? "d-none" : "")">
+                                <tr class="fw-bold">
+                                    <td>Tổng</td>
+                                    <td class="text-end num-tabular" id="tienMatTongKhoan">@Model.TienMatNhanVienTongKhoan</td>
+                                    <td class="text-end num-tabular" id="tienMatTongTien">@TienTe.DinhDang(Model.TienMatNhanVienTongTien)</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
     }

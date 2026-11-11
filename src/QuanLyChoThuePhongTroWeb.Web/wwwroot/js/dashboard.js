@@ -26,13 +26,19 @@
         return node;
     }
 
-    // Màu chữ và lưới biểu đồ lấy theo theme (mặc định của Chart.js quá mờ trên nền tối).
-    // Chart.js chốt màu trục lúc tạo biểu đồ, nên phải gán thẳng vào options của từng biểu đồ.
+    // Màu biểu đồ lấy theo theme (mặc định của Chart.js quá mờ trên nền tối), đọc từ biến CSS lúc vẽ.
+    // Chart.js chốt màu lúc tạo biểu đồ, nên phải gán thẳng vào options/dataset của từng biểu đồ.
+    // Biến thiếu thì trả chuỗi rỗng để Chart.js dùng màu mặc định.
     function mauTheme() {
         var css = window.getComputedStyle(document.body);
+        function doc(ten) { return (css.getPropertyValue(ten) || '').trim(); }
         return {
-            chu: (css.getPropertyValue('--tblr-secondary-color') || css.getPropertyValue('--tblr-secondary') || '').trim() || css.color,
-            luoi: (css.getPropertyValue('--tblr-border-color') || '').trim() || 'rgba(0, 0, 0, 0.1)'
+            chu: doc('--tblr-secondary-color') || doc('--tblr-secondary') || css.color,
+            luoi: doc('--tblr-border-color') || 'rgba(0, 0, 0, 0.1)',
+            ok: doc('--ts-ok'),
+            wait: doc('--ts-wait'),
+            primary: doc('--tblr-primary'),
+            nen: doc('--tblr-bg-surface')
         };
     }
 
@@ -43,8 +49,8 @@
         data: {
             labels: cfg.chartLabels,
             datasets: [
-                { label: 'Đã thu', data: cfg.chartData, backgroundColor: '#2fb344', borderRadius: 4 },
-                { label: 'Chờ thu', data: cfg.chartDataChoThu, backgroundColor: '#f59f00', borderRadius: 4 }
+                { label: 'Đã thu', data: cfg.chartData, backgroundColor: '', borderRadius: 4 },
+                { label: 'Chờ thu', data: cfg.chartDataChoThu, backgroundColor: '', borderRadius: 4 }
             ]
         },
         options: {
@@ -77,7 +83,7 @@
             labels: cfg.roomLabels,
             datasets: [{
                 data: cfg.roomData,
-                backgroundColor: ['#206bc4', '#2fb344', '#f59f00'],
+                backgroundColor: [],
                 borderWidth: 2,
                 hoverOffset: 6
             }]
@@ -97,9 +103,13 @@
                 revenueChart.options.scales[truc].grid.color = mau.luoi;
             });
             revenueChart.options.plugins.legend.labels.color = mau.chu;
+            revenueChart.data.datasets[0].backgroundColor = mau.ok;
+            revenueChart.data.datasets[1].backgroundColor = mau.wait;
             revenueChart.update();
         }
         roomChart.options.plugins.legend.labels.color = mau.chu;
+        roomChart.data.datasets[0].backgroundColor = [mau.primary, mau.ok, mau.wait];
+        roomChart.data.datasets[0].borderColor = mau.nen;
         roomChart.update();
     }
     apDungMauTheme();
@@ -204,11 +214,12 @@
             tongKhoan += Number(n.soKhoan) || 0;
             tongTien += Number(n.tongTien) || 0;
             var tr = tao('tr');
-            [[n.ten, 'text-reset d-block fw-medium', ''], [String(Number(n.soKhoan) || 0), 'text-reset d-block', 'text-end num-tabular'],
+            [[n.ten, 'text-reset d-block fw-medium text-truncate dashboard-nguoi-thu', ''], [String(Number(n.soKhoan) || 0), 'text-reset d-block', 'text-end num-tabular'],
                 [dinhDangTien(n.tongTien), 'text-reset d-block', 'text-end num-tabular']].forEach(function (cot) {
                 var td = tao('td', cot[2]);
                 var a = tao('a', cot[1], cot[0]);
                 a.setAttribute('href', safeLink(n.link));
+                if (cot[2] === '') a.setAttribute('title', n.ten || '');
                 td.appendChild(a);
                 tr.appendChild(td);
             });
@@ -217,6 +228,23 @@
         $('#tienMatFoot').toggleClass('d-none', ds.length === 0);
         $('#tienMatTongKhoan').text(tongKhoan);
         $('#tienMatTongTien').text(dinhDangTien(tongTien));
+    }
+
+    // Thẻ thanh thu tiền (chỉ Admin): đã thu, chờ thu, phải thu và hai đoạn của thanh.
+    function renderThuTien(daThu, choThu, month, year) {
+        if (!document.getElementById('thuTienCard')) return;
+        var phaiThu = daThu + choThu;
+        var phanTram = phaiThu > 0 ? Math.min(100, Math.max(0, Math.round(daThu * 100 / phaiThu))) : 0;
+        var phanTramChoThu = phaiThu > 0 ? 100 - phanTram : 0;
+        var ky = 'T' + month + '/' + year;
+        $('#kpiDaThuTitle').text('Thu tiền kỳ ' + ky);
+        $('#kpiDaThuNhan').text('Đã thu kỳ ' + ky);
+        $('#statDoanhThu, #statDaThuO').text(dinhDangTien(daThu));
+        $('#thuTienPhaiThu').text(dinhDangTien(phaiThu));
+        $('#thuTienPhanTram').text('đã thu, ' + phanTram + '%');
+        document.getElementById('thuTienDoanDaThu').style.width = phanTram + '%';
+        document.getElementById('thuTienDoanChoThu').style.width = phanTramChoThu + '%';
+        document.getElementById('thuTienThanh').setAttribute('aria-label', 'Đã thu ' + dinhDangTien(daThu) + ', chờ thu ' + dinhDangTien(choThu));
     }
 
     function renderHoatDong(activities) {
@@ -271,8 +299,7 @@
         }).done(function (res) {
             if (res.coXemDoanhThu) {
                 $('#chartYearText').text(year);
-                $('#kpiDaThuTitle').text('Đã thu kỳ T' + month + '/' + year);
-                $('#statDoanhThu').text(dinhDangTien(res.doanhThuThangNay));
+                renderThuTien(Number(res.doanhThuThangNay) || 0, Number(res.tongTienChoThu) || 0, month, year);
             }
             $('#kpiChoThuTitle').text('Chờ thu kỳ T' + month + '/' + year);
             var ky = 'T' + month + '/' + year;
