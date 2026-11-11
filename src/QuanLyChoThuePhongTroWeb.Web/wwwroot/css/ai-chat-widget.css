@@ -2,10 +2,10 @@
 /* Chat FAB Style */
 .btn-ai-fab {
     position: fixed;
-    bottom: 25px;
-    right: 25px;
-    width: 56px;
-    height: 56px;
+    bottom: 16px;
+    right: 16px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
     background: var(--tblr-primary);
     color: var(--tblr-primary-fg, #ffffff);
@@ -15,7 +15,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 24px;
+    font-size: 20px;
     z-index: 1050;
     transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
@@ -55,10 +55,12 @@
 /* Chat Box Window */
 .ai-chat-box {
     position: fixed;
-    bottom: 95px;
-    right: 25px;
+    bottom: 76px;
+    right: 16px;
     width: 380px;
     height: 520px;
+    max-width: calc(100vw - 32px);
+    max-height: calc(100vh - 96px);
     border-radius: 16px;
     background-color: var(--tblr-bg-surface);
     border: 1px solid var(--tblr-border-color);
@@ -245,4 +247,10 @@
 }
 .ai-btn-send:hover {
     opacity: 0.9;
+}
+
+/* Cổng khách thuê trên điện thoại: nằm trên thanh tab dưới (cao 64px). */
+@media (max-width: 767.98px) {
+    .ts-cong-khach-thue .btn-ai-fab { bottom: 76px; }
+    .ts-cong-khach-thue .ai-chat-box { bottom: 136px; max-height: calc(100vh - 156px); }
 }

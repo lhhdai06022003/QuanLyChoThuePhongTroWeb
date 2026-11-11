@@ -92,3 +92,9 @@
 .bg-success-lt, .bg-green-lt { color: var(--ts-ok) !important; background-color: var(--ts-ok-soft) !important; }
 .bg-warning-lt, .bg-yellow-lt { color: var(--ts-wait) !important; background-color: var(--ts-wait-soft) !important; }
 .bg-danger-lt, .bg-red-lt { color: var(--ts-bad) !important; background-color: var(--ts-bad-soft) !important; }
+
+/* Chừa chỗ để dòng cuối và nút phân trang cuộn lên khỏi nút trợ lý AI. */
+.page-wrapper { padding-bottom: 4.5rem; }
+@media (max-width: 767.98px) {
+    .ts-cong-khach-thue .page-wrapper { padding-bottom: 9rem !important; }
+}
