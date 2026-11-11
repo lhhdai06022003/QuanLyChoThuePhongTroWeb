@@ -44,46 +44,16 @@
 {
     if (hasChild)
     {
-        var menuSlug = "sidebar-menu-" + System.Text.RegularExpressions.Regex.Replace(Model.Name, @"\W+", "-").Trim('-').ToLowerInvariant();
-        <li class="nav-item dropdown @(isAnyChildActive ? "active" : "")">
-            <a class="nav-link dropdown-toggle @(isAnyChildActive ? "show text-primary fw-bold" : "")"
-               href="#@menuSlug"
-               data-bs-toggle="dropdown"
-               data-bs-auto-close="false"
-               role="button"
-               aria-expanded="@(isAnyChildActive ? "true" : "false")">
-                <span class="nav-link-icon d-md-none d-lg-inline-block">
-                    <i class="@(string.IsNullOrEmpty(Model.Icon) ? "ti ti-point" : Model.Icon)"></i>
-                </span>
-                <span class="nav-link-title">
-                    @Model.Name
-                </span>
-            </a>
-            <div class="dropdown-menu @(isAnyChildActive ? "show" : "")" data-bs-popper="static">
-                <div class="dropdown-menu-columns">
-                    <div class="dropdown-menu-column">
-                        @foreach (var child in visibleChildren!)
-                        {
-                            var isChildActive = IsActive(child);
-                            <a class="dropdown-item @(isChildActive ? "active" : "")" href="@child.Url">
-                                @if (!string.IsNullOrEmpty(child.Icon))
-                                {
-                                    <span class="dropdown-item-icon">
-                                        <i class="@child.Icon"></i>
-                                    </span>
-                                }
-                                <span class="dropdown-item-title">@child.Name</span>
-                            </a>
-                        }
-                    </div>
-                </div>
-            </div>
-        </li>
+        <li class="ts-nav-group" aria-hidden="true"><span class="ts-nav-group-label">@Model.Name</span></li>
+        foreach (var child in visibleChildren!)
+        {
+            @await Html.PartialAsync("_MenuItem", child)
+        }
     }
     else
     {
         <li class="nav-item @(isParentActive ? "active" : "")">
-            <a class="nav-link @(isParentActive ? "active" : "")" href="@(string.IsNullOrEmpty(Model.Url) ? "#" : Model.Url)">
+            <a class="nav-link @(isParentActive ? "active" : "")" href="@(string.IsNullOrEmpty(Model.Url) ? "#" : Model.Url)" aria-current="@(isParentActive ? "page" : null)">
                 <span class="nav-link-icon d-md-none d-lg-inline-block">
                     <i class="@(string.IsNullOrEmpty(Model.Icon) ? "ti ti-point" : Model.Icon)"></i>
                 </span>

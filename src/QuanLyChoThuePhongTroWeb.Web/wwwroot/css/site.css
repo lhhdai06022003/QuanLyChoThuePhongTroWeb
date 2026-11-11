@@ -158,113 +158,47 @@ body {
   background-color: rgba(255, 255, 255, 0.2);
 }
 
-/* 2. Triệt tiêu vạch active :after của Tabler khi áp dụng lên dropdown container để không bị vạch xanh kéo dài suốt cả danh sách con */
-.navbar-vertical .nav-item.dropdown:after,
-.navbar-vertical .nav-item.dropdown.active:after {
-  display: none !important;
+/* Menu nhóm theo việc */
+.navbar-vertical .nav-item:after,
+.navbar-vertical .nav-item.active:after { display: none !important; }
+
+.navbar-vertical .ts-nav-group-label {
+  display: block;
+  padding: 0.9rem 1.1rem 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--tblr-secondary);
 }
 
-/* 3. Link cấp 1: Style chuẩn Tabler, không chèn border-left gây méo bo góc */
-.navbar-vertical .nav-item:not(.dropdown).active > .nav-link {
-  color: var(--ts-brand-text) !important;
-  background-color: rgba(var(--tblr-primary-rgb), 0.06) !important;
-  font-weight: 600 !important;
-}
-
-.navbar-vertical .nav-item.dropdown.active > .nav-link,
-.navbar-vertical .nav-item.dropdown > .nav-link.show {
-  color: var(--ts-brand-text) !important;
-  font-weight: 600 !important;
-}
-
-.navbar-vertical .nav-link {
+.navbar-vertical .navbar-nav .nav-link {
+  margin: 1px 0.5rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  color: var(--tblr-body-color);
   transition: background-color 0.15s ease, color 0.15s ease;
 }
 
-.navbar-vertical .nav-link:hover {
-  color: var(--ts-brand-text) !important;
-  background-color: rgba(var(--tblr-primary-rgb), 0.04) !important;
+.navbar-vertical .navbar-nav .nav-link .nav-link-icon { color: var(--tblr-secondary); }
+
+.navbar-vertical .navbar-nav .nav-link:hover {
+  background-color: rgba(var(--tblr-primary-rgb), 0.06);
+  color: var(--ts-brand-text);
 }
 
-/* Hiệu ứng xoay icon mũi tên khi đóng / mở dropdown */
-.navbar-vertical .dropdown-toggle:after {
-  transition: transform 0.2s ease;
+.navbar-vertical .navbar-nav .nav-item.active > .nav-link {
+  background-color: var(--ts-brand-soft);
+  color: var(--ts-brand-text);
+  font-weight: 500;
 }
 
-.navbar-vertical .dropdown-toggle.show:after,
-.navbar-vertical .dropdown-toggle[aria-expanded="true"]:after {
-  transform: rotate(-180deg);
-}
+.navbar-vertical .navbar-nav .nav-item.active > .nav-link .nav-link-icon { color: var(--ts-brand-text); }
 
-/* 4. Dropdown Menu cấp 2: Trình bày thanh lịch, không thụt lề quá đà */
-.navbar-vertical .dropdown-menu {
-  background-color: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-  padding: 0.15rem 0.5rem 0.35rem 0.5rem !important;
-  margin: 0 !important;
-}
-
-/* 5. Dropdown Item cấp 2: Căn lề chuẩn, icon cố định, hiệu ứng chuyển màu êm */
-.navbar-vertical .dropdown-item {
-  display: flex !important;
-  align-items: center !important;
-  padding: 0.45rem 0.75rem 0.45rem 1.75rem !important;
-  margin: 2px 0 !important;
-  border-radius: var(--tblr-border-radius, 6px) !important;
-  color: var(--tblr-body-color, #1e293b) !important;
-  font-size: 0.875rem !important;
-  font-weight: 400 !important;
-  line-height: 1.4 !important;
-  transition: background-color 0.15s ease, color 0.15s ease !important;
-}
-
-.navbar-vertical .dropdown-item:hover {
-  background-color: rgba(var(--tblr-primary-rgb), 0.06) !important;
-  color: var(--ts-brand-text) !important;
-}
-
-/* Điểm active của menu con: Sử dụng nền pastel dịu mắt và chữ xanh Tabler, thay vì khối xám xỉn màu */
-.navbar-vertical .dropdown-item.active,
-.navbar-vertical .dropdown-item:active {
-  background-color: rgba(var(--tblr-primary-rgb), 0.1) !important;
-  color: var(--ts-brand-text) !important;
-  font-weight: 600 !important;
-}
-
-/* 6. Định dạng icon trong submenu đồng đều và thẳng hàng */
-.navbar-vertical .dropdown-item-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.25rem;
-  min-width: 1.25rem;
-  margin-right: 0.5rem;
-  font-size: 1rem;
-  opacity: 0.75;
-  transition: opacity 0.15s ease, color 0.15s ease;
-}
-
-.navbar-vertical .dropdown-item:hover .dropdown-item-icon,
-.navbar-vertical .dropdown-item.active .dropdown-item-icon {
-  opacity: 1;
-  color: var(--ts-brand-text) !important;
-}
-
-/* 7. Đồng bộ Dark Mode */
-[data-bs-theme="dark"] .navbar-vertical .nav-item:not(.dropdown).active > .nav-link,
-[data-bs-theme="dark"] .navbar-vertical .dropdown-item.active {
-  background-color: rgba(var(--tblr-primary-rgb), 0.2) !important;
-  color: #629fed !important;
-}
-
-[data-bs-theme="dark"] .navbar-vertical .dropdown-item {
-  color: var(--tblr-body-color, #cbd5e1) !important;
-}
-
-[data-bs-theme="dark"] .navbar-vertical .dropdown-item:hover {
-  background-color: rgba(255, 255, 255, 0.05) !important;
-  color: #ffffff !important;
+/* Huy hiệu việc cần làm nằm trong dòng, không bị cắt ở mép menu */
+.navbar-vertical .navbar-nav .nav-link .badge {
+  position: static;
+  transform: none;
+  margin-left: auto;
 }
 
 /* Đồng bộ bg-light và đường viền trong chế độ Dark Mode */

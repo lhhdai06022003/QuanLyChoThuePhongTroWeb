@@ -17,38 +17,60 @@ namespace QuanLyChoThuePhongTroWeb.Services
                 new MenuItem { Name = "Việc cần làm", Icon = "ti ti-checklist", Url = "/QuanLyNhaTro/ViecCanLam", BadgeId = "badge-viec-can-lam" },
                 new MenuItem
                 {
-                    Name = "Quản lý người dùng",
-                    Icon = "ti ti-user-cog",
-                    Roles = new List<string> { "Admin" },
+                    Name = "Phòng và khách",
+                    Icon = "",
                     Children = new List<MenuItem>
                     {
-                        new MenuItem { Name = "Quản lý tài khoản", Icon = "ti ti-users-group", Url = "/QuanLyNhaTro/QuanLyTaiKhoanDangNhap" },
-                        new MenuItem { Name = "Phân công chi nhánh", Icon = "ti ti-sitemap", Url = "/QuanLyNhaTro/PhanCongChiNhanh", Roles = new List<string> { "Admin" } }
+                        new MenuItem { Name = "Phòng trọ", Icon = "ti ti-bed", Url = "/PhongTros/QuanLyPhongTro" },
+                        new MenuItem { Name = "Người thuê", Icon = "ti ti-users", Url = "/QuanLyNhaTro/QuanLyNguoiThue", ActivePrefixes = new List<string> { "/QuanLyNhaTro/NguoiThue" } },
+                        new MenuItem { Name = "Hợp đồng", Icon = "ti ti-file-text", Url = "/QuanLyNhaTro/QuanLyHopDong", ActivePrefixes = new List<string> { "/QuanLyNhaTro/HopDong" } }
                     }
                 },
                 new MenuItem
                 {
-                    Name = "Quản lý nhà trọ",
-                    Icon = "ti ti-building-community",
+                    Name = "Thu tiền",
+                    Icon = "",
                     Children = new List<MenuItem>
                     {
-                        new MenuItem { Name = "Chi nhánh", Icon = "ti ti-building-store", Url = "/ChiNhanhs/QuanLyChiNhanh", Roles = new List<string> { "Admin" } },
-                        new MenuItem { Name = "Phòng trọ", Icon = "ti ti-bed", Url = "/PhongTros/QuanLyPhongTro" },
-                        new MenuItem { Name = "Tin phòng công khai", Icon = "ti ti-photo", Url = "/QuanLyNhaTro/TinPhong" },
-                        new MenuItem { Name = "Lịch xem phòng", Icon = "ti ti-calendar-event", Url = "/QuanLyNhaTro/LichXemPhong" },
-                        new MenuItem { Name = "Đặt cọc phòng", Icon = "ti ti-receipt", Url = "/QuanLyNhaTro/GiuCho" },
-                        //new MenuItem { Name = "Sơ đồ phòng", Icon = "ti ti-layout-grid", Url = "/PhongTros/SoDoPhong" },
-                        new MenuItem { Name = "Người thuê", Icon = "ti ti-users", Url = "/QuanLyNhaTro/QuanLyNguoiThue", ActivePrefixes = new List<string> { "/QuanLyNhaTro/NguoiThue" } },
-                        new MenuItem { Name = "Hợp đồng", Icon = "ti ti-file-text", Url = "/QuanLyNhaTro/QuanLyHopDong", ActivePrefixes = new List<string> { "/QuanLyNhaTro/HopDong" } },
-                        new MenuItem { Name = "Điều khoản hợp đồng", Icon = "ti ti-gavel", Url = "/QuanLyNhaTro/DieuKhoanMau" },
-                        new MenuItem { Name = "Dịch vụ", Icon = "ti ti-apps", Url = "/QuanLyNhaTro/QuanLyDichVu" },
                         new MenuItem { Name = "Điện nước", Icon = "ti ti-bolt", Url = "/QuanLyNhaTro/ChotDienNuoc" },
                         new MenuItem { Name = "Hóa đơn", Icon = "ti ti-file-invoice", Url = "/QuanLyNhaTro/QuanLyHoaDon" },
                         new MenuItem { Name = "Đối chiếu thanh toán", Icon = "ti ti-receipt-2", Url = "/QuanLyNhaTro/DoiChieuThanhToan" },
                         new MenuItem { Name = "Lịch sử thanh toán", Icon = "ti ti-history", Url = "/QuanLyNhaTro/LichSuThanhToan" },
-                        new MenuItem { Name = "Báo cáo", Icon = "ti ti-chart-bar", Url = "/QuanLyNhaTro/BaoCao", ActivePrefixes = new List<string> { "/QuanLyNhaTro/BaoCao" } },
-                        new MenuItem { Name = "Giao dịch SePay", Icon = "ti ti-building-bank", Url = "/QuanLyNhaTro/GiaoDichSePay", Roles = new List<string> { "Admin" } },
-                        new MenuItem { Name = "Sự cố & Sửa chữa", Icon = "ti ti-tools", Url = "/QuanLyNhaTro/YeuCauSuCo" }
+                        new MenuItem { Name = "Giao dịch SePay", Icon = "ti ti-building-bank", Url = "/QuanLyNhaTro/GiaoDichSePay", Roles = new List<string> { "Admin" } }
+                    }
+                },
+                new MenuItem
+                {
+                    Name = "Khách mới",
+                    Icon = "",
+                    Children = new List<MenuItem>
+                    {
+                        new MenuItem { Name = "Tin phòng công khai", Icon = "ti ti-photo", Url = "/QuanLyNhaTro/TinPhong" },
+                        new MenuItem { Name = "Lịch xem phòng", Icon = "ti ti-calendar-event", Url = "/QuanLyNhaTro/LichXemPhong" },
+                        new MenuItem { Name = "Đặt cọc phòng", Icon = "ti ti-receipt", Url = "/QuanLyNhaTro/GiuCho" }
+                    }
+                },
+                new MenuItem
+                {
+                    Name = "Vận hành",
+                    Icon = "",
+                    Children = new List<MenuItem>
+                    {
+                        new MenuItem { Name = "Sự cố và sửa chữa", Icon = "ti ti-tools", Url = "/QuanLyNhaTro/YeuCauSuCo" },
+                        new MenuItem { Name = "Báo cáo", Icon = "ti ti-chart-bar", Url = "/QuanLyNhaTro/BaoCao", ActivePrefixes = new List<string> { "/QuanLyNhaTro/BaoCao" } }
+                    }
+                },
+                new MenuItem
+                {
+                    Name = "Thiết lập",
+                    Icon = "",
+                    Children = new List<MenuItem>
+                    {
+                        new MenuItem { Name = "Chi nhánh", Icon = "ti ti-building-store", Url = "/ChiNhanhs/QuanLyChiNhanh", Roles = new List<string> { "Admin" } },
+                        new MenuItem { Name = "Dịch vụ", Icon = "ti ti-apps", Url = "/QuanLyNhaTro/QuanLyDichVu" },
+                        new MenuItem { Name = "Điều khoản hợp đồng", Icon = "ti ti-gavel", Url = "/QuanLyNhaTro/DieuKhoanMau" },
+                        new MenuItem { Name = "Tài khoản", Icon = "ti ti-users-group", Url = "/QuanLyNhaTro/QuanLyTaiKhoanDangNhap", Roles = new List<string> { "Admin" } },
+                        new MenuItem { Name = "Phân công chi nhánh", Icon = "ti ti-sitemap", Url = "/QuanLyNhaTro/PhanCongChiNhanh", Roles = new List<string> { "Admin" } }
                     }
                 },
             };

@@ -44,4 +44,22 @@
     }
 
     window.TroFocus = { row: focusRow };
+
+    // Menu quản lý luôn mở: cuộn mục đang chọn vào tầm nhìn nếu nó nằm dưới mép khung menu.
+    function cuonMucMenuDangMo() {
+        var muc = document.querySelector('#sidebar-menu .nav-link.active');
+        if (!muc) {
+            return;
+        }
+        var khung = muc.closest('.navbar-vertical');
+        if (khung && khung.scrollHeight > khung.clientHeight) {
+            muc.scrollIntoView({ block: 'nearest' });
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', cuonMucMenuDangMo);
+    } else {
+        cuonMucMenuDangMo();
+    }
 })(window, window.jQuery);
