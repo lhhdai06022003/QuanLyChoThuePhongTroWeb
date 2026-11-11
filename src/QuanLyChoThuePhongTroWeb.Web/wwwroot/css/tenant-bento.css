@@ -18,6 +18,9 @@
 
 .tenant-bottom-nav-item {
     flex: 1;
+    /* Năm mục chia đều 375px: cho phép co dưới bề rộng chữ để thanh tab không đẩy trang rộng hơn màn hình. */
+    min-width: 0;
+    white-space: nowrap;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -25,7 +28,7 @@
     height: 100%;
     color: var(--tblr-secondary);
     text-decoration: none;
-    font-size: 0.72rem;
+    font-size: 0.6875rem;
     font-weight: 500;
     transition: color 0.15s ease, transform 0.1s ease;
     user-select: none;
