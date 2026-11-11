@@ -98,5 +98,31 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
 
             await tx.RollbackAsync();
         }
+
+        // Trang chủ khách thuê đọc hạn trả từ danh sách này: trường bằng đúng cột HanThanhToan, null khi hóa đơn không có hạn.
+        [Fact]
+        public async Task SentInvoice_ListShowsHanThanhToanUtc()
+        {
+            await using var db = _fixture.CreateDbContext();
+            await using var tx = await db.Database.BeginTransactionAsync();
+            var seeder = new DebtTestSeeder(db);
+            var branch = await seeder.BranchAsync("H");
+            var room = await seeder.RoomAsync(branch, "H");
+            var tenant = await seeder.TenantAsync("H");
+            var contract = await seeder.ContractAsync(room, tenant);
+            var coHan = await seeder.InvoiceAsync(contract, TrangThaiPhatHanhHoaDon.DaGui, TrangThaiHoaDon.ChuaThanhToan, 500_000m, Han, month: 1, year: 2026);
+            coHan.NgayGui = Han.AddDays(-7);
+            var khongHan = await seeder.InvoiceAsync(contract, TrangThaiPhatHanhHoaDon.DaGui, TrangThaiHoaDon.ChuaThanhToan, 600_000m, null, month: 2, year: 2026);
+            khongHan.NgayGui = Han.AddDays(-7);
+            await db.SaveChangesAsync();
+            var store = new HoaDonStore(db);
+
+            var list = (await store.GetInvoicesByContractIdsAsync(new[] { contract.HopDongId })).ToDictionary(x => x.HoaDonId);
+
+            Assert.Equal(Han, list[coHan.HoaDonId].HanThanhToanUtc);
+            Assert.Null(list[khongHan.HoaDonId].HanThanhToanUtc);
+
+            await tx.RollbackAsync();
+        }
     }
 }

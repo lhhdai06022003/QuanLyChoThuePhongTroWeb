@@ -36,6 +36,9 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.DTOs
         public DateTime? HanPhanHoiUtc { get; set; }
         // Giờ Việt Nam dd/MM/yyyy HH:mm; rỗng khi không có hạn.
         public string HanPhanHoiHienThi { get; set; } = string.Empty;
+        // Cột HanThanhToan của hóa đơn (UTC), chỉ đọc để hiển thị; null khi hóa đơn chưa có hạn
+        // hoặc nguồn dữ liệu không nạp cột này (hiện chỉ GetInvoicesByContractIdsAsync của cổng khách thuê điền).
+        public DateTime? HanThanhToanUtc { get; set; }
         public string NgayTao { get; set; } = string.Empty;
         public string SoDienThoai { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
