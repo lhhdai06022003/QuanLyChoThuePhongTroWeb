@@ -11,8 +11,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
     <title>@(string.IsNullOrEmpty(ViewBag.Title?.ToString()) ? "TroSync - Quản lý phòng trọ đa chi nhánh" : ViewBag.Title + " | TroSync")</title>
 
-    <!-- Google Font Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <!-- Google Font Be Vietnam Pro -->
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
     <!-- FontAwesome CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
@@ -30,6 +30,7 @@
     <link rel="manifest" href="~/manifest.json" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/trosync-tokens.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/trosync-nen.css" asp-append-version="true" />
 
     <style>
         /* Standardized SweetAlert2 custom popup */
@@ -127,6 +128,8 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         // Đồng bộ giao diện SweetAlert2 toàn hệ thống
+        // Màu nút đọc từ biến CSS ngay lúc mở hộp thoại, vì người dùng đổi sáng/tối mà không tải lại trang.
+        const mauBien = (ten) => getComputedStyle(document.documentElement).getPropertyValue(ten).trim() || undefined;
         if (typeof Swal !== 'undefined') {
             const originalFire = Swal.fire;
             // Chữ nút mặc định của SweetAlert2 là OK / Cancel; hộp thoại nào tự đặt chữ nút thì giữ nguyên.
@@ -143,10 +146,10 @@
                     
                     // Thiết lập màu sắc nút bấm đồng bộ
                     if (!options.confirmButtonColor) {
-                        options.confirmButtonColor = (options.icon === 'error' || options.icon === 'warning') ? '#d33' : '#3085d6';
+                        options.confirmButtonColor = (options.icon === 'error' || options.icon === 'warning') ? mauBien('--tblr-danger') : mauBien('--tblr-primary');
                     }
                     if (!options.cancelButtonColor) {
-                        options.cancelButtonColor = '#6c757d';
+                        options.cancelButtonColor = mauBien('--tblr-secondary');
                     }
                 }
                 return originalFire.apply(this, args);
@@ -158,7 +161,7 @@
                     icon: 'success',
                     title: 'Thành công',
                     text: msg,
-                    confirmButtonColor: '#3085d6'
+                    confirmButtonColor: mauBien('--tblr-primary')
                 });
             };
             window.showError = function(msg) {
@@ -166,7 +169,7 @@
                     icon: 'error',
                     title: 'Lỗi',
                     text: msg,
-                    confirmButtonColor: '#3085d6'
+                    confirmButtonColor: mauBien('--tblr-primary')
                 });
             };
             window.showWarning = function(msg) {
@@ -174,7 +177,7 @@
                     icon: 'warning',
                     title: 'Thông báo',
                     text: msg,
-                    confirmButtonColor: '#3085d6'
+                    confirmButtonColor: mauBien('--tblr-primary')
                 });
             };
         }
