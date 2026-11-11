@@ -1,6 +1,6 @@
 # Spec đợt 1: nền chung của giao diện mới
 
-- Trạng thái: **đang thực thi**. Ngày 11/11/2026 người dùng bảo lập kế hoạch và giao agent thực thi mà không yêu cầu sửa spec; bốn điểm ở mục 11 lấy theo đề xuất (điểm 4, ngày demo, vẫn chưa biết). Kế hoạch: [plan-dot-1-nen-chung.md](plan-dot-1-nen-chung.md)
+- Trạng thái: **đã thực thi xong trên nhánh** (11/11/2026, chưa gộp `master`). Ngày 11/11/2026 người dùng bảo lập kế hoạch và giao agent thực thi mà không yêu cầu sửa spec; bốn điểm ở mục 11 lấy theo đề xuất (điểm 4, ngày demo, vẫn chưa biết). Kế hoạch: [plan-dot-1-nen-chung.md](plan-dot-1-nen-chung.md)
 - Ngày: 11/11/2026
 - Nhánh: `feature/thiet-ke-lai-giao-dien`
 - Phạm vi: lớp vỏ của cổng quản lý và cổng khách thuê (layout, menu, header, màu, font, nút trợ lý AI). Không sửa thân của từng màn; việc đó thuộc đợt 2 đến 5.

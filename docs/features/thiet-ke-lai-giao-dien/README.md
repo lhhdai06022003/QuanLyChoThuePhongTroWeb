@@ -21,7 +21,7 @@ Mỗi đợt một spec ngắn, người dùng duyệt rồi mới làm. Đợt 
 
 | Đợt | Nội dung | Cách thực thi | Tài liệu | Trạng thái |
 | --- | --- | --- | --- | --- |
-| 1 | Nền chung: màu, font, menu, header, khung vỏ hai cổng, vị trí nút trợ lý AI | Claude lập kế hoạch; **một** agent Sonnet 5.5 (xhigh) thực thi tuần tự (các file dùng chung cho mọi màn, hai người viết sẽ đạp nhau); phiên chính chạy test tích hợp và kiểm trình duyệt | [spec](spec-dot-1-nen-chung.md), [plan](plan-dot-1-nen-chung.md) | Đang thực thi (11/11/2026) |
+| 1 | Nền chung: màu, font, menu, header, khung vỏ hai cổng, vị trí nút trợ lý AI | Claude lập kế hoạch; **một** agent Sonnet 5.5 (xhigh) thực thi tuần tự (các file dùng chung cho mọi màn, hai người viết sẽ đạp nhau); phiên chính chạy test tích hợp và kiểm trình duyệt | [spec](spec-dot-1-nen-chung.md), [plan](plan-dot-1-nen-chung.md) | Xong trên nhánh 11/11/2026 (`f4a20f6`…`cb9aaba`), chưa gộp `master`. `Web.IntegrationTests` 874/874; đã kiểm trình duyệt ba vai trò ở sáng, tối, 375px (ảnh `giao-dien-1-01…13`) |
 | 2 | Ba màn chính: bảng điều khiển chủ trọ (thanh thu tiền), bảng điều khiển nhân viên, trang chủ khách thuê; thanh tab dưới cho nhân viên, chỉnh thanh tab khách thuê | Một phiên cho hai bảng điều khiển (chung view và JS); một subagent cho trang chủ khách thuê | Chưa viết | Chưa bắt đầu |
 | 3 | Nhóm thu tiền: điện nước, hóa đơn, đối chiếu, lịch sử thanh toán, giao dịch SePay | Subagent song song, mỗi màn một subagent (file tách rời); model lớn cho hóa đơn vì view dính trạng thái và tiền | Chưa viết | Chưa bắt đầu |
 | 4 | Phòng trọ, người thuê, hợp đồng (kể cả chi tiết, thanh lý, gia hạn) | Subagent song song theo màn | Chưa viết | Chưa bắt đầu |
