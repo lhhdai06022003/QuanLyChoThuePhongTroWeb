@@ -51,7 +51,11 @@
                         <div class="d-none d-xl-block ps-2 text-start">
                             <div class="fw-bold">@User.Identity.Name</div>
                             <div class="mt-1 small text-secondary" style="font-size: 0.72rem;">
-                                @(User.IsInRole("KhachThue") ? "Người thuê" : "Quản trị viên")
+                                @(User.IsInRole("Admin") ? "Quản trị viên"
+                                    : User.IsInRole("NhanVien") ? "Nhân viên"
+                                    : User.IsInRole("KhachThue") ? "Người thuê"
+                                    : User.IsInRole("KhachVangLai") ? "Khách"
+                                    : "Người dùng")
                             </div>
                         </div>
                     </a>

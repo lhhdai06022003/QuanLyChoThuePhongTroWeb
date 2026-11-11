@@ -362,7 +362,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         public async Task ContractExpiryAlert_FirstDelivery_ShouldSendAlertAndMarkState()
         {
             // Arrange
-            var now = DateTime.UtcNow.Date;
+            var now = new DateTime(2026, 11, 5, 0, 0, 0, DateTimeKind.Utc); // cùng ngày với FixedTimeProvider của use case
             var store = new FakeHopDongStore
             {
                 Contracts = new List<HopDong>
@@ -394,7 +394,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         public async Task ContractExpiryAlert_DuplicateSuppression_ShouldSkipAlreadySent()
         {
             // Arrange
-            var now = DateTime.UtcNow.Date;
+            var now = new DateTime(2026, 11, 5, 0, 0, 0, DateTimeKind.Utc); // cùng ngày với FixedTimeProvider của use case
             var store = new FakeHopDongStore
             {
                 Contracts = new List<HopDong>
@@ -425,7 +425,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         [Fact]
         public async Task ContractExpiryAlert_FailedDelivery_ShouldNotMarkState()
         {
-            var now = DateTime.UtcNow.Date;
+            var now = new DateTime(2026, 11, 5, 0, 0, 0, DateTimeKind.Utc); // cùng ngày với FixedTimeProvider của use case
             var store = new FakeHopDongStore
             {
                 Contracts = new List<HopDong>
@@ -460,7 +460,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
                     new()
                     {
                         HopDongId = 401,
-                        ThoiDiemKetThuc = DateTime.UtcNow.Date.AddDays(30),
+                        ThoiDiemKetThuc = new DateTime(2026, 12, 5, 0, 0, 0, DateTimeKind.Utc),
                         NguoiThue = new NguoiThue { Email = "x@test.com" }
                     }
                 }
@@ -479,7 +479,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         [Fact]
         public async Task ContractExpiryAlert_WithAdminEmail_ShouldSendToAdminAndTenant()
         {
-            var now = DateTime.UtcNow.Date;
+            var now = new DateTime(2026, 11, 5, 0, 0, 0, DateTimeKind.Utc); // cùng ngày với FixedTimeProvider của use case
             var store = new FakeHopDongStore
             {
                 Contracts = new List<HopDong>
@@ -508,7 +508,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         [Fact]
         public async Task ContractExpiryAlert_CancellationPropagation_ShouldStopProcessing()
         {
-            var now = DateTime.UtcNow.Date;
+            var now = new DateTime(2026, 11, 5, 0, 0, 0, DateTimeKind.Utc); // cùng ngày với FixedTimeProvider của use case
             var store = new FakeHopDongStore
             {
                 Contracts = new List<HopDong>
@@ -648,7 +648,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         [Fact]
         public async Task ContractExpiryAlert_StateStoreThrowsOnMark_ShouldNotCountAsSent_AndNotPersistState()
         {
-            var now = DateTime.UtcNow.Date;
+            var now = new DateTime(2026, 11, 5, 0, 0, 0, DateTimeKind.Utc); // cùng ngày với FixedTimeProvider của use case
             var store = new FakeHopDongStore
             {
                 Contracts = new List<HopDong>

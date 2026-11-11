@@ -56,6 +56,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.UseCases
             var activeContracts = await _store.GetActiveExpiringContractsAsync(cancellationToken);
 
             int sentCount = 0;
+            // Lấy giờ qua TimeProvider (không đọc đồng hồ máy) để test cố định được ngày; giữ cách đếm theo ngày UTC như cũ.
+            var homNayUtc = _timeProvider.GetUtcNow().UtcDateTime.Date;
 
             foreach (var contract in activeContracts)
             {
@@ -66,7 +68,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.UseCases
 
                 if (contract.ThoiDiemKetThuc.HasValue)
                 {
-                    var daysLeft = (contract.ThoiDiemKetThuc.Value.Date - DateTime.UtcNow.Date).Days;
+                    var daysLeft = (contract.ThoiDiemKetThuc.Value.Date - homNayUtc).Days;
 
                     if (alertDays.Contains(daysLeft))
                     {

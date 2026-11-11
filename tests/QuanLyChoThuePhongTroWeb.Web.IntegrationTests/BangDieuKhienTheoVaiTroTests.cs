@@ -97,6 +97,25 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             Assert.DoesNotContain("Đối soát giao dịch SePay", staffHtml);
         }
 
+        // Header ghi đúng vai trò: nhân viên không còn bị ghi "Quản trị viên".
+        [Fact]
+        public async Task Header_GhiDungVaiTro_AdminVaNhanVien()
+        {
+            var w = await SeedAsync(_factory);
+            var (admin, _) = await LoginAsync(_factory, w.Admin);
+            var (staff, _) = await LoginAsync(_factory, w.Staff);
+
+            static string NhanVaiTro(string html)
+            {
+                var m = System.Text.RegularExpressions.Regex.Match(html, "font-size: 0\\.72rem;\">\\s*([^<]+?)\\s*</div>");
+                Assert.True(m.Success, "Không tìm thấy nhãn vai trò ở header");
+                return m.Groups[1].Value;
+            }
+
+            Assert.Equal("Quản trị viên", NhanVaiTro(await HtmlAsync(admin, Dashboard)));
+            Assert.Equal("Nhân viên", NhanVaiTro(await HtmlAsync(staff, Dashboard)));
+        }
+
         [Fact]
         public async Task ChoBanDuyet_KhongCoHd2_HienDongKhongCoViecChoDuyet_VaVanCoLoiTatSePay()
         {

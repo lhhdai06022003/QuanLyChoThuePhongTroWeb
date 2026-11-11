@@ -52,6 +52,13 @@
     min-width: 0;
 }
 
+/* Ô chọn chi nhánh co theo tên dài nhất: chặn bề rộng để không đẩy trang tràn ngang ở 375px.
+   Dùng độ dài cố định: max-width theo % bị trình duyệt điện thoại bỏ qua khi tính bề rộng tối thiểu của trang. */
+.dashboard-branch-select {
+    max-width: 18rem;
+    text-overflow: ellipsis;
+}
+
 /* Số KPI co theo bề rộng thẻ để số tiền 10 chữ số không tràn khung; quá hẹp thì "đ" xuống dòng. */
 .dashboard-kpi .card-body {
     container-type: inline-size;
