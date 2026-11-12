@@ -52,7 +52,7 @@ Kiểm trình duyệt (DB `quanlyphongtro_test`, Admin): năm màn ở 375px sá
 
 - Bảng hóa đơn ở 1366px có sidebar rộng hơn khung khi mã hóa đơn dài (dữ liệu test): có từ trước, `hoadon.css` chỉ cho cuộn ngang dưới 1200px. Chưa sửa vì cuộn ngang ở màn rộng sẽ cắt menu ⋯.
 - `DienNuoc/Index.cshtml:47,60` dùng `DateTime.UtcNow.AddHours(7)` thay `VietnamTime` (ngoài phạm vi).
-- Lượt toàn bộ `Web.IntegrationTests` (hai lần, chạy một mình): FAIL vì môi trường. Npgsql `TimeoutException: Timeout during reading attempt` trên DB test (đã phình tới khoảng 50.000 chi nhánh do mỗi lượt test seed thêm); log lỗi làm fixture dọn dẹp thất bại nên mọi test trong collection bị tính thêm một FAIL (910 test, 1681 kết quả, 773 FAIL; chỉ `ThongBaoChiNhanhTests` FAIL thật do hết thời gian). Đợt 3 không đổi file `.cs` nào trong `src`. 12 lớp liên quan chạy riêng PASS 154/154. Cần dọn hoặc tạo lại DB test rồi chạy lại toàn bộ.
+- `Web.IntegrationTests` toàn bộ: hai lượt đầu FAIL vì môi trường (DB test 23 GB, Npgsql hết thời gian chờ, fixture dọn dẹp thất bại nên mọi test bị tính thêm một FAIL). Người dùng cho dọn: xóa và tạo lại `quanlyphongtro_test` ngày 12/11/2026, chạy lại PASS 910/910 trong 3 phút 35 giây.
 - Nhóm nút "Khoảng thời gian" của Lịch sử tràn khung lọc ở khoảng 1366px (có từ trước, `LichSuThanhToan/Index.cshtml` cột `col-xl-3`).
 - Còn hex có chủ đích trong `diennuoc.css`: nền khung xem ảnh đồng hồ tối (`#1a1a1a`, dự phòng `#1d273b`) và chữ trắng trên nền thương hiệu (`#fff`); màu nước `#1d6fa5` / `#6bb7e8` theo lựa chọn của người dùng.
 - Lỗi "chỉ số mới nhỏ hơn cũ" trong thẻ điện nước căn giữa theo lớp `text-center` có sẵn của ô.
