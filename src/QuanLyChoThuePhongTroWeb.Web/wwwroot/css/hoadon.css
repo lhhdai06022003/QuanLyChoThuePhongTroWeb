@@ -67,7 +67,7 @@
 .qr-details-list {
     font-size: 0.85rem;
     line-height: 1.5;
-    background-color: var(--tblr-bg-surface-secondary, rgba(0, 0, 0, 0.02));
+    background-color: var(--tblr-bg-surface-secondary);
     border: 1px solid var(--tblr-border-color);
     border-radius: var(--tblr-border-radius, 6px);
 }
@@ -198,36 +198,14 @@
 }
 
 /* ========== Giao diện màn Hóa đơn (phạm vi .hd-page) ========== */
-/* Nền trang và màu sắc chủ đạo theo hướng A (đã chốt 30/09/2026) */
+/* Nền trang và màu chủ đạo lấy từ trosync-nen.css (xanh TroSync, tự đổi theo chế độ sáng/tối); ở đây chỉ khai báo màu chặng phát hành */
 .hd-page {
-    --tblr-body-bg: #f2f5f4;
-    --tblr-bg-surface: #ffffff;
-    --tblr-primary: #0f6b63;
-    --tblr-primary-rgb: 15, 107, 99;
-    --tblr-link-color: #0f6b63;
-    --tblr-link-color-rgb: 15, 107, 99;
     --hd-stage-off: var(--tblr-border-color);
-    --hd-stage-wait: #b45309;
+    --hd-stage-wait: var(--ts-wait);
 
-    background-color: var(--tblr-body-bg);
     min-height: calc(100vh - 8rem);
     margin: -1rem calc(var(--tblr-gutter-x, 0.75rem) * -1) -1.5rem;
     padding: 0 calc(var(--tblr-gutter-x, 0.75rem)) 2rem;
-}
-
-html[data-bs-theme="dark"] .hd-page {
-    --tblr-body-bg: #0f1615;
-    --tblr-bg-surface: #182120;
-    --tblr-primary: #3fb8ac;
-    --tblr-primary-rgb: 63, 184, 172;
-    --tblr-link-color: #3fb8ac;
-    --tblr-link-color-rgb: 63, 184, 172;
-    --hd-stage-wait: #f0a04b;
-}
-
-/* Nền trang đồng bộ với màu chủ đạo của màn Hóa đơn */
-.hd-page {
-    background-color: var(--tblr-body-bg);
 }
 
 .hd-page .card {
@@ -310,24 +288,27 @@ html[data-bs-theme="dark"] .hd-page {
     vertical-align: middle;
 }
 
-/* L3: Cột chọn tất cả cố định ≈ 44px, căn giữa */
-.hd-page .hd-table th:first-child,
-.hd-page .hd-table td:first-child {
-    width: 44px;
-    min-width: 44px;
-    max-width: 44px;
-    text-align: center;
-    padding-left: 0.5rem;
-    padding-right: 0.5rem;
-    vertical-align: middle;
-}
+/* L3 và L4 chỉ áp từ 768px: dưới mức này bảng chuyển thành thẻ (.ts-bang-the), không được đè bố cục thẻ */
+@media (min-width: 768px) {
+    /* L3: Cột chọn tất cả cố định ≈ 44px, căn giữa */
+    .hd-page .hd-table th:first-child,
+    .hd-page .hd-table td:first-child {
+        width: 44px;
+        min-width: 44px;
+        max-width: 44px;
+        text-align: center;
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+        vertical-align: middle;
+    }
 
-/* L4: Thêm khoảng cách cho icon sắp xếp của DataTables không đè lên chữ */
-.hd-page .hd-table thead th.sorting,
-.hd-page .hd-table thead th.sorting_asc,
-.hd-page .hd-table thead th.sorting_desc {
-    padding-right: 1.75rem;
-    white-space: nowrap;
+    /* L4: Thêm khoảng cách cho icon sắp xếp của DataTables không đè lên chữ */
+    .hd-page .hd-table thead th.sorting,
+    .hd-page .hd-table thead th.sorting_asc,
+    .hd-page .hd-table thead th.sorting_desc {
+        padding-right: 1.75rem;
+        white-space: nowrap;
+    }
 }
 
 /* site.css ép .table-responsive overflow: visible (để dropdown không bị cắt); màn hẹp thì cho bảng cuộn ngang */
@@ -337,15 +318,17 @@ html[data-bs-theme="dark"] .hd-page {
     }
 }
 
-/* Căn lề ô đầu và ô cuối trong table-responsive khớp lề thẻ (≥ 16px) */
-.hd-page .table-responsive .hd-table th:first-child,
-.hd-page .table-responsive .hd-table td:first-child {
-    padding-left: 1rem;
-}
+/* Căn lề ô đầu và ô cuối trong table-responsive khớp lề thẻ (≥ 16px), chỉ từ 768px */
+@media (min-width: 768px) {
+    .hd-page .table-responsive .hd-table th:first-child,
+    .hd-page .table-responsive .hd-table td:first-child {
+        padding-left: 1rem;
+    }
 
-.hd-page .table-responsive .hd-table th:last-child,
-.hd-page .table-responsive .hd-table td:last-child {
-    padding-right: 1rem;
+    .hd-page .table-responsive .hd-table th:last-child,
+    .hd-page .table-responsive .hd-table td:last-child {
+        padding-right: 1rem;
+    }
 }
 
 /* Nhãn trạng thái (chấm + chữ) không xuống dòng: tránh chấm tròn lệch khỏi chữ */
@@ -419,7 +402,6 @@ html[data-bs-theme="dark"] .hd-page {
 /* Modal styling: chuẩn Tabler, bỏ shadow-lg, padding chuẩn */
 #chiTietModal .modal-content,
 #congBoKetQuaModal .modal-content,
-#thuTienModal .modal-content,
 #previewModal .modal-content,
 #editModal .modal-content {
     background-color: var(--tblr-bg-surface);
@@ -429,7 +411,6 @@ html[data-bs-theme="dark"] .hd-page {
 
 #chiTietModal .modal-body,
 #congBoKetQuaModal .modal-body,
-#thuTienModal .modal-body,
 #previewModal .modal-body,
 #editModal .modal-body {
     padding: 1.25rem;
@@ -450,15 +431,6 @@ html[data-bs-theme="dark"] .hd-page {
 
 #chiTietModal .datagrid-content {
     font-size: 0.9375rem;
-}
-
-/* SweetAlert nút xác nhận tông màu teal của màn Hóa đơn */
-.swal2-popup .swal2-styled.swal2-confirm {
-    background-color: #0f6b63 !important;
-}
-
-html[data-bs-theme="dark"] .swal2-popup .swal2-styled.swal2-confirm {
-    background-color: #3fb8ac !important;
 }
 
 /* ========== Responsive Tối Ưu Cho Modal Chi Tiết Hóa Đơn ========== */
@@ -554,7 +526,7 @@ html[data-bs-theme="dark"] .swal2-popup .swal2-styled.swal2-confirm {
     align-items: center;
     gap: 0.75rem;
     padding: 0.625rem 0.75rem;
-    background-color: var(--tblr-bg-surface-secondary, rgba(0, 0, 0, 0.02));
+    background-color: var(--tblr-bg-surface-secondary);
     border: 1px solid var(--tblr-border-color);
     border-radius: var(--tblr-border-radius, 8px);
 }
