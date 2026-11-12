@@ -99,7 +99,7 @@
                 </div>
             </div>
 
-            <table id="hoaDonTable" class="table card-table table-vcenter table-hover w-100 hd-table">
+            <table id="hoaDonTable" class="table card-table table-vcenter table-hover w-100 hd-table ts-bang-the">
                 <thead>
                     <tr>
                         <th class="w-1 text-center align-middle" style="width: 44px; min-width: 44px;">
@@ -112,7 +112,7 @@
                         <th class="text-end">Tổng tiền (đ)</th>
                         <th>Phát hành</th>
                         <th>Thanh toán</th>
-                        <th class="w-1 text-center"><span class="visually-hidden">Thao tác</span></th>
+                        <th class="w-1 text-center" data-the-nhan=""><span class="visually-hidden">Thao tác</span></th>
                     </tr>
                 </thead>
                 <tbody></tbody>
@@ -177,7 +177,7 @@
                     <div class="table-responsive">
                         <table class="table card-table table-vcenter table-sm table-bordered" id="congBoKetQuaTable">
                             <thead>
-                                <tr class="table-light">
+                                <tr>
                                     <th>Mã HĐ</th>
                                     <th>Công bố</th>
                                     <th>Thông báo cổng</th>
@@ -903,7 +903,7 @@
                                 <td class="align-middle">${escapeHtml(item.tenNguoiThue)}</td>
                                 <td class="align-middle"><span class="status status-warning"><span class="status-dot"></span>Chưa chốt điện nước</span></td>
                                 <td class="text-center align-middle">
-                                    <a href="/QuanLyNhaTro/ChotDienNuoc" class="btn btn-xs btn-outline-warning" target="_blank"><i class="ti ti-edit me-1"></i> Chốt nhanh điện nước</a>
+                                    <a href="/QuanLyNhaTro/ChotDienNuoc" class="btn btn-sm btn-outline-warning" target="_blank"><i class="ti ti-edit me-1"></i> Chốt nhanh điện nước</a>
                                 </td>
                             </tr>
                         `);
@@ -1735,10 +1735,4 @@
 
 @section Styles {
     <link rel="stylesheet" href="~/css/hoadon.css" asp-append-version="true" />
-    <style>
-    html[data-bs-theme="dark"] .border-dashed,
-    [data-bs-theme="dark"] .border-dashed {
-        border-color: rgba(255, 255, 255, 0.15) !important;
-    }
-    </style>
 }
