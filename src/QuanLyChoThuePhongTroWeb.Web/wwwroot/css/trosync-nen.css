@@ -174,6 +174,8 @@ button.ts-bottom-nav-item {
     line-height: 1.2;
     font-variant-numeric: tabular-nums;
     color: var(--ts-ink);
+    /* Số tiền dài không bị ngắt giữa các nhóm nghìn. */
+    white-space: nowrap;
 }
 
 /* Bảng thành thẻ dưới 768px: gắn class ts-bang-the vào <table>; nhãn từng ô lấy từ data-label (site.js tự gán từ <th>). */
@@ -249,6 +251,32 @@ button.ts-bottom-nav-item {
     table.ts-bang-the tbody td:not([data-label]),
     table.ts-bang-the tbody td[data-label=""] {
         justify-content: flex-end;
+    }
+
+    /* Nội dung trong ô được co và xuống dòng, không đẩy thẻ rộng hơn màn hình. */
+    table.ts-bang-the tbody td {
+        overflow-wrap: anywhere;
+    }
+
+    table.ts-bang-the tbody td > * {
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    /* Ô có từ hai dòng con trở lên (mã GD và mã HĐ, phòng và chi nhánh...; có khối div con): nhãn ở trên, các dòng xếp dọc căn phải. */
+    table.ts-bang-the tbody td:is(:has(> div), :has(> :nth-child(2))) {
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 0.125rem;
+    }
+
+    table.ts-bang-the tbody td:is(:has(> div), :has(> :nth-child(2)))::before {
+        align-self: flex-start;
+    }
+
+    table.ts-bang-the tbody td .text-nowrap,
+    table.ts-bang-the tbody td code {
+        white-space: normal !important;
     }
 
     table.ts-bang-the tbody td:empty {

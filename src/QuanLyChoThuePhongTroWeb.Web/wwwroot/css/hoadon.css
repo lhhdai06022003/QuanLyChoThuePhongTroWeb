@@ -202,10 +202,6 @@
 .hd-page {
     --hd-stage-off: var(--tblr-border-color);
     --hd-stage-wait: var(--ts-wait);
-
-    min-height: calc(100vh - 8rem);
-    margin: -1rem calc(var(--tblr-gutter-x, 0.75rem) * -1) -1.5rem;
-    padding: 0 calc(var(--tblr-gutter-x, 0.75rem)) 2rem;
 }
 
 .hd-page .card {

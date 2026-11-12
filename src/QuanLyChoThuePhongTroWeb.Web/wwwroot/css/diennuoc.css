@@ -149,7 +149,7 @@ html[data-bs-theme="dark"] .dn-savebar {
     white-space: nowrap;
 }
 
-/* Dòng được chọn: nền nhạt và vạch teal bên trái, để thấy ngay nhóm sắp chốt */
+/* Dòng được chọn: nền nhạt và vạch màu thương hiệu bên trái, để thấy ngay nhóm sắp chốt */
 .dn-page .dn-table tbody tr.dn-selected > td {
     background-color: rgba(var(--tblr-primary-rgb), 0.07);
 }

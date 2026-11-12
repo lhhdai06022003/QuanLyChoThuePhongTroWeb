@@ -1,7 +1,7 @@
 @using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Responses
 @model LichSuThanhToanPageViewModel
 @{
-    ViewData["Title"] = "Quản lý lịch sử thanh toán";
+    ViewData["Title"] = "Lịch sử thanh toán";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
@@ -20,7 +20,7 @@
         <div class="col-12 col-lg-5">
             <div class="row row-cards">
                 <!-- Tiền đã nhận (hoặc Đã thu kỳ khi lọc theo kỳ) -->
-                <div class="col-6">
+                <div class="col-12 col-sm-6 col-lg-12">
                     <div class="card card-sm h-100">
                         <div class="card-body">
                             <div class="ts-o-so-nhan is-ok" id="statTongTitle">Tiền đã nhận</div>
@@ -30,7 +30,7 @@
                     </div>
                 </div>
                 <!-- Số giao dịch -->
-                <div class="col-6">
+                <div class="col-12 col-sm-6 col-lg-12">
                     <div class="card card-sm h-100">
                         <div class="card-body">
                             <div class="ts-o-so-nhan">Số giao dịch</div>

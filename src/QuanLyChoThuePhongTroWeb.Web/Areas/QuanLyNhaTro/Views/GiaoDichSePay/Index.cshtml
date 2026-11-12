@@ -5,6 +5,10 @@
 
 @section Styles {
     <link rel="stylesheet" href="~/css/hoadon.css" asp-append-version="true" />
+    <style>
+        /* Tên khóa cấu hình dài trong cảnh báo được xuống dòng ở 375px. */
+        .hd-page .alert code { white-space: normal; overflow-wrap: anywhere; }
+    </style>
 }
 
 @Html.AntiForgeryToken()
@@ -24,17 +28,19 @@
         @if (!Model.DaCauHinhApiToken)
         {
             <div class="alert alert-warning">
-                <i class="ti ti-key-off me-1"></i>
-                Chưa cấu hình <code>SePay:ApiToken</code>. Tạo API token trong trang quản trị SePay, thêm vào <code>appsettings.json</code>
-                mục <code>SePay:ApiToken</code> (Test mode thì đổi cả <code>SePay:ApiBaseUrl</code>) rồi khởi động lại ứng dụng.
+                <i class="ti ti-key-off me-2 flex-shrink-0"></i>
+                <div>
+                    Chưa cấu hình <code>SePay:ApiToken</code>. Tạo API token trong trang quản trị SePay, thêm vào <code>appsettings.json</code>
+                    mục <code>SePay:ApiToken</code> (Test mode thì đổi cả <code>SePay:ApiBaseUrl</code>) rồi khởi động lại ứng dụng.
+                </div>
             </div>
         }
 
         @if (Model.ChiDoiChieu)
         {
             <div class="alert alert-info">
-                <i class="ti ti-eye-check me-1"></i>
-                Chế độ chỉ đối chiếu: không ghi sổ. Kiểm giao dịch đã nhận qua webhook hiện "Đã có" rồi mới bật <code>SePay:SyncRecordEnabled</code>.
+                <i class="ti ti-eye-check me-2 flex-shrink-0"></i>
+                <div>Chế độ chỉ đối chiếu: không ghi sổ. Kiểm giao dịch đã nhận qua webhook hiện "Đã có" rồi mới bật <code>SePay:SyncRecordEnabled</code>.</div>
             </div>
         }
 

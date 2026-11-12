@@ -89,6 +89,41 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             Assert.Matches($"id=\"{id}\"[^>]*style=\"display: none;\"", View("HoaDon"));
         }
 
+        // Số chỗ ẩn bằng style mà JS bật lại bằng .toggle()/.show(); đổi sang d-none thì phần đó không bao giờ hiện.
+        [Theory]
+        [InlineData("HoaDon", "Index.cshtml", 2)]
+        [InlineData("DienNuoc", "Index.cshtml", 7)]
+        [InlineData("DienNuoc", "_AnhChiSoModal.cshtml", 15)]
+        [InlineData("DoiChieuThanhToan", "Index.cshtml", 1)]
+        public void AnBangStyle_GiuNguyenDeJsBatLai(string folder, string file, int soCho)
+        {
+            var html = Read("Areas", "QuanLyNhaTro", "Views", folder, file);
+            Assert.Equal(soCho, Regex.Matches(html, "style=\"display: none;\"").Count);
+        }
+
+        [Fact]
+        public void BangTuGhepChuoi_GhiSanNhanO()
+        {
+            // Điện nước và SePay không dùng DataTables draw.dt cho nhãn: mất data-label thì thẻ không có nhãn.
+            var dienNuoc = View("DienNuoc");
+            foreach (var nhan in new[] { "Điện mới", "Nước mới", "Điện cũ", "Nước cũ", "Người đại diện" })
+                Assert.Contains($"data-label=\"{nhan}\"", dienNuoc);
+
+            var sepay = Read("wwwroot", "js", "giao-dich-sepay.js");
+            foreach (var nhan in new[] { "Thời gian", "Số tiền", "Hóa đơn", "Trạng thái" })
+                Assert.Contains($"data-label=\"{nhan}\"", sepay);
+        }
+
+        [Fact]
+        public void HoaDonCss_OCot44pxChiApTuMayTinh()
+        {
+            // Ô đầu cố định 44px đè lên bố cục thẻ nếu áp cả dưới 768px.
+            var css = Read("wwwroot", "css", "hoadon.css");
+            var media = css.IndexOf("@media (min-width: 768px)", StringComparison.Ordinal);
+            var o44 = css.IndexOf("max-width: 44px", StringComparison.Ordinal);
+            Assert.True(media >= 0 && o44 > media, "Quy tắc ô đầu 44px phải nằm trong @media (min-width: 768px)");
+        }
+
         [Fact]
         public void DoiChieu_KhongThemMuiGioVaKhongEpMauNut()
         {
