@@ -93,14 +93,14 @@
 
         $body.html(rows.map(function (r) {
             return '<tr>' +
-                '<td class="text-nowrap">' + esc(r.thoiGian) + '</td>' +
-                '<td class="text-end text-nowrap">' + esc(vnd(r.soTien)) + '</td>' +
-                '<td>' + esc(r.noiDung) + '</td>' +
-                '<td>' + esc(r.maThamChieu) + '</td>' +
-                '<td>' + esc(r.maChuyenKhoan) + '</td>' +
-                '<td>' + invoiceCell(r) + '</td>' +
-                '<td><span class="badge ' + badgeClass(r.trangThai) + '">' + esc(r.nhanTrangThai) + '</span></td>' +
-                '<td class="text-secondary">' + esc(r.ghiChu) + '</td>' +
+                '<td class="text-nowrap" data-label="Thời gian">' + esc(r.thoiGian) + '</td>' +
+                '<td class="text-end text-nowrap" data-label="Số tiền">' + esc(vnd(r.soTien)) + '</td>' +
+                '<td data-label="Nội dung">' + esc(r.noiDung) + '</td>' +
+                '<td data-label="Mã tham chiếu">' + esc(r.maThamChieu) + '</td>' +
+                '<td data-label="Mã CK">' + esc(r.maChuyenKhoan) + '</td>' +
+                '<td data-label="Hóa đơn">' + invoiceCell(r) + '</td>' +
+                '<td data-label="Trạng thái"><span class="badge ' + badgeClass(r.trangThai) + '">' + esc(r.nhanTrangThai) + '</span></td>' +
+                '<td class="text-secondary" data-label="Ghi chú">' + esc(r.ghiChu) + '</td>' +
                 '</tr>';
         }).join(''));
     }

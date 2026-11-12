@@ -4,8 +4,6 @@
     var maTraCuu = (string)(ViewBag.MaTraCuu ?? string.Empty);
 }
 
-<link rel="stylesheet" href="~/css/diennuoc.css" asp-append-version="true" />
-<link rel="stylesheet" href="~/css/hoadon.css" asp-append-version="true" />
 @Html.AntiForgeryToken()
 
 <div class="page-body hd-page">
@@ -66,7 +64,7 @@
                     </div>
                 </div>
             </div>
-            <table id="dcTable" class="table card-table table-vcenter table-hover w-100 hd-table">
+            <table id="dcTable" class="table card-table table-vcenter table-hover w-100 hd-table ts-bang-the">
                 <thead>
                     <tr>
                         <th>Mã lượt · Hóa đơn</th>
@@ -76,7 +74,7 @@
                         <th>Mã GD khai báo</th>
                         <th>Thời gian</th>
                         <th>Trạng thái</th>
-                        <th class="w-1"></th>
+                        <th class="w-1" data-the-nhan=""></th>
                     </tr>
                 </thead>
                 <tbody></tbody>
@@ -122,17 +120,24 @@
 </div>
 
 @section Styles {
+    <link rel="stylesheet" href="~/css/diennuoc.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/hoadon.css" asp-append-version="true" />
     <style>
-        /* site.css ép .table-responsive về overflow: visible, nên bảng rộng phải tự cuộn ngang trong thẻ. */
         #dcModal .meter-viewer-stage { height: min(62vh, 560px); }
-        .dc-scroll { overflow-x: auto !important; }
+        /* site.css ép .table-responsive về overflow: visible, nên bảng rộng phải tự cuộn ngang trong thẻ (từ 768px; dưới đó bảng thành thẻ). */
+        @@media (min-width: 768px) {
+            .dc-scroll { overflow-x: auto !important; }
+        }
         /* hoadon.css ép cột đầu của .hd-table rộng 44px (cột checkbox); bảng này cột đầu chứa mã nên phải bỏ ràng buộc đó. */
         .hd-page #dcTable th:first-child,
         .hd-page #dcTable td:first-child {
             width: auto;
-            min-width: 13rem;
             max-width: none;
             text-align: left;
+        }
+        @@media (min-width: 768px) {
+            .hd-page #dcTable th:first-child,
+            .hd-page #dcTable td:first-child { min-width: 13rem; }
         }
         .dc-scroll .table { margin-bottom: 0; }
         #dcInfo .datagrid { --tblr-datagrid-padding: 0.75rem; --tblr-datagrid-item-width: 9.5rem; }

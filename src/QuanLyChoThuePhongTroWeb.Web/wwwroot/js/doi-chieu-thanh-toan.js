@@ -89,7 +89,7 @@
                 },
                 {
                     data: null, render: function (row) {
-                        return proofBadge(row.trangThai) + (row.choAdmin ? ' <span class="badge bg-orange text-white">Chờ Admin</span>' : '');
+                        return proofBadge(row.trangThai) + (row.choAdmin ? ' <span class="badge bg-orange-lt">Chờ Admin</span>' : '');
                     }
                 },
                 {
@@ -132,7 +132,7 @@
                 '<div class="card card-sm"><div class="card-body">' +
                 ' <div class="d-flex flex-wrap gap-3 align-items-center mb-2">' +
                 '  <div><div class="text-secondary small">Lượt</div><strong>' + esc(l.maYeuCau) + '</strong> <span class="badge bg-azure-lt">' + esc(l.trangThaiText) + '</span>' +
-                (l.choAdmin ? ' <span class="badge bg-orange text-white">Chờ Admin</span>' : '') + '</div>' +
+                (l.choAdmin ? ' <span class="badge bg-orange-lt">Chờ Admin</span>' : '') + '</div>' +
                 '  <div><div class="text-secondary small">Số tiền lượt</div><strong>' + vnd(l.soTien) + '</strong></div>' +
                 '  <div><div class="text-secondary small">Hóa đơn</div><strong>' + esc(d.maHoaDon) + '</strong> · ' + esc(d.tenPhong) + ' · ' + esc(d.tenKhachThue) + '</div>' +
                 '  <div><div class="text-secondary small">Còn nợ hiện tại</div><strong class="text-danger">' + vnd(d.conLai) + '</strong></div>' +
@@ -338,7 +338,11 @@
                 showCancelButton: true,
                 confirmButtonText: 'Từ chối',
                 cancelButtonText: 'Quay lại',
-                confirmButtonColor: '#d63939'
+                customClass: {
+                    confirmButton: 'btn btn-danger me-2',
+                    cancelButton: 'btn btn-secondary'
+                },
+                buttonsStyling: false
             }).then(function (r) {
                 if (!r.isConfirmed) return;
                 $.ajax({
