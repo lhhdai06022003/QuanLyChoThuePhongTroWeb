@@ -10,82 +10,64 @@
     <div class="page-header d-print-none mb-3">
         <div class="row align-items-center">
             <div class="col">
-                <h2 class="page-title text-primary fw-bold d-flex align-items-center">
-                    <i class="ti ti-history me-2"></i> Quản lý lịch sử thanh toán
-                </h2>
+                <h2 class="page-title">Lịch sử thanh toán</h2>
             </div>
         </div>
     </div>
 
-    <!-- Stat Cards Row -->
-    <div class="row row-cards mb-4">
-        <!-- Card 1: Tiền đã nhận (hoặc Đã thu kỳ khi lọc theo kỳ) -->
-        <div class="col-6 col-md-4 col-xl">
-            <div class="card shadow border-0 bg-success text-white" style="position: relative; overflow: hidden;">
-                <div class="card-body p-3">
-                    <div class="subheader text-white text-opacity-75 fw-bold mb-2" id="statTongTitle">Tiền đã nhận</div>
-                    <div class="h2 mb-0 text-white fw-bold" id="statTongDoanhThu">0 ₫</div>
-                    <div class="small text-white text-opacity-75" id="statTongChuThich">Theo ngày nhận tiền</div>
+    <!-- Thống kê: hai ô nhạt lớn + thẻ theo phương thức -->
+    <div class="row row-cards mb-3">
+        <div class="col-12 col-lg-5">
+            <div class="row row-cards">
+                <!-- Tiền đã nhận (hoặc Đã thu kỳ khi lọc theo kỳ) -->
+                <div class="col-6">
+                    <div class="card card-sm h-100">
+                        <div class="card-body">
+                            <div class="ts-o-so-nhan is-ok" id="statTongTitle">Tiền đã nhận</div>
+                            <div class="ts-o-so-gia-tri" id="statTongDoanhThu">0 ₫</div>
+                            <div class="small text-secondary" id="statTongChuThich">Theo ngày nhận tiền</div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Số giao dịch -->
+                <div class="col-6">
+                    <div class="card card-sm h-100">
+                        <div class="card-body">
+                            <div class="ts-o-so-nhan">Số giao dịch</div>
+                            <div class="ts-o-so-gia-tri" id="statTongSoGiaoDich">0</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Card 2: Số giao dịch -->
-        <div class="col-6 col-md-4 col-xl">
-            <div class="card shadow border-0 bg-primary text-white" style="position: relative; overflow: hidden;">
-                <div class="card-body p-3">
-                    <div class="subheader text-white text-opacity-75 fw-bold mb-2">Số giao dịch</div>
-                    <div class="h2 mb-0 text-white fw-bold" id="statTongSoGiaoDich">0</div>
+        <!-- Theo phương thức -->
+        <div class="col-12 col-lg-7">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h3 class="card-title">Theo phương thức</h3>
                 </div>
-            </div>
-        </div>
-
-        <!-- Card 3: Thu tiền mặt -->
-        <div class="col-6 col-md-4 col-xl">
-            <div class="card shadow border-0 bg-info text-white" style="position: relative; overflow: hidden;">
-                <div class="card-body p-3">
-                    <div class="subheader text-white text-opacity-75 fw-bold mb-2">Thu tiền mặt</div>
-                    <div class="h2 mb-0 text-white fw-bold" id="statDoanhThuTienMat">0 ₫</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Card 4: Chuyển khoản ghi tay -->
-        <div class="col-6 col-md-4 col-xl">
-            <div class="card shadow border-0 bg-indigo text-white" style="position: relative; overflow: hidden;">
-                <div class="card-body p-3">
-                    <div class="subheader text-white text-opacity-75 fw-bold mb-2">Chuyển khoản</div>
-                    <div class="h2 mb-0 text-white fw-bold" id="statDoanhThuChuyenKhoan">0 ₫</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Card 5: SePay -->
-        <div class="col-6 col-md-4 col-xl">
-            <div class="card shadow border-0 bg-azure text-white" style="position: relative; overflow: hidden;">
-                <div class="card-body p-3">
-                    <div class="subheader text-white text-opacity-75 fw-bold mb-2">SePay</div>
-                    <div class="h2 mb-0 text-white fw-bold" id="statDoanhThuSePay">0 ₫</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Card 6: VNPay -->
-        <div class="col-6 col-md-4 col-xl">
-            <div class="card shadow border-0 bg-orange text-white" style="position: relative; overflow: hidden;">
-                <div class="card-body p-3">
-                    <div class="subheader text-white text-opacity-75 fw-bold mb-2">VNPay</div>
-                    <div class="h2 mb-0 text-white fw-bold" id="statDoanhThuVnPay">0 ₫</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Card 7: Cấn trừ cọc -->
-        <div class="col-6 col-md-4 col-xl">
-            <div class="card shadow border-0 bg-teal text-white" style="position: relative; overflow: hidden;">
-                <div class="card-body p-3">
-                    <div class="subheader text-white text-opacity-75 fw-bold mb-2">Cấn trừ cọc</div>
-                    <div class="h2 mb-0 text-white fw-bold" id="statDoanhThuCanTruCoc">0 ₫</div>
+                <div class="list-group list-group-flush">
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <span><i class="ti ti-cash me-2 text-secondary"></i>Thu tiền mặt</span>
+                        <span class="fw-semibold num-tabular" id="statDoanhThuTienMat">0 ₫</span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <span><i class="ti ti-building-bank me-2 text-secondary"></i>Chuyển khoản</span>
+                        <span class="fw-semibold num-tabular" id="statDoanhThuChuyenKhoan">0 ₫</span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <span><i class="ti ti-qrcode me-2 text-secondary"></i>SePay</span>
+                        <span class="fw-semibold num-tabular" id="statDoanhThuSePay">0 ₫</span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <span><i class="ti ti-credit-card me-2 text-secondary"></i>VNPay</span>
+                        <span class="fw-semibold num-tabular" id="statDoanhThuVnPay">0 ₫</span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <span><i class="ti ti-arrows-exchange me-2 text-secondary"></i>Cấn trừ cọc</span>
+                        <span class="fw-semibold num-tabular" id="statDoanhThuCanTruCoc">0 ₫</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -159,7 +141,7 @@
                                 <button type="button" class="btn btn-outline-primary" id="btnDateWeek">Tuần này</button>
                                 <button type="button" class="btn btn-outline-primary" id="btnDateMonth">Tháng này</button>
                             </div>
-                            <input type="text" id="filterDateRange" class="form-control form-control-sm" placeholder="Tùy chỉnh..." readonly style="max-width: 200px;" />
+                            <input type="text" id="filterDateRange" class="form-control form-control-sm ls-khoang-ngay" placeholder="Tùy chỉnh..." readonly />
                         </div>
                         <div class="small text-secondary mt-1 d-none" id="ghiChuKy">Đang lọc theo kỳ, bỏ qua khoảng ngày</div>
                     </div>
@@ -171,8 +153,8 @@
             </div>
 
             <!-- Bảng dữ liệu -->
-            <div class="table-responsive" style="overflow-x: auto !important;">
-                <table id="lichSuTable" class="table card-table table-vcenter table-striped table-hover w-100">
+            <div class="table-responsive">
+                <table id="lichSuTable" class="table card-table table-vcenter table-striped table-hover w-100 ts-bang-the">
                     <thead>
                         <tr>
                             <th class="text-center" width="4%">STT</th>
@@ -183,7 +165,7 @@
                             <th class="text-center">Phương thức</th>
                             <th>Ngày thanh toán</th>
                             <th>Người thực hiện</th>
-                            <th class="text-center" style="min-width: 90px;">Thao tác</th>
+                            <th class="text-center ls-cot-thao-tac" data-the-nhan="">Thao tác</th>
                         </tr>
                     </thead>
                     <tbody></tbody>
@@ -242,11 +224,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/themes/material_blue.min.css" />
     <link rel="stylesheet" href="~/css/hoadon.css" asp-append-version="true" />
     <style>
-    html[data-bs-theme="dark"] .border-dashed,
-    [data-bs-theme="dark"] .border-dashed {
-        border-color: rgba(255, 255, 255, 0.15) !important;
-    }
-
     .avatar {
         width: 2.5rem;
         height: 2.5rem;
@@ -261,12 +238,21 @@
         transform: scale(1.15);
     }
     .btn-ghost-info:hover {
-        background-color: rgba(32, 107, 196, 0.15) !important;
+        background-color: var(--ts-brand-soft) !important;
         color: var(--tblr-info) !important;
     }
     .btn-ghost-danger:hover {
-        background-color: rgba(214, 63, 63, 0.15) !important;
+        background-color: var(--ts-bad-soft) !important;
         color: var(--tblr-danger) !important;
+    }
+
+    .ls-page .ls-khoang-ngay { max-width: 200px; }
+    @@media (max-width: 575.98px) {
+        .ls-page .ls-khoang-ngay { max-width: none; }
+    }
+    @@media (min-width: 768px) {
+        .ls-page .table-responsive { overflow-x: auto !important; }
+        .ls-page #lichSuTable th.ls-cot-thao-tac { min-width: 90px; }
     }
 </style>
 }
