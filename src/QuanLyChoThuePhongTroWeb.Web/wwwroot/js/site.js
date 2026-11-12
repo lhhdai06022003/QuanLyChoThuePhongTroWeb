@@ -132,3 +132,64 @@
         khoiTaoVo();
     }
 })(window, window.jQuery);
+
+// Bảng thành thẻ dưới 768px: gán data-label cho từng ô theo tiêu đề cột để CSS .ts-bang-the hiện nhãn.
+(function (window, $) {
+    'use strict';
+
+    // data-the-nhan trên <th> ghi đè chữ nhãn; data-the-nhan="" nghĩa là ô không có nhãn.
+    function nhan(th) {
+        if (!th) { return ''; }
+        if (th.hasAttribute('data-the-nhan')) { return th.getAttribute('data-the-nhan'); }
+        return (th.textContent || '').trim();
+    }
+
+    // headers: mảng <th> theo thứ tự cột hiển thị. Ô đã có data-label thì giữ nguyên.
+    function ganTheoTieuDe(table, headers) {
+        if (!table || !headers) { return; }
+        var dong = table.querySelectorAll('tbody tr');
+        for (var r = 0; r < dong.length; r++) {
+            var o = dong[r].children;
+            var i = 0;
+            for (var c = 0; c < o.length; c++) {
+                var td = o[c];
+                if (td.tagName !== 'TD') { continue; }
+                var gop = parseInt(td.getAttribute('colspan'), 10);
+                if (gop > 1) { i += gop; continue; }
+                if (!td.hasAttribute('data-label')) {
+                    td.setAttribute('data-label', nhan(headers[i]));
+                }
+                i++;
+            }
+        }
+    }
+
+    // Bảng thường: lấy hàng cuối của thead; hàng có th gộp cột thì bỏ qua (bảng tự ghi data-label).
+    function gan(table) {
+        if (!table || !table.classList || !table.classList.contains('ts-bang-the')) { return; }
+        var hangTieuDe = table.querySelectorAll('thead tr');
+        if (!hangTieuDe.length) { return; }
+        var hang = hangTieuDe[hangTieuDe.length - 1];
+        var headers = [];
+        for (var k = 0; k < hang.children.length; k++) {
+            var th = hang.children[k];
+            if (th.tagName !== 'TH' && th.tagName !== 'TD') { continue; }
+            if (parseInt(th.getAttribute('colspan'), 10) > 1) { return; }
+            headers.push(th);
+        }
+        ganTheoTieuDe(table, headers);
+    }
+
+    window.TroBangThe = { gan: gan };
+
+    // Bảng DataTables vẽ lại sau mỗi lần đổi trang/lọc/sắp xếp: gán lại theo cột đang hiển thị.
+    if ($ && $.fn && $.fn.dataTable) {
+        $(document).on('draw.dt', function (e, settings) {
+            var table = e.target;
+            if (!table || !table.classList || !table.classList.contains('ts-bang-the')) { return; }
+            var api = new $.fn.dataTable.Api(settings);
+            var headers = api.columns(':visible').header().toArray();
+            ganTheoTieuDe(table, headers);
+        });
+    }
+})(window, window.jQuery);
