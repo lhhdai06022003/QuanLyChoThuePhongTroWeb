@@ -42,10 +42,13 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             return WebUtility.HtmlDecode(await res.Content.ReadAsStringAsync());
         }
 
-        // Đoạn thanh tab: từ thẻ mở nav tới </nav> kế tiếp.
+        // Đoạn thanh tab: từ thẻ mở nav tới </nav> kế tiếp. _Layout.cshtml có CSS cô lập nên Razor chèn thuộc tính
+        // dạng b-xxxxxxxxxx ngay sau tên thẻ (<nav b-xxx class="...">): dò bằng regex thay vì chuỗi cố định.
         private static string DoanThanhTab(string html, string moDau)
         {
-            var batDau = html.IndexOf(moDau, StringComparison.Ordinal);
+            var lop = moDau.Replace("<nav class=\"", string.Empty);
+            var m = Regex.Match(html, "<nav(?:\\s+b-[a-z0-9]+)?\\s+class=\"" + Regex.Escape(lop));
+            var batDau = m.Success ? m.Index : -1;
             Assert.True(batDau >= 0, $"Trang không có thanh tab ({moDau})");
             var ketThuc = html.IndexOf("</nav>", batDau, StringComparison.Ordinal);
             Assert.True(ketThuc > batDau, "Không thấy thẻ đóng nav của thanh tab");
