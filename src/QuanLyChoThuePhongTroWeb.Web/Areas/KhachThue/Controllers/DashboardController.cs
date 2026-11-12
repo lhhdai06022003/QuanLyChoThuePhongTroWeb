@@ -15,7 +15,8 @@ public class DashboardController(
     INguoiThueService nguoiThueService,
     IHoaDonService hoaDonService,
     IViewingRequestService viewingRequests,
-    IReservationService reservations) : Controller
+    IReservationService reservations,
+    TimeProvider timeProvider) : Controller
 {
     public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {
@@ -38,10 +39,27 @@ public class DashboardController(
             if (model.HasTenantProfile)
             {
                 var invoices = await hoaDonService.GetHoaDonsByNguoiThueIdAsync(tenantId);
-                model.OutstandingInvoiceAmount = invoices
+                var outstanding = invoices
                     .Where(h => h.TrangThaiPhatHanhValue == 3 &&
                         h.TrangThaiHoaDonValue != (int)AppTrangThaiHoaDon.DaThanhToan)
-                    .Sum(h => h.ConLai);
+                    .ToList();
+                model.OutstandingInvoiceAmount = outstanding.Sum(h => h.ConLai);
+                // Số hóa đơn và hạn sớm nhất chỉ tính hóa đơn còn nợ thật (ConLai > 0); tổng tiền giữ cách tính cũ.
+                var conNo = outstanding.Where(h => h.ConLai > 0).ToList();
+                model.OutstandingInvoiceCount = conNo.Count;
+                model.NearestDueUtc = conNo
+                    .Where(h => h.HanThanhToanUtc.HasValue)
+                    .Select(h => h.HanThanhToanUtc)
+                    .Min();
+                if (model.NearestDueUtc.HasValue)
+                {
+                    // So theo ngày Việt Nam (UTC+7) để "còn n ngày" không lệch ngày; quá hạn khi đã qua thời điểm hạn.
+                    var nowUtc = timeProvider.GetUtcNow().UtcDateTime;
+                    var homNayVn = nowUtc.AddHours(7).Date;
+                    var ngayHanVn = model.NearestDueUtc.Value.AddHours(7).Date;
+                    model.NearestDueOverdue = model.NearestDueUtc.Value < nowUtc;
+                    model.NearestDueDays = Math.Abs((ngayHanVn - homNayVn).Days);
+                }
             }
         }
 
