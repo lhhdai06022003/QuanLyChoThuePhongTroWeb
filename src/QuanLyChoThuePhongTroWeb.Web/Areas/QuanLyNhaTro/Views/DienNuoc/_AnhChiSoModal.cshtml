@@ -127,8 +127,8 @@
                                     <div class="text-secondary small mb-2" id="canhBaoBatThuongLoi" role="status" style="display: none;"></div>
                                     <div class="mb-2" id="wrapGhiChuXacNhan">
                                         <label class="form-label small mb-1" id="lblGhiChuXacNhan">
-                                            Ghi chú xác nhận <span id="lblBatBuocLyDo" class="text-danger small font-weight-normal">(bắt buộc vì ảnh không đọc được)</span>
-                                            <span id="lblBatBuocBatThuong" class="text-danger small font-weight-normal" style="display: none;">(bắt buộc vì chỉ số bất thường)</span>
+                                            Ghi chú xác nhận <span id="lblBatBuocLyDo" class="text-danger small fw-normal">(bắt buộc vì ảnh không đọc được)</span>
+                                            <span id="lblBatBuocBatThuong" class="text-danger small fw-normal" style="display: none;">(bắt buộc vì chỉ số bất thường)</span>
                                         </label>
                                         <input type="text" class="form-control form-control-sm" id="inGhiChuXacNhan" placeholder="Nhập lý do / ghi chú..." maxlength="500" />
                                     </div>
@@ -231,8 +231,8 @@
             1: 'bg-info text-white',
             2: 'bg-primary text-white',
             3: 'bg-danger text-white',
-            4: 'bg-warning text-dark',
-            5: 'bg-warning text-dark',
+            4: 'bg-warning-lt',
+            5: 'bg-warning-lt',
             6: 'bg-success text-white',
             7: 'bg-dark text-white'
         };
@@ -408,11 +408,11 @@
                     </div>
                     <div class="col-6">
                         <span class="text-secondary">Nguồn gửi:</span>
-                        <div class="font-weight-medium">${escapeHtml(img.nguonGui || '—')}</div>
+                        <div class="fw-medium">${escapeHtml(img.nguonGui || '—')}</div>
                     </div>
                     <div class="col-12">
                         <span class="text-secondary">Thời điểm gửi:</span>
-                        <div class="font-weight-medium">${escapeHtml(img.ngayGui)}</div>
+                        <div class="fw-medium">${escapeHtml(img.ngayGui)}</div>
                     </div>
                 </div>
             `;

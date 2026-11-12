@@ -2,8 +2,9 @@
     ViewData["Title"] = "Chỉ số điện nước";
 }
 
-<link rel="stylesheet" href="~/css/diennuoc.css" asp-append-version="true" />
-
+@section Styles {
+    <link rel="stylesheet" href="~/css/diennuoc.css" asp-append-version="true" />
+}
 
 <div class="page-body dn-page">
     <div class="container-xl">
@@ -79,7 +80,7 @@
 
             <div id="tableContainer" style="display: none;">
                 <div class="table-responsive">
-                    <table class="table card-table table-vcenter text-nowrap w-100 dn-table" id="dienNuocTable">
+                    <table class="table card-table table-vcenter text-nowrap w-100 dn-table ts-bang-the" id="dienNuocTable">
                         <thead>
                             <tr>
                                 <th class="text-center dn-col-check">
@@ -344,33 +345,33 @@
 
                 return `
                     <tr data-index="${index}" data-phong-tro-id="${item.phongTroId}" class="${rowClass}">
-                        <td class="text-center align-middle dn-col-check">
+                        <td data-label="" class="text-center align-middle dn-col-check dn-o-chon">
                             <input type="checkbox" class="form-check-input m-0 dn-select" aria-label="Chọn phòng ${escapeHtml(item.tenPhong)}" ${disabledAttr}>
                         </td>
-                        <td class="text-center align-middle">${index + 1}</td>
-                        <td class="align-middle fw-medium">${escapeHtml(item.tenPhong)}</td>
-                        <td class="align-middle">${escapeHtml(item.tenNguoiDaiDien)}</td>
-                        <td class="text-center align-middle diennuoc-input-td">
+                        <td data-label="STT" class="text-center align-middle dn-o-stt">${index + 1}</td>
+                        <td data-label="Phòng" class="align-middle fw-medium dn-o-phong">${escapeHtml(item.tenPhong)}</td>
+                        <td data-label="Người đại diện" class="align-middle dn-o-nguoi">${escapeHtml(item.tenNguoiDaiDien)}</td>
+                        <td data-label="Điện cũ" class="text-center align-middle diennuoc-input-td dn-o-dien-cu">
                             <input type="number" class="form-control text-center dn-old in-dien-cu" tabindex="-1" value="${item.chiSoDienCu}" readonly>
                         </td>
-                        <td class="text-center align-middle diennuoc-input-td">
+                        <td data-label="Điện mới" class="text-center align-middle diennuoc-input-td dn-o-dien-moi">
                             <input type="number" class="form-control text-center in-dien-moi" value="${defaultDienMoi}" min="0" ${disabledAttr}>
                             <div class="dn-delta">${deltaText(item.chiSoDienCu, defaultDienMoi, 'kWh')}</div>
                             <div class="dn-anomaly dn-anomaly-dien text-warning small" style="display: none;"></div>
                             <div class="invalid-feedback text-center small" style="display: none;">Mới phải ≥ cũ</div>
                         </td>
-                        <td class="text-center align-middle diennuoc-input-td">
+                        <td data-label="Nước cũ" class="text-center align-middle diennuoc-input-td dn-o-nuoc-cu">
                             <input type="number" class="form-control text-center dn-old in-nuoc-cu" tabindex="-1" value="${item.chiSoNuocCu}" readonly>
                         </td>
-                        <td class="text-center align-middle diennuoc-input-td">
+                        <td data-label="Nước mới" class="text-center align-middle diennuoc-input-td dn-o-nuoc-moi">
                             <input type="number" class="form-control text-center in-nuoc-moi" value="${defaultNuocMoi}" min="0" ${disabledAttr}>
                             <div class="dn-delta">${deltaText(item.chiSoNuocCu, defaultNuocMoi, 'm³')}</div>
                             <div class="dn-anomaly dn-anomaly-nuoc text-warning small" style="display: none;"></div>
                             <div class="invalid-feedback text-center small" style="display: none;">Mới phải ≥ cũ</div>
                         </td>
-                        <td class="text-center align-middle">${anhBtn}</td>
-                        <td class="text-center align-middle">${statusBadge}</td>
-                        <td class="text-center align-middle dn-col-action">${actionCell}</td>
+                        <td data-label="" class="text-center align-middle dn-o-anh">${anhBtn}</td>
+                        <td data-label="" class="text-center align-middle dn-o-trang-thai">${statusBadge}</td>
+                        <td data-label="" class="text-center align-middle dn-col-action dn-o-thao-tac">${actionCell}</td>
                     </tr>
                 `;
             }
