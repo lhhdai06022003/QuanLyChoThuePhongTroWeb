@@ -1,14 +1,12 @@
 @{
-    ViewData["Title"] = "Sơ Đồ Phòng Trọ";
+    ViewData["Title"] = "Sơ đồ phòng";
 }
 
 <div class="page-header d-print-none">
     <div class="container-xl">
         <div class="row g-2 align-items-center">
             <div class="col">
-                <h2 class="page-title text-primary fw-bold d-flex align-items-center m-0">
-                    <i class="ti ti-layout-dashboard me-2"></i> Sơ Đồ Phòng Trọ
-                </h2>
+                <h2 class="page-title m-0">Sơ đồ phòng</h2>
             </div>
         </div>
     </div>
@@ -84,7 +82,7 @@
         <div class="card card-default mb-3">
             <div class="card-body py-3">
                 <div class="d-flex flex-wrap align-items-center">
-                    <div class="mr-3 mb-2" style="min-width:200px;">
+                    <div class="me-3 mb-2" style="min-width:200px;">
                         <select id="filterChiNhanh" class="form-control form-control-sm">
                             <option value="0">-- Tất cả Chi nhánh --</option>
                             @if (ViewBag.ChiNhanhs != null)
@@ -131,7 +129,7 @@
             </div>
             <div class="modal-body" id="roomDetailBody"></div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i> Đóng</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
             </div>
         </div>
     </div>
@@ -277,7 +275,7 @@
                         </div>
                 `;
                 if (r.ngayHetHan) {
-                    let ngay = new Date(r.ngayHetHan).toLocaleDateString('vi-VN');
+                    let ngay = new Date(r.ngayHetHan).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', day: '2-digit', month: '2-digit', year: 'numeric' });
                     html += `
                         <div class="datagrid-item">
                             <div class="datagrid-title">Hết hạn HĐ</div>
@@ -352,39 +350,39 @@
 
     /* Trạng thái phòng */
     .room-trong {
-        background-color: var(--tblr-success-lt, #e8f5e9);
-        border-color: var(--tblr-success);
+        background-color: var(--ts-ok-soft);
+        border-color: var(--ts-ok);
     }
-    .room-trong::before { background: var(--tblr-success); }
+    .room-trong::before { background: var(--ts-ok); }
 
     .room-dathue {
-        background-color: var(--tblr-danger-lt, #ffebee);
-        border-color: var(--tblr-danger);
+        background-color: var(--ts-bad-soft);
+        border-color: var(--ts-bad);
     }
-    .room-dathue::before { background: var(--tblr-danger); }
+    .room-dathue::before { background: var(--ts-bad); }
 
     .room-baotri {
-        background-color: var(--tblr-warning-lt, #fff8e1);
-        border-color: var(--tblr-warning);
+        background-color: var(--ts-wait-soft);
+        border-color: var(--ts-wait);
     }
-    .room-baotri::before { background: var(--tblr-warning); }
+    .room-baotri::before { background: var(--ts-wait); }
 
     .room-number {
         font-size: 1.3rem;
         font-weight: 700;
-        color: var(--tblr-body-color, #333);
+        color: var(--ts-ink);
         margin-bottom: 4px;
     }
 
     .room-price {
         font-size: 0.85rem;
         font-weight: 600;
-        color: var(--tblr-muted, #555);
+        color: var(--ts-ink-muted);
     }
 
     .room-tenant {
         font-size: 0.8rem;
-        color: var(--tblr-muted, #666);
+        color: var(--ts-ink-muted);
         margin-top: 6px;
         white-space: nowrap;
         overflow: hidden;
@@ -393,7 +391,7 @@
 
     .room-meta {
         font-size: 0.75rem;
-        color: var(--tblr-muted, #888);
+        color: var(--ts-ink-muted);
         margin-top: 2px;
     }
 
@@ -412,18 +410,18 @@
         align-items: center;
         justify-content: center;
         font-size: 13px;
-        color: #fff;
+        color: white;
         animation: pulse-badge 2s infinite;
     }
 
     .badge-debt {
-        background: var(--tblr-danger);
-        box-shadow: 0 0 8px rgba(var(--tblr-danger-rgb, 229, 57, 53), 0.5);
+        background: var(--ts-bad);
+        box-shadow: 0 0 8px rgba(var(--tblr-danger-rgb), 0.5);
     }
 
     .badge-expiring {
-        background: var(--tblr-warning);
-        box-shadow: 0 0 8px rgba(var(--tblr-warning-rgb, 255, 152, 0), 0.5);
+        background: var(--ts-wait);
+        box-shadow: 0 0 8px rgba(var(--tblr-warning-rgb), 0.5);
     }
 
     @@keyframes pulse-badge {
@@ -438,10 +436,8 @@
         margin-right: 6px;
     }
 
-    .dot-trong { background: var(--tblr-success); }
-    .dot-dathue { background: var(--tblr-danger); }
-    .dot-baotri { background: var(--tblr-warning); }
-
-
+    .dot-trong { background: var(--ts-ok); }
+    .dot-dathue { background: var(--ts-bad); }
+    .dot-baotri { background: var(--ts-wait); }
 </style>
 }
