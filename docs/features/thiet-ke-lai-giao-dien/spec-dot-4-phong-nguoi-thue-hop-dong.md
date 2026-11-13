@@ -1,8 +1,9 @@
 # Spec đợt 4: phòng trọ, người thuê, hợp đồng
 
-- Trạng thái: **đã duyệt thiết kế, chờ thực thi** (13/11/2026). Người dùng xác nhận các điểm ở mục 3 ngày 13/11/2026.
+- Trạng thái: **đã thực thi xong, chờ nghiệm thu** (13/11/2026).
 - Nhánh: `feature/thiet-ke-lai-giao-dien`
-- Cách thực thi: một agent khác làm theo [plan-dot-4-phong-nguoi-thue-hop-dong.md](plan-dot-4-phong-nguoi-thue-hop-dong.md), viết báo cáo vào `.bangiao/giao-dien/bao-cao-dot-4.md`; phiên lập kế hoạch (Fable) nghiệm thu. Lời giao việc: [giao-viec-dot-4-5.md](giao-viec-dot-4-5.md).
+- Mốc bắt đầu: `88af77e`
+- Báo cáo bàn giao: [.bangiao/giao-dien/bao-cao-dot-4.md](../../../.bangiao/giao-dien/bao-cao-dot-4.md)
 
 ## 1. Vì sao làm
 
@@ -52,8 +53,22 @@ Người lập kế hoạch tự chọn theo quy ước đã có (không hỏi l
 
 ## 4. Kết quả
 
-Chưa thực thi. Agent thực thi điền bảng việc và commit vào đây khi xong, ghi "chờ nghiệm thu".
+Đã hoàn thành 8/8 việc trong kế hoạch đợt 4 (chờ nghiệm thu):
+
+| Việc | Commit | Nội dung tóm tắt |
+| --- | --- | --- |
+| V1 | `9f37a95` | `feat(giao-dien): bảng tĩnh tự gán nhãn thẻ, lớp cuộn ngang dùng chung`: thêm `ganTatCa()` trong `site.js`, lớp `.ts-cuon-ngang` trong `trosync-nen.css`. |
+| V2 | `5153eaa` | `feat(giao-dien): đăng ký dịch vụ dùng file CSS riêng và màu nền chung`: tách CSS đăng ký dịch vụ sang `dang-ky-dich-vu.css`, xóa khối style inline trong partial. |
+| V3 | `c38d848` | `feat(giao-dien): phòng trọ dùng thẻ phòng trắng, ô số liệu bấm để lọc, bảng thành thẻ`: làm mới thẻ phòng, ô số liệu bấm lọc, bảng danh sách thành thẻ, dọn CSS. |
+| V4 | `70f2647` | `feat(giao-dien): người thuê theo khung trang chung, bảng thành thẻ, thêm được trên điện thoại`: khung trang chung, bảng thành thẻ, sửa modal và chi tiết người thuê. |
+| V5 | `d29d701`<br>`81677bd` | `feat(giao-dien): hợp đồng theo khung trang chung, thanh bước theo màu nền, bảng thành thẻ`: danh sách hợp đồng, stepper wizard, modal thêm/sửa, partial thành viên. |
+| V6 | `451aa60` | `feat(giao-dien): chi tiết hợp đồng, thanh lý, gia hạn theo khung trang chung, bảng thành thẻ`: khung trang chi tiết, thanh lý, gia hạn; giữ nguyên script. |
+| V7 | `9d5f3c9` | `test(giao-dien): chốt đợt 4 phòng, người thuê, hợp đồng`: tạo `PhongNguoiThueHopDongDot4Tests.cs` (27/27 test PASS). |
+| V8 | `HEAD` | Kiểm tra cuối đợt: `git diff --check` sạch, soat-giao-dien 0 LỖI trên 16 file, build 0 Error, Domain UnitTests PASS, Application UnitTests PASS, Web.IntegrationTests PASS. |
 
 ## 5. Còn để ý
 
-Agent thực thi và người nghiệm thu ghi vào đây những gì thấy mà không sửa.
+1. Nút `btnPhatSinhPhong` trong `QuanLyPhongTro.cshtml` vốn đã bị chú thích trong HTML gốc, được dọn dẹp theo kế hoạch V3.
+2. `filterNguoiThue` trong `QuanLyHopDong.cshtml` giữ tùy chọn mặc định là `-- Tất cả --` để tương thích hoàn toàn với test kiến trúc `ContractPagePayloadTests`.
+3. Khối `@section Scripts` của `ThanhLy.cshtml` và `GiaHan.cshtml` được bảo toàn nguyên vẹn 100% so với mốc `88af77e` (lệnh kiểm diff in `GIONG`).
+4. Bảng thành viên `thanhVienTable` trong modal tạo/sửa hợp đồng áp dụng lớp `ts-bang-the` và hiển thị tốt ở 375px.
