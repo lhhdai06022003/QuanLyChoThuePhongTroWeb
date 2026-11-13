@@ -1,24 +1,22 @@
 <div class="card shadow-none border-0 mb-0 bg-transparent">
     <div class="card-header d-flex justify-content-between align-items-center bg-transparent p-0 mb-3 border-0">
-        <h3 class="card-title fw-bold m-0">
-            <i class="ti ti-list me-2 text-info"></i> Danh sách thành viên trong phòng
-        </h3>
-        <button type="button" class="btn btn-sm btn-success ms-auto shadow-sm" id="btnOpenAddMemberModal">
+        <h3 class="card-title m-0">Danh sách thành viên trong phòng</h3>
+        <button type="button" class="btn btn-sm btn-primary ms-auto" id="btnOpenAddMemberModal">
             <i class="ti ti-user-plus me-1"></i> Thêm thành viên
         </button>
     </div>
     <div class="table-responsive">
-        <table class="table card-table table-vcenter table-striped table-hover w-100" id="thanhVienTable">
+        <table class="table card-table table-vcenter table-hover w-100 ts-bang-the" id="thanhVienTable">
             <thead>
                 <tr>
-                    <th width="5%" class="text-center">STT</th>
-                    <th>Họ và Tên</th>
-                    <th>Số ĐT</th>
+                    <th class="w-1 text-center">STT</th>
+                    <th>Họ và tên</th>
+                    <th>Số điện thoại</th>
                     <th>CCCD</th>
-                    <th>Ngày Vào</th>
-                    <th>Ngày Rời</th>
-                    <th class="text-center">Trạng Thái</th>
-                    <th class="text-center" width="15%">Thao tác</th>
+                    <th>Ngày vào</th>
+                    <th>Ngày rời</th>
+                    <th class="text-center">Trạng thái</th>
+                    <th class="w-1 text-center" data-the-nhan=""><span class="visually-hidden">Thao tác</span></th>
                 </tr>
             </thead>
             <tbody id="thanhVienTbody">
@@ -33,11 +31,9 @@
 <!-- Modal Thêm Thành Viên -->
 <div class="modal modal-blur fade" id="addMemberModal" tabindex="-1" role="dialog" aria-hidden="true" style="z-index: 1060;">
     <div class="modal-dialog modal-dialog-centered" role="document">
-        <div class="modal-content shadow-lg border-0">
-            <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title fw-bold text-success fs-3">
-                    <i class="ti ti-user-plus me-2"></i> Thêm thành viên ở ghép
-                </h5>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitleMember">Thêm thành viên ở ghép</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
             </div>
             <div class="modal-body py-3">
@@ -46,9 +42,9 @@
                     <input type="hidden" id="addMember_NguoiThueId" value="" />
 
                     <!-- Khu vực tìm kiếm khách hàng cũ -->
-                    <div class="bg-muted-lt p-3 rounded-3 border border-dashed mb-3">
+                    <div class="bg-surface-secondary p-3 rounded-3 border mb-3">
                         <label class="form-label fw-bold text-secondary mb-2">
-                            <i class="ti ti-search me-1"></i> Tìm khách thuê có sẵn (Gõ Tên, SĐT hoặc CCCD)
+                            <i class="ti ti-search me-1"></i> Tìm khách thuê có sẵn (Gõ tên, SĐT hoặc CCCD)
                         </label>
                         <div class="row g-2">
                             <div class="col">
@@ -75,7 +71,7 @@
 
                     <div id="newMemberFields">
                         <div class="mb-3">
-                            <label class="form-label required fw-bold">Họ và Tên <span class="text-danger">*</span></label>
+                            <label class="form-label required fw-bold" for="addMember_HoVaTen">Họ và Tên <span class="text-danger">*</span></label>
                             <div class="input-icon">
                                 <span class="input-icon-addon">
                                     <i class="ti ti-user text-muted"></i>
@@ -87,7 +83,7 @@
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label class="form-label required fw-bold">Số điện thoại <span class="text-danger">*</span></label>
+                                    <label class="form-label required fw-bold" for="addMember_SoDienThoai">Số điện thoại <span class="text-danger">*</span></label>
                                     <div class="input-icon">
                                         <span class="input-icon-addon">
                                             <i class="ti ti-phone text-muted"></i>
@@ -98,7 +94,7 @@
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label class="form-label required fw-bold">CCCD/CMND <span class="text-danger">*</span></label>
+                                    <label class="form-label required fw-bold" for="addMember_CCCD">CCCD/CMND <span class="text-danger">*</span></label>
                                     <div class="input-icon">
                                         <span class="input-icon-addon">
                                             <i class="ti ti-id text-muted"></i>
@@ -111,7 +107,7 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label required fw-bold">Ngày bắt đầu ở <span class="text-danger">*</span></label>
+                        <label class="form-label required fw-bold" for="addMember_NgayVao">Ngày bắt đầu ở <span class="text-danger">*</span></label>
                         <div class="input-icon">
                             <span class="input-icon-addon">
                                 <i class="ti ti-calendar text-muted"></i>
@@ -121,11 +117,9 @@
                     </div>
                 </form>
             </div>
-            <div class="modal-footer border-0 pt-0">
-                <button type="button" class="btn btn-danger me-2 shadow-sm" data-bs-dismiss="modal">
-                    <i class="ti ti-x me-1"></i> Đóng
-                </button>
-                <button type="button" class="btn btn-success shadow-sm fw-bold" id="btnSaveMember">
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-primary" id="btnSaveMember">
                     <i class="ti ti-plus me-1"></i> Thêm dữ liệu
                 </button>
             </div>

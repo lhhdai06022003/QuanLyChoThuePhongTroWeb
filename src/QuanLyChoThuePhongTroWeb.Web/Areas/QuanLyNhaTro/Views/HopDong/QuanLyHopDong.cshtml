@@ -1,7 +1,6 @@
-
 @using QuanLyChoThuePhongTroWeb.Models
 @{
-    ViewData["Title"] = "Quản lý Hợp Đồng";
+    ViewData["Title"] = "Hợp đồng";
     // Ép kiểu dữ liệu ViewBag sang JSON để xài trong Javascript với CamelCase
     var jsonPhongTros = Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.ListPhongTro, new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }));
 }
@@ -11,30 +10,28 @@
     <div class="page-header d-print-none mb-3">
         <div class="row align-items-center">
             <div class="col">
-                <h2 class="page-title text-primary fw-bold d-flex align-items-center">
-                    <i class="ti ti-file-text me-2"></i> Quản lý Hợp Đồng
-                </h2>
+                <h2 class="page-title">Hợp đồng</h2>
             </div>
             <div class="col-auto ms-auto">
-                <button type="button" class="btn btn-success fw-bold shadow-sm" id="btnOpenAddModal">
-                    <i class="ti ti-circle-plus me-1"></i> Tạo Hợp Đồng Mới
+                <button type="button" class="btn btn-primary" id="btnOpenAddModal">
+                    <i class="ti ti-plus me-1"></i> Tạo hợp đồng
                 </button>
             </div>
         </div>
     </div>
 
     <!-- Card quản lý & danh sách hợp đồng -->
-    <div class="card border-0 shadow-sm mb-5">
-        <div class="card-body p-4">
+    <div class="card mb-5">
+        <div class="card-body">
             <!-- Khu vực Bộ lọc dạng hàng ngang -->
-            <div class="bg-light p-3 border border-dashed rounded-3 mb-4">
+            <div class="p-3 rounded-3 mb-4 bg-surface-secondary border">
                 <div class="row g-3 align-items-end">
-                    <div class="col-md-3">
-                        <label for="filterChiNhanh" class="form-label fw-bold text-secondary mb-1">
-                            <i class="ti ti-building me-1"></i> Chi Nhánh
+                    <div class="col-12 col-sm-6 col-lg">
+                        <label for="filterChiNhanh" class="form-label mb-1">
+                            <i class="ti ti-building me-1"></i> Chi nhánh
                         </label>
                         <select id="filterChiNhanh" class="form-select form-select-sm">
-                            <option value="0">-- Tất cả --</option>
+                            <option value="0">Tất cả</option>
                             @if (ViewBag.ListChiNhanh != null)
                             {
                                 foreach (var cn in ViewBag.ListChiNhanh)
@@ -44,38 +41,38 @@
                             }
                         </select>
                     </div>
-                    <div class="col-md-3">
-                        <label for="filterNguoiThue" class="form-label fw-bold text-secondary mb-1">
-                            <i class="ti ti-user me-1"></i> Người Thuê
+                    <div class="col-12 col-sm-6 col-lg">
+                        <label for="filterNguoiThue" class="form-label mb-1">
+                            <i class="ti ti-user me-1"></i> Người thuê
                         </label>
                         @* Người thuê đổ từ khối JSON allNguoiThues trong script (in một lần cho cả hai ô chọn). *@
                         <select id="filterNguoiThue" class="form-select form-select-sm">
-                            <option value="0">-- Tất cả --</option>
+                            <option value="0">Tất cả</option>
                         </select>
                     </div>
-                    <div class="col-md-3">
-                        <label for="filterDateRange" class="form-label fw-bold text-secondary mb-1">
+                    <div class="col-12 col-sm-6 col-lg">
+                        <label for="filterDateRange" class="form-label mb-1">
                             <i class="ti ti-calendar me-1"></i> Thời hạn hợp đồng
                         </label>
                         <input type="text" class="form-control form-control-sm" id="filterDateRange" placeholder="Chọn khoảng thời gian...">
                     </div>
-                    <div class="col-md-3">
-                        <label for="filterTrangThai" class="form-label fw-bold text-secondary mb-1">
+                    <div class="col-12 col-sm-6 col-lg">
+                        <label for="filterTrangThai" class="form-label mb-1">
                             <i class="ti ti-info-circle me-1"></i> Trạng thái
                         </label>
                         <select id="filterTrangThai" class="form-select form-select-sm">
-                            <option value="0">-- Tất cả --</option>
+                            <option value="0">Tất cả</option>
                             <option value="1">Đang hoạt động</option>
                             <option value="2">Đã kết thúc</option>
                             <option value="3">Đã hủy</option>
                         </select>
                     </div>
-                    <div class="col-md-3">
-                        <label for="filterBoLoc" class="form-label fw-bold text-secondary mb-1">
+                    <div class="col-12 col-sm-6 col-lg">
+                        <label for="filterBoLoc" class="form-label mb-1">
                             <i class="ti ti-filter me-1"></i> Bộ lọc nhanh
                         </label>
                         <select id="filterBoLoc" class="form-select form-select-sm">
-                            <option value="">-- Tất cả --</option>
+                            <option value="">Tất cả</option>
                             <option value="QuaHan">Quá hạn chưa xử lý</option>
                             <option value="SapHetHan">Sắp hết hạn (30 ngày)</option>
                             <option value="GiaHan">Gia hạn</option>
@@ -85,18 +82,18 @@
             </div>
 
             <div class="table-responsive">
-                <table id="hopDongTable" class="table card-table table-vcenter table-striped table-hover w-100">
+                <table id="hopDongTable" class="table card-table table-vcenter table-hover w-100 ts-bang-the">
                     <thead>
                         <tr>
-                            <th class="text-center" width="5%">STT</th>
+                            <th class="w-1 text-center">STT</th>
                             <th>Mã HĐ</th>
                             <th>Phòng</th>
-                            <th>Người Đại Diện</th>
-                            <th>Ngày Bắt Đầu</th>
-                            <th>Hết Hạn</th>
-                            <th>Tiền Thuê/Tháng</th>
-                            <th class="text-center">Trạng Thái</th>
-                            <th class="text-center">Thao tác</th>
+                            <th>Người đại diện</th>
+                            <th>Ngày bắt đầu</th>
+                            <th>Hết hạn</th>
+                            <th class="text-end">Tiền thuê/tháng</th>
+                            <th class="text-center">Trạng thái</th>
+                            <th class="w-1 text-center" data-the-nhan=""><span class="visually-hidden">Thao tác</span></th>
                         </tr>
                     </thead>
                     <tbody></tbody>
@@ -108,9 +105,9 @@
 
 <div class="modal modal-blur fade" id="hopDongModal" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
-        <div class="modal-content shadow-lg border-0">
-            <div class="modal-header bg-primary-lt py-3">
-                <h5 class="modal-title fw-bold" id="modalTitle">Thêm Hợp Đồng Mới</h5>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle">Thêm Hợp Đồng Mới</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
             </div>
 
@@ -130,9 +127,8 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="MaHopDong" class="form-label">Mã Hợp Đồng</label>
-                                    <input type="text" class="form-control" id="MaHopDong" readonly 
-                                           placeholder="Hệ thống tự sinh khi lưu" 
-                                           style="font-weight: bold; color: #206bc4;">
+                                    <input type="text" class="form-control fw-bold text-primary" id="MaHopDong" readonly
+                                           placeholder="Hệ thống tự sinh khi lưu">
                                 </div>
 
                                 <div class="mb-3">
@@ -209,7 +205,7 @@
 
                     <!-- Tab 2: Dịch vụ đăng ký -->
                     <div class="tab-pane fade" id="content-dichvu" role="tabpanel">
-                        <div class="alert alert-info py-2 mb-3 shadow-sm border-0">
+                        <div class="alert alert-info py-2 mb-3 border-0">
                             <div class="d-flex align-items-center">
                                 <i class="ti ti-info-circle me-2"></i> 
                                 <div>
@@ -227,7 +223,7 @@
 
                     <!-- Tab 3: Điều khoản hợp đồng -->
                     <div class="tab-pane fade" id="content-dieukhoan" role="tabpanel">
-                        <div class="alert alert-info py-2 mb-3 shadow-sm border-0">
+                        <div class="alert alert-info py-2 mb-3 border-0">
                             <i class="ti ti-info-circle me-2"></i> Chọn các điều khoản sẽ được áp dụng cho hợp đồng này.
                         </div>
                         <div class="row">
@@ -237,7 +233,7 @@
                                 {
                                     <div class="col-md-6 mb-3">
                                         <div class="card shadow-none border">
-                                            <div class="card-header p-2 bg-light d-flex align-items-center">
+                                            <div class="card-header p-2 d-flex align-items-center">
                                                 <div class="form-check m-0">
                                                     <input class="form-check-input chk-dieukhoan" type="checkbox" id="dk_@dk.DieuKhoanMauId" value="@dk.DieuKhoanMauId">
                                                     <label class="form-check-label fw-bold" for="dk_@dk.DieuKhoanMauId">
@@ -245,7 +241,7 @@
                                                     </label>
                                                 </div>
                                             </div>
-                                            <div class="card-body p-2" style="max-height: 100px; overflow-y: auto; font-size: 0.9rem;">
+                                            <div class="card-body p-2 hopdong-dieukhoan-body">
                                                 @dk.NoiDung
                                             </div>
                                         </div>
@@ -263,15 +259,15 @@
             </div>
 
             <div class="modal-footer d-flex justify-content-between py-3">
-                <button type="button" class="btn btn-secondary shadow-sm" id="btnWizardBack">
+                <button type="button" class="btn btn-secondary" id="btnWizardBack">
                     <i class="ti ti-arrow-left me-1"></i> Quay lại
                 </button>
                 <div>
-                    <button type="button" class="btn btn-danger me-2" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i> Đóng</button>
-                    <button type="button" class="btn btn-primary shadow-sm" id="btnWizardNext">
+                    <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Đóng</button>
+                    <button type="button" class="btn btn-primary" id="btnWizardNext">
                         Tiếp theo <i class="ti ti-arrow-right ms-1"></i>
                     </button>
-                    <button type="button" class="btn btn-primary shadow-sm" id="btnSaveData" style="display: none;">
+                    <button type="button" class="btn btn-primary" id="btnSaveData" style="display: none;">
                         <i class="ti ti-plus me-1"></i> Thêm dữ liệu
                     </button>
                 </div>
@@ -301,8 +297,7 @@
                 Swal.fire({
                     icon: 'info',
                     title: 'Thông báo',
-                    text: message,
-                    confirmButtonColor: '#3085d6'
+                    text: message
                 });
             }
         }
@@ -438,8 +433,7 @@
             let filterPicker = flatpickr("#filterDateRange", {
                 mode: "range",
                 dateFormat: "d/m/Y",
-                locale: "vn",
-                // defaultDate: [startOfQuarter, endOfQuarter]
+                locale: "vn"
             });
 
             // === KHỞI TẠO FLATPICKR CHO MODAL (Chọn ngày đơn) ===
@@ -585,7 +579,7 @@
                         "className": "align-middle",
                         "render": function(data) {
                             if(!data) return '';
-                            return new Date(data).toLocaleDateString('vi-VN');
+                            return new Date(data).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', day: '2-digit', month: '2-digit', year: 'numeric' });
                         }
                     },
                     {
@@ -600,7 +594,7 @@
                     {
                         "data": "tienThuePhong",
                         "name": "tienThuePhong",
-                        "className": "align-middle",
+                        "className": "align-middle text-end num-tabular",
                         "render": function(data) { return formatVND(data); }
                     },
                     {
@@ -638,7 +632,7 @@
                                                 <i class="ti ti-calendar-plus me-2"></i> Gia hạn
                                             </a>`;
                             const nutSua = row.trangThaiHopDong === 2 ? '' : `
-                                            <button class="dropdown-item btn-edit text-warning py-2" data-id="${data}">
+                                            <button class="dropdown-item btn-edit py-2" data-id="${data}">
                                                 <i class="ti ti-edit me-2"></i> Chỉnh sửa
                                             </button>`;
                             // Chỉ hợp đồng Đã hủy (3) mới xóa được; hợp đồng đã kết thúc được lưu trữ.
@@ -649,18 +643,18 @@
                             return `
                                 <div class="d-flex justify-content-center">
                                     <div class="dropdown">
-                                        <button class="btn btn-icon btn-light btn-sm" data-bs-toggle="dropdown" aria-expanded="false" title="Thao tác">
-                                            <i class="ti ti-settings"></i>
+                                        <button class="btn btn-icon btn-sm" data-bs-toggle="dropdown" aria-expanded="false" title="Thao tác" aria-label="Thao tác">
+                                            <i class="ti ti-dots-vertical"></i>
                                         </button>
                                         <div class="dropdown-menu dropdown-menu-end">
                                             <a href="/QuanLyNhaTro/HopDong/ChiTiet/${data}" class="dropdown-item py-2">
                                                 <i class="ti ti-eye me-2"></i> Chi tiết
                                             </a>
                                             ${nutThanhLyGiaHan}
-                                            <a href="/HopDong/Print/${data}" target="_blank" class="dropdown-item text-info py-2">
-                                                <i class="ti ti-printer me-2"></i> In Hợp Đồng
+                                            <a href="/HopDong/Print/${data}" target="_blank" class="dropdown-item py-2">
+                                                <i class="ti ti-printer me-2"></i> In hợp đồng
                                             </a>
-                                            <a href="/HopDong/DownloadWord/${data}" class="dropdown-item text-success py-2">
+                                            <a href="/HopDong/DownloadWord/${data}" class="dropdown-item py-2">
                                                 <i class="ti ti-file-type-docx me-2"></i> Tải Word
                                             </a>
                                             <div class="dropdown-divider"></div>
@@ -723,7 +717,7 @@
                 goToStep(1);
 
                 $('#modalTitle').text('Thêm Hợp Đồng Mới');
-                $('#btnSaveData').removeClass('btn-success').addClass('btn-primary').html('<i class="ti ti-plus me-1"></i> Thêm dữ liệu');
+                $('#btnSaveData').html('<i class="ti ti-plus me-1"></i> Thêm dữ liệu');
                 bootstrap.Modal.getOrCreateInstance(document.getElementById('hopDongModal')).show();
             });
 
@@ -822,17 +816,17 @@
                         let html = '';
                         if (res && res.length > 0) {
                             res.forEach(function (tv, index) {
-                                let ngayVao = tv.ngayVao ? new Date(tv.ngayVao).toLocaleDateString('vi-VN') : '-';
-                                let ngayRoi = tv.ngayChuyenDi ? new Date(tv.ngayChuyenDi).toLocaleDateString('vi-VN') : '-';
+                                let ngayVao = tv.ngayVao ? new Date(tv.ngayVao).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', day: '2-digit', month: '2-digit', year: 'numeric' }) : '-';
+                                let ngayRoi = tv.ngayChuyenDi ? new Date(tv.ngayChuyenDi).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', day: '2-digit', month: '2-digit', year: 'numeric' }) : '-';
                                 let isChuHopDong = tv.isChuHopDong ? '<span class="badge bg-primary-lt"><i class="ti ti-crown"></i> Đại diện</span>' : '';
                                 let trangThai = tv.ngayChuyenDi ? '<span class="badge bg-secondary-lt">Đã chuyển đi</span>' : '<span class="badge bg-success-lt">Đang ở</span>';
                                 
                                 let buttons = '';
                                 if (!tv.ngayChuyenDi) {
-                                    buttons += `<button type="button" class="btn btn-icon btn-ghost-warning btn-sm btn-checkout" data-id="${tv.chiTietThanhVienHopDongId}" title="Báo chuyển đi"><i class="ti ti-logout"></i></button> `;
+                                    buttons += `<button type="button" class="btn btn-icon btn-ghost-warning btn-sm btn-checkout" data-id="${tv.chiTietThanhVienHopDongId}" title="Báo chuyển đi" aria-label="Báo chuyển đi"><i class="ti ti-logout"></i></button> `;
                                 }
                                 if (!tv.isChuHopDong) {
-                                    buttons += `<button type="button" class="btn btn-icon btn-ghost-danger btn-sm btn-delete-member" data-id="${tv.chiTietThanhVienHopDongId}" title="Xoá thành viên (nhập sai)"><i class="ti ti-trash"></i></button>`;
+                                    buttons += `<button type="button" class="btn btn-icon btn-ghost-danger btn-sm btn-delete-member" data-id="${tv.chiTietThanhVienHopDongId}" title="Xoá thành viên (nhập sai)" aria-label="Xóa thành viên"><i class="ti ti-trash"></i></button>`;
                                 }
                                 buttons = `<div class="btn-list flex-nowrap justify-content-center">${buttons}</div>`;
 
@@ -928,7 +922,7 @@
                                 showToastr(msg, "error");
                             },
                             complete: function () {
-                                $btn.prop('disabled', false).html('<i class="ti ti-plus"></i> Thêm dữ liệu');
+                                $btn.prop('disabled', false).html('<i class="ti ti-plus me-1"></i> Thêm dữ liệu');
                             }
                         });
                     }
@@ -1162,7 +1156,7 @@
                         goToStep(1);
 
                         $('#modalTitle').text('Cập nhật Hợp Đồng');
-                        $('#btnSaveData').removeClass('btn-primary').addClass('btn-success').html('<i class="ti ti-device-floppy me-1"></i> Lưu dữ liệu');
+                        $('#btnSaveData').html('<i class="ti ti-device-floppy me-1"></i> Lưu dữ liệu');
                         bootstrap.Modal.getOrCreateInstance(document.getElementById('hopDongModal')).show();
                     },
                     error: function () { showToastr("Không thể tải thông tin.", "error"); },
@@ -1213,16 +1207,4 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" />
     <link rel="stylesheet" href="~/css/hopdong.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/dang-ky-dich-vu.css" asp-append-version="true" />
-    <style>
-    /* Đồng bộ màu nền bộ lọc trong chế độ tối */
-    html[data-bs-theme="dark"] .bg-light,
-    [data-bs-theme="dark"] .bg-light {
-        background-color: var(--tblr-bg-surface-secondary, #1b2434) !important;
-        color: var(--tblr-body-color, #f4f6fa) !important;
-    }
-    html[data-bs-theme="dark"] .border-dashed,
-    [data-bs-theme="dark"] .border-dashed {
-        border-color: rgba(255, 255, 255, 0.15) !important;
-    }
-</style>
 }
