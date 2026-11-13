@@ -1,0 +1,227 @@
+/* Đăng ký dịch vụ cho phòng trọ: nhúng vào modal phòng trọ và bước dịch vụ hợp đồng. */
+.dkdv-container {
+    max-height: 450px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+/* === Section headers === */
+.dkdv-section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 6px 0;
+    margin-bottom: 8px;
+    border-bottom: 2px solid var(--tblr-border-color);
+}
+.dkdv-section-header.default-header {
+    color: var(--ts-brand-text);
+    border-bottom-color: var(--ts-brand-soft);
+}
+.dkdv-section-header.optional-header {
+    color: var(--ts-ok);
+    border-bottom-color: var(--ts-ok-soft);
+    margin-top: 16px;
+}
+.dkdv-section-count {
+    font-size: 0.7rem;
+    background: var(--tblr-bg-surface-secondary);
+    padding: 1px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+    color: var(--ts-ink-muted);
+}
+
+/* === Base item row === */
+.dkdv-item {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    padding: 10px 12px;
+    border: 1px solid var(--tblr-border-color);
+    border-radius: var(--ts-radius-admin, 8px);
+    margin-bottom: 8px;
+    transition: all 0.2s ease;
+    background: var(--tblr-bg-surface);
+    gap: 12px;
+}
+
+/* Phân nhóm Trái / Phải */
+.dkdv-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    width: 100%;
+}
+.dkdv-right {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 16px;
+    width: 100%;
+}
+
+/* Cột thao tác (checkbox hoặc icon mặc định) */
+.dkdv-action-col {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+/* === DEFAULT SERVICE ITEMS (no checkbox, informational) === */
+.dkdv-item.dkdv-default {
+    background: var(--ts-brand-soft);
+    border-color: rgba(var(--ts-brand-rgb), 0.25);
+    cursor: default;
+}
+.dkdv-default-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: var(--ts-radius-admin, 8px);
+    background: var(--ts-brand);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff; /* Chữ trắng trên nền thương hiệu đặc */
+    font-size: 14px;
+    flex-shrink: 0;
+}
+.dkdv-badge-included {
+    display: inline-block;
+    background: var(--ts-brand);
+    color: #fff; /* Chữ trắng trên nền thương hiệu đặc */
+    font-size: 0.65rem;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-left: 8px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+.dkdv-badge-included i {
+    font-size: 0.6rem;
+}
+
+/* === OPTIONAL SERVICE ITEMS (with checkbox) === */
+.dkdv-item.dkdv-optional:hover {
+    border-color: var(--ts-brand);
+    box-shadow: 0 2px 8px rgba(var(--ts-brand-rgb), 0.08);
+}
+.dkdv-item.dkdv-optional.selected {
+    border-color: var(--ts-ok);
+    background: var(--ts-ok-soft);
+}
+.dkdv-checkbox {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    flex-shrink: 0;
+    accent-color: var(--ts-ok);
+}
+
+/* === Shared === */
+.dkdv-info {
+    flex: 1 1 0%;
+    min-width: 150px;
+}
+.dkdv-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--ts-ink);
+}
+.dkdv-detail {
+    font-size: 0.8rem;
+    color: var(--ts-ink-muted);
+    margin-top: 2px;
+}
+
+.dkdv-qty-group, .dkdv-qty-spacer {
+    width: 100px;
+    flex-shrink: 0;
+}
+.dkdv-qty-group {
+    display: flex;
+    align-items: center;
+}
+.dkdv-qty-group label {
+    font-size: 0.8rem;
+    margin-right: 6px;
+    margin-bottom: 0;
+    white-space: nowrap;
+    color: var(--ts-ink-muted);
+}
+.dkdv-qty-input {
+    width: 60px;
+    text-align: center;
+}
+
+.dkdv-date-group {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    width: 180px;
+}
+.dkdv-date-group label {
+    font-size: 0.8rem;
+    margin-right: 6px;
+    margin-bottom: 0;
+    white-space: nowrap;
+    color: var(--ts-ink-muted);
+}
+.dkdv-date-input {
+    width: 125px;
+}
+
+.dkdv-price {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--ts-ok);
+    white-space: nowrap;
+    flex-shrink: 0;
+    text-align: right;
+    width: 150px;
+}
+.dkdv-price-default {
+    color: var(--ts-brand-text);
+}
+.dkdv-empty {
+    text-align: center;
+    padding: 30px;
+    color: var(--ts-ink-muted);
+}
+.dkdv-empty i {
+    font-size: 2rem;
+    margin-bottom: 10px;
+    display: block;
+}
+
+/* Responsive cho màn hình hoặc container nhỏ */
+@media (max-width: 768px) {
+    .dkdv-right {
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 8px;
+    }
+    .dkdv-qty-group, .dkdv-qty-spacer {
+        width: 100px;
+    }
+    .dkdv-date-group {
+        width: 100%;
+        justify-content: flex-end;
+    }
+    .dkdv-date-input {
+        width: 125px;
+    }
+    .dkdv-price {
+        width: 100%;
+        text-align: right;
+        margin-top: 2px;
+    }
+}

@@ -3,7 +3,6 @@
     // Thêm, xóa phòng chỉ dành cho Admin; server chặn lại lần nữa nên đây chỉ là ẩn nút.
     var laAdmin = User.IsInRole("Admin");
 }
-<link rel="stylesheet" href="~/css/quanlyphongtro.css" />
 
 <div class="container-xl mt-3">
     <!-- Header bar: Toggle + Add button -->
@@ -1130,4 +1129,9 @@
             });
         });
     </script>
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/quanlyphongtro.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/dang-ky-dich-vu.css" asp-append-version="true" />
 }

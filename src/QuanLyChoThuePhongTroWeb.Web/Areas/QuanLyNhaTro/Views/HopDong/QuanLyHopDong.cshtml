@@ -5,7 +5,6 @@
     // Ép kiểu dữ liệu ViewBag sang JSON để xài trong Javascript với CamelCase
     var jsonPhongTros = Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.ListPhongTro, new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }));
 }
-<link rel="stylesheet" href="~/css/hopdong.css" asp-append-version="true" />
 
 <div class="container-xl mt-3">
     <!-- Page Header -->
@@ -1212,6 +1211,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/themes/material_blue.min.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" />
+    <link rel="stylesheet" href="~/css/hopdong.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/dang-ky-dich-vu.css" asp-append-version="true" />
     <style>
     /* Đồng bộ màu nền bộ lọc trong chế độ tối */
     html[data-bs-theme="dark"] .bg-light,
