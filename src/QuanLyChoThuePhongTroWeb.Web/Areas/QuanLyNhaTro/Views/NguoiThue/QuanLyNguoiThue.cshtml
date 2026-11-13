@@ -1,43 +1,39 @@
 @using QuanLyChoThuePhongTroWeb.Application.Features.NguoiThues.DTOs
 @model IEnumerable<NguoiThueReq>
 @{
-    ViewData["Title"] = "Quản lý Người Thuê Trọ";
+    ViewData["Title"] = "Người thuê";
 }
 
-<div class="page-header d-print-none">
-    <div class="container-xl">
+<div class="container-xl mt-3">
+    <div class="page-header d-print-none mb-3">
         <div class="row g-2 align-items-center">
             <div class="col">
-                <h2 class="page-title text-primary fw-bold d-flex align-items-center">
-                    <i class="ti ti-users me-2"></i> Quản lý Khách Thuê
-                </h2>
+                <h2 class="page-title">Người thuê</h2>
             </div>
             <div class="col-auto ms-auto d-print-none">
                 <div class="btn-list">
-                    <button type="button" class="btn btn-success fw-bold shadow-sm d-none d-sm-inline-block" id="btnOpenAddModal">
-                        <i class="ti ti-circle-plus me-1"></i> Thêm Người Thuê
+                    <button type="button" class="btn btn-primary" id="btnOpenAddModal">
+                        <i class="ti ti-plus me-1"></i> Thêm người thuê
                     </button>
                 </div>
             </div>
         </div>
     </div>
-</div>
 
-<div class="page-body">
-    <div class="container-xl">
-        <div class="card shadow-sm border-0">
-            <div class="card-body">
-                <table id="nguoiThueTable" class="table table-bordered table-striped table-hover w-100">
-                    <thead class="thead-light">
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table id="nguoiThueTable" class="table table-vcenter table-hover w-100 ts-bang-the">
+                    <thead>
                         <tr>
-                            <th width="5%" class="text-center">STT</th>
-                            <th width="15%">Họ và Tên</th>
-                            <th width="15%">Email</th> 
-                            <th width="12%">Số Điện Thoại</th>
-                            <th width="13%">CCCD</th>
-                            <th width="10%">Ngày Sinh</th>
-                            <th width="15%">Quê Quán</th>
-                            <th width="15%" class="text-center">Thao tác</th>
+                            <th class="w-1 text-center">STT</th>
+                            <th>Họ và tên</th>
+                            <th>Email</th>
+                            <th>Số điện thoại</th>
+                            <th>CCCD</th>
+                            <th>Ngày sinh</th>
+                            <th>Quê quán</th>
+                            <th class="w-1 text-center" data-the-nhan=""><span class="visually-hidden">Thao tác</span></th>
                         </tr>
                     </thead>
                 </table>
@@ -49,9 +45,9 @@
 <div class="modal fade" id="nguoiThueModal" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
-            <div class="modal-header bg-primary">
-                <h5 class="modal-title text-white" id="modalTitle">Thêm Người Thuê Mới</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle">Thêm Người Thuê Mới</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
             </div>
 
             <div class="modal-body">
@@ -109,8 +105,8 @@
             </div>
 
             <div class="modal-footer">
-                <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i> Đóng</button>
-                <button type="button" class="btn btn-primary fw-bold shadow-sm" id="btnSaveData">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-primary" id="btnSaveData">
                     <i class="ti ti-plus me-1"></i> Thêm dữ liệu
                 </button>
             </div>
@@ -162,11 +158,11 @@
                             return `<span class="fw-bold text-primary">${escapeHtml(data)}</span>`;
                         }
                     },
-                    // THÊM MỚI: Hiển thị Email trên bảng. Nếu null thì hiển thị chữ "Chưa có" màu xám
+                    // Hiển thị Email trên bảng. Nếu null thì hiển thị chữ "Chưa có" màu xám
                     { 
                         "data": "email",
                         "render": function(data) {
-                            return data ? escapeHtml(data) : `<span class="text-muted font-italic">Chưa có</span>`;
+                            return data ? escapeHtml(data) : `<span class="text-secondary">Chưa có</span>`;
                         }
                     },
                     { "data": "soDienThoai", "render": $.fn.dataTable.render.text() },
@@ -176,7 +172,7 @@
                         "render": function(data) {
                             if(!data) return "";
                             var date = new Date(data);
-                            return date.toLocaleDateString('vi-VN');
+                            return date.toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', day: '2-digit', month: '2-digit', year: 'numeric' });
                         }
                     },
                     { "data": "queQuan", "render": $.fn.dataTable.render.text() },
@@ -187,13 +183,13 @@
                         "render": function (data) {
                             return `
                                 <div class="btn-list flex-nowrap justify-content-center">
-                                    <a class="btn btn-icon btn-ghost-info btn-sm" href="/QuanLyNhaTro/NguoiThue/ChiTiet/${data}" title="Chi tiết">
+                                    <a class="btn btn-icon btn-ghost-info btn-sm" href="/QuanLyNhaTro/NguoiThue/ChiTiet/${data}" title="Chi tiết" aria-label="Xem chi tiết">
                                         <i class="ti ti-eye"></i>
                                     </a>
-                                    <button class="btn btn-icon btn-ghost-warning btn-sm btn-edit" data-id="${data}" title="Sửa">
+                                    <button class="btn btn-icon btn-ghost-warning btn-sm btn-edit" data-id="${data}" title="Sửa" aria-label="Sửa">
                                         <i class="ti ti-edit"></i>
                                     </button>
-                                    <button class="btn btn-icon btn-ghost-danger btn-sm btn-delete" data-id="${data}" title="Xóa">
+                                    <button class="btn btn-icon btn-ghost-danger btn-sm btn-delete" data-id="${data}" title="Xóa" aria-label="Xóa">
                                         <i class="ti ti-trash"></i>
                                     </button>
                                 </div>
@@ -207,7 +203,7 @@
             // --- SỰ KIỆN LƯU DỮ LIỆU ---
             $('#btnSaveData').on('click', function () {
                 let hoVaTen = $('#HoVaTen').val().trim();
-                let email = $('#Email').val().trim(); // THÊM MỚI: Lấy giá trị Email
+                let email = $('#Email').val().trim();
                 let sdt = $('#SoDienThoai').val().trim();
                 let cccd = $('#CCCD').val().trim();
 
@@ -225,7 +221,7 @@
 
                 let requestData = {
                     hoVaTen: hoVaTen,
-                    email: email ? email : "", // THÊM MỚI: Truyền email, nếu rỗng thì gửi null
+                    email: email ? email : "",
                     soDienThoai: sdt,
                     cccd: cccd,
                     ngaySinh: $('#NgaySinh').val() ? $('#NgaySinh').val() : null,
@@ -248,8 +244,6 @@
                     text: isUpdate ? 'Bạn có chắc chắn muốn cập nhật thông tin người thuê này?' : 'Bạn có chắc chắn muốn thêm người thuê này?',
                     icon: 'question',
                     showCancelButton: true,
-                    confirmButtonColor: '#3085d6',
-                    cancelButtonColor: '#6c757d',
                     confirmButtonText: 'Đồng ý',
                     cancelButtonText: 'Hủy bỏ'
                 }).then((result) => {
@@ -305,7 +299,7 @@
                     success: function (res) {
                         if (res) {
                             $('#HoVaTen').val(res.hoVaTen);
-                            $('#Email').val(res.email); // THÊM MỚI: Đổ dữ liệu Email vào input
+                            $('#Email').val(res.email);
                             $('#SoDienThoai').val(res.soDienThoai);
                             $('#CCCD').val(res.cccd);
                             $('#NgaySinh').val(formatDateForInput(res.ngaySinh));
@@ -315,7 +309,7 @@
                             $('#GhiChu').val(res.ghiChu);
 
                             $('#modalTitle').text('Cập nhật Người Thuê');
-                            $('#btnSaveData').removeClass('btn-primary').addClass('btn-success').addClass('fw-bold').addClass('shadow-sm').html('<i class="ti ti-device-floppy me-1"></i> Lưu dữ liệu');
+                            $('#btnSaveData').html('<i class="ti ti-device-floppy me-1"></i> Lưu dữ liệu');
                             $('#nguoiThueModal').modal('show');
                         }
                     },
@@ -335,8 +329,6 @@
                     text: 'Hành động này không thể hoàn tác. Bạn có chắc chắn muốn xóa người thuê này?',
                     icon: 'warning',
                     showCancelButton: true,
-                    confirmButtonColor: '#d33',
-                    cancelButtonColor: '#6c757d',
                     confirmButtonText: 'Đồng ý xóa',
                     cancelButtonText: 'Hủy bỏ'
                 }).then((result) => {
@@ -369,7 +361,7 @@
                 currentNguoiThueId = 0;
                 $('#frmNguoiThue')[0].reset(); 
                 $('#modalTitle').text('Thêm Người Thuê Mới');
-                $('#btnSaveData').removeClass('btn-success').addClass('btn-primary').addClass('fw-bold').addClass('shadow-sm').html('<i class="ti ti-plus me-1"></i> Thêm dữ liệu');
+                $('#btnSaveData').html('<i class="ti ti-plus me-1"></i> Thêm dữ liệu');
                 $('#nguoiThueModal').modal('show');
             });
 

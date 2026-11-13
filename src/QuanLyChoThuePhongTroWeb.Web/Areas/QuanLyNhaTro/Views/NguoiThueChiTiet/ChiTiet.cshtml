@@ -6,9 +6,15 @@
     string Ngay(DateTime utc) => VietnamTime.Format(utc, "dd/MM/yyyy");
 }
 
-<div class="container-xl py-4">
-    <a href="/QuanLyNhaTro/QuanLyNguoiThue">← Danh sách người thuê</a>
-    <h1 class="page-title mt-3">@Model.HoVaTen</h1>
+<div class="container-xl mt-3">
+    <div class="page-header d-print-none mb-3">
+        <div class="row align-items-center g-2">
+            <div class="col">
+                <a class="page-pretitle text-decoration-none" href="/QuanLyNhaTro/QuanLyNguoiThue">← Danh sách người thuê</a>
+                <h2 class="page-title">@Model.HoVaTen</h2>
+            </div>
+        </div>
+    </div>
     <p class="text-secondary">CCCD: @Model.CCCD · Điện thoại: @Model.SoDienThoai</p>
 
     <div class="card">
@@ -23,11 +29,46 @@
             <div class="tab-content">
                 <div class="tab-pane active show" id="tab-lich-su-thue" role="tabpanel">
                     <div class="row row-cards mb-4">
-                        <div class="col-6 col-lg"><div class="card"><div class="card-body"><div class="text-secondary small">Số lần thuê</div><div class="h3 mb-0">@Model.SoLanThue</div></div></div></div>
-                        <div class="col-6 col-lg"><div class="card"><div class="card-body"><div class="text-secondary small">Số hợp đồng</div><div class="h3 mb-0">@Model.SoHopDong</div></div></div></div>
-                        <div class="col-6 col-lg"><div class="card"><div class="card-body"><div class="text-secondary small">Số lần ở ghép</div><div class="h3 mb-0">@Model.SoLanOGhep</div></div></div></div>
-                        <div class="col-6 col-lg"><div class="card"><div class="card-body"><div class="text-secondary small">Tổng số tháng ở</div><div class="h3 mb-0">@Model.TongSoThang</div></div></div></div>
-                        <div class="col-6 col-lg"><div class="card"><div class="card-body"><div class="text-secondary small">Nợ hiện tại</div><div class="h3 mb-0 @(Model.NoHienTai > 0 ? "text-danger" : "")">@VndFormat.Money(Model.NoHienTai)</div></div></div></div>
+                        <div class="col-6 col-lg">
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="ts-o-so-nhan">Số lần thuê</div>
+                                    <div class="ts-o-so-gia-tri">@Model.SoLanThue</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-lg">
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="ts-o-so-nhan">Số hợp đồng</div>
+                                    <div class="ts-o-so-gia-tri">@Model.SoHopDong</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-lg">
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="ts-o-so-nhan">Số lần ở ghép</div>
+                                    <div class="ts-o-so-gia-tri">@Model.SoLanOGhep</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-lg">
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="ts-o-so-nhan">Tổng số tháng ở</div>
+                                    <div class="ts-o-so-gia-tri">@Model.TongSoThang</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-lg">
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="ts-o-so-nhan">Nợ hiện tại</div>
+                                    <div class="ts-o-so-gia-tri @(Model.NoHienTai > 0 ? "is-bad" : "")">@VndFormat.Money(Model.NoHienTai)</div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     @if (Model.Dong.Count == 0)
@@ -37,7 +78,7 @@
                     else
                     {
                         <div class="table-responsive">
-                            <table class="table table-vcenter">
+                            <table class="table table-vcenter ts-bang-the">
                                 <thead>
                                     <tr>
                                         <th>Mã HĐ</th>
@@ -61,7 +102,7 @@
                                             <td>@d.TenChiNhanh</td>
                                             <td>@Ngay(d.TuUtc) - @(d.DenUtc.HasValue ? Ngay(d.DenUtc.Value) : "Chưa có")</td>
                                             <td>@d.TrangThaiText</td>
-                                            <td class="text-end">@(d.ConNo > 0 ? VndFormat.Money(d.ConNo) : "-")</td>
+                                            <td class="text-end num-tabular">@(d.ConNo > 0 ? VndFormat.Money(d.ConNo) : "-")</td>
                                         </tr>
                                     }
                                 </tbody>
