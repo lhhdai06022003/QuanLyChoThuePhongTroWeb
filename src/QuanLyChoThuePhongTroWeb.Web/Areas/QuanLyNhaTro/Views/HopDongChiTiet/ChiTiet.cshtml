@@ -14,34 +14,38 @@
     };
 }
 
-<div class="container-xl py-4">
-    <a href="/QuanLyNhaTro/QuanLyHopDong">← Danh sách hợp đồng</a>
-    <div class="d-flex flex-wrap align-items-center justify-content-between mt-3 mb-3">
-        <div>
-            <h1 class="page-title mb-1">Hợp đồng @Model.MaHopDong</h1>
-            <div class="text-secondary">
-                <span class="badge @badge me-2">@Model.TrangThaiText</span>
-                <span>@Model.LoaiText</span>
+<div class="container-xl mt-3">
+    <div class="page-header d-print-none mb-3">
+        <div class="row align-items-center g-2">
+            <div class="col-12 col-md">
+                <a class="page-pretitle text-decoration-none" href="/QuanLyNhaTro/QuanLyHopDong">← Danh sách hợp đồng</a>
+                <h2 class="page-title">Hợp đồng @Model.MaHopDong</h2>
+                <div class="text-secondary mt-1">
+                    <span class="badge @badge me-2">@Model.TrangThaiText</span>
+                    <span>@Model.LoaiText</span>
+                </div>
             </div>
-        </div>
-        <div class="btn-list">
-            @if (Model.CoTheGiaHan)
-            {
-                <a class="btn btn-outline-primary" href="/QuanLyNhaTro/HopDong/GiaHan/@Model.HopDongId"><i class="ti ti-calendar-plus me-1"></i> Gia hạn</a>
-            }
-            @if (Model.CoTheThanhLy)
-            {
-                <a class="btn btn-danger" href="/QuanLyNhaTro/HopDong/ThanhLy/@Model.HopDongId"><i class="ti ti-file-check me-1"></i> Thanh lý</a>
-            }
-            @if (Model.CoBienBanThanhLy)
-            {
-                <a class="btn btn-outline-secondary" href="/HopDong/BienBanThanhLy/@Model.HopDongId" target="_blank" rel="noopener"><i class="ti ti-printer me-1"></i> In lại biên bản thanh lý</a>
-            }
+            <div class="col-12 col-md-auto ms-md-auto">
+                <div class="btn-list">
+                    @if (Model.CoTheGiaHan)
+                    {
+                        <a class="btn btn-outline-primary" href="/QuanLyNhaTro/HopDong/GiaHan/@Model.HopDongId"><i class="ti ti-calendar-plus me-1"></i> Gia hạn</a>
+                    }
+                    @if (Model.CoTheThanhLy)
+                    {
+                        <a class="btn btn-danger" href="/QuanLyNhaTro/HopDong/ThanhLy/@Model.HopDongId"><i class="ti ti-file-check me-1"></i> Thanh lý</a>
+                    }
+                    @if (Model.CoBienBanThanhLy)
+                    {
+                        <a class="btn btn-outline-secondary" href="/HopDong/BienBanThanhLy/@Model.HopDongId" target="_blank" rel="noopener"><i class="ti ti-printer me-1"></i> In lại biên bản thanh lý</a>
+                    }
+                </div>
+            </div>
         </div>
     </div>
 
     <div class="card mb-4">
-        <div class="card-header"><h2 class="card-title">Thông tin</h2></div>
+        <div class="card-header"><h3 class="card-title">Thông tin</h3></div>
         <div class="card-body">
             <div class="row g-3">
                 <div class="col-md-4"><div class="text-secondary small">Phòng</div><div>@Model.SoPhong · @Model.TenChiNhanh</div></div>
@@ -50,8 +54,8 @@
                     <div><a href="/QuanLyNhaTro/NguoiThue/ChiTiet/@Model.NguoiThueId">@Model.TenNguoiDaiDien</a></div>
                 </div>
                 <div class="col-md-4"><div class="text-secondary small">Thời hạn</div><div>@Ngay(Model.ThoiDiemBatDauUtc) - @NgayHoacTrong(Model.ThoiDiemKetThucUtc)</div></div>
-                <div class="col-md-4"><div class="text-secondary small">Tiền thuê/tháng</div><div>@VndFormat.Money(Model.TienThue)</div></div>
-                <div class="col-md-4"><div class="text-secondary small">Tiền cọc</div><div>@VndFormat.Money(Model.TienCoc)</div></div>
+                <div class="col-md-4"><div class="text-secondary small">Tiền thuê/tháng</div><div class="num-tabular">@VndFormat.Money(Model.TienThue)</div></div>
+                <div class="col-md-4"><div class="text-secondary small">Tiền cọc</div><div class="num-tabular">@VndFormat.Money(Model.TienCoc)</div></div>
                 @if (Model.MaHopDongKeTiep != null)
                 {
                     <div class="col-md-4">
@@ -64,7 +68,7 @@
     </div>
 
     <div class="card mb-4">
-        <div class="card-header"><h2 class="card-title">Thành viên</h2></div>
+        <div class="card-header"><h3 class="card-title">Thành viên</h3></div>
         <div class="card-body">
             @if (Model.ThanhVien.Count == 0)
             {
@@ -73,7 +77,7 @@
             else
             {
                 <div class="table-responsive">
-                    <table class="table table-vcenter">
+                    <table class="table table-vcenter ts-bang-the">
                         <thead><tr><th>Họ tên</th><th>Ngày vào</th><th>Ngày chuyển đi</th></tr></thead>
                         <tbody>
                             @foreach (var tv in Model.ThanhVien)
@@ -92,7 +96,7 @@
     </div>
 
     <div class="card mb-4">
-        <div class="card-header"><h2 class="card-title">Điều khoản</h2></div>
+        <div class="card-header"><h3 class="card-title">Điều khoản</h3></div>
         <div class="card-body">
             @if (Model.DieuKhoan.Count == 0)
             {
@@ -111,10 +115,10 @@
     </div>
 
     <div class="card">
-        <div class="card-header"><h2 class="card-title">Chuỗi hợp đồng</h2></div>
+        <div class="card-header"><h3 class="card-title">Chuỗi hợp đồng</h3></div>
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-vcenter">
+                <table class="table table-vcenter ts-bang-the">
                     <thead><tr><th>Mã hợp đồng</th><th>Loại</th><th>Từ - đến</th><th>Trạng thái</th></tr></thead>
                     <tbody>
                         @foreach (var item in Model.ChuoiHopDong)

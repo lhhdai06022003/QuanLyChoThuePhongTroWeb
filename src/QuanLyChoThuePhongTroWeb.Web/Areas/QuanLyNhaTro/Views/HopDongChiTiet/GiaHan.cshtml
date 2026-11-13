@@ -8,10 +8,16 @@
     string Ngay(DateTime? utc) => utc.HasValue ? VietnamTime.Format(utc.Value, "dd/MM/yyyy") : "Chưa có";
 }
 
-<div class="container-xl py-4">
+<div class="container-xl mt-3">
     @Html.AntiForgeryToken()
-    <a href="/QuanLyNhaTro/HopDong/ChiTiet/@form.HopDongId">← Chi tiết hợp đồng</a>
-    <h1 class="page-title mt-3">Gia hạn hợp đồng @form.MaHopDong</h1>
+    <div class="page-header d-print-none mb-3">
+        <div class="row align-items-center g-2">
+            <div class="col">
+                <a class="page-pretitle text-decoration-none" href="/QuanLyNhaTro/HopDong/ChiTiet/@form.HopDongId">← Chi tiết hợp đồng</a>
+                <h2 class="page-title">Gia hạn hợp đồng @form.MaHopDong</h2>
+            </div>
+        </div>
+    </div>
 
     <div class="card mb-4">
         <div class="card-body">
@@ -29,7 +35,7 @@
     </div>
 
     <div class="card mb-4">
-        <div class="card-header"><h2 class="card-title">Hợp đồng mới</h2></div>
+        <div class="card-header"><h3 class="card-title">Hợp đồng mới</h3></div>
         <div class="card-body">
             <div class="row g-3">
                 <div class="col-md-3">
@@ -68,7 +74,7 @@
     </div>
 
     <div class="card mb-4">
-        <div class="card-header"><h2 class="card-title">Điều khoản</h2></div>
+        <div class="card-header"><h3 class="card-title">Điều khoản</h3></div>
         <div class="card-body">
             <label class="form-check">
                 <input type="radio" class="form-check-input" name="cheDoDieuKhoan" id="cheDoChep" value="chep" checked />

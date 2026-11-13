@@ -7,10 +7,16 @@
     string Ngay(DateTime? utc) => utc.HasValue ? VietnamTime.Format(utc.Value, "dd/MM/yyyy") : "Chưa có";
 }
 
-<div class="container-xl py-4">
+<div class="container-xl mt-3">
     @Html.AntiForgeryToken()
-    <a href="/QuanLyNhaTro/HopDong/ChiTiet/@Model.HopDongId">← Chi tiết hợp đồng</a>
-    <h1 class="page-title mt-3">Thanh lý hợp đồng @Model.MaHopDong</h1>
+    <div class="page-header d-print-none mb-3">
+        <div class="row align-items-center g-2">
+            <div class="col">
+                <a class="page-pretitle text-decoration-none" href="/QuanLyNhaTro/HopDong/ChiTiet/@Model.HopDongId">← Chi tiết hợp đồng</a>
+                <h2 class="page-title">Thanh lý hợp đồng @Model.MaHopDong</h2>
+            </div>
+        </div>
+    </div>
 
     @if (Model.DangHoatDong)
     {
@@ -76,7 +82,7 @@
     }
 
     <div class="card mb-4">
-        <div class="card-header"><h2 class="card-title">Hóa đơn còn nợ (cả chuỗi gia hạn)</h2></div>
+        <div class="card-header"><h3 class="card-title">Hóa đơn còn nợ (cả chuỗi gia hạn)</h3></div>
         <div class="card-body">
             @if (Model.HoaDonNo.Count == 0)
             {
@@ -85,7 +91,7 @@
             else
             {
                 <div class="table-responsive">
-                    <table class="table table-vcenter">
+                    <table class="table table-vcenter ts-bang-the">
                         <thead>
                             <tr>
                                 <th>Mã hóa đơn</th>
@@ -104,10 +110,10 @@
                                     <td>@hd.MaHoaDon</td>
                                     <td>@hd.MaHopDong</td>
                                     <td>T@(hd.Thang)/@hd.Nam</td>
-                                    <td class="text-end">@VndFormat.Money(hd.TongTien)</td>
-                                    <td class="text-end">@VndFormat.Money(hd.DaThu)</td>
-                                    <td class="text-end">@VndFormat.Money(hd.ConLai)</td>
-                                    <td class="text-end">@VndFormat.Money(hd.CanTru)</td>
+                                    <td class="text-end num-tabular">@VndFormat.Money(hd.TongTien)</td>
+                                    <td class="text-end num-tabular">@VndFormat.Money(hd.DaThu)</td>
+                                    <td class="text-end num-tabular">@VndFormat.Money(hd.ConLai)</td>
+                                    <td class="text-end num-tabular">@VndFormat.Money(hd.CanTru)</td>
                                 </tr>
                             }
                         </tbody>
@@ -118,10 +124,38 @@
     </div>
 
     <div class="row row-cards mb-4">
-        <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="text-secondary small">Tiền cọc</div><div class="h3 mb-0">@VndFormat.Money(Model.TienCoc)</div></div></div></div>
-        <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="text-secondary small">Tổng nợ</div><div class="h3 mb-0">@VndFormat.Money(Model.TongNo)</div></div></div></div>
-        <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="text-secondary small">Cấn trừ cọc</div><div class="h3 mb-0">@VndFormat.Money(Model.CanTru)</div></div></div></div>
-        <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="text-secondary small">Cọc hoàn trực tiếp cho khách</div><div class="h3 mb-0">@VndFormat.Money(Model.CocHoanTrucTiep)</div></div></div></div>
+        <div class="col-6 col-lg-3">
+            <div class="card">
+                <div class="card-body">
+                    <div class="ts-o-so-nhan">Tiền cọc</div>
+                    <div class="ts-o-so-gia-tri">@VndFormat.Money(Model.TienCoc)</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card">
+                <div class="card-body">
+                    <div class="ts-o-so-nhan">Tổng nợ</div>
+                    <div class="ts-o-so-gia-tri">@VndFormat.Money(Model.TongNo)</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card">
+                <div class="card-body">
+                    <div class="ts-o-so-nhan">Cấn trừ cọc</div>
+                    <div class="ts-o-so-gia-tri">@VndFormat.Money(Model.CanTru)</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card">
+                <div class="card-body">
+                    <div class="ts-o-so-nhan">Cọc hoàn trực tiếp cho khách</div>
+                    <div class="ts-o-so-gia-tri">@VndFormat.Money(Model.CocHoanTrucTiep)</div>
+                </div>
+            </div>
+        </div>
     </div>
     <p>Khách còn nợ sau cấn trừ: <strong id="conNoSauCanTru">@VndFormat.Money(Model.ConNoSauCanTru)</strong></p>
 
