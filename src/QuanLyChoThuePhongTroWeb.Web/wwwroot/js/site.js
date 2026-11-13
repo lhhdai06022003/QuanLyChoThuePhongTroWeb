@@ -180,7 +180,25 @@
         ganTheoTieuDe(table, headers);
     }
 
-    window.TroBangThe = { gan: gan };
+    // Gán nhãn cho mọi bảng thẻ tĩnh (không qua DataTables).
+    function ganTatCa() {
+        var tables = document.querySelectorAll('table.ts-bang-the');
+        for (var i = 0; i < tables.length; i++) {
+            var tbl = tables[i];
+            if ($ && $.fn && $.fn.dataTable && $.fn.dataTable.isDataTable && $.fn.dataTable.isDataTable(tbl)) {
+                continue;
+            }
+            gan(tbl);
+        }
+    }
+
+    window.TroBangThe = { gan: gan, ganTatCa: ganTatCa };
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', ganTatCa);
+    } else {
+        ganTatCa();
+    }
 
     // Bảng DataTables vẽ lại sau mỗi lần đổi trang/lọc/sắp xếp: gán lại theo cột đang hiển thị.
     if ($ && $.fn && $.fn.dataTable) {

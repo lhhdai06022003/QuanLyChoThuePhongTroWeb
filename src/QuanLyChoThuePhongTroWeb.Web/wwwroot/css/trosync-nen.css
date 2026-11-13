@@ -178,6 +178,11 @@ button.ts-bottom-nav-item {
     white-space: nowrap;
 }
 
+/* Bảng nhỏ trong modal hoặc bảng nhiều cột không thành thẻ: cuộn ngang, thắng overflow: visible của site.css. */
+.table-responsive.ts-cuon-ngang {
+    overflow-x: auto !important;
+}
+
 /* Bảng thành thẻ dưới 768px: gắn class ts-bang-the vào <table>; nhãn từng ô lấy từ data-label (site.js tự gán từ <th>). */
 @media (max-width: 767.98px) {
     /* Tiêu đề cột ẩn kiểu visually-hidden để trình đọc màn hình vẫn đọc được. */
@@ -205,6 +210,11 @@ button.ts-bottom-nav-item {
     /* Bảng trong card-table: chừa lề để thẻ không dính mép card. */
     table.ts-bang-the tbody {
         padding: 0.75rem;
+    }
+
+    .card-body table.ts-bang-the tbody {
+        padding-left: 0;
+        padding-right: 0;
     }
 
     table.ts-bang-the tbody tr {
