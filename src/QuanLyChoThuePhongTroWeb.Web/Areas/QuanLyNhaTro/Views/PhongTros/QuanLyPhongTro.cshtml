@@ -108,7 +108,7 @@
         <div class="card">
             <div class="card-body border-bottom py-3">
                 <div class="row align-items-center">
-                    <div class="col-auto ms-auto d-flex align-items-center text-muted font-weight-medium">
+                    <div class="col-auto ms-auto d-flex align-items-center text-muted fw-medium">
                         <span class="d-none d-sm-inline me-2">Chi nhánh:</span>
                         <select id="filterChiNhanhTable" class="form-select form-select-sm w-auto">
                             <option value="">Tất cả chi nhánh</option>
@@ -705,7 +705,7 @@
                             <tr>
                                 <td class="text-center">${idx + 1}</td>
                                 <td class="fw-bold">${escapeHtml(s.tenDichVu)}</td>
-                                <td class="text-right">${formatVND(s.donGia)}</td>
+                                <td class="text-end num-tabular">${formatVND(s.donGia)}</td>
                                 <td class="text-center">${s.soLuong}</td>
                                 <td class="text-center">${escapeHtml(s.donVi) || '-'}</td>
                             </tr>`;
@@ -765,10 +765,10 @@
                             <tr>
                                 <td class="text-center">${idx + 1}</td>
                                 <td>${escapeHtml(d.tenDichVu)}</td>
-                                <td class="text-right">${formatVND(d.donGia)}</td>
+                                <td class="text-end num-tabular">${formatVND(d.donGia)}</td>
                                 <td class="text-center">${d.soLuong}</td>
                                 <td class="text-center">${escapeHtml(d.donVi) || '-'}</td>
-                                <td class="text-right fw-bold">${formatVND(d.tongTien)}</td>
+                                <td class="text-end fw-bold num-tabular">${formatVND(d.tongTien)}</td>
                             </tr>`;
                     });
                 } else {
