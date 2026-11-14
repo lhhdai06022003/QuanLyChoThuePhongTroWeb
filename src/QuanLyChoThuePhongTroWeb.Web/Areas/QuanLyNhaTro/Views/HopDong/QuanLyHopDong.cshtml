@@ -22,66 +22,54 @@
 
     <!-- Card quản lý & danh sách hợp đồng -->
     <div class="card mb-5">
-        <div class="card-body">
-            <!-- Khu vực Bộ lọc dạng hàng ngang -->
-            <div class="p-3 rounded-3 mb-4 bg-surface-secondary border">
-                <div class="row g-3 align-items-end">
-                    <div class="col-12 col-sm-6 col-lg">
-                        <label for="filterChiNhanh" class="form-label mb-1">
-                            <i class="ti ti-building me-1"></i> Chi nhánh
-                        </label>
-                        <select id="filterChiNhanh" class="form-select form-select-sm">
-                            <option value="0">Tất cả</option>
-                            @if (ViewBag.ListChiNhanh != null)
+        <div class="card-body border-bottom py-3">
+            <div class="row g-3 align-items-end">
+                <div class="col-12 col-sm-6 col-lg">
+                    <label for="filterChiNhanh" class="form-label mb-1">Chi nhánh</label>
+                    <select id="filterChiNhanh" class="form-select form-select-sm">
+                        <option value="0">Tất cả</option>
+                        @if (ViewBag.ListChiNhanh != null)
+                        {
+                            foreach (var cn in ViewBag.ListChiNhanh)
                             {
-                                foreach (var cn in ViewBag.ListChiNhanh)
-                                {
-                                    <option value="@cn.Value">@cn.Text</option>
-                                }
+                                <option value="@cn.Value">@cn.Text</option>
                             }
-                        </select>
-                    </div>
-                    <div class="col-12 col-sm-6 col-lg">
-                        <label for="filterNguoiThue" class="form-label mb-1">
-                            <i class="ti ti-user me-1"></i> Người thuê
-                        </label>
-                        @* Người thuê đổ từ khối JSON allNguoiThues trong script (in một lần cho cả hai ô chọn). *@
-                        <select id="filterNguoiThue" class="form-select form-select-sm">
-                            <option value="0">-- Tất cả --</option>
-                        </select>
-                    </div>
-                    <div class="col-12 col-sm-6 col-lg">
-                        <label for="filterDateRange" class="form-label mb-1">
-                            <i class="ti ti-calendar me-1"></i> Thời hạn hợp đồng
-                        </label>
-                        <input type="text" class="form-control form-control-sm" id="filterDateRange" placeholder="Chọn khoảng thời gian...">
-                    </div>
-                    <div class="col-12 col-sm-6 col-lg">
-                        <label for="filterTrangThai" class="form-label mb-1">
-                            <i class="ti ti-info-circle me-1"></i> Trạng thái
-                        </label>
-                        <select id="filterTrangThai" class="form-select form-select-sm">
-                            <option value="0">Tất cả</option>
-                            <option value="1">Đang hoạt động</option>
-                            <option value="2">Đã kết thúc</option>
-                            <option value="3">Đã hủy</option>
-                        </select>
-                    </div>
-                    <div class="col-12 col-sm-6 col-lg">
-                        <label for="filterBoLoc" class="form-label mb-1">
-                            <i class="ti ti-filter me-1"></i> Bộ lọc nhanh
-                        </label>
-                        <select id="filterBoLoc" class="form-select form-select-sm">
-                            <option value="">Tất cả</option>
-                            <option value="QuaHan">Quá hạn chưa xử lý</option>
-                            <option value="SapHetHan">Sắp hết hạn (30 ngày)</option>
-                            <option value="GiaHan">Gia hạn</option>
-                        </select>
-                    </div>
+                        }
+                    </select>
+                </div>
+                <div class="col-12 col-sm-6 col-lg">
+                    <label for="filterNguoiThue" class="form-label mb-1">Người thuê</label>
+                    @* Người thuê đổ từ khối JSON allNguoiThues trong script (in một lần cho cả hai ô chọn). *@
+                    <select id="filterNguoiThue" class="form-select form-select-sm">
+                        <option value="0">-- Tất cả --</option>
+                    </select>
+                </div>
+                <div class="col-12 col-sm-6 col-lg">
+                    <label for="filterDateRange" class="form-label mb-1">Thời hạn hợp đồng</label>
+                    <input type="text" class="form-control form-control-sm" id="filterDateRange" placeholder="Chọn khoảng thời gian...">
+                </div>
+                <div class="col-12 col-sm-6 col-lg">
+                    <label for="filterTrangThai" class="form-label mb-1">Trạng thái</label>
+                    <select id="filterTrangThai" class="form-select form-select-sm">
+                        <option value="0">Tất cả</option>
+                        <option value="1">Đang hoạt động</option>
+                        <option value="2">Đã kết thúc</option>
+                        <option value="3">Đã hủy</option>
+                    </select>
+                </div>
+                <div class="col-12 col-sm-6 col-lg">
+                    <label for="filterBoLoc" class="form-label mb-1">Bộ lọc nhanh</label>
+                    <select id="filterBoLoc" class="form-select form-select-sm">
+                        <option value="">Tất cả</option>
+                        <option value="QuaHan">Quá hạn chưa xử lý</option>
+                        <option value="SapHetHan">Sắp hết hạn (30 ngày)</option>
+                        <option value="GiaHan">Gia hạn</option>
+                    </select>
                 </div>
             </div>
+        </div>
 
-            <div class="table-responsive">
+        <div class="table-responsive">
                 <table id="hopDongTable" class="table card-table table-vcenter table-hover w-100 ts-bang-the">
                     <thead>
                         <tr>
@@ -99,7 +87,6 @@
                     <tbody></tbody>
                 </table>
             </div>
-        </div>
     </div>
 </div>
 
