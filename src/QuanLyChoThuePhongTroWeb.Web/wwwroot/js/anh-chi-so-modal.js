@@ -1,0 +1,817 @@
+    // jQuery được nạp ở cuối _Layout (sau RenderBody), nên chỉ khởi tạo khi DOM sẵn sàng.
+    document.addEventListener('DOMContentLoaded', function () {
+        let currentPeriodData = null;
+        let selectedImage = null;
+        let viewer = null;
+        let activeTab = 0; // 0: Điện, 1: Nước
+        let currentPhongTroId = 0;
+        let currentThang = 0;
+        let currentNam = 0;
+        let anomalyFlagged = false; // chỉ số đang nhập bị cảnh báo bất thường => bắt buộc ghi chú
+        let anomalyBlocked = false; // mức Chặn (chỉ số giảm): không lưu được theo luồng thường
+        let anomalyInfo = null; // kết quả kiểm tra gần nhất của server
+        let anomalyTimer = null;
+        let anomalySeq = 0;
+
+        const STATUS_CLASSES = {
+            0: 'bg-secondary text-white',
+            1: 'bg-info text-white',
+            2: 'bg-primary text-white',
+            3: 'bg-danger text-white',
+            4: 'bg-warning-lt',
+            5: 'bg-warning-lt',
+            6: 'bg-success text-white',
+            7: 'bg-dark text-white'
+        };
+
+        function getCsrfToken() {
+            return $('input[name="__RequestVerificationToken"]').first().val() || '';
+        }
+
+        function initViewer() {
+            if (!viewer) {
+                viewer = new MeterImageViewer({
+                    containerId: 'viewerStage',
+                    imageId: 'mainViewerImg',
+                    zoomInBtnId: 'btnZoomIn',
+                    zoomOutBtnId: 'btnZoomOut',
+                    rotateBtnId: 'btnRotate',
+                    resetBtnId: 'btnResetZoom'
+                });
+            }
+        }
+
+        window.openAnhChiSoModal = function (phongTroId, thang, nam, tenPhong) {
+            currentPhongTroId = phongTroId;
+            currentThang = thang;
+            currentNam = nam;
+
+            $('#modalTenPhong').text(tenPhong || ('#' + phongTroId));
+            $('#modalKy').text((thang < 10 ? '0' + thang : thang) + '/' + nam);
+            $('#modalAnhChiSo').modal('show');
+
+            initViewer();
+            loadModalData();
+        };
+
+        function loadModalData(selectImageId) {
+            $.ajax({
+                url: '/DienNuoc/AnhChiSo',
+                type: 'GET',
+                data: { phongTroId: currentPhongTroId, thang: currentThang, nam: currentNam },
+                success: function (res) {
+                    if (res && res.success && res.data) {
+                        currentPeriodData = res.data;
+                        renderModal(selectImageId);
+                    } else {
+                        showError(res?.message || 'Không thể tải dữ liệu ảnh chỉ số.');
+                    }
+                },
+                error: function (xhr) {
+                    showError(xhr.responseJSON?.message || 'Lỗi kết nối khi tải ảnh chỉ số.');
+                }
+            });
+        }
+
+        function renderModal(preferredImageId) {
+            if (!currentPeriodData) return;
+
+            // Lock banner
+            if (currentPeriodData.kyBiKhoa) {
+                $('#modalKyKhoaBanner').show();
+                $('#modalLyDoKhoa').text(currentPeriodData.lyDoKhoa || 'Kỳ đã khóa.');
+            } else {
+                $('#modalKyKhoaBanner').hide();
+            }
+
+            // Upload section
+            if (currentPeriodData.coTheTaiAnh && !currentPeriodData.kyBiKhoa) {
+                $('#uploadAllowedSection').show();
+                $('#uploadBlockedSection').hide();
+            } else {
+                $('#uploadAllowedSection').hide();
+                $('#uploadBlockedSection').show();
+                $('#txtLyDoKhongTheTai').text(currentPeriodData.kyBiKhoa ? currentPeriodData.lyDoKhoa : (currentPeriodData.lyDoKhongTheTai || 'Không thể tải ảnh cho kỳ này.'));
+            }
+
+            const anhDien = currentPeriodData.anhDien || [];
+            const anhNuoc = currentPeriodData.anhNuoc || [];
+
+            $('#countAnhDien').text(anhDien.length);
+            $('#countAnhNuoc').text(anhNuoc.length);
+
+            renderThumbnailStrip('#stripAnhDien', anhDien);
+            renderThumbnailStrip('#stripAnhNuoc', anhNuoc);
+
+            // Select image
+            let targetImage = null;
+            const currentList = activeTab === 0 ? anhDien : anhNuoc;
+
+            if (preferredImageId) {
+                targetImage = [...anhDien, ...anhNuoc].find(x => x.id === preferredImageId);
+                if (targetImage) {
+                    activeTab = targetImage.loai;
+                    if (activeTab === 0) {
+                        $('#tab-dien-btn').tab('show');
+                    } else {
+                        $('#tab-nuoc-btn').tab('show');
+                    }
+                }
+            }
+
+            if (!targetImage && currentList.length > 0) {
+                // Ưu tiên ảnh chính thức hoặc ảnh đầu tiên
+                targetImage = currentList.find(x => x.laChinhThuc) || currentList[0];
+            }
+
+            selectImage(targetImage);
+        }
+
+        function renderThumbnailStrip(selector, images) {
+            if (!images || images.length === 0) {
+                $(selector).html('<div class="text-secondary small py-2 px-1">Chưa có ảnh nào được gửi cho loại đồng hồ này.</div>');
+                return;
+            }
+
+            let html = '';
+            images.forEach(img => {
+                const badgeClass = STATUS_CLASSES[img.trangThai] || 'bg-secondary text-white';
+                const officialBadge = img.laChinhThuc ? '<span class="badge bg-success ms-1">Chính thức</span>' : '';
+                html += `
+                    <div class="meter-thumbnail-item" data-img-id="${img.id}">
+                        <img src="${escapeHtml(img.url)}" alt="Ảnh đồng hồ" class="meter-thumbnail-img" />
+                        <div class="mt-1 d-flex flex-wrap gap-1">
+                            <span class="badge ${badgeClass} small" style="font-size: 0.65rem;">${escapeHtml(img.nhanTrangThai)}</span>
+                            ${officialBadge}
+                        </div>
+                        <div class="text-secondary text-truncate mt-1" style="font-size: 0.65rem;">${escapeHtml(img.ngayGui)}</div>
+                    </div>
+                `;
+            });
+
+            $(selector).html(html);
+        }
+
+        function selectImage(img) {
+            selectedImage = img;
+            $('.meter-thumbnail-item').removeClass('meter-thumbnail-active');
+
+            if (!img) {
+                $('#mainViewerImg').hide();
+                $('#viewerEmptyState').show();
+                $('#selectedImageDetails').html('<div class="text-secondary small">Không có ảnh nào trong mục này.</div>');
+                $('#boxActionImage').hide();
+                return;
+            }
+
+            $(`.meter-thumbnail-item[data-img-id="${img.id}"]`).addClass('meter-thumbnail-active');
+            $('#viewerEmptyState').hide();
+            $('#mainViewerImg').show();
+            if (viewer) {
+                viewer.loadImage(img.url);
+            }
+
+            // Render info
+            const badgeClass = STATUS_CLASSES[img.trangThai] || 'bg-secondary text-white';
+            const chiSoCuHienThi = activeTab === 0 ? currentPeriodData.chiSoDienCu : currentPeriodData.chiSoNuocCu;
+
+            let detailsHtml = `
+                <div class="mb-2">
+                    <span class="badge ${badgeClass} me-1">${escapeHtml(img.nhanTrangThai)}</span>
+                    ${img.laChinhThuc ? '<span class="badge bg-success">Chính thức</span>' : ''}
+                </div>
+                <div class="row g-2 mb-2 small">
+                    <div class="col-6">
+                        <span class="text-secondary">Chỉ số cũ kỳ:</span>
+                        <div class="fw-medium">${formatNumber(chiSoCuHienThi)}</div>
+                    </div>
+                    <div class="col-6">
+                        <span class="text-secondary">Số AI gợi ý:</span>
+                        <div class="fw-medium text-primary">${img.giaTriAI ? escapeHtml(img.giaTriAI) : '—'} ${img.doTinCay ? `<span class="badge bg-info-lt text-info ms-1">${escapeHtml(img.doTinCay)}</span>` : ''}</div>
+                    </div>
+                    <div class="col-6">
+                        <span class="text-secondary">Số chính thức:</span>
+                        <div class="fw-medium text-success">${img.giaTriXacNhan ? escapeHtml(img.giaTriXacNhan) : '—'}</div>
+                    </div>
+                    <div class="col-6">
+                        <span class="text-secondary">Nguồn gửi:</span>
+                        <div class="fw-medium">${escapeHtml(img.nguonGui || '—')}</div>
+                    </div>
+                    <div class="col-12">
+                        <span class="text-secondary">Thời điểm gửi:</span>
+                        <div class="fw-medium">${escapeHtml(img.ngayGui)}</div>
+                    </div>
+                </div>
+            `;
+
+            if (img.thongBaoLoi) {
+                detailsHtml += `
+                    <div class="alert alert-danger py-1 px-2 mb-2 small">
+                        <i class="ti ti-alert-circle me-1"></i> ${escapeHtml(img.thongBaoLoi)}
+                    </div>
+                `;
+            }
+
+            if (img.ghiChuXacNhan) {
+                detailsHtml += `
+                    <div class="alert alert-info py-1 px-2 mb-2 small">
+                        <i class="ti ti-note me-1"></i> <strong>Ghi chú:</strong> ${escapeHtml(img.ghiChuXacNhan)}
+                    </div>
+                `;
+            }
+
+            $('#selectedImageDetails').html(detailsHtml);
+
+            // Render Actions
+            if (currentPeriodData.kyBiKhoa) {
+                $('#boxActionImage').hide();
+                return;
+            }
+
+            let hasAnyAction = false;
+
+            if (img.coTheThuLai) {
+                $('#actionThuLaiWrap').show();
+                hasAnyAction = true;
+            } else {
+                $('#actionThuLaiWrap').hide();
+            }
+
+            if (img.coTheXacNhan) {
+                $('#actionXacNhanWrap').show();
+                $('#inGiaTriXacNhan').val(img.giaTriAISo !== null && img.giaTriAISo !== undefined ? img.giaTriAISo : '');
+                $('#inGhiChuXacNhan').val('');
+                if (img.canLyDo) {
+                    $('#lblBatBuocLyDo').show();
+                } else {
+                    $('#lblBatBuocLyDo').hide();
+                }
+                resetAnomaly();
+                checkAnomaly();
+                hasAnyAction = true;
+            } else {
+                $('#actionXacNhanWrap').hide();
+            }
+
+            if (img.coTheSuaSo) {
+                $('#actionSuaSoWrap').show();
+                $('#inGiaTriSuaSo').val('');
+                $('#inLyDoSuaSo').val('');
+                hasAnyAction = true;
+            } else {
+                $('#actionSuaSoWrap').hide();
+            }
+
+            if (hasAnyAction) {
+                $('#boxActionImage').show();
+            } else {
+                $('#boxActionImage').hide();
+            }
+        }
+
+        function formatNumber(val) {
+            if (val === null || val === undefined) return '0';
+            return Number(val).toLocaleString('vi-VN', { maximumFractionDigits: 3 });
+        }
+
+        // Tab events
+        $('#tab-dien-btn').on('shown.bs.tab', function () {
+            activeTab = 0;
+            $('#optDien').prop('checked', true);
+            const anhDien = currentPeriodData?.anhDien || [];
+            selectImage(anhDien.find(x => x.laChinhThuc) || anhDien[0] || null);
+        });
+
+        $('#tab-nuoc-btn').on('shown.bs.tab', function () {
+            activeTab = 1;
+            $('#optNuoc').prop('checked', true);
+            const anhNuoc = currentPeriodData?.anhNuoc || [];
+            selectImage(anhNuoc.find(x => x.laChinhThuc) || anhNuoc[0] || null);
+        });
+
+        // Click thumbnail
+        $('#meterTabContent').on('click', '.meter-thumbnail-item', function () {
+            const id = $(this).data('img-id');
+            const allImages = [...(currentPeriodData?.anhDien || []), ...(currentPeriodData?.anhNuoc || [])];
+            const target = allImages.find(x => x.id === id);
+            if (target) {
+                selectImage(target);
+            }
+        });
+
+        // Action: Thử nhận diện lại
+        $('#btnThuLai').on('click', function () {
+            if (!selectedImage) return;
+            const $btn = $(this);
+            const origHtml = $btn.html();
+            $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1" role="status"></span> Đang thử lại...');
+
+            $.ajax({
+                url: `/DienNuoc/AnhChiSo/${selectedImage.id}/ThuLai`,
+                type: 'POST',
+                headers: { 'RequestVerificationToken': getCsrfToken() },
+                success: function (res) {
+                    showSuccess(res.message || 'Thử nhận diện lại thành công.');
+                    loadModalData(selectedImage.id);
+                    if (window.refreshDienNuocRow) {
+                        window.refreshDienNuocRow(currentPhongTroId);
+                    }
+                },
+                error: function (xhr) {
+                    showError(xhr.responseJSON?.message || 'Có lỗi xảy ra khi thử nhận diện lại.');
+                },
+                complete: function () {
+                    $btn.prop('disabled', false).html(origHtml);
+                }
+            });
+        });
+
+        // Action: Xác nhận chỉ số
+        $('#btnSubmitXacNhan').on('click', function () {
+            if (!selectedImage) return;
+
+            const valStr = $('#inGiaTriXacNhan').val();
+            if (!valStr || isNaN(parseFloat(valStr))) {
+                showWarning('Vui lòng nhập chỉ số hợp lệ.');
+                $('#inGiaTriXacNhan').focus();
+                return;
+            }
+
+            const giaTri = parseFloat(valStr);
+            if (giaTri < 0) {
+                showWarning('Chỉ số xác nhận không được âm.');
+                $('#inGiaTriXacNhan').focus();
+                return;
+            }
+
+            if (anomalyBlocked) {
+                showWarning('Chỉ số mới nhỏ hơn chỉ số cũ nên không thể xác nhận. Hãy sửa số hoặc dùng thao tác đổi đồng hồ / quay vòng.');
+                return;
+            }
+
+            const ghiChu = $('#inGhiChuXacNhan').val().trim();
+            if (selectedImage.canLyDo && !ghiChu) {
+                showWarning('Ảnh không đọc được bắt buộc phải có ghi chú / lý do xác nhận.');
+                $('#inGhiChuXacNhan').focus();
+                return;
+            }
+            if (anomalyFlagged && !ghiChu) {
+                showWarning('Chỉ số bất thường so với lịch sử, cần ghi chú lý do.');
+                $('#inGhiChuXacNhan').focus();
+                return;
+            }
+
+            const $btn = $(this);
+            const origHtml = $btn.html();
+            $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1" role="status"></span> Đang xác nhận...');
+
+            $.ajax({
+                url: `/DienNuoc/AnhChiSo/${selectedImage.id}/XacNhan`,
+                type: 'POST',
+                headers: { 'RequestVerificationToken': getCsrfToken() },
+                contentType: 'application/json',
+                data: JSON.stringify({ giaTriXacNhan: giaTri, ghiChu: ghiChu || null }),
+                success: function (res) {
+                    showSuccess(res.message || 'Xác nhận chỉ số thành công.');
+                    loadModalData(selectedImage.id);
+                    if (window.refreshDienNuocRow) {
+                        window.refreshDienNuocRow(currentPhongTroId);
+                    }
+                },
+                error: function (xhr) {
+                    showError(xhr.responseJSON?.message || 'Có lỗi xảy ra khi xác nhận chỉ số.');
+                },
+                complete: function () {
+                    $btn.prop('disabled', false).html(origHtml);
+                }
+            });
+        });
+
+        function resetAnomaly() {
+            clearTimeout(anomalyTimer);
+            anomalySeq++;
+            anomalyFlagged = false;
+            anomalyBlocked = false;
+            anomalyInfo = null;
+            $('#canhBaoBatThuong').removeClass('alert-danger alert-warning').addClass('alert-warning').hide().text('');
+            $('#canhBaoBatThuongLoi').hide().text('');
+            $('#nhacXemLai').hide().text('');
+            $('#lblBatBuocBatThuong').hide();
+            $('#anomalyActions').hide();
+            $('#btnSuaNhanh').hide().text('').removeData('value');
+            $('#btnQuayVong').hide();
+            $('#btnDoiDongHo').hide();
+            $('#btnSubmitXacNhan').prop('disabled', false).removeAttr('title');
+        }
+
+        // Giá trị cũ đang hiển thị của loại đồng hồ đang chọn.
+        function getChiSoCu() {
+            if (!currentPeriodData) return null;
+            return activeTab === 0 ? currentPeriodData.chiSoDienCu : currentPeriodData.chiSoNuocCu;
+        }
+
+        function getDonVi() {
+            return activeTab === 0 ? 'kWh' : 'm³';
+        }
+
+        // Hiển thị kết quả kiểm tra: mucDo Chan/Do dùng hộp đỏ, Vang dùng hộp vàng. Mọi chuỗi đưa vào bằng .text().
+        function applyAnomaly(w, val) {
+            const $box = $('#canhBaoBatThuong');
+            const $btnSubmit = $('#btnSubmitXacNhan');
+
+            $('#anomalyActions').hide();
+            $('#btnSuaNhanh').hide();
+            $('#btnQuayVong').hide();
+            $('#btnDoiDongHo').hide();
+            $('#nhacXemLai').hide().text('');
+
+            if (w && w.moTa) {
+                anomalyInfo = w;
+                const mucDo = w.mucDo || 'Vang';
+                anomalyBlocked = mucDo === 'Chan';
+                anomalyFlagged = mucDo === 'Do' || mucDo === 'Vang';
+
+                $box.removeClass('alert-danger alert-warning')
+                    .addClass(mucDo === 'Vang' ? 'alert-warning' : 'alert-danger')
+                    .text(w.moTa)
+                    .show();
+                $('#lblBatBuocBatThuong').toggle(anomalyFlagged);
+
+                if (anomalyBlocked) {
+                    $btnSubmit.prop('disabled', true).attr('title', 'Chỉ số giảm: hãy sửa số hoặc dùng thao tác đổi đồng hồ / quay vòng.');
+                } else {
+                    $btnSubmit.prop('disabled', false).removeAttr('title');
+                }
+
+                let anyAction = false;
+                if (w.chiSoGoiY !== null && w.chiSoGoiY !== undefined) {
+                    let label = 'Sửa nhanh thành ' + formatNumber(w.chiSoGoiY);
+                    if (w.sanLuongTheoGoiY !== null && w.sanLuongTheoGoiY !== undefined) {
+                        label += ' (tiêu thụ ' + formatNumber(w.sanLuongTheoGoiY) + ' ' + getDonVi() + ')';
+                    }
+                    $('#btnSuaNhanh').text(label).data('value', w.chiSoGoiY).show();
+                    anyAction = true;
+                }
+
+                if (anomalyBlocked) {
+                    if (w.coTheQuayVong) {
+                        $('#btnQuayVong').show();
+                        if (w.sanLuongTheoGoiY !== null && w.sanLuongTheoGoiY !== undefined) {
+                            $('#nhacXemLai').text('Nếu đồng hồ quay vòng qua ' + formatNumber(w.tranCongTo) + ', tiêu thụ kỳ này là '
+                                + formatNumber(w.sanLuongTheoGoiY) + ' ' + getDonVi() + '.').show();
+                        }
+                    }
+                    $('#btnDoiDongHo').show();
+                    anyAction = true;
+                }
+
+                if (anyAction) {
+                    $('#anomalyActions').css('display', 'flex');
+                }
+                return;
+            }
+
+            // Hợp lệ (xanh): bỏ cảnh báo, chỉ nhắc xem lại ở các ca đáng ngờ.
+            anomalyInfo = null;
+            anomalyFlagged = false;
+            anomalyBlocked = false;
+            $box.hide().text('');
+            $('#lblBatBuocBatThuong').hide();
+            $btnSubmit.prop('disabled', false).removeAttr('title');
+
+            const nhac = [];
+            if (selectedImage && selectedImage.doTinCayThap && selectedImage.giaTriAISo !== null && selectedImage.giaTriAISo !== undefined
+                && Number(val) === Number(selectedImage.giaTriAISo)) {
+                nhac.push('Độ tin cậy của AI thấp, hãy xem lại số trên ảnh trước khi lưu.');
+            }
+            const chiSoCu = getChiSoCu();
+            if (chiSoCu !== null && chiSoCu !== undefined && Number(val) === Number(chiSoCu)) {
+                nhac.push('Tiêu thụ kỳ này bằng 0, hãy kiểm tra đồng hồ có kẹt số hoặc ảnh có phải ảnh cũ không.');
+            }
+            if (nhac.length > 0) {
+                $('#nhacXemLai').text(nhac.join(' ')).show();
+            }
+        }
+
+        // Gọi server kiểm tra chỉ số đang nhập có bất thường không (debounce ở nơi gọi).
+        function checkAnomaly() {
+            if (!selectedImage) return;
+            const valStr = $('#inGiaTriXacNhan').val();
+            const val = parseFloat(valStr);
+            if (!valStr || isNaN(val)) {
+                resetAnomaly();
+                return;
+            }
+            const seq = ++anomalySeq;
+            const query = { phongTroId: currentPhongTroId, thang: currentThang, nam: currentNam };
+            const isDien = selectedImage.loai === 0;
+            query[isDien ? 'chiSoDienMoi' : 'chiSoNuocMoi'] = val;
+            $.get('/DienNuoc/KiemTraBatThuong', query).done(function (res) {
+                if (seq !== anomalySeq) return;
+                $('#canhBaoBatThuongLoi').hide().text('');
+                applyAnomaly(isDien ? res.dien : res.nuoc, val);
+            }).fail(function (xhr) {
+                if (seq !== anomalySeq) return;
+                // Giữ nguyên anomalyFlagged: không biết số mới có bất thường hay không, server vẫn kiểm lại khi lưu.
+                console.warn('Không kiểm tra được chỉ số bất thường', xhr.status);
+                $('#canhBaoBatThuongLoi').text('Không kiểm tra được chỉ số bất thường. Hệ thống vẫn kiểm lại khi lưu.').show();
+            });
+        }
+
+        $('#inGiaTriXacNhan').on('input change', function () {
+            clearTimeout(anomalyTimer);
+            anomalyTimer = setTimeout(checkAnomaly, 400);
+        });
+
+        // Nút sửa nhanh: chỉ điền số vào ô nhập và kiểm tra lại, không tự lưu.
+        $('#btnSuaNhanh').on('click', function () {
+            const value = $(this).data('value');
+            if (value === null || value === undefined) return;
+            $('#inGiaTriXacNhan').val(value).trigger('focus');
+            clearTimeout(anomalyTimer);
+            checkAnomaly();
+        });
+
+        $('#btnDoiDongHo, #btnDoiDongHoPhu').on('click', function () {
+            openDoiMocDialog('DoiDongHo');
+        });
+
+        $('#btnQuayVong').on('click', function () {
+            openDoiMocDialog('QuayVong');
+        });
+
+        // Hộp thoại đổi đồng hồ / quay vòng. Chỉ số cũ thật do server tính; tổng kết ở đây dựa trên "Cũ" đang hiển thị.
+        function openDoiMocDialog(loai) {
+            if (!selectedImage || typeof Swal === 'undefined') return;
+
+            const laQuayVong = loai === 'QuayVong';
+            const chiSoCu = Number(getChiSoCu() || 0);
+            const donVi = getDonVi();
+            const tranCongTo = anomalyInfo && anomalyInfo.tranCongTo ? Number(anomalyInfo.tranCongTo) : null;
+            const hienTaiMacDinh = $('#inGiaTriXacNhan').val() || (selectedImage.giaTriAISo !== null && selectedImage.giaTriAISo !== undefined ? selectedImage.giaTriAISo : '');
+
+            let html = '<div class="text-start small">';
+            html += '<div class="mb-2 text-secondary">' + (laQuayVong
+                ? 'Đồng hồ đã chạy hết vòng và quay về 0. Số đầu của kỳ là 0; phần trước khi quay vòng cần thu thêm bằng dòng truy thu.'
+                : 'Đồng hồ cũ đã được thay bằng đồng hồ mới. Kỳ này chỉ lưu số của đồng hồ đang lắp; phần của đồng hồ cũ thu thêm bằng dòng truy thu.') + '</div>';
+            html += '<div class="mb-2">Chỉ số cũ của kỳ: <strong>' + escapeHtml(formatNumber(chiSoCu)) + ' ' + escapeHtml(donVi) + '</strong>';
+            if (laQuayVong && tranCongTo) {
+                html += ' &middot; trần quay vòng <strong>' + escapeHtml(formatNumber(tranCongTo)) + '</strong>';
+            }
+            html += '</div>';
+            html += '<label class="form-label mb-1">Chỉ số hiện tại trên đồng hồ <span class="text-danger">*</span></label>';
+            html += '<input type="number" step="0.001" min="0" id="swDoiMocHienTai" class="form-control form-control-sm mb-2" value="' + escapeHtml(String(hienTaiMacDinh)) + '" />';
+            if (!laQuayVong) {
+                html += '<label class="form-label mb-1">Số đầu của đồng hồ mới</label>';
+                html += '<input type="number" step="0.001" min="0" id="swDoiMocSoDau" class="form-control form-control-sm mb-2" value="0" />';
+                html += '<label class="form-label mb-1">Số cuối của đồng hồ cũ (nếu biết)</label>';
+                html += '<input type="number" step="0.001" min="0" id="swDoiMocSoCuoi" class="form-control form-control-sm mb-2" placeholder="Để trống nếu không có" />';
+            }
+            html += '<label class="form-label mb-1">Lý do <span class="text-danger">*</span></label>';
+            html += '<input type="text" id="swDoiMocLyDo" class="form-control form-control-sm mb-2" maxlength="500" placeholder="Ví dụ: thay đồng hồ ngày ..." />';
+            html += '<div class="alert alert-info py-2 px-2 mb-0" id="swDoiMocTongKet"></div>';
+            html += '</div>';
+
+            function readNumber(id) {
+                const el = document.getElementById(id);
+                if (!el || el.value === '') return null;
+                const n = parseFloat(el.value);
+                return isNaN(n) ? null : n;
+            }
+
+            function renderTongKet() {
+                const hienTai = readNumber('swDoiMocHienTai');
+                const soDau = laQuayVong ? 0 : (readNumber('swDoiMocSoDau') ?? 0);
+                const soCuoi = laQuayVong ? null : readNumber('swDoiMocSoCuoi');
+                const lines = [];
+                lines.push('Chỉ số sẽ lưu: <strong>' + escapeHtml(formatNumber(soDau)) + ' &rarr; '
+                    + escapeHtml(hienTai === null ? '?' : formatNumber(hienTai)) + '</strong> ('
+                    + escapeHtml(hienTai === null ? '?' : formatNumber(hienTai - soDau)) + ' ' + escapeHtml(donVi) + ' tính tiền)');
+                if (laQuayVong && tranCongTo) {
+                    lines.push('Phần trước khi quay vòng cần truy thu: <strong>' + escapeHtml(formatNumber(tranCongTo - chiSoCu)) + ' ' + escapeHtml(donVi) + '</strong>');
+                } else if (soCuoi !== null) {
+                    lines.push('Phần đồng hồ cũ cần truy thu: <strong>' + escapeHtml(formatNumber(soCuoi - chiSoCu)) + ' ' + escapeHtml(donVi) + '</strong>');
+                }
+                const box = document.getElementById('swDoiMocTongKet');
+                if (box) box.innerHTML = lines.join('<br/>');
+            }
+
+            Swal.fire({
+                title: laQuayVong ? 'Quay vòng chỉ số' : 'Đổi đồng hồ',
+                html: html,
+                showCancelButton: true,
+                confirmButtonText: 'Lưu',
+                cancelButtonText: 'Hủy',
+                focusConfirm: false,
+                didOpen: function () {
+                    ['swDoiMocHienTai', 'swDoiMocSoDau', 'swDoiMocSoCuoi'].forEach(function (id) {
+                        const el = document.getElementById(id);
+                        if (el) el.addEventListener('input', renderTongKet);
+                    });
+                    renderTongKet();
+                },
+                preConfirm: function () {
+                    const hienTai = readNumber('swDoiMocHienTai');
+                    const soDau = laQuayVong ? null : readNumber('swDoiMocSoDau');
+                    const soCuoi = laQuayVong ? null : readNumber('swDoiMocSoCuoi');
+                    const lyDo = (document.getElementById('swDoiMocLyDo').value || '').trim();
+
+                    if (hienTai === null || hienTai < 0) {
+                        Swal.showValidationMessage('Vui lòng nhập chỉ số hiện tại hợp lệ.');
+                        return false;
+                    }
+                    if (!laQuayVong) {
+                        if ((soDau ?? 0) < 0 || (soDau ?? 0) > hienTai) {
+                            Swal.showValidationMessage('Số đầu của đồng hồ mới phải từ 0 đến chỉ số hiện tại.');
+                            return false;
+                        }
+                        // Số cuối do server kiểm theo chỉ số cũ thật: khi làm lại, Cũ đang hiển thị đã là mốc lần trước.
+                    }
+                    if (!lyDo) {
+                        Swal.showValidationMessage('Vui lòng nhập lý do.');
+                        return false;
+                    }
+                    return { hienTai: hienTai, soDau: soDau, soCuoi: soCuoi, lyDo: lyDo };
+                }
+            }).then(function (result) {
+                if (!result.isConfirmed || !result.value) return;
+                const v = result.value;
+
+                $.ajax({
+                    url: `/DienNuoc/AnhChiSo/${selectedImage.id}/DoiMoc`,
+                    type: 'POST',
+                    headers: { 'RequestVerificationToken': getCsrfToken() },
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        loai: loai,
+                        giaTriHienTai: v.hienTai,
+                        soDauDongHoMoi: laQuayVong ? null : (v.soDau ?? 0),
+                        soCuoiDongHoCu: v.soCuoi,
+                        lyDo: v.lyDo
+                    }),
+                    success: function (res) {
+                        // Ghi chú server trả về là số chính thức (tính theo chỉ số cũ thật của kỳ trước).
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Đã lưu',
+                            text: (res.message || 'Đã lưu.') + (res.ghiChuXacNhan ? ' ' + res.ghiChuXacNhan : '')
+                        });
+                        loadModalData(selectedImage.id);
+                        if (window.refreshDienNuocRow) {
+                            window.refreshDienNuocRow(currentPhongTroId);
+                        }
+                    },
+                    error: function (xhr) {
+                        showError(xhr.responseJSON?.message || 'Có lỗi xảy ra khi đổi mốc chỉ số.');
+                    }
+                });
+            });
+        }
+
+        // Action: Sửa số đã xác nhận
+        $('#btnSubmitSuaSo').on('click', function () {
+            if (!selectedImage) return;
+
+            const valStr = $('#inGiaTriSuaSo').val();
+            if (!valStr || isNaN(parseFloat(valStr))) {
+                showWarning('Vui lòng nhập chỉ số mới hợp lệ.');
+                $('#inGiaTriSuaSo').focus();
+                return;
+            }
+
+            const giaTriMoi = parseFloat(valStr);
+            if (giaTriMoi < 0) {
+                showWarning('Chỉ số mới không được âm.');
+                $('#inGiaTriSuaSo').focus();
+                return;
+            }
+
+            const lyDo = $('#inLyDoSuaSo').val().trim();
+            if (!lyDo) {
+                showWarning('Vui lòng nhập lý do sửa số.');
+                $('#inLyDoSuaSo').focus();
+                return;
+            }
+
+            const $btn = $(this);
+            const origHtml = $btn.html();
+            $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1" role="status"></span> Đang lưu...');
+
+            $.ajax({
+                url: `/DienNuoc/AnhChiSo/${selectedImage.id}/SuaSo`,
+                type: 'POST',
+                headers: { 'RequestVerificationToken': getCsrfToken() },
+                contentType: 'application/json',
+                data: JSON.stringify({ giaTriMoi: giaTriMoi, lyDo: lyDo }),
+                success: function (res) {
+                    showSuccess(res.message || 'Sửa chỉ số thành công.');
+                    loadModalData(selectedImage.id);
+                    if (window.refreshDienNuocRow) {
+                        window.refreshDienNuocRow(currentPhongTroId);
+                    }
+                },
+                error: function (xhr) {
+                    showError(xhr.responseJSON?.message || 'Có lỗi xảy ra khi sửa chỉ số.');
+                },
+                complete: function () {
+                    $btn.prop('disabled', false).html(origHtml);
+                }
+            });
+        });
+
+        // Action: Tải ảnh thay khách
+        $('#formUploadMeterImage').on('submit', function (e) {
+            e.preventDefault();
+
+            const fileInput = document.getElementById('fileUploadInput');
+            if (!fileInput.files || fileInput.files.length === 0) {
+                showWarning('Vui lòng chọn ảnh đồng hồ để tải lên.');
+                return;
+            }
+
+            const $btn = $('#btnUploadImage');
+            const origHtml = $btn.html();
+            $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1" role="status"></span> Đang tải ảnh và nhận diện…');
+
+            // Nén ảnh ở trình duyệt trước (không nén được thì dùng ảnh gốc).
+            const picked = fileInput.files[0];
+            const ready = window.MeterImageCompress ? window.MeterImageCompress.compress(picked) : Promise.resolve(picked);
+
+            ready.then(function (file) {
+                // Khớp MeterImageOptions:MaxFileSizeBytes (5 MB), kiểm sau khi nén. Ảnh lớn hơn giới hạn body của máy chủ sẽ bị ngắt kết nối (ERR_CONNECTION_RESET) thay vì trả thông báo.
+                if (file.size > 5 * 1024 * 1024) {
+                    $btn.prop('disabled', false).html(origHtml);
+                    showWarning('Ảnh vượt quá dung lượng cho phép (5 MB). Vui lòng chọn ảnh nhỏ hơn hoặc giảm chất lượng ảnh.');
+                    return;
+                }
+
+                const loaiDongHo = $('input[name="radioLoaiDongHo"]:checked').val() || '0';
+                const formData = new FormData();
+                formData.append('phongTroId', currentPhongTroId);
+                formData.append('thang', currentThang);
+                formData.append('nam', currentNam);
+                formData.append('loaiDongHo', loaiDongHo);
+                formData.append('file', file, file.name);
+
+                $.ajax({
+                    url: '/DienNuoc/AnhChiSo/TaiLen',
+                    type: 'POST',
+                    headers: { 'RequestVerificationToken': getCsrfToken() },
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function (res) {
+                        showSuccess(res.message || 'Tải ảnh và nhận diện thành công.');
+                        fileInput.value = '';
+                        const newImageId = res.data?.id;
+                        loadModalData(newImageId);
+                        if (window.refreshDienNuocRow) {
+                            window.refreshDienNuocRow(currentPhongTroId);
+                        }
+                    },
+                    error: function (xhr) {
+                        showError(xhr.responseJSON?.message || (xhr.status === 0 ? 'Mất kết nối với máy chủ khi tải ảnh. Hãy kiểm tra dung lượng ảnh (tối đa 5 MB) rồi thử lại.' : 'Có lỗi xảy ra khi tải ảnh lên.'));
+                    },
+                    complete: function () {
+                        $btn.prop('disabled', false).html(origHtml);
+                    }
+                });
+            });
+        });
+
+        function showSuccess(msg) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Thành công',
+                    text: msg,
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            }
+        }
+
+        function showWarning(msg) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Thông báo',
+                    text: msg
+                });
+            } else {
+                alert(msg);
+            }
+        }
+
+        function showError(msg) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Lỗi',
+                    text: msg
+                });
+            } else {
+                alert(msg);
+            }
+        }
+    });
