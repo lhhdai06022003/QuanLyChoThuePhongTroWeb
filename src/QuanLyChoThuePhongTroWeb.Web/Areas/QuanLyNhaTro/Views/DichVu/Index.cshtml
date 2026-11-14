@@ -368,6 +368,10 @@
 
             $('#filterChiNhanh').change(function() { tableBangGia.ajax.reload(); });
 
+            $('#tab-bang-gia').on('shown.bs.tab', function() {
+                tableBangGia.columns.adjust().draw(false);
+            });
+
             function loadDichVuDropdown(selectedId = 0) {
                 $.get('/DichVu/GetDropdown', function(data) {
                     let html = '<option value="">-- Chọn dịch vụ --</option>';

@@ -177,5 +177,15 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
                 Assert.True(m.Index > sectionIdx, $"<link> ở vị trí {m.Index} trong {relativePath} nằm ngoài @section Styles");
             }
         }
+
+        // 9. S1: Tab Bảng giá theo chi nhánh của màn Dịch vụ vẽ lại khi chuyển tab để gán đầy đủ data-label cho thẻ trên điện thoại
+        [Fact]
+        public void DichVu_TabBangGia_VeLaiKhiChuyenTabDeGanNhanThe()
+        {
+            var content = Read("Areas", "QuanLyNhaTro", "Views", "DichVu", "Index.cshtml");
+            Assert.Contains("shown.bs.tab", content);
+            Assert.Contains("tableBangGia.columns.adjust().draw", content);
+            Assert.Matches(@"#tab-bang-gia['""].*shown\.bs\.tab", content);
+        }
     }
 }
