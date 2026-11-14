@@ -112,13 +112,13 @@
             else
             {
                 <div class="table-responsive">
-                    <table class="table card-table table-vcenter">
+                    <table class="table card-table table-vcenter ts-bang-the">
                         <thead>
                             <tr>
                                 <th>Mã hóa đơn</th>
                                 <th>Phòng · Chi nhánh</th>
                                 <th>Khách thuê</th>
-                                <th class="text-end">Còn nợ</th>
+                                <th class="text-end num-tabular">Còn nợ</th>
                                 <th>Hạn thanh toán</th>
                                 <th class="text-end">Quá hạn</th>
                             </tr>
@@ -130,7 +130,7 @@
                                     <td><a href="@h.Link">@h.MaHoaDon</a></td>
                                     <td>@h.PhongChiNhanh</td>
                                     <td>@h.KhachThue</td>
-                                    <td class="text-end text-nowrap">@h.SoConNoText</td>
+                                    <td class="text-end text-nowrap num-tabular">@h.SoConNoText</td>
                                     <td class="text-nowrap">@h.HanThanhToanText</td>
                                     <td class="text-end text-nowrap">@h.SoNgayQuaHan ngày</td>
                                 </tr>

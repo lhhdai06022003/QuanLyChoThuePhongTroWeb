@@ -1,18 +1,17 @@
 @model IEnumerable<QuanLyChoThuePhongTroWeb.Application.Features.YeuCauSuCos.DTOs.YeuCauSuCoRes>
 @using QuanLyChoThuePhongTroWeb.Models
 @using QuanLyChoThuePhongTroWeb.Application.Common.Enums
+@using QuanLyChoThuePhongTroWeb.Web.Helpers
 
 @{
-    ViewData["Title"] = "Quản lý Yêu cầu sự cố";
+    ViewData["Title"] = "Sự cố và sửa chữa";
 }
 
 <div class="page-header d-print-none">
     <div class="container-xl">
         <div class="row g-2 align-items-center">
             <div class="col">
-                <h2 class="page-title text-primary fw-bold d-flex align-items-center">
-                    <i class="ti ti-tools me-2"></i> Quản lý Sự cố & Sửa chữa
-                </h2>
+                <h2 class="page-title">Sự cố và sửa chữa</h2>
             </div>
         </div>
     </div>
@@ -21,20 +20,20 @@
 <div class="page-body">
     <div class="container-xl">
         <partial name="_ChuaPhanCongBanner" />
-        <div class="card shadow-sm border-0">
+        <div class="card">
             <!-- Filter Section -->
-            <div class="card-body border-bottom py-3 bg-light">
-                <form method="get" class="row g-3 align-items-center m-0">
-                    <div class="col-auto d-flex align-items-center text-muted font-weight-medium ps-0">
+            <div class="card-body border-bottom py-3">
+                <form method="get" class="row g-2 align-items-center m-0">
+                    <div class="col-12 col-sm-auto d-flex align-items-center text-muted ps-0">
                         <i class="ti ti-filter me-2 text-secondary"></i> <span>Lọc kết quả:</span>
                     </div>
-                    <div class="col-auto">
-                        <select name="chiNhanhId" class="form-select form-select-sm shadow-none border-secondary" asp-items="ViewBag.ChiNhanhId" onchange="this.form.submit()">
+                    <div class="col-12 col-sm-auto">
+                        <select name="chiNhanhId" class="form-select form-select-sm" asp-items="ViewBag.ChiNhanhId" onchange="this.form.submit()">
                             <option value="">-- Tất cả chi nhánh --</option>
                         </select>
                     </div>
-                    <div class="col-auto">
-                        <select name="trangThai" class="form-select form-select-sm shadow-none border-secondary" onchange="this.form.submit()">
+                    <div class="col-12 col-sm-auto">
+                        <select name="trangThai" class="form-select form-select-sm" onchange="this.form.submit()">
                             <option value="">-- Tất cả trạng thái --</option>
                             <option value="0" selected="@(ViewBag.CurrentTrangThai == AppTrangThaiSuCo.ChoTiepNhan)">Chờ tiếp nhận</option>
                             <option value="1" selected="@(ViewBag.CurrentTrangThai == AppTrangThaiSuCo.DangXuLy)">Đang xử lý</option>
@@ -42,8 +41,8 @@
                             <option value="3" selected="@(ViewBag.CurrentTrangThai == AppTrangThaiSuCo.DaHuy)">Đã từ chối/hủy</option>
                         </select>
                     </div>
-                    <div class="col-auto">
-                        <select name="soThang" class="form-select form-select-sm shadow-none border-secondary" onchange="this.form.submit()">
+                    <div class="col-12 col-sm-auto">
+                        <select name="soThang" class="form-select form-select-sm" onchange="this.form.submit()">
                             <option value="1" selected="@(ViewBag.CurrentSoThang == 1)">1 tháng gần đây</option>
                             <option value="3" selected="@(ViewBag.CurrentSoThang == 3)">3 tháng gần đây</option>
                             <option value="6" selected="@(ViewBag.CurrentSoThang == 6)">6 tháng gần đây</option>
@@ -55,23 +54,23 @@
             </div>
             <div class="card-body">
                 <div class="table-responsive">
-                    <table id="suCoTable" class="table table-vcenter card-table table-striped table-hover w-100">
+                    <table id="suCoTable" class="table table-vcenter card-table table-hover w-100 ts-bang-the">
                         <thead>
                             <tr>
                                 <th>Ngày báo cáo</th>
-                                <th>Phòng / Chi nhánh</th>
+                                <th>Phòng / chi nhánh</th>
                                 <th>Người báo cáo</th>
                                 <th>Sự cố</th>
                                 <th>Trạng thái</th>
-                                <th>Chi phí</th>
-                                <th class="text-center">Thao tác</th>
+                                <th class="text-end num-tabular">Chi phí</th>
+                                <th class="w-1 text-center" data-the-nhan=""><span class="visually-hidden">Thao tác</span></th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach (var item in Model)
                             {
                                 <tr data-suco-id="@item.Id">
-                                    <td>@item.NgayGui.AddHours(7).ToString("dd/MM/yyyy HH:mm")</td>
+                                    <td>@VietnamTime.Format(item.NgayGui, "dd/MM/yyyy HH:mm")</td>
                                     <td>
                                         <strong>@item.PhongTro.SoPhong</strong><br />
                                         <small class="text-muted">@item.PhongTro.ChiNhanh.TenChiNhanh</small>
@@ -112,14 +111,13 @@
                                             <span class="badge bg-red-lt">Đã hủy/Từ chối</span>
                                         }
                                     </td>
-                                    <td>
+                                    <td class="text-end num-tabular">
                                         @if (item.ChiPhiSuaChua > 0)
                                         {
-                                            <strong class="text-danger">@item.ChiPhiSuaChua.ToString("N0") đ</strong>
+                                            <strong class="text-danger">@VndFormat.Money(item.ChiPhiSuaChua)</strong>
                                             @if (item.CongVaoHoaDon)
                                             {
                                                 <br />
-                                    
                                                 <small class="text-muted">(Đã cộng hóa đơn)</small>
                                             }
                                         }
@@ -146,12 +144,10 @@
                                     </td>
                                 </tr>
                             }
-
                         </tbody>
                     </table>
                 </div>
             </div>
-            
         </div>
     </div>
 </div>
@@ -161,7 +157,7 @@
     <div class="modal-dialog modal-dialog-centered" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Cập nhật Trạng thái Sự cố</h5>
+                <h5 class="modal-title">Cập nhật trạng thái sự cố</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
             </div>
             <div class="modal-body">
@@ -205,8 +201,8 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i> Đóng</button>
-                <button type="button" class="btn btn-primary fw-bold shadow-sm" onclick="saveUpdate()"><i class="ti ti-device-floppy me-1"></i> Lưu thay đổi</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-primary" onclick="saveUpdate()"><i class="ti ti-device-floppy me-1"></i> Lưu thay đổi</button>
             </div>
         </div>
     </div>
@@ -259,8 +255,6 @@
                     text: 'Bạn có chắc chắn muốn xóa báo cáo này? Hành động này không thể hoàn tác.',
                     icon: 'warning',
                     showCancelButton: true,
-                    confirmButtonColor: '#d33',
-                    cancelButtonColor: '#6c757d',
                     confirmButtonText: 'Đồng ý xóa',
                     cancelButtonText: 'Hủy bỏ'
                 }).then((result) => {
