@@ -401,7 +401,7 @@
                 // Khởi tạo lại DataTable (Giữ cuộn dọc, chỉ tìm kiếm và sắp xếp)
                 if (data.length > 0) {
                     table = $('#dienNuocTable').DataTable({
-                        "language": { "url": "https://cdn.datatables.net/plug-ins/1.13.6/i18n/vi.json" },
+                        "language": { "url": window.dataTablesViUrl },
                         "paging": false,
                         "ordering": true,
                         "searching": true,

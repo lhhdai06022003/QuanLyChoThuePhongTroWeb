@@ -49,7 +49,7 @@
             dom: "<'card-body py-2 border-bottom'<'row g-2 align-items-center'<'col-sm-6'l><'col-sm-6 text-sm-end'f>>>" +
                 "<'table-responsive dc-scroll'tr>" +
                 "<'card-footer py-2'<'row g-2 align-items-center'<'col-sm-6'i><'col-sm-6 d-flex justify-content-sm-end justify-content-center'p>>>",
-            language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/vi.json' },
+            language: { url: window.dataTablesViUrl },
             serverSide: true,
             processing: true,
             ordering: false,

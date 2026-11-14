@@ -1,4 +1,5 @@
 @using QuanLyChoThuePhongTroWeb.Services
+@inject Microsoft.AspNetCore.Mvc.ViewFeatures.IFileVersionProvider FileVersion
 
 @{
     var menus = MenuService.GetMenu();
@@ -139,6 +140,8 @@
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
     <script>
+        // Bản dịch tiếng Việt của DataTables (file cục bộ, có ?v= để cache lâu); bảng dùng: language: { url: window.dataTablesViUrl }.
+        window.dataTablesViUrl = '@FileVersion.AddFileVersionToPath(Context.Request.PathBase, Url.Content("~/js/datatables-vi.json"))';
         // Cảnh báo lỗi mặc định của DataTables là tiếng Anh ("DataTables warning: ..."); đổi sang thông báo tiếng Việt, chi tiết kỹ thuật ghi ra console.
         if ($.fn.dataTable) {
             $.fn.dataTable.ext.errMode = function (settings, techNote, message) {

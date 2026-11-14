@@ -198,7 +198,7 @@
 
             // ================== TAB 1: DỊCH VỤ ==================
             var tableDichVu = $('#dichVuTable').DataTable({
-                "language": { "url": "https://cdn.datatables.net/plug-ins/1.13.6/i18n/vi.json" },
+                "language": { "url": window.dataTablesViUrl },
                 "serverSide": true,
                 "processing": true,
                 "ajax": {
@@ -325,7 +325,7 @@
 
             // ================== TAB 2: BẢNG GIÁ CHI NHÁNH ==================
             var tableBangGia = $('#bangGiaTable').DataTable({
-                "language": { "url": "https://cdn.datatables.net/plug-ins/1.13.6/i18n/vi.json" },
+                "language": { "url": window.dataTablesViUrl },
                 "serverSide": true,
                 "processing": true,
                 "ajax": {
