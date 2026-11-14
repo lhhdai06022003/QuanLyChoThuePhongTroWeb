@@ -1,7 +1,7 @@
 @using QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.ViewModels.Responses
 @model BaoCaoPageViewModel
 @{
-    ViewData["Title"] = "Báo cáo thống kê";
+    ViewData["Title"] = "Báo cáo";
     Layout = "~/Views/Shared/_Layout.cshtml";
     var tabs = new[]
     {
@@ -15,11 +15,6 @@
 
 @section Styles {
     <style>
-        /* site.css ép .table-responsive overflow: visible; bảng báo cáo nhiều cột phải cuộn ngang trong thẻ, không đẩy rộng cả trang */
-        .bc-pane .table-responsive {
-            overflow-x: auto !important;
-        }
-
         .bc-pane .card-table td,
         .bc-pane .card-table th {
             white-space: nowrap;
@@ -31,9 +26,7 @@
     <div class="page-header d-print-none mb-3">
         <div class="row align-items-center">
             <div class="col">
-                <h2 class="page-title text-primary fw-bold d-flex align-items-center">
-                    <i class="ti ti-chart-bar me-2"></i> Báo cáo thống kê
-                </h2>
+                <h2 class="page-title">Báo cáo</h2>
             </div>
         </div>
     </div>
@@ -87,11 +80,11 @@
         @if (Model.CoXemDoanhThu)
         {
         <div id="pane-doanh-thu" class="bc-pane @(Model.Tab == "doanh-thu" ? "" : "d-none")" data-tab="doanh-thu">
-            <div class="d-flex justify-content-end mb-2"><button type="button" class="btn btn-outline-primary btn-sm bc-export" data-tab="doanh-thu" disabled><i class="ti ti-file-spreadsheet me-1"></i>Xuất Excel</button></div>
+            <div class="d-flex justify-end mb-2"><button type="button" class="btn btn-outline-primary btn-sm bc-export" data-tab="doanh-thu" disabled><i class="ti ti-file-spreadsheet me-1"></i>Xuất Excel</button></div>
             <div class="row row-cards mb-3" id="cards-doanh-thu"></div>
             <div class="card mb-3"><div class="card-body"><div style="position:relative;height:300px"><canvas id="chart-doanh-thu" aria-label="Biểu đồ doanh thu theo kỳ"></canvas></div></div></div>
-            <div class="card mb-3"><div class="card-header"><h3 class="card-title">Theo kỳ</h3></div><div class="table-responsive"><table class="table table-vcenter card-table" id="bang-doanh-thu-ky"></table></div></div>
-            <div class="card mb-3 d-none" id="wrap-doanh-thu-cn"><div class="card-header"><h3 class="card-title">Theo chi nhánh</h3></div><div class="table-responsive"><table class="table table-vcenter card-table" id="bang-doanh-thu-cn"></table></div></div>
+            <div class="card mb-3"><div class="card-header"><h3 class="card-title">Theo kỳ</h3></div><div class="table-responsive ts-cuon-ngang"><table class="table table-vcenter card-table" id="bang-doanh-thu-ky"></table></div></div>
+            <div class="card mb-3 d-none" id="wrap-doanh-thu-cn"><div class="card-header"><h3 class="card-title">Theo chi nhánh</h3></div><div class="table-responsive ts-cuon-ngang"><table class="table table-vcenter card-table" id="bang-doanh-thu-cn"></table></div></div>
             <p class="text-secondary small">Chỉ tính hóa đơn đã gửi khách, theo kỳ của hóa đơn. Đã thu tính theo sổ thanh toán, gồm cả tiền cấn trừ từ cọc.</p>
         </div>
         }
@@ -103,7 +96,7 @@
             </div>
             <div class="row row-cards mb-3" id="cards-cong-no"></div>
             <div class="card mb-3"><div class="card-body"><div style="position:relative;height:300px"><canvas id="chart-cong-no" aria-label="Biểu đồ tuổi nợ"></canvas></div></div></div>
-            <div class="card mb-3"><div class="card-header"><h3 class="card-title">Khách còn nợ</h3></div><div class="table-responsive"><table class="table table-vcenter card-table" id="bang-cong-no"></table></div></div>
+            <div class="card mb-3"><div class="card-header"><h3 class="card-title">Khách còn nợ</h3></div><div class="table-responsive ts-cuon-ngang"><table class="table table-vcenter card-table" id="bang-cong-no"></table></div></div>
         </div>
 
         <div id="pane-cong-suat" class="bc-pane @(Model.Tab == "cong-suat" ? "" : "d-none")" data-tab="cong-suat">
@@ -113,16 +106,16 @@
             </div>
             <div class="row row-cards mb-3" id="cards-cong-suat"></div>
             <div class="card mb-3"><div class="card-body"><div style="position:relative;height:300px"><canvas id="chart-cong-suat" aria-label="Biểu đồ tỷ lệ lấp đầy theo kỳ"></canvas></div></div></div>
-            <div class="card mb-3"><div class="card-header"><h3 class="card-title">Theo kỳ</h3></div><div class="table-responsive"><table class="table table-vcenter card-table" id="bang-cong-suat-ky"></table></div></div>
-            <div class="card mb-3 d-none" id="wrap-cong-suat-cn"><div class="card-header"><h3 class="card-title">Theo chi nhánh</h3></div><div class="table-responsive"><table class="table table-vcenter card-table" id="bang-cong-suat-cn"></table></div></div>
-            <div class="card mb-3"><div class="card-header"><h3 class="card-title">Phòng trống lâu nhất</h3></div><div class="table-responsive"><table class="table table-vcenter card-table" id="bang-cong-suat-trong"></table></div></div>
+            <div class="card mb-3"><div class="card-header"><h3 class="card-title">Theo kỳ</h3></div><div class="table-responsive ts-cuon-ngang"><table class="table table-vcenter card-table" id="bang-cong-suat-ky"></table></div></div>
+            <div class="card mb-3 d-none" id="wrap-cong-suat-cn"><div class="card-header"><h3 class="card-title">Theo chi nhánh</h3></div><div class="table-responsive ts-cuon-ngang"><table class="table table-vcenter card-table" id="bang-cong-suat-cn"></table></div></div>
+            <div class="card mb-3"><div class="card-header"><h3 class="card-title">Phòng trống lâu nhất</h3></div><div class="table-responsive ts-cuon-ngang"><table class="table table-vcenter card-table" id="bang-cong-suat-trong"></table></div></div>
         </div>
 
         <div id="pane-hop-dong" class="bc-pane @(Model.Tab == "hop-dong" ? "" : "d-none")" data-tab="hop-dong">
             <div class="d-flex justify-content-end mb-2"><button type="button" class="btn btn-outline-primary btn-sm bc-export" data-tab="hop-dong" disabled><i class="ti ti-file-spreadsheet me-1"></i>Xuất Excel</button></div>
             <div class="row row-cards mb-3" id="cards-hop-dong"></div>
             <div class="card mb-3"><div class="card-body"><div style="position:relative;height:300px"><canvas id="chart-hop-dong" aria-label="Biểu đồ hợp đồng theo kỳ"></canvas></div></div></div>
-            <div class="card mb-3"><div class="card-header"><h3 class="card-title">Theo kỳ</h3></div><div class="table-responsive"><table class="table table-vcenter card-table" id="bang-hop-dong"></table></div></div>
+            <div class="card mb-3"><div class="card-header"><h3 class="card-title">Theo kỳ</h3></div><div class="table-responsive ts-cuon-ngang"><table class="table table-vcenter card-table" id="bang-hop-dong"></table></div></div>
         </div>
 
         <div id="pane-dien-nuoc" class="bc-pane @(Model.Tab == "dien-nuoc" ? "" : "d-none")" data-tab="dien-nuoc">
@@ -132,8 +125,8 @@
             </div>
             <div class="row row-cards mb-3" id="cards-dien-nuoc"></div>
             <div class="card mb-3"><div class="card-body"><div style="position:relative;height:300px"><canvas id="chart-dien-nuoc" aria-label="Biểu đồ điện nước theo kỳ"></canvas></div></div></div>
-            <div class="card mb-3"><div class="card-header"><h3 class="card-title">Theo kỳ</h3></div><div class="table-responsive"><table class="table table-vcenter card-table" id="bang-dien-nuoc-ky"></table></div></div>
-            <div class="card mb-3"><div class="card-header"><h3 class="card-title">Phòng dùng nhiều nhất</h3></div><div class="table-responsive"><table class="table table-vcenter card-table" id="bang-dien-nuoc-phong"></table></div></div>
+            <div class="card mb-3"><div class="card-header"><h3 class="card-title">Theo kỳ</h3></div><div class="table-responsive ts-cuon-ngang"><table class="table table-vcenter card-table" id="bang-dien-nuoc-ky"></table></div></div>
+            <div class="card mb-3"><div class="card-header"><h3 class="card-title">Phòng dùng nhiều nhất</h3></div><div class="table-responsive ts-cuon-ngang"><table class="table table-vcenter card-table" id="bang-dien-nuoc-phong"></table></div></div>
         </div>
     }
 </div>

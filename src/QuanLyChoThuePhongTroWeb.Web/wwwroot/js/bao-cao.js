@@ -32,9 +32,15 @@
 
     function mauTheme() {
         var css = window.getComputedStyle(document.body);
+        function doc(ten) { return (css.getPropertyValue(ten) || '').trim(); }
         return {
-            chu: (css.getPropertyValue('--tblr-secondary-color') || '').trim() || css.color,
-            luoi: (css.getPropertyValue('--tblr-border-color') || '').trim() || 'rgba(0, 0, 0, 0.1)'
+            chu: doc('--tblr-secondary-color') || doc('--tblr-secondary') || css.color,
+            luoi: doc('--tblr-border-color') || 'rgba(0, 0, 0, 0.1)',
+            primary: doc('--tblr-primary'),
+            ok: doc('--ts-ok'),
+            wait: doc('--ts-wait'),
+            bad: doc('--ts-bad'),
+            info: doc('--tblr-info')
         };
     }
 
@@ -167,14 +173,15 @@
             { label: 'Tiền cọc đang giữ', value: tien(d.tienCocDangGiu), sub: ['Tiền giữ hộ khách, có thể phải trả lại; không phải doanh thu.'] },
             { label: 'Thu khác: tiền giữ chỗ không hoàn', value: tien(t.thuKhacGiuCho), sub: ['Đang chờ quyết định: ' + tien(d.giuChoDangChoQuyetDinh)] }
         ]);
+        var m = mauTheme();
         veBieuDo('doanh-thu', 'chart-doanh-thu', {
             type: 'bar',
             data: {
                 labels: d.theoKy.map(function (r) { return r.nhan; }),
                 datasets: [
-                    { label: 'Thu tiền', data: d.theoKy.map(function (r) { return r.thuTien; }), backgroundColor: '#2fb344' },
-                    { label: 'Cấn trừ cọc', data: d.theoKy.map(function (r) { return r.canTruCoc; }), backgroundColor: '#4299e1' },
-                    { label: 'Còn nợ', data: d.theoKy.map(function (r) { return r.conNo; }), backgroundColor: '#f59f00' }
+                    { label: 'Thu tiền', data: d.theoKy.map(function (r) { return r.thuTien; }), backgroundColor: m.ok },
+                    { label: 'Cấn trừ cọc', data: d.theoKy.map(function (r) { return r.canTruCoc; }), backgroundColor: m.info },
+                    { label: 'Còn nợ', data: d.theoKy.map(function (r) { return r.conNo; }), backgroundColor: m.wait }
                 ]
             },
             options: {
@@ -229,11 +236,12 @@
             { label: 'Số khách nợ', value: nguyen(d.soKhachNo) },
             { label: 'Nợ của khách đã trả phòng', value: tien(d.noKhachDaTraPhong), href: linkHoaDon({ thang: 0, nam: 0, trangThaiPhatHanh: 3, hopDongDaKetThucConNo: 1 }, f) }
         ]);
+        var m = mauTheme();
         veBieuDo('cong-no', 'chart-cong-no', {
             type: 'bar',
             data: {
                 labels: d.nhomTuoiNo.map(function (n) { return n.nhan; }),
-                datasets: [{ label: 'Số tiền còn nợ', data: d.nhomTuoiNo.map(function (n) { return n.soTien; }), backgroundColor: '#f59f00' }]
+                datasets: [{ label: 'Số tiền còn nợ', data: d.nhomTuoiNo.map(function (n) { return n.soTien; }), backgroundColor: m.wait }]
             },
             options: {
                 scales: { y: { beginAtZero: true, ticks: { callback: function (v) { return nguyen(v); } } } },
@@ -270,11 +278,12 @@
             { label: 'Tỷ lệ lấp đầy', value: tyLe(d.tong.tyLeLapDay), sub: [nguyen(d.tong.ngayPhongDaThue) + '/' + nguyen(d.tong.ngayPhongCoTheThue) + ' ngày-phòng'] },
             { label: 'Phòng trống lâu nhất', value: dau ? dau.soPhong + ' · ' + nguyen(dau.soNgayTrong) + ' ngày' : '—', sub: subTrong }
         ]);
+        var m = mauTheme();
         veBieuDo('cong-suat', 'chart-cong-suat', {
             type: 'line',
             data: {
                 labels: d.theoKy.map(function (r) { return r.nhan; }),
-                datasets: [{ label: 'Tỷ lệ lấp đầy (%)', data: d.theoKy.map(function (r) { return r.tyLeLapDay; }), borderColor: '#206bc4', backgroundColor: '#206bc4', tension: 0.2, spanGaps: false }]
+                datasets: [{ label: 'Tỷ lệ lấp đầy (%)', data: d.theoKy.map(function (r) { return r.tyLeLapDay; }), borderColor: m.primary, backgroundColor: m.primary, tension: 0.2, spanGaps: false }]
             },
             options: { scales: { y: { beginAtZero: true, suggestedMax: 100, ticks: { callback: function (v) { return v + '%'; } } } } }
         });
@@ -312,14 +321,15 @@
             { label: 'Gia hạn', value: nguyen(d.tong.giaHan) },
             { label: 'Tỷ lệ gia hạn', value: tyLe(d.tong.tyLeGiaHan), sub: [nguyen(d.tong.hetHanCoGiaHan) + '/' + nguyen(d.tong.hetHanDaKetThuc) + ' hợp đồng hết hạn'] }
         ]);
+        var m = mauTheme();
         veBieuDo('hop-dong', 'chart-hop-dong', {
             type: 'bar',
             data: {
                 labels: d.theoKy.map(function (r) { return r.nhan; }),
                 datasets: [
-                    { label: 'Mới', data: d.theoKy.map(function (r) { return r.hopDongMoi; }), backgroundColor: '#2fb344' },
-                    { label: 'Gia hạn', data: d.theoKy.map(function (r) { return r.giaHan; }), backgroundColor: '#4299e1' },
-                    { label: 'Trả phòng', data: d.theoKy.map(function (r) { return r.traPhong; }), backgroundColor: '#d63939' }
+                    { label: 'Mới', data: d.theoKy.map(function (r) { return r.hopDongMoi; }), backgroundColor: m.ok },
+                    { label: 'Gia hạn', data: d.theoKy.map(function (r) { return r.giaHan; }), backgroundColor: m.info },
+                    { label: 'Trả phòng', data: d.theoKy.map(function (r) { return r.traPhong; }), backgroundColor: m.bad }
                 ]
             },
             options: { scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
@@ -346,13 +356,14 @@
             { label: 'Tiền nước', value: tien(d.tienNuoc) },
             { label: 'TB kWh/phòng/tháng', value: d.trungBinhKwhPhongThang === null ? '—' : so(d.trungBinhKwhPhongThang), sub: [nguyen(d.soBanGhi) + ' bản ghi'] }
         ]);
+        var m = mauTheme();
         veBieuDo('dien-nuoc', 'chart-dien-nuoc', {
             type: 'line',
             data: {
                 labels: d.theoKy.map(function (r) { return r.nhan; }),
                 datasets: [
-                    { label: 'kWh', data: d.theoKy.map(function (r) { return r.kwh; }), borderColor: '#f59f00', backgroundColor: '#f59f00', yAxisID: 'y', tension: 0.2 },
-                    { label: 'm³', data: d.theoKy.map(function (r) { return r.m3; }), borderColor: '#206bc4', backgroundColor: '#206bc4', yAxisID: 'y1', tension: 0.2 }
+                    { label: 'kWh', data: d.theoKy.map(function (r) { return r.kwh; }), borderColor: m.wait, backgroundColor: m.wait, yAxisID: 'y', tension: 0.2 },
+                    { label: 'm³', data: d.theoKy.map(function (r) { return r.m3; }), borderColor: m.primary, backgroundColor: m.primary, yAxisID: 'y1', tension: 0.2 }
                 ]
             },
             options: {
