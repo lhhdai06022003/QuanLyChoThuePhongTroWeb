@@ -892,7 +892,7 @@
                     <div class="detail-row"><span class="detail-label">Họ tên:</span> <span class="detail-value">${escapeHtml(r.tenNguoiThue)}</span></div>
                     <div class="detail-row"><span class="detail-label">SĐT:</span> <span class="detail-value">${escapeHtml(r.sdtNguoiThue) || 'N/A'}</span></div>`;
                 if (r.ngayHetHan) {
-                    let ngayStr = new Date(r.ngayHetHan).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', day: '2-digit', month: '2-digit', year: 'numeric' });
+                    let ngayStr = String(r.ngayHetHan).slice(0, 10).split('-').reverse().join('/');
                     html += `<div class="detail-row"><span class="detail-label">Hết hạn HĐ:</span> <span class="detail-value">${ngayStr}</span></div>`;
                 }
                 if (r.sapHetHan) html += `<div class="alert alert-warning mt-2 py-2"><i class="ti ti-hourglass me-1"></i><strong>Cảnh báo:</strong> Hợp đồng sắp hết hạn (còn ${r.soNgayConLai} ngày)!</div>`;

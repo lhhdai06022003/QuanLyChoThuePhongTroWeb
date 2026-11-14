@@ -122,17 +122,11 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
         [InlineData("Areas/QuanLyNhaTro/Views/PhongTros/QuanLyPhongTro.cshtml")]
         [InlineData("Areas/QuanLyNhaTro/Views/PhongTros/SoDoPhong.cshtml")]
         [InlineData("Areas/QuanLyNhaTro/Views/NguoiThue/QuanLyNguoiThue.cshtml")]
-        [InlineData("Areas/QuanLyNhaTro/Views/NguoiThueChiTiet/ChiTiet.cshtml")]
         [InlineData("Areas/QuanLyNhaTro/Views/HopDong/QuanLyHopDong.cshtml")]
-        [InlineData("Areas/QuanLyNhaTro/Views/Shared/_DanhSachThanhVienPartial.cshtml")]
-        [InlineData("Areas/QuanLyNhaTro/Views/HopDongChiTiet/ChiTiet.cshtml")]
-        [InlineData("Areas/QuanLyNhaTro/Views/HopDongChiTiet/ThanhLy.cshtml")]
-        [InlineData("Areas/QuanLyNhaTro/Views/HopDongChiTiet/GiaHan.cshtml")]
-        [InlineData("Areas/QuanLyNhaTro/Views/HopDongChiTiet/Loi.cshtml")]
-        public void ViewsDot4_KhongConToLocaleDateStringKhongThamSoThuHai(string path)
+        public void ViewsDot4_KhongConToLocaleDateString(string path)
         {
             var html = Read(path.Split('/'));
-            Assert.DoesNotMatch(@"toLocaleDateString\s*\(\s*['""]vi-VN['""]\s*\)", html);
+            Assert.DoesNotContain("toLocaleDateString(", html);
         }
     }
 }

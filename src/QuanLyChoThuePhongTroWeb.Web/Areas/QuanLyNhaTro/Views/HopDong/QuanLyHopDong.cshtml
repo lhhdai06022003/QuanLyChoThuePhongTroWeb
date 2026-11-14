@@ -579,7 +579,7 @@
                         "className": "align-middle",
                         "render": function(data) {
                             if(!data) return '';
-                            return new Date(data).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', day: '2-digit', month: '2-digit', year: 'numeric' });
+                            return String(data).slice(0, 10).split('-').reverse().join('/');
                         }
                     },
                     {
@@ -588,7 +588,7 @@
                         "className": "align-middle",
                         "render": function(data) {
                             if (!data) return '—';
-                            return new Date(data).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', day: '2-digit', month: '2-digit', year: 'numeric' });
+                            return String(data).slice(0, 10).split('-').reverse().join('/');
                         }
                     },
                     {
@@ -816,8 +816,8 @@
                         let html = '';
                         if (res && res.length > 0) {
                             res.forEach(function (tv, index) {
-                                let ngayVao = tv.ngayVao ? new Date(tv.ngayVao).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', day: '2-digit', month: '2-digit', year: 'numeric' }) : '-';
-                                let ngayRoi = tv.ngayChuyenDi ? new Date(tv.ngayChuyenDi).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', day: '2-digit', month: '2-digit', year: 'numeric' }) : '-';
+                                let ngayVao = tv.ngayVao ? String(tv.ngayVao).slice(0, 10).split('-').reverse().join('/') : '-';
+                                let ngayRoi = tv.ngayChuyenDi ? String(tv.ngayChuyenDi).slice(0, 10).split('-').reverse().join('/') : '-';
                                 let isChuHopDong = tv.isChuHopDong ? '<span class="badge bg-primary-lt"><i class="ti ti-crown"></i> Đại diện</span>' : '';
                                 let trangThai = tv.ngayChuyenDi ? '<span class="badge bg-secondary-lt">Đã chuyển đi</span>' : '<span class="badge bg-success-lt">Đang ở</span>';
                                 

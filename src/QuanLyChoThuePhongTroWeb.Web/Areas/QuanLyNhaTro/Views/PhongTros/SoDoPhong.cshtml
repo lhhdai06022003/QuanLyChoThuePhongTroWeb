@@ -275,7 +275,7 @@
                         </div>
                 `;
                 if (r.ngayHetHan) {
-                    let ngay = new Date(r.ngayHetHan).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', day: '2-digit', month: '2-digit', year: 'numeric' });
+                    let ngay = String(r.ngayHetHan).slice(0, 10).split('-').reverse().join('/');
                     html += `
                         <div class="datagrid-item">
                             <div class="datagrid-title">Hết hạn HĐ</div>
