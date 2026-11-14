@@ -7,21 +7,23 @@
 <div class="container-xl mt-3">
     <!-- Header bar: Toggle + Add button -->
     <div class="page-header d-print-none mb-3">
-        <div class="row align-items-center">
-            <div class="col d-flex align-items-center gap-3">
+        <div class="row align-items-center justify-content-between g-2">
+            <div class="col-auto">
                 <h2 class="page-title m-0">Phòng trọ</h2>
-                <div class="view-toggle btn-group" role="group">
-                    <button class="btn btn-outline-secondary active" id="btnGridView"><i class="ti ti-apps me-1"></i>Sơ đồ</button>
-                    <button class="btn btn-outline-secondary" id="btnTableView"><i class="ti ti-table me-1"></i>Bảng</button>
-                </div>
             </div>
-            <div class="col-auto ms-auto">
+            <div class="col-auto order-sm-3 ms-auto">
                 @if (laAdmin)
                 {
                     <button type="button" class="btn btn-primary" id="btnOpenAddModal">
                         <i class="ti ti-plus me-1"></i> Thêm phòng
                     </button>
                 }
+            </div>
+            <div class="col-12 col-sm-auto order-sm-2">
+                <div class="view-toggle btn-group" role="group">
+                    <button class="btn btn-outline-secondary active" id="btnGridView"><i class="ti ti-apps me-1"></i>Sơ đồ</button>
+                    <button class="btn btn-outline-secondary" id="btnTableView"><i class="ti ti-table me-1"></i>Bảng</button>
+                </div>
             </div>
         </div>
     </div>
@@ -107,10 +109,10 @@
     <div id="tableViewSection" style="display:none;">
         <div class="card">
             <div class="card-body border-bottom py-3">
-                <div class="row align-items-center">
-                    <div class="col-auto ms-auto d-flex align-items-center text-muted fw-medium">
-                        <span class="d-none d-sm-inline me-2">Chi nhánh:</span>
-                        <select id="filterChiNhanhTable" class="form-select form-select-sm w-auto">
+                <div class="row align-items-center g-2">
+                    <div class="col-12 col-sm-auto ms-auto d-flex align-items-center text-muted fw-medium">
+                        <span class="d-none d-sm-inline me-2 text-nowrap">Chi nhánh:</span>
+                        <select id="filterChiNhanhTable" class="form-select form-select-sm w-100 w-sm-auto">
                             <option value="">Tất cả chi nhánh</option>
                             @if (ViewBag.ChiNhanhs != null)
                             {
@@ -582,9 +584,26 @@
             // Close all others first
             $('.kebab-dropdown.show').not(dropdown).removeClass('show');
             $('.room-card.kebab-open').not(card).removeClass('kebab-open');
-            
-            dropdown.toggleClass('show');
-            card.toggleClass('kebab-open');
+
+            let isOpening = !dropdown.hasClass('show');
+            if (isOpening) {
+                dropdown.addClass('show');
+                card.addClass('kebab-open');
+
+                // Đảm bảo menu nằm trọn trong màn hình (không lệch trái hoặc phải)
+                dropdown.css({ 'left': '', 'right': '0' });
+                let rect = dropdown[0].getBoundingClientRect();
+                if (rect.left < 8) {
+                    let offset = 8 - rect.left;
+                    dropdown.css({ 'right': `-${offset}px` });
+                } else if (rect.right > window.innerWidth - 8) {
+                    let offset = rect.right - (window.innerWidth - 8);
+                    dropdown.css({ 'right': `${offset}px` });
+                }
+            } else {
+                dropdown.removeClass('show');
+                card.removeClass('kebab-open');
+            }
         }
 
         // Close kebab when clicking outside

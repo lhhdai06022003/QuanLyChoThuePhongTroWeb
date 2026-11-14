@@ -81,6 +81,7 @@
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
     border: 1px solid var(--tblr-border-color);
     background: var(--tblr-bg-surface);
+    min-width: 0;
 }
 
 .room-card:hover {
@@ -94,20 +95,32 @@
 
 .room-body {
     cursor: pointer;
+    min-width: 0;
 }
 
 .room-header {
     display: flex;
-    align-items: center;
-    gap: 8px;
+    align-items: flex-start;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 4px 8px;
     margin-bottom: 6px;
-    padding-right: 28px; /* Chừa lề phải cho nút ⋮ */
+    padding-right: 36px; /* Chừa lề phải cho nút ⋮ (right 6px + width 36px) */
+    min-width: 0;
 }
 
 .room-number {
     font-size: 1.15rem;
     font-weight: 700;
     color: var(--ts-ink);
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.room-header .badge {
+    flex-shrink: 0;
+    align-self: center;
 }
 
 .room-price {
@@ -187,6 +200,7 @@
     border-radius: var(--ts-radius-admin, 8px);
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
     min-width: 180px;
+    max-width: calc(100vw - 16px);
     display: none;
     overflow: hidden;
     z-index: 100;
@@ -300,4 +314,14 @@
 /* Ảnh mã QR giữ nền trắng quét được ở chế độ tối */
 .room-qr {
     background-color: #ffffff !important;
+}
+
+#filterChiNhanhTable {
+    max-width: 100%;
+}
+
+@media (min-width: 576px) {
+    #filterChiNhanhTable {
+        max-width: 280px;
+    }
 }
