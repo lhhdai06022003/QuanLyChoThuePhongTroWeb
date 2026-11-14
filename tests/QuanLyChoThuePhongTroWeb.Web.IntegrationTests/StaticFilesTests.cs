@@ -104,5 +104,32 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             Assert.True(versioned.Headers.CacheControl!.Public);
             Assert.Null(plain.Headers.CacheControl);
         }
+
+        // Bước 13: thư viện nền của layout (Tabler, jQuery) ra HTML kèm ?v= và URL đó được cache một năm.
+        [Fact]
+        public async Task ManagerLayout_CoreLibraries_AreVersioned_AndCachedLong()
+        {
+            var w = await BranchScopeKit.SeedAsync(_factory);
+            var (staff, _) = await BranchScopeKit.LoginAsync(_factory, w.Staff);
+
+            var html = await (await staff.GetAsync("/QuanLyNhaTro/ViecCanLam")).Content.ReadAsStringAsync();
+
+            foreach (var file in new[]
+            {
+                "/Theme/tabler/dist/css/tabler.min.css",
+                "/Theme/tabler/dist/css/tabler-icons.min.css",
+                "/Theme/tabler/dist/css/tabler-vendors.min.css",
+                "/Theme/tabler/dist/js/tabler.min.js",
+                "/lib/jquery/dist/jquery.min.js"
+            })
+            {
+                var match = System.Text.RegularExpressions.Regex.Match(html, System.Text.RegularExpressions.Regex.Escape(file) + "\\?v=[A-Za-z0-9_-]+");
+                Assert.True(match.Success, $"{file} không có ?v= trong HTML của layout quản lý");
+
+                var response = await _factory.CreateClient().GetAsync(match.Value);
+                Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+                Assert.Equal(System.TimeSpan.FromDays(365), response.Headers.CacheControl?.MaxAge);
+            }
+        }
     }
 }

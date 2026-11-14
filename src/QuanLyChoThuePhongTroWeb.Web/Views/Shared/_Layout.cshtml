@@ -20,11 +20,11 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
     
     <!-- Tabler Icons CDN -->
-    <link rel="stylesheet" href="~/Theme/tabler/dist/css/tabler-icons.min.css" />
+    <link rel="stylesheet" href="~/Theme/tabler/dist/css/tabler-icons.min.css" asp-append-version="true" />
 
     <!-- CSS -->
-    <link rel="stylesheet" href="~/Theme/tabler/dist/css/tabler.min.css" />
-    <link rel="stylesheet" href="~/Theme/tabler/dist/css/tabler-vendors.min.css" />
+    <link rel="stylesheet" href="~/Theme/tabler/dist/css/tabler.min.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/Theme/tabler/dist/css/tabler-vendors.min.css" asp-append-version="true" />
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" />
     @* CSS của flatpickr, Select2 chỉ nạp ở trang dùng, đầu @section Styles của trang (site.css và trosync-tokens.css
@@ -117,7 +117,7 @@
     </div>
 
     <!-- JS -->
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/jquery/dist/jquery.min.js" asp-append-version="true"></script>
     <script>
         // Cấu hình AJAX toàn cục để tự động gửi Token chống giả mạo yêu cầu (CSRF)
         $.ajaxSetup({
@@ -131,7 +131,7 @@
             }
         });
     </script>
-    <script src="~/Theme/tabler/dist/js/tabler.min.js"></script>
+    <script src="~/Theme/tabler/dist/js/tabler.min.js" asp-append-version="true"></script>
     <script>
         window.bootstrap = window.tabler;
     </script>

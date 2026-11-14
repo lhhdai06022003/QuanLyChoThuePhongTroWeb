@@ -8,11 +8,11 @@
     <!-- Google Font Be Vietnam Pro -->
     <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
-    <link rel="stylesheet" href="~/Theme/tabler/dist/css/tabler-icons.min.css" />
+    <link rel="stylesheet" href="~/Theme/tabler/dist/css/tabler-icons.min.css" asp-append-version="true" />
 
     <!-- CSS -->
-    <link rel="stylesheet" href="~/Theme/tabler/dist/css/tabler.min.css" />
-    <link rel="stylesheet" href="~/Theme/tabler/dist/css/tabler-vendors.min.css" />
+    <link rel="stylesheet" href="~/Theme/tabler/dist/css/tabler.min.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/Theme/tabler/dist/css/tabler-vendors.min.css" asp-append-version="true" />
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" />
     <link rel="manifest" href="~/manifest.json" />
@@ -98,7 +98,7 @@
     </div>
 
     <!-- JS -->
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/jquery/dist/jquery.min.js" asp-append-version="true"></script>
     <script>
         $.ajaxSetup({
             beforeSend: function (xhr, settings) {
@@ -111,7 +111,7 @@
             }
         });
     </script>
-    <script src="~/Theme/tabler/dist/js/tabler.min.js"></script>
+    <script src="~/Theme/tabler/dist/js/tabler.min.js" asp-append-version="true"></script>
     <script>
         window.bootstrap = window.tabler;
     </script>
