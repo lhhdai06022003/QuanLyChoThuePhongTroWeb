@@ -141,6 +141,98 @@ public sealed class GuestTenantPortalAccessTests(CustomWebApplicationFactory fac
         }
     }
 
+    // Đăng nhập từ cổng xem phòng (nút Đăng nhập trên thanh đầu gửi returnUrl=/phong):
+    // Admin, nhân viên vào trang quản lý; chỉ quay lại returnUrl khi đó là trang quản lý.
+    [Theory]
+    [InlineData(Role.Admin, "/phong")]
+    [InlineData(Role.Admin, "/phong?q=quan+1")]
+    [InlineData(Role.Admin, "/")]
+    [InlineData(Role.Admin, "/phong/5/hen-xem")]
+    [InlineData(Role.NhanVien, "/phong")]
+    [InlineData(Role.NhanVien, "/tai-khoan/yeu-cau-phong")]
+    [InlineData(Role.NhanVien, "/KhachThue/Dashboard")]
+    [InlineData(Role.NhanVien, "/dang-ky-khach?returnUrl=%2Fphong")]
+    public async Task Staff_LoggingInFromGuestPortal_GoesToManagerDashboard(Role role, string returnUrl)
+    {
+        var username = $"ql_pub_{Guid.NewGuid():N}"[..20];
+        await SeedGuestAsync(username, role);
+        try
+        {
+            var response = await LoginAsync(CreateClient(), username, returnUrl);
+
+            Assert.StartsWith("/QuanLyNhaTro/Dashboard", response.Headers.Location?.ToString());
+        }
+        finally
+        {
+            await CleanupUserAsync(username);
+        }
+    }
+
+    [Fact]
+    public async Task Staff_LoggingInWithManagerReturnUrl_GoesBackThere()
+    {
+        var username = $"ql_back_{Guid.NewGuid():N}"[..20];
+        await SeedGuestAsync(username, Role.Admin);
+        try
+        {
+            var response = await LoginAsync(CreateClient(), username, "/QuanLyNhaTro/HoaDon");
+
+            Assert.Equal("/QuanLyNhaTro/HoaDon", response.Headers.Location?.ToString());
+        }
+        finally
+        {
+            await CleanupUserAsync(username);
+        }
+    }
+
+    // Khách thuê: danh sách, chi tiết phòng, trang chủ thì vào Tổng quan;
+    // đang làm dở một thao tác (hẹn xem, giữ chỗ, trang tài khoản, cổng khách thuê) thì quay lại đó.
+    [Theory]
+    [InlineData("/phong", "/KhachThue/Dashboard")]
+    [InlineData("/phong?q=quan+1", "/KhachThue/Dashboard")]
+    [InlineData("/phong/5", "/KhachThue/Dashboard")]
+    [InlineData("/", "/KhachThue/Dashboard")]
+    [InlineData("/phong/5/hen-xem", "/phong/5/hen-xem")]
+    [InlineData("/phong/5/giu-cho?source=rooms", "/phong/5/giu-cho?source=rooms")]
+    [InlineData("/tai-khoan/yeu-cau-phong", "/tai-khoan/yeu-cau-phong")]
+    [InlineData("/KhachThue/HoaDon", "/KhachThue/HoaDon")]
+    public async Task Tenant_LoggingInFromGuestPortal_GoesToOverviewUnlessMidAction(string returnUrl, string expected)
+    {
+        var username = $"kt_pub_{Guid.NewGuid():N}"[..20];
+        await SeedGuestAsync(username, Role.KhachThue);
+        try
+        {
+            var client = CreateClient();
+            var response = await LoginAsync(client, username, returnUrl);
+            Assert.Equal(expected, response.Headers.Location?.ToString());
+
+            // Đã đăng nhập mà mở lại trang đăng nhập với cùng returnUrl: cùng kết quả.
+            var again = await client.GetAsync("/QuanLyNhaTro/DangNhap?returnUrl=" + Uri.EscapeDataString(returnUrl));
+            Assert.Equal(expected, again.Headers.Location?.ToString());
+        }
+        finally
+        {
+            await CleanupUserAsync(username);
+        }
+    }
+
+    [Fact]
+    public async Task Guest_LoggingInFromRoomList_StaysOnGuestPortal()
+    {
+        var username = $"kvl_pub_{Guid.NewGuid():N}"[..20];
+        await SeedGuestAsync(username);
+        try
+        {
+            var response = await LoginAsync(CreateClient(), username, "/phong");
+
+            Assert.Equal("/phong", response.Headers.Location?.ToString());
+        }
+        finally
+        {
+            await CleanupUserAsync(username);
+        }
+    }
+
     private HttpClient CreateClient() =>
         factory.CreateClient(new WebApplicationFactoryClientOptions
         {
