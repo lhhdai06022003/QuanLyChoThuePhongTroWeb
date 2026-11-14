@@ -45,9 +45,22 @@ Người lập kế hoạch tự chọn theo quy ước đã có (không hỏi l
 
 ## 4. Kết quả
 
-Chưa thực thi. Agent thực thi điền bảng việc và commit vào đây khi xong, ghi "chờ nghiệm thu".
+Đã code xong, chờ nghiệm thu (14/11/2026).
+
+| Việc | Nội dung | Commit |
+| --- | --- | --- |
+| V1 | Thẻ bảng của cổng khách thuê bo góc theo cổng | `65066e7` |
+| V2 | Chi nhánh, tài khoản, phân công theo khung trang chung, bảng thành thẻ | `f92edc8` |
+| V3 | Dịch vụ, điều khoản theo khung trang chung, nhãn dùng màu nền | `255ad28` |
+| V4 | Sự cố, thông báo, việc cần làm theo khung trang chung, bảng thành thẻ | `d481af2` |
+| V5 | Báo cáo dùng màu biểu đồ theo nền chung | `38cd510` |
+| V6 | Hóa đơn và lịch sử thanh toán của khách thuê thành thẻ trên điện thoại | `a9b0b02` |
+| V7 | Hợp đồng, hồ sơ, sự cố, thông báo của khách thuê theo khung trang chung | `3aa194d` |
+| V8 | Màn đón khách thành thẻ trên điện thoại, khung lọc lịch sử thanh toán không tràn | `57d30e5` |
+| V9 | Test tĩnh chốt đợt 5 các màn còn lại và màn con khách thuê (42 test PASS) | `8c72d65` |
 
 ## 5. Còn để ý
 
 - Bảng hóa đơn (quản lý) ở 1366px rộng hơn khung khi mã hóa đơn dài: tồn từ đợt 3, chưa nhận làm ở đợt này (cuộn ngang sẽ cắt menu ⋮; cần thử `data-bs-popper-config` với `strategy: fixed` trước).
 - `DienNuoc/Index.cshtml` dòng 47, 60 dùng `DateTime.UtcNow.AddHours(7)`: tồn từ đợt 3, ngoài phạm vi.
+- 3 file CSS luồng khách vãng lai (`guest-ai-chat.css`, `guest-discovery.css`, `khach-vang-lai.css`) còn 36 LỖI màu thương hiệu gõ cứng: thuộc phạm vi quản lý của `thuan`, chuyển người phụ trách xử trị sau.
