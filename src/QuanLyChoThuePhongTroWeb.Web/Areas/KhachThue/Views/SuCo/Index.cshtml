@@ -1,23 +1,22 @@
 @model IEnumerable<QuanLyChoThuePhongTroWeb.Application.Features.YeuCauSuCos.DTOs.YeuCauSuCoRes>
 @using QuanLyChoThuePhongTroWeb.Models
 @using QuanLyChoThuePhongTroWeb.Application.Common.Enums
+@using QuanLyChoThuePhongTroWeb.Web.Helpers
 
 @{
-    ViewData["Title"] = "Lịch sử báo cáo sự cố";
+    ViewData["Title"] = "Báo sự cố";
 }
 
 <div class="page-header d-print-none">
     <div class="container-xl">
         <div class="row g-2 align-items-center">
             <div class="col">
-                <h2 class="page-title d-flex align-items-center">
-                    <i class="ti ti-tools me-2 text-primary"></i> Lịch sử Báo cáo Sự cố
-                </h2>
+                <h2 class="page-title">Báo sự cố</h2>
             </div>
             <div class="col-auto ms-auto d-print-none">
                 <div class="btn-list">
-                    <button type="button" class="btn btn-primary d-none d-sm-inline-block" data-bs-toggle="modal" data-bs-target="#createSuCoModal">
-                        <i class="ti ti-plus"></i> Báo cáo mới
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createSuCoModal">
+                        <i class="ti ti-plus me-1"></i> Báo sự cố
                     </button>
                 </div>
             </div>
@@ -27,10 +26,10 @@
 
 <div class="page-body">
     <div class="container-xl">
-        <div class="card shadow-sm border-0">
+        <div class="card">
             <div class="card-body">
                 <div class="table-responsive">
-                    <table id="suCoKhachThueTable" class="table table-vcenter card-table table-striped table-hover w-100">
+                    <table id="suCoKhachThueTable" class="table table-vcenter card-table table-hover w-100 ts-bang-the">
                         <thead>
                             <tr>
                                 <th>Ngày gửi</th>
@@ -44,7 +43,7 @@
                             @foreach (var item in Model)
                             {
                                 <tr data-suco-id="@item.Id">
-                                    <td>@item.NgayGui.AddHours(7).ToString("dd/MM/yyyy HH:mm")</td>
+                                    <td>@VietnamTime.Format(item.NgayGui, "dd/MM/yyyy HH:mm")</td>
                                     <td>@item.PhongTro.SoPhong</td>
                                     <td>
                                         <strong>@item.TieuDe</strong>
@@ -83,16 +82,14 @@
                                         }
                                     </td>
                                     <td>
-                                        @(item.NgayXuLy.HasValue? item.NgayXuLy.Value.AddHours(7).ToString("dd/MM/yyyy HH:mm") : "-")
+                                        @(item.NgayXuLy.HasValue ? VietnamTime.Format(item.NgayXuLy.Value, "dd/MM/yyyy HH:mm") : "-")
                                     </td>
                                 </tr>
                             }
-
                         </tbody>
                     </table>
                 </div>
             </div>
-            
         </div>
     </div>
 </div>
@@ -102,7 +99,7 @@
     <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Báo cáo Sự cố mới</h5>
+                <h5 class="modal-title">Báo sự cố mới</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
             </div>
             <div class="modal-body">
@@ -110,7 +107,7 @@
                     @Html.AntiForgeryToken()
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label required">Chọn Phòng</label>
+                            <label class="form-label required">Chọn phòng</label>
                             <select name="PhongTroId" class="form-select" asp-items="ViewBag.PhongTroId"></select>
                         </div>
                         <div class="col-md-6 mb-3">
@@ -136,8 +133,8 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i> Đóng</button>
-                <button type="button" class="btn btn-primary" onclick="submitSuCo()"><i class="ti ti-send me-1"></i> Gửi Báo Cáo</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-primary" onclick="submitSuCo()"><i class="ti ti-send me-1"></i> Gửi báo cáo</button>
             </div>
         </div>
     </div>
