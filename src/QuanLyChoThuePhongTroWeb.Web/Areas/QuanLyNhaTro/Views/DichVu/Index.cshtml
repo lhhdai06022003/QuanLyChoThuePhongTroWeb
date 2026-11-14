@@ -1,5 +1,5 @@
 @{
-    ViewData["Title"] = "Quản lý Dịch vụ";
+    ViewData["Title"] = "Dịch vụ";
     // Danh mục dịch vụ hệ thống dùng chung: nhân viên chỉ xem, bảng giá chi nhánh vẫn sửa được.
     var laAdmin = User.IsInRole("Admin");
 }
@@ -8,9 +8,7 @@
     <div class="container-xl">
         <div class="row g-2 align-items-center">
             <div class="col">
-                <h2 class="page-title text-primary fw-bold d-flex align-items-center">
-                    <i class="ti ti-apps me-2"></i> Quản lý Dịch vụ
-                </h2>
+                <h2 class="page-title">Dịch vụ</h2>
             </div>
         </div>
     </div>
@@ -20,14 +18,14 @@
     <div class="container-xl">
         <div class="row">
             <div class="col-12">
-                <div class="card shadow-sm border-0">
-                    <div class="card-header p-0 border-bottom-0">
-                        <ul class="nav nav-tabs" id="custom-tabs-four-tab" role="tablist">
+                <div class="card">
+                    <div class="card-header">
+                        <ul class="nav nav-tabs card-header-tabs" id="custom-tabs-four-tab" role="tablist">
                             <li class="nav-item">
-                                <a class="nav-link active" id="tab-danh-muc-dich-vu" data-bs-toggle="tab" href="#content-danh-muc-dich-vu" role="tab" aria-controls="content-danh-muc-dich-vu" aria-selected="true">Danh mục Dịch vụ</a>
+                                <a class="nav-link active" id="tab-danh-muc-dich-vu" data-bs-toggle="tab" href="#content-danh-muc-dich-vu" role="tab" aria-controls="content-danh-muc-dich-vu" aria-selected="true">Danh mục dịch vụ</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" id="tab-bang-gia" data-bs-toggle="tab" href="#content-bang-gia" role="tab" aria-controls="content-bang-gia" aria-selected="false">Bảng giá theo Chi nhánh</a>
+                                <a class="nav-link" id="tab-bang-gia" data-bs-toggle="tab" href="#content-bang-gia" role="tab" aria-controls="content-bang-gia" aria-selected="false">Bảng giá theo chi nhánh</a>
                             </li>
                         </ul>
                     </div>
@@ -35,21 +33,21 @@
                         <div class="tab-content" id="custom-tabs-four-tabContent">
                             <!-- TAB DANH MỤC DỊCH VỤ -->
                             <div class="tab-pane fade show active" id="content-danh-muc-dich-vu" role="tabpanel" aria-labelledby="tab-danh-muc-dich-vu">
-                                <div class="mb-3 d-flex justify-content-between">
-                                    <h4 class="m-0"><i class="ti ti-list"></i> Danh sách Dịch vụ Chung</h4>
+                                <div class="mb-3 d-flex justify-content-between align-items-center">
+                                    <h4 class="m-0">Danh sách dịch vụ chung</h4>
                                     @if (laAdmin)
                                     {
-                                        <button class="btn btn-success fw-bold shadow-sm" id="btnOpenAddDichVu"><i class="ti ti-circle-plus me-1"></i> Thêm Dịch vụ</button>
+                                        <button class="btn btn-primary" id="btnOpenAddDichVu"><i class="ti ti-plus me-1"></i> Thêm dịch vụ</button>
                                     }
                                 </div>
-                                 <table id="dichVuTable" class="table table-bordered table-striped w-100">
+                                <table id="dichVuTable" class="table table-vcenter table-hover w-100 ts-bang-the">
                                     <thead>
                                         <tr>
                                             <th class="text-center" width="5%">STT</th>
-                                            <th>Tên Dịch Vụ</th>
-                                            <th>Đơn Vị Tính</th>
-                                            <th>Ghi Chú</th>
-                                            <th class="text-center" width="15%">Thao tác</th>
+                                            <th>Tên dịch vụ</th>
+                                            <th>Đơn vị tính</th>
+                                            <th>Ghi chú</th>
+                                            <th class="w-1 text-center" width="15%" data-the-nhan=""><span class="visually-hidden">Thao tác</span></th>
                                         </tr>
                                     </thead>
                                     <tbody></tbody>
@@ -58,11 +56,11 @@
 
                             <!-- TAB BẢNG GIÁ THEO CHI NHÁNH -->
                             <div class="tab-pane fade" id="content-bang-gia" role="tabpanel" aria-labelledby="tab-bang-gia">
-                                <div class="row mb-3">
-                                    <div class="col-md-4">
-                                        <label>Lọc theo Chi Nhánh</label>
-                                        <select class="form-control" id="filterChiNhanh">
-                                            <option value="0">-- Tất cả chi nhánh --</option>
+                                <div class="row mb-3 g-2 align-items-end">
+                                    <div class="col-12 col-md-4">
+                                        <label class="form-label" for="filterChiNhanh">Lọc theo chi nhánh</label>
+                                        <select class="form-select" id="filterChiNhanh">
+                                            <option value="0">Tất cả chi nhánh</option>
                                             @if (ViewBag.ListChiNhanh != null)
                                             {
                                                 foreach (var cn in ViewBag.ListChiNhanh)
@@ -72,19 +70,19 @@
                                             }
                                         </select>
                                     </div>
-                                    <div class="col-md-8 d-flex align-items-end justify-content-end">
-                                        <button class="btn btn-success fw-bold shadow-sm" id="btnOpenAddGia"><i class="ti ti-circle-plus me-1"></i> Cài đặt Giá mới</button>
+                                    <div class="col-12 col-md-8 d-flex justify-content-md-end">
+                                        <button class="btn btn-primary" id="btnOpenAddGia"><i class="ti ti-plus me-1"></i> Thêm giá</button>
                                     </div>
                                 </div>
-                                <table id="bangGiaTable" class="table table-bordered table-striped w-100">
+                                <table id="bangGiaTable" class="table table-vcenter table-hover w-100 ts-bang-the">
                                     <thead>
                                         <tr>
                                             <th class="text-center" width="5%">STT</th>
-                                            <th>Chi Nhánh</th>
-                                            <th>Tên Dịch Vụ</th>
-                                            <th>Giá Dịch Vụ (VNĐ)</th>
-                                            <th class="text-center" width="12%">Mặc Định</th>
-                                            <th class="text-center" width="15%">Thao tác</th>
+                                            <th>Chi nhánh</th>
+                                            <th>Tên dịch vụ</th>
+                                            <th class="text-end num-tabular">Giá dịch vụ (VNĐ)</th>
+                                            <th class="text-center" width="12%">Mặc định</th>
+                                            <th class="w-1 text-center" width="15%" data-the-nhan=""><span class="visually-hidden">Thao tác</span></th>
                                         </tr>
                                     </thead>
                                     <tbody></tbody>
@@ -102,28 +100,28 @@
 <div class="modal fade" id="dichVuModal" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="dichVuModalTitle">Thêm Dịch Vụ Mới</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            <div class="modal-header">
+                <h5 class="modal-title" id="dichVuModalTitle">Thêm dịch vụ mới</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
             </div>
             <div class="modal-body">
                 <input type="hidden" id="DichVuId" value="0" />
                 <div class="form-group mb-3">
-                    <label for="TenDichVu">Tên Dịch Vụ <span class="text-danger">*</span></label>
+                    <label class="form-label" for="TenDichVu">Tên dịch vụ <span class="text-danger">*</span></label>
                     <input type="text" class="form-control" id="TenDichVu" placeholder="VD: Điện, Nước, Rác...">
                 </div>
                 <div class="form-group mb-3">
-                    <label for="DonVi">Đơn Vị Tính <span class="text-danger">*</span></label>
+                    <label class="form-label" for="DonVi">Đơn vị tính <span class="text-danger">*</span></label>
                     <input type="text" class="form-control" id="DonVi" placeholder="VD: kWh, m3, Tháng...">
                 </div>
                 <div class="form-group mb-3">
-                    <label for="GhiChuDichVu">Ghi Chú</label>
+                    <label class="form-label" for="GhiChuDichVu">Ghi chú</label>
                     <textarea class="form-control" id="GhiChuDichVu" rows="2"></textarea>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i> Đóng</button>
-                <button type="button" class="btn btn-primary fw-bold shadow-sm" id="btnSaveDichVu"><i class="ti ti-plus me-1"></i> Thêm dữ liệu</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-primary" id="btnSaveDichVu"><i class="ti ti-plus me-1"></i> Thêm dữ liệu</button>
             </div>
         </div>
     </div>
@@ -133,15 +131,15 @@
 <div class="modal fade" id="bangGiaModal" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
-            <div class="modal-header bg-success text-white">
-                <h5 class="modal-title" id="bangGiaModalTitle">Cài đặt Giá Dịch Vụ</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            <div class="modal-header">
+                <h5 class="modal-title" id="bangGiaModalTitle">Cài đặt giá dịch vụ</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
             </div>
             <div class="modal-body">
                 <input type="hidden" id="DichVuChiNhanhId" value="0" />
                 <div class="form-group mb-3">
-                    <label for="BgChiNhanhId">Chi Nhánh <span class="text-danger">*</span></label>
-                    <select class="form-control" id="BgChiNhanhId">
+                    <label class="form-label" for="BgChiNhanhId">Chi nhánh <span class="text-danger">*</span></label>
+                    <select class="form-select" id="BgChiNhanhId">
                         <option value="">-- Chọn chi nhánh --</option>
                         @if (ViewBag.ListChiNhanh != null)
                         {
@@ -153,28 +151,28 @@
                     </select>
                 </div>
                 <div class="form-group mb-3">
-                    <label for="BgDichVuId">Dịch Vụ <span class="text-danger">*</span></label>
-                    <select class="form-control" id="BgDichVuId">
+                    <label class="form-label" for="BgDichVuId">Dịch vụ <span class="text-danger">*</span></label>
+                    <select class="form-select" id="BgDichVuId">
                         <option value="">-- Chọn dịch vụ --</option>
                     </select>
                 </div>
                 <div class="form-group mb-3">
-                    <label for="GiaDichVu">Giá Dịch Vụ (VNĐ) <span class="text-danger">*</span></label>
+                    <label class="form-label" for="GiaDichVu">Giá dịch vụ (VNĐ) <span class="text-danger">*</span></label>
                     <input type="number" class="form-control" id="GiaDichVu" value="0" min="0">
                 </div>
                 <div class="form-group mb-3">
-                    <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" id="MacDinhBangGia" role="switch">
-                        <label class="form-check-label" for="MacDinhBangGia">
+                    <label class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="MacDinhBangGia">
+                        <span class="form-check-label" for="MacDinhBangGia">
                             <strong>Bắt buộc sử dụng</strong>
                             <span class="text-muted" style="font-size:0.85rem;"> — Dịch vụ mặc định bắt buộc đăng ký ở chi nhánh này</span>
-                        </label>
-                    </div>
+                        </span>
+                    </label>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i> Đóng</button>
-                <button type="button" class="btn btn-primary fw-bold shadow-sm" id="btnSaveBangGia"><i class="ti ti-plus me-1"></i> Thêm dữ liệu</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-primary" id="btnSaveBangGia"><i class="ti ti-plus me-1"></i> Thêm dữ liệu</button>
             </div>
         </div>
     </div>
@@ -196,37 +194,6 @@
             function formatVND(n) {
                 if (n === null || n === undefined) return "0 ₫";
                 return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n);
-            }
-
-            // Hàm helper hiển thị thông báo đồng bộ SweetAlert2
-            function showSuccess(msg) {
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Thành công',
-                    text: msg,
-                    confirmButtonColor: '#3085d6',
-                    customClass: { popup: 'swal2-custom-popup' }
-                });
-            }
-
-            function showError(msg) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Lỗi',
-                    text: msg,
-                    confirmButtonColor: '#3085d6',
-                    customClass: { popup: 'swal2-custom-popup' }
-                });
-            }
-
-            function showWarning(msg) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Thông báo',
-                    text: msg,
-                    confirmButtonColor: '#3085d6',
-                    customClass: { popup: 'swal2-custom-popup' }
-                });
             }
 
             // ================== TAB 1: DỊCH VỤ ==================
@@ -267,8 +234,8 @@
                 $('#TenDichVu').val('');
                 $('#DonVi').val('');
                 $('#GhiChuDichVu').val('');
-                $('#dichVuModalTitle').text('Thêm Dịch Vụ Mới');
-                $('#btnSaveDichVu').removeClass('btn-success').addClass('btn-primary').addClass('fw-bold').addClass('shadow-sm').html('<i class="ti ti-plus me-1"></i> Thêm dữ liệu');
+                $('#dichVuModalTitle').text('Thêm dịch vụ mới');
+                $('#btnSaveDichVu').html('<i class="ti ti-plus me-1"></i> Thêm dữ liệu');
                 $('#dichVuModal').modal('show');
             });
 
@@ -288,11 +255,8 @@
                     text: isUpdate ? 'Bạn có chắc chắn muốn cập nhật dịch vụ này?' : 'Bạn có chắc chắn muốn thêm dịch vụ này?',
                     icon: 'question',
                     showCancelButton: true,
-                    confirmButtonColor: '#3085d6',
-                    cancelButtonColor: '#6c757d',
                     confirmButtonText: 'Đồng ý',
-                    cancelButtonText: 'Hủy bỏ',
-                    customClass: { popup: 'swal2-custom-popup' }
+                    cancelButtonText: 'Hủy bỏ'
                 }).then((result) => {
                     if (result.isConfirmed) {
                         let $btn = $(this);
@@ -328,8 +292,8 @@
                     $('#TenDichVu').val(res.tenDichVu);
                     $('#DonVi').val(res.donVi);
                     $('#GhiChuDichVu').val(res.ghiChu);
-                    $('#dichVuModalTitle').text('Cập nhật Dịch Vụ');
-                    $('#btnSaveDichVu').removeClass('btn-primary').addClass('btn-success').addClass('fw-bold').addClass('shadow-sm').html('<i class="ti ti-device-floppy me-1"></i> Lưu dữ liệu');
+                    $('#dichVuModalTitle').text('Cập nhật dịch vụ');
+                    $('#btnSaveDichVu').html('<i class="ti ti-device-floppy me-1"></i> Lưu dữ liệu');
                     $('#dichVuModal').modal('show');
                 });
             });
@@ -341,11 +305,8 @@
                     text: 'Bạn có chắc chắn muốn xóa dịch vụ này?',
                     icon: 'warning',
                     showCancelButton: true,
-                    confirmButtonColor: '#d33',
-                    cancelButtonColor: '#6c757d',
                     confirmButtonText: 'Đồng ý xóa',
-                    cancelButtonText: 'Hủy bỏ',
-                    customClass: { popup: 'swal2-custom-popup' }
+                    cancelButtonText: 'Hủy bỏ'
                 }).then((result) => {
                     if (result.isConfirmed) {
                         $.ajax({
@@ -378,7 +339,7 @@
                     { "data": null, "className": "text-center", "orderable": false, "render": (d,t,r,m) => m.row + m.settings._iDisplayStart + 1 },
                     { "data": "tenChiNhanh", "orderable": false, "render": $.fn.dataTable.render.text() },
                     { "data": "tenDichVu", "orderable": false, "render": $.fn.dataTable.render.text() },
-                    { "data": "giaDichVu", "orderable": false, "render": function(d) { return formatVND(d); } },
+                    { "data": "giaDichVu", "orderable": false, "className": "text-end num-tabular", "render": function(d) { return formatVND(d); } },
                     {
                         "data": "macDinh", "orderable": false, "className": "text-center",
                         "render": function(data) {
@@ -424,8 +385,8 @@
                 loadDichVuDropdown();
                 $('#GiaDichVu').val(0);
                 $('#MacDinhBangGia').prop('checked', false);
-                $('#bangGiaModalTitle').text('Thêm Bảng Giá');
-                $('#btnSaveBangGia').removeClass('btn-success').addClass('btn-primary').addClass('fw-bold').addClass('shadow-sm').html('<i class="ti ti-plus me-1"></i> Thêm dữ liệu');
+                $('#bangGiaModalTitle').text('Cài đặt giá dịch vụ');
+                $('#btnSaveBangGia').html('<i class="ti ti-plus me-1"></i> Thêm dữ liệu');
                 $('#bangGiaModal').modal('show');
             });
 
@@ -447,11 +408,8 @@
                     text: isUpdate ? 'Bạn có chắc chắn muốn cập nhật bảng giá này?' : 'Bạn có chắc chắn muốn cài đặt bảng giá này?',
                     icon: 'question',
                     showCancelButton: true,
-                    confirmButtonColor: '#3085d6',
-                    cancelButtonColor: '#6c757d',
                     confirmButtonText: 'Đồng ý',
-                    cancelButtonText: 'Hủy bỏ',
-                    customClass: { popup: 'swal2-custom-popup' }
+                    cancelButtonText: 'Hủy bỏ'
                 }).then((result) => {
                     if (result.isConfirmed) {
                         let $btn = $(this);
@@ -488,8 +446,8 @@
                     loadDichVuDropdown(res.dichVuId);
                     $('#GiaDichVu').val(res.giaDichVu);
                     $('#MacDinhBangGia').prop('checked', res.macDinh === true);
-                    $('#bangGiaModalTitle').text('Cập nhật Bảng Giá');
-                    $('#btnSaveBangGia').removeClass('btn-primary').addClass('btn-success').addClass('fw-bold').addClass('shadow-sm').html('<i class="ti ti-device-floppy me-1"></i> Lưu dữ liệu');
+                    $('#bangGiaModalTitle').text('Cập nhật bảng giá');
+                    $('#btnSaveBangGia').html('<i class="ti ti-device-floppy me-1"></i> Lưu dữ liệu');
                     $('#bangGiaModal').modal('show');
                 });
             });
@@ -502,11 +460,8 @@
                     text: 'Bạn có chắc chắn muốn xóa bảng giá này?',
                     icon: 'warning',
                     showCancelButton: true,
-                    confirmButtonColor: '#d33',
-                    cancelButtonColor: '#6c757d',
                     confirmButtonText: 'Đồng ý xóa',
-                    cancelButtonText: 'Hủy bỏ',
-                    customClass: { popup: 'swal2-custom-popup' }
+                    cancelButtonText: 'Hủy bỏ'
                 }).then((result) => {
                     if (result.isConfirmed) {
                         $.ajax({
@@ -528,11 +483,11 @@
 
 @section Styles {
     <style>
-    /* Custom Badges for Light & Dark Modes using opacity */
+    /* Custom Badges using design tokens */
     .badge-service-required {
-        background-color: rgba(13, 110, 253, 0.15) !important;
-        color: #0d6efd !important;
-        border: 1px solid rgba(13, 110, 253, 0.25) !important;
+        background-color: var(--ts-brand-soft) !important;
+        color: var(--ts-brand-text) !important;
+        border: none !important;
         font-weight: 600;
         padding: 5px 10px;
         border-radius: 6px;
@@ -543,9 +498,9 @@
     }
 
     .badge-service-optional {
-        background-color: rgba(108, 117, 125, 0.15) !important;
-        color: #6c757d !important;
-        border: 1px solid rgba(108, 117, 125, 0.25) !important;
+        background-color: var(--tblr-bg-surface-secondary) !important;
+        color: var(--ts-ink-muted) !important;
+        border: none !important;
         font-weight: 600;
         padding: 5px 10px;
         border-radius: 6px;
@@ -553,31 +508,6 @@
         align-items: center;
         gap: 4px;
         font-size: 0.85rem;
-    }
-    
-    [data-bs-theme="dark"] .badge-service-required {
-        background-color: rgba(110, 168, 254, 0.2) !important;
-        color: #6ea8fe !important;
-        border-color: rgba(110, 168, 254, 0.3) !important;
-    }
-    [data-bs-theme="dark"] .badge-service-optional {
-        background-color: rgba(173, 181, 189, 0.2) !important;
-        color: #adb5bd !important;
-        border-color: rgba(173, 181, 189, 0.3) !important;
-    }
-
-    /* Standardized SweetAlert2 custom popup */
-    .swal2-popup.swal2-custom-popup {
-        border-radius: 12px !important;
-        font-family: inherit !important;
-    }
-    .swal2-custom-popup .swal2-title {
-        font-weight: 600 !important;
-    }
-    .swal2-custom-popup .swal2-actions button {
-        border-radius: 6px !important;
-        font-weight: 500 !important;
-        padding: 8px 20px !important;
     }
 </style>
 }
