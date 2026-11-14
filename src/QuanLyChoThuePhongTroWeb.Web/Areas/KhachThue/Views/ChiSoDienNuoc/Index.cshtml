@@ -5,7 +5,9 @@
     var kyMacDinh = ViewBag.KyMacDinh as string ?? "";
 }
 
-<link rel="stylesheet" href="~/css/diennuoc.css" asp-append-version="true" />
+@section Styles {
+    <link rel="stylesheet" href="~/css/diennuoc.css" asp-append-version="true" />
+}
 
 <div class="page-body kt-page">
     <div class="container-xl">

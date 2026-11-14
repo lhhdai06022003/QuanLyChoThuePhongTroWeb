@@ -6,7 +6,7 @@
     <div class="container-xl">
         <div class="row align-items-center">
             <div class="col">
-                <h2 class="page-title d-flex align-items-center"><i class="ti ti-history me-2 text-primary"></i> Lịch sử thanh toán</h2>
+                <h2 class="page-title">Lịch sử thanh toán</h2>
             </div>
         </div>
     </div>
@@ -14,20 +14,20 @@
 
 <div class="page-body">
     <div class="container-xl">
-        <div class="card shadow-sm border-0">
+        <div class="card">
             <div class="card-body">
                 <div class="table-responsive">
-                    <table class="table table-bordered table-striped table-hover w-100" id="lichSuTable">
+                    <table class="table table-vcenter table-hover w-100 ts-bang-the" id="lichSuTable">
                         <thead>
                             <tr>
                                 <th class="text-center" width="5%">STT</th>
-                                <th>Mã Giao Dịch</th>
-                                <th>Mã Hóa Đơn</th>
+                                <th>Mã giao dịch</th>
+                                <th>Mã hóa đơn</th>
                                 <th>Phòng</th>
-                                <th class="text-right">Số Tiền (VNĐ)</th>
-                                <th class="text-center">Phương Thức</th>
-                                <th>Ngày Thanh Toán</th>
-                                <th>Ghi Chú</th>
+                                <th class="text-end num-tabular">Số tiền (VNĐ)</th>
+                                <th class="text-center">Phương thức</th>
+                                <th>Ngày thanh toán</th>
+                                <th>Ghi chú</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -64,11 +64,11 @@
                             return meta.row + 1;
                         }
                     },
-                    { "data": "maGiaoDich", "className": "font-weight-bold", "render": $.fn.dataTable.render.text() },
+                    { "data": "maGiaoDich", "className": "fw-bold", "render": $.fn.dataTable.render.text() },
                     { 
                         "data": "maHoaDon",
                         "render": function (data) {
-                            return '<span class="text-primary font-weight-bold">' + escapeHtml(data) + '</span>';
+                            return '<span class="text-primary fw-bold">' + escapeHtml(data) + '</span>';
                         }
                     },
                     { 
@@ -79,7 +79,7 @@
                     },
                     { 
                         "data": "soTienThanhToan",
-                        "className": "text-right text-danger font-weight-bold",
+                        "className": "text-end num-tabular fw-bold",
                         "render": function (data) {
                             return formatVND(data);
                         }
@@ -108,7 +108,7 @@
                     }
                 ],
                 "language": {
-                    "url": "//cdn.datatables.net/plug-ins/1.13.6/i18n/vi.json"
+                    "url": "https://cdn.datatables.net/plug-ins/1.13.6/i18n/vi.json"
                 },
                 "pageLength": 10,
                 "ordering": true,
