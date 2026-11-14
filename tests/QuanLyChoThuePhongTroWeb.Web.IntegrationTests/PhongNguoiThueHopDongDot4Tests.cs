@@ -45,7 +45,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
         [InlineData("Areas/QuanLyNhaTro/Views/HopDong/QuanLyHopDong.cshtml")]
         public void ViewsDot4_BangChinhCoLopBangThe_VaKhongConLopLoiThoi(string path)
         {
-            var html = Read(path.Split('/'));
+            var html = ViewSource.ReadWithOwnScript(path.Split('/'));
             Assert.Matches("<table[^>]*class=\"[^\"]*\\bts-bang-the\\b", html);
 
             var forbidden = new[] { "bg-light", "btn-success", "table-bordered", "thead-light", "modal-header bg-", "confirmButtonColor", "text-right", "font-weight-" };
@@ -85,7 +85,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
         [InlineData("Areas/QuanLyNhaTro/Views/PhongTros/QuanLyPhongTro.cshtml", 2)]
         public void ViewsDot4_SoLuongDisplayNoneKhopMoc(string path, int expectedCount)
         {
-            var html = Read(path.Split('/'));
+            var html = ViewSource.ReadWithOwnScript(path.Split('/'));
             var count = Regex.Matches(html, @"display:\s*none", RegexOptions.IgnoreCase).Count;
             Assert.Equal(expectedCount, count);
         }
@@ -125,7 +125,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
         [InlineData("Areas/QuanLyNhaTro/Views/HopDong/QuanLyHopDong.cshtml")]
         public void ViewsDot4_KhongConToLocaleDateString(string path)
         {
-            var html = Read(path.Split('/'));
+            var html = ViewSource.ReadWithOwnScript(path.Split('/'));
             Assert.DoesNotContain("toLocaleDateString(", html);
         }
     }

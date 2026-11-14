@@ -24,7 +24,8 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
         private static string Read(params string[] relative) =>
             File.ReadAllText(Path.Combine(new[] { WebRoot() }.Concat(relative).ToArray()));
 
-        private static string View(string folder) => Read("Areas", "QuanLyNhaTro", "Views", folder, "Index.cshtml");
+        // Kèm file JS riêng của màn (ViewSource.OwnScripts): bảng ghép chuỗi và phần ẩn/hiện nằm trong JS.
+        private static string View(string folder) => ViewSource.ReadWithOwnScript("Areas", "QuanLyNhaTro", "Views", folder, "Index.cshtml");
 
         [Theory]
         [InlineData("hoadon.css")]
@@ -97,7 +98,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
         [InlineData("DoiChieuThanhToan", "Index.cshtml", 1)]
         public void AnBangStyle_GiuNguyenDeJsBatLai(string folder, string file, int soCho)
         {
-            var html = Read("Areas", "QuanLyNhaTro", "Views", folder, file);
+            var html = ViewSource.ReadWithOwnScript("Areas", "QuanLyNhaTro", "Views", folder, file);
             Assert.Equal(soCho, Regex.Matches(html, "style=\"display: none;\"").Count);
         }
 

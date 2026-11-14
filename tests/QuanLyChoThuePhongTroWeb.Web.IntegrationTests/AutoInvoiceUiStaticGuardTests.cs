@@ -77,8 +77,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             Assert.Contains("Lưu điều chỉnh", js);
 
             // Index.cshtml vẫn có nút "gửi lại email" hợp lệ, nên chỉ chặn nhãn cũ của điều chỉnh.
-            var view = File.ReadAllText(Path.Combine(SolutionRoot(), "src", "QuanLyChoThuePhongTroWeb.Web",
-                "Areas", "QuanLyNhaTro", "Views", "HoaDon", "Index.cshtml"));
+            var view = ViewSource.ReadWithOwnScript("Areas", "QuanLyNhaTro", "Views", "HoaDon", "Index.cshtml");
             Assert.DoesNotContain("Điều chỉnh và gửi lại", view);
             Assert.Contains("Điều chỉnh hóa đơn", view);
         }

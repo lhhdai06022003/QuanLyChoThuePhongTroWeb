@@ -61,7 +61,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             Assert.Contains(".diennuoc-input-td .dn-anomaly {", css);
             Assert.Contains("min-width: 100%;", css);
 
-            var view = Read("Areas", "QuanLyNhaTro", "Views", "DienNuoc", "Index.cshtml");
+            var view = ViewSource.ReadWithOwnScript("Areas", "QuanLyNhaTro", "Views", "DienNuoc", "Index.cshtml");
             Assert.Contains("Đổi đồng hồ hoặc quay vòng: mở ảnh đồng hồ.", view);
         }
 
@@ -99,7 +99,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
         public void IconCho_DungLopQuayCoThat(params string[] path)
         {
             // Tabler Icons không có ti-spin; Font Awesome (đã nạp trong hai layout) có fa-spin.
-            Assert.DoesNotContain("ti-spin", Read(path));
+            Assert.DoesNotContain("ti-spin", ViewSource.ReadWithOwnScript(path));
         }
     }
 }

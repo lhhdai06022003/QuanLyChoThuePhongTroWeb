@@ -486,7 +486,9 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
 
                 var pageRes = await client.GetAsync("/QuanLyNhaTro/ChotDienNuoc");
                 Assert.Equal(HttpStatusCode.OK, pageRes.StatusCode);
-                var html = await pageRes.Content.ReadAsStringAsync();
+                // JS của màn nằm ở wwwroot/js/chot-dien-nuoc.js: kiểm cả HTML lẫn file JS mà trang nạp.
+                var html = ViewSource.WithOwnScripts(await pageRes.Content.ReadAsStringAsync());
+                Assert.Contains("/js/chot-dien-nuoc.js?v=", html);
 
                 Assert.DoesNotContain("Ghi nhận trực tiếp tại phòng", html);
                 Assert.DoesNotContain("value=\"${item.lyDoNhapThuCong", html);
