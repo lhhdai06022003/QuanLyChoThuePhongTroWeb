@@ -26,8 +26,8 @@
     <div class="card guest-admin-table">
         <div class="card-header"><h2 class="card-title">Danh sách tin và ảnh phòng</h2></div>
         <div class="table-responsive">
-            <table class="table table-vcenter card-table">
-                <thead><tr><th>Phòng</th><th>Giá thuê / tiền cọc</th><th>Ảnh</th><th>Tình trạng phòng</th><th>Hiển thị công khai</th><th class="text-end">Thao tác</th></tr></thead>
+            <table class="table table-vcenter card-table ts-bang-the">
+                <thead><tr><th>Phòng</th><th>Giá thuê / tiền cọc</th><th>Ảnh</th><th>Tình trạng phòng</th><th>Hiển thị công khai</th><th class="text-end" data-the-nhan=""><span class="visually-hidden">Thao tác</span></th></tr></thead>
                 <tbody>
                 @foreach (var room in Model.Rooms)
                 {

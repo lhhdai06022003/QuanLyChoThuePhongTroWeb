@@ -79,7 +79,7 @@
             <!-- Khu vực Bộ lọc dạng hàng ngang -->
             <div class="bg-surface-secondary p-3 border border-dashed rounded-3 mb-4">
                 <div class="row g-3 align-items-end">
-                    <div class="col-12 col-md-4 col-xl-3">
+                    <div class="col-12 col-md-4">
                         <label for="filterChiNhanh" class="form-label fw-bold text-secondary mb-1">
                             <i class="ti ti-building me-1"></i> Chi nhánh
                         </label>
@@ -91,7 +91,7 @@
                             }
                         </select>
                     </div>
-                    <div class="col-6 col-md-4 col-xl-2">
+                    <div class="col-6 col-md-4">
                         <label for="filterPhuongThuc" class="form-label fw-bold text-secondary mb-1">
                             <i class="ti ti-report-money me-1"></i> Kênh thu
                         </label>
@@ -104,7 +104,7 @@
                             <option value="can-tru-coc">Cấn trừ tiền cọc</option>
                         </select>
                     </div>
-                    <div class="col-6 col-md-4 col-xl-2">
+                    <div class="col-6 col-md-4">
                         <label for="filterNguoiThu" class="form-label fw-bold text-secondary mb-1">
                             <i class="ti ti-user-check me-1"></i> Người thu
                         </label>
@@ -120,7 +120,7 @@
                     </div>
                     @if (Model.LaAdmin)
                     {
-                        <div class="col-6 col-md-4 col-xl-2">
+                        <div class="col-12 col-md-4">
                             <label for="filterKy" class="form-label fw-bold text-secondary mb-1">
                                 <i class="ti ti-calendar-event me-1"></i> Kỳ hóa đơn
                             </label>
@@ -130,16 +130,18 @@
                             </div>
                         </div>
                     }
-                    <div class="col-12 col-xl-3">
+                    <div class="@(Model.LaAdmin ? "col-12 col-md-8" : "col-12 col-md-8 col-lg-6")">
                         <label for="filterDateRange" class="form-label fw-bold text-secondary mb-1">
                             <i class="ti ti-calendar me-1"></i> Khoảng thời gian
                         </label>
-                        <div class="d-flex flex-wrap gap-2" id="khoangNgay">
-                            <div class="btn-group btn-group-sm" role="group">
-                                <button type="button" class="btn btn-outline-primary active" id="btnDateAll">Tất cả</button>
-                                <button type="button" class="btn btn-outline-primary" id="btnDateToday">Hôm nay</button>
-                                <button type="button" class="btn btn-outline-primary" id="btnDateWeek">Tuần này</button>
-                                <button type="button" class="btn btn-outline-primary" id="btnDateMonth">Tháng này</button>
+                        <div class="d-flex flex-column gap-2" id="khoangNgay">
+                            <div>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <button type="button" class="btn btn-outline-primary active" id="btnDateAll">Tất cả</button>
+                                    <button type="button" class="btn btn-outline-primary" id="btnDateToday">Hôm nay</button>
+                                    <button type="button" class="btn btn-outline-primary" id="btnDateWeek">Tuần này</button>
+                                    <button type="button" class="btn btn-outline-primary" id="btnDateMonth">Tháng này</button>
+                                </div>
                             </div>
                             <input type="text" id="filterDateRange" class="form-control form-control-sm ls-khoang-ngay" placeholder="Tùy chỉnh..." readonly />
                         </div>

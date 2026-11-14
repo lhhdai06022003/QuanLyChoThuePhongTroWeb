@@ -12,7 +12,7 @@
     }
     <div class="card guest-admin-table reservation-admin-list">
         <div class="table-responsive" tabindex="0" role="region" aria-label="Danh sách yêu cầu giữ chỗ">
-            <table class="table table-vcenter table-hover card-table">
+            <table class="table table-vcenter table-hover card-table ts-bang-the">
                 <thead>
                     <tr><th scope="col">Phòng và khách</th><th scope="col">Trạng thái</th><th scope="col" class="text-end">Tiền cọc</th><th scope="col" class="d-none d-md-table-cell text-end">Thời hạn (VN)</th></tr>
                 </thead>
@@ -65,7 +65,7 @@
                         @if (reservation.Status == "MoiTao")
                         {
                             <tr>
-                                <td colspan="4" class="reservation-admin-approval">
+                                <td colspan="4" class="reservation-admin-approval" data-the-nhan="">
                                     <details class="reservation-admin-disclosure">
                                         <summary class="fw-semibold">Duyệt yêu cầu #@reservation.Id</summary>
                                         <form method="post" asp-area="QuanLyNhaTro" asp-controller="GiuCho" asp-action="Duyet" class="row g-2 align-items-end mt-1">
