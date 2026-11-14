@@ -7,14 +7,12 @@
     <div class="container-xl">
         <div class="row g-2 align-items-center">
             <div class="col">
-                <h2 class="page-title text-primary fw-bold d-flex align-items-center">
-                    <i class="ti ti-sitemap me-2"></i> Phân công chi nhánh
-                </h2>
+                <h2 class="page-title">Phân công chi nhánh</h2>
             </div>
             <div class="col-auto ms-auto d-print-none">
                 <div class="btn-list">
                     <select class="form-select" id="filterChiNhanh" style="min-width: 220px;">
-                        <option value="">Tất cả</option>
+                        <option value="">Tất cả chi nhánh</option>
                     </select>
                 </div>
             </div>
@@ -24,17 +22,17 @@
 
 <div class="page-body">
     <div class="container-xl">
-        <div class="card shadow-sm border-0">
+        <div class="card">
             <div class="card-body">
-                <table id="phanCongTable" class="table table-bordered table-striped table-hover w-100">
-                    <thead class="thead-light">
+                <table id="phanCongTable" class="table table-vcenter table-hover w-100 ts-bang-the">
+                    <thead>
                         <tr>
                             <th width="5%" class="text-center">STT</th>
                             <th width="20%">Tên đăng nhập</th>
                             <th width="15%">Trạng thái tài khoản</th>
                             <th width="35%">Chi nhánh đang phụ trách</th>
                             <th width="15%">Thay đổi gần nhất</th>
-                            <th width="10%" class="text-center">Thao tác</th>
+                            <th width="10%" class="w-1 text-center" data-the-nhan=""><span class="visually-hidden">Thao tác</span></th>
                         </tr>
                     </thead>
                 </table>
@@ -46,15 +44,15 @@
 <div class="modal fade" id="phanCongModal" tabindex="-1" role="dialog" aria-hidden="true" data-bs-focus="false">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
-            <div class="modal-header bg-primary">
-                <h5 class="modal-title text-white" id="phanCongModalTitle">Phân công chi nhánh</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            <div class="modal-header">
+                <h5 class="modal-title" id="phanCongModalTitle">Phân công chi nhánh</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
             </div>
 
             <div class="modal-body">
                 <div class="alert alert-warning d-none" id="phanCongLockedAlert">Tài khoản đang khóa, phân công chưa có hiệu lực.</div>
-                <div class="table-responsive">
-                    <table class="table table-sm table-bordered">
+                <div class="table-responsive ts-cuon-ngang">
+                    <table class="table table-sm table-vcenter">
                         <thead>
                             <tr>
                                 <th>Chi nhánh</th>
@@ -71,7 +69,7 @@
             </div>
 
             <div class="modal-footer">
-                <button type="button" class="btn btn-danger" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i> Đóng</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
             </div>
         </div>
     </div>
@@ -94,7 +92,7 @@
             }
 
             function formatVnDateTime(value) {
-                if (!value) return '<span class="text-muted font-italic">Chưa có</span>';
+                if (!value) return '<span class="text-muted fst-italic">Chưa có</span>';
                 var parts = value.split('T');
                 if (parts.length !== 2) return escapeHtml(value);
                 var dateParts = parts[0].split('-');
@@ -116,7 +114,7 @@
                             showError(res.message);
                             return;
                         }
-                        var html = '<option value="">Tất cả</option>';
+                        var html = '<option value="">Tất cả chi nhánh</option>';
                         (res.data || []).forEach(function (item) {
                             html += '<option value="' + item.chiNhanhId + '">' + escapeHtml(item.maChiNhanh) + ' - ' + escapeHtml(item.tenChiNhanh) + '</option>';
                         });
@@ -162,8 +160,8 @@
                         "className": "text-center align-middle",
                         "render": function (data) {
                             return data
-                                ? '<span class="badge bg-success-lt text-success"><i class="ti ti-circle-check me-1"></i> Hoạt động</span>'
-                                : '<span class="badge bg-secondary-lt text-secondary"><i class="ti ti-ban me-1"></i> Đang khóa</span>';
+                                ? '<span class="badge bg-success-lt"><i class="ti ti-circle-check me-1"></i> Hoạt động</span>'
+                                : '<span class="badge bg-secondary-lt"><i class="ti ti-ban me-1"></i> Đang khóa</span>';
                         }
                     },
                     {
@@ -173,7 +171,7 @@
                                 return '<span class="text-orange">Chưa phân công</span>';
                             }
                             return data.map(function (b) {
-                                return '<span class="badge bg-primary-lt text-primary me-1" title="' + escapeHtml(b.tenChiNhanh) + '">' + escapeHtml(b.maChiNhanh) + '</span>';
+                                return '<span class="badge bg-primary-lt me-1" title="' + escapeHtml(b.tenChiNhanh) + '">' + escapeHtml(b.maChiNhanh) + '</span>';
                             }).join('');
                         }
                     },
@@ -199,12 +197,12 @@
                     var trangThaiHtml = '';
                     var actionHtml = '';
                     if (row.trangThai === 1) {
-                        trangThaiHtml = '<span class="badge bg-success-lt text-success">Đang phụ trách</span>';
-                        actionHtml = '<button class="btn btn-danger btn-sm btn-thu-hoi" data-chi-nhanh-id="' + row.chiNhanhId + '">Thu hồi</button>';
+                        trangThaiHtml = '<span class="badge bg-success-lt">Đang phụ trách</span>';
+                        actionHtml = '<button class="btn btn-outline-danger btn-sm btn-thu-hoi" data-chi-nhanh-id="' + row.chiNhanhId + '">Thu hồi</button>';
                     } else if (row.trangThai === 2) {
-                        trangThaiHtml = '<span class="badge bg-secondary-lt text-secondary">Đã thu hồi</span>';
+                        trangThaiHtml = '<span class="badge bg-secondary-lt">Đã thu hồi</span>';
                     } else {
-                        trangThaiHtml = '<span class="badge bg-orange-lt text-orange">Chưa phân công</span>';
+                        trangThaiHtml = '<span class="badge bg-orange-lt">Chưa phân công</span>';
                     }
 
                     if (row.trangThai !== 1 && !row.chiNhanhDaXoa) {
