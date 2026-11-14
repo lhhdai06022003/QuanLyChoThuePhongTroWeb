@@ -657,7 +657,9 @@
                         const moiVal = parseFloat(raw);
                         if (w && w.moTa) {
                             // Chan/Do: đỏ; Vang: vàng. Gợi ý chỉ hiện dạng chữ, sửa nhanh nằm ở modal ảnh chỉ số.
-                            let text = w.moTa;
+                            // Bỏ tiền tố "Điện: "/"Nước: " vì cột đã ghi rõ; câu ngắn để vừa ô.
+                            let text = w.moTa.replace(/^(Điện|Nước):\s*/, '');
+                            text = text.charAt(0).toUpperCase() + text.slice(1);
                             if (w.chiSoGoiY !== null && w.chiSoGoiY !== undefined) {
                                 text += '. Gợi ý: ' + fmt(w.chiSoGoiY);
                                 if (w.sanLuongTheoGoiY !== null && w.sanLuongTheoGoiY !== undefined) {
@@ -665,11 +667,13 @@
                                 }
                             }
                             if (w.mucDo === 'Chan') {
-                                text += '. Mở modal ảnh chỉ số để dùng thao tác đổi đồng hồ hoặc quay vòng.';
+                                text += '. Đổi đồng hồ hoặc quay vòng: mở ảnh đồng hồ.';
                             }
                             $box.removeClass('text-secondary text-warning text-danger')
                                 .addClass(w.mucDo === 'Vang' ? 'text-warning' : 'text-danger')
                                 .text(text).show();
+                            // Cảnh báo đỏ đã nói rõ lỗi, ẩn dòng "Mới phải ≥ cũ" để khỏi lặp.
+                            if (w.mucDo !== 'Vang') $input.siblings('.invalid-feedback').hide();
                         } else if (!isNaN(cuVal) && !isNaN(moiVal) && moiVal === cuVal) {
                             // Hợp lệ nhưng tiêu thụ bằng 0: chỉ nhắc, không bắt ghi chú.
                             $box.removeClass('text-secondary text-danger').addClass('text-warning')

@@ -131,6 +131,19 @@ html[data-bs-theme="dark"] .dn-savebar {
     display: none;
 }
 
+/* Cảnh báo chỉ số bất thường: gói trong bề rộng ô, câu dài xuống dòng thay vì kéo giãn cột */
+.diennuoc-input-td .dn-anomaly {
+    /* width 0 + min-width 100%: không góp vào bề rộng cột, chỉ lấp đầy ô đã có */
+    width: 0;
+    min-width: 100%;
+    margin: 0.375rem 0 0;
+    text-align: left;
+    font-size: 0.75rem;
+    line-height: 1.35;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
 .is-invalid {
     border-color: var(--tblr-danger, var(--ts-bad)) !important;
     background-color: var(--ts-bad-soft) !important;
@@ -577,6 +590,12 @@ html[data-bs-theme="dark"] .dn-savebar {
         margin: 0 !important;
         text-align: left !important;
         white-space: normal !important;
+    }
+
+    .dn-page table.ts-bang-the .diennuoc-input-td .dn-anomaly {
+        width: auto;
+        min-width: 0;
+        margin: 0;
     }
 
     .dn-page table.ts-bang-the .diennuoc-input-td .dn-delta:empty {

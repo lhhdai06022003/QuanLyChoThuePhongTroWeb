@@ -54,6 +54,18 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
         }
 
         [Fact]
+        public void DienNuoc_CanhBaoChiSo_KhongKeoGianCot()
+        {
+            // Câu cảnh báo dài từng kéo cột "Nước mới" giãn ngang làm vỡ bảng.
+            var css = Read("wwwroot", "css", "diennuoc.css");
+            Assert.Contains(".diennuoc-input-td .dn-anomaly {", css);
+            Assert.Contains("min-width: 100%;", css);
+
+            var view = Read("Areas", "QuanLyNhaTro", "Views", "DienNuoc", "Index.cshtml");
+            Assert.Contains("Đổi đồng hồ hoặc quay vòng: mở ảnh đồng hồ.", view);
+        }
+
+        [Fact]
         public void NhanNhomMenu_KhongAnVoiTrinhDocManHinh()
         {
             var menu = Read("Views", "Shared", "_MenuItem.cshtml");
