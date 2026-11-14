@@ -4,741 +4,209 @@
     Layout = null;
     // Nút điền nhanh tài khoản mẫu chứa mật khẩu mẫu: chỉ hiện khi chạy Development (máy dev, buổi demo).
     var hienTaiKhoanMau = HostEnvironment.EnvironmentName == "Development";
+    var tuTrangPhong = (ViewBag.ReturnUrl as string)?.StartsWith("/phong/", StringComparison.OrdinalIgnoreCase) == true;
 }
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Đăng nhập - TroSync Quản lý phòng trọ đa chi nhánh</title>
+    <title>Đăng nhập | TroSync</title>
+    <script>
+        // Theo chế độ sáng/tối người dùng đã chọn trong ứng dụng (cùng khóa với _Layout), đặt trước khi vẽ để không nháy.
+        (function () {
+            var theme = 'light';
+            try { theme = localStorage.getItem('tablerTheme') || 'light'; } catch (e) { }
+            document.documentElement.setAttribute('data-bs-theme', theme === 'dark' ? 'dark' : 'light');
+        })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="~/Theme/tabler/dist/css/tabler-icons.min.css">
     <link rel="stylesheet" href="~/css/trosync-nen.css" asp-append-version="true">
-    <style>
-        :root {
-            --slate-950: #070d19;
-            --slate-900: #0b1329;
-            --slate-850: #101c38;
-            --slate-800: #1e293b;
-            --slate-700: #334155;
-            --slate-600: #475569;
-            --slate-500: #64748b;
-            --slate-400: #94a3b8;
-            --slate-200: #e2e8f0;
-            --slate-100: #f1f5f9;
-            --slate-50: #f8fafc;
-            
-            --amber-500: #f59e0b;
-            --amber-600: #d97706;
-            --amber-700: #b45309;
-            --amber-light: rgba(217, 119, 6, 0.12);
-
-            --danger-500: #ef4444;
-            --danger-50: #fef2f2;
-            --danger-border: #fecaca;
-
-            --font-display: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-            --font-body: 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
-
-            --radius-md: 10px;
-            --radius-lg: 16px;
-            --transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        *, *::before, *::after {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            min-height: 100vh;
-            font-family: var(--font-body);
-            background-color: var(--slate-900);
-            color: var(--slate-900);
-            display: flex;
-            align-items: stretch;
-            -webkit-font-smoothing: antialiased;
-        }
-
-        .auth-wrapper {
-            display: flex;
-            width: 100%;
-            min-height: 100vh;
-        }
-
-        /* --- Panel Bên Trái: Architectural Identity --- */
-        .brand-panel {
-            flex: 1.15;
-            position: relative;
-            background: radial-gradient(circle at 20% 20%, #152449 0%, var(--slate-950) 100%);
-            color: #ffffff;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            padding: 56px 64px;
-            overflow: hidden;
-            border-right: 1px solid rgba(255, 255, 255, 0.08);
-        }
-
-        /* Lưới kiến trúc blueprint mờ */
-        .brand-panel::before {
-            content: "";
-            position: absolute;
-            inset: 0;
-            background-image: 
-                linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
-                linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
-            background-size: 40px 40px;
-            mask-image: radial-gradient(circle at 50% 50%, black 40%, transparent 80%);
-            -webkit-mask-image: radial-gradient(circle at 50% 50%, black 40%, transparent 80%);
-            pointer-events: none;
-        }
-
-        /* Ánh đèn ấm Warm Amber chiếu góc */
-        .brand-panel::after {
-            content: "";
-            position: absolute;
-            width: 320px;
-            height: 320px;
-            background: radial-gradient(circle, rgba(217, 119, 6, 0.25) 0%, transparent 70%);
-            top: 25%;
-            left: 60%;
-            transform: translate(-50%, -50%);
-            filter: blur(60px);
-            pointer-events: none;
-        }
-
-        .brand-header {
-            position: relative;
-            z-index: 2;
-            display: flex;
-            align-items: center;
-            gap: 14px;
-        }
-
-        .brand-logo-badge {
-            width: 46px;
-            height: 46px;
-            border-radius: 12px;
-            background: linear-gradient(135deg, var(--amber-500) 0%, var(--amber-700) 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #ffffff;
-            font-size: 24px;
-            box-shadow: 0 8px 20px rgba(217, 119, 6, 0.35);
-        }
-
-        .brand-name {
-            font-family: var(--font-display);
-            font-size: 20px;
-            font-weight: 700;
-            letter-spacing: -0.02em;
-            color: #ffffff;
-        }
-
-        .brand-name span {
-            color: var(--amber-500);
-        }
-
-        .brand-content {
-            position: relative;
-            z-index: 2;
-            max-width: 520px;
-            margin: 40px 0;
-        }
-
-        .brand-tag {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            padding: 6px 14px;
-            border-radius: 999px;
-            font-size: 13px;
-            font-weight: 500;
-            color: var(--amber-500);
-            margin-bottom: 24px;
-        }
-
-        .brand-headline {
-            font-family: var(--font-display);
-            font-size: clamp(32px, 3.2vw, 42px);
-            font-weight: 800;
-            line-height: 1.2;
-            letter-spacing: -0.03em;
-            color: #ffffff;
-            margin-bottom: 20px;
-        }
-
-        .brand-headline em {
-            font-style: normal;
-            background: linear-gradient(120deg, #ffffff 40%, var(--amber-500) 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .brand-description {
-            font-size: 15px;
-            line-height: 1.65;
-            color: var(--slate-400);
-            margin-bottom: 36px;
-        }
-
-        .brand-pillars {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-        }
-
-        .pillar-card {
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: var(--radius-md);
-            padding: 16px 18px;
-            backdrop-filter: blur(8px);
-            transition: var(--transition);
-        }
-
-        .pillar-card:hover {
-            background: rgba(255, 255, 255, 0.07);
-            border-color: rgba(217, 119, 6, 0.3);
-            transform: translateY(-2px);
-        }
-
-        .pillar-icon {
-            color: var(--amber-500);
-            font-size: 20px;
-            margin-bottom: 8px;
-        }
-
-        .pillar-title {
-            font-family: var(--font-display);
-            font-size: 14px;
-            font-weight: 600;
-            color: #ffffff;
-            margin-bottom: 4px;
-        }
-
-        .pillar-desc {
-            font-size: 12px;
-            color: var(--slate-400);
-            line-height: 1.4;
-        }
-
-        .brand-footer {
-            position: relative;
-            z-index: 2;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 13px;
-            color: var(--slate-500);
-            border-top: 1px solid rgba(255, 255, 255, 0.08);
-            padding-top: 24px;
-        }
-
-        /* --- Panel Bên Phải: Form Đăng Nhập --- */
-        .form-panel {
-            flex: 0.95;
-            background-color: var(--slate-50);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 48px 36px;
-            position: relative;
-        }
-
-        .form-card {
-            width: 100%;
-            max-width: 440px;
-            background: #ffffff;
-            padding: 44px 40px;
-            border-radius: var(--radius-lg);
-            border: 1px solid var(--slate-200);
-            box-shadow: 0 10px 30px -10px rgba(15, 23, 42, 0.08);
-        }
-
-        .form-header {
-            margin-bottom: 28px;
-        }
-
-        .form-badge {
-            display: inline-block;
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--amber-700);
-            background: var(--amber-light);
-            padding: 4px 10px;
-            border-radius: 6px;
-            margin-bottom: 12px;
-        }
-
-        .form-title {
-            font-family: var(--font-display);
-            font-size: 26px;
-            font-weight: 700;
-            letter-spacing: -0.02em;
-            color: var(--slate-900);
-            margin-bottom: 8px;
-        }
-
-        .form-subtitle {
-            font-size: 14px;
-            color: var(--slate-500);
-            line-height: 1.5;
-        }
-
-        /* Thông báo lỗi */
-        .alert-error {
-            background-color: var(--danger-50);
-            border: 1px solid var(--danger-border);
-            color: var(--danger-500);
-            padding: 12px 16px;
-            border-radius: var(--radius-md);
-            margin-bottom: 22px;
-            font-size: 13px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .alert-error i {
-            font-size: 18px;
-            flex-shrink: 0;
-        }
-
-        /* Field groups */
-        .field-group {
-            margin-bottom: 20px;
-        }
-
-        .field-label {
-            display: block;
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--slate-700);
-            margin-bottom: 8px;
-        }
-
-        .input-box {
-            position: relative;
-            display: flex;
-            align-items: center;
-        }
-
-        .input-icon {
-            position: absolute;
-            left: 14px;
-            color: var(--slate-400);
-            font-size: 18px;
-            pointer-events: none;
-            transition: var(--transition);
-        }
-
-        .input-control {
-            width: 100%;
-            height: 48px;
-            padding: 0 42px 0 42px;
-            background: #ffffff;
-            border: 1.5px solid var(--slate-200);
-            border-radius: var(--radius-md);
-            font-family: var(--font-body);
-            font-size: 14px;
-            color: var(--slate-900);
-            transition: var(--transition);
-            outline: none;
-        }
-
-        .input-control::placeholder {
-            color: var(--slate-400);
-            font-weight: 400;
-        }
-
-        .input-control:hover {
-            border-color: var(--slate-400);
-        }
-
-        .input-control:focus {
-            border-color: var(--amber-600);
-            box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.15);
-        }
-
-        .input-control:focus + .input-icon,
-        .input-box:focus-within .input-icon {
-            color: var(--amber-600);
-        }
-
-        /* Nút ẩn hiện password */
-        .toggle-password-btn {
-            position: absolute;
-            right: 12px;
-            background: transparent;
-            border: none;
-            color: var(--slate-400);
-            cursor: pointer;
-            padding: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-            transition: var(--transition);
-            border-radius: 6px;
-        }
-
-        .toggle-password-btn:hover {
-            color: var(--slate-700);
-            background: var(--slate-100);
-        }
-
-        /* Options Row */
-        .form-options {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 24px;
-            font-size: 13px;
-        }
-
-        .checkbox-label {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            color: var(--slate-600);
-            cursor: pointer;
-            user-select: none;
-        }
-
-        .checkbox-label input[type="checkbox"] {
-            width: 16px;
-            height: 16px;
-            accent-color: var(--amber-600);
-            cursor: pointer;
-        }
-
-        .helper-link {
-            color: var(--amber-700);
-            text-decoration: none;
-            font-weight: 500;
-            transition: var(--transition);
-        }
-
-        .helper-link:hover {
-            color: var(--amber-600);
-            text-decoration: underline;
-        }
-
-        /* Nút Đăng nhập chính */
-        .btn-submit {
-            width: 100%;
-            height: 48px;
-            background: linear-gradient(135deg, var(--amber-500) 0%, var(--amber-700) 100%);
-            color: #ffffff;
-            border: none;
-            border-radius: var(--radius-md);
-            font-family: var(--font-display);
-            font-size: 15px;
-            font-weight: 600;
-            letter-spacing: -0.01em;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            box-shadow: 0 4px 14px rgba(217, 119, 6, 0.35);
-            transition: var(--transition);
-        }
-
-        .btn-submit:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 6px 20px rgba(217, 119, 6, 0.45);
-        }
-
-        .btn-submit:active {
-            transform: translateY(0);
-        }
-
-        .btn-submit i {
-            font-size: 18px;
-            transition: transform 0.2s ease;
-        }
-
-        .btn-submit:hover i {
-            transform: translateX(3px);
-        }
-
-        /* Phần gợi ý Demo Quick-fill */
-        .quick-demo-section {
-            margin-top: 24px;
-            padding-top: 20px;
-            border-top: 1px dashed var(--slate-200);
-        }
-
-        .quick-demo-title {
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--slate-500);
-            margin-bottom: 10px;
-            text-align: center;
-        }
-
-        .quick-demo-pills {
-            display: flex;
-            gap: 8px;
-        }
-
-        .demo-pill {
-            flex: 1;
-            padding: 8px 10px;
-            font-size: 12px;
-            font-weight: 500;
-            background: var(--slate-100);
-            border: 1px solid var(--slate-200);
-            border-radius: 8px;
-            color: var(--slate-700);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            transition: var(--transition);
-        }
-
-        .demo-pill:hover {
-            background: var(--amber-light);
-            border-color: rgba(217, 119, 6, 0.3);
-            color: var(--amber-700);
-        }
-
-        /* --- Responsive Queries --- */
-        @@media (max-width: 1024px) {
-            .brand-panel {
-                padding: 40px 36px;
-            }
-            .brand-headline {
-                font-size: 30px;
-            }
-            .brand-pillars {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        @@media (max-width: 860px) {
-            .auth-wrapper {
-                flex-direction: column;
-            }
-            .brand-panel {
-                flex: none;
-                padding: 32px 24px;
-                border-right: none;
-                border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-            }
-            .brand-content {
-                margin: 20px 0;
-            }
-            .brand-pillars, .brand-footer, .brand-description {
-                display: none;
-            }
-            .brand-headline {
-                font-size: 24px;
-                margin-bottom: 0;
-            }
-            .form-panel {
-                flex: 1;
-                padding: 32px 20px;
-                background-color: #ffffff;
-            }
-            .form-card {
-                padding: 24px 20px;
-                border: none;
-                box-shadow: none;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="~/css/dang-nhap.css" asp-append-version="true">
 </head>
-<body>
-    <div class="auth-wrapper">
-        <!-- Panel bên trái: Định vị thương hiệu & Giá trị kiến trúc -->
-        <aside class="brand-panel">
-            <div class="brand-header">
-                <svg class="brand-logo-icon flex-shrink-0" width="44" height="44" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="border-radius: 12px; box-shadow: 0 8px 20px rgba(37, 99, 235, 0.35);">
-                    <defs>
-                        <linearGradient id="troSyncAuthBg" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stop-color="#2563eb" />
-                            <stop offset="100%" stop-color="#1d4ed8" />
-                        </linearGradient>
-                    </defs>
-                    <rect width="36" height="36" rx="9" fill="url(#troSyncAuthBg)" />
-                    <path d="M8 25V17L14.5 12V25H8Z" fill="#ffffff" fill-opacity="0.4" />
-                    <path d="M13.5 25V14L20.5 8.5L27.5 14V25H22.5V17.5H18.5V25H13.5Z" fill="#ffffff" />
-                    <circle cx="20.5" cy="8.5" r="2.2" fill="#38bdf8" />
-                    <circle cx="20.5" cy="8.5" r="0.9" fill="#ffffff" />
-                </svg>
-                <div class="brand-name ms-2">
-                    Tro<span>Sync</span>
-                </div>
+<body class="dn-trang">
+    <main class="dn-khung">
+        <div class="dn-thuong-hieu">
+            <svg class="dn-logo" width="40" height="40" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <defs>
+                    <linearGradient id="troSyncAuthBg" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" class="ts-logo-dau" />
+                        <stop offset="100%" class="ts-logo-cuoi" />
+                    </linearGradient>
+                </defs>
+                <rect width="36" height="36" rx="9" fill="url(#troSyncAuthBg)" />
+                <path d="M8 25V17L14.5 12V25H8Z" fill="#ffffff" fill-opacity="0.4" />
+                <path d="M13.5 25V14L20.5 8.5L27.5 14V25H22.5V17.5H18.5V25H13.5Z" fill="#ffffff" />
+                <circle cx="20.5" cy="8.5" r="2.2" fill="#38bdf8" />
+                <circle cx="20.5" cy="8.5" r="0.9" fill="#ffffff" />
+            </svg>
+            <div>
+                <div class="dn-ten">Tro<span>Sync</span></div>
+                <div class="dn-mo-ta">Quản lý phòng trọ đa chi nhánh</div>
             </div>
+        </div>
 
-            <div class="brand-content">
-                <div class="brand-tag">
-                    <i class="ti ti-shield-check"></i>
-                    Vận Hành Thông Minh & Minh Bạch
+        <section class="dn-the" aria-labelledby="dnTieuDe">
+            <h1 class="dn-tieu-de" id="dnTieuDe">Đăng nhập</h1>
+            @if (tuTrangPhong)
+            {
+                <p class="dn-phu-de">Đăng nhập để hẹn xem hoặc đặt phòng. Xong sẽ quay lại đúng phòng bạn vừa chọn.</p>
+            }
+            else
+            {
+                <p class="dn-phu-de">Dùng tài khoản được cấp để vào hệ thống.</p>
+            }
+
+            @if (ViewBag.Error != null)
+            {
+                <div class="dn-loi" role="alert">
+                    <i class="ti ti-alert-circle" aria-hidden="true"></i>
+                    <div>@ViewBag.Error</div>
                 </div>
-                <h1 class="brand-headline">
-                    Không gian sống chuẩn mực, <em>vận hành thông minh</em>.
-                </h1>
-                <p class="brand-description">
-                    Nền tảng quản lý phòng trọ & căn hộ dịch vụ toàn diện — kết nối chủ nhà trọ và khách thuê trong một hệ sinh thái số tin cậy, tự động và tiện nghi.
-                </p>
+            }
 
-                <div class="brand-pillars">
-                    <div class="pillar-card">
-                        <div class="pillar-icon"><i class="ti ti-chart-bar"></i></div>
-                        <div class="pillar-title">Quản lý trực quan</div>
-                        <div class="pillar-desc">Kiểm soát tình trạng phòng, chỉ số điện nước và doanh thu chuẩn xác.</div>
+            <form action="/QuanLyNhaTro/DangNhap" method="post" id="loginForm" novalidate>
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="returnUrl" value="@ViewBag.ReturnUrl" />
+
+                <div class="dn-truong">
+                    <label class="dn-nhan" for="txtTenDangNhap">Tên đăng nhập</label>
+                    <div class="dn-o">
+                        <i class="ti ti-user dn-o-icon" aria-hidden="true"></i>
+                        <input type="text"
+                               id="txtTenDangNhap"
+                               class="dn-input"
+                               name="TenDangNhap"
+                               required
+                               autocomplete="username"
+                               autocapitalize="none"
+                               spellcheck="false"
+                               value="@(Model?.TenDangNhap)">
                     </div>
-                    <div class="pillar-card">
-                        <div class="pillar-icon"><i class="ti ti-key"></i></div>
-                        <div class="pillar-title">Trải nghiệm tiện nghi</div>
-                        <div class="pillar-desc">Tra cứu hóa đơn, hợp đồng và gửi phản hồi phòng trọ 24/7.</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="brand-footer">
-                <span>© 2026 Quản Lý Cho Thuê Phòng Trọ</span>
-                <span>An Toàn • Minh Bạch</span>
-            </div>
-        </aside>
-
-        <!-- Panel bên phải: Form tương tác đăng nhập -->
-        <main class="form-panel">
-            <div class="form-card">
-                <div class="form-header">
-                    <div class="form-badge">Cổng Truy Cập Hệ Thống</div>
-                    <h2 class="form-title">Đăng nhập tài khoản</h2>
-                    @if ((ViewBag.ReturnUrl as string)?.StartsWith("/phong/", StringComparison.OrdinalIgnoreCase) == true)
-                    {
-                        <p class="form-subtitle">Đăng nhập để hẹn xem hoặc đặt phòng. Sau khi đăng nhập, bạn sẽ trở lại đúng phòng vừa chọn để tiếp tục.</p>
-                    }
-                    else
-                    {
-                        <p class="form-subtitle">Đăng nhập để tiếp tục sử dụng tài khoản của bạn.</p>
-                    }
                 </div>
 
-                @if (ViewBag.Error != null)
-                {
-                    <div class="alert-error" role="alert">
-                        <i class="ti ti-alert-circle"></i>
-                        <div>@ViewBag.Error</div>
+                <div class="dn-truong">
+                    <label class="dn-nhan" for="txtMatKhau">Mật khẩu</label>
+                    <div class="dn-o">
+                        <i class="ti ti-lock dn-o-icon" aria-hidden="true"></i>
+                        <input type="password"
+                               id="txtMatKhau"
+                               class="dn-input dn-input-co-nut"
+                               name="MatKhau"
+                               required
+                               autocomplete="current-password">
+                        <button type="button"
+                                class="dn-nut-mat"
+                                id="btnTogglePassword"
+                                aria-label="Hiện mật khẩu"
+                                aria-pressed="false">
+                            <i class="ti ti-eye" id="toggleIcon" aria-hidden="true"></i>
+                        </button>
                     </div>
-                }
+                </div>
 
-                <form action="/QuanLyNhaTro/DangNhap" method="post" id="loginForm">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="returnUrl" value="@ViewBag.ReturnUrl" />
-
-                    <div class="field-group">
-                        <label class="field-label" for="txtTenDangNhap">Tên đăng nhập</label>
-                        <div class="input-box">
-                            <i class="ti ti-user input-icon"></i>
-                            <input type="text"
-                                   id="txtTenDangNhap"
-                                   class="input-control"
-                                   name="TenDangNhap"
-                                   placeholder="Tên tài khoản của bạn"
-                                   required
-                                   autocomplete="username"
-                                   value="@(Model?.TenDangNhap)">
-                        </div>
-                    </div>
-
-                    <div class="field-group">
-                        <label class="field-label" for="txtMatKhau">Mật khẩu</label>
-                        <div class="input-box">
-                            <i class="ti ti-lock input-icon"></i>
-                            <input type="password"
-                                   id="txtMatKhau"
-                                   class="input-control"
-                                   name="MatKhau"
-                                   placeholder="Nhập mật khẩu của bạn"
-                                   required
-                                   autocomplete="current-password">
-                            <button type="button"
-                                    class="toggle-password-btn"
-                                    id="btnTogglePassword"
-                                    title="Hiển thị hoặc ẩn mật khẩu"
-                                    aria-label="Hiển thị hoặc ẩn mật khẩu">
-                                <i class="ti ti-eye" id="toggleIcon"></i>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="form-options">
-                        <label class="checkbox-label">
-                            <input type="checkbox"
-                                   name="GhiNho"
-                                   value="true"
-                                   @(Model?.GhiNho == true ? "checked" : "")>
-                            <span>Ghi nhớ đăng nhập</span>
-                        </label>
-                        <a href="javascript:void(0)" onclick="alert('Vui lòng liên hệ Quản trị viên để đặt lại mật khẩu của bạn.')" class="helper-link">
-                            Quên mật khẩu?
-                        </a>
-                    </div>
-
-                    <button type="submit" class="btn-submit" id="btnSubmit">
-                        <span>Đăng nhập vào hệ thống</span>
-                        <i class="ti ti-arrow-right"></i>
+                <div class="dn-tuy-chon">
+                    <label class="dn-ghi-nho">
+                        <input type="checkbox" name="GhiNho" value="true" @(Model?.GhiNho == true ? "checked" : "")>
+                        <span>Ghi nhớ đăng nhập</span>
+                    </label>
+                    <button type="button" class="dn-lien-ket" id="btnQuenMatKhau" aria-expanded="false" aria-controls="dnQuenMatKhau">
+                        Quên mật khẩu?
                     </button>
-                </form>
-
-                <p style="margin: 16px 0 0; text-align: center; color: #64748b; font-size: 14px;">
-                    Chưa có tài khoản? <a href="/dang-ky-khach?returnUrl=@Uri.EscapeDataString(ViewBag.ReturnUrl as string ?? "/phong")" style="color: #b45309; font-weight: 600;">Tạo tài khoản khách vãng lai</a>
+                </div>
+                <p class="dn-goi-y" id="dnQuenMatKhau" hidden>
+                    <i class="ti ti-info-circle" aria-hidden="true"></i>
+                    Liên hệ quản lý chi nhánh hoặc Quản trị viên để được cấp lại mật khẩu.
                 </p>
 
-                @if (hienTaiKhoanMau)
-                {
-                    <!-- Thử nghiệm nhanh tài khoản demo -->
-                    <div class="quick-demo-section">
-                        <div class="quick-demo-title">Điền nhanh tài khoản mẫu:</div>
-                        <div class="quick-demo-pills">
-                            <button type="button" class="demo-pill" id="btnFillAdmin">
-                                <i class="ti ti-shield"></i>
-                                <span>Admin / Quản lý</span>
-                            </button>
-                            <button type="button" class="demo-pill" id="btnFillTenant">
-                                <i class="ti ti-user-check"></i>
-                                <span>Khách thuê mẫu</span>
-                            </button>
-                        </div>
+                <button type="submit" class="dn-nut-chinh" id="btnSubmit">
+                    <span>Đăng nhập</span>
+                    <i class="ti ti-arrow-right" aria-hidden="true"></i>
+                </button>
+            </form>
+
+            @if (hienTaiKhoanMau)
+            {
+                <!-- Thử nghiệm nhanh tài khoản demo -->
+                <div class="quick-demo-section">
+                    <div class="dn-demo-tieu-de">Điền nhanh tài khoản mẫu</div>
+                    <div class="dn-demo-nut">
+                        <button type="button" class="demo-pill" id="btnFillAdmin">
+                            <i class="ti ti-shield" aria-hidden="true"></i>
+                            <span>Admin / Quản lý</span>
+                        </button>
+                        <button type="button" class="demo-pill" id="btnFillTenant">
+                            <i class="ti ti-user-check" aria-hidden="true"></i>
+                            <span>Khách thuê mẫu</span>
+                        </button>
                     </div>
-                }
-            </div>
-        </main>
-    </div>
+                </div>
+            }
+        </section>
+
+        <p class="dn-dang-ky">
+            Chưa có tài khoản? <a href="/dang-ky-khach?returnUrl=@Uri.EscapeDataString(ViewBag.ReturnUrl as string ?? "/phong")">Tạo tài khoản khách vãng lai</a>
+        </p>
+
+        <p class="dn-chan">© 2026 TroSync</p>
+    </main>
 
     <script>
         // Xóa lịch sử chat trợ lý AI khi về trang đăng nhập (đăng xuất luôn chuyển về đây)
-        Object.keys(sessionStorage)
-            .filter(function (k) { return k.indexOf('ai_chat_history') === 0; })
-            .forEach(function (k) { sessionStorage.removeItem(k); });
+        try {
+            Object.keys(sessionStorage)
+                .filter(function (k) { return k.indexOf('ai_chat_history') === 0; })
+                .forEach(function (k) { sessionStorage.removeItem(k); });
+        } catch (e) { }
 
-        // Toggle ẩn/hiện mật khẩu
-        const btnToggle = document.getElementById('btnTogglePassword');
         const txtMatKhau = document.getElementById('txtMatKhau');
-        const toggleIcon = document.getElementById('toggleIcon');
 
+        // Ẩn/hiện mật khẩu
+        const btnToggle = document.getElementById('btnTogglePassword');
+        const toggleIcon = document.getElementById('toggleIcon');
         if (btnToggle && txtMatKhau && toggleIcon) {
             btnToggle.addEventListener('click', function () {
-                const isPassword = txtMatKhau.type === 'password';
-                txtMatKhau.type = isPassword ? 'text' : 'password';
-                toggleIcon.className = isPassword ? 'ti ti-eye-off' : 'ti ti-eye';
+                const dangAn = txtMatKhau.type === 'password';
+                txtMatKhau.type = dangAn ? 'text' : 'password';
+                toggleIcon.className = dangAn ? 'ti ti-eye-off' : 'ti ti-eye';
+                btnToggle.setAttribute('aria-pressed', dangAn ? 'true' : 'false');
+                btnToggle.setAttribute('aria-label', dangAn ? 'Ẩn mật khẩu' : 'Hiện mật khẩu');
+            });
+        }
+
+        // Quên mật khẩu: hiện dòng hướng dẫn ngay dưới form thay cho hộp thoại của trình duyệt
+        const btnQuen = document.getElementById('btnQuenMatKhau');
+        const goiYQuen = document.getElementById('dnQuenMatKhau');
+        if (btnQuen && goiYQuen) {
+            btnQuen.addEventListener('click', function () {
+                const moRa = goiYQuen.hidden;
+                goiYQuen.hidden = !moRa;
+                btnQuen.setAttribute('aria-expanded', moRa ? 'true' : 'false');
+            });
+        }
+
+        // Thiếu ô thì báo ngay tại ô; gửi rồi thì khóa nút để không bấm đúp
+        const form = document.getElementById('loginForm');
+        const btnSubmit = document.getElementById('btnSubmit');
+        if (form && btnSubmit) {
+            form.addEventListener('submit', function (e) {
+                const oTrong = Array.prototype.find.call(form.querySelectorAll('.dn-input'), function (o) { return !o.value.trim(); });
+                form.querySelectorAll('.dn-input').forEach(function (o) {
+                    o.setAttribute('aria-invalid', o.value.trim() ? 'false' : 'true');
+                });
+                if (oTrong) {
+                    e.preventDefault();
+                    oTrong.focus();
+                    return;
+                }
+                btnSubmit.disabled = true;
+                btnSubmit.querySelector('span').textContent = 'Đang đăng nhập…';
+            });
+            form.addEventListener('input', function (e) {
+                if (e.target.classList.contains('dn-input') && e.target.value.trim()) e.target.setAttribute('aria-invalid', 'false');
             });
         }
 

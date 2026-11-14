@@ -66,6 +66,26 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
         }
 
         [Fact]
+        public void ManDangNhap_MotTheODuoi_TheoNenChung()
+        {
+            // Phương án B người dùng chọn 14/11/2026: một thẻ ở giữa, màu theo nền chung, có chế độ tối.
+            var view = Read("Areas", "QuanLyNhaTro", "Views", "NguoiDung", "DangNhap.cshtml");
+            Assert.Contains("~/css/dang-nhap.css", view);
+            Assert.Contains("tablerTheme", view);
+            Assert.DoesNotContain("Plus+Jakarta+Sans", view);
+            Assert.DoesNotContain("<style>", view);
+            Assert.DoesNotContain("alert(", view);
+            Assert.DoesNotContain("brand-panel", view);
+            Assert.Contains("id=\"btnQuenMatKhau\"", view);
+
+            var css = Read("wwwroot", "css", "dang-nhap.css");
+            Assert.Contains("background: var(--ts-brand);", css);
+            Assert.Contains("[data-bs-theme=\"dark\"]", css);
+            Assert.DoesNotContain("#f59e0b", css);
+            Assert.DoesNotContain("#b45309", css);
+        }
+
+        [Fact]
         public void NhanNhomMenu_KhongAnVoiTrinhDocManHinh()
         {
             var menu = Read("Views", "Shared", "_MenuItem.cshtml");
