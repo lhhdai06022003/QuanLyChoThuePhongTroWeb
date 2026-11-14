@@ -1,5 +1,8 @@
+@inject TimeProvider TimeProvider
 @{
     ViewData["Title"] = "Chỉ số điện nước";
+    // Kỳ mặc định theo giờ Việt Nam (máy chủ có thể chạy UTC).
+    var homNayVn = TimeProvider.GetUtcNow().UtcDateTime.AddHours(7);
 }
 
 @section Styles {
@@ -45,7 +48,7 @@
                         <select id="filterThang" class="form-select">
                             @for (int i = 1; i <= 12; i++)
                             {
-                                if (i == DateTime.UtcNow.AddHours(7).Month)
+                                if (i == homNayVn.Month)
                                 {
                                     <option value="@i" selected>Tháng @i</option>
                                 }
@@ -58,7 +61,7 @@
                     </div>
                     <div class="col-6 col-md-3">
                         <label for="filterNam" class="form-label required">Năm</label>
-                        <input type="number" id="filterNam" class="form-control" value="@DateTime.UtcNow.AddHours(7).Year" min="2000">
+                        <input type="number" id="filterNam" class="form-control" value="@homNayVn.Year" min="2000">
                     </div>
                 </div>
             </div>

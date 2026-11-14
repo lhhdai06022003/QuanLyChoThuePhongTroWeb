@@ -44,7 +44,7 @@
 {
     if (hasChild)
     {
-        <li class="ts-nav-group" aria-hidden="true"><span class="ts-nav-group-label">@Model.Name</span></li>
+        <li class="ts-nav-group"><span class="ts-nav-group-label">@Model.Name</span></li>
         foreach (var child in visibleChildren!)
         {
             @await Html.PartialAsync("_MenuItem", child)

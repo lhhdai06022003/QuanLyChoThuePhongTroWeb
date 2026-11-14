@@ -1,6 +1,6 @@
 @inject TimeProvider TimeProvider
 @{
-    ViewData["Title"] = "Quản lý Hóa đơn";
+    ViewData["Title"] = "Hóa đơn";
     var isAdmin = User.IsInRole("Admin");
     // Kỳ mặc định theo giờ Việt Nam (máy chủ có thể chạy UTC).
     var homNayVn = TimeProvider.GetUtcNow().UtcDateTime.AddHours(7);

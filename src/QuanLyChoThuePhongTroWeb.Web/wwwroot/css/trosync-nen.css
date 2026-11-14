@@ -85,6 +85,10 @@
     --tblr-bg-forms: #10161f;
 }
 
+/* Logo SVG ở thanh bên hai cổng: màu chuyển lấy theo màu thương hiệu. */
+.ts-logo-dau { stop-color: var(--ts-brand); }
+.ts-logo-cuoi { stop-color: var(--ts-brand-strong); }
+
 /* Chữ thương hiệu trên nền tối phải sáng hơn màu tô nút. */
 [data-bs-theme="dark"] .text-primary { color: var(--ts-brand-text) !important; }
 

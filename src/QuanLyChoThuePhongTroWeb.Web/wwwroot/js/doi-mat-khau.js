@@ -47,7 +47,7 @@
         }
 
         var nutGoc = $btn.html();
-        $btn.prop('disabled', true).html('<i class="ti ti-loader ti-spin me-1"></i> Đang lưu...');
+        $btn.prop('disabled', true).html('<i class="ti ti-loader fa-spin me-1"></i> Đang lưu...');
 
         $.ajax({
             url: cfg.urlDoiMatKhau,

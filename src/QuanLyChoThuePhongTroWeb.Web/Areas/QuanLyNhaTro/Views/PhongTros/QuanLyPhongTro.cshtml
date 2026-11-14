@@ -682,8 +682,8 @@
             $('#qcTenDaiDien').text('Đang tải...');
             $('#qcSDTDaiDien').text('Đang tải...');
             $('#qcCCCDDaiDien').text('Đang tải...');
-            $('#qcMembersBody').html('<tr><td colspan="5" class="text-center"><i class="ti ti-loader ti-spin me-1"></i> Đang tải thành viên...</td></tr>');
-            $('#qcServicesBody').html('<tr><td colspan="5" class="text-center"><i class="ti ti-loader ti-spin me-1"></i> Đang tải dịch vụ...</td></tr>');
+            $('#qcMembersBody').html('<tr><td colspan="5" class="text-center"><i class="ti ti-loader fa-spin me-1"></i> Đang tải thành viên...</td></tr>');
+            $('#qcServicesBody').html('<tr><td colspan="5" class="text-center"><i class="ti ti-loader fa-spin me-1"></i> Đang tải dịch vụ...</td></tr>');
             $('#qcMemberCount').text(0);
             $('#qcServiceCount').text(0);
 
@@ -866,7 +866,7 @@
                 cancelButtonText: 'Hủy bỏ'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    $btn.prop('disabled', true).html('<i class="ti ti-loader ti-spin me-1"></i> Đang lưu...');
+                    $btn.prop('disabled', true).html('<i class="ti ti-loader fa-spin me-1"></i> Đang lưu...');
                     saveDangKyDichVu(
                         currentDichVuPhongId,
                         'dichVuPhongContainer',
