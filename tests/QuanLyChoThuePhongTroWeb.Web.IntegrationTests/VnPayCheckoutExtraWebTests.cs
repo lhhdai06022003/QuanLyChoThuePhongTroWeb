@@ -704,7 +704,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             var seed = await SeedAsync();
             var (admin, _) = await LoginAsync(NewClient(_factory.WithWebHostBuilder(_ => { })), seed.Admin, "/QuanLyNhaTro/QuanLyHoaDon");
 
-            var html = await (await admin.GetAsync("/QuanLyNhaTro/QuanLyHoaDon")).Content.ReadAsStringAsync();
+            var html = ViewSource.WithOwnScripts(await (await admin.GetAsync("/QuanLyNhaTro/QuanLyHoaDon")).Content.ReadAsStringAsync());
 
             Assert.Contains("escapeHtml(ls.maThamChieu ? 'TXN ' + ls.maThamChieu : ls.maGiaoDich)", html);
             Assert.Contains("escapeHtml(ls.maThamChieu ? 'REF ' + ls.maThamChieu : ls.maGiaoDich)", html);

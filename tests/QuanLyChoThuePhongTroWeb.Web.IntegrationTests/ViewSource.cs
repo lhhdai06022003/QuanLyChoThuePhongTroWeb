@@ -10,7 +10,8 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
         public static readonly IReadOnlyDictionary<string, string> OwnScripts = new Dictionary<string, string>
         {
             ["Areas/QuanLyNhaTro/Views/DienNuoc/Index.cshtml"] = "chot-dien-nuoc.js",
-            ["Areas/QuanLyNhaTro/Views/DienNuoc/_AnhChiSoModal.cshtml"] = "anh-chi-so-modal.js"
+            ["Areas/QuanLyNhaTro/Views/DienNuoc/_AnhChiSoModal.cshtml"] = "anh-chi-so-modal.js",
+            ["Areas/QuanLyNhaTro/Views/HoaDon/Index.cshtml"] = "hoadon-danh-sach.js"
         };
 
         public static string WebRoot()

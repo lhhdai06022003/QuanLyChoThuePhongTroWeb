@@ -205,7 +205,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
 
             var response = await staff.GetAsync("/QuanLyNhaTro/QuanLyHoaDon");
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-            var html = await response.Content.ReadAsStringAsync();
+            var html = ViewSource.WithOwnScripts(await response.Content.ReadAsStringAsync());
 
             Assert.Contains("hoadon-dieuchinh.js", html);
             Assert.Contains("Điều chỉnh hóa đơn", html);

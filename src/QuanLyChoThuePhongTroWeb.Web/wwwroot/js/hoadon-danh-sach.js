@@ -1,0 +1,1328 @@
+        function escapeHtml(unsafe) {
+            return (unsafe || "").toString()
+                 .replace(/&/g, "&amp;")
+                 .replace(/</g, "&lt;")
+                 .replace(/>/g, "&gt;")
+                 .replace(/"/g, "&quot;")
+                 .replace(/'/g, "&#039;");
+        }
+
+        $(document).ready(function () {
+            // Giá trị từ server: view đặt window.hoaDonConfig ngay trước khi nạp file này.
+            var isAdmin = window.hoaDonConfig.isAdmin;
+            var bankId = window.hoaDonConfig.bankId;
+            var accountNumber = window.hoaDonConfig.accountNumber;
+            var accountName = window.hoaDonConfig.accountName;
+
+            // Đọc tham số URL query nếu có (dành cho redirect từ Dashboard)
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlThang = urlParams.get('thang');
+            const urlNam = urlParams.get('nam');
+            const urlTrangThai = urlParams.get('trangThai');
+            const urlChiNhanh = urlParams.get('chiNhanhId');
+            if (urlThang) $('#filterThang').val(urlThang);
+            // nam=0 (link "Phòng đang nợ"): mọi năm, để trống ô thay vì hiện số 0.
+            if (urlNam) $('#filterNam').val(urlNam === '0' ? '' : urlNam);
+            if (urlTrangThai) $('#filterTrangThai').val(urlTrangThai);
+            if (urlChiNhanh) $('#filterChiNhanh').val(urlChiNhanh);
+            const urlPhatHanh = urlParams.get('trangThaiPhatHanh');
+            if (urlPhatHanh !== null && $('#filterPhatHanh option').filter(function () { return this.value === urlPhatHanh; }).length > 0) {
+                $('#filterPhatHanh').val(urlPhatHanh);
+            }
+            const urlHoaDonId = parseInt(urlParams.get('hoaDonId') || '0');
+            let locDaKetThucConNo = urlParams.get('hopDongDaKetThucConNo') === '1';
+            const urlMoPhatSinh = urlParams.get('moPhatSinh') === '1';
+            const urlPhongTroId = parseInt(urlParams.get('phongTroId') || '0');
+            let targetPhongTroId = urlPhongTroId;
+
+            function formatVND(n) {
+                if (n === null || n === undefined) return "0 ₫";
+                return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n);
+            }
+
+            // ========== Selection & Bulk Actions ==========
+            var selectedIds = new Map(); // id -> maHoaDon
+
+            function updateBulkToolbar() {
+                const count = selectedIds.size;
+                if (count > 0) {
+                    $('#bulkToolbar').removeClass('d-none').addClass('d-flex');
+                    $('#bulkSelectedText').text(`Đã chọn ${count} hóa đơn`);
+                } else {
+                    $('#bulkToolbar').addClass('d-none').removeClass('d-flex');
+                }
+                $('.invoice-select:not(:checked)').prop('disabled', count >= 50).attr('title', count >= 50 ? 'Tối đa 50 hóa đơn mỗi lần' : '');
+            }
+
+            // Thanh 4 chặng: Nháp → Chờ duyệt → Đã chốt → Đã gửi. Bản hủy hiện riêng.
+            function renderPublishStage(value) {
+                const stages = ['Nháp', 'Chờ duyệt', 'Đã chốt', 'Đã gửi'];
+                if (value === 4) {
+                    return '<span class="hd-stage hd-stage-cancelled" title="Đã hủy"><span class="hd-stage-label">Đã hủy</span></span>';
+                }
+                if (value < 0 || value > 3) return '';
+                const bars = stages.map((_, i) => `<i class="${i <= value ? 'on' : ''}"></i>`).join('');
+                const attention = value === 1 ? ' hd-stage-wait' : '';
+                return `<span class="hd-stage${attention}" title="${stages[value]} (${value + 1}/4)"><span class="hd-stage-bars" aria-hidden="true">${bars}</span><span class="hd-stage-label">${stages[value]}</span></span>`;
+            }
+
+            // ========== DataTable ==========
+            const urlSearch = urlParams.get('search') || '';
+            const emptyTableHtml = `
+                <div class="empty py-4 text-center">
+                    <div class="empty-icon text-secondary mb-2">
+                        <i class="ti ti-file-invoice" style="font-size: 2.5rem;"></i>
+                    </div>
+                    <p class="empty-title h4 mb-1">Không có hóa đơn nào</p>
+                    <p class="empty-subtitle text-secondary mb-3">Đổi bộ lọc hoặc phát sinh hóa đơn cho kỳ này.</p>
+                    <div class="empty-action">
+                        <button type="button" class="btn btn-primary btn-sm" onclick="$('#btnPhatSinh').click()">
+                            <i class="ti ti-plus me-1"></i> Phát sinh hóa đơn
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            var table = $('#hoaDonTable').DataTable({
+                "dom": "<'card-body py-2 border-bottom'<'row g-2 align-items-center'<'col-sm-6'l><'col-sm-6 text-sm-end'f>>>" +
+                       "<'table-responsive'tr>" +
+                       "<'card-footer py-2'<'row g-2 align-items-center'<'col-sm-6'i><'col-sm-6 d-flex justify-content-sm-end justify-content-center'p>>>",
+                "language": {
+                    "url": window.dataTablesViUrl,
+                    "emptyTable": emptyTableHtml
+                },
+                "search": { "search": urlSearch },
+                "serverSide": true,
+                "processing": true,
+                "ajax": {
+                    "url": "/HoaDon/GetList",
+                    "type": "POST",
+                    "data": function(d) {
+                        d.chiNhanhId = $('#filterChiNhanh').val();
+                        d.thang = $('#filterThang').val();
+                        d.nam = $('#filterNam').val() || 0;
+                        d.trangThai = $('#filterTrangThai').val();
+                        d.trangThaiPhatHanh = $('#filterPhatHanh').val();
+                        d.hopDongDaKetThucConNo = locDaKetThucConNo ? 1 : 0;
+                        d.__RequestVerificationToken = $('input[name="__RequestVerificationToken"]').val();
+                    }
+                },
+                "createdRow": function(row, data) {
+                    if (data.trangThaiPhatHanhValue === 4) {
+                        $(row).addClass('hd-row-cancelled');
+                    }
+                },
+                "drawCallback": function(settings) {
+                    const api = this.api();
+                    const currentRows = api.rows().data().toArray();
+
+                    if (currentRows.length === 0) {
+                        $(api.table().body()).find('td.dataTables_empty').html(emptyTableHtml);
+                    }
+
+                    // Bỏ khỏi selectedIds những id đang hiện trong trang mà không còn là Đã chốt
+                    currentRows.forEach(row => {
+                        if (row.trangThaiPhatHanhValue !== 2 && selectedIds.has(row.hoaDonId)) {
+                            selectedIds.delete(row.hoaDonId);
+                        }
+                    });
+
+                    let allChecked = true;
+                    let daChotCount = 0;
+                    $('.invoice-select').each(function() {
+                        const id = parseInt($(this).data('id'));
+                        daChotCount++;
+                        const isChecked = selectedIds.has(id);
+                        $(this).prop('checked', isChecked);
+                        if (!isChecked) allChecked = false;
+                    });
+                    $('#checkAllInvoices').prop('checked', daChotCount > 0 && allChecked);
+
+                    updateBulkToolbar();
+                },
+                "order": [],
+                "columns": [
+                    {
+                        "data": null, "className": "text-center align-middle", "orderable": false, "width": "44px",
+                        "render": function(data, type, row) {
+                            if (row.trangThaiPhatHanhValue === 2) {
+                                const isChecked = selectedIds.has(row.hoaDonId) ? 'checked' : '';
+                                const isDisabled = (!selectedIds.has(row.hoaDonId) && selectedIds.size >= 50) ? 'disabled title="Tối đa 50 hóa đơn mỗi lần"' : '';
+                                return `<input type="checkbox" class="form-check-input m-0 invoice-select" data-id="${row.hoaDonId}" data-ma="${escapeHtml(row.maHoaDon)}" aria-label="Chọn hóa đơn ${escapeHtml(row.maHoaDon)}" ${isChecked} ${isDisabled} />`;
+                            }
+                            return '';
+                        }
+                    },
+                    { "data": "maHoaDon", "className": "align-middle fw-medium text-nowrap", "render": (d) => escapeHtml(d) },
+                    { "data": "tenPhong", "className": "align-middle", "render": (d) => escapeHtml(d) },
+                    { "data": "tenNguoiThue", "className": "align-middle", "render": (d) => escapeHtml(d) },
+                    { "data": null, "className": "align-middle text-secondary hd-num", "orderable": false, "render": (d) => `${d.thang}/${d.nam}` },
+                    { "data": "tongTien", "className": "text-end align-middle hd-num", "render": (d) => formatVND(d) },
+                    {
+                        "data": "trangThaiPhatHanhValue", "className": "align-middle", "orderable": false,
+                        "render": function(d, type, row) {
+                            let html = renderPublishStage(d);
+                            if (row.laHoaDonTuDong) {
+                                html += ' <span class="badge bg-azure-lt">Tự động</span>';
+                            }
+                            return html;
+                        }
+                    },
+                    {
+                        "data": "trangThaiHoaDonValue", "className": "align-middle", "orderable": false,
+                        "render": function(d, type, row) {
+                            if (row.trangThaiPhatHanhValue === 4) return '<span class="text-secondary">—</span>';
+                            if (d === 1) return '<span class="status status-green"><span class="status-dot"></span>Đã thanh toán</span>';
+                            if (d === 2) return '<span class="status status-blue"><span class="status-dot"></span>Thanh toán một phần</span>';
+                            return '<span class="status status-secondary"><span class="status-dot"></span>Chưa thanh toán</span>';
+                        }
+                    },
+                    {
+                        "data": "hoaDonId", "orderable": false, "className": "text-end align-middle",
+                        "render": function(data, t, row) {
+                            const emailAttr = escapeHtml(row.email || '');
+                            const maAttr = escapeHtml(row.maHoaDon || '');
+                            return `
+                                <div class="d-flex justify-content-center">
+                                    <div class="dropdown">
+                                        <button class="btn btn-icon btn-ghost-secondary btn-sm" data-bs-toggle="dropdown" aria-expanded="false" title="Thao tác" aria-label="Thao tác">
+                                            <i class="ti ti-dots"></i>
+                                        </button>
+                                        <div class="dropdown-menu dropdown-menu-end">
+                                            <button class="dropdown-item btn-detail py-2" data-id="${data}">
+                                                <i class="ti ti-eye me-2"></i> Chi tiết Hóa đơn
+                                            </button>
+                                            ${row.trangThaiPhatHanhValue === 0 ? `
+                                                <button class="dropdown-item btn-guiduyet py-2" data-id="${data}">
+                                                    <i class="ti ti-send me-2"></i> Gửi duyệt
+                                                </button>
+                                                <button class="dropdown-item btn-edit py-2" data-id="${data}">
+                                                    <i class="ti ti-edit me-2"></i> Chỉnh sửa
+                                                </button>
+                                            ` : ''}
+                                            ${row.trangThaiPhatHanhValue === 1 && isAdmin ? `
+                                                <button class="dropdown-item btn-chot py-2" data-id="${data}">
+                                                    <i class="ti ti-check me-2"></i> Chốt hóa đơn
+                                                </button>
+                                                <button class="dropdown-item btn-tralai py-2" data-id="${data}">
+                                                    <i class="ti ti-arrow-back me-2"></i> Trả lại
+                                                </button>
+                                            ` : ''}
+                                            ${(row.trangThaiPhatHanhValue === 1 || row.trangThaiPhatHanhValue === 3 || (row.trangThaiPhatHanhValue === 2 && isAdmin)) ? `
+                                                <button class="dropdown-item btn-dieuchinh py-2" data-id="${data}" data-ma="${maAttr}" data-trangthai="${row.trangThaiPhatHanhValue}">
+                                                    <i class="ti ti-edit me-2"></i> Điều chỉnh hóa đơn
+                                                </button>
+                                            ` : ''}
+                                            ${row.trangThaiHoaDonValue !== 1 && row.trangThaiPhatHanhValue === 3 ? `
+                                                <button class="dropdown-item btn-thutien py-2" data-id="${data}" data-ma="${maAttr}">
+                                                    <i class="ti ti-report-money me-2"></i> Thu tiền
+                                                </button>
+                                            ` : ''}
+                                            ${row.trangThaiPhatHanhValue === 2 ? `
+                                                <div class="dropdown-divider"></div>
+                                                <button class="dropdown-item btn-congbo py-2" data-id="${data}">
+                                                    <i class="ti ti-send me-2"></i> Công bố lên cổng khách
+                                                </button>
+                                            ` : ''}
+                                            ${(row.trangThaiPhatHanhValue === 2 || row.trangThaiPhatHanhValue === 3) && row.trangThaiHoaDonValue === 0 ? `
+                                                <div class="dropdown-divider"></div>
+                                                <button class="dropdown-item btn-delete text-danger py-2" data-id="${data}">
+                                                    <i class="ti ti-trash me-2"></i> Hủy hóa đơn
+                                                </button>
+                                            ` : ''}
+                                            ${row.trangThaiPhatHanhValue === 3 ? `
+                                                <div class="dropdown-divider"></div>
+                                                <button class="dropdown-item btn-send-email py-2" data-id="${data}" data-email="${emailAttr}" data-ma="${maAttr}">
+                                                    <i class="ti ti-mail me-2"></i> Gửi lại email hóa đơn
+                                                </button>
+                                            ` : ''}
+                                            <div class="dropdown-divider"></div>
+                                            <a class="dropdown-item text-secondary py-2" href="/HoaDon/ExportExcel/${data}">
+                                                <i class="ti ti-file-spreadsheet me-2"></i> Xuất Excel
+                                            </a>
+                                            <a class="dropdown-item text-secondary py-2" href="/HoaDon/ExportPdf/${data}">
+                                                <i class="ti ti-file-type-pdf me-2"></i> Xuất PDF
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    }
+                ]
+            });
+
+            // ========== Selection Events ==========
+            $('#hoaDonTable').on('change', '.invoice-select', function() {
+                const id = parseInt($(this).data('id'));
+                const ma = $(this).data('ma');
+                if (this.checked) {
+                    if (selectedIds.size < 50) {
+                        selectedIds.set(id, ma);
+                    } else {
+                        this.checked = false;
+                        showWarning('Mỗi lần chỉ được công bố tối đa 50 hóa đơn.');
+                    }
+                } else {
+                    selectedIds.delete(id);
+                }
+                updateBulkToolbar();
+            });
+
+            $('#checkAllInvoices').change(function() {
+                const isChecked = this.checked;
+                $('.invoice-select').each(function() {
+                    const id = parseInt($(this).data('id'));
+                    const ma = $(this).data('ma');
+                    if (isChecked) {
+                        if (selectedIds.size < 50) {
+                            selectedIds.set(id, ma);
+                            $(this).prop('checked', true);
+                        }
+                    } else {
+                        selectedIds.delete(id);
+                        $(this).prop('checked', false);
+                    }
+                });
+                $(this).prop('checked', $('.invoice-select').length > 0 && $('.invoice-select:not(:checked)').length === 0);
+                updateBulkToolbar();
+            });
+
+            $('#btnBulkClear').click(function() {
+                selectedIds.clear();
+                $('.invoice-select, #checkAllInvoices').prop('checked', false);
+                updateBulkToolbar();
+            });
+
+            $('#btnBulkCongBo').click(function() {
+                if (selectedIds.size === 0) return;
+                const ids = Array.from(selectedIds.keys());
+                const codes = Array.from(selectedIds.values());
+                let textConfirm = '';
+                if (codes.length <= 10) {
+                    textConfirm = codes.join(', ');
+                } else {
+                    textConfirm = codes.slice(0, 10).join(', ') + `... và ${codes.length - 10} hóa đơn khác`;
+                }
+                Swal.fire({
+                    title: 'Xác nhận công bố hóa đơn?',
+                    text: `Bạn có chắc muốn công bố ${ids.length} hóa đơn: ${textConfirm}?`,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Công bố',
+                    cancelButtonText: 'Hủy'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        doBulkCongBo(ids);
+                    }
+                });
+            });
+
+            function doBulkCongBo(ids) {
+                $('#btnBulkCongBo, #btnBulkClear').prop('disabled', true);
+                Swal.fire({
+                    title: 'Đang công bố hóa đơn...',
+                    text: 'Vui lòng chờ trong giây lát',
+                    allowOutsideClick: false,
+                    didOpen: () => { Swal.showLoading(); }
+                });
+                $.ajax({
+                    url: '/HoaDon/CongBo',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ hoaDonIds: ids }),
+                    headers: {
+                        'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    success: function(res) {
+                        Swal.close();
+                        $('#btnBulkCongBo, #btnBulkClear').prop('disabled', false);
+                        renderCongBoKetQua(res, ids.length);
+                    },
+                    error: function(xhr) {
+                        Swal.close();
+                        $('#btnBulkCongBo, #btnBulkClear').prop('disabled', false);
+                        showError(xhr.responseJSON?.message || 'Có lỗi khi công bố hóa đơn.');
+                    }
+                });
+            }
+
+            function renderCongBoKetQua(res, totalRequested) {
+                const items = res.items || [];
+                const soDaCongBo = res.soDaCongBo ?? items.filter(x => x.congBoThanhCong).length;
+                $('#congBoTomTat').text(`Đã công bố ${soDaCongBo}/${totalRequested}`);
+                const tbody = $('#congBoKetQuaTable tbody').empty();
+                items.forEach(item => {
+                    let congBoBadge = item.congBoThanhCong
+                        ? '<span class="status status-green"><span class="status-dot"></span>Thành công</span>'
+                        : '<span class="status status-danger"><span class="status-dot"></span>Thất bại</span>';
+
+                    let emailBadge = '';
+                    if (item.email === 'Đã gửi') {
+                        emailBadge = '<span class="status status-green"><span class="status-dot"></span>Đã gửi</span>';
+                    } else if (item.email === 'Không có email' || (item.email && (item.email.includes('chưa') || item.email.includes('Không')))) {
+                        emailBadge = `<span class="status status-warning"><span class="status-dot"></span>${escapeHtml(item.email)}</span>`;
+                    } else {
+                        emailBadge = `<span class="status status-danger"><span class="status-dot"></span>${escapeHtml(item.email || '-')}</span>`;
+                    }
+
+                    const emailSub = item.emailChiTiet ? `<div class="small text-secondary">${escapeHtml(item.emailChiTiet)}</div>` : '';
+                    tbody.append(`
+                        <tr>
+                            <td class="fw-medium">${escapeHtml(item.maHoaDon)}</td>
+                            <td>${congBoBadge}</td>
+                            <td>${escapeHtml(item.thongBaoCong || '-')}</td>
+                            <td>
+                                <div>${emailBadge}</div>
+                                ${emailSub}
+                            </td>
+                            <td class="hd-num">${escapeHtml(item.hanThanhToan || '-')}</td>
+                        </tr>
+                    `);
+                });
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('congBoKetQuaModal')).show();
+            }
+
+            $('#congBoKetQuaModal').on('hidden.bs.modal', function () {
+                selectedIds.clear();
+                $('#checkAllInvoices').prop('checked', false);
+                updateBulkToolbar();
+                table.ajax.reload(null, false);
+            });
+
+            // ========== Filter ==========
+            function capNhatBadgeDaKetThucConNo() {
+                $('#locDaKetThucConNo').toggleClass('d-none', !locDaKetThucConNo).toggleClass('d-flex', locDaKetThucConNo);
+            }
+            capNhatBadgeDaKetThucConNo();
+            $('#btnBoLocDaKetThucConNo').on('click', function () {
+                locDaKetThucConNo = false;
+                capNhatBadgeDaKetThucConNo();
+                table.ajax.reload();
+            });
+
+            $('#filterChiNhanh, #filterThang, #filterTrangThai, #filterPhatHanh').change(function() {
+                selectedIds.clear();
+                $('#checkAllInvoices').prop('checked', false);
+                updateBulkToolbar();
+                table.ajax.reload();
+            });
+
+            var filterNamTimeout = null;
+            $('#filterNam').on('change input keyup', function() {
+                clearTimeout(filterNamTimeout);
+                filterNamTimeout = setTimeout(function() {
+                    selectedIds.clear();
+                    $('#checkAllInvoices').prop('checked', false);
+                    updateBulkToolbar();
+                    table.ajax.reload();
+                }, 400);
+            });
+
+            // ========== Xem trước & Phát sinh hóa đơn ==========
+            var previewDataList = [];
+
+            $('#btnPhatSinh').click(function() {
+                let cn = $('#filterChiNhanh').val();
+                let th = $('#filterThang').val();
+                let na = $('#filterNam').val();
+
+                // Đồng bộ từ bộ lọc sang bộ cấu hình phát sinh trong Modal nếu hợp lệ
+                if (cn && cn !== '0') { $('#previewChiNhanh').val(cn); }
+                if (th && th !== '0') { $('#previewThang').val(th); }
+                if (na) { $('#previewNam').val(na); }
+
+                // Xóa dữ liệu cũ trong modal
+                $('#previewReadyTable tbody').empty();
+                $('#previewMissingTable tbody').empty();
+                $('#previewInvalidTable tbody').empty();
+                $('#ready-count').text(0);
+                $('#missing-count').text(0);
+                $('#invalid-count').text(0);
+                $('#selected-preview-count').text(0);
+                $('#btnConfirmPhatSinh').prop('disabled', true);
+
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('previewModal')).show();
+            });
+
+            // Tải dữ liệu xem trước khi bấm nút trong Modal
+            $('#btnLoadPreview').click(function() {
+                let cn = $('#previewChiNhanh').val();
+                let th = $('#previewThang').val();
+                let na = $('#previewNam').val();
+
+                if (!cn || cn === '0') { showWarning('Vui lòng chọn Chi nhánh cụ thể!'); return; }
+                if (!th || th === '0') { showWarning('Vui lòng chọn Tháng cụ thể!'); return; }
+                if (!na || na < 2000) { showWarning('Vui lòng nhập Năm hợp lệ!'); return; }
+
+                let $btn = $(this);
+                $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Đang tải...');
+
+                $.ajax({
+                    url: `/HoaDon/PreviewPhatSinh?chiNhanhId=${cn}&thang=${th}&nam=${na}`,
+                    type: 'GET',
+                    success: function(res) {
+                        previewDataList = res;
+                        renderPreviewModal();
+                    },
+                    error: function(xhr) { showError(xhr.responseJSON?.message || 'Có lỗi khi chuẩn bị xem trước.'); },
+                    complete: function() { $btn.prop('disabled', false).html('<i class="ti ti-refresh me-1"></i> Tải dữ liệu'); }
+                });
+            });
+
+            function renderPreviewModal() {
+                let readyBody = $('#previewReadyTable tbody').empty();
+                let missingBody = $('#previewMissingTable tbody').empty();
+                let invalidBody = $('#previewInvalidTable tbody').empty();
+
+                let readyCount = 0;
+                let missingCount = 0;
+                let invalidCount = 0;
+
+                previewDataList.forEach(item => {
+                    if (item.daCoHoaDon || !item.hopDongHopLe) {
+                        let reason = item.daCoHoaDon
+                            ? '<span class="status status-secondary"><span class="status-dot"></span>Đã có hóa đơn</span>'
+                            : `<span class="status status-danger"><span class="status-dot"></span>${escapeHtml(item.ghiChuTrangThai)}</span>`;
+                        invalidBody.append(`
+                            <tr>
+                                <td class="fw-medium align-middle">${escapeHtml(item.soPhong)}</td>
+                                <td class="align-middle">${escapeHtml(item.tenNguoiThue)}</td>
+                                <td class="align-middle">${reason}</td>
+                            </tr>
+                        `);
+                        invalidCount++;
+                    } else if (!item.daChotDienNuoc) {
+                        missingBody.append(`
+                            <tr>
+                                <td class="fw-medium align-middle">${escapeHtml(item.soPhong)}</td>
+                                <td class="align-middle">${escapeHtml(item.tenNguoiThue)}</td>
+                                <td class="align-middle"><span class="status status-warning"><span class="status-dot"></span>Chưa chốt điện nước</span></td>
+                                <td class="text-center align-middle">
+                                    <a href="/QuanLyNhaTro/ChotDienNuoc" class="btn btn-sm btn-outline-warning" target="_blank"><i class="ti ti-edit me-1"></i> Chốt nhanh điện nước</a>
+                                </td>
+                            </tr>
+                        `);
+                        missingCount++;
+                    } else {
+                        readyBody.append(`
+                            <tr>
+                                <td class="text-center align-middle">
+                                    <input type="checkbox" class="form-check-input preview-select m-0" data-id="${item.phongTroId}" checked />
+                                </td>
+                                <td class="fw-medium align-middle text-primary">${escapeHtml(item.soPhong)}</td>
+                                <td class="align-middle">${escapeHtml(item.tenNguoiThue)}</td>
+                                <td class="text-end align-middle hd-num">${formatVND(item.tienPhongDuKien)}</td>
+                                <td class="text-center align-middle hd-num">${item.soNgayO}/${item.tongSoNgayTrongThang} ngày</td>
+                                <td class="text-end align-middle text-primary fw-medium hd-num">${formatVND(item.tongTienDuKien)}</td>
+                                <td class="align-middle"><span class="status status-green"><span class="status-dot"></span>${escapeHtml(item.ghiChuTrangThai || 'Sẵn sàng')}</span></td>
+                            </tr>
+                        `);
+                        readyCount++;
+                    }
+                });
+
+                $('#ready-count').text(readyCount);
+                $('#missing-count').text(missingCount);
+                $('#invalid-count').text(invalidCount);
+
+                if (targetPhongTroId > 0) {
+                    var $targetCheckbox = $('.preview-select[data-id="' + targetPhongTroId + '"]');
+                    if ($targetCheckbox.length > 0) {
+                        $('.preview-select').prop('checked', false);
+                        $targetCheckbox.prop('checked', true);
+                        var targetRow = $targetCheckbox.closest('tr')[0];
+                        if (targetRow && typeof targetRow.scrollIntoView === 'function') {
+                            targetRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                    }
+                    targetPhongTroId = 0;
+                }
+
+                updateSelectedPreviewCount();
+
+                let tabEl;
+                if (readyCount > 0) {
+                    tabEl = document.getElementById('ready-tab');
+                } else if (missingCount > 0) {
+                    tabEl = document.getElementById('missing-tab');
+                } else {
+                    tabEl = document.getElementById('invalid-tab');
+                }
+                if (tabEl) {
+                    bootstrap.Tab.getOrCreateInstance(tabEl).show();
+                }
+            }
+
+            $('#checkAllPreview').change(function() {
+                $('.preview-select').prop('checked', this.checked);
+                updateSelectedPreviewCount();
+            });
+
+            $('#previewReadyTable').on('change', '.preview-select', function() {
+                updateSelectedPreviewCount();
+            });
+
+            function updateSelectedPreviewCount() {
+                let cnt = $('.preview-select:checked').length;
+                $('#selected-preview-count').text(cnt);
+                $('#btnConfirmPhatSinh').prop('disabled', cnt === 0);
+            }
+
+            $('#btnConfirmPhatSinh').click(function() {
+                let selectedIds = [];
+                $('.preview-select:checked').each(function() {
+                    selectedIds.push(parseInt($(this).data('id')));
+                });
+
+                if (selectedIds.length === 0) return;
+
+                let cn = $('#previewChiNhanh').val();
+                let th = $('#previewThang').val();
+                let na = $('#previewNam').val();
+
+                Swal.fire({
+                    title: 'Xác nhận phát sinh hóa đơn?',
+                    text: `Bạn có chắc chắn muốn phát sinh hóa đơn cho ${selectedIds.length} phòng đã chọn?`,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Đồng ý',
+                    cancelButtonText: 'Hủy bỏ'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        let $btn = $(this);
+                        $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Đang xử lý...');
+
+                        $.ajax({
+                            url: '/HoaDon/PhatSinh',
+                            type: 'POST',
+                            contentType: 'application/json',
+                            data: JSON.stringify({
+                                chiNhanhId: parseInt(cn),
+                                thang: parseInt(th),
+                                nam: parseInt(na),
+                                selectedPhongTroIds: selectedIds
+                            }),
+                            success: function(res) {
+                                showSuccess(res.message);
+                                bootstrap.Modal.getOrCreateInstance(document.getElementById('previewModal')).hide();
+                                table.ajax.reload();
+                            },
+                            error: function(xhr) { showError(xhr.responseJSON?.message || 'Có lỗi xảy ra.'); },
+                            complete: function() { $btn.prop('disabled', false).html('<i class="ti ti-plus me-1"></i> Thêm dữ liệu'); }
+                        });
+                    }
+                });
+            });
+
+            // ========== Xem chi tiết ==========
+            $('#hoaDonTable').on('click', '.btn-detail', function() {
+                showInvoiceDetail($(this).data('id'));
+            });
+
+            // Gửi lại email biên lai của một dòng lịch sử thanh toán. Nút nằm trong nội dung modal được dựng lại mỗi lần xem,
+            // nên gắn handler một lần ở đây qua document thay vì trong hàm dựng nội dung.
+            $(document).on('click', '.hd-resend-receipt', function () {
+                HdThanhToan.resendReceipt(this);
+            });
+
+            function showInvoiceDetail(id) {
+                $.get(`/HoaDon/GetById/${id}`, function(res) {
+                    $('#chiTietModalTitle').html('<i class="ti ti-file-description me-1"></i> Hóa đơn ' + escapeHtml(res.maHoaDon));
+
+                    let cancelBanner = '';
+                    if (res.daHuy) {
+                        cancelBanner = `
+                            <div class="alert alert-danger py-2 mb-3">
+                                <i class="ti ti-alert-circle me-2"></i>
+                                <strong>Hóa đơn đã hủy</strong> — Lý do: ${escapeHtml(res.lyDoHuy || '(không có lý do)')}
+                            </div>
+                        `;
+                    }
+
+                    let deadlineBanner = '';
+                    if (res.hanPhanHoiHienThi) {
+                        deadlineBanner = `
+                            <div class="alert alert-info py-2 mb-3">
+                                <i class="ti ti-clock-hour-4 me-2"></i>
+                                Hạn phản hồi của khách: ${escapeHtml(res.hanPhanHoiHienThi)}
+                            </div>
+                        `;
+                    }
+
+                    let nhacTruyThuBanner = '';
+                    if (res.nhacTruyThus && res.nhacTruyThus.length > 0) {
+                        nhacTruyThuBanner = res.nhacTruyThus.map(t => `
+                            <div class="alert alert-warning py-2 mb-3">
+                                <i class="ti ti-alert-triangle me-2"></i>${escapeHtml(t)}
+                            </div>
+                        `).join('');
+                    }
+
+                    let paymentStatusHtml = '';
+                    if (res.daHuy) {
+                        paymentStatusHtml = '<span class="text-secondary">—</span>';
+                    } else if (res.trangThaiThanhToanValue === 1) {
+                        paymentStatusHtml = '<span class="status status-green"><span class="status-dot"></span>Đã thanh toán</span>';
+                    } else if (res.trangThaiThanhToanValue === 2) {
+                        paymentStatusHtml = '<span class="status status-blue"><span class="status-dot"></span>Thanh toán một phần</span>';
+                    } else {
+                        paymentStatusHtml = '<span class="status status-secondary"><span class="status-dot"></span>Chưa thanh toán</span>';
+                    }
+
+                    let html = `
+                        ${cancelBanner}
+                        ${deadlineBanner}
+                        ${nhacTruyThuBanner}
+                        <div class="datagrid mb-3">
+                            <div class="datagrid-item">
+                                <div class="datagrid-title">Mã hóa đơn</div>
+                                <div class="datagrid-content fw-medium text-primary">${escapeHtml(res.maHoaDon)}</div>
+                            </div>
+                            <div class="datagrid-item">
+                                <div class="datagrid-title">Phòng</div>
+                                <div class="datagrid-content fw-medium">${escapeHtml(res.tenPhong)}</div>
+                            </div>
+                            <div class="datagrid-item">
+                                <div class="datagrid-title">Người thuê</div>
+                                <div class="datagrid-content">${escapeHtml(res.tenNguoiThue)}</div>
+                            </div>
+                            <div class="datagrid-item">
+                                <div class="datagrid-title">Kỳ hóa đơn</div>
+                                <div class="datagrid-content hd-num">Tháng ${res.thang}/${res.nam}</div>
+                            </div>
+                            <div class="datagrid-item">
+                                <div class="datagrid-title">Ngày tạo</div>
+                                <div class="datagrid-content hd-num text-secondary">${escapeHtml(res.ngayTao)}</div>
+                            </div>
+                            <div class="datagrid-item">
+                                <div class="datagrid-title">Phát hành</div>
+                                <div class="datagrid-content">${renderPublishStage(res.trangThaiPhatHanhValue)}</div>
+                            </div>
+                            <div class="datagrid-item">
+                                <div class="datagrid-title">Thanh toán</div>
+                                <div class="datagrid-content">${paymentStatusHtml}</div>
+                            </div>
+                        </div>
+
+                        <h4 class="fw-bold border-bottom pb-2 mt-4"><i class="ti ti-list me-1"></i> Chi tiết các khoản phí</h4>
+                        <div class="table-responsive mb-3">
+                            <table class="table card-table table-vcenter table-striped table-hover w-100 table-sm">
+                                <thead>
+                                    <tr>
+                                        <th class="text-center hd-col-stt" width="6%">STT</th>
+                                        <th>Dịch vụ</th>
+                                        <th class="text-end" width="18%">Đơn giá</th>
+                                        <th class="text-center" width="12%">SL</th>
+                                        <th class="text-center hd-col-unit" width="12%">Đơn vị</th>
+                                        <th class="text-end" width="20%">Thành tiền</th>
+                                    </tr>
+                                </thead>
+                                <tbody>`;
+
+                    res.chiTietHoaDons.forEach((ct, idx) => {
+                        let donViText = ct.donVi ? ct.donVi : '-';
+                        html += `<tr>
+                            <td class="text-center align-middle hd-col-stt">${idx + 1}</td>
+                            <td class="align-middle">${escapeHtml(ct.tenDichVu)}</td>
+                            <td class="text-end align-middle hd-num">${formatVND(ct.donGia)}</td>
+                            <td class="text-center align-middle hd-num">${ct.soLuong}<span class="hd-unit-inline text-secondary"> ${escapeHtml(donViText)}</span></td>
+                            <td class="text-center align-middle hd-col-unit">${escapeHtml(donViText)}</td>
+                            <td class="text-end align-middle fw-medium hd-num">${formatVND(ct.tongTien)}</td>
+                        </tr>`;
+                    });
+
+                    html += `</tbody>
+                            </table>
+                            </div>
+                            <div class="hd-total-row mb-3"><span class="fw-bold">Tổng cộng</span><span class="fw-bold text-primary fs-3 hd-num">${formatVND(res.tongTien)}</span></div>`;
+
+                    // Khoản cấn trừ tiền cọc khi thanh lý hợp đồng
+                    const canTruCoc = (res.lichSuThanhToans || []).filter(ls => ls.laCanTruCoc).reduce((s, ls) => s + ls.soTienThanhToan, 0);
+                    if (canTruCoc > 0) {
+                        html += `<div class="hd-total-row mb-3"><span>Trừ tiền cọc</span><span class="hd-num">−${formatVND(canTruCoc)}</span></div>`;
+                    }
+
+                    // Lịch sử thanh toán
+                    if (res.lichSuThanhToans && res.lichSuThanhToans.length > 0) {
+                        html += `<h4 class="fw-bold border-bottom pb-2 mt-4"><i class="ti ti-history me-1"></i> Lịch sử thanh toán</h4>
+                            <div class="table-responsive">
+                            <table class="table card-table table-vcenter table-striped table-hover w-100 table-sm">
+                                <thead>
+                                    <tr><th>Mã GD</th><th class="text-end">Số tiền</th><th>Phương thức</th><th>Ngày</th><th>Người xác nhận</th><th class="hd-note">Ghi chú</th><th></th></tr>
+                                </thead><tbody>`;
+                        res.lichSuThanhToans.forEach(ls => {
+                            // Dòng SePay ghi: nhãn SePay và mã tham chiếu ngân hàng (không có mã thì hiện khóa chống trùng).
+                            // Dòng VNPay ghi: nhãn VNPay và mã giao dịch VNPay (vnp_TransactionNo).
+                            const maGiaoDichHtml = ls.laSePay
+                                ? `<span class="badge bg-green-lt me-1">SePay</span>${escapeHtml(ls.maThamChieu ? 'REF ' + ls.maThamChieu : ls.maGiaoDich)}`
+                                : ls.laVnPay
+                                    ? `<span class="badge bg-blue-lt me-1">VNPay</span>${escapeHtml(ls.maThamChieu ? 'TXN ' + ls.maThamChieu : ls.maGiaoDich)}`
+                                    : escapeHtml(ls.maGiaoDich);
+                            html += `<tr>
+                                <td>${maGiaoDichHtml}</td>
+                                <td class="text-end fw-medium text-success hd-num">${formatVND(ls.soTienThanhToan)}</td>
+                                <td>${escapeHtml(ls.phuongThucThanhToan)}</td>
+                                <td class="hd-num">${escapeHtml(ls.ngayThanhToan)}</td>
+                                <td>${escapeHtml(ls.nguoiXacNhan) || '—'}</td>
+                                <td class="hd-note">${escapeHtml(ls.ghiChu || '')}</td>
+                                <td class="text-end">
+                                    ${ls.laCanTruCoc ? '' : `<div class="btn-list flex-nowrap justify-content-end">
+                                        <a class="btn btn-sm btn-outline-primary" href="/QuanLyNhaTro/HoaDon/BienLai/${ls.lichSuThanhToanId}" target="_blank" rel="noopener"><i class="ti ti-receipt me-1"></i>Biên lai</a>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary hd-resend-receipt" data-id="${ls.lichSuThanhToanId}"><i class="ti ti-mail-forward me-1"></i>Gửi lại biên lai</button>
+                                    </div>`}
+                                </td>
+                            </tr>`;
+                        });
+                        html += `</tbody></table></div>`;
+                    }
+
+                    // Tóm tắt thanh toán (đã thu, còn lại, lượt đang hoạt động, cấu hình trả một phần)
+                    if (!res.daHuy && res.trangThaiPhatHanhValue === 3) {
+                        html += '<div id="hdPaymentSummary"></div>';
+                    }
+
+                    // QR theo số còn lại với nội dung TTPTHD{Id}: hóa đơn đã gửi (3) được SePay tự ghi sổ khi tiền về,
+                    // hóa đơn đã chốt (2) chưa nhận tiền được nên cần thu thủ công khi đối chiếu.
+                    // Chỉ hiện khi hóa đơn đã chốt (2) hoặc đã gửi (3); Nháp, Chờ duyệt, Đã hủy không có QR.
+                    const hienQrChuyenKhoan = !res.daHuy && res.conLai > 0
+                        && (res.trangThaiPhatHanhValue === 2 || res.trangThaiPhatHanhValue === 3);
+                    if (hienQrChuyenKhoan) {
+                        html += `
+                        <div class="row mt-4 pt-3 border-top justify-content-center">
+                            <div class="col-12 col-md-9 col-lg-8 text-center">
+                                <div class="qr-payment-box p-3 p-md-4">
+                                    <h4 class="qr-title text-primary fw-medium mb-3"><i class="ti ti-qrcode me-1"></i> Quét mã QR để chuyển khoản nhanh</h4>
+                                    <div class="mb-3">
+                                        <img src="/HoaDon/GetVietQR?hoaDonId=${res.hoaDonId}" alt="VietQR" />
+                                    </div>
+                                    <p class="small text-secondary mb-3">Sử dụng ứng dụng ngân hàng hoặc ví điện tử để quét mã QR</p>
+                                    <div class="qr-details-list p-3 rounded text-start">
+                                        <div class="qr-detail-item"><span>Ngân hàng:</span><strong>${escapeHtml(bankId)}</strong></div>
+                                        <div class="qr-detail-item"><span>Số tài khoản:</span><strong>${escapeHtml(accountNumber)}</strong></div>
+                                        <div class="qr-detail-item"><span>Chủ tài khoản:</span><strong>${escapeHtml(accountName)}</strong></div>
+                                        <div class="qr-detail-item"><span>Số tiền:</span><strong class="text-primary hd-num fs-3">${formatVND(res.conLai)}</strong></div>
+                                        <div class="qr-detail-item"><span>Nội dung CK:</span><code class="text-primary fw-bold">TTPTHD${res.hoaDonId}</code></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        `;
+                    }
+
+                    $('#chiTietBody').html(html);
+                    if (!res.daHuy && res.trangThaiPhatHanhValue === 3) {
+                        HdThanhToan.renderSummary(res.hoaDonId, '#hdPaymentSummary', { daGui: true });
+                    }
+
+                    // Render Tab Lịch sử trạng thái (Bắt buộc giữ đủ 7 trường)
+                    let lsHtml = '';
+                    if (!res.lichSuTrangThais || res.lichSuTrangThais.length === 0) {
+                        lsHtml = '<div class="text-center text-secondary py-4"><i class="ti ti-info-circle me-1"></i> Chưa có lịch sử.</div>';
+                    } else {
+                        let trs = '';
+                        res.lichSuTrangThais.forEach(ls => {
+                            let phStr = `${escapeHtml(ls.phatHanhTu || '-')} &rarr; ${escapeHtml(ls.phatHanhDen)}`;
+                            let ttStr = `${escapeHtml(ls.thanhToanTu || '-')} &rarr; ${escapeHtml(ls.thanhToanDen)}`;
+                            let nguoiStr = escapeHtml(ls.nguoiThucHien || 'Hệ thống');
+                            let lyDoStr = escapeHtml(ls.lyDo || '-');
+                            trs += `<tr>
+                                <td class="align-middle hd-num text-secondary">${escapeHtml(ls.thoiGian)}</td>
+                                <td class="align-middle">${phStr}</td>
+                                <td class="align-middle">${ttStr}</td>
+                                <td class="align-middle">${nguoiStr}</td>
+                                <td class="align-middle text-secondary">${lyDoStr}</td>
+                            </tr>`;
+                        });
+                        lsHtml = `
+                            <div class="table-responsive">
+                                <table class="table card-table table-vcenter table-striped table-hover w-100 table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Thời gian</th>
+                                            <th>Phát hành</th>
+                                            <th>Thanh toán</th>
+                                            <th>Người thực hiện</th>
+                                            <th>Lý do</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>${trs}</tbody>
+                                </table>
+                            </div>
+                        `;
+                    }
+                    $('#lichSuBody').html(lsHtml);
+
+                    bootstrap.Tab.getOrCreateInstance(document.getElementById('tab-chitiet-link')).show();
+                    bootstrap.Modal.getOrCreateInstance(document.getElementById('chiTietModal')).show();
+                });
+            }
+
+            // Mở thẳng chi tiết khi đến từ màn đối chiếu thanh toán (?hoaDonId=)
+            if (urlHoaDonId > 0) {
+                showInvoiceDetail(urlHoaDonId);
+            }
+
+            // Mở modal phát sinh hóa đơn khi có tham số (?moPhatSinh=1)
+            if (urlMoPhatSinh) {
+                if (urlChiNhanh && urlChiNhanh !== '0') { $('#previewChiNhanh').val(urlChiNhanh); }
+                else if ($('#filterChiNhanh').val() && $('#filterChiNhanh').val() !== '0') { $('#previewChiNhanh').val($('#filterChiNhanh').val()); }
+                if (urlThang && urlThang !== '0') { $('#previewThang').val(urlThang); }
+                if (urlNam) { $('#previewNam').val(urlNam); }
+
+                $('#previewReadyTable tbody').empty();
+                $('#previewMissingTable tbody').empty();
+                $('#previewInvalidTable tbody').empty();
+                $('#ready-count').text(0);
+                $('#missing-count').text(0);
+                $('#invalid-count').text(0);
+                $('#selected-preview-count').text(0);
+                $('#btnConfirmPhatSinh').prop('disabled', true);
+
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('previewModal')).show();
+                $('#btnLoadPreview').trigger('click');
+
+                const cleanUrl = new URL(window.location.href);
+                cleanUrl.searchParams.delete('moPhatSinh');
+                cleanUrl.searchParams.delete('phongTroId');
+                window.history.replaceState({}, document.title, cleanUrl.toString());
+            }
+
+            // ========== Chỉnh sửa hóa đơn ==========
+            $('#hoaDonTable').on('click', '.btn-edit', function() {
+                let id = $(this).data('id');
+                $('#editHoaDonId').val(id);
+                $.get(`/HoaDon/GetById/${id}`, function(res) {
+                    $('#editMaHDText').html(`Mã HĐ: <span class="text-primary">${escapeHtml(res.maHoaDon)}</span>`);
+                    $('#editPhongText').html(`Phòng: <span class="text-primary">${escapeHtml(res.tenPhong)}</span> (${escapeHtml(res.tenNguoiThue)})`);
+
+                    let tbody = $('#editLinesTable tbody').empty();
+
+                    res.chiTietHoaDons.forEach(ct => {
+                        addEditRow(ct.tenDichVu, ct.donGia, ct.soLuong, ct.donVi || '', ct.chiTietHoaDonId, ct.dichVuId, ct.tongTien);
+                    });
+
+                    // Nhắc truy thu khi kỳ đổi đồng hồ/quay vòng (không chặn lưu) và nút thêm dòng truy thu điền sẵn đơn giá kỳ.
+                    const nhacHtml = (res.nhacTruyThus || []).map(t =>
+                        `<div class="alert alert-warning py-2 mb-3"><i class="ti ti-alert-triangle me-2"></i>${escapeHtml(t)}</div>`).join('');
+                    $('#editNhacTruyThu').html(nhacHtml);
+                    const coGiaDien = res.donGiaDienKy !== null && res.donGiaDienKy !== undefined;
+                    const coGiaNuoc = res.donGiaNuocKy !== null && res.donGiaNuocKy !== undefined;
+                    $('#btnAddTruyThuDien').data('gia', coGiaDien ? res.donGiaDienKy : 0).toggle(coGiaDien);
+                    $('#btnAddTruyThuNuoc').data('gia', coGiaNuoc ? res.donGiaNuocKy : 0).toggle(coGiaNuoc);
+
+                    recalculateEditTotal();
+                    bootstrap.Modal.getOrCreateInstance(document.getElementById('editModal')).show();
+                });
+            });
+
+            // Thành tiền của một dòng: giữ số đã lưu nếu đơn giá và số lượng chưa đổi (tiền phòng/dịch vụ
+            // cố định có thể đã tính theo ngày ở), giống cách server lưu trong UpdateHoaDonAsync.
+            function editRowAmount(tr) {
+                const g = parseFloat(tr.find('.edit-gia').val()) || 0;
+                const s = parseFloat(tr.find('.edit-sl').val()) || 0;
+                const stored = tr.data('storedAmount');
+                if (stored !== undefined && g === tr.data('origGia') && s === tr.data('origSl')) {
+                    return stored;
+                }
+                return g * s;
+            }
+
+            function addEditRow(ten = '', gia = 0, sl = 1, dv = '', ctId = 0, dvId = null, tongTien = undefined) {
+                let tbody = $('#editLinesTable tbody');
+                let rowId = 'editRow_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+                let tr = $(`
+                    <tr id="${rowId}">
+                        <td>
+                            <input type="text" class="form-control form-control-sm edit-ten" value="${escapeHtml(ten)}" placeholder="Nhập tên dịch vụ/khoản phí" required />
+                        </td>
+                        <td>
+                            <input type="number" class="form-control form-control-sm text-end edit-gia" value="${gia}" min="0" required />
+                        </td>
+                        <td>
+                            <input type="number" class="form-control form-control-sm text-center edit-sl" value="${sl}" min="0" step="any" required />
+                        </td>
+                        <td class="align-middle">
+                            <span class="text-secondary edit-dv-label" style="font-size: 0.9rem;">${escapeHtml(dv)}</span>
+                        </td>
+                        <td>
+                            <input type="text" class="form-control form-control-sm text-end edit-thanhtien hd-num" value="${formatVND(tongTien !== undefined ? tongTien : gia * sl)}" disabled />
+                        </td>
+                        <td class="text-center align-middle">
+                            <button type="button" class="btn btn-link text-danger btn-delete-edit-row p-0"><i class="ti ti-trash"></i></button>
+                            <input type="hidden" class="edit-ct-id" value="${ctId}" />
+                            <input type="hidden" class="edit-dv-id" value="${dvId || ''}" />
+                        </td>
+                    </tr>
+                `);
+
+                if (ctId > 0 && tongTien !== undefined) {
+                    tr.data({ storedAmount: tongTien, origGia: parseFloat(gia), origSl: parseFloat(sl) });
+                }
+
+                tr.find('.edit-gia, .edit-sl').on('input', function() {
+                    tr.find('.edit-thanhtien').val(formatVND(editRowAmount(tr)));
+                    recalculateEditTotal();
+                });
+
+                tr.find('.btn-delete-edit-row').click(function() {
+                    tr.remove();
+                    recalculateEditTotal();
+                });
+
+                tbody.append(tr);
+            }
+
+            $('#btnAddEditRow').click(function() {
+                addEditRow('Khoản phí khác', 0, 1, '');
+            });
+
+            // Dòng truy thu: điền sẵn tên và đơn giá của kỳ (không làm tròn), số lượng để trống cho nhân viên nhập theo ghi chú xác nhận.
+            // Hệ thống không kiểm số tiền truy thu.
+            $('#btnAddTruyThuDien').click(function() {
+                addEditRow('Truy thu điện đồng hồ cũ', $(this).data('gia'), '', 'kWh', 0, null);
+            });
+
+            $('#btnAddTruyThuNuoc').click(function() {
+                addEditRow('Truy thu nước đồng hồ cũ', $(this).data('gia'), '', 'm³', 0, null);
+            });
+
+            function recalculateEditTotal() {
+                let total = 0;
+                $('#editLinesTable tbody tr').each(function() {
+                    total += editRowAmount($(this));
+                });
+                $('#editTongTienText').text(formatVND(total));
+            }
+
+            $('#btnSaveEdit').click(function() {
+                let id = $('#editHoaDonId').val();
+                let req = { chiTiets: [] };
+                let valid = true;
+
+                $('#editLinesTable tbody tr').each(function() {
+                    let ten = $(this).find('.edit-ten').val();
+                    let gia = parseFloat($(this).find('.edit-gia').val());
+                    let sl = parseFloat($(this).find('.edit-sl').val());
+                    let dvIdVal = $(this).find('.edit-dv-id').val();
+
+                    if (!ten || ten.trim() === '') {
+                        showWarning('Tên khoản phí không được để trống.');
+                        valid = false;
+                        return false;
+                    }
+                    if (isNaN(gia) || gia < 0 || isNaN(sl) || sl < 0) {
+                        showWarning('Đơn giá và số lượng phải lớn hơn hoặc bằng 0.');
+                        valid = false;
+                        return false;
+                    }
+
+                    req.chiTiets.push({
+                        chiTietHoaDonId: parseInt($(this).find('.edit-ct-id').val()) || 0,
+                        tenDichVu: ten,
+                        donGia: gia,
+                        soLuong: parseFloat(sl) || 0,
+                        dichVuId: dvIdVal ? parseInt(dvIdVal) : null
+                    });
+                });
+
+                if (!valid) return;
+                if (req.chiTiets.length === 0) {
+                    showWarning('Hóa đơn phải có ít nhất một dòng chi phí.');
+                    return;
+                }
+
+                Swal.fire({
+                    title: 'Xác nhận lưu thay đổi?',
+                    text: 'Bạn có chắc chắn muốn cập nhật các khoản phí của hóa đơn này?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Đồng ý',
+                    cancelButtonText: 'Hủy bỏ'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        let $btn = $(this);
+                        $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Đang lưu...');
+
+                        $.ajax({
+                            url: `/HoaDon/Update/${id}`,
+                            type: 'POST',
+                            contentType: 'application/json',
+                            data: JSON.stringify(req),
+                            success: function(res) {
+                                showSuccess(res.message);
+                                bootstrap.Modal.getOrCreateInstance(document.getElementById('editModal')).hide();
+                                table.ajax.reload(null, false);
+                            },
+                            error: function(xhr) { showError(xhr.responseJSON?.message || 'Có lỗi xảy ra.'); },
+                            complete: function() { $btn.prop('disabled', false).html('<i class="ti ti-device-floppy me-1"></i> Lưu dữ liệu'); }
+                        });
+                    }
+                });
+            });
+
+            // ========== Thu tiền (theo số thực nhận) ==========
+            $('#hoaDonTable').on('click', '.btn-thutien', function() {
+                HdThanhToan.openThuTien({
+                    hoaDonId: $(this).data('id'),
+                    maHoaDon: $(this).data('ma'),
+                    onDone: function () { table.ajax.reload(null, false); }
+                });
+            });
+
+            // ========== Hủy hóa đơn ==========
+            $('#hoaDonTable').on('click', '.btn-delete', function() {
+                let id = $(this).data('id');
+                Swal.fire({
+                    title: 'Xác nhận hủy hóa đơn?',
+                    text: 'Vui lòng nhập lý do hủy hóa đơn (chỉ áp dụng cho hóa đơn đã chốt hoặc đã gửi và chưa phát sinh thanh toán):',
+                    input: 'textarea',
+                    inputPlaceholder: 'Nhập lý do hủy hóa đơn...',
+                    inputAttributes: {
+                        'aria-label': 'Lý do hủy hóa đơn'
+                    },
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Đồng ý hủy',
+                    cancelButtonText: 'Đóng',
+                    inputValidator: (value) => {
+                        if (!value || !value.trim()) {
+                            return 'Vui lòng nhập lý do hủy hóa đơn!';
+                        }
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: `/HoaDon/Delete/${id}`,
+                            type: 'DELETE',
+                            contentType: 'application/json',
+                            data: JSON.stringify({ lyDo: result.value }),
+                            success: function(res) {
+                                Swal.fire('Thành công!', res.message, 'success');
+                                table.ajax.reload(null, false);
+                            },
+                            error: function(xhr) {
+                                Swal.fire('Lỗi!', xhr.responseJSON?.message || 'Có lỗi xảy ra.', 'error');
+                            }
+                        });
+                    }
+                });
+            });
+
+            // ========== Công bố hóa đơn lên cổng khách ==========
+            $('#hoaDonTable').on('click', '.btn-congbo', function() {
+                let id = $(this).data('id');
+
+                Swal.fire({
+                    title: 'Công bố hóa đơn?',
+                    text: 'Hóa đơn sẽ hiển thị trên cổng khách thuê và gửi email cho khách đứng tên hợp đồng.',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Công bố',
+                    cancelButtonText: 'Hủy'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: '/HoaDon/CongBo',
+                            type: 'POST',
+                            contentType: 'application/json',
+                            data: JSON.stringify({ hoaDonIds: [id] }),
+                            headers: {
+                                'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                            },
+                            success: function(r) {
+                                let item = r.items[0];
+                                let html = `Công bố: ${escapeHtml(item.congBo)}<br/>` +
+                                    `Thông báo cổng: ${escapeHtml(item.thongBaoCong)}<br/>` +
+                                    `Email: ${escapeHtml(item.email)} ${escapeHtml(item.emailChiTiet || '')}`;
+                                if (item.hanThanhToan) {
+                                    html += `<br/>Hạn thanh toán: ${escapeHtml(item.hanThanhToan)}`;
+                                }
+
+                                let icon = 'error';
+                                if (item.congBoThanhCong && item.email === 'Đã gửi') {
+                                    icon = 'success';
+                                } else if (item.congBoThanhCong) {
+                                    icon = 'warning';
+                                }
+
+                                Swal.fire({ title: 'Kết quả công bố', html: html, icon: icon });
+                                table.ajax.reload(null, false);
+                            },
+                            error: function(xhr) {
+                                showError(xhr.responseJSON?.message || 'Có lỗi khi công bố hóa đơn.');
+                            }
+                        });
+                    }
+                });
+            });
+
+            // ========== Gửi Email hóa đơn đơn lẻ ==========
+            $('#hoaDonTable').on('click', '.btn-send-email', function() {
+                let id = $(this).data('id');
+                let email = $(this).data('email');
+                let maHd = $(this).data('ma');
+
+                Swal.fire({
+                    title: 'Gửi lại email hóa đơn?',
+                    text: `Thao tác này sẽ gửi lại email thông báo hóa đơn ${maHd} đến địa chỉ ${email}. Hệ thống không biết email lần trước đã đến hay chưa, khách có thể nhận thư trùng. Bạn có chắc chắn muốn gửi lại?`,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Đồng ý gửi lại',
+                    cancelButtonText: 'Hủy bỏ'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        let $btn = $(this);
+                        let originalHtml = $btn.html();
+                        $btn.prop('disabled', true).addClass('disabled').html('<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Đang gửi...');
+
+                        $.ajax({
+                            url: `/HoaDon/SendEmail/${id}`,
+                            type: 'POST',
+                            headers: {
+                                'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                            },
+                            success: function(res) {
+                                Swal.fire(res.email === 'Đã gửi' ? 'Thành công!' : 'Chưa gửi được', res.message, res.email === 'Đã gửi' ? 'success' : 'warning');
+                            },
+                            error: function(xhr) {
+                                Swal.fire('Lỗi!', xhr.responseJSON?.message || 'Có lỗi xảy ra khi gửi email.', 'error');
+                            },
+                            complete: function() {
+                                $btn.prop('disabled', false).removeClass('disabled').html(originalHtml);
+                            }
+                        });
+                    }
+                });
+            });
+
+            // ========== Gửi duyệt hóa đơn ==========
+            $('#hoaDonTable').on('click', '.btn-guiduyet', function() {
+                let id = $(this).data('id');
+                Swal.fire({
+                    title: 'Xác nhận gửi duyệt?',
+                    text: 'Bạn có chắc chắn muốn gửi duyệt hóa đơn này?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Gửi duyệt',
+                    cancelButtonText: 'Hủy'
+                }).then((res) => {
+                    if (res.isConfirmed) {
+                        $.ajax({
+                            url: `/HoaDon/GuiDuyet/${id}`,
+                            type: 'POST',
+                            headers: {
+                                'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                            },
+                            success: function(r) {
+                                showSuccess(r.message || 'Gửi duyệt hóa đơn thành công!');
+                                table.ajax.reload(null, false);
+                            },
+                            error: function(xhr) {
+                                showError(xhr.responseJSON?.message || 'Có lỗi khi gửi duyệt hóa đơn.');
+                            }
+                        });
+                    }
+                });
+            });
+
+            // ========== Điều chỉnh hóa đơn (chờ duyệt, đã chốt, đã gửi) ==========
+            $('#hoaDonTable').on('click', '.btn-dieuchinh', function() {
+                HdDieuChinh.open({
+                    hoaDonId: $(this).data('id'),
+                    maHoaDon: $(this).data('ma'),
+                    trangThai: Number($(this).data('trangthai')),
+                    onDone: function() { table.ajax.reload(null, false); }
+                });
+            });
+
+            // ========== Chốt hóa đơn ==========
+            $('#hoaDonTable').on('click', '.btn-chot', function() {
+                let id = $(this).data('id');
+
+                function confirmChot(nhacTruyThus) {
+                    const mo = 'Bạn có chắc chắn muốn chốt hóa đơn này? Hóa đơn đã chốt sẽ không thể chỉnh sửa.';
+                    const cfg = {
+                        title: 'Xác nhận chốt hóa đơn?',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Chốt hóa đơn',
+                        cancelButtonText: 'Hủy'
+                    };
+                    if (nhacTruyThus && nhacTruyThus.length > 0) {
+                        // Nhắc truy thu không chặn chốt; mọi chuỗi đưa vào HTML đều qua escapeHtml.
+                        cfg.html = '<div class="text-start"><p>' + escapeHtml(mo) + '</p>'
+                            + nhacTruyThus.map(t => '<div class="alert alert-warning py-2 small mb-2"><i class="ti ti-alert-triangle me-1"></i>' + escapeHtml(t) + '</div>').join('')
+                            + '</div>';
+                    } else {
+                        cfg.text = mo;
+                    }
+
+                    Swal.fire(cfg).then((res) => {
+                        if (res.isConfirmed) {
+                            $.ajax({
+                                url: `/HoaDon/Chot/${id}`,
+                                type: 'POST',
+                                headers: {
+                                    'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                                },
+                                success: function(r) {
+                                    showSuccess(r.message || 'Chốt hóa đơn thành công!');
+                                    table.ajax.reload(null, false);
+                                },
+                                error: function(xhr) {
+                                    showError(xhr.responseJSON?.message || 'Có lỗi khi chốt hóa đơn.');
+                                }
+                            });
+                        }
+                    });
+                }
+
+                // Lấy chi tiết để nhắc truy thu; GET lỗi thì vẫn hiện hộp xác nhận cũ.
+                $.get(`/HoaDon/GetById/${id}`)
+                    .done(function(res) { confirmChot(res && res.nhacTruyThus); })
+                    .fail(function() { confirmChot(null); });
+            });
+
+            // ========== Trả lại hóa đơn ==========
+            $('#hoaDonTable').on('click', '.btn-tralai', function() {
+                let id = $(this).data('id');
+                Swal.fire({
+                    title: 'Trả lại hóa đơn',
+                    text: 'Vui lòng nhập lý do trả lại hóa đơn về trạng thái Nháp:',
+                    input: 'textarea',
+                    inputPlaceholder: 'Nhập lý do trả lại...',
+                    inputAttributes: {
+                        'aria-label': 'Lý do trả lại'
+                    },
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Trả lại',
+                    cancelButtonText: 'Hủy',
+                    inputValidator: (value) => {
+                        if (!value || !value.trim()) {
+                            return 'Lý do trả lại là bắt buộc!';
+                        }
+                    }
+                }).then((res) => {
+                    if (res.isConfirmed && res.value) {
+                        $.ajax({
+                            url: `/HoaDon/TraLai/${id}`,
+                            type: 'POST',
+                            contentType: 'application/json',
+                            headers: {
+                                'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                            },
+                            data: JSON.stringify({ lyDo: res.value.trim() }),
+                            success: function(r) {
+                                showSuccess(r.message || 'Trả lại hóa đơn thành công!');
+                                table.ajax.reload(null, false);
+                            },
+                            error: function(xhr) {
+                                showError(xhr.responseJSON?.message || 'Có lỗi khi trả lại hóa đơn.');
+                            }
+                        });
+                    }
+                });
+            });
+        });

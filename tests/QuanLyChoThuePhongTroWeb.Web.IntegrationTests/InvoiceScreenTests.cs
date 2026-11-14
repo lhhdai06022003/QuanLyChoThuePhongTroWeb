@@ -391,7 +391,9 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             var client = CreateHttpClient();
             await LoginStaffAsync(client, data.StaffUsername, data.StaffPassword);
 
-            var html = await client.GetStringAsync("/QuanLyNhaTro/QuanLyHoaDon");
+            // JS của màn nằm ở wwwroot/js/hoadon-danh-sach.js: kiểm cả HTML lẫn file JS mà trang nạp.
+            var html = ViewSource.WithOwnScripts(await client.GetStringAsync("/QuanLyNhaTro/QuanLyHoaDon"));
+            Assert.Contains("/js/hoadon-danh-sach.js?v=", html);
 
             foreach (var field in new[] { "ls.thoiGian", "ls.phatHanhTu", "ls.phatHanhDen", "ls.thanhToanTu", "ls.thanhToanDen", "ls.nguoiThucHien" })
             {
@@ -515,7 +517,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             var response = await client.GetAsync("/QuanLyNhaTro/QuanLyHoaDon");
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
-            var html = await response.Content.ReadAsStringAsync();
+            var html = ViewSource.WithOwnScripts(await response.Content.ReadAsStringAsync());
             Assert.Contains("id=\"filterPhatHanh\"", html);
             Assert.Contains("id=\"congBoKetQuaModal\"", html);
             Assert.Contains("Lịch sử trạng thái", html);

@@ -226,7 +226,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             var res = await staff.GetAsync("/QuanLyNhaTro/QuanLyHoaDon");
 
             Assert.Equal(HttpStatusCode.OK, res.StatusCode);
-            var html = WebUtility.HtmlDecode(await res.Content.ReadAsStringAsync());
+            var html = ViewSource.WithOwnScripts(WebUtility.HtmlDecode(await res.Content.ReadAsStringAsync()));
             Assert.Contains("id=\"editNhacTruyThu\"", html);
             Assert.Contains("id=\"btnAddTruyThuDien\"", html);
             Assert.Contains("id=\"btnAddTruyThuNuoc\"", html);

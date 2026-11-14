@@ -534,7 +534,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             var seed = await SeedAsync();
             var (admin, _) = await LoginAsync(NewClient(_factory.WithWebHostBuilder(_ => { })), seed.Admin, "/QuanLyNhaTro/QuanLyHoaDon");
 
-            var html = await (await admin.GetAsync("/QuanLyNhaTro/QuanLyHoaDon")).Content.ReadAsStringAsync();
+            var html = ViewSource.WithOwnScripts(await (await admin.GetAsync("/QuanLyNhaTro/QuanLyHoaDon")).Content.ReadAsStringAsync());
 
             Assert.Contains("ls.laVnPay", html);
             Assert.Contains("'TXN '", html);

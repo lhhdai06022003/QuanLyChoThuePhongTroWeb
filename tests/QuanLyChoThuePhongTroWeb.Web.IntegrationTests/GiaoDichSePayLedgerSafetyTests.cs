@@ -243,7 +243,8 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             var res = await admin.GetAsync(page);
 
             Assert.Equal(HttpStatusCode.OK, res.StatusCode);
-            var html = WebUtility.HtmlDecode(await res.Content.ReadAsStringAsync());
+            // Hóa đơn và Phòng trọ đã tách script ra file riêng (ViewSource.OwnScripts): khối QR nằm trong file JS của màn.
+            var html = ViewSource.WithOwnScripts(WebUtility.HtmlDecode(await res.Content.ReadAsStringAsync()));
             // Lịch sử thanh toán đã tách script ra file riêng: khối QR nằm trong file JS đó.
             if (page == "/QuanLyNhaTro/LichSuThanhToan")
             {
@@ -260,7 +261,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             var seed = await SeedAsync();
             var (admin, _) = await LoginAsync(NewClient(_factory), seed.Admin, "/QuanLyNhaTro/GiaoDichSePay");
 
-            var page = WebUtility.HtmlDecode(await (await admin.GetAsync("/QuanLyNhaTro/QuanLyHoaDon")).Content.ReadAsStringAsync());
+            var page = ViewSource.WithOwnScripts(WebUtility.HtmlDecode(await (await admin.GetAsync("/QuanLyNhaTro/QuanLyHoaDon")).Content.ReadAsStringAsync()));
             var script = await (await admin.GetAsync("/js/hoadon-thanhtoan-quanly.js")).Content.ReadAsStringAsync();
 
             Assert.Contains("hd-resend-receipt", page);
