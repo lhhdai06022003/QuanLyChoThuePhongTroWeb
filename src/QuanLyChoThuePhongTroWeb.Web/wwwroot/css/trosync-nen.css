@@ -226,6 +226,10 @@ button.ts-bottom-nav-item {
         box-shadow: none !important;
     }
 
+    .ts-cong-khach-thue table.ts-bang-the tbody tr {
+        border-radius: var(--ts-radius-tenant, 16px);
+    }
+
     table.ts-bang-the tbody tr:last-child {
         margin-bottom: 0;
     }
