@@ -1,6 +1,6 @@
 # Spec đợt 4: phòng trọ, người thuê, hợp đồng
 
-- Trạng thái: **đã thực thi xong, chờ nghiệm thu** (13/11/2026).
+- Trạng thái: **đã thực thi xong vòng sửa 1, chờ nghiệm thu** (14/11/2026).
 - Nhánh: `feature/thiet-ke-lai-giao-dien`
 - Mốc bắt đầu: `88af77e`
 - Báo cáo bàn giao: [.bangiao/giao-dien/bao-cao-dot-4.md](../../../.bangiao/giao-dien/bao-cao-dot-4.md)
@@ -53,7 +53,9 @@ Người lập kế hoạch tự chọn theo quy ước đã có (không hỏi l
 
 ## 4. Kết quả
 
-Đã hoàn thành 8/8 việc trong kế hoạch đợt 4 (chờ nghiệm thu):
+Đã hoàn thành 8/8 việc trong kế hoạch đợt 4 và 6/6 việc trong vòng sửa 1:
+
+### Đợt 4 ban đầu
 
 | Việc | Commit | Nội dung tóm tắt |
 | --- | --- | --- |
@@ -64,7 +66,18 @@ Người lập kế hoạch tự chọn theo quy ước đã có (không hỏi l
 | V5 | `d29d701`<br>`81677bd` | `feat(giao-dien): hợp đồng theo khung trang chung, thanh bước theo màu nền, bảng thành thẻ`: danh sách hợp đồng, stepper wizard, modal thêm/sửa, partial thành viên. |
 | V6 | `451aa60` | `feat(giao-dien): chi tiết hợp đồng, thanh lý, gia hạn theo khung trang chung, bảng thành thẻ`: khung trang chi tiết, thanh lý, gia hạn; giữ nguyên script. |
 | V7 | `9d5f3c9` | `test(giao-dien): chốt đợt 4 phòng, người thuê, hợp đồng`: tạo `PhongNguoiThueHopDongDot4Tests.cs` (27/27 test PASS). |
-| V8 | `HEAD` | Kiểm tra cuối đợt: `git diff --check` sạch, soat-giao-dien 0 LỖI trên 16 file, build 0 Error, Domain UnitTests PASS, Application UnitTests PASS, Web.IntegrationTests PASS. |
+| V8 | `6d3794c` | `docs(giao-dien): kết quả đợt 4`: Điền mục 4 và 5 của spec, kiểm tra toàn diện giải pháp. |
+
+### Vòng sửa 1 (14/11/2026)
+
+| Mục | Commit | Nội dung tóm tắt |
+| --- | --- | --- |
+| S1 | `9d2317a` | `fix(giao-dien): định dạng ngày giờ ghép chuỗi trực tiếp theo Q11`: ghép trực tiếp chuỗi ngày giờ từ JSON không có offset/Z (`String(x).slice(0, 10)...`), cập nhật test không còn `toLocaleDateString(`. |
+| S2 | `b7b2c20` | `fix(giao-dien): phòng trọ không tràn ngang ở 375px và nhãn không che nút`: sửa tiêu đề + nút và bộ chuyển sơ đồ/bảng không đè nhau, header thẻ phòng flex-wrap, số phòng overflow-wrap anywhere, menu ⋮ không tràn mép. 0/3.442 thẻ bị cắt/chồng nhãn. |
+| S3 | `68b3c97` | `fix(giao-dien): ô số liệu tiền tệ không tràn khung ở màn hình nhỏ`: ô nợ người thuê chiếm `col-12` dưới 576px, 4 ô tiền thanh lý `col-12 col-sm-6 col-lg-3`. 100% không tràn. |
+| S4 | `52565a0` | `fix(giao-dien): vùng lọc hợp đồng theo Q3 không nền riêng và nhãn gọn`: chuyển thành `card-body border-bottom`, nhãn gọn không icon và không fw-bold. |
+| S5 | `442169c` | `fix(giao-dien): bọc nội dung cảnh báo chưa thanh lý tránh co cột ở 375px`: bọc nội dung alert trong thẻ `<div>` tránh co cột ở 375px. Giữ nguyên 100% `@section Scripts`. |
+| S6 | `60ff0ea` | `docs(giao-dien): vòng sửa 1 đợt 4`: cập nhật báo cáo, kết quả đo đạc CDP trên DB test, xuất đủ 15 ảnh minh chứng vào `hinhanhprojectdemo/`. |
 
 ## 5. Còn để ý
 
@@ -72,3 +85,5 @@ Người lập kế hoạch tự chọn theo quy ước đã có (không hỏi l
 2. `filterNguoiThue` trong `QuanLyHopDong.cshtml` giữ tùy chọn mặc định là `-- Tất cả --` để tương thích hoàn toàn với test kiến trúc `ContractPagePayloadTests`.
 3. Khối `@section Scripts` của `ThanhLy.cshtml` và `GiaHan.cshtml` được bảo toàn nguyên vẹn 100% so với mốc `88af77e` (lệnh kiểm diff in `GIONG`).
 4. Bảng thành viên `thanhVienTable` trong modal tạo/sửa hợp đồng áp dụng lớp `ts-bang-the` và hiển thị tốt ở 375px.
+5. Quy tắc Q11 áp dụng ghép chuỗi trực tiếp cho mọi trường ngày giờ từ JSON do `DateTimeJsonConverter` không xuất Z/offset.
+6. Toàn bộ 8 màn hình cổng quản lý đợt 4 đều đo đạt `document.documentElement.scrollWidth === 375` ở cả chế độ sáng và tối.
