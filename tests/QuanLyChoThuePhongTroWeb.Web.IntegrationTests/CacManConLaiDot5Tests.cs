@@ -22,7 +22,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
         }
 
         private static string Read(params string[] relative) =>
-            File.ReadAllText(Path.Combine(new[] { WebRoot() }.Concat(relative).ToArray()));
+            ViewSource.ReadWithOwnScript(relative); // view kèm file JS riêng của màn (ViewSource.OwnScripts)
 
         // 1. Theory trên các view đã làm đầy đủ ở V2–V4, V6, V7: không còn bg-light, btn-success, table-bordered, thead-light, modal-header bg-, confirmButtonColor, cancelButtonColor, font-weight-, text-right, page-title text-primary.
         [Theory]

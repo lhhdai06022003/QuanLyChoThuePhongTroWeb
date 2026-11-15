@@ -18,7 +18,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
         }
 
         private static string Read(params string[] relative) =>
-            File.ReadAllText(Path.Combine(new[] { WebRoot() }.Concat(relative).ToArray()));
+            ViewSource.ReadWithOwnScript(relative); // view kèm file JS riêng của màn (ViewSource.OwnScripts)
 
         [Fact]
         public void Views_HaveNoEnglishAriaLabels()
@@ -26,6 +26,8 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             var english = new Regex("aria-label=\"(Close|Toggle navigation|Open user menu)\"");
             var offenders = Directory.EnumerateFiles(Path.Combine(WebRoot(), "Views"), "*.cshtml", SearchOption.AllDirectories)
                 .Concat(Directory.EnumerateFiles(Path.Combine(WebRoot(), "Areas"), "*.cshtml", SearchOption.AllDirectories))
+                // JS của các màn đã tách khỏi view (ViewSource.OwnScripts) cũng ghép HTML có aria-label.
+                .Concat(ViewSource.OwnScripts.Values.Distinct().Select(js => Path.Combine(WebRoot(), "wwwroot", "js", js)))
                 .Where(f => english.IsMatch(File.ReadAllText(f)))
                 .Select(f => Path.GetRelativePath(WebRoot(), f))
                 .ToList();

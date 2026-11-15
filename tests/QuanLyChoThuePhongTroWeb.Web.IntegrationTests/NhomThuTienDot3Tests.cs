@@ -22,7 +22,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
         }
 
         private static string Read(params string[] relative) =>
-            File.ReadAllText(Path.Combine(new[] { WebRoot() }.Concat(relative).ToArray()));
+            ViewSource.ReadWithOwnScript(relative); // view kèm file JS riêng của màn (ViewSource.OwnScripts)
 
         // Kèm file JS riêng của màn (ViewSource.OwnScripts): bảng ghép chuỗi và phần ẩn/hiện nằm trong JS.
         private static string View(string folder) => ViewSource.ReadWithOwnScript("Areas", "QuanLyNhaTro", "Views", folder, "Index.cshtml");

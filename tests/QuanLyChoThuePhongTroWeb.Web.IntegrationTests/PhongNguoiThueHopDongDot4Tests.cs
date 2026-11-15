@@ -23,7 +23,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
         }
 
         private static string Read(params string[] relative) =>
-            File.ReadAllText(Path.Combine(new[] { WebRoot() }.Concat(relative).ToArray()));
+            ViewSource.ReadWithOwnScript(relative); // view kèm file JS riêng của màn (ViewSource.OwnScripts)
 
         [Theory]
         [InlineData("quanlyphongtro.css")]
