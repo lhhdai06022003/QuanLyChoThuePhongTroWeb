@@ -54,6 +54,8 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
         [Theory]
         [InlineData("escapeHtml")]
         [InlineData("esc")]
+        [InlineData("formatVND")]
+        [InlineData("formatVNDShort")]
         public void KhongFileNaoKhaiBaoLaiHamDungChung(string tenHam)
         {
             var root = ViewSource.WebRoot();

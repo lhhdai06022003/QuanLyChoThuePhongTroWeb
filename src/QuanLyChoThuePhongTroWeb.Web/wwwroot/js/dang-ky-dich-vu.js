@@ -52,10 +52,6 @@
             return;
         }
 
-        function formatVNDShort(n) {
-            return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n || 0);
-        }
-
         // Lấy ngày bắt đầu mặc định
         let defaultStartDate = getContractStartDate();
 
@@ -113,7 +109,7 @@
                                        data-date-id="${item.dichVuChiNhanhId}" 
                                        value="${ngayBatDauStr}">
                             </div>
-                            <div class="dkdv-price dkdv-price-default">${formatVNDShort(item.giaDichVu)}/${escapeHtml(item.donVi)}</div>
+                            <div class="dkdv-price dkdv-price-default">${formatVND(item.giaDichVu)}/${escapeHtml(item.donVi)}</div>
                         </div>
                     </div>
                 `;
@@ -172,7 +168,7 @@
                                        data-date-id="${item.dichVuChiNhanhId}" 
                                        value="${ngayBatDauStr}">
                             </div>
-                            <div class="dkdv-price">${formatVNDShort(item.giaDichVu)}/${escapeHtml(item.donVi)}</div>
+                            <div class="dkdv-price">${formatVND(item.giaDichVu)}/${escapeHtml(item.donVi)}</div>
                         </div>
                     </div>
                 `;

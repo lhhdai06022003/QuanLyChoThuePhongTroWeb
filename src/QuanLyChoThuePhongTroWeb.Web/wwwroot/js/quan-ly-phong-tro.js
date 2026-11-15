@@ -9,10 +9,6 @@
         let allRooms = [];
         let currentFilter = 'all';
 
-        function formatVND(n) {
-            return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n || 0);
-        }
-
         // ========== VIEW TOGGLE ==========
         $('#btnGridView').click(function () {
             $(this).addClass('active');

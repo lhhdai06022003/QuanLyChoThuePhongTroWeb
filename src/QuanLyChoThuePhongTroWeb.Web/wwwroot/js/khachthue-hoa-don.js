@@ -1,8 +1,3 @@
-        function formatVND(n) {
-            if (n === null || n === undefined) return "0 ₫";
-            return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n);
-        }
-
         // autoOpenHoaDonId: view khai báo ngay trước khi nạp file này.
         // Hóa đơn đang mở trong modal (0 = không mở); sự kiện tiền vào của đúng hóa đơn này thì tải lại modal.
         var dangXemHoaDonId = 0;

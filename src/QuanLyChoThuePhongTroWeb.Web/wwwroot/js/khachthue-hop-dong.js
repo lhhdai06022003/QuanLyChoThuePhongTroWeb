@@ -54,10 +54,6 @@
             });
         });
 
-        function formatVND(n) {
-            return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n || 0);
-        }
-
         function showChiTiet(hopDongId, soPhong) {
             $('#quickContractRoom').text(soPhong);
 

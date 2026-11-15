@@ -116,12 +116,6 @@
                 initThanhVienModule(allNguoiThues);
             }
 
-            // Hàm format tiền VNĐ
-            function formatVND(n) {
-                if (n === null || n === undefined) return "0 ₫";
-                return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n);
-            }
-
             // Tính toán Ngày đầu/cuối quý hiện tại bằng JS thuần
             const now = new Date();
             const quarter = Math.floor(now.getMonth() / 3);

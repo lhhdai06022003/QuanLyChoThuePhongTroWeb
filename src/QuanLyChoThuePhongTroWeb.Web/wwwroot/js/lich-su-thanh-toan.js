@@ -2,12 +2,6 @@
     'use strict';
 
     var cfg = window.lichSuThanhToanConfig || {};
-    var tienTe = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' });
-
-    function formatVND(n) {
-        if (n === null || n === undefined) return '0 ₫';
-        return tienTe.format(n);
-    }
 
     var esc = window.escapeHtml; // hàm dùng chung trong site.js
 
