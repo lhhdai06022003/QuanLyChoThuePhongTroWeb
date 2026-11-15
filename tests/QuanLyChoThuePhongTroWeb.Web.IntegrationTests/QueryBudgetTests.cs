@@ -98,6 +98,9 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             return tenant;
         }
 
+        // Số lệnh SQL của huy hiệu Việc cần làm với nhân viên có ứng viên HD5 (đo 15/11/2026 sau bước 16; trước đó 20).
+        private const int TomTatNhanVienToiDa = 16;
+
         [Fact]
         public async Task Baseline_ManagerPages_And_TenantPages()
         {
@@ -112,6 +115,8 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             _output.WriteLine($"TomTat: 0 ứng viên HD5 = {tomTat0}, 5 ứng viên = {tomTat5}, 15 ứng viên = {tomTat15}");
             // Huy hiệu chạy trên mọi trang quản lý: số lệnh SQL không được tăng theo số ứng viên HD5.
             Assert.Equal(tomTat5, tomTat15);
+            // Bước 16: các mục cùng bảng (HD1-HD3, TT2-TT3, KH1-KH2, KH3-KH4) dùng chung một truy vấn; nhân viên 20 → 16 lệnh.
+            Assert.True(tomTat5 <= TomTatNhanVienToiDa, $"Huy hiệu: {tomTat5} lệnh SQL, tối đa {TomTatNhanVienToiDa}");
 
             await MeasureGetAsync(staff, "/QuanLyNhaTro/Dashboard");
             await MeasureGetAsync(staff, "/QuanLyNhaTro/ViecCanLam");

@@ -125,19 +125,53 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 .ToListAsync(ct);
         }
 
-        public Task<IReadOnlyList<DemHoaDonRow>> DemHoaDonNhapAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, CancellationToken ct = default)
-            => DemHoaDonTheoPhatHanhAsync(branchId, allowedBranchIds,
-                _context.HoaDons.Where(h => !h.IsDeleted && h.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.Nhap), ct);
+        // HD1-HD3: một truy vấn đếm theo chi nhánh và trạng thái phát hành, không cần số tiền.
+        public async Task<DemHoaDonChuaGuiRows> DemHoaDonChuaGuiAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, bool gomNhap, bool gomChoDuyet, bool gomDaChotChuaGui, CancellationToken ct = default)
+        {
+            if (!gomNhap && !gomChoDuyet && !gomDaChotChuaGui)
+            {
+                return new DemHoaDonChuaGuiRows();
+            }
 
-        public Task<IReadOnlyList<DemHoaDonRow>> DemHoaDonChoDuyetAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, CancellationToken ct = default)
-            => DemHoaDonTheoPhatHanhAsync(branchId, allowedBranchIds,
-                _context.HoaDons.Where(h => !h.IsDeleted && h.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.ChoDuyet), ct);
+            var query = LocHoaDon(_context.HoaDons.AsNoTracking()
+                .Where(h => !h.IsDeleted
+                            && ((gomNhap && h.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.Nhap)
+                                || (gomChoDuyet && h.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.ChoDuyet)
+                                || (gomDaChotChuaGui
+                                    && h.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaChot
+                                    && h.TrangThaiHoaDon != TrangThaiHoaDon.DaThanhToan))),
+                branchId, allowedBranchIds);
 
-        public Task<IReadOnlyList<DemHoaDonRow>> DemHoaDonDaChotChuaGuiAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, CancellationToken ct = default)
-            => DemHoaDonTheoPhatHanhAsync(branchId, allowedBranchIds,
-                _context.HoaDons.Where(h => !h.IsDeleted
-                                            && h.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaChot
-                                            && h.TrangThaiHoaDon != TrangThaiHoaDon.DaThanhToan), ct);
+            var rows = await query
+                .GroupBy(h => new { h.HopDong.PhongTro.ChiNhanhId, h.HopDong.PhongTro.ChiNhanh.TenChiNhanh, h.TrangThaiPhatHanh })
+                .Select(g => new
+                {
+                    g.Key.ChiNhanhId,
+                    g.Key.TenChiNhanh,
+                    g.Key.TrangThaiPhatHanh,
+                    SoLuong = g.Count(),
+                    NamCuNhat = g.Min(h => h.Nam)
+                })
+                .ToListAsync(ct);
+
+            IReadOnlyList<DemHoaDonRow> Tach(TrangThaiPhatHanhHoaDon trangThai) => rows
+                .Where(r => r.TrangThaiPhatHanh == trangThai)
+                .Select(r => new DemHoaDonRow
+                {
+                    ChiNhanhId = r.ChiNhanhId,
+                    TenChiNhanh = r.TenChiNhanh,
+                    SoLuong = r.SoLuong,
+                    NamCuNhat = r.NamCuNhat
+                })
+                .ToList();
+
+            return new DemHoaDonChuaGuiRows
+            {
+                Nhap = Tach(TrangThaiPhatHanhHoaDon.Nhap),
+                ChoDuyet = Tach(TrangThaiPhatHanhHoaDon.ChoDuyet),
+                DaChotChuaGui = Tach(TrangThaiPhatHanhHoaDon.DaChot)
+            };
+        }
 
         public async Task<IReadOnlyList<DemChiNhanhRow>> DemMinhChungChoDoiChieuAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, CancellationToken ct = default)
         {
@@ -213,13 +247,17 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 .ToListAsync(ct);
         }
 
-        public async Task<IReadOnlyList<DemChiNhanhRow>> DemHopDongQuaHanAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, DateTime homNayVnBatDauUtc, CancellationToken ct = default)
+        // KH3, KH4: một truy vấn trên hợp đồng đang hoạt động có ngày kết thúc trước mốc xa nhất, đếm riêng từng khoảng.
+        public async Task<DemHopDongHetHanRows> DemHopDongHetHanAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, DateTime homNayVnBatDauUtc, DateTime denTruocUtc, DateTime gapTruocUtc, CancellationToken ct = default)
         {
+            // Mốc trên của cả hai mục: KH4 lấy mọi hợp đồng trước hôm nay kể cả khi khoảng "sắp hết hạn" rỗng.
+            var tranUtc = denTruocUtc > homNayVnBatDauUtc ? denTruocUtc : homNayVnBatDauUtc;
+
             var query = _context.HopDongs.AsNoTracking()
                 .Where(h => !h.IsDeleted
                             && h.TrangThaiHopDong == TrangThaiHopDong.DangHoatDong
                             && h.ThoiDiemKetThuc != null
-                            && h.ThoiDiemKetThuc < homNayVnBatDauUtc);
+                            && h.ThoiDiemKetThuc < tranUtc);
 
             if (branchId.HasValue)
             {
@@ -231,15 +269,29 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
                 query = query.Where(h => allowedBranchIds.Contains(h.PhongTro.ChiNhanhId));
             }
 
-            return await query
+            var rows = await query
                 .GroupBy(h => new { h.PhongTro.ChiNhanhId, h.PhongTro.ChiNhanh.TenChiNhanh })
-                .Select(g => new DemChiNhanhRow
+                .Select(g => new
                 {
-                    ChiNhanhId = g.Key.ChiNhanhId,
-                    TenChiNhanh = g.Key.TenChiNhanh,
-                    SoLuong = g.Count()
+                    g.Key.ChiNhanhId,
+                    g.Key.TenChiNhanh,
+                    SoQuaHan = g.Sum(x => x.ThoiDiemKetThuc < homNayVnBatDauUtc ? 1 : 0),
+                    SoSapHetHan = g.Sum(x => x.ThoiDiemKetThuc >= homNayVnBatDauUtc && x.ThoiDiemKetThuc < denTruocUtc ? 1 : 0),
+                    SoSapHetHanGap = g.Sum(x => x.ThoiDiemKetThuc >= homNayVnBatDauUtc && x.ThoiDiemKetThuc < denTruocUtc && x.ThoiDiemKetThuc < gapTruocUtc ? 1 : 0)
                 })
                 .ToListAsync(ct);
+
+            return new DemHopDongHetHanRows
+            {
+                SapHetHan = rows
+                    .Where(r => r.SoSapHetHan > 0)
+                    .Select(r => new DemChiNhanhRow { ChiNhanhId = r.ChiNhanhId, TenChiNhanh = r.TenChiNhanh, SoLuong = r.SoSapHetHan, SoLuongGap = r.SoSapHetHanGap })
+                    .ToList(),
+                QuaHan = rows
+                    .Where(r => r.SoQuaHan > 0)
+                    .Select(r => new DemChiNhanhRow { ChiNhanhId = r.ChiNhanhId, TenChiNhanh = r.TenChiNhanh, SoLuong = r.SoQuaHan })
+                    .ToList()
+            };
         }
 
         public async Task<IReadOnlyList<DemHoaDonRow>> DemHopDongDaTraPhongConNoAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, CancellationToken ct = default)
@@ -285,71 +337,72 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
         public Task<IReadOnlyList<DemHoaDonRow>> DemHoaDonQuaHanAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, DateTime nowUtc, CancellationToken ct = default)
             => DemHoaDonKemConNoAsync(branchId, allowedBranchIds, _context.HoaDons.QuaHan(nowUtc), ct);
 
-        public Task<IReadOnlyList<DemHoaDonRow>> DemHoaDonDaGuiChuaToiHanAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, DateTime nowUtc, CancellationToken ct = default)
-            => DemHoaDonKemConNoAsync(branchId, allowedBranchIds, _context.HoaDons.ChuaToiHan(nowUtc), ct);
-
-        public async Task<IReadOnlyList<DemChiNhanhRow>> DemSuCoChoTiepNhanAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, DateTime mocGapUtc, CancellationToken ct = default)
+        // TT2, TT3: một lần đọc hóa đơn đã gửi chưa thu đủ, chia theo đã quá hạn hay chưa (cùng điều kiện với QuaHan/ChuaToiHan
+        // trong InvoiceDebtQueries), rồi gom trong bộ nhớ để tránh GroupBy trên cột tính từ subquery ledger.
+        public async Task<DemHoaDonDaGuiChuaThuDuRows> DemHoaDonDaGuiChuaThuDuAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, DateTime nowUtc, CancellationToken ct = default)
         {
-            var query = LocSuCo(_context.YeuCauSuCos.AsNoTracking()
-                .Where(s => !s.IsDeleted && s.TrangThai == TrangThaiSuCo.ChoTiepNhan), branchId, allowedBranchIds);
+            var query = LocHoaDon(_context.HoaDons.DaGuiChuaThuDu().AsNoTracking(), branchId, allowedBranchIds);
 
-            return await query
-                .GroupBy(s => new { s.PhongTro.ChiNhanhId, s.PhongTro.ChiNhanh.TenChiNhanh })
-                .Select(g => new DemChiNhanhRow
+            var rows = await query
+                .Select(h => new
+                {
+                    h.HopDong.PhongTro.ChiNhanhId,
+                    h.HopDong.PhongTro.ChiNhanh.TenChiNhanh,
+                    h.Nam,
+                    h.TongTien,
+                    DaThu = h.LichSuThanhToans.Where(l => !l.IsDeleted).Sum(l => l.SoTienThanhToan),
+                    QuaHan = h.HanThanhToan != null && h.HanThanhToan < nowUtc
+                })
+                .ToListAsync(ct);
+
+            IReadOnlyList<DemHoaDonRow> Gom(bool quaHan) => rows
+                .Where(r => r.QuaHan == quaHan)
+                .GroupBy(r => new { r.ChiNhanhId, r.TenChiNhanh })
+                .Select(g => new DemHoaDonRow
                 {
                     ChiNhanhId = g.Key.ChiNhanhId,
                     TenChiNhanh = g.Key.TenChiNhanh,
+                    SoLuong = g.Count(),
+                    NamCuNhat = g.Min(r => r.Nam),
+                    TongConNo = g.Sum(r => r.TongTien - r.DaThu)
+                })
+                .ToList();
+
+            return new DemHoaDonDaGuiChuaThuDuRows { QuaHan = Gom(true), ChuaToiHan = Gom(false) };
+        }
+
+        // KH1, KH2: một truy vấn đếm sự cố theo chi nhánh và trạng thái.
+        public async Task<DemSuCoCanXuLyRows> DemSuCoCanXuLyAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, DateTime mocGapUtc, DateTime mocXuLyQuaLauUtc, CancellationToken ct = default)
+        {
+            var query = LocSuCo(_context.YeuCauSuCos.AsNoTracking()
+                .Where(s => !s.IsDeleted
+                            && (s.TrangThai == TrangThaiSuCo.ChoTiepNhan
+                                || (s.TrangThai == TrangThaiSuCo.DangXuLy && s.NgayGui <= mocXuLyQuaLauUtc))),
+                branchId, allowedBranchIds);
+
+            var rows = await query
+                .GroupBy(s => new { s.PhongTro.ChiNhanhId, s.PhongTro.ChiNhanh.TenChiNhanh, s.TrangThai })
+                .Select(g => new
+                {
+                    g.Key.ChiNhanhId,
+                    g.Key.TenChiNhanh,
+                    g.Key.TrangThai,
                     SoLuong = g.Count(),
                     SoLuongGap = g.Sum(x => x.NgayGui <= mocGapUtc ? 1 : 0)
                 })
                 .ToListAsync(ct);
-        }
 
-        public async Task<IReadOnlyList<DemChiNhanhRow>> DemSuCoXuLyQuaLauAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, DateTime mocUtc, CancellationToken ct = default)
-        {
-            var query = LocSuCo(_context.YeuCauSuCos.AsNoTracking()
-                .Where(s => !s.IsDeleted && s.TrangThai == TrangThaiSuCo.DangXuLy && s.NgayGui <= mocUtc), branchId, allowedBranchIds);
-
-            return await query
-                .GroupBy(s => new { s.PhongTro.ChiNhanhId, s.PhongTro.ChiNhanh.TenChiNhanh })
-                .Select(g => new DemChiNhanhRow
-                {
-                    ChiNhanhId = g.Key.ChiNhanhId,
-                    TenChiNhanh = g.Key.TenChiNhanh,
-                    SoLuong = g.Count()
-                })
-                .ToListAsync(ct);
-        }
-
-        public async Task<IReadOnlyList<DemChiNhanhRow>> DemHopDongSapHetHanAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, DateTime tuUtc, DateTime denTruocUtc, DateTime gapTruocUtc, CancellationToken ct = default)
-        {
-            var query = _context.HopDongs.AsNoTracking()
-                .Where(h => !h.IsDeleted
-                            && h.TrangThaiHopDong == TrangThaiHopDong.DangHoatDong
-                            && h.ThoiDiemKetThuc != null
-                            && h.ThoiDiemKetThuc >= tuUtc
-                            && h.ThoiDiemKetThuc < denTruocUtc);
-
-            if (branchId.HasValue)
+            return new DemSuCoCanXuLyRows
             {
-                query = query.Where(h => h.PhongTro.ChiNhanhId == branchId.Value);
-            }
-
-            if (allowedBranchIds != null)
-            {
-                query = query.Where(h => allowedBranchIds.Contains(h.PhongTro.ChiNhanhId));
-            }
-
-            return await query
-                .GroupBy(h => new { h.PhongTro.ChiNhanhId, h.PhongTro.ChiNhanh.TenChiNhanh })
-                .Select(g => new DemChiNhanhRow
-                {
-                    ChiNhanhId = g.Key.ChiNhanhId,
-                    TenChiNhanh = g.Key.TenChiNhanh,
-                    SoLuong = g.Count(),
-                    SoLuongGap = g.Sum(x => x.ThoiDiemKetThuc < gapTruocUtc ? 1 : 0)
-                })
-                .ToListAsync(ct);
+                ChoTiepNhan = rows
+                    .Where(r => r.TrangThai == TrangThaiSuCo.ChoTiepNhan)
+                    .Select(r => new DemChiNhanhRow { ChiNhanhId = r.ChiNhanhId, TenChiNhanh = r.TenChiNhanh, SoLuong = r.SoLuong, SoLuongGap = r.SoLuongGap })
+                    .ToList(),
+                XuLyQuaLau = rows
+                    .Where(r => r.TrangThai == TrangThaiSuCo.DangXuLy)
+                    .Select(r => new DemChiNhanhRow { ChiNhanhId = r.ChiNhanhId, TenChiNhanh = r.TenChiNhanh, SoLuong = r.SoLuong })
+                    .ToList()
+            };
         }
 
         public async Task<IReadOnlyList<HoaDonQuaHanRow>> GetHoaDonQuaHanAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, DateTime nowUtc, int gioiHan, CancellationToken ct = default)
@@ -405,24 +458,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.Persistence.Features
             return query;
         }
 
-        // HD1-HD3: đếm theo chi nhánh, không cần số tiền.
-        private async Task<IReadOnlyList<DemHoaDonRow>> DemHoaDonTheoPhatHanhAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, IQueryable<HoaDon> goc, CancellationToken ct)
-        {
-            var query = LocHoaDon(goc.AsNoTracking(), branchId, allowedBranchIds);
-
-            return await query
-                .GroupBy(h => new { h.HopDong.PhongTro.ChiNhanhId, h.HopDong.PhongTro.ChiNhanh.TenChiNhanh })
-                .Select(g => new DemHoaDonRow
-                {
-                    ChiNhanhId = g.Key.ChiNhanhId,
-                    TenChiNhanh = g.Key.TenChiNhanh,
-                    SoLuong = g.Count(),
-                    NamCuNhat = g.Min(h => h.Nam)
-                })
-                .ToListAsync(ct);
-        }
-
-        // TT2, TT3: lấy từng hóa đơn rồi gom trong bộ nhớ để tránh GroupBy trên cột tính từ subquery ledger.
+        // Tổng số của bảng quá hạn: lấy từng hóa đơn rồi gom trong bộ nhớ để tránh GroupBy trên cột tính từ subquery ledger.
         private async Task<IReadOnlyList<DemHoaDonRow>> DemHoaDonKemConNoAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, IQueryable<HoaDon> goc, CancellationToken ct)
         {
             var query = LocHoaDon(goc.AsNoTracking(), branchId, allowedBranchIds);

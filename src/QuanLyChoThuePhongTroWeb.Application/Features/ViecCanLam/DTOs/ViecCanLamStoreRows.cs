@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace QuanLyChoThuePhongTroWeb.Application.Features.ViecCanLam.DTOs
 {
@@ -54,6 +55,33 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.ViecCanLam.DTOs
         public string TenChiNhanh { get; init; } = string.Empty;
         public int Thang { get; init; }
         public int Nam { get; init; }
+    }
+
+    // Kết quả của các truy vấn gộp (docs/features/toi-uu-hieu-nang, bước 16): một lệnh SQL trả số đếm cho nhiều mục cùng bảng,
+    // store tách sẵn theo mục. Danh sách nào cũng chỉ chứa chi nhánh có SoLuong > 0, như khi mỗi mục là một truy vấn riêng.
+    public sealed class DemHoaDonChuaGuiRows
+    {
+        public IReadOnlyList<DemHoaDonRow> Nhap { get; init; } = Array.Empty<DemHoaDonRow>();          // HD1
+        public IReadOnlyList<DemHoaDonRow> ChoDuyet { get; init; } = Array.Empty<DemHoaDonRow>();      // HD2
+        public IReadOnlyList<DemHoaDonRow> DaChotChuaGui { get; init; } = Array.Empty<DemHoaDonRow>(); // HD3
+    }
+
+    public sealed class DemHoaDonDaGuiChuaThuDuRows
+    {
+        public IReadOnlyList<DemHoaDonRow> QuaHan { get; init; } = Array.Empty<DemHoaDonRow>();     // TT2
+        public IReadOnlyList<DemHoaDonRow> ChuaToiHan { get; init; } = Array.Empty<DemHoaDonRow>(); // TT3
+    }
+
+    public sealed class DemSuCoCanXuLyRows
+    {
+        public IReadOnlyList<DemChiNhanhRow> ChoTiepNhan { get; init; } = Array.Empty<DemChiNhanhRow>(); // KH1
+        public IReadOnlyList<DemChiNhanhRow> XuLyQuaLau { get; init; } = Array.Empty<DemChiNhanhRow>();  // KH2
+    }
+
+    public sealed class DemHopDongHetHanRows
+    {
+        public IReadOnlyList<DemChiNhanhRow> SapHetHan { get; init; } = Array.Empty<DemChiNhanhRow>(); // KH3
+        public IReadOnlyList<DemChiNhanhRow> QuaHan { get; init; } = Array.Empty<DemChiNhanhRow>();    // KH4
     }
 
     public sealed class HoaDonQuaHanRow

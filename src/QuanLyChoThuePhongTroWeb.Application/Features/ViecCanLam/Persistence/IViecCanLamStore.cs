@@ -21,14 +21,11 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.ViecCanLam.Persistence
         // kỳ không bị khóa bởi kỳ sau (kỳ sau DaDuyet hoặc đã có hóa đơn phát hành); gom theo kỳ.
         Task<IReadOnlyList<DemTheoKyRow>> DemAnhChiSoChoXacNhanAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, CancellationToken ct = default);
 
-        // HD1: hóa đơn chưa xóa, TrangThaiPhatHanh = Nhap.
-        Task<IReadOnlyList<DemHoaDonRow>> DemHoaDonNhapAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, CancellationToken ct = default);
-
-        // HD2: hóa đơn chưa xóa, TrangThaiPhatHanh = ChoDuyet (kể cả hóa đơn tạm tính cũ còn HanPhanHoi).
-        Task<IReadOnlyList<DemHoaDonRow>> DemHoaDonChoDuyetAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, CancellationToken ct = default);
-
-        // HD3: hóa đơn chưa xóa, TrangThaiPhatHanh = DaChot, TrangThaiHoaDon khác DaThanhToan.
-        Task<IReadOnlyList<DemHoaDonRow>> DemHoaDonDaChotChuaGuiAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, CancellationToken ct = default);
+        // HD1-HD3 trong một truy vấn; mục nào có cờ gom* = false thì không đọc và trả danh sách rỗng.
+        // HD1 (Nhap): hóa đơn chưa xóa, TrangThaiPhatHanh = Nhap.
+        // HD2 (ChoDuyet): hóa đơn chưa xóa, TrangThaiPhatHanh = ChoDuyet (kể cả hóa đơn tạm tính cũ còn HanPhanHoi).
+        // HD3 (DaChotChuaGui): hóa đơn chưa xóa, TrangThaiPhatHanh = DaChot, TrangThaiHoaDon khác DaThanhToan.
+        Task<DemHoaDonChuaGuiRows> DemHoaDonChuaGuiAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, bool gomNhap, bool gomChoDuyet, bool gomDaChotChuaGui, CancellationToken ct = default);
 
         // HD5: kỳ chỉ số chưa xóa, DaDuyet, thuộc phòng chưa xóa, từ (tuThang, tuNam) đến (denThang, denNam), mà phòng không có
         // hóa đơn chưa xóa nào của kỳ đó. Kỳ mới nhất trước rồi PhongTroId tăng dần; lấy tối đa gioiHan dòng.
@@ -38,22 +35,23 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.ViecCanLam.Persistence
         Task<IReadOnlyList<DemChiNhanhRow>> DemMinhChungChoDoiChieuAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, CancellationToken ct = default);
 
         // TT2: hóa đơn DaGui, chưa xóa, khác DaThanhToan, HanThanhToan != null và < nowUtc. TongConNo = TongTien - ledger chưa xóa.
+        // Dùng cho tổng số của bảng quá hạn; Trung tâm việc lấy TT2 từ DemHoaDonDaGuiChuaThuDuAsync.
         Task<IReadOnlyList<DemHoaDonRow>> DemHoaDonQuaHanAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, DateTime nowUtc, CancellationToken ct = default);
 
-        // TT3: hóa đơn DaGui, chưa xóa, khác DaThanhToan, HanThanhToan null hoặc >= nowUtc.
-        Task<IReadOnlyList<DemHoaDonRow>> DemHoaDonDaGuiChuaToiHanAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, DateTime nowUtc, CancellationToken ct = default);
+        // TT2 và TT3 trong một truy vấn: hóa đơn DaGui, chưa xóa, khác DaThanhToan.
+        // TT2 (QuaHan): HanThanhToan != null và < nowUtc. TT3 (ChuaToiHan): HanThanhToan null hoặc >= nowUtc.
+        // TongConNo = TongTien - ledger chưa xóa.
+        Task<DemHoaDonDaGuiChuaThuDuRows> DemHoaDonDaGuiChuaThuDuAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, DateTime nowUtc, CancellationToken ct = default);
 
-        // KH1: sự cố ChoTiepNhan chưa xóa; SoLuongGap = số sự cố có NgayGui <= mocGapUtc.
-        Task<IReadOnlyList<DemChiNhanhRow>> DemSuCoChoTiepNhanAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, DateTime mocGapUtc, CancellationToken ct = default);
+        // KH1 và KH2 trong một truy vấn, sự cố chưa xóa.
+        // KH1 (ChoTiepNhan): trạng thái ChoTiepNhan; SoLuongGap = số sự cố có NgayGui <= mocGapUtc.
+        // KH2 (XuLyQuaLau): trạng thái DangXuLy có NgayGui <= mocXuLyQuaLauUtc.
+        Task<DemSuCoCanXuLyRows> DemSuCoCanXuLyAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, DateTime mocGapUtc, DateTime mocXuLyQuaLauUtc, CancellationToken ct = default);
 
-        // KH2: sự cố DangXuLy chưa xóa có NgayGui <= mocUtc.
-        Task<IReadOnlyList<DemChiNhanhRow>> DemSuCoXuLyQuaLauAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, DateTime mocUtc, CancellationToken ct = default);
-
-        // KH3: hợp đồng DangHoatDong chưa xóa có tuUtc <= ThoiDiemKetThuc < denTruocUtc; SoLuongGap = số có ThoiDiemKetThuc < gapTruocUtc.
-        Task<IReadOnlyList<DemChiNhanhRow>> DemHopDongSapHetHanAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, DateTime tuUtc, DateTime denTruocUtc, DateTime gapTruocUtc, CancellationToken ct = default);
-
-        // KH4: hợp đồng DangHoatDong chưa xóa, ThoiDiemKetThuc != null && < homNayVnBatDauUtc (đã quá hạn mà chưa thanh lý hay gia hạn).
-        Task<IReadOnlyList<DemChiNhanhRow>> DemHopDongQuaHanAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, DateTime homNayVnBatDauUtc, CancellationToken ct = default);
+        // KH3 và KH4 trong một truy vấn, hợp đồng DangHoatDong chưa xóa có ThoiDiemKetThuc.
+        // KH3 (SapHetHan): homNayVnBatDauUtc <= ThoiDiemKetThuc < denTruocUtc; SoLuongGap = số có ThoiDiemKetThuc < gapTruocUtc.
+        // KH4 (QuaHan): ThoiDiemKetThuc < homNayVnBatDauUtc (đã quá hạn mà chưa thanh lý hay gia hạn).
+        Task<DemHopDongHetHanRows> DemHopDongHetHanAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, DateTime homNayVnBatDauUtc, DateTime denTruocUtc, DateTime gapTruocUtc, CancellationToken ct = default);
 
         // KH5: hợp đồng DaKetThuc chưa xóa có hóa đơn DaGui chưa xóa còn nợ, trừ hợp đồng mà khách đã gia hạn (cùng phòng và cùng
         // người thuê đang có hợp đồng DangHoatDong). SoLuong = số hợp đồng, TongConNo = tổng còn nợ.

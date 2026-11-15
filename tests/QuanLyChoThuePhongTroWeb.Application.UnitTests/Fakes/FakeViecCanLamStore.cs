@@ -61,22 +61,16 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
             return Task.FromResult<IReadOnlyList<DemTheoKyRow>>(AnhChoXacNhan.ToList());
         }
 
-        public Task<IReadOnlyList<DemHoaDonRow>> DemHoaDonNhapAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, CancellationToken ct = default)
+        // HD1-HD3 trong một lần gọi; mục có cờ gom* = false trả danh sách rỗng như store thật.
+        public Task<DemHoaDonChuaGuiRows> DemHoaDonChuaGuiAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, bool gomNhap, bool gomChoDuyet, bool gomDaChotChuaGui, CancellationToken ct = default)
         {
-            Record(nameof(DemHoaDonNhapAsync), branchId, allowedBranchIds);
-            return Task.FromResult<IReadOnlyList<DemHoaDonRow>>(HoaDonNhap.ToList());
-        }
-
-        public Task<IReadOnlyList<DemHoaDonRow>> DemHoaDonChoDuyetAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, CancellationToken ct = default)
-        {
-            Record(nameof(DemHoaDonChoDuyetAsync), branchId, allowedBranchIds);
-            return Task.FromResult<IReadOnlyList<DemHoaDonRow>>(HoaDonChoDuyet.ToList());
-        }
-
-        public Task<IReadOnlyList<DemHoaDonRow>> DemHoaDonDaChotChuaGuiAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, CancellationToken ct = default)
-        {
-            Record(nameof(DemHoaDonDaChotChuaGuiAsync), branchId, allowedBranchIds);
-            return Task.FromResult<IReadOnlyList<DemHoaDonRow>>(HoaDonDaChot.ToList());
+            Record(nameof(DemHoaDonChuaGuiAsync), branchId, allowedBranchIds, gomNhap, gomChoDuyet, gomDaChotChuaGui);
+            return Task.FromResult(new DemHoaDonChuaGuiRows
+            {
+                Nhap = gomNhap ? HoaDonNhap.ToList() : new List<DemHoaDonRow>(),
+                ChoDuyet = gomChoDuyet ? HoaDonChoDuyet.ToList() : new List<DemHoaDonRow>(),
+                DaChotChuaGui = gomDaChotChuaGui ? HoaDonDaChot.ToList() : new List<DemHoaDonRow>()
+            });
         }
 
         // HD5: áp khoảng kỳ và giới hạn như store thật (mới nhất trước); phạm vi chi nhánh do test tự cấu hình qua row.
@@ -104,17 +98,18 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
             return Task.FromResult<IReadOnlyList<DemHoaDonRow>>(HoaDonQuaHan.ToList());
         }
 
-        public Task<IReadOnlyList<DemHoaDonRow>> DemHoaDonDaGuiChuaToiHanAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, DateTime nowUtc, CancellationToken ct = default)
+        // TT2 và TT3 trong một lần gọi.
+        public Task<DemHoaDonDaGuiChuaThuDuRows> DemHoaDonDaGuiChuaThuDuAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, DateTime nowUtc, CancellationToken ct = default)
         {
-            Record(nameof(DemHoaDonDaGuiChuaToiHanAsync), branchId, allowedBranchIds, nowUtc);
-            return Task.FromResult<IReadOnlyList<DemHoaDonRow>>(HoaDonChuaToiHan.ToList());
+            Record(nameof(DemHoaDonDaGuiChuaThuDuAsync), branchId, allowedBranchIds, nowUtc);
+            return Task.FromResult(new DemHoaDonDaGuiChuaThuDuRows { QuaHan = HoaDonQuaHan.ToList(), ChuaToiHan = HoaDonChuaToiHan.ToList() });
         }
 
-        // KH1: sự cố ChoTiepNhan; SoLuongGap = số có NgayGui <= mocGapUtc.
-        public Task<IReadOnlyList<DemChiNhanhRow>> DemSuCoChoTiepNhanAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, DateTime mocGapUtc, CancellationToken ct = default)
+        // KH1: sự cố ChoTiepNhan, SoLuongGap = số có NgayGui <= mocGapUtc. KH2: row cấu hình sẵn.
+        public Task<DemSuCoCanXuLyRows> DemSuCoCanXuLyAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, DateTime mocGapUtc, DateTime mocXuLyQuaLauUtc, CancellationToken ct = default)
         {
-            Record(nameof(DemSuCoChoTiepNhanAsync), branchId, allowedBranchIds, mocGapUtc);
-            var rows = SuCoChoTiepNhan
+            Record(nameof(DemSuCoCanXuLyAsync), branchId, allowedBranchIds, mocGapUtc, mocXuLyQuaLauUtc);
+            var choTiepNhan = SuCoChoTiepNhan
                 .GroupBy(s => new { s.ChiNhanhId, s.Ten })
                 .Select(g => new DemChiNhanhRow
                 {
@@ -123,21 +118,16 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
                     SoLuong = g.Count(),
                     SoLuongGap = g.Count(x => x.NgayGui <= mocGapUtc)
                 }).ToList();
-            return Task.FromResult<IReadOnlyList<DemChiNhanhRow>>(rows);
+            return Task.FromResult(new DemSuCoCanXuLyRows { ChoTiepNhan = choTiepNhan, XuLyQuaLau = SuCoXuLyQuaLau.ToList() });
         }
 
-        public Task<IReadOnlyList<DemChiNhanhRow>> DemSuCoXuLyQuaLauAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, DateTime mocUtc, CancellationToken ct = default)
+        // KH3: homNayVnBatDauUtc <= ThoiDiemKetThuc < denTruocUtc, SoLuongGap = số có ThoiDiemKetThuc < gapTruocUtc.
+        // KH4: ThoiDiemKetThuc < homNayVnBatDauUtc.
+        public Task<DemHopDongHetHanRows> DemHopDongHetHanAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, DateTime homNayVnBatDauUtc, DateTime denTruocUtc, DateTime gapTruocUtc, CancellationToken ct = default)
         {
-            Record(nameof(DemSuCoXuLyQuaLauAsync), branchId, allowedBranchIds, mocUtc);
-            return Task.FromResult<IReadOnlyList<DemChiNhanhRow>>(SuCoXuLyQuaLau.ToList());
-        }
-
-        // KH3: tuUtc <= ThoiDiemKetThuc < denTruocUtc; SoLuongGap = số có ThoiDiemKetThuc < gapTruocUtc.
-        public Task<IReadOnlyList<DemChiNhanhRow>> DemHopDongSapHetHanAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, DateTime tuUtc, DateTime denTruocUtc, DateTime gapTruocUtc, CancellationToken ct = default)
-        {
-            Record(nameof(DemHopDongSapHetHanAsync), branchId, allowedBranchIds, tuUtc, denTruocUtc, gapTruocUtc);
-            var rows = HopDongSapHetHan
-                .Where(h => h.ThoiDiemKetThuc >= tuUtc && h.ThoiDiemKetThuc < denTruocUtc)
+            Record(nameof(DemHopDongHetHanAsync), branchId, allowedBranchIds, homNayVnBatDauUtc, denTruocUtc, gapTruocUtc);
+            var sapHetHan = HopDongSapHetHan
+                .Where(h => h.ThoiDiemKetThuc >= homNayVnBatDauUtc && h.ThoiDiemKetThuc < denTruocUtc)
                 .GroupBy(h => new { h.ChiNhanhId, h.Ten })
                 .Select(g => new DemChiNhanhRow
                 {
@@ -146,19 +136,12 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests.Fakes
                     SoLuong = g.Count(),
                     SoLuongGap = g.Count(x => x.ThoiDiemKetThuc < gapTruocUtc)
                 }).ToList();
-            return Task.FromResult<IReadOnlyList<DemChiNhanhRow>>(rows);
-        }
-
-        // KH4: ThoiDiemKetThuc < homNayVnBatDauUtc.
-        public Task<IReadOnlyList<DemChiNhanhRow>> DemHopDongQuaHanAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, DateTime homNayVnBatDauUtc, CancellationToken ct = default)
-        {
-            Record(nameof(DemHopDongQuaHanAsync), branchId, allowedBranchIds, homNayVnBatDauUtc);
-            var rows = HopDongQuaHan
+            var quaHan = HopDongQuaHan
                 .Where(h => h.ThoiDiemKetThuc < homNayVnBatDauUtc)
                 .GroupBy(h => new { h.ChiNhanhId, h.Ten })
                 .Select(g => new DemChiNhanhRow { ChiNhanhId = g.Key.ChiNhanhId, TenChiNhanh = g.Key.Ten, SoLuong = g.Count() })
                 .ToList();
-            return Task.FromResult<IReadOnlyList<DemChiNhanhRow>>(rows);
+            return Task.FromResult(new DemHopDongHetHanRows { SapHetHan = sapHetHan, QuaHan = quaHan });
         }
 
         public Task<IReadOnlyList<DemHoaDonRow>> DemHopDongDaTraPhongConNoAsync(int? branchId, IReadOnlyCollection<int>? allowedBranchIds, CancellationToken ct = default)

@@ -116,7 +116,9 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             var tongHop = await service.GetTongHopAsync(Staff, null);
 
             Assert.DoesNotContain(tongHop.Items, i => i.MaViec == "HD2");
-            Assert.False(store.WasCalled(nameof(store.DemHoaDonChoDuyetAsync)));
+            // HD1-HD3 chung một truy vấn: nhân viên gọi với gomChoDuyet = false nên store không đọc hóa đơn chờ duyệt.
+            var chuaGui = store.Single(nameof(store.DemHoaDonChuaGuiAsync));
+            Assert.Equal(new object?[] { true, false, true }, chuaGui.Args);
             Assert.Contains(tongHop.Items, i => i.MaViec == "HD1");
             Assert.Equal(2, tongHop.TongSo);
         }
@@ -130,7 +132,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             var tongHop = await service.GetTongHopAsync(Admin, null);
 
             Assert.Equal(3, Item(tongHop, "HD2").SoLuong);
-            Assert.True(store.WasCalled(nameof(store.DemHoaDonChoDuyetAsync)));
+            Assert.Equal(new object?[] { true, true, true }, store.Single(nameof(store.DemHoaDonChuaGuiAsync)).Args);
         }
 
         // 4b. HD2 đếm cả hóa đơn tạm tính cũ; không còn việc HD4
@@ -160,6 +162,30 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             var tongHop = await service.GetTongHopAsync(Admin, null);
 
             Assert.DoesNotContain(tongHop.Items, i => i.MaViec == "HD4");
+        }
+
+        // Huy hiệu chạy trên mọi trang quản lý: các mục cùng bảng dùng chung một lần gọi store
+        // (docs/features/toi-uu-hieu-nang, bước 16). Thêm mục mới thì gộp vào truy vấn sẵn có nếu cùng bảng.
+        [Fact]
+        public async Task TongHop_GomMucCungBang_MoiNhomMotLanGoiStore()
+        {
+            var (service, store) = Create(AdminScope());
+
+            await service.GetTongHopAsync(Admin, null);
+
+            Assert.Equal(new[]
+            {
+                nameof(store.GetHopDongDangHoatDongAsync),   // CS1
+                nameof(store.GetKyChiSoDaChotAsync),         // CS1
+                nameof(store.DemAnhChiSoChoXacNhanAsync),    // CS2
+                nameof(store.DemHoaDonChuaGuiAsync),         // HD1, HD2, HD3
+                nameof(store.GetKyDaChotChuaCoHoaDonAsync),  // HD5
+                nameof(store.DemMinhChungChoDoiChieuAsync),  // TT1
+                nameof(store.DemHoaDonDaGuiChuaThuDuAsync),  // TT2, TT3
+                nameof(store.DemSuCoCanXuLyAsync),           // KH1, KH2
+                nameof(store.DemHopDongHetHanAsync),         // KH3, KH4
+                nameof(store.DemHopDongDaTraPhongConNoAsync) // KH5
+            }, store.Calls.Select(c => c.Method).ToArray());
         }
 
         // 5. Truyền phạm vi xuống store
@@ -288,7 +314,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
 
             await service.GetTongHopAsync(Admin, null);
 
-            var call = store.Single(nameof(store.DemHopDongSapHetHanAsync));
+            var call = store.Single(nameof(store.DemHopDongHetHanAsync));
             Assert.Equal(new DateTime(2027, 1, 9, 17, 0, 0), (DateTime)call.Args[0]!);
             Assert.Equal(new DateTime(2027, 2, 9, 17, 0, 0), (DateTime)call.Args[1]!);
             Assert.Equal(new DateTime(2027, 1, 17, 17, 0, 0), (DateTime)call.Args[2]!);
@@ -450,8 +476,9 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
 
             await service.GetTongHopAsync(Admin, null);
 
-            Assert.Equal(Now, (DateTime)store.Single(nameof(store.DemHoaDonQuaHanAsync)).Args[0]!);
-            Assert.Equal(Now, (DateTime)store.Single(nameof(store.DemHoaDonDaGuiChuaToiHanAsync)).Args[0]!);
+            // TT2 và TT3 chung một truy vấn.
+            Assert.Equal(Now, (DateTime)store.Single(nameof(store.DemHoaDonDaGuiChuaThuDuAsync)).Args[0]!);
+            Assert.False(store.WasCalled(nameof(store.DemHoaDonQuaHanAsync)));
         }
 
         // 12. Link
@@ -837,7 +864,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.Equal(MucUuTienViec.Khan, item.MucUuTien);
             Assert.Equal(1, item.SoLuong);
             Assert.StartsWith("/QuanLyNhaTro/QuanLyHopDong?boLoc=QuaHan", item.Link);
-            Assert.Equal(new DateTime(2027, 1, 9, 17, 0, 0, DateTimeKind.Utc), store.Single(nameof(store.DemHopDongQuaHanAsync)).Args[0]);
+            Assert.Equal(new DateTime(2027, 1, 9, 17, 0, 0, DateTimeKind.Utc), store.Single(nameof(store.DemHopDongHetHanAsync)).Args[0]);
         }
 
         // KH5: khách đã trả phòng còn nợ.
@@ -864,7 +891,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             await service.GetTongHopAsync(Staff, null);
 
             Assert.False(store.WasCalled(nameof(store.DemHopDongDaTraPhongConNoAsync)));
-            Assert.False(store.WasCalled(nameof(store.DemHopDongQuaHanAsync)));
+            Assert.False(store.WasCalled(nameof(store.DemHopDongHetHanAsync)));
         }
     }
 }

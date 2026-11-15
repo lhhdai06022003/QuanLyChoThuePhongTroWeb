@@ -81,31 +81,37 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.ViecCanLam.Services
                 }
             }
 
-            // HD1
-            if (DuocPhep(scope, EmployeeActionCodes.InvoiceSubmit))
+            // HD1-HD3: một truy vấn cho cả ba mục; mục nào người dùng không có quyền thì store không đọc.
+            var coHd1 = DuocPhep(scope, EmployeeActionCodes.InvoiceSubmit);
+            var coHd2 = DuocPhep(scope, EmployeeActionCodes.InvoiceFinalize); // chỉ Admin
+            var coHd3 = DuocPhep(scope, EmployeeActionCodes.InvoiceSend);
+            if (coHd1 || coHd2 || coHd3)
             {
-                var rows = await _store.DemHoaDonNhapAsync(branchId, allowed, ct);
-                var dongs = TuHoaDon(rows);
-                ThemViec(items, "HD1", NhomViec.HoaDon, MucUuTienViec.CanLam, "Hóa đơn nháp chưa gửi duyệt", dongs, branchId,
-                    $"/QuanLyNhaTro/QuanLyHoaDon?thang=0&nam={NamCuNhat(dongs)}&trangThaiPhatHanh=0");
-            }
+                var chuaGui = await _store.DemHoaDonChuaGuiAsync(branchId, allowed, coHd1, coHd2, coHd3, ct);
 
-            // HD2 (chỉ Admin)
-            if (DuocPhep(scope, EmployeeActionCodes.InvoiceFinalize))
-            {
-                var rows = await _store.DemHoaDonChoDuyetAsync(branchId, allowed, ct);
-                var dongs = TuHoaDon(rows);
-                ThemViec(items, "HD2", NhomViec.HoaDon, MucUuTienViec.CanLam, "Hóa đơn chờ Admin chốt", dongs, branchId,
-                    $"/QuanLyNhaTro/QuanLyHoaDon?thang=0&nam={NamCuNhat(dongs)}&trangThaiPhatHanh=1");
-            }
+                // HD1
+                if (coHd1)
+                {
+                    var dongs = TuHoaDon(chuaGui.Nhap);
+                    ThemViec(items, "HD1", NhomViec.HoaDon, MucUuTienViec.CanLam, "Hóa đơn nháp chưa gửi duyệt", dongs, branchId,
+                        $"/QuanLyNhaTro/QuanLyHoaDon?thang=0&nam={NamCuNhat(dongs)}&trangThaiPhatHanh=0");
+                }
 
-            // HD3
-            if (DuocPhep(scope, EmployeeActionCodes.InvoiceSend))
-            {
-                var rows = await _store.DemHoaDonDaChotChuaGuiAsync(branchId, allowed, ct);
-                var dongs = TuHoaDon(rows);
-                ThemViec(items, "HD3", NhomViec.HoaDon, MucUuTienViec.CanLam, "Hóa đơn đã chốt, chưa gửi khách", dongs, branchId,
-                    $"/QuanLyNhaTro/QuanLyHoaDon?thang=0&nam={NamCuNhat(dongs)}&trangThaiPhatHanh=2");
+                // HD2 (chỉ Admin)
+                if (coHd2)
+                {
+                    var dongs = TuHoaDon(chuaGui.ChoDuyet);
+                    ThemViec(items, "HD2", NhomViec.HoaDon, MucUuTienViec.CanLam, "Hóa đơn chờ Admin chốt", dongs, branchId,
+                        $"/QuanLyNhaTro/QuanLyHoaDon?thang=0&nam={NamCuNhat(dongs)}&trangThaiPhatHanh=1");
+                }
+
+                // HD3
+                if (coHd3)
+                {
+                    var dongs = TuHoaDon(chuaGui.DaChotChuaGui);
+                    ThemViec(items, "HD3", NhomViec.HoaDon, MucUuTienViec.CanLam, "Hóa đơn đã chốt, chưa gửi khách", dongs, branchId,
+                        $"/QuanLyNhaTro/QuanLyHoaDon?thang=0&nam={NamCuNhat(dongs)}&trangThaiPhatHanh=2");
+                }
             }
 
             // HD5: chuỗi tự tạo hóa đơn đã dừng (và đã báo nhân viên) nên phải xử lý tay
@@ -125,25 +131,29 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.ViecCanLam.Services
 
             if (DuocPhep(scope, EmployeeActionCodes.InvoiceRead))
             {
+                // TT2, TT3: một lần đọc hóa đơn đã gửi chưa thu đủ, store chia theo đã quá hạn hay chưa.
+                var chuaThuDu = await _store.DemHoaDonDaGuiChuaThuDuAsync(branchId, allowed, nowUtc, ct);
+
                 // TT2
-                var quaHan = await _store.DemHoaDonQuaHanAsync(branchId, allowed, nowUtc, ct);
-                var dongsQuaHan = TuHoaDon(quaHan);
+                var dongsQuaHan = TuHoaDon(chuaThuDu.QuaHan);
                 ThemViec(items, "TT2", NhomViec.ThuTien, MucUuTienViec.Khan, "Hóa đơn quá hạn", dongsQuaHan, branchId,
                     "/QuanLyNhaTro/ViecCanLam#hoa-don-qua-han", tongConNo: dongsQuaHan.Sum(d => d.TongConNo));
 
                 // TT3
-                var chuaToiHan = await _store.DemHoaDonDaGuiChuaToiHanAsync(branchId, allowed, nowUtc, ct);
-                var dongsChuaToiHan = TuHoaDon(chuaToiHan);
+                var dongsChuaToiHan = TuHoaDon(chuaThuDu.ChuaToiHan);
                 ThemViec(items, "TT3", NhomViec.ThuTien, MucUuTienViec.TheoDoi, "Hóa đơn đã gửi, chưa thu đủ", dongsChuaToiHan, branchId,
                     $"/QuanLyNhaTro/QuanLyHoaDon?thang=0&nam={NamCuNhat(dongsChuaToiHan)}&trangThaiPhatHanh=3",
                     tongConNo: dongsChuaToiHan.Sum(d => d.TongConNo));
             }
 
+            // KH1, KH2: một truy vấn cho sự cố chờ tiếp nhận và sự cố xử lý quá lâu.
+            var suCo = await _store.DemSuCoCanXuLyAsync(branchId, allowed,
+                nowUtc.AddHours(-_settings.SuCoChoTiepNhanGapSauGio),
+                nowUtc.AddDays(-_settings.SuCoXuLyQuaLauSauNgay), ct);
+
             // KH1
             {
-                var mocGapUtc = nowUtc.AddHours(-_settings.SuCoChoTiepNhanGapSauGio);
-                var rows = await _store.DemSuCoChoTiepNhanAsync(branchId, allowed, mocGapUtc, ct);
-                var dongs = rows.Select(r => new DongChiNhanh(r.ChiNhanhId, r.TenChiNhanh, r.SoLuong, r.SoLuongGap)).ToList();
+                var dongs = suCo.ChoTiepNhan.Select(r => new DongChiNhanh(r.ChiNhanhId, r.TenChiNhanh, r.SoLuong, r.SoLuongGap)).ToList();
                 var gap = dongs.Sum(d => d.SoLuongGap);
                 ThemViec(items, "KH1", NhomViec.KhachThueHopDong, gap > 0 ? MucUuTienViec.Khan : MucUuTienViec.CanLam,
                     "Sự cố chờ tiếp nhận", dongs, branchId, "/QuanLyNhaTro/YeuCauSuCo?trangThai=0&soThang=0",
@@ -152,19 +162,19 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.ViecCanLam.Services
 
             // KH2
             {
-                var mocUtc = nowUtc.AddDays(-_settings.SuCoXuLyQuaLauSauNgay);
-                var rows = await _store.DemSuCoXuLyQuaLauAsync(branchId, allowed, mocUtc, ct);
-                var dongs = rows.Select(r => new DongChiNhanh(r.ChiNhanhId, r.TenChiNhanh, r.SoLuong)).ToList();
+                var dongs = suCo.XuLyQuaLau.Select(r => new DongChiNhanh(r.ChiNhanhId, r.TenChiNhanh, r.SoLuong)).ToList();
                 ThemViec(items, "KH2", NhomViec.KhachThueHopDong, MucUuTienViec.CanLam, "Sự cố xử lý quá lâu", dongs, branchId,
                     "/QuanLyNhaTro/YeuCauSuCo?trangThai=1&soThang=0");
             }
 
+            // KH3, KH4: một truy vấn cho hợp đồng sắp hết hạn và hợp đồng đã quá hạn.
+            var hopDongHetHan = await _store.DemHopDongHetHanAsync(branchId, allowed, homNayVnBatDauUtc,
+                homNayVnBatDauUtc.AddDays(_settings.HopDongSapHetHanTrongNgay + 1),
+                homNayVnBatDauUtc.AddDays(_settings.HopDongSapHetHanGapTrongNgay + 1), ct);
+
             // KH3
             {
-                var denTruocUtc = homNayVnBatDauUtc.AddDays(_settings.HopDongSapHetHanTrongNgay + 1);
-                var gapTruocUtc = homNayVnBatDauUtc.AddDays(_settings.HopDongSapHetHanGapTrongNgay + 1);
-                var rows = await _store.DemHopDongSapHetHanAsync(branchId, allowed, homNayVnBatDauUtc, denTruocUtc, gapTruocUtc, ct);
-                var dongs = rows.Select(r => new DongChiNhanh(r.ChiNhanhId, r.TenChiNhanh, r.SoLuong, r.SoLuongGap)).ToList();
+                var dongs = hopDongHetHan.SapHetHan.Select(r => new DongChiNhanh(r.ChiNhanhId, r.TenChiNhanh, r.SoLuong, r.SoLuongGap)).ToList();
                 var gap = dongs.Sum(d => d.SoLuongGap);
                 ThemViec(items, "KH3", NhomViec.KhachThueHopDong, gap > 0 ? MucUuTienViec.CanLam : MucUuTienViec.TheoDoi,
                     "Hợp đồng sắp hết hạn", dongs, branchId, "/QuanLyNhaTro/QuanLyHopDong",
@@ -173,8 +183,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.ViecCanLam.Services
 
             // KH4: hợp đồng đã quá hạn mà chưa thanh lý hay gia hạn
             {
-                var rows = await _store.DemHopDongQuaHanAsync(branchId, allowed, homNayVnBatDauUtc, ct);
-                var dongs = rows.Select(r => new DongChiNhanh(r.ChiNhanhId, r.TenChiNhanh, r.SoLuong)).ToList();
+                var dongs = hopDongHetHan.QuaHan.Select(r => new DongChiNhanh(r.ChiNhanhId, r.TenChiNhanh, r.SoLuong)).ToList();
                 ThemViec(items, "KH4", NhomViec.KhachThueHopDong, MucUuTienViec.Khan, "Hợp đồng đã quá hạn chưa xử lý", dongs, branchId,
                     "/QuanLyNhaTro/QuanLyHopDong?boLoc=QuaHan");
             }

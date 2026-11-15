@@ -895,5 +895,122 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.Persistence
 
             await tx.RollbackAsync();
         }
+
+        // 10. Truy vấn gộp (docs/features/toi-uu-hieu-nang, bước 16). Điều kiện của từng mục do các test ở trên chốt
+        // qua ViecCanLamStoreSingleItemAdapters; phần này chốt riêng việc gộp: cờ tắt mục, chia đôi không sót không trùng.
+
+        [Fact]
+        public async Task HoaDonChuaGui_CoTatMuc_KhongTraMucDo_VaKhongDoiSoCuaMucKhac()
+        {
+            await using var db = _fixture.CreateDbContext();
+            await using var tx = await db.Database.BeginTransactionAsync();
+            var w = await SeedAsync(db);
+            var store = Store(db);
+
+            var tatCa = await store.DemHoaDonChuaGuiAsync(w.A.ChiNhanhId, null, true, true, true);
+            var nhanVien = await store.DemHoaDonChuaGuiAsync(w.A.ChiNhanhId, null, true, false, true);
+            var chiChoDuyet = await store.DemHoaDonChuaGuiAsync(w.A.ChiNhanhId, null, false, true, false);
+            var khongMucNao = await store.DemHoaDonChuaGuiAsync(w.A.ChiNhanhId, null, false, false, false);
+
+            Assert.NotEmpty(tatCa.Nhap);
+            Assert.NotEmpty(tatCa.ChoDuyet);
+            Assert.NotEmpty(tatCa.DaChotChuaGui);
+
+            Assert.Empty(nhanVien.ChoDuyet);
+            Assert.Equal(Assert.Single(tatCa.Nhap).SoLuong, Assert.Single(nhanVien.Nhap).SoLuong);
+            Assert.Equal(Assert.Single(tatCa.Nhap).NamCuNhat, Assert.Single(nhanVien.Nhap).NamCuNhat);
+            Assert.Equal(Assert.Single(tatCa.DaChotChuaGui).SoLuong, Assert.Single(nhanVien.DaChotChuaGui).SoLuong);
+
+            Assert.Empty(chiChoDuyet.Nhap);
+            Assert.Empty(chiChoDuyet.DaChotChuaGui);
+            Assert.Equal(Assert.Single(tatCa.ChoDuyet).SoLuong, Assert.Single(chiChoDuyet.ChoDuyet).SoLuong);
+
+            Assert.Empty(khongMucNao.Nhap);
+            Assert.Empty(khongMucNao.ChoDuyet);
+            Assert.Empty(khongMucNao.DaChotChuaGui);
+
+            await tx.RollbackAsync();
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(10)] // qua đúng hạn của hóa đơn "edge" 1 micro giây
+        public async Task HoaDonDaGuiChuaThuDu_PhanQuaHanKhopDemHoaDonQuaHan_VaHaiPhanKhongSotKhongTrung(long ticksSauNow)
+        {
+            await using var db = _fixture.CreateDbContext();
+            await using var tx = await db.Database.BeginTransactionAsync();
+            var w = await SeedAsync(db);
+            var store = Store(db);
+            var now = Now.AddTicks(ticksSauNow);
+            var allowed = new[] { w.A.ChiNhanhId, w.B.ChiNhanhId };
+
+            var gop = await store.DemHoaDonDaGuiChuaThuDuAsync(null, allowed, now);
+            var quaHanRieng = await store.DemHoaDonQuaHanAsync(null, allowed, now);
+
+            static (int, int, int, decimal)[] Khoa(IEnumerable<QuanLyChoThuePhongTroWeb.Application.Features.ViecCanLam.DTOs.DemHoaDonRow> rows)
+                => rows.Select(r => (r.ChiNhanhId, r.SoLuong, r.NamCuNhat, r.TongConNo)).OrderBy(x => x.ChiNhanhId).ToArray();
+
+            Assert.NotEmpty(quaHanRieng);
+            Assert.Equal(Khoa(quaHanRieng), Khoa(gop.QuaHan));
+
+            // Mỗi hóa đơn đã gửi chưa thu đủ nằm ở đúng một trong hai phần.
+            var tongSo = db.HoaDons.Count(h => !h.IsDeleted
+                && h.TrangThaiPhatHanh == TrangThaiPhatHanhHoaDon.DaGui
+                && h.TrangThaiHoaDon != TrangThaiHoaDon.DaThanhToan
+                && allowed.Contains(h.HopDong.PhongTro.ChiNhanhId));
+            Assert.Equal(tongSo, gop.QuaHan.Sum(r => r.SoLuong) + gop.ChuaToiHan.Sum(r => r.SoLuong));
+            Assert.All(gop.QuaHan.Concat(gop.ChuaToiHan), r => Assert.True(r.SoLuong > 0));
+
+            await tx.RollbackAsync();
+        }
+
+        [Fact]
+        public async Task HopDongHetHan_ChiaDungHaiKhoang_KhongCoDongSoKhong()
+        {
+            await using var db = _fixture.CreateDbContext();
+            await using var tx = await db.Database.BeginTransactionAsync();
+            var w = await SeedAsync(db);
+            var store = Store(db);
+            var a = w.A.ChiNhanhId;
+
+            var gop = await store.DemHopDongHetHanAsync(a, null, Tu, Den, Gap);
+
+            IQueryable<HopDong> DangHoatDong() => db.HopDongs.Where(h => !h.IsDeleted
+                && h.TrangThaiHopDong == TrangThaiHopDong.DangHoatDong
+                && h.ThoiDiemKetThuc != null
+                && h.PhongTro.ChiNhanhId == a);
+            Assert.Equal(DangHoatDong().Count(h => h.ThoiDiemKetThuc < Tu), gop.QuaHan.Sum(r => r.SoLuong));
+            Assert.Equal(DangHoatDong().Count(h => h.ThoiDiemKetThuc >= Tu && h.ThoiDiemKetThuc < Den), gop.SapHetHan.Sum(r => r.SoLuong));
+            Assert.Equal(DangHoatDong().Count(h => h.ThoiDiemKetThuc >= Tu && h.ThoiDiemKetThuc < Gap), gop.SapHetHan.Sum(r => r.SoLuongGap));
+            Assert.All(gop.QuaHan.Concat(gop.SapHetHan), r => Assert.True(r.SoLuong > 0));
+
+            // Khoảng "sắp hết hạn" rỗng (den = tu) thì KH3 không có dòng, KH4 không đổi.
+            var chiQuaHan = await store.DemHopDongHetHanAsync(a, null, Tu, Tu, Tu);
+            Assert.Empty(chiQuaHan.SapHetHan);
+            Assert.Equal(gop.QuaHan.Sum(r => r.SoLuong), chiQuaHan.QuaHan.Sum(r => r.SoLuong));
+
+            await tx.RollbackAsync();
+        }
+
+        [Fact]
+        public async Task SuCoCanXuLy_HaiMocDocLap_KhongAnhHuongNhau()
+        {
+            await using var db = _fixture.CreateDbContext();
+            await using var tx = await db.Database.BeginTransactionAsync();
+            var w = await SeedAsync(db);
+            var store = Store(db);
+
+            // Service truyền hai mốc khác nhau: mốc gấp của KH1 (24 giờ) và mốc quá lâu của KH2 (7 ngày).
+            var gop = await store.DemSuCoCanXuLyAsync(w.A.ChiNhanhId, null, Now.AddHours(-24), Now.AddDays(-7));
+
+            var kh1 = Assert.Single(gop.ChoTiepNhan);
+            Assert.Equal(4, kh1.SoLuong);
+            Assert.Equal(3, kh1.SoLuongGap);
+            var kh2 = Assert.Single(gop.XuLyQuaLau);
+            Assert.Equal(2, kh2.SoLuong);
+            Assert.Equal(0, kh2.SoLuongGap);
+
+            await tx.RollbackAsync();
+        }
     }
 }
