@@ -11,7 +11,8 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
         {
             ["Areas/QuanLyNhaTro/Views/DienNuoc/Index.cshtml"] = "chot-dien-nuoc.js",
             ["Areas/QuanLyNhaTro/Views/DienNuoc/_AnhChiSoModal.cshtml"] = "anh-chi-so-modal.js",
-            ["Areas/QuanLyNhaTro/Views/HoaDon/Index.cshtml"] = "hoadon-danh-sach.js"
+            ["Areas/QuanLyNhaTro/Views/HoaDon/Index.cshtml"] = "hoadon-danh-sach.js",
+            ["Areas/QuanLyNhaTro/Views/PhongTros/QuanLyPhongTro.cshtml"] = "quan-ly-phong-tro.js"
         };
 
         public static string WebRoot()
