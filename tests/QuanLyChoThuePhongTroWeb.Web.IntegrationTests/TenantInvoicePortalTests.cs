@@ -751,7 +751,9 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             var res = await client.GetAsync("/KhachThue/HoaDon");
             Assert.Equal(HttpStatusCode.OK, res.StatusCode);
 
-            var html = await res.Content.ReadAsStringAsync();
+            // JS của màn nằm ở wwwroot/js/khachthue-hoa-don.js: kiểm cả HTML lẫn file JS mà trang nạp.
+            var html = ViewSource.WithOwnScripts(await res.Content.ReadAsStringAsync());
+            Assert.Contains("/js/khachthue-hoa-don.js?v=", html);
             Assert.DoesNotContain("Tạm tính", html);
             Assert.DoesNotContain("laTamTinh", html);
             Assert.Contains("Nếu thấy sai sót, vui lòng", html);

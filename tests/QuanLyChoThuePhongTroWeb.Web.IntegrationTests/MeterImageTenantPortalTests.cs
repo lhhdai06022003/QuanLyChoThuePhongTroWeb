@@ -137,7 +137,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
                 var response = await client.GetAsync("/KhachThue/ChiSoDienNuoc");
                 Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
-                var html = await response.Content.ReadAsStringAsync();
+                var html = ViewSource.WithOwnScripts(await response.Content.ReadAsStringAsync());
                 Assert.DoesNotContain("type=\"number\"", html);
                 Assert.Contains("capture=\"environment\"", html);
             }

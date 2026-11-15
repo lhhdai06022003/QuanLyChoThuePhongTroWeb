@@ -629,7 +629,8 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             var seed = await SeedAsync();
             var (tenant, _) = await LoginAsync(NewClient(), seed.Tenant, "/KhachThue/HoaDon");
 
-            var html = await (await tenant.GetAsync("/KhachThue/HoaDon")).Content.ReadAsStringAsync();
+            // JS của màn nằm ở wwwroot/js/khachthue-hoa-don.js: kiểm cả HTML lẫn file JS mà trang nạp.
+            var html = ViewSource.WithOwnScripts(await (await tenant.GetAsync("/KhachThue/HoaDon")).Content.ReadAsStringAsync());
 
             Assert.Contains("/js/khachthue-thanhtoan.js", html);
             Assert.Contains("KtThanhToan.watch(", html);
