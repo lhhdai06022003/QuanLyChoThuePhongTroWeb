@@ -22,6 +22,7 @@ Nhánh `feature/toi-uu-hieu-nang`. Phạm vi đã duyệt (08/11/2026): bước 
 | 18 | Tách JS nhúng của 13 view còn lại (9 view quản lý, 4 view khách thuê) |
 | 19 | Trang Việc cần làm: bảng quá hạn dùng số đã đếm của mục TT2 |
 | 20 | Cổng quản lý và khách thuê nạp thư viện từ `wwwroot/lib` thay cho CDN |
+| 21 | Hàm escape HTML và định dạng tiền của hai cổng gom về `site.js` |
 
 ## Số đo gốc (commit bước 0)
 
@@ -251,6 +252,58 @@ Giới hạn đã biết của bước 20: Font Awesome chỉ chép `woff2` (CSS
 
 Test chặn hồi quy: `NoCdnGuardTests` (view hai cổng không nạp CSS/JS từ máy chủ khác; mọi file `/lib` trên trang trả 200 và cache một năm; `url()` woff2 trỏ file có thật), `ViewInlineScriptGuardTests` (nay 18 view), `ViecCanLamServiceTests.OverdueTable_WithKnownTotal_*`, `QueryBudgetTests` (trang Việc cần làm tối đa huy hiệu + 2 lệnh), sáu lớp test soát tĩnh đọc view kèm JS qua `ViewSource`.
 
+## Giai đoạn 6: bước 21 (15/11/2026)
+
+Cùng nhánh `feature/toi-uu-hieu-nang-2`, người dùng duyệt 15/11/2026 (nhóm C của đề xuất). Mục tiêu là dễ đọc, không phải tốc độ.
+
+| Commit | Nội dung |
+| --- | --- |
+| `24d24ae` | `site.js` có `window.escapeHtml(value)` (null và undefined thành chuỗi rỗng, số 0 vẫn ra "0") và `window.formatVND(n)` (null và undefined coi là 0, một đối tượng `Intl.NumberFormat` tạo một lần). `thongbao.js` bỏ bản riêng |
+| `a43f6ad` | 7 file có bản escape cùng cách xử lý null: `anh-chi-so-viewer.js`, `phan-cong-chi-nhanh.js` gọi thẳng hàm chung; năm file thanh toán (`doi-chieu-thanh-toan.js`, `giao-dich-sepay.js`, `hoadon-dieuchinh.js`, `hoadon-thanhtoan-quanly.js`, `khachthue-thanhtoan.js`) giữ tên `esc` qua dòng `var esc = window.escapeHtml;` |
+| `9dca1cb` | 15 chỗ có bản escape đổi mọi giá trị rỗng kiểu JS thành chuỗi rỗng (13 file JS gọi thẳng hàm chung, `lich-su-thanh-toan.js` giữ tên `esc`, view `KhachThue/LichSuThanhToan/Index.cshtml`) |
+| `186c475` | 10 chỗ bỏ `formatVND` riêng; `dang-ky-dich-vu.js` đổi `formatVNDShort` thành `formatVND` |
+
+### Số đo trước và sau
+
+| Hạng mục | Trước | Sau |
+| --- | --- | --- |
+| Bản khai báo hàm escape HTML (`escapeHtml`, `esc`) trong `wwwroot/js` và view hai cổng | 24 | 2 (`site.js`, `ai-chat-widget.js`) |
+| Bản khai báo `formatVND` / `formatVNDShort` | 10 | 1 (`site.js`) |
+| Dòng mã trong `src` | | −241, +33 |
+| Tổng dung lượng `wwwroot/js/*.js` | 610.926 B | 604.117 B |
+
+Số lệnh SQL và thời gian server không đổi (không sửa mã phía server).
+
+### Khác biệt giữa các bản cũ và cách giữ nguyên kết quả
+
+So bằng một script Node chạy hàm mới và từng biến thể cũ trên cùng bảng đầu vào (null, undefined, chuỗi rỗng, chuỗi có `< > & " '`, số 0, số khác 0, `false`, `NaN`, mảng):
+
+- **Ký tự nháy đơn:** 5 bản cũ sinh `&#39;`, 18 bản sinh `&#039;`. Hàm chung sinh `&#039;`; trình duyệt hiểu hai dạng như nhau.
+- **Số 0, `false`, `NaN`:** 15 bản cũ trả chuỗi rỗng, hàm chung trả `"0"`, `"false"`, `"NaN"`. Đã soát 178 chỗ gọi của 15 bản này: đều truyền chuỗi (tên, mã, ngày đã định dạng) hoặc mã định danh luôn lớn hơn 0. Riêng ô số lượng ở modal chi tiết của Lịch sử thanh toán có thể bằng 0, nên giữ cách hiện cũ bằng `esc(ct.soLuong || '')` (có test).
+- **`formatVND(null)`:** 6 bản cũ trả `"0 ₫"` với dấu cách thường, hàm chung trả dấu cách không ngắt như mọi số khác. Mắt thường không phân biệt.
+- **`formatVND(NaN)`:** 4 bản cũ (dạng `n || 0`) trả `"0 ₫"`, hàm chung trả `"NaN ₫"`. Các chỗ gọi của 4 bản này chỉ truyền thẳng trường số từ JSON nên không gặp `NaN`.
+- **Không gom:** hàm `vnd` của năm file thanh toán (nhận kết quả phép trừ từ ô nhập, dựa vào việc `NaN` thành `0 ₫`), `dinhDangTien` của `dashboard.js` (dạng `1.000.000 đ`), các bộ định dạng của `bao-cao.js`, và `escapeHtml` của `ai-chat-widget.js` (không đổi null thành chuỗi rỗng).
+
+Điểm lệch có sẵn, không sửa trong bước này: ô số lượng bằng 0 hiện trống ở Lịch sử thanh toán nhưng hiện "0" ở trang Hóa đơn.
+
+### Kiểm chứng (15/11/2026)
+
+| Lệnh hoặc thao tác | Kết quả |
+| --- | --- |
+| `dotnet test` Web, sau commit cuối | PASS 1059/1059 (thêm 9 test của `SharedJsHelperGuardTests`) |
+| `dotnet test` Domain / Application / Infrastructure | KHÔNG ÁP DỤNG: bước này chỉ sửa file JS, một view và test tầng Web |
+| `node --check` trên 23 file JS đã sửa | PASS |
+| Script Node so hàm mới với bốn biến thể escape và hai biến thể định dạng tiền cũ | Khác biệt đúng như mục trên, không có khác biệt nào khác |
+| `soat-giao-dien.js` trên 24 file đã sửa | 0 LỖI |
+| Trình duyệt, DB test, nhân viên: Hóa đơn, Phòng trọ (modal chi tiết, modal dịch vụ), Người thuê, Hợp đồng, Lịch sử thanh toán, Sơ đồ phòng, Dịch vụ, Chỉ số điện nước, Đối chiếu, Thông báo | PASS: tiền dạng `2.000.000 ₫`, không ô nào hiện `undefined`, `NaN` hay thực thể HTML thô, console không có lỗi mới |
+| Trình duyệt, Admin: Hóa đơn (modal chi tiết, thu tiền, điều chỉnh), Lịch sử thanh toán (6 modal chi tiết), Đối chiếu (khung đối chiếu), Giao dịch SePay, Chi nhánh, Tài khoản, Phân công, Dịch vụ (bảng giá) | PASS. Một lỗi 400 khi tải ảnh minh chứng của dữ liệu test (`/DoiChieuThanhToan/AnhMinhChung/2`), không liên quan bước này |
+| Trình duyệt, khách thuê: Hóa đơn, Hợp đồng (modal chi tiết), Chỉ số điện nước, Lịch sử thanh toán, Thông báo | PASS, console sạch |
+| Chế độ tối và 375px | KHÔNG ÁP DỤNG: không đổi HTML hay CSS |
+
+Ảnh `hieu-nang-29`, `30` trong `hinhanhprojectdemo`. Chưa kiểm trên trình duyệt: ô số lượng của modal chi tiết ở Lịch sử thanh toán và danh sách đăng ký dịch vụ có giá (dữ liệu test của các tài khoản dùng để kiểm không có dòng phí và dịch vụ có giá); hai chỗ này chỉ có test tĩnh và phép so bằng Node. Chưa thao tác lưu hay xóa.
+
+Test chặn hồi quy: `SharedJsHelperGuardTests` (`site.js` có hai hàm và đủ năm ký tự cần mã hóa; hai layout nạp `site.js` trước section Scripts và `thongbao.js`; không file JS hay view nào của hai cổng khai báo lại `escapeHtml`, `esc`, `formatVND`, `formatVNDShort`; ô số lượng của Lịch sử thanh toán giữ `|| ''`), `TenantOnlinePaymentSecurityTests` (đọc thân hàm escape từ `site.js`).
+
 ## Còn có thể làm tiếp (chưa duyệt)
 
 - **Chốt kỳ còn khoảng 41 lệnh mỗi phòng trên DB test** (khoảng 27 với dữ liệu thật vì thông báo không còn bị phồng): đánh giá lại 8, tạo hóa đơn nháp 13, báo nhân viên, phần duyệt còn lại (lan truyền kỳ sau, lưu). Giảm tiếp phải tạo hóa đơn nháp theo lô cho cả chi nhánh, đổi cách mỗi phòng chạy độc lập và báo lỗi riêng: chưa đề xuất.
@@ -258,7 +311,7 @@ Test chặn hồi quy: `NoCdnGuardTests` (view hai cổng không nạp CSS/JS t�
 - **Huy hiệu Việc cần làm còn 16 lệnh mỗi trang.** Muốn về 0 ở hầu hết lần mở trang thì nhớ kết quả 30 giây theo người dùng, đổi lại số trên huy hiệu chậm cập nhật: đổi hành vi, cần người dùng quyết.
 - **Font icon:** `tabler-icons.woff2` 778.812 B cho 128 icon đang dùng; Font Awesome (CSS 102 KB + font 150 KB từ CDN) cho khoảng 10 icon và `fa-spin`. Cắt font cần công cụ mới, bỏ Font Awesome phải đổi icon.
 - **JS nhúng còn lại:** khoảng 5,8 KB script của `_Layout.cshtml` trên mọi trang quản lý (cấu hình AJAX, SweetAlert2, Select2), `KhachThue/HoSo/Index.cshtml` (96 dòng) và các view dưới 90 dòng. Thêm view vào `ViewSource.OwnScripts` thì `ViewInlineScriptGuardTests` tự áp.
-- **Gom hàm JS trùng lặp:** hàm escape HTML khai báo ở 24 file, `formatVND` ở 9 file; các bản không giống hệt nhau nên chỉ gộp được bản trùng thân hàm.
+- **Hàm định dạng tiền còn riêng:** `vnd` ở năm file thanh toán (đổi `NaN` thành `0 ₫`), `dinhDangTien` của `dashboard.js`. Gom được nếu chấp nhận thêm `|| 0` ở từng chỗ gọi.
 - **Cổng khách vãng lai còn dùng CDN** (`_PublicRoomLayout`, `Views/Phong`): thuộc người phụ trách khác.
 - **Mỗi request quản lý đọc dòng người dùng hai lần** (kiểm phiên đăng nhập và phạm vi chi nhánh): gộp được thì bớt 1 lệnh mỗi request, nhưng đụng xác thực và quyền.
 - **Font trong `wwwroot/Theme`:** `.eot`, `.ttf`, `.woff` (5,3 MB) chỉ trình duyệt cũ dùng; giữ lại vì CSS còn tham chiếu.
