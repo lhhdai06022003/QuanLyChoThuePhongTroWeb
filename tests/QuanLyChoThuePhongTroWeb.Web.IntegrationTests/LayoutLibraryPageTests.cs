@@ -61,7 +61,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
 
             var html = await HtmlAsync(admin, "/QuanLyNhaTro/Dashboard");
 
-            InOrder(html, "npm/chart.js@4.6.1", "/js/dashboard.js");
+            InOrder(html, "/lib/chart.js/4.6.1/chart.umd.min.js", "/js/dashboard.js");
             Assert.DoesNotContain("flatpickr", html);
             Assert.DoesNotContain("select2.full.min.js", html);
         }

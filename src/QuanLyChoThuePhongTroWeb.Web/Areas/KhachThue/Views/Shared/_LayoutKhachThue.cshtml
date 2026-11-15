@@ -6,16 +6,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
     <title>@(string.IsNullOrEmpty(ViewBag.Title?.ToString()) ? "TroSync - Cổng khách thuê" : ViewBag.Title + " | TroSync")</title>
 
-    <!-- Google Font Be Vietnam Pro -->
-    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+    <!-- Font Be Vietnam Pro (wwwroot/lib) -->
+    <link href="~/lib/be-vietnam-pro/v12/be-vietnam-pro.css" asp-append-version="true" rel="stylesheet" />
+    <link rel="stylesheet" href="~/lib/font-awesome/6.4.2/css/all.min.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/Theme/tabler/dist/css/tabler-icons.min.css" asp-append-version="true" />
 
     <!-- CSS -->
     <link rel="stylesheet" href="~/Theme/tabler/dist/css/tabler.min.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/Theme/tabler/dist/css/tabler-vendors.min.css" asp-append-version="true" />
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" />
+    <link rel="stylesheet" href="~/lib/datatables/1.13.6/css/dataTables.bootstrap5.min.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/lib/sweetalert2/11.26.25/sweetalert2.min.css" asp-append-version="true" />
     <link rel="manifest" href="~/manifest.json" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/trosync-tokens.css" asp-append-version="true" />
@@ -116,7 +116,7 @@
     <script>
         window.bootstrap = window.tabler;
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="~/lib/sweetalert2/11.26.25/sweetalert2.all.min.js" asp-append-version="true"></script>
     <script>
         // Màu nút đọc từ biến CSS ngay lúc mở hộp thoại, vì người dùng đổi sáng/tối mà không tải lại trang.
         const mauBien = (ten) => getComputedStyle(document.documentElement).getPropertyValue(ten).trim() || undefined;
@@ -144,8 +144,8 @@
             window.showError = msg => Swal.fire({ icon: 'error', title: 'Lỗi', text: msg, confirmButtonColor: mauBien('--tblr-primary') });
         }
     </script>
-    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script src="~/lib/datatables/1.13.6/js/jquery.dataTables.min.js" asp-append-version="true"></script>
+    <script src="~/lib/datatables/1.13.6/js/dataTables.bootstrap5.min.js" asp-append-version="true"></script>
     <script>
         // Bản dịch tiếng Việt của DataTables (file cục bộ, có ?v= để cache lâu); bảng dùng: language: { url: window.dataTablesViUrl }.
         window.dataTablesViUrl = '@FileVersion.AddFileVersionToPath(Context.Request.PathBase, Url.Content("~/js/datatables-vi.json"))';
@@ -159,7 +159,7 @@
             };
         }
     </script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.12/signalr.min.js"></script>
+    <script src="~/lib/microsoft-signalr/7.0.12/signalr.min.js" asp-append-version="true"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     <script src="~/js/thongbao.js" asp-append-version="true"></script>
     @{ ViewData["AiChatPortal"] = "KhachThue"; }

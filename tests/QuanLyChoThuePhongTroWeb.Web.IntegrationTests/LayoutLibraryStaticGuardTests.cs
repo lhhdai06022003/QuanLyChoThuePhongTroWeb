@@ -49,7 +49,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             Assert.DoesNotContain("flatpickr.min.css", layout);
             Assert.DoesNotContain("select2.full.min.js", layout);
             Assert.DoesNotContain("select2.min.css", layout);
-            Assert.DoesNotContain("npm/chart.js", layout);
+            Assert.DoesNotContain("chart.umd", layout);
             Assert.Contains("RenderSectionAsync(\"ThuVienScripts\"", layout);
         }
 

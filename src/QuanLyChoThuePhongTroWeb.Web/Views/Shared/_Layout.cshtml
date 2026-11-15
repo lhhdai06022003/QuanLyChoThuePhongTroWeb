@@ -14,20 +14,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
     <title>@(string.IsNullOrEmpty(ViewBag.Title?.ToString()) ? "TroSync - Quản lý phòng trọ đa chi nhánh" : ViewBag.Title + " | TroSync")</title>
 
-    <!-- Google Font Be Vietnam Pro -->
-    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <!-- Font Be Vietnam Pro (wwwroot/lib) -->
+    <link href="~/lib/be-vietnam-pro/v12/be-vietnam-pro.css" asp-append-version="true" rel="stylesheet" />
 
-    <!-- FontAwesome CDN -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+    <!-- Font Awesome (wwwroot/lib) -->
+    <link rel="stylesheet" href="~/lib/font-awesome/6.4.2/css/all.min.css" asp-append-version="true" />
     
-    <!-- Tabler Icons CDN -->
+    <!-- Tabler Icons -->
     <link rel="stylesheet" href="~/Theme/tabler/dist/css/tabler-icons.min.css" asp-append-version="true" />
 
     <!-- CSS -->
     <link rel="stylesheet" href="~/Theme/tabler/dist/css/tabler.min.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/Theme/tabler/dist/css/tabler-vendors.min.css" asp-append-version="true" />
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" />
+    <link rel="stylesheet" href="~/lib/datatables/1.13.6/css/dataTables.bootstrap5.min.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/lib/sweetalert2/11.26.25/sweetalert2.min.css" asp-append-version="true" />
     @* CSS của flatpickr, Select2 chỉ nạp ở trang dùng, đầu @section Styles của trang (site.css và trosync-tokens.css
        không có quy tắc nào chạm phần tử của hai thư viện này nên thứ tự mới không đổi giao diện). *@
     <link rel="manifest" href="~/manifest.json" />
@@ -137,8 +137,8 @@
         window.bootstrap = window.tabler;
     </script>
 
-    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script src="~/lib/datatables/1.13.6/js/jquery.dataTables.min.js" asp-append-version="true"></script>
+    <script src="~/lib/datatables/1.13.6/js/dataTables.bootstrap5.min.js" asp-append-version="true"></script>
     <script>
         // Bản dịch tiếng Việt của DataTables (file cục bộ, có ?v= để cache lâu); bảng dùng: language: { url: window.dataTablesViUrl }.
         window.dataTablesViUrl = '@FileVersion.AddFileVersionToPath(Context.Request.PathBase, Url.Content("~/js/datatables-vi.json"))';
@@ -152,7 +152,7 @@
             };
         }
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="~/lib/sweetalert2/11.26.25/sweetalert2.all.min.js" asp-append-version="true"></script>
     <script>
         // Đồng bộ giao diện SweetAlert2 toàn hệ thống
         // Màu nút đọc từ biến CSS ngay lúc mở hộp thoại, vì người dùng đổi sáng/tối mà không tải lại trang.
@@ -229,7 +229,7 @@
     @* Hub thông báo yêu cầu đăng nhập: trang dùng layout này khi ẩn danh (Privacy, trang lỗi) không nối hub. *@
     @if (User.Identity?.IsAuthenticated == true)
     {
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.12/signalr.min.js"></script>
+        <script src="~/lib/microsoft-signalr/7.0.12/signalr.min.js" asp-append-version="true"></script>
     }
     <script src="~/js/site.js" asp-append-version="true"></script>
     @if (User.Identity?.IsAuthenticated == true)

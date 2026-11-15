@@ -27,7 +27,9 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
         {
             var html = Read(path);
             Assert.Contains("~/css/trosync-nen.css", html);
-            Assert.Contains("family=Be+Vietnam+Pro", html);
+            // Font Be Vietnam Pro nạp từ wwwroot/lib (bước 20), không còn gọi fonts.googleapis.com.
+            Assert.Contains("~/lib/be-vietnam-pro/v12/be-vietnam-pro.css", html);
+            Assert.DoesNotContain("fonts.googleapis.com", html);
             Assert.DoesNotContain("family=Inter", html);
         }
 
