@@ -1,0 +1,305 @@
+        (function () {
+            let currentRooms = [];
+            let currentPeriodData = null;
+            let currentPhongTroId = 0;
+            let currentThang = 0;
+            let currentNam = 0;
+            let tenantViewer = null;
+
+            function getCsrfToken() {
+                return $('input[name="__RequestVerificationToken"]').first().val() || '';
+            }
+
+            function escapeHtml(str) {
+                if (!str) return '';
+                return String(str)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#39;');
+            }
+
+            function initTenantViewer() {
+                if (!tenantViewer) {
+                    tenantViewer = new MeterImageViewer({
+                        containerId: 'tenantViewerStage',
+                        imageId: 'tenantViewerImg',
+                        zoomInBtnId: 'btnTenantZoomIn',
+                        zoomOutBtnId: 'btnTenantZoomOut',
+                        rotateBtnId: 'btnTenantRotate',
+                        resetBtnId: 'btnTenantReset'
+                    });
+                }
+            }
+
+            $(document).ready(function () {
+                initTenantViewer();
+                readSelectedPeriod();
+                loadRooms();
+            });
+
+            function readSelectedPeriod() {
+                const $opt = $('#selectKy option:selected');
+                currentThang = parseInt($opt.data('thang'));
+                currentNam = parseInt($opt.data('nam'));
+            }
+
+            $('#selectKy').on('change', function () {
+                readSelectedPeriod();
+                loadRooms();
+            });
+
+            $('#selectPhong').on('change', function () {
+                currentPhongTroId = parseInt($(this).val());
+                if (currentPhongTroId > 0) {
+                    loadPeriodData();
+                }
+            });
+
+            function loadRooms() {
+                $.ajax({
+                    url: '/KhachThue/ChiSoDienNuoc/Phong',
+                    type: 'GET',
+                    data: { thang: currentThang, nam: currentNam },
+                    success: function (res) {
+                        if (res && res.success && Array.isArray(res.data)) {
+                            currentRooms = res.data;
+                            if (currentRooms.length === 0) {
+                                $('#wrapSelectPhong').hide();
+                                $('#tenantMeterContent').hide();
+                                $('#tenantEmptyState').show();
+                                currentPhongTroId = 0;
+                            } else {
+                                $('#tenantEmptyState').hide();
+                                renderRoomSelect(currentRooms);
+                            }
+                        }
+                    },
+                    error: function (xhr) {
+                        showError(xhr.responseJSON?.message || 'Có lỗi xảy ra khi lấy danh sách phòng.');
+                        $('#tenantMeterContent').hide();
+                        $('#tenantEmptyState').show();
+                    }
+                });
+            }
+
+            function renderRoomSelect(rooms) {
+                const $select = $('#selectPhong');
+                $select.empty();
+
+                rooms.forEach(r => {
+                    $select.append(`<option value="${r.phongTroId}">Phòng ${escapeHtml(r.tenPhong)}</option>`);
+                });
+
+                if (rooms.length >= 2) {
+                    $('#wrapSelectPhong').show();
+                } else {
+                    $('#wrapSelectPhong').hide();
+                }
+
+                currentPhongTroId = rooms[0].phongTroId;
+                $select.val(currentPhongTroId);
+                loadPeriodData();
+            }
+
+            function loadPeriodData() {
+                if (!currentPhongTroId) return;
+
+                $.ajax({
+                    url: '/KhachThue/ChiSoDienNuoc/Ky',
+                    type: 'GET',
+                    data: { phongTroId: currentPhongTroId, thang: currentThang, nam: currentNam },
+                    success: function (res) {
+                        if (res && res.success && res.data) {
+                            currentPeriodData = res.data;
+                            renderPeriod(res.data);
+                            $('#tenantMeterContent').show();
+                        }
+                    },
+                    error: function (xhr) {
+                        showError(xhr.responseJSON?.message || 'Không thể tải dữ liệu chỉ số của phòng.');
+                        $('#tenantMeterContent').hide();
+                    }
+                });
+            }
+
+            // Tóm tắt một dòng cho từng đồng hồ: chưa gửi / chờ xác nhận / đã xác nhận
+            function renderMeterState(selector, images) {
+                let html;
+                if (!images || images.length === 0) {
+                    html = '<span class="status status-secondary"><span class="status-dot"></span>Chưa gửi ảnh</span>';
+                } else if (images.some(x => x.laChinhThuc)) {
+                    html = '<span class="status status-green"><span class="status-dot"></span>Đã xác nhận</span>';
+                } else {
+                    html = '<span class="status status-orange"><span class="status-dot status-dot-animated"></span>Chờ xác nhận</span>';
+                }
+                $(selector).html(html);
+            }
+
+            function renderPeriod(data) {
+                const anhDien = data.anhDien || [];
+                const anhNuoc = data.anhNuoc || [];
+
+                $('#badgeCountDien').text(`${anhDien.length} ảnh`);
+                $('#badgeCountNuoc').text(`${anhNuoc.length} ảnh`);
+
+                renderMeterState('#trangThaiDien', anhDien);
+                renderMeterState('#trangThaiNuoc', anhNuoc);
+
+                renderImageList('#listAnhDien', anhDien, 'điện');
+                renderImageList('#listAnhNuoc', anhNuoc, 'nước');
+
+                if (data.coTheTaiAnh) {
+                    $('#btnTaiDien').prop('disabled', false);
+                    $('#btnTaiNuoc').prop('disabled', false);
+                    $('#lyDoTaiDien').hide();
+                    $('#lyDoTaiNuoc').hide();
+                } else {
+                    $('#btnTaiDien').prop('disabled', true);
+                    $('#btnTaiNuoc').prop('disabled', true);
+                    const msg = data.lyDoKhongTheTai || 'Không thể tải ảnh cho kỳ này.';
+                    $('#lyDoTaiDien').text(msg).show();
+                    $('#lyDoTaiNuoc').text(msg).show();
+                }
+            }
+
+            function renderImageList(selector, images, labelLoai) {
+                if (!images || images.length === 0) {
+                    $(selector).html(`
+                        <div class="kt-empty">
+                            <i class="ti ti-photo-plus"></i>
+                            <div>Chưa có ảnh đồng hồ ${labelLoai} cho kỳ này.</div>
+                        </div>
+                    `);
+                    return;
+                }
+
+                let html = '<div class="list-group list-group-flush kt-list">';
+                images.forEach(img => {
+                    // Server trả sẵn màu đi cùng nhãn; chỉ nhận các giá trị đã biết để không chèn class lạ.
+                    const color = ['blue', 'orange', 'green', 'secondary'].includes(img.mauTrangThai) ? img.mauTrangThai : 'secondary';
+                    const official = img.laChinhThuc
+                        ? '<span class="badge bg-green-lt ms-1">Số chính thức</span>'
+                        : '';
+
+                    html += `
+                        <button type="button" class="list-group-item list-group-item-action kt-img-card" data-url="${escapeHtml(img.url)}" data-title="Ảnh đồng hồ ${labelLoai}, ${escapeHtml(img.ngayGui)}">
+                            <span class="d-flex align-items-center gap-3">
+                                <img src="${escapeHtml(img.url)}" alt="Ảnh đồng hồ ${labelLoai}" class="kt-thumb" loading="lazy" />
+                                <span class="flex-fill text-start min-w-0">
+                                    <span class="d-block">
+                                        <span class="status status-${color}"><span class="status-dot"></span>${escapeHtml(img.nhanTrangThai)}</span>${official}
+                                    </span>
+                                    <span class="d-block text-secondary small mt-1">
+                                        <i class="ti ti-clock me-1"></i>${escapeHtml(img.ngayGui)}
+                                    </span>
+                                </span>
+                                <i class="ti ti-chevron-right text-secondary"></i>
+                            </span>
+                        </button>
+                    `;
+                });
+                html += '</div>';
+
+                $(selector).html(html);
+            }
+
+            $('#tenantMeterContent').on('click', '.kt-img-card', function () {
+                const url = $(this).data('url');
+                if (url && tenantViewer) {
+                    $('#tenantModalTitle').text($(this).data('title') || 'Ảnh đồng hồ');
+                    tenantViewer.loadImage(url);
+                    $('#tenantViewerImg').show();
+                    $('#modalTenantImageViewer').modal('show');
+                }
+            });
+
+            $('#btnTaiDien').on('click', function () {
+                $('#fileInputDien').click();
+            });
+
+            $('#btnTaiNuoc').on('click', function () {
+                $('#fileInputNuoc').click();
+            });
+
+            $('#fileInputDien').on('change', function () {
+                handleUpload(this, 0, $('#btnTaiDien'));
+            });
+
+            $('#fileInputNuoc').on('change', function () {
+                handleUpload(this, 1, $('#btnTaiNuoc'));
+            });
+
+            function handleUpload(input, loaiDongHo, $btn) {
+                if (!input.files || input.files.length === 0) return;
+
+                const origHtml = $btn.html();
+                $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1" role="status"></span> Đang tải ảnh và nhận diện');
+
+                // Nén ảnh ở trình duyệt trước (không nén được thì dùng ảnh gốc).
+                const picked = input.files[0];
+                const ready = window.MeterImageCompress ? window.MeterImageCompress.compress(picked) : Promise.resolve(picked);
+
+                ready.then(function (file) {
+                    // Khớp MeterImageOptions:MaxFileSizeBytes (5 MB), kiểm sau khi nén. Ảnh lớn hơn giới hạn body của máy chủ sẽ bị ngắt kết nối (ERR_CONNECTION_RESET) thay vì trả thông báo.
+                    if (file.size > 5 * 1024 * 1024) {
+                        showError('Ảnh vượt quá dung lượng cho phép (5 MB). Vui lòng chọn ảnh nhỏ hơn hoặc giảm chất lượng ảnh.');
+                        input.value = '';
+                        $btn.prop('disabled', false).html(origHtml);
+                        return;
+                    }
+                    const formData = new FormData();
+                    formData.append('phongTroId', currentPhongTroId);
+                    formData.append('thang', currentThang);
+                    formData.append('nam', currentNam);
+                    formData.append('loaiDongHo', loaiDongHo);
+                    formData.append('file', file, file.name);
+
+                    $.ajax({
+                        url: '/KhachThue/ChiSoDienNuoc/TaiAnh',
+                        type: 'POST',
+                        headers: { 'RequestVerificationToken': getCsrfToken() },
+                        data: formData,
+                        processData: false,
+                        contentType: false,
+                        success: function (res) {
+                            showSuccess(res.message || 'Tải ảnh và nhận diện thành công.');
+                            input.value = '';
+                            loadPeriodData();
+                        },
+                        error: function (xhr) {
+                            showError(xhr.responseJSON?.message || (xhr.status === 0 ? 'Mất kết nối với máy chủ khi tải ảnh. Hãy kiểm tra dung lượng ảnh (tối đa 5 MB) rồi thử lại.' : 'Có lỗi xảy ra khi tải ảnh.'));
+                            input.value = '';
+                        },
+                        complete: function () {
+                            $btn.prop('disabled', false).html(origHtml);
+                        }
+                    });
+                });
+            }
+
+            function showSuccess(msg) {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Thành công',
+                        text: msg,
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                }
+            }
+
+            function showError(msg) {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Lỗi',
+                        text: msg
+                    });
+                } else {
+                    alert(msg);
+                }
+            }
+        })();
