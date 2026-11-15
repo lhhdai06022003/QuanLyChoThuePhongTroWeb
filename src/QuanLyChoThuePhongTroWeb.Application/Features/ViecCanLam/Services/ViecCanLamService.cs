@@ -216,7 +216,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.ViecCanLam.Services
             };
         }
 
-        public async Task<DanhSachHoaDonQuaHanDto> GetHoaDonQuaHanAsync(int actorId, int? branchId, CancellationToken ct = default)
+        public async Task<DanhSachHoaDonQuaHanDto> GetHoaDonQuaHanAsync(int actorId, int? branchId, int? tongSoDaDem = null, CancellationToken ct = default)
         {
             var scope = await _access.GetScopeAsync(actorId, ct);
             var allowed = ResolveAllowed(scope, branchId);
@@ -234,11 +234,13 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.ViecCanLam.Services
             var nowVn = nowUtc.AddHours(7);
 
             var rows = await _store.GetHoaDonQuaHanAsync(branchId, allowed, nowUtc, _settings.SoDongHoaDonQuaHan, ct);
-            var dem = await _store.DemHoaDonQuaHanAsync(branchId, allowed, nowUtc, ct);
+            // Người gọi đã có tổng số (mục TT2 của GetTongHopAsync cùng phạm vi) thì dùng luôn, không đếm lại.
+            var tongSo = tongSoDaDem
+                ?? (await _store.DemHoaDonQuaHanAsync(branchId, allowed, nowUtc, ct)).Sum(d => d.SoLuong);
 
             return new DanhSachHoaDonQuaHanDto
             {
-                TongSo = dem.Sum(d => d.SoLuong),
+                TongSo = tongSo,
                 Items = rows.Select(r => new HoaDonQuaHanDto
                 {
                     HoaDonId = r.HoaDonId,

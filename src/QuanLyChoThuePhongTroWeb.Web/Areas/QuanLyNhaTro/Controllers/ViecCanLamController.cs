@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
@@ -21,7 +22,9 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
         {
             if (chiNhanhId <= 0) chiNhanhId = null;
             var tongHop = await _service.GetTongHopAsync(CurrentActorId, chiNhanhId, cancellationToken);
-            var quaHan = await _service.GetHoaDonQuaHanAsync(CurrentActorId, chiNhanhId, cancellationToken);
+            // Tổng số hóa đơn quá hạn đã có trong mục TT2 của cùng lần tổng hợp: bảng quá hạn không đếm lại.
+            var tongQuaHan = tongHop.Items.Where(i => i.MaViec == "TT2").Sum(i => i.SoLuong);
+            var quaHan = await _service.GetHoaDonQuaHanAsync(CurrentActorId, chiNhanhId, tongQuaHan, cancellationToken);
             var chiNhanhs = await _phongTroService.GetDanhSachChiNhanhDropdownAsync(CurrentActorId);
             return View(ViecCanLamPageViewModel.From(tongHop, quaHan, chiNhanhs, chiNhanhId));
         }

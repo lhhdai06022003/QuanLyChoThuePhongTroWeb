@@ -119,7 +119,9 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             Assert.True(tomTat5 <= TomTatNhanVienToiDa, $"Huy hiệu: {tomTat5} lệnh SQL, tối đa {TomTatNhanVienToiDa}");
 
             await MeasureGetAsync(staff, "/QuanLyNhaTro/Dashboard");
-            await MeasureGetAsync(staff, "/QuanLyNhaTro/ViecCanLam");
+            var trangViec = await MeasureGetAsync(staff, "/QuanLyNhaTro/ViecCanLam");
+            // Trang = huy hiệu (cùng tổng hợp) + bảng quá hạn + ô chọn chi nhánh; số hóa đơn quá hạn lấy từ mục TT2, không đếm lại (bước 19).
+            Assert.True(trangViec <= tomTat15 + 2, $"Trang Việc cần làm: {trangViec} lệnh SQL, huy hiệu {tomTat15}");
             await MeasureGetAsync(staff, "/QuanLyNhaTro/QuanLyHoaDon");
             await MeasureGetAsync(staff, "/QuanLyNhaTro/QuanLyHopDong");
             await MeasureGetAsync(staff, "/api/ThongBao/LayMoiNhat");

@@ -584,6 +584,39 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.Equal("Nguyen Van A", dto.Items[0].KhachThue);
         }
 
+        // Trang Việc cần làm đã có số hóa đơn quá hạn (mục TT2 của GetTongHopAsync cùng phạm vi): truyền vào thì
+        // bảng quá hạn không đếm lại (docs/features/toi-uu-hieu-nang, bước 19).
+        [Fact]
+        public async Task OverdueTable_WithKnownTotal_UsesIt_AndDoesNotCountAgain()
+        {
+            var (service, store) = Create(AdminScope());
+            store.BangQuaHan.Add(new HoaDonQuaHanRow
+            {
+                HoaDonId = 1, MaHoaDon = "HD-1", SoPhong = "P1", ChiNhanhId = BranchA, TenChiNhanh = "A", KhachThue = "Nguyen Van A",
+                TongTien = 100m, DaThu = 0m, HanThanhToan = Now.AddDays(-3)
+            });
+            store.HoaDonQuaHan.Add(HoaDon(BranchA, "A", 62, conNo: 1));
+
+            var dto = await service.GetHoaDonQuaHanAsync(Admin, null, tongSoDaDem: 7);
+
+            Assert.Equal(7, dto.TongSo);
+            Assert.Single(dto.Items);
+            Assert.True(store.WasCalled(nameof(store.GetHoaDonQuaHanAsync)));
+            Assert.False(store.WasCalled(nameof(store.DemHoaDonQuaHanAsync)));
+        }
+
+        [Fact]
+        public async Task OverdueTable_WithKnownTotal_StillFailsClosed_WhenBranchOutsideScope()
+        {
+            var (service, store) = Create(StaffOfA());
+
+            var dto = await service.GetHoaDonQuaHanAsync(Staff, BranchB, tongSoDaDem: 9);
+
+            Assert.Equal(0, dto.TongSo);
+            Assert.Empty(dto.Items);
+            Assert.Empty(store.Calls);
+        }
+
         [Fact]
         public async Task OverdueTable_Staff_PassesAllowedBranches()
         {
