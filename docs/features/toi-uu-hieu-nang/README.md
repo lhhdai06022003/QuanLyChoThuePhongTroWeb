@@ -19,6 +19,9 @@ Nhánh `feature/toi-uu-hieu-nang`. Phạm vi đã duyệt (08/11/2026): bước 
 | 15 | Tách JS nhúng của 5 view lớn sang `wwwroot/js` |
 | 16 | Việc cần làm: các mục cùng bảng đếm chung một truy vấn |
 | 17 | Bỏ phần gói Tabler và bản Bootstrap không trang nào nạp khỏi `wwwroot` |
+| 18 | Tách JS nhúng của 13 view còn lại (9 view quản lý, 4 view khách thuê) |
+| 19 | Trang Việc cần làm: bảng quá hạn dùng số đã đếm của mục TT2 |
+| 20 | Cổng quản lý và khách thuê nạp thư viện từ `wwwroot/lib` thay cho CDN |
 
 ## Số đo gốc (commit bước 0)
 
@@ -206,14 +209,58 @@ Số lệnh SQL: `QueryBudgetTests` (nhân viên chi nhánh A của `BranchScope
 
 Test chặn hồi quy: `LayoutAssetVersionGuardTests`, `StaticFilesTests.ManagerLayout_CoreLibraries_AreVersioned_AndCachedLong`, `DataTablesLanguageTests`, `ViewInlineScriptGuardTests` (view lớn không quá 40 dòng JS nhúng, file JS không còn Razor), `ViewSource` (test soát tĩnh đọc view kèm file JS của màn), `ViecCanLamServiceTests.TongHop_GomMucCungBang_MoiNhomMotLanGoiStore`, `ViecCanLamStoreTests` mục 10 và `ViecCanLamStoreSingleItemAdapters` (test điều kiện từng mục đọc qua truy vấn gộp), `QueryBudgetTests` (huy hiệu tối đa 16 lệnh), `WwwrootVendorFilesTests`.
 
+## Giai đoạn 5: bước 18–20 (15/11/2026)
+
+Cùng nhánh `feature/toi-uu-hieu-nang-2`, người dùng duyệt 15/11/2026 (nhóm A, D1, B của đề xuất). Cùng ràng buộc như giai đoạn 4; bước 20 có tải file thư viện về repo (đã hỏi trước), không thêm thư viện mới.
+
+| Bước | Commit | Nội dung |
+| --- | --- | --- |
+| 18 | `93e4836` (test), `b320b0b` … `dd2e55f` (13 commit, mỗi view một commit), `754f35e` (test) | Chuyển nguyên văn JS nhúng sang `wwwroot/js`: `dang-ky-dich-vu.js` (`_DangKyDichVuPartial`), `quan-ly-tai-khoan.js`, `dich-vu.js`, `phan-cong-chi-nhanh.js`, `quan-ly-nguoi-thue.js`, `quan-ly-chi-nhanh.js`, `thong-bao-danh-sach.js` (hai cổng dùng chung, khối script giống hệt), `so-do-phong.js`, `dieu-khoan-mau.js`, `khachthue-chi-so-dien-nuoc.js`, `khachthue-hoa-don.js`, `khachthue-hop-dong.js`. Tổng 147.076 B. Ba giá trị Razor ở lại view: `window.dichVuConfig`, `window.phanCongChiNhanhConfig`, biến `autoOpenHoaDonId` của trang Hóa đơn khách thuê |
+| 19 | `40bb868` | `IViecCanLamService.GetHoaDonQuaHanAsync` nhận `tongSoDaDem`; `ViecCanLamController.Index` truyền `SoLuong` của mục TT2. Không truyền thì service tự đếm như cũ; phạm vi chi nhánh vẫn kiểm trước |
+| 20 | `4aad75c` | Chép từ CDN về `wwwroot/lib` (31 file, 1.264 KB), nạp kèm `asp-append-version`: DataTables 1.13.6, SweetAlert2 11.26.25 (trước là `@11` không ghim; đây là bản CDN đang trả lúc chép), SignalR 7.0.12, Font Awesome 6.4.2, flatpickr 4.6.13, Select2 4.0.13, Chart.js 4.6.1, font Be Vietnam Pro v12 (12 file woff2, CSS chỉ đổi `url()`). Bỏ thẻ `preconnect` tới Google Fonts ở trang đăng nhập |
+
+### Số đo trước và sau
+
+| Hạng mục | Trước (sau bước 17) | Sau |
+| --- | --- | --- |
+| Request ra máy chủ ngoài, trang Hóa đơn | 18 (5 máy chủ) | 0 |
+| File CSS/JS cục bộ của trang Hóa đơn có `Cache-Control` một năm | 18/18 | 25/25 (thêm 7 file thư viện) |
+| `GET /QuanLyNhaTro/ViecCanLam` | 19 lệnh SQL | 18 |
+| HTML trang Phòng trọ | 70.835 B (JS nhúng 19.241 B) | 57.729 B (JS nhúng 6.138 B) |
+| `wwwroot` | 54.120 KB | 55.560 KB |
+
+HTML sau khi tách của các trang khác (đo bằng tài khoản nhân viên test; "trước" không đo trực tiếp, bằng số sau cộng dung lượng file JS đã chuyển): Người thuê 39.389 B (chuyển 14.259 B), Dịch vụ 44.298 B (16.019 B), Sơ đồ phòng 43.748 B (8.590 B), Thông báo 36.629 B (8.670 B), Điều khoản mẫu 38.411 B (5.708 B). Mỗi trang quản lý còn khoảng 5,8 KB JS nhúng, đều là script của `_Layout.cshtml`.
+
+Trang Phòng trọ so với lúc đầu (trước bước 15): 109.243 → 57.729 B (−47%). Thời gian server (trung vị, máy cục bộ) không đổi so với sau bước 17: huy hiệu 13 ms, Bảng điều khiển 20 ms, trang danh sách 4–6 ms.
+
+### Kiểm chứng (15/11/2026)
+
+| Lệnh hoặc thao tác | Kết quả |
+| --- | --- |
+| `dotnet test` Domain / Application / Infrastructure | PASS 140/140, 2853/2853, 737 (1 skip) |
+| `dotnet test` Web, sau bước 20 | PASS 1050/1050 |
+| `soat-giao-dien.js` trên view và file JS đã sửa | 0 LỖI |
+| Trình duyệt, DB test, nhân viên: Bảng điều khiển, Người thuê, Dịch vụ, Điều khoản mẫu, Thông báo, Lịch sử thanh toán (flatpickr tiếng Việt), Hợp đồng (Select2, flatpickr, modal tạo), Sơ đồ phòng | PASS: 0 request ra ngoài, bảng tiếng Việt, console không có lỗi mới |
+| Trình duyệt, Admin: Bảng điều khiển (2 biểu đồ), Chi nhánh, Tài khoản (Select2), Phân công, Dịch vụ (có nút sửa/xóa) | PASS |
+| Trình duyệt, khách thuê: Hóa đơn, Chỉ số điện nước, Thông báo, Hợp đồng; hai màn đầu ở chế độ tối 375px | PASS, không tràn ngang |
+| Trang đăng nhập | PASS: font nạp từ máy chủ, 0 request ra ngoài |
+
+Ảnh `hieu-nang-23` … `28` trong `hinhanhprojectdemo`. Chưa kiểm: ngắt hẳn Internet rồi chạy thử (mới xác nhận trang không còn gọi máy chủ ngoài), thao tác lưu/xóa trên các trang vừa tách JS (chỉ mở trang, bảng và modal).
+
+Giới hạn đã biết của bước 20: Font Awesome chỉ chép `woff2` (CSS còn tham chiếu `ttf` cho trình duyệt không hỗ trợ woff2); không chép source map của Chart.js và SignalR (DevTools sẽ báo thiếu file `.map`); cổng khách vãng lai (`_PublicRoomLayout`, `Views/Phong`) vẫn nạp SweetAlert2, SignalR và Google Fonts từ CDN.
+
+Test chặn hồi quy: `NoCdnGuardTests` (view hai cổng không nạp CSS/JS từ máy chủ khác; mọi file `/lib` trên trang trả 200 và cache một năm; `url()` woff2 trỏ file có thật), `ViewInlineScriptGuardTests` (nay 18 view), `ViecCanLamServiceTests.OverdueTable_WithKnownTotal_*`, `QueryBudgetTests` (trang Việc cần làm tối đa huy hiệu + 2 lệnh), sáu lớp test soát tĩnh đọc view kèm JS qua `ViewSource`.
+
 ## Còn có thể làm tiếp (chưa duyệt)
 
 - **Chốt kỳ còn khoảng 41 lệnh mỗi phòng trên DB test** (khoảng 27 với dữ liệu thật vì thông báo không còn bị phồng): đánh giá lại 8, tạo hóa đơn nháp 13, báo nhân viên, phần duyệt còn lại (lan truyền kỳ sau, lưu). Giảm tiếp phải tạo hóa đơn nháp theo lô cho cả chi nhánh, đổi cách mỗi phòng chạy độc lập và báo lỗi riêng: chưa đề xuất.
 - **Trang Hợp đồng của Admin:** với dữ liệu thật chỉ thêm khoảng 40 KB; DB test phồng vì 37.818 chi nhánh in hai lần. Nếu làm, gộp vào đợt giao diện (tải theo chi nhánh/từ khóa, `SearchAutocompleteAsync` đã có).
 - **Huy hiệu Việc cần làm còn 16 lệnh mỗi trang.** Muốn về 0 ở hầu hết lần mở trang thì nhớ kết quả 30 giây theo người dùng, đổi lại số trên huy hiệu chậm cập nhật: đổi hành vi, cần người dùng quyết.
 - **Font icon:** `tabler-icons.woff2` 778.812 B cho 128 icon đang dùng; Font Awesome (CSS 102 KB + font 150 KB từ CDN) cho khoảng 10 icon và `fa-spin`. Cắt font cần công cụ mới, bỏ Font Awesome phải đổi icon.
-- **JS nhúng còn lại:** `_DangKyDichVuPartial.cshtml` (295 dòng), `NguoiDung/QuanLyTaiKhoanDangNhap.cshtml` (376), `DichVu/Index.cshtml` (304), `KhachThue/ChiSoDienNuoc/Index.cshtml` (307), `PhanCongChiNhanh/Index.cshtml` (289), `NguoiThue/QuanLyNguoiThue.cshtml` (282). Thêm view vào `ViewSource.OwnScripts` thì `ViewInlineScriptGuardTests` tự áp.
-- **Trang Việc cần làm gọi `DemHoaDonQuaHanAsync` lần hai** cho tổng số của bảng quá hạn (TT2 đã có từ truy vấn gộp): bớt được 1 lệnh nếu truyền kết quả sang.
+- **JS nhúng còn lại:** khoảng 5,8 KB script của `_Layout.cshtml` trên mọi trang quản lý (cấu hình AJAX, SweetAlert2, Select2), `KhachThue/HoSo/Index.cshtml` (96 dòng) và các view dưới 90 dòng. Thêm view vào `ViewSource.OwnScripts` thì `ViewInlineScriptGuardTests` tự áp.
+- **Gom hàm JS trùng lặp:** hàm escape HTML khai báo ở 24 file, `formatVND` ở 9 file; các bản không giống hệt nhau nên chỉ gộp được bản trùng thân hàm.
+- **Cổng khách vãng lai còn dùng CDN** (`_PublicRoomLayout`, `Views/Phong`): thuộc người phụ trách khác.
+- **Mỗi request quản lý đọc dòng người dùng hai lần** (kiểm phiên đăng nhập và phạm vi chi nhánh): gộp được thì bớt 1 lệnh mỗi request, nhưng đụng xác thực và quyền.
 - **Font trong `wwwroot/Theme`:** `.eot`, `.ttf`, `.woff` (5,3 MB) chỉ trình duyệt cũ dùng; giữ lại vì CSS còn tham chiếu.
 - **Bảng tràn ngang ở 375px** (15/21 màn quản lý, 4/8 màn khách thuê): do `site.css` dòng 79–83. Thuộc đợt giao diện: cho bảng cuộn ngang trên điện thoại mà menu ⋯ không bị cắt.
 
