@@ -6,11 +6,7 @@
     var LUOT = { ChoThanhToan: 0, DangDoiChieu: 2 };
     var MODAL_ID = 'hdThuTienModal';
 
-    function esc(value) {
-        return (value === null || value === undefined ? '' : value.toString())
-            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
-    }
+    var esc = window.escapeHtml; // hàm dùng chung trong site.js
 
     function vnd(n) {
         return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n || 0);

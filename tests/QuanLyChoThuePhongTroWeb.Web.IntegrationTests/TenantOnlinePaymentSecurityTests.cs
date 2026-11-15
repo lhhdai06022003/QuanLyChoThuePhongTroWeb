@@ -371,8 +371,10 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             Assert.DoesNotContain("eval(", js);
             Assert.DoesNotContain("document.write", js);
 
-            // esc() phải mã hóa đủ năm ký tự nguy hiểm.
-            var escBody = Regex.Match(js, @"function esc\(value\)\s*\{.*?\n    \}", RegexOptions.Singleline).Value;
+            // esc() là hàm escape dùng chung của site.js (layout khách thuê nạp trước file này), phải mã hóa đủ năm ký tự nguy hiểm.
+            Assert.Contains("var esc = window.escapeHtml;", js);
+            var siteJs = await (await NewClient().GetAsync("/js/site.js")).Content.ReadAsStringAsync();
+            var escBody = Regex.Match(siteJs, @"window\.escapeHtml = function \(value\)\s*\{.*?\n    \};", RegexOptions.Singleline).Value;
             foreach (var needle in new[] { "&amp;", "&lt;", "&gt;", "&quot;", "&#039;" })
             {
                 Assert.Contains(needle, escBody);

@@ -1,16 +1,6 @@
 (function (window, $) {
     'use strict';
 
-    function escapeHtml(str) {
-        if (str === null || str === undefined) return '';
-        return String(str)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#39;');
-    }
-
     class MeterImageViewer {
         // Nhận một phần tử/selector, hoặc object tuỳ chọn { containerId, imageId, zoomInBtnId, ... }
         constructor(containerEl) {

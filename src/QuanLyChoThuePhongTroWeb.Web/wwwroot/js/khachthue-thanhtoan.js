@@ -9,11 +9,7 @@
 
     var current = { hoaDonId: 0, container: null, onRecheck: null, seq: 0 };
 
-    function esc(value) {
-        return (value === null || value === undefined ? '' : value.toString())
-            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
-    }
+    var esc = window.escapeHtml; // hàm dùng chung trong site.js
 
     function vnd(n) {
         return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n || 0);

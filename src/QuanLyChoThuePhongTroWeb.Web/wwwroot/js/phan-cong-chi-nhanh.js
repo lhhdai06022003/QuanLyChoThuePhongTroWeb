@@ -2,16 +2,6 @@
             var currentModalNguoiDungId = 0;
             var openNguoiDungIdOnLoad = window.phanCongChiNhanhConfig.openNguoiDungId;
 
-            function escapeHtml(value) {
-                if (value === null || value === undefined) return '';
-                return String(value)
-                    .replace(/&/g, '&amp;')
-                    .replace(/</g, '&lt;')
-                    .replace(/>/g, '&gt;')
-                    .replace(/"/g, '&quot;')
-                    .replace(/'/g, '&#39;');
-            }
-
             function formatVnDateTime(value) {
                 if (!value) return '<span class="text-muted fst-italic">Chưa có</span>';
                 var parts = value.split('T');
