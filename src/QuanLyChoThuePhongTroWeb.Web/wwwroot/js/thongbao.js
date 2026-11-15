@@ -50,15 +50,7 @@ $(document).ready(function () {
     }
 });
 
-// Tiêu đề và nội dung thông báo có thể chứa chữ do khách thuê nhập (sự cố), phải escape trước khi chèn HTML.
-function escapeHtml(value) {
-    return String(value == null ? '' : value)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-}
+// Tiêu đề và nội dung thông báo có thể chứa chữ do khách thuê nhập (sự cố), phải qua escapeHtml (site.js) trước khi chèn HTML.
 
 // Chỉ nhận đường dẫn nội bộ dạng "/..."; chặn "//host", "javascript:" và URL tuyệt đối.
 function safeLink(url) {

@@ -211,3 +211,26 @@
         });
     }
 })(window, window.jQuery);
+
+// Hàm dùng chung của cổng quản lý và cổng khách thuê. Hai layout nạp site.js trước script của từng màn,
+// nên file JS của màn gọi thẳng escapeHtml(...) và formatVND(...), không khai báo lại.
+(function (window) {
+    'use strict';
+
+    // Đổi một giá trị thành chuỗi an toàn để ghép vào HTML. null và undefined thành chuỗi rỗng; số 0 vẫn ra "0".
+    window.escapeHtml = function (value) {
+        return String(value === null || value === undefined ? '' : value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    };
+
+    var tienVnd = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' });
+
+    // Tiền VNĐ dạng "1.000.000 ₫"; null và undefined coi là 0.
+    window.formatVND = function (n) {
+        return tienVnd.format(n === null || n === undefined ? 0 : n);
+    };
+})(window);
