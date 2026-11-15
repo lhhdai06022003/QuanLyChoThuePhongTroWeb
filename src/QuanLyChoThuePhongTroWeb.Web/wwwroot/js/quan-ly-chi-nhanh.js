@@ -1,0 +1,239 @@
+        // Biến toàn cục để lưu DataTables
+
+        function escapeHtml(unsafe) {
+            return (unsafe || "").toString()
+                 .replace(/&/g, "&amp;")
+                 .replace(/</g, "&lt;")
+                 .replace(/>/g, "&gt;")
+                 .replace(/"/g, "&quot;")
+                 .replace(/'/g, "&#039;");
+        }
+
+        $(document).ready(function () {
+            let currentChiNhanhId = 0;
+            // 1. KHỞI TẠO DATATABLES BẰNG AJAX
+            var table = $('#chiNhanhTable').DataTable({
+                "language": { "url": window.dataTablesViUrl },
+                "responsive": true,
+                "autoWidth": false,
+                "ajax": {
+                    "url": "/ChiNhanhs/DanhSachChiNhanh",
+                    "type": "GET",
+                    "datatype": "json"
+                },
+                "columns": [
+                    {
+                        "data": null,
+                        "className": "text-center align-middle",
+                        "orderable": false,
+                        "searchable": false,
+                        "render": function (data, type, row, meta) {
+                            return meta.row + meta.settings._iDisplayStart + 1;
+                        }
+                    },
+                    {
+                        "data": "maChiNhanh",
+                        "render": function(data) {
+                            return `<span class="fw-bold text-success">${escapeHtml(data)}</span>`;
+                        }
+                    },
+                    {
+                        "data": "tenChiNhanh",
+                        "render": function(data) {
+                            return `<span class="fw-bold text-primary">${escapeHtml(data)}</span>`;
+                        }
+                    },
+                    { "data": "diaChi", "render": $.fn.dataTable.render.text() },
+                    { "data": "soDienThoai", "render": $.fn.dataTable.render.text() },
+                    {
+                        "data": "ngayTao",
+                        "render": function(data) {
+                            if(!data) return "";
+                            return String(data).slice(0, 10).split('-').reverse().join('/');
+                        }
+                    },
+                    {
+                        "data": "chiNhanhId",
+                        "className": "text-center align-middle",
+                        "render": function (data) {
+                            // Vẽ 2 nút Sửa và Xóa cho mỗi dòng bằng Ghost Buttons hiện đại
+                            return `
+                                <div class="btn-list flex-nowrap justify-content-center">
+                                    <button class="btn btn-icon btn-ghost-warning btn-sm btn-edit" data-id="${data}" title="Sửa">
+                                        <i class="ti ti-edit"></i>
+                                    </button>
+                                    <button class="btn btn-icon btn-ghost-danger btn-sm btn-delete" data-id="${data}" title="Xóa">
+                                        <i class="ti ti-trash"></i>
+                                    </button>
+                                </div>
+                            `;
+                        }
+                    }
+                ],
+                "order": [[ 0, "desc" ]] // Sắp xếp ID giảm dần (mới nhất lên trên)
+            });
+
+                // --- SỰ KIỆN LƯU DỮ LIỆU ---
+            $('#btnSaveData').on('click', function () {
+                let ma = $('#MaChiNhanh').val() || "";
+                let ten = $('#TenChiNhanh').val() || "";
+                let sdt = $('#SoDienThoai').val() || "";
+                let diaChi = $('#DiaChi').val() || "";
+                let moTa = $('#MoTa').val() || "";
+                let soGioRaw = ($('#SoGioPhanHoiHoaDon').val() || "").toString().trim();
+                let soGio = Number(soGioRaw);
+
+                if (ma.trim() === "") {
+                    showWarning('Vui lòng nhập mã chi nhánh!');
+                    return;
+                }
+                if (ten.trim() === "") {
+                    showWarning('Vui lòng nhập tên chi nhánh!');
+                    return;
+                }
+                if (diaChi.trim() === "") {
+                    showWarning('Vui lòng nhập địa chỉ!');
+                    return;
+                }
+                if (soGioRaw === "" || !Number.isInteger(soGio) || soGio < 1 || soGio > 168) {
+                    showWarning('Số giờ phản hồi hóa đơn phải là số nguyên từ 1 đến 168.');
+                    return;
+                }
+
+                let isUpdate = currentChiNhanhId > 0;
+                let actionUrl = isUpdate ? '/ChiNhanhs/CapNhatChiNhanh' : '/ChiNhanhs/ThemChiNhanhMoi';
+
+                Swal.fire({
+                    title: isUpdate ? 'Xác nhận cập nhật?' : 'Xác nhận thêm mới?',
+                    text: isUpdate ? 'Bạn có chắc chắn muốn cập nhật chi nhánh này?' : 'Bạn có chắc chắn muốn thêm chi nhánh này?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Đồng ý',
+                    cancelButtonText: 'Hủy bỏ'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        let $btn = $(this);
+                        $btn.prop('disabled', true).html('<i class="ti ti-loader fa-spin"></i> Đang xử lý...');
+
+                        $.ajax({
+                            url: actionUrl,
+                            type: 'POST',
+                            data: {
+                                ChiNhanhId: currentChiNhanhId,
+                                MaChiNhanh: ma,
+                                TenChiNhanh: ten,
+                                SoDienThoai: sdt,
+                                DiaChi: diaChi,
+                                MoTa: moTa,
+                                SoGioPhanHoiHoaDon: soGio
+                            },
+                            success: function (res) {
+                                if (res.success) {
+                                    showSuccess(res.message);
+                                    $('#chiNhanhModal').modal('hide');
+                                    table.ajax.reload(null, false);
+                                } else {
+                                    showError('Lỗi: ' + res.message);
+                                }
+                            },
+                            complete: function () {
+                                if (isUpdate) {
+                                    $btn.prop('disabled', false).html('<i class="ti ti-device-floppy me-1"></i> Lưu dữ liệu');
+                                } else {
+                                    $btn.prop('disabled', false).html('<i class="ti ti-plus me-1"></i> Thêm dữ liệu');
+                                }
+                            }
+                        });
+                    }
+                });
+            });
+                    // Bắt sự kiện cho nút SỬA (Edit)
+            $('#chiNhanhTable tbody').on('click', '.btn-edit', function () {
+                // Gán ID của dòng đang được click vào biến
+                currentChiNhanhId = $(this).data('id');
+
+                $.ajax({
+                    url: '/ChiNhanhs/GetChiNhanh?id=' + currentChiNhanhId,
+                    type: 'GET',
+                    success: function (res) {
+                        if (res.success && res.data) {
+                            $('#MaChiNhanh').val(res.data.maChiNhanh);
+                            $('#TenChiNhanh').val(res.data.tenChiNhanh);
+                            $('#SoDienThoai').val(res.data.soDienThoai);
+                            $('#DiaChi').val(res.data.diaChi);
+                            $('#MoTa').val(res.data.moTa);
+                            $('#SoGioPhanHoiHoaDon').val(res.data.soGioPhanHoiHoaDon);
+
+                            $('#modalTitle').text('Cập nhật chi nhánh');
+                            $('#btnSaveData').html('<i class="ti ti-device-floppy me-1"></i> Lưu dữ liệu');
+                            $('#chiNhanhModal').modal('show');
+                        }
+                    }
+                });
+            });
+            // Bắt sự kiện cho nút XÓA (Delete)
+            $('#chiNhanhTable tbody').on('click', '.btn-delete', function () {
+                let id = $(this).data('id');
+                let $btn = $(this);
+
+                // 1. KIỂM TRA FRONTEND TRƯỚC KHI GỬI
+                if (!id || isNaN(id) || parseInt(id) <= 0) {
+                    Swal.fire('Lỗi', 'Dữ liệu không hợp lệ. Vui lòng tải lại trang!', 'error');
+                    return;
+                }
+
+                // 2. XÁC NHẬN HÀNH ĐỘNG NGUY HIỂM (Confirm)
+                Swal.fire({
+                    title: 'Xác nhận xóa?',
+                    text: 'Hành động này không thể hoàn tác. Bạn có chắc chắn muốn xóa chi nhánh này?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Đồng ý xóa',
+                    cancelButtonText: 'Hủy bỏ'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // 3. NGĂN CHẶN SPAM CLICK
+                        let originalHtml = $btn.html();
+                        $btn.prop('disabled', true).html('<i class="ti ti-loader fa-spin"></i>');
+
+                        // 4. GỬI REQUEST XÓA
+                        $.ajax({
+                            url: '/ChiNhanhs/XoaChiNhanh', 
+                            type: 'POST',
+                            data: { id: id },
+                            success: function (res) {
+                                if (res.success) {
+                                    Swal.fire('Thành công', res.message || 'Xóa thành công!', 'success');
+                                    if (typeof table !== 'undefined') {
+                                        table.ajax.reload(null, false);
+                                    }
+                                } else {
+                                    Swal.fire('Lỗi', 'Không thể xóa: ' + (res.message || 'Chi nhánh đang được sử dụng.'), 'error');
+                                    $btn.prop('disabled', false).html(originalHtml);
+                                }
+                            },
+                            error: function (xhr, status, error) {
+                                console.error("Chi tiết lỗi:", error);
+                                Swal.fire('Lỗi', 'Lỗi kết nối máy chủ khi thực hiện xóa!', 'error');
+                                $btn.prop('disabled', false).html(originalHtml);
+                            }
+                        });
+                    }
+                });
+            });
+            $('#btnOpenAddModal').on('click', function () {
+                currentChiNhanhId = 0; // Đặt lại về 0
+
+                // Reset trắng các ô nhập liệu
+                $('#MaChiNhanh').val('');
+                $('#TenChiNhanh').val('');
+                $('#SoDienThoai').val('');
+                $('#DiaChi').val('');
+                $('#MoTa').val('');
+                $('#SoGioPhanHoiHoaDon').val(24);
+
+                $('#modalTitle').text('Thêm chi nhánh mới');
+                $('#btnSaveData').html('<i class="ti ti-plus me-1"></i> Thêm dữ liệu');
+                $('#chiNhanhModal').modal('show');
+            });
+        });
