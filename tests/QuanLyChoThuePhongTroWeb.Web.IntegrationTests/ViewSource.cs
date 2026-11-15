@@ -20,7 +20,8 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             ["Areas/QuanLyNhaTro/Views/PhanCongChiNhanh/Index.cshtml"] = "phan-cong-chi-nhanh.js",
             ["Areas/QuanLyNhaTro/Views/NguoiThue/QuanLyNguoiThue.cshtml"] = "quan-ly-nguoi-thue.js",
             ["Areas/QuanLyNhaTro/Views/ChiNhanhs/QuanLyChiNhanh.cshtml"] = "quan-ly-chi-nhanh.js",
-            ["Areas/QuanLyNhaTro/Views/ThongBao/Index.cshtml"] = "thong-bao-danh-sach.js"
+            ["Areas/QuanLyNhaTro/Views/ThongBao/Index.cshtml"] = "thong-bao-danh-sach.js",
+            ["Areas/QuanLyNhaTro/Views/PhongTros/SoDoPhong.cshtml"] = "so-do-phong.js"
         };
 
         public static string WebRoot()
