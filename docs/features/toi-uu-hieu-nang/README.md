@@ -13,6 +13,12 @@ Nhánh `feature/toi-uu-hieu-nang`. Phạm vi đã duyệt (08/11/2026): bước 
 | 6 | Duyệt chỉ số nhiều phòng: tra chi nhánh cả danh sách một lần (`IMeterImageStore.GetBranchIdsByRoomsAsync`) |
 | 7 | Hóa đơn tự động: không đọc lại ngữ cảnh phòng sau bước xác nhận ảnh khi không có ảnh nào được xác nhận |
 | 8 | Trang Hợp đồng: danh sách người thuê in một lần dạng JSON, JS đổ vào ô lọc và ô chọn trong modal |
+| 9–12 | Xem các mục "Kết quả sau bước 9–11" và "Kết quả sau bước 12" bên dưới |
+| 13 | Layout gắn `asp-append-version` cho Tabler và jQuery (5 file) để có `Cache-Control` một năm |
+| 14 | Bản dịch tiếng Việt của DataTables lấy từ `wwwroot/js/datatables-vi.json` (có `?v=`) thay cho CDN |
+| 15 | Tách JS nhúng của 5 view lớn sang `wwwroot/js` |
+| 16 | Việc cần làm: các mục cùng bảng đếm chung một truy vấn |
+| 17 | Bỏ phần gói Tabler và bản Bootstrap không trang nào nạp khỏi `wwwroot` |
 
 ## Số đo gốc (commit bước 0)
 
@@ -140,10 +146,75 @@ Kiểm chứng: Application 2780/2781 (đỏ có sẵn `ExpiryAlert_AppFailure_D
 
 Test chặn hồi quy: `MeterImageStoreTests.ApprovalBatchReads_MatchSingleReads_ForEveryRoom` (bản theo lô ra cùng kết quả bản từng phòng: kỳ/ảnh đã xóa, hóa đơn nháp/đã hủy, hợp đồng đã hủy, phòng không có), `MeterReadingWorkflowTests`: `FirstRoomFailsLate_SecondRoomFailsEarly_ReportsFirstRoom`, `SecondRoomHasLockedInvoice_*`, `ManualAndOfficialRooms_UseEachRoomsOwnImages`, `ManyRooms_DoesNotReadChecksRoomByRoom`, `ManyRoomsWithoutPeriod_CreatesDrafts_ReadsBranchPricesOnce`.
 
+## Giai đoạn 4: bước 13–17 (14–15/11/2026)
+
+Nhánh `feature/toi-uu-hieu-nang-2` (tách từ `master` `9bcf7d0`), người dùng duyệt 14/11/2026. Cùng ràng buộc: không đổi hành vi, API, giao diện; mỗi bước một commit; không thêm thư viện.
+
+| Bước | Commit | Nội dung |
+| --- | --- | --- |
+| 13 | `4d49f96` | `_Layout`, `_LayoutKhachThue`, `DangNhap`, `HopDong/Print`: thêm `asp-append-version` cho `tabler.min.css`, `tabler-icons.min.css`, `tabler-vendors.min.css`, `tabler.min.js`, `jquery.min.js` |
+| 14 | `efab91f` | Chép nguyên `vi.json` của DataTables 1.13.6 về `wwwroot/js/datatables-vi.json`; hai layout đặt `window.dataTablesViUrl` (kèm `?v=`); 20 bảng (18 view, 2 file JS) dùng biến này. Vẫn tải bất đồng bộ qua `language.url` nên thứ tự khởi tạo bảng không đổi |
+| 15 | `1f79356`, `5c53445`, `eb376c0`, `bdae448`, `6820447` | Chuyển nguyên văn JS nhúng sang file tĩnh: `chot-dien-nuoc.js` (790 dòng), `anh-chi-so-modal.js` (817), `hoadon-danh-sach.js` (1.328), `quan-ly-phong-tro.js` (714), `quan-ly-hop-dong.js` (908). Giá trị lấy từ Razor ở lại view, giữ nguyên biểu thức: `window.hoaDonConfig`, `window.hopDongConfig`, và `LA_ADMIN`/`bankId`/`accountNumber`/`accountName` của trang Phòng trọ |
+| 16 | `e355b81` | `IViecCanLamStore`: `DemHoaDonChuaGuiAsync` (HD1–HD3), `DemHoaDonDaGuiChuaThuDuAsync` (TT2–TT3), `DemSuCoCanXuLyAsync` (KH1–KH2), `DemHopDongHetHanAsync` (KH3–KH4). Store tách sẵn theo mục, bỏ dòng số không; mục người dùng không có quyền (HD2 với nhân viên) không được đọc |
+| 17 | `3495f33` | Xóa 1.954 file của `wwwroot/Theme` và 45 file `wwwroot/lib/bootstrap`; giữ 4 file Tabler đang nạp, source map và font icon của chúng, logo trường |
+
+### Số đo trước và sau
+
+Số lệnh SQL: `QueryBudgetTests` (nhân viên chi nhánh A của `BranchScopeKit`, 5 ứng viên HD5), DB `quanlyphongtro_test`. Trước đo ở `9bcf7d0`, sau đo ở `e355b81`.
+
+| Request | Trước | Sau |
+| --- | --- | --- |
+| Huy hiệu `ViecCanLam/TomTat` (mọi trang quản lý), 0 ứng viên HD5 | 16 | 12 |
+| Huy hiệu, 5 và 15 ứng viên | 20 | 16 |
+| `GET /QuanLyNhaTro/Dashboard` | 27 | 23 |
+| `GET /QuanLyNhaTro/Dashboard/GetAjaxData`, nhân viên / Admin | 27 / 30 | 23 / 25 |
+| `GET /QuanLyNhaTro/ViecCanLam` | 23 | 19 |
+| Hóa đơn, Hợp đồng, `GetList`, `LayMoiNhat`, cổng khách thuê | 3, 6, 4, 2, 7 và 1 | không đổi |
+
+Đo trên trình duyệt (web `web-test-db`, tài khoản nhân viên test, máy cục bộ; thời gian là trung vị 5 lần tải HTML, 9 lần với API):
+
+| Trang | HTML trước | HTML sau | JS nhúng trước | JS nhúng sau | Thời gian server trước → sau |
+| --- | --- | --- | --- | --- | --- |
+| Hóa đơn | 134.675 B | 58.069 B (−57%) | 81.739 B | 6.122 B | 7 → 5 ms |
+| Chốt điện nước | 138.096 B | 56.209 B (−59%) | 86.508 B | 5.848 B | 8 → 5 ms |
+| Phòng trọ | 109.243 B | 70.835 B (−35%) | 57.269 B | 19.241 B | 8 → 5 ms |
+| Bảng điều khiển | 45.012 B | 45.507 B | 6.103 B | 6.366 B | 33 → 21 ms |
+| Việc cần làm | 39.025 B | 39.520 B | 5.585 B | 5.848 B | 24 → 17 ms |
+| Huy hiệu `TomTat` | | | | | 22 → 13 ms |
+| Chuông `LayMoiNhat` | | | | | 5 → 4 ms |
+
+- Trang Hợp đồng không so được hai lượt: HTML 403.585 → 463.368 B vì số người thuê in trong trang của DB test tăng giữa hai lượt đo (lượt sau 5.260 người, 73 B/người). Phần mã 908 dòng đã ra file tĩnh; phần còn lại là JSON người thuê và phòng.
+- Trang Phòng trọ còn 19 KB JS nhúng: `_DangKyDichVuPartial.cshtml` (295 dòng, dùng chung với trang Hợp đồng) chưa tách.
+- Mỗi trang cộng thêm khoảng 500 B vì thẻ nạp file có thêm `?v=` và dòng `window.dataTablesViUrl`.
+- File tĩnh cục bộ của trang Hóa đơn (17 file CSS/JS và `datatables-vi.json`): trước 5 file không có `Cache-Control` (924 KB chưa nén), sau cả 18 file đều `public,max-age=31536000`. Request ra CDN của trang Hóa đơn 20 → 18.
+- `wwwroot`: 104.940 KB → 54.120 KB (trong đó model ONNX 43.716 KB).
+
+### Kiểm chứng (15/11/2026)
+
+| Lệnh hoặc thao tác | Kết quả |
+| --- | --- |
+| `dotnet build QuanLyChoThuePhongTroWeb.sln` | PASS, 0 lỗi |
+| `dotnet test` Domain | PASS 140/140 |
+| `dotnet test` Application | PASS 2851/2851 |
+| `dotnet test` Infrastructure | PASS 737 (1 skip) |
+| `dotnet test` Web, sau bước 17 | PASS 1020/1020 |
+| `soat-giao-dien.js` trên view và file JS đã sửa | 0 LỖI (mục XEM LẠI có từ trước: ViewBag, `@Html.Raw` của JSON trang Hợp đồng) |
+| Trình duyệt, DB test, nhân viên test: Hóa đơn, Chốt điện nước (tải phòng, mở modal ảnh chỉ số), Phòng trọ (sơ đồ và bảng), Hợp đồng (bảng, mở modal tạo, lọc phòng theo chi nhánh) | PASS, console không lỗi; bảng hiện chữ tiếng Việt |
+| Bốn màn trên ở chế độ tối, 375px | PASS, không tràn ngang, icon hiện đủ |
+
+Ảnh `hieu-nang-13` … `22` trong `hinhanhprojectdemo`. Chưa kiểm trên trình duyệt: tài khoản Admin (nút xóa phòng, HD2), trang Hóa đơn có dữ liệu (nhân viên test này không có hóa đơn), cổng khách thuê (chỉ đổi layout ở bước 13–14, có test `DataTablesLanguageTests`).
+
+Test chặn hồi quy: `LayoutAssetVersionGuardTests`, `StaticFilesTests.ManagerLayout_CoreLibraries_AreVersioned_AndCachedLong`, `DataTablesLanguageTests`, `ViewInlineScriptGuardTests` (view lớn không quá 40 dòng JS nhúng, file JS không còn Razor), `ViewSource` (test soát tĩnh đọc view kèm file JS của màn), `ViecCanLamServiceTests.TongHop_GomMucCungBang_MoiNhomMotLanGoiStore`, `ViecCanLamStoreTests` mục 10 và `ViecCanLamStoreSingleItemAdapters` (test điều kiện từng mục đọc qua truy vấn gộp), `QueryBudgetTests` (huy hiệu tối đa 16 lệnh), `WwwrootVendorFilesTests`.
+
 ## Còn có thể làm tiếp (chưa duyệt)
 
 - **Chốt kỳ còn khoảng 41 lệnh mỗi phòng trên DB test** (khoảng 27 với dữ liệu thật vì thông báo không còn bị phồng): đánh giá lại 8, tạo hóa đơn nháp 13, báo nhân viên, phần duyệt còn lại (lan truyền kỳ sau, lưu). Giảm tiếp phải tạo hóa đơn nháp theo lô cho cả chi nhánh, đổi cách mỗi phòng chạy độc lập và báo lỗi riêng: chưa đề xuất.
 - **Trang Hợp đồng của Admin:** với dữ liệu thật chỉ thêm khoảng 40 KB; DB test phồng vì 37.818 chi nhánh in hai lần. Nếu làm, gộp vào đợt giao diện (tải theo chi nhánh/từ khóa, `SearchAutocompleteAsync` đã có).
+- **Huy hiệu Việc cần làm còn 16 lệnh mỗi trang.** Muốn về 0 ở hầu hết lần mở trang thì nhớ kết quả 30 giây theo người dùng, đổi lại số trên huy hiệu chậm cập nhật: đổi hành vi, cần người dùng quyết.
+- **Font icon:** `tabler-icons.woff2` 778.812 B cho 128 icon đang dùng; Font Awesome (CSS 102 KB + font 150 KB từ CDN) cho khoảng 10 icon và `fa-spin`. Cắt font cần công cụ mới, bỏ Font Awesome phải đổi icon.
+- **JS nhúng còn lại:** `_DangKyDichVuPartial.cshtml` (295 dòng), `NguoiDung/QuanLyTaiKhoanDangNhap.cshtml` (376), `DichVu/Index.cshtml` (304), `KhachThue/ChiSoDienNuoc/Index.cshtml` (307), `PhanCongChiNhanh/Index.cshtml` (289), `NguoiThue/QuanLyNguoiThue.cshtml` (282). Thêm view vào `ViewSource.OwnScripts` thì `ViewInlineScriptGuardTests` tự áp.
+- **Trang Việc cần làm gọi `DemHoaDonQuaHanAsync` lần hai** cho tổng số của bảng quá hạn (TT2 đã có từ truy vấn gộp): bớt được 1 lệnh nếu truyền kết quả sang.
+- **Font trong `wwwroot/Theme`:** `.eot`, `.ttf`, `.woff` (5,3 MB) chỉ trình duyệt cũ dùng; giữ lại vì CSS còn tham chiếu.
 - **Bảng tràn ngang ở 375px** (15/21 màn quản lý, 4/8 màn khách thuê): do `site.css` dòng 79–83. Thuộc đợt giao diện: cho bảng cuộn ngang trên điện thoại mà menu ⋯ không bị cắt.
 
 ## Giới hạn kiểm chứng
