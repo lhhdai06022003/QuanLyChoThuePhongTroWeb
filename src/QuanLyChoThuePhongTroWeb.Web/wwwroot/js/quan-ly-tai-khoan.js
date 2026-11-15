@@ -1,15 +1,6 @@
         $(document).ready(function () {
             let currentNguoiDungId = 0;
 
-            function escapeHtml(unsafe) {
-                return (unsafe || "").toString()
-                     .replace(/&/g, "&amp;")
-                     .replace(/</g, "&lt;")
-                     .replace(/>/g, "&gt;")
-                     .replace(/"/g, "&quot;")
-                     .replace(/'/g, "&#039;");
-            }
-
             function formatDateTime(dateString) {
                 if (!dateString) return `<span class="text-muted fst-italic">Chưa từng</span>`;
                 const s = String(dateString);

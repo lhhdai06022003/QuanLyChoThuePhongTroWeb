@@ -5,15 +5,6 @@
             return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n || 0);
         }
 
-        function escapeHtml(unsafe) {
-            return (unsafe || "").toString()
-                 .replace(/&/g, "&amp;")
-                 .replace(/</g, "&lt;")
-                 .replace(/>/g, "&gt;")
-                 .replace(/"/g, "&quot;")
-                 .replace(/'/g, "&#039;");
-        }
-
         function loadData() {
             let chiNhanhId = $('#filterChiNhanh').val();
             $.get(`/PhongTros/GetSoDoPhong?chiNhanhId=${chiNhanhId}`, function(data) {

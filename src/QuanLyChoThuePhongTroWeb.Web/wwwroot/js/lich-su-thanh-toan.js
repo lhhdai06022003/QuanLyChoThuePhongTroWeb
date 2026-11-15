@@ -9,14 +9,7 @@
         return tienTe.format(n);
     }
 
-    function esc(unsafe) {
-        return (unsafe || '').toString()
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#039;');
-    }
+    var esc = window.escapeHtml; // hàm dùng chung trong site.js
 
     $(function () {
         var isAdmin = !!cfg.laAdmin;
@@ -295,7 +288,7 @@
                         + '<td class="text-center align-middle hd-col-stt">' + (idx + 1) + '</td>'
                         + '<td class="align-middle">' + esc(ct.tenDichVu) + '</td>'
                         + '<td class="text-end align-middle hd-num">' + formatVND(ct.donGia) + '</td>'
-                        + '<td class="text-center align-middle hd-num">' + esc(ct.soLuong) + '<span class="hd-unit-inline text-secondary"> ' + esc(donViText) + '</span></td>'
+                        + '<td class="text-center align-middle hd-num">' + esc(ct.soLuong || '') + '<span class="hd-unit-inline text-secondary"> ' + esc(donViText) + '</span></td>'
                         + '<td class="text-center align-middle hd-col-unit">' + esc(donViText) + '</td>'
                         + '<td class="text-end align-middle fw-medium hd-num">' + formatVND(ct.tongTien) + '</td>'
                         + '</tr>';

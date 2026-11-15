@@ -1,12 +1,3 @@
-        function escapeHtml(unsafe) {
-            return (unsafe || "").toString()
-                 .replace(/&/g, "&amp;")
-                 .replace(/</g, "&lt;")
-                 .replace(/>/g, "&gt;")
-                 .replace(/"/g, "&quot;")
-                 .replace(/'/g, "&#039;");
-        }
-
         function formatVND(n) {
             if (n === null || n === undefined) return "0 ₫";
             return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n);

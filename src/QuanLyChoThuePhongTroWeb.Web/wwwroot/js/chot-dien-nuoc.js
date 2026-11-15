@@ -133,16 +133,6 @@
                 return STATUS_LABELS[status] || 'Có ảnh';
             }
 
-            function escapeHtml(str) {
-                if (!str) return '';
-                return String(str)
-                    .replace(/&/g, '&amp;')
-                    .replace(/</g, '&lt;')
-                    .replace(/>/g, '&gt;')
-                    .replace(/"/g, '&quot;')
-                    .replace(/'/g, '&#39;');
-            }
-
             function deltaText(cu, moi, unit) {
                 const d = (parseFloat(moi) || 0) - (parseFloat(cu) || 0);
                 if (d < 0) return '';

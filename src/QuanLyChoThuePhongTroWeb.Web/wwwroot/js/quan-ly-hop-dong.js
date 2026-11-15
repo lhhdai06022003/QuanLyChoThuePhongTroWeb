@@ -99,15 +99,6 @@
             }
         }
 
-        function escapeHtml(unsafe) {
-            return (unsafe || "").toString()
-                 .replace(/&/g, "&amp;")
-                 .replace(/</g, "&lt;")
-                 .replace(/>/g, "&gt;")
-                 .replace(/\"/g, "&quot;")
-                 .replace(/'/g, "&#039;");
-        }
-
         $(document).ready(function () {
             // Khởi tạo Partial View Thành Viên
             // Dữ liệu từ server: view đặt window.hopDongConfig ngay trước khi nạp file này.

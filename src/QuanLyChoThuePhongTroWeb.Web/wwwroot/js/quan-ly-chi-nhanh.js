@@ -1,14 +1,5 @@
         // Biến toàn cục để lưu DataTables
 
-        function escapeHtml(unsafe) {
-            return (unsafe || "").toString()
-                 .replace(/&/g, "&amp;")
-                 .replace(/</g, "&lt;")
-                 .replace(/>/g, "&gt;")
-                 .replace(/"/g, "&quot;")
-                 .replace(/'/g, "&#039;");
-        }
-
         $(document).ready(function () {
             let currentChiNhanhId = 0;
             // 1. KHỞI TẠO DATATABLES BẰNG AJAX

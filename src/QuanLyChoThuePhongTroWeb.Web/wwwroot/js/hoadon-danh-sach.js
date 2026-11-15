@@ -1,12 +1,3 @@
-        function escapeHtml(unsafe) {
-            return (unsafe || "").toString()
-                 .replace(/&/g, "&amp;")
-                 .replace(/</g, "&lt;")
-                 .replace(/>/g, "&gt;")
-                 .replace(/"/g, "&quot;")
-                 .replace(/'/g, "&#039;");
-        }
-
         $(document).ready(function () {
             // Giá trị từ server: view đặt window.hoaDonConfig ngay trước khi nạp file này.
             var isAdmin = window.hoaDonConfig.isAdmin;

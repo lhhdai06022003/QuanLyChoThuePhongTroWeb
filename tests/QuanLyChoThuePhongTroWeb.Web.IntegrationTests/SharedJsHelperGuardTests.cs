@@ -47,5 +47,37 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             Assert.Contains("escapeHtml(tb.tieuDe)", js);
             Assert.Contains("escapeHtml(tb.noiDung)", js);
         }
+
+        // File JS của hai cổng và view trong Areas không khai báo lại hàm đã có ở site.js.
+        // Ngoại lệ: ai-chat-widget.js tự đóng gói, giữ cách escape riêng (không đổi null thành chuỗi rỗng);
+        // file của cổng khách vãng lai (guest-*, khach-vang-lai-*) chạy trên layout không nạp site.js.
+        [Theory]
+        [InlineData("escapeHtml")]
+        [InlineData("esc")]
+        public void KhongFileNaoKhaiBaoLaiHamDungChung(string tenHam)
+        {
+            var root = ViewSource.WebRoot();
+            var files = Directory.GetFiles(Path.Combine(root, "wwwroot", "js"), "*.js")
+                .Where(f => !Regex.IsMatch(Path.GetFileName(f), @"^(site\.js|ai-chat-widget\.js|guest-.*|khach-vang-lai-.*)$"))
+                .Concat(Directory.GetFiles(Path.Combine(root, "Areas"), "*.cshtml", SearchOption.AllDirectories))
+                .ToList();
+            Assert.True(files.Count > 30, "Không tìm thấy đủ file JS và view để soát");
+
+            var khaiBao = new Regex($@"function\s+{Regex.Escape(tenHam)}\s*\(");
+            var viPham = files.Where(f => khaiBao.IsMatch(File.ReadAllText(f)))
+                .Select(f => Path.GetRelativePath(root, f))
+                .ToList();
+
+            Assert.True(viPham.Count == 0, $"Khai báo lại {tenHam} (dùng hàm trong site.js): " + string.Join(", ", viPham));
+        }
+
+        // Màn Lịch sử thanh toán trước đây để trống ô số lượng khi số lượng bằng 0; giữ nguyên cách hiện đó.
+        [Fact]
+        public void LichSuThanhToan_GiuCachHienSoLuongBangKhong()
+        {
+            var js = ViewSource.Read("wwwroot", "js", "lich-su-thanh-toan.js");
+            Assert.Contains("var esc = window.escapeHtml;", js);
+            Assert.Contains("esc(ct.soLuong || '')", js);
+        }
     }
 }
