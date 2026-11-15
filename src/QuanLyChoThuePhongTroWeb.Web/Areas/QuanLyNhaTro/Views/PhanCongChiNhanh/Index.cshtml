@@ -77,9 +77,13 @@
 
 @section Scripts {
     <script>
+        // Giá trị từ server cho wwwroot/js/phan-cong-chi-nhanh.js (file tĩnh không qua Razor).
+        window.phanCongChiNhanhConfig = { openNguoiDungId: @Html.Raw(openNguoiDungId.HasValue ? openNguoiDungId.Value.ToString() : "null") };
+    </script>
+    <script>
         $(document).ready(function () {
             var currentModalNguoiDungId = 0;
-            var openNguoiDungIdOnLoad = @Html.Raw(openNguoiDungId.HasValue ? openNguoiDungId.Value.ToString() : "null");
+            var openNguoiDungIdOnLoad = window.phanCongChiNhanhConfig.openNguoiDungId;
 
             function escapeHtml(value) {
                 if (value === null || value === undefined) return '';

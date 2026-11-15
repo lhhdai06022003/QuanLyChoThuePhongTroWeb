@@ -67,6 +67,10 @@
     <script src="~/js/khachthue-vnpay.js" asp-append-version="true"></script>
     <script src="~/js/khachthue-thanhtoan.js" asp-append-version="true"></script>
     <script>
+        // Giá trị từ server cho wwwroot/js/khachthue-hoa-don.js (file tĩnh không qua Razor); khai báo như khi còn nằm chung một khối.
+        var autoOpenHoaDonId = @moHoaDonId;
+    </script>
+    <script>
         function escapeHtml(unsafe) {
             return (unsafe || "").toString()
                  .replace(/&/g, "&amp;")
@@ -81,7 +85,7 @@
             return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n);
         }
 
-        var autoOpenHoaDonId = @moHoaDonId;
+        // autoOpenHoaDonId: view khai báo ngay trước khi nạp file này.
         // Hóa đơn đang mở trong modal (0 = không mở); sự kiện tiền vào của đúng hóa đơn này thì tải lại modal.
         var dangXemHoaDonId = 0;
 
