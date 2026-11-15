@@ -38,10 +38,17 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             Assert.Matches("<select id=\"filterNguoiThue\"[^>]*>\\s*<option value=\"0\">-- Tất cả --</option>\\s*</select>", html);
             Assert.Matches("<select class=\"form-control select2\" id=\"NguoiThueId\"[^>]*>\\s*<option value=\"\">-- Chọn khách thuê --</option>\\s*</select>", html);
 
-            var fill = html.IndexOf("new Option(nt.text, nt.value)", StringComparison.Ordinal);
-            Assert.True(fill > html.IndexOf("allNguoiThues = [", StringComparison.Ordinal), "Phải đổ sau khi có dữ liệu JSON");
-            Assert.True(fill < html.IndexOf("$('#NguoiThueId').select2({", StringComparison.Ordinal), "Phải đổ trước khi khởi tạo Select2");
-            Assert.True(fill < html.IndexOf("d.nguoiThueId = $('#filterNguoiThue').val();", StringComparison.Ordinal), "Phải đổ trước khi tạo bảng");
+            // Dữ liệu JSON in trong trang, trước thẻ nạp wwwroot/js/quan-ly-hop-dong.js (mã của màn, bước 15).
+            var data = html.IndexOf("window.hopDongConfig.allNguoiThues = [", StringComparison.Ordinal);
+            var scriptTag = html.IndexOf("src=\"/js/quan-ly-hop-dong.js?v=", StringComparison.Ordinal);
+            Assert.True(data > 0, "Thiếu dữ liệu JSON người thuê trong trang");
+            Assert.True(scriptTag > data, "Phải có dữ liệu JSON trước khi nạp file JS của màn");
+
+            var js = ViewSource.Read("wwwroot", "js", "quan-ly-hop-dong.js");
+            var fill = js.IndexOf("new Option(nt.text, nt.value)", StringComparison.Ordinal);
+            Assert.True(fill > js.IndexOf("let allNguoiThues = window.hopDongConfig.allNguoiThues;", StringComparison.Ordinal), "Phải đổ sau khi có dữ liệu JSON");
+            Assert.True(fill > 0 && fill < js.IndexOf("$('#NguoiThueId').select2({", StringComparison.Ordinal), "Phải đổ trước khi khởi tạo Select2");
+            Assert.True(fill < js.IndexOf("d.nguoiThueId = $('#filterNguoiThue').val();", StringComparison.Ordinal), "Phải đổ trước khi tạo bảng");
         }
     }
 }

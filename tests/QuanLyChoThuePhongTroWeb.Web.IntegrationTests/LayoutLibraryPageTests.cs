@@ -47,7 +47,9 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
 
             InOrder(html, "flatpickr/4.6.13/flatpickr.min.css", "select2/4.0.13/css/select2.min.css");
             InOrder(html, "flatpickr/4.6.13/flatpickr.min.js", "flatpickr/4.6.13/l10n/vn.min.js", "select2/4.0.13/js/select2.full.min.js",
-                "$.fn.select2.defaults.set('language'", "flatpickr(\"#filterDateRange\"");
+                "$.fn.select2.defaults.set('language'", "/js/quan-ly-hop-dong.js");
+            // Mã của màn (gọi flatpickr, Select2) nằm ở file tĩnh nạp sau cùng.
+            Assert.Contains("flatpickr(\"#filterDateRange\"", ViewSource.Read("wwwroot", "js", "quan-ly-hop-dong.js"));
             Assert.DoesNotContain("chart.js", html);
         }
 

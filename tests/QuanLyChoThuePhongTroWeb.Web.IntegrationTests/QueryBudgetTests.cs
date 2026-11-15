@@ -181,7 +181,7 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             }
             var total = System.Text.Encoding.UTF8.GetByteCount(html);
             var tenants = Segment("allNguoiThues = [{");
-            var rooms = Segment("let allPhongTros = [");
+            var rooms = Segment("allPhongTros = [{");
             int soNguoiThue, soPhong;
             using (var scope = _factory.Services.CreateScope())
             {
