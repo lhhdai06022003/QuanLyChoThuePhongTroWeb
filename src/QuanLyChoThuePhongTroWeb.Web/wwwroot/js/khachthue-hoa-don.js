@@ -1,0 +1,247 @@
+        function escapeHtml(unsafe) {
+            return (unsafe || "").toString()
+                 .replace(/&/g, "&amp;")
+                 .replace(/</g, "&lt;")
+                 .replace(/>/g, "&gt;")
+                 .replace(/"/g, "&quot;")
+                 .replace(/'/g, "&#039;");
+        }
+
+        function formatVND(n) {
+            if (n === null || n === undefined) return "0 ₫";
+            return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n);
+        }
+
+        // autoOpenHoaDonId: view khai báo ngay trước khi nạp file này.
+        // Hóa đơn đang mở trong modal (0 = không mở); sự kiện tiền vào của đúng hóa đơn này thì tải lại modal.
+        var dangXemHoaDonId = 0;
+
+        $(document).ready(function () {
+            $('#hoaDonTable').DataTable({
+                "ajax": {
+                    "url": "/KhachThue/HoaDon/GetDanhSach",
+                    "dataSrc": ""
+                },
+                "columns": [
+                    {
+                        "data": "maHoaDon",
+                        "render": function(data) {
+                            return `<span class="fw-bold">${escapeHtml(data)}</span>`;
+                        }
+                    },
+                    {
+                        "data": null,
+                        "render": function (data, type, row) {
+                            return "Tháng " + row.thang + " / " + row.nam;
+                        }
+                    },
+                    {
+                        "data": "tongTien",
+                        "className": "text-end num-tabular",
+                        "render": function (data) {
+                            return '<span class="fw-bold text-danger">' + formatVND(data) + '</span>';
+                        }
+                    },
+                    {
+                        "data": null,
+                        "render": function (data, type, row) {
+                            if (row.trangThaiPhatHanh === 4) {
+                                return '<span class="badge bg-secondary-lt">Đã hủy</span>';
+                            }
+                            if (row.trangThaiHoaDon === 1) {
+                                return '<span class="badge bg-success-lt">Đã thanh toán</span>';
+                            } else if (row.trangThaiHoaDon === 2) {
+                                return '<span class="badge bg-info-lt">Thanh toán một phần</span>';
+                            } else {
+                                return '<span class="badge bg-warning-lt">Chưa thanh toán</span>';
+                            }
+                        }
+                    },
+                    {
+                        "data": "ngayTao",
+                        "render": function(data) {
+                            return escapeHtml(data);
+                        }
+                    },
+                    {
+                        "data": "hoaDonId",
+                        "orderable": false,
+                        "render": function (data) {
+                            return '<button class="btn btn-sm btn-primary" onclick="showChiTiet(' + data + ')"><i class="ti ti-eye me-1"></i> Xem chi tiết</button>';
+                        }
+                    }
+                ],
+                "language": {
+                    "url": window.dataTablesViUrl
+                },
+                "pageLength": 10,
+                "ordering": true,
+                "info": true,
+                "autoWidth": false,
+                "initComplete": function () {
+                    if (autoOpenHoaDonId > 0) {
+                        showChiTiet(autoOpenHoaDonId);
+                        if (window.history && window.history.replaceState) {
+                            const url = new URL(window.location.href);
+                            url.searchParams.delete('hoaDonId');
+                            window.history.replaceState({}, document.title, url.pathname + (url.search ? url.search : ''));
+                        }
+                    }
+                }
+            });
+
+            // Tiền về qua SePay: danh sách luôn được làm mới, modal chỉ tải lại khi đang mở đúng hóa đơn đó.
+            KtThanhToan.watch(function (e) {
+                $('#hoaDonTable').DataTable().ajax.reload(null, false);
+                if (e && e.hoaDonId === dangXemHoaDonId && $('#chiTietModal').hasClass('show')) {
+                    showChiTiet(dangXemHoaDonId);
+                }
+            });
+        });
+
+        $(document).on('hidden.bs.modal', '#chiTietModal', function () {
+            dangXemHoaDonId = 0;
+        });
+
+        function showChiTiet(hoaDonId) {
+            dangXemHoaDonId = hoaDonId;
+            var modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('chiTietModal'));
+            modal.show();
+
+            $('#chiTietBody').html('<div class="text-center py-4"><i class="ti ti-loader fa-spin fa-2x text-primary mb-2"></i><div>Đang tải dữ liệu...</div></div>');
+            $('#btnDownloadPdf').addClass('d-none');
+
+            $.get(`/KhachThue/HoaDon/XemChiTiet?id=${hoaDonId}`, function(res) {
+                // Configure PDF button in footer
+                $('#btnDownloadPdf').attr('href', `/KhachThue/HoaDon/TaiPdf/${res.hoaDonId}`).removeClass('d-none');
+
+                let cancelBanner = '';
+                if (res.daHuy) {
+                    cancelBanner = `
+                        <div class="alert alert-danger py-2 mb-3">
+                            <i class="ti ti-alert-circle me-2"></i>
+                            <strong>Hóa đơn đã hủy</strong> — Lý do: ${escapeHtml(res.lyDoHuy || '(không có lý do)')}
+                        </div>
+                    `;
+                }
+
+                let deadlineBanner = '';
+                if (res.hanPhanHoi) {
+                    const lienHe = res.soDienThoaiChiNhanh
+                        ? ` liên hệ <a href="tel:${escapeHtml(res.soDienThoaiChiNhanh)}">${escapeHtml(res.soDienThoaiChiNhanh)}</a>`
+                        : '';
+                    deadlineBanner = `
+                        <div class="alert alert-info py-2 mb-3">
+                            <i class="ti ti-clock-hour-4 me-2"></i>Nếu thấy sai sót, vui lòng${lienHe ? lienHe : ' liên hệ chi nhánh'} trước ${escapeHtml(res.hanPhanHoi)}.
+                        </div>
+                    `;
+                }
+
+                let ttBadge = '';
+                if (res.daHuy) {
+                    ttBadge = '<span class="badge bg-secondary-lt px-2 py-1">Đã hủy</span>';
+                } else if (res.trangThaiThanhToanValue === 1) {
+                    ttBadge = '<span class="badge bg-success-lt px-2 py-1">Đã thanh toán</span>';
+                } else if (res.trangThaiThanhToanValue === 2) {
+                    ttBadge = '<span class="badge bg-info-lt px-2 py-1">Thanh toán một phần</span>';
+                } else {
+                    ttBadge = '<span class="badge bg-warning-lt px-2 py-1">Chưa thanh toán</span>';
+                }
+
+                let html = `
+                    ${cancelBanner}
+                    ${deadlineBanner}
+                    <div class="datagrid mb-3">
+                        <div class="datagrid-item"><div class="datagrid-title">Mã HĐ</div><div class="datagrid-content fw-medium text-primary">${escapeHtml(res.maHoaDon)}</div></div>
+                        <div class="datagrid-item"><div class="datagrid-title">Ngày tạo</div><div class="datagrid-content fw-medium hd-num text-secondary">${escapeHtml(res.ngayTao)}</div></div>
+                        <div class="datagrid-item"><div class="datagrid-title">Phòng</div><div class="datagrid-content fw-medium text-primary">${escapeHtml(res.tenPhong)}</div></div>
+                        <div class="datagrid-item"><div class="datagrid-title">Kỳ</div><div class="datagrid-content fw-medium hd-num">Tháng ${res.thang}/${res.nam}</div></div>
+                        <div class="datagrid-item"><div class="datagrid-title">Người thuê</div><div class="datagrid-content fw-medium ">${escapeHtml(res.tenNguoiThue)}</div></div>
+                        <div class="datagrid-item"><div class="datagrid-title">Trạng thái</div><div class="datagrid-content fw-medium ">${ttBadge}</div></div>
+                    </div>
+                    <h4 class="fw-bold border-bottom pb-2 mt-4"><i class="ti ti-list me-1"></i> Chi tiết các khoản phí</h4>
+                    <div class="table-responsive ts-cuon-ngang mb-3">
+                        <table class="table card-table table-vcenter table-striped table-hover w-100 table-sm">
+                            <thead>
+                                <tr>
+                                    <th class="text-center hd-col-stt" width="6%">STT</th>
+                                    <th>Dịch vụ</th>
+                                    <th class="text-end" width="20%">Đơn giá</th>
+                                    <th class="text-center" width="10%">SL</th>
+                                    <th class="text-center hd-col-unit" width="12%">Đơn vị</th>
+                                    <th class="text-end" width="22%">Thành tiền</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+
+                res.chiTietHoaDons.forEach((ct, idx) => {
+                    let donViText = ct.donVi ? ct.donVi : '-';
+                    html += `<tr>
+                        <td class="text-center align-middle hd-col-stt">${idx + 1}</td>
+                        <td class="align-middle">${escapeHtml(ct.tenDichVu)}</td>
+                        <td class="text-end align-middle hd-num">${formatVND(ct.donGia)}</td>
+                        <td class="text-center align-middle hd-num">${ct.soLuong}<span class="hd-unit-inline text-secondary"> ${escapeHtml(donViText)}</span></td>
+                        <td class="text-center align-middle hd-col-unit">${escapeHtml(donViText)}</td>
+                        <td class="text-end align-middle fw-medium hd-num">${formatVND(ct.tongTien)}</td>
+                    </tr>`;
+                });
+
+                html += `</tbody>
+                        </table>
+                        </div>
+                        <div class="hd-total-row mb-3"><span class="fw-bold">Tổng cộng</span><span class="fw-bold text-danger fs-3 hd-num">${formatVND(res.tongTien)}</span></div>`;
+
+                // Chỉ số điện nước của kỳ (mọi hóa đơn có chỉ số).
+                if (res.chiSoDienMoi !== null && res.chiSoDienMoi !== undefined) {
+                    const soVN = n => Number(n).toLocaleString('vi-VN');
+                    const dongChiSo = (ten, cu, moi) =>
+                        `<tr><td>${ten}</td><td class="text-end hd-num">${soVN(cu)}</td><td class="text-end hd-num">${soVN(moi)}</td><td class="text-end hd-num fw-medium">${soVN(moi - cu)}</td></tr>`;
+                    html += `<h4 class="fw-bold border-bottom pb-2 mt-4"><i class="ti ti-bolt me-1"></i> Chỉ số điện nước</h4>
+                        <div class="table-responsive ts-cuon-ngang mb-3">
+                        <table class="table card-table table-vcenter table-sm">
+                            <thead><tr><th>Loại</th><th class="text-end">Chỉ số cũ</th><th class="text-end">Chỉ số mới</th><th class="text-end">Tiêu thụ</th></tr></thead>
+                            <tbody>
+                                ${dongChiSo('Điện', res.chiSoDienCu, res.chiSoDienMoi)}
+                                ${dongChiSo('Nước', res.chiSoNuocCu, res.chiSoNuocMoi)}
+                            </tbody>
+                        </table>
+                        </div>`;
+                }
+
+                // Khoản cấn trừ tiền cọc khi thanh lý hợp đồng
+                const canTruCoc = (res.lichSuThanhToans || []).filter(ls => ls.laCanTruCoc).reduce((s, ls) => s + ls.soTienThanhToan, 0);
+                if (canTruCoc > 0) {
+                    html += `<div class="hd-total-row mb-3"><span>Trừ tiền cọc</span><span class="hd-num">−${formatVND(canTruCoc)}</span></div>`;
+                }
+
+                // Lịch sử thanh toán
+                if (res.lichSuThanhToans && res.lichSuThanhToans.length > 0) {
+                    html += `<h4 class="fw-bold border-bottom pb-2 mt-4"><i class="ti ti-history me-1"></i> Lịch sử thanh toán</h4>
+                        <div class="table-responsive ts-cuon-ngang mb-3">
+                        <table class="table card-table table-vcenter table-striped table-hover w-100 table-sm">
+                            <thead>
+                                <tr><th>Mã GD</th><th class="text-end">Số tiền</th><th>Phương thức</th><th>Ngày</th><th>Người xác nhận</th><th class="hd-note">Ghi chú</th></tr>
+                            </thead><tbody>`;
+                    res.lichSuThanhToans.forEach(ls => {
+                        html += `<tr><td>${escapeHtml(ls.maGiaoDich)}</td><td class="text-end fw-medium text-success hd-num">${formatVND(ls.soTienThanhToan)}</td><td>${escapeHtml(ls.phuongThucThanhToan)}</td><td class="hd-num">${escapeHtml(ls.ngayThanhToan)}</td><td>${escapeHtml(ls.nguoiXacNhan) || '—'}</td><td class="hd-note">${escapeHtml(ls.ghiChu || '')}</td></tr>`;
+                    });
+                    html += `</tbody></table></div>`;
+                }
+
+                // Khung "Thanh toán": VietQR theo số còn lại và biên lai.
+                if (!res.daHuy) {
+                    html += '<div id="ktPaymentPanel" class="mt-4 pt-3 border-top"></div>';
+                }
+
+                $('#chiTietBody').html(html);
+                if (!res.daHuy) {
+                    KtThanhToan.load(res.hoaDonId, '#ktPaymentPanel', function () {
+                        $('#hoaDonTable').DataTable().ajax.reload(null, false);
+                        showChiTiet(res.hoaDonId);
+                    });
+                }
+            }).fail(function() {
+                modal.hide();
+                Swal.fire('Lỗi', 'Không tìm thấy hóa đơn hoặc bạn không có quyền xem.', 'error');
+            });
+        }
