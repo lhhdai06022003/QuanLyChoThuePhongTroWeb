@@ -31,10 +31,11 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             foreach (var tenantId in new[] { w.TenantA, w.TenantB, w.TenantFree })
             {
                 Assert.Single(Regex.Matches(html, $"\"value\":\"{tenantId}\""));
-                Assert.DoesNotContain($"<option value=\"{tenantId}\">", html);
             }
 
-            // Hai ô chọn vẫn giữ lựa chọn mặc định viết sẵn trong HTML.
+            // Hai ô chọn người thuê chỉ có lựa chọn mặc định viết sẵn trong HTML (không in <option> người thuê).
+            // Không kiểm "<option value=\"{tenantId}\">" trên cả trang: ô chọn chi nhánh cũng in <option value="{id}">,
+            // trên DB test trống mã chi nhánh có thể trùng mã người thuê (CI GitHub 16/11/2026).
             Assert.Matches("<select id=\"filterNguoiThue\"[^>]*>\\s*<option value=\"0\">-- Tất cả --</option>\\s*</select>", html);
             Assert.Matches("<select class=\"form-control select2\" id=\"NguoiThueId\"[^>]*>\\s*<option value=\"\">-- Chọn khách thuê --</option>\\s*</select>", html);
 
