@@ -1,6 +1,6 @@
 # Hướng dẫn triển khai
 
-Tài liệu này mô tả cách chuẩn bị và triển khai ứng dụng Web hiện tại. Repository chưa chứa Dockerfile, manifest cloud hay CI/CD workflow; các bước dưới đây dùng dotnet publish và không giả định nhà cung cấp hosting cụ thể.
+Tài liệu này mô tả cách chuẩn bị và triển khai ứng dụng Web hiện tại. Có hai cách: chạy container từ `Dockerfile` (dùng cho Azure, xem [azure.md](azure.md) và workflow `.github/workflows/ci-cd.yml`), hoặc `dotnet publish` lên máy tự quản như các mục dưới.
 
 ## Yêu cầu
 
@@ -39,6 +39,9 @@ Không commit appsettings.json thật. Dùng biến môi trường hoặc secret
 | ContractAlertSettings__AdminEmail | Khi bật cảnh báo | Email quản lý nhận cảnh báo |
 | ContractAlertSettings__AlertDays__0 | Không | Phần tử đầu danh sách mốc ngày; thêm __1, __2 khi cần |
 | DashboardSettings__ChotDienNuocDay | Không | Ngày chốt điện nước hiển thị trên dashboard |
+| AdminSeed__Password | Lần chạy đầu | Mật khẩu tạo tài khoản admin khi DB chưa có admin |
+| ASPNETCORE_FORWARDEDHEADERS_ENABLED | Khi sau proxy | `true` khi TLS kết thúc ở proxy/Azure (mục HTTPS bên dưới) |
+| DataProtection__KeysPath | Khi chạy container | Thư mục bền giữ khóa cookie/antiforgery; trống thì dùng mặc định của ASP.NET Core |
 
 Mẫu đầy đủ nằm tại [appsettings.example.json](../../src/QuanLyChoThuePhongTroWeb.Web/appsettings.example.json).
 
@@ -81,9 +84,13 @@ Trên Linux có thể dùng systemd; trên Windows có thể đặt sau IIS ho�
 
 Production bật HSTS và UseHttpsRedirection. Cookie đăng nhập có HttpOnly, SameSite=Lax và SecurePolicy=SameAsRequest.
 
-Khi TLS kết thúc tại Nginx/IIS/load balancer, ứng dụng cần nhận đúng scheme HTTPS. Program.cs hiện chưa gọi UseForwardedHeaders; phải cấu hình/bổ sung forwarded headers trước khi tin X-Forwarded-*. Không công khai Kestrel trực tiếp nếu chưa có TLS, firewall và reverse proxy phù hợp.
+Khi TLS kết thúc tại Nginx/IIS/load balancer, ứng dụng cần nhận đúng scheme HTTPS. Program.cs không tự gọi UseForwardedHeaders: đặt biến `ASPNETCORE_FORWARDEDHEADERS_ENABLED=true` để ASP.NET Core đọc X-Forwarded-For/X-Forwarded-Proto (chỉ bật khi app thật sự đứng sau proxy, vì mọi nguồn gửi header này đều được tin). Thiếu biến này thì cookie đăng nhập không có cờ Secure, không có HSTS, Return URL VNPay ra `http://`, và giới hạn đăng nhập sai theo IP coi mọi người là một IP của proxy. Không công khai Kestrel trực tiếp nếu chưa có TLS, firewall và reverse proxy phù hợp.
 
 SignalR dùng endpoint /thongBaoHub; proxy phải hỗ trợ WebSocket hoặc fallback transport.
+
+## Khóa Data Protection
+
+Cookie đăng nhập và token antiforgery được mã hóa bằng khóa Data Protection. Mặc định khóa nằm trong thư mục người dùng của process; trong container thư mục đó mất mỗi lần deploy, làm mọi người bị đăng xuất. Đặt `DataProtection__KeysPath` trỏ vào ổ bền (Azure App Service: `/home/DataProtection-Keys` kèm `WEBSITES_ENABLE_APP_SERVICE_STORAGE=true`). Khóa lưu dạng chưa mã hóa (log cảnh báo `No XML encryptor configured`), nên chỉ để thư mục này cho app đọc ghi.
 
 ## Background jobs và lưu trạng thái
 
@@ -98,11 +105,11 @@ Nếu dùng container, mount content root hoặc hai file trên vào storage b�
 
 ## Bảo mật trước khi public/production
 
-- Thay cơ chế mật khẩu quản trị bootstrap đang hard-code trong NguoiDungService; đọc mật khẩu ban đầu từ secret và buộc đổi sau đăng nhập đầu tiên.
+- Mật khẩu admin lần đầu đọc từ `AdminSeed__Password` (không còn hard-code); đổi mật khẩu sau lần đăng nhập đầu và xóa biến.
 - Thu hồi mọi password/API key từng commit. Xóa file ở commit mới không xóa dữ liệu khỏi lịch sử Git.
 - Chỉ commit appsettings.example.json; kiểm tra git status và secret scan trước khi push.
 - Hạn chế quyền PostgreSQL theo môi trường và không dùng tài khoản production cho test.
-- SMTP hiện chấp nhận mọi certificate qua ServerCertificateValidationCallback; phải bỏ cơ chế này trước production để xác minh chứng chỉ đúng chuẩn.
+- SMTP xác minh chứng chỉ theo mặc định của MailKit (đã bỏ `ServerCertificateValidationCallback` chấp nhận mọi chứng chỉ; `SmtpCertificateValidationGuardTests` chặn thêm lại).
 - Xem xét giới hạn upload, rate limit, CSP và log redaction theo môi trường triển khai.
 
 ## Kiểm tra sau triển khai

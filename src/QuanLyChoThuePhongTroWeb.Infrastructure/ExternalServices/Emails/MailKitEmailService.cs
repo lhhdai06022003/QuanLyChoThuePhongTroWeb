@@ -418,7 +418,6 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.Emails
 
                 using (var client = new SmtpClient())
                 {
-                    client.ServerCertificateValidationCallback = (s, c, h, e) => true;
 
                     await client.ConnectAsync(smtpServer, port, SecureSocketOptions.StartTls);
                     await client.AuthenticateAsync(senderEmail, password);
@@ -549,7 +548,6 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.ExternalServices.Emails
 
                 using (var client = new SmtpClient())
                 {
-                    client.ServerCertificateValidationCallback = (s, c, h, e) => true;
                     await client.ConnectAsync(smtpServer, port, SecureSocketOptions.StartTls);
                     await client.AuthenticateAsync(senderEmail, password);
                     await client.SendAsync(message);

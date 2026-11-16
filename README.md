@@ -117,6 +117,7 @@ Infrastructure/Web integration fixtures yêu cầu tên database kết thúc b�
 - [Kiến trúc hệ thống](docs/architecture/README.md)
 - [Danh mục chức năng](docs/features/README.md)
 - [Hướng dẫn triển khai](docs/deployment/README.md)
+- [Triển khai lên Azure bằng GitHub Actions](docs/deployment/azure.md)
 - [Roadmap 60 ngày và đánh giá hiện trạng](docs/roadmap-60-ngay.md)
 - [Thiết kế nền tảng cơ sở dữ liệu cho hai migration](docs/superpowers/specs/2026-09-21-database-foundation-two-migrations-design.md)
 - [Kế hoạch Migration 1: chỉ số, OCR, hóa đơn và thanh toán](docs/superpowers/plans/2026-09-21-migration-1-billing-foundation.md)

@@ -1,0 +1,122 @@
+# Kiểm thử mọi push/PR vào master; push vào master thì build image Docker, đẩy lên GHCR và deploy Azure App Service.
+# Hướng dẫn thiết lập Azure và GitHub (biến AZURE_WEBAPP_NAME, secret AZURE_WEBAPP_PUBLISH_PROFILE):
+# docs/deployment/azure.md
+name: CI/CD
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-cd-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  test:
+    name: Build và test
+    # Windows giống máy phát triển; ảnh runner có sẵn PostgreSQL (tài khoản mặc định postgres/root của runner).
+    runs-on: windows-latest
+    timeout-minutes: 45
+    env:
+      QLCTPT_TEST_CONNECTION_STRING: Host=localhost;Port=5432;Database=qlctpt_test;Username=postgres;Password=root
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Bật PostgreSQL và tạo DB test
+        shell: pwsh
+        run: |
+          $pg = Get-Service -Name 'postgresql*' | Select-Object -First 1
+          Set-Service -Name $pg.Name -StartupType Manual
+          Start-Service -Name $pg.Name
+          & "$env:PGBIN\pg_isready.exe" -h localhost -p 5432 -t 30
+          & "$env:PGBIN\createdb.exe" -h localhost -U postgres qlctpt_test
+
+      # UseCpuOnnx=true: dùng ONNX Runtime bản CPU như trong Docker (runner không có GPU cho DirectML).
+      - name: Restore
+        run: dotnet restore QuanLyChoThuePhongTroWeb.sln -p:UseCpuOnnx=true
+
+      - name: Build
+        run: dotnet build QuanLyChoThuePhongTroWeb.sln -c Release --no-restore -p:UseCpuOnnx=true
+
+      # Chạy lần lượt từng project: Infrastructure và Web dùng chung một DB test, không được chạy song song.
+      - name: Test Domain
+        run: dotnet test tests/QuanLyChoThuePhongTroWeb.Domain.UnitTests -c Release --no-build
+
+      - name: Test Application
+        run: dotnet test tests/QuanLyChoThuePhongTroWeb.Application.UnitTests -c Release --no-build
+
+      - name: Test Infrastructure (PostgreSQL)
+        run: dotnet test tests/QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests -c Release --no-build
+
+      - name: Test Web (PostgreSQL)
+        run: dotnet test tests/QuanLyChoThuePhongTroWeb.Web.IntegrationTests -c Release --no-build
+
+      - name: Kiểm migration khớp model
+        shell: pwsh
+        env:
+          QLCTPT_DESIGNTIME_CONNECTION_STRING: ${{ env.QLCTPT_TEST_CONNECTION_STRING }}
+        run: |
+          dotnet tool install --global dotnet-ef --version 8.*
+          $p = "src/QuanLyChoThuePhongTroWeb.Infrastructure/QuanLyChoThuePhongTroWeb.Infrastructure.csproj"
+          dotnet ef migrations has-pending-model-changes --project $p --startup-project $p
+
+  deploy:
+    name: Build image và deploy Azure
+    needs: test
+    # Chỉ chạy khi push vào master và đã khai báo biến repo AZURE_WEBAPP_NAME (chưa thiết lập Azure thì bỏ qua).
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master' && vars.AZURE_WEBAPP_NAME != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    environment:
+      name: production
+      url: ${{ steps.deploy.outputs.webapp-url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Tên image (chữ thường)
+        id: image
+        run: echo "name=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build và đẩy image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ steps.image.outputs.name }}:${{ github.sha }}
+            ${{ steps.image.outputs.name }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Deploy lên App Service
+        id: deploy
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ vars.AZURE_WEBAPP_NAME }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          images: ${{ steps.image.outputs.name }}:${{ github.sha }}

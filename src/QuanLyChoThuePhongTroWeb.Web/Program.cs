@@ -83,6 +83,8 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     });
 
 builder.Services.AddStaticAssetCompression();
+// Khóa cookie/antiforgery lưu ra ổ bền khi có DataProtection:KeysPath (Helpers/DataProtectionKeyStorage.cs).
+builder.Services.AddPersistentDataProtectionKeys(builder.Configuration);
 
 var app = builder.Build();
 
