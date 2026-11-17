@@ -119,7 +119,7 @@ namespace QuanLyChoThuePhongTroWeb.Areas.QuanLyNhaTro.Controllers
             try
             {
                 var fileBytes = _contractDocumentGenerator.GenerateHopDongWord(data);
-                var fileName = $"HopDong_{data.MaHopDong}_{DateTime.Now:yyyyMMdd}.docx";
+                var fileName = $"HopDong_{data.MaHopDong}_{data.NgayIn:yyyyMMdd}.docx";
                 return File(fileBytes, "application/vnd.openxmlformats-officedocument.wordprocessingml.document", fileName);
             }
             catch (Exception ex)

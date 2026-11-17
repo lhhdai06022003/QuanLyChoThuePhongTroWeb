@@ -97,6 +97,14 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests
             Assert.Equal(HttpStatusCode.NotFound, (await staff.GetAsync($"/HopDong/Print/{w.ContractB}")).StatusCode);
             Assert.Equal(HttpStatusCode.NotFound, (await staff.GetAsync($"/HopDong/DownloadWord/{w.ContractB}")).StatusCode);
 
+            // In và tải Word hợp đồng chi nhánh A: trang in 200, file Word là gói .docx (zip, bắt đầu bằng "PK").
+            Assert.Equal(HttpStatusCode.OK, (await staff.GetAsync($"/HopDong/Print/{w.ContractA}")).StatusCode);
+            var word = await staff.GetAsync($"/HopDong/DownloadWord/{w.ContractA}");
+            Assert.Equal(HttpStatusCode.OK, word.StatusCode);
+            Assert.Equal("application/vnd.openxmlformats-officedocument.wordprocessingml.document", word.Content.Headers.ContentType?.MediaType);
+            var wordBytes = await word.Content.ReadAsByteArrayAsync();
+            Assert.True(wordBytes.Length > 1000 && wordBytes[0] == (byte)'P' && wordBytes[1] == (byte)'K');
+
             // Ghi lên hợp đồng / phòng chi nhánh B: 403.
             var body = new
             {

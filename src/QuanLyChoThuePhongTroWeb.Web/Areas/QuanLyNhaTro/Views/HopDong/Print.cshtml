@@ -1,4 +1,5 @@
 @model QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.DTOs.HopDongPrintRes
+@using QuanLyChoThuePhongTroWeb.Web.Helpers
 
 @{
     Layout = null; // In không cần Layout (Menu/Sidebar)
@@ -28,7 +29,7 @@
         </div>
 
         <div class="text-center mb-2">
-            <i>........., ngày @DateTime.Now.Day tháng @DateTime.Now.Month năm @DateTime.Now.Year</i>
+            <i>........., ngày @Model.NgayIn.Day tháng @Model.NgayIn.Month năm @Model.NgayIn.Year</i>
         </div>
 
         <!-- Tiêu đề Hợp đồng -->
@@ -40,7 +41,7 @@
         </div>
 
         <p class="mb-3">
-            Hôm nay, ngày @DateTime.Now.Day tháng @DateTime.Now.Month năm @DateTime.Now.Year, tại địa chỉ: @Model.DiaChiChiNhanh. Chúng tôi gồm:
+            Hôm nay, ngày @Model.NgayIn.Day tháng @Model.NgayIn.Month năm @Model.NgayIn.Year, tại địa chỉ: @Model.DiaChiChiNhanh. Chúng tôi gồm:
         </p>
 
         <!-- BÊN A -->
@@ -54,7 +55,7 @@
         <div class="indent-1 mb-1">- Ông/Bà: <span class="font-weight-bold">@Model.HoVaTenNguoiThue</span></div>
         <div class="indent-1 mb-1">
             - CCCD số: @Model.CCCDNguoiThue 
-            cấp ngày @(Model.NgayCapCCCD?.ToString("dd/MM/yyyy") ?? "...") 
+            cấp ngày @(Model.NgayCapCCCD.HasValue ? VietnamTime.Format(Model.NgayCapCCCD.Value, "dd/MM/yyyy") : "...")
             tại @(Model.NoiCapCCCD ?? "...")
         </div>
         <div class="indent-1 mb-1">- Hộ khẩu thường trú: @(Model.QueQuan ?? "...")</div>
@@ -71,9 +72,9 @@
         <!-- ĐIỀU 2: Thời hạn thuê -->
         <div class="section-title">Điều 2: Thời hạn thuê</div>
         <p class="indent-1 text-justify mb-2">
-            - Hợp đồng có giá trị kể từ ngày <span class="font-weight-bold">@Model.ThoiDiemBatDau.ToString("dd/MM/yyyy")</span> 
+            - Hợp đồng có giá trị kể từ ngày <span class="font-weight-bold">@VietnamTime.Format(Model.ThoiDiemBatDau, "dd/MM/yyyy")</span>
             @if(Model.ThoiDiemKetThuc.HasValue) {
-                <span> đến ngày <span class="font-weight-bold">@Model.ThoiDiemKetThuc.Value.ToString("dd/MM/yyyy")</span>.</span>
+                <span> đến ngày <span class="font-weight-bold">@VietnamTime.Format(Model.ThoiDiemKetThuc.Value, "dd/MM/yyyy")</span>.</span>
             } else {
                 <span> không xác định thời hạn.</span>
             }
@@ -81,8 +82,8 @@
 
         <!-- ĐIỀU 3: Giá thuê và đặt cọc -->
         <div class="section-title">Điều 3: Giá thuê và Tiền cọc</div>
-        <p class="indent-1 mb-1">- Tiền thuê phòng: <span class="font-weight-bold">@Model.TienThuePhong.ToString("N0") VNĐ/tháng</span>.</p>
-        <p class="indent-1 mb-1">- Tiền đặt cọc: <span class="font-weight-bold">@Model.TienCocPhong.ToString("N0") VNĐ</span>.</p>
+        <p class="indent-1 mb-1">- Tiền thuê phòng: <span class="font-weight-bold">@VndFormat.Number(Model.TienThuePhong) VNĐ/tháng</span>.</p>
+        <p class="indent-1 mb-1">- Tiền đặt cọc: <span class="font-weight-bold">@VndFormat.Number(Model.TienCocPhong) VNĐ</span>.</p>
         <p class="indent-1 text-justify mb-2">
             - Tiền cọc sẽ được Bên A hoàn trả cho Bên B khi chấm dứt hợp đồng, sau khi đã trừ đi các khoản chi phí điện, nước, dịch vụ còn nợ và chi phí đền bù hư hỏng tài sản (nếu có) theo đúng thỏa thuận.
         </p>
@@ -106,7 +107,7 @@
                         {
                             <tr>
                                 <td>@dv.TenDichVu</td>
-                                <td>@dv.DonGia.ToString("N0") VNĐ</td>
+                                <td>@VndFormat.Number(dv.DonGia) VNĐ</td>
                                 <td>@dv.DonViTinh</td>
                             </tr>
                         }

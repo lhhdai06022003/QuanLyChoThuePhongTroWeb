@@ -645,6 +645,21 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             Assert.Null(list[4].SoNgayQuaHan);
         }
 
+        [Fact]
+        public async Task GetPrintData_SetsNgayInTheoGioVietNam()
+        {
+            var store = new StubHopDongStore { Print = new HopDongPrintRes { HopDongId = 3, ChiNhanhId = 1 } };
+            // 18:00 UTC ngày 04/11 là 01:00 ngày 05/11 giờ Việt Nam: hợp đồng in phải ghi ngày 05/11, không phụ thuộc múi giờ máy chủ.
+            var service = new HopDongService(store, new FakeUnitOfWork(), new FakePasswordService(),
+                new Fakes.FakeEmployeeAccessService { ScopeToReturn = new Common.Security.EmployeeAccessScope(AdminId, true) },
+                new Fakes.FakeTenantVisibilityStore(),
+                new Fakes.FixedTimeProvider(new DateTimeOffset(2026, 11, 4, 18, 0, 0, TimeSpan.Zero)));
+
+            var data = await service.GetPrintDataAsync(AdminId, 3);
+
+            Assert.Equal(new DateTime(2026, 11, 5), data!.NgayIn);
+        }
+
         // ---------- Phạm vi chi nhánh ----------
 
         private const int StaffId = 7;

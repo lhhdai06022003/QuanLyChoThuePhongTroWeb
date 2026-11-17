@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.BackgroundJobs;
@@ -13,21 +14,22 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.BackgroundJobs.State
 {
     public class JsonContractExpiryAlertStateStore : IContractExpiryAlertStateStore
     {
-        private readonly IHostEnvironment _env;
+        private readonly string _filePath;
         private readonly ILogger<JsonContractExpiryAlertStateStore> _logger;
         private static readonly SemaphoreSlim _semaphore = new(1, 1);
 
         public JsonContractExpiryAlertStateStore(
             IHostEnvironment env,
-            ILogger<JsonContractExpiryAlertStateStore> logger)
+            ILogger<JsonContractExpiryAlertStateStore> logger,
+            IConfiguration? configuration = null)
         {
-            _env = env;
+            _filePath = BackgroundJobStatePath.Resolve(env, configuration, "sent_contract_alerts.json");
             _logger = logger;
         }
 
         private string GetFilePath()
         {
-            return Path.Combine(_env.ContentRootPath, "sent_contract_alerts.json");
+            return _filePath;
         }
 
         public async Task<IReadOnlySet<string>> GetSentAlertKeysAsync(CancellationToken cancellationToken = default)

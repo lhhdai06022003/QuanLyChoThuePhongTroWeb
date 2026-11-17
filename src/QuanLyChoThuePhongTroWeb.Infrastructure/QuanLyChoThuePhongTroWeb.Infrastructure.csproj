@@ -14,7 +14,8 @@
   <ItemGroup>
     <PackageReference Include="ClosedXML" Version="0.104.2" />
     <PackageReference Include="CloudinaryDotNet" Version="1.29.2" />
-    <PackageReference Include="DocX" Version="5.2.0" />
+    <!-- Xuất hợp đồng Word. Thay DocX (giấy phép Xceed chỉ cho dùng phi thương mại); cùng bản ClosedXML đang kéo theo. -->
+    <PackageReference Include="DocumentFormat.OpenXml" Version="3.1.1" />
     <PackageReference Include="MailKit" Version="4.17.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.4" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.4">
@@ -34,6 +35,10 @@
     <PackageReference Include="QRCoder" Version="1.8.0" />
     <PackageReference Include="QuestPDF" Version="2026.5.0" />
     <PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />
+    <!-- Ghim bản vá cho gói gián tiếp có cảnh báo lỗ hổng: Caching.Memory (EF Core), Pkcs (MailKit), System.Text.Json (EF Core Design). -->
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="8.0.1" />
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="8.0.2" />
+    <PackageReference Include="System.Text.Json" Version="8.0.6" />
     <PackageReference Condition="$([MSBuild]::IsOSPlatform('Windows')) and '$(UseCpuOnnx)' != 'true'" Include="Microsoft.ML.OnnxRuntime.DirectML" Version="1.19.2" />
     <PackageReference Condition="!$([MSBuild]::IsOSPlatform('Windows')) or '$(UseCpuOnnx)' == 'true'" Include="Microsoft.ML.OnnxRuntime" Version="1.19.2" />
   </ItemGroup>

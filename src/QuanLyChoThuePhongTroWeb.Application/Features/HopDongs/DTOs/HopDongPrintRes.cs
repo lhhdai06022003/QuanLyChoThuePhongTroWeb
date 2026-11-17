@@ -13,6 +13,9 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.DTOs
         public decimal TienThuePhong { get; set; }
         public DateTime NgayTao { get; set; }
 
+        // Ngày in theo lịch Việt Nam (đã đổi từ UTC), dùng cho dòng "ngày ... tháng ... năm ..." và tên tệp Word.
+        public DateTime NgayIn { get; set; }
+
         // Thông tin Bên A (Chi nhánh/Quản lý)
         public int ChiNhanhId { get; set; }
         public string TenChiNhanh { get; set; } = string.Empty;

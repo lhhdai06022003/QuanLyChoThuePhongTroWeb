@@ -492,7 +492,10 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.Services
         {
             var scope = await _access.GetScopeAsync(actorId);
             var data = scope == null ? null : await _store.GetPrintDataAsync(id);
-            return data != null && scope!.CanAccessBranch(data.ChiNhanhId) ? data : null;
+            if (data == null || !scope!.CanAccessBranch(data.ChiNhanhId)) return null;
+
+            data.NgayIn = _timeProvider.GetUtcNow().UtcDateTime.AddHours(7).Date;
+            return data;
         }
 
         public async Task<IReadOnlyList<HopDongRes>> GetHopDongsByNguoiThueIdAsync(int nguoiThueId)

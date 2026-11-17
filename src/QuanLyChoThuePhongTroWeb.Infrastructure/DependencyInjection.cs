@@ -66,7 +66,7 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Abstractions.Services.IBienBanThanhLyExporter, ExternalServices.DocumentExporters.BienBanThanhLyExporter>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Abstractions.Services.IBaoCaoExcelExporter, ExternalServices.DocumentExporters.BaoCaoExcelExporter>();
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Abstractions.Services.IVietQRService, ExternalServices.DocumentExporters.VietQRService>();
-            services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Abstractions.Services.IContractDocumentGenerator, ExternalServices.DocumentExporters.DocXContractDocumentGenerator>();
+            services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Abstractions.Services.IContractDocumentGenerator, ExternalServices.DocumentExporters.OpenXmlContractDocumentGenerator>();
 
             // External services: Email, Storage, AI
             services.AddScoped<QuanLyChoThuePhongTroWeb.Application.Abstractions.Services.IEmailService, ExternalServices.Emails.MailKitEmailService>();
