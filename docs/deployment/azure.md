@@ -31,13 +31,13 @@ Giá thay đổi theo vùng và thời điểm; kiểm lại bằng [Azure Prici
 
 100 USD đủ khoảng 3 tháng; nếu PostgreSQL nằm trong Free services thì khoảng 7 tháng. Tiết kiệm:
 
-- Tạo **Budget** (Cost Management → Budgets) với cảnh báo 20/50/80 USD.
+- Tạo **Budget**: Cost Management → bấm **(change)** cạnh Scope, chọn subscription Azure for Students (mặc định là Billing account) → **Monitoring → Budgets** → **+ Add**, 35 USD/tháng, cảnh báo Actual 50/80/100%.
 - Không demo thì **Stop** PostgreSQL (Azure tự bật lại sau 7 ngày). App Service plan vẫn tính tiền khi web dừng; muốn ngừng hẳn thì xóa plan.
 - Không gói F1: không có Always On, RAM 1 GB không đủ nạp model ONNX cùng app.
 
 ## Bước 1. Tạo tài nguyên trên Azure Portal
 
-Tài khoản Student giới hạn vùng được phép tạo; chọn Southeast Asia hoặc East Asia nếu được, không được thì vùng gần nhất trong danh sách cho phép. Đặt tất cả vào cùng một vùng.
+Tài khoản Student chỉ được tạo tài nguyên ở vài vùng. Xem danh sách: **Subscriptions → Azure for Students → Policies → Compliance** → dòng **Allowed resource deployment regions** → **View assignment** → **Parameters**. Tài khoản dùng cho dự án (16/11/2026) được phép `malaysiawest`, `koreacentral`, `indiasouthcentral`, `indonesiacentral`; **không có Southeast Asia**. Chọn **Korea Central**: vùng lâu năm, chắc chắn có PostgreSQL B1ms và App Service B1 (Malaysia West, Indonesia Central gần hơn nhưng là vùng mới, có thể thiếu gói). Đặt tất cả vào cùng một vùng. Các bước đã làm thật ghi ở [nhat-ky-trien-khai-azure.md](nhat-ky-trien-khai-azure.md).
 
 1. **Resource group**: ví dụ `rg-trosync`.
 2. **Azure Database for PostgreSQL – Flexible Server**:
@@ -69,6 +69,7 @@ Tài khoản Student giới hạn vùng được phép tạo; chọn Southeast A
 | `ASPNETCORE_ENVIRONMENT` | `Production` | |
 | `ASPNETCORE_FORWARDEDHEADERS_ENABLED` | `true` | Bắt buộc: Azure kết thúc HTTPS trước container; thiếu thì app tưởng request là HTTP (cookie không Secure, không HSTS) và mọi người dùng chung một IP, giới hạn đăng nhập sai theo IP sẽ khóa cả hệ thống |
 | `DataProtection__KeysPath` | `/home/DataProtection-Keys` | Giữ khóa cookie qua các lần deploy/khởi động lại |
+| `BackgroundJobs__StatePath` | `/home/state` | Giữ file "đã gửi nhắc hóa đơn / cảnh báo hợp đồng"; thiếu thì deploy lại có thể gửi lại email cũ |
 | `ConnectionStrings__DefaultConnection` | chuỗi ở Bước 1 | Có `SSL Mode=Require` |
 | `AdminSeed__Password` | mật khẩu admin lần đầu | Tối thiểu 8 ký tự; xóa biến sau khi đã đăng nhập và đổi mật khẩu |
 | `Cloudinary__CloudName`, `Cloudinary__ApiKey`, `Cloudinary__ApiSecret` | | Ảnh đồng hồ, minh chứng |
@@ -80,7 +81,7 @@ Tài khoản Student giới hạn vùng được phép tạo; chọn Southeast A
 
 Các khóa tùy chọn khác (SePay, VNPay, Telegram, giới hạn đăng nhập...) xem [.env.example](../../.env.example); tên biến giống hệt.
 
-Hai file trạng thái job (`sent_invoice_reminders.json`, `sent_contract_alerts.json`) nằm ở `/app` trong container, mất sau mỗi lần deploy: email nhắc hóa đơn hoặc cảnh báo hợp đồng có thể gửi lại một lần. Chấp nhận được khi demo; chỉ chạy **một** instance (không scale out).
+Hai file trạng thái job (`sent_invoice_reminders.json`, `sent_contract_alerts.json`) mặc định nằm ở `/app` trong container và mất sau mỗi lần deploy; đặt `BackgroundJobs__StatePath=/home/state` để giữ chúng trong `/home` (thư mục bền). Chỉ chạy **một** instance (không scale out): state store JSON không điều phối giữa nhiều instance.
 
 ## Bước 3. Nối GitHub Actions
 

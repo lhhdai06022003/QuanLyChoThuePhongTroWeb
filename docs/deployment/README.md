@@ -101,7 +101,7 @@ Ba job chạy bên trong mỗi instance Web. Khi triển khai nhiều instance, 
 | sent_invoice_reminders.json | Hóa đơn đã gửi nhắc |
 | sent_contract_alerts.json | Cảnh báo hợp đồng đã gửi |
 
-Nếu dùng container, mount content root hoặc hai file trên vào storage bền. Mất file có thể khiến hệ thống gửi lại email; nhiều replica có thể gửi trùng. Với production nhiều instance, nên chỉ bật job ở một instance hoặc thay state store bằng PostgreSQL/distributed store.
+Mặc định hai file nằm ở content root. Dùng container thì đặt `BackgroundJobs__StatePath` trỏ vào thư mục bền (Azure: `/home/state`); không đặt thì giữ content root. Mất file có thể khiến hệ thống gửi lại email; nhiều replica có thể gửi trùng. Với production nhiều instance, nên chỉ bật job ở một instance hoặc thay state store bằng PostgreSQL/distributed store.
 
 ## Bảo mật trước khi public/production
 
