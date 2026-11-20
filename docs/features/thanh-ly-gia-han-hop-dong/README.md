@@ -8,7 +8,7 @@
 ## Tính năng
 
 - [x] Bỏ `ContractAutoCloseJob` và `ContractAutoCloseUseCase`: hệ thống không tự kết thúc hợp đồng hay trả phòng về Trống. Form sửa hợp đồng không còn trạng thái Đã kết thúc (server cũng từ chối).
-- [x] `ContractExpiryAlertJob` gửi thông báo trong app **một lần** khi hợp đồng hết hạn cho Admin và nhân viên chi nhánh (khóa `app_het_han_{id}` trong `sent_contract_alerts.json`); việc cần làm KH4 "Hợp đồng đã quá hạn chưa xử lý" (lọc `boLoc=QuaHan` ở danh sách hợp đồng).
+- [x] `ContractExpiryAlertJob` gửi thông báo trong app **một lần** khi hợp đồng hết hạn cho Admin và nhân viên chi nhánh (đúng ngày hết hạn, không dùng file trạng thái từ 20/11/2026); việc cần làm KH4 "Hợp đồng đã quá hạn chưa xử lý" (lọc `boLoc=QuaHan` ở danh sách hợp đồng).
 - [x] Thanh lý (`/QuanLyNhaTro/HopDong/ThanhLy/{id}`, xem chi tiết ở `/QuanLyNhaTro/HopDong/ChiTiet/{id}`): ngày trả phòng; tiền phòng tháng trả tính theo ngày, điện nước theo chỉ số chốt (qua hóa đơn tháng đó, phải đã công bố); cấn trừ cọc vào hóa đơn còn nợ của cả chuỗi gia hạn, kỳ cũ trước, tối đa bằng số nợ, ghi `LichSuThanhToan` mã `CANTRU-HD{id}-{HoaDonId}`; trả phòng, đóng thành viên và dịch vụ; biên bản thanh lý PDF. Còn nợ sau cấn trừ vẫn cho thanh lý khi tích xác nhận, nợ tiếp tục theo dõi ở KH5 và cảnh báo nợ cũ.
 - [x] Gia hạn (`/QuanLyNhaTro/HopDong/GiaHan/{id}`): hợp đồng mới nối tiếp từ ngày 1 tháng sau, mã `{mã gốc}-GH{n}`, chuyển cọc, chép thành viên và điều khoản; giá thuê/cọc phải là số đồng nguyên; hộp thoại xác nhận tóm tắt hợp đồng mới trước khi gia hạn.
 - [x] Lịch sử thuê theo người thuê (`/QuanLyNhaTro/NguoiThue/ChiTiet/{id}`: đứng tên và ở ghép, giới hạn theo chi nhánh); tìm hợp đồng theo mã gốc, tên, CCCD, số điện thoại; bộ lọc nhanh ở danh sách hợp đồng.

@@ -11,7 +11,6 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using QuanLyChoThuePhongTroWeb.Application;
-using QuanLyChoThuePhongTroWeb.Application.Abstractions.BackgroundJobs;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Notifications;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Persistence;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Services;
@@ -78,10 +77,8 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.BackgroundJob
                     services.AddScoped<IThongBaoNotifier, NoopNotifier>();
                     services.RemoveAll<IUnitOfWork>();
                     services.AddSingleton(unitOfWork);
-                    services.RemoveAll<IInvoiceReminderStateStore>();
-                    services.AddSingleton<IInvoiceReminderStateStore, EmptyInvoiceReminderStateStore>();
-                    services.RemoveAll<IContractExpiryAlertStateStore>();
-                    services.AddSingleton<IContractExpiryAlertStateStore, EmptyContractExpiryAlertStateStore>();
+                    services.RemoveAll<TimeProvider>();
+                    services.AddSingleton<TimeProvider>(new SapToiGioChayTimeProvider());
                     services.RemoveAll<IEmailService>();
                     services.AddSingleton<IEmailService>(emailService);
 
@@ -152,34 +149,6 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.BackgroundJob
             {
                 return Handler(targetMethod ?? throw new InvalidOperationException("Missing target method."), args);
             }
-        }
-
-        private sealed class EmptyInvoiceReminderStateStore : IInvoiceReminderStateStore
-        {
-            private static readonly IReadOnlySet<int> Empty = new HashSet<int>();
-
-            public Task<IReadOnlySet<int>> GetSentInvoiceIdsAsync(CancellationToken cancellationToken = default) =>
-                Task.FromResult(Empty);
-
-            public Task<bool> HasBeenSentAsync(int hoaDonId, CancellationToken cancellationToken = default) =>
-                Task.FromResult(false);
-
-            public Task MarkAsSentAsync(int hoaDonId, CancellationToken cancellationToken = default) =>
-                throw new InvalidOperationException("No invoice should be marked in an empty-cycle composition test.");
-        }
-
-        private sealed class EmptyContractExpiryAlertStateStore : IContractExpiryAlertStateStore
-        {
-            private static readonly IReadOnlySet<string> Empty = new HashSet<string>();
-
-            public Task<IReadOnlySet<string>> GetSentAlertKeysAsync(CancellationToken cancellationToken = default) =>
-                Task.FromResult(Empty);
-
-            public Task<bool> HasBeenSentAsync(string alertKey, CancellationToken cancellationToken = default) =>
-                Task.FromResult(false);
-
-            public Task MarkAsSentAsync(string alertKey, CancellationToken cancellationToken = default) =>
-                throw new InvalidOperationException("No alert should be marked in an empty-cycle composition test.");
         }
 
         private sealed class NoopNotifier : IThongBaoNotifier

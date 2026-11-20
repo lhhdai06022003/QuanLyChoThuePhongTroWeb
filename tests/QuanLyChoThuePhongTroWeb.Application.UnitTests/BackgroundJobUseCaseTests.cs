@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging.Abstractions;
-using QuanLyChoThuePhongTroWeb.Application.Abstractions.BackgroundJobs;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Services;
 using QuanLyChoThuePhongTroWeb.Application.Common.Configurations;
 using QuanLyChoThuePhongTroWeb.Application.Common.Models;
@@ -23,64 +22,14 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
 {
     public class BackgroundJobUseCaseTests
     {
-        private class FakeInvoiceReminderStateStore : IInvoiceReminderStateStore
-        {
-            public HashSet<int> SentIds { get; } = new();
-            public bool ThrowOnMark { get; set; }
-
-            public Task<IReadOnlySet<int>> GetSentInvoiceIdsAsync(CancellationToken cancellationToken = default)
-            {
-                return Task.FromResult<IReadOnlySet<int>>(SentIds);
-            }
-
-            public Task<bool> HasBeenSentAsync(int hoaDonId, CancellationToken cancellationToken = default)
-            {
-                return Task.FromResult(SentIds.Contains(hoaDonId));
-            }
-
-            public Task MarkAsSentAsync(int hoaDonId, CancellationToken cancellationToken = default)
-            {
-                if (ThrowOnMark)
-                {
-                    throw new System.IO.IOException("Simulated disk write failure");
-                }
-                SentIds.Add(hoaDonId);
-                return Task.CompletedTask;
-            }
-        }
-
-        private class FakeContractExpiryAlertStateStore : IContractExpiryAlertStateStore
-        {
-            public HashSet<string> SentKeys { get; } = new();
-            public bool ThrowOnMark { get; set; }
-
-            public Task<IReadOnlySet<string>> GetSentAlertKeysAsync(CancellationToken cancellationToken = default)
-            {
-                return Task.FromResult<IReadOnlySet<string>>(SentKeys);
-            }
-
-            public Task<bool> HasBeenSentAsync(string alertKey, CancellationToken cancellationToken = default)
-            {
-                return Task.FromResult(SentKeys.Contains(alertKey));
-            }
-
-            public Task MarkAsSentAsync(string alertKey, CancellationToken cancellationToken = default)
-            {
-                if (ThrowOnMark)
-                {
-                    throw new System.IO.IOException("Simulated disk write failure");
-                }
-                SentKeys.Add(alertKey);
-                return Task.CompletedTask;
-            }
-        }
-
         private class FakeHoaDonStore : IHoaDonStore
         {
             public List<HoaDon> Invoices { get; set; } = new();
+            public DateTime? LastThresholdUtc { get; private set; }
 
             public Task<IReadOnlyList<HoaDon>> GetOverdueInvoicesAsync(DateTime thresholdUtc, CancellationToken cancellationToken = default)
             {
+                LastThresholdUtc = thresholdUtc;
                 return Task.FromResult<IReadOnlyList<HoaDon>>(Invoices);
             }
 
@@ -115,6 +64,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             public List<HopDong> Expired { get; set; } = new();
             public DateTime? ExpiredBeforeUtc { get; private set; }
             public int ExpiredCalls { get; private set; }
+            public bool ThrowOnExpiredQuery { get; set; }
 
             public Task<IReadOnlyList<HopDong>> GetActiveExpiringContractsAsync(CancellationToken cancellationToken = default)
             {
@@ -147,6 +97,10 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             {
                 ExpiredCalls++;
                 ExpiredBeforeUtc = nowUtc;
+                if (ThrowOnExpiredQuery)
+                {
+                    throw new InvalidOperationException("Mất kết nối DB");
+                }
                 return Task.FromResult<IReadOnlyList<HopDong>>(Expired);
             }
             public Task<IReadOnlyList<DangKyDichVu>> GetActiveServicesByRoomIdsAsync(IReadOnlyList<int> roomIds, CancellationToken cancellationToken = default) => throw new NotImplementedException();
@@ -164,12 +118,14 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             public bool ReturnSuccess { get; set; } = true;
             public bool ThrowOnSend { get; set; }
             public int SentCount { get; private set; }
+            public List<string> Recipients { get; } = new();
 
             public Task<(bool IsSuccess, string ErrorMessage)> SendInvoiceEmailAsync(string toEmail, HoaDonChiTietRes hoaDon, byte[] pdfBytes)
             {
                 if (ReturnSuccess)
                 {
                     SentCount++;
+                    Recipients.Add(toEmail);
                     return Task.FromResult((true, string.Empty));
                 }
                 return Task.FromResult((false, "Email sending failed"));
@@ -221,315 +177,135 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             public Task<(bool IsSuccess, string? ErrorMessage)> CheckInvoicePermissionAsync(int hoaDonId, int actorId, string actionCode) => throw new NotImplementedException();
         }
 
-        [Fact]
-        public async Task InvoiceReminder_FirstDelivery_ShouldSendEmailAndMarkState()
+        // 5/11/2026 10:00 giờ VN. Hôm nay theo giờ VN là 5/11, bắt đầu lúc 4/11 17:00 UTC.
+        private static readonly DateTimeOffset BayGio = new(2026, 11, 5, 3, 0, 0, TimeSpan.Zero);
+
+        // Hóa đơn có hạn 23:59:59 giờ VN của ngày cách hôm nay soNgayQuaHan ngày.
+        private static HoaDon OverdueInvoice(int id, int soNgayQuaHan, string? email = "tenant@test.com") => new()
         {
-            // Arrange
-            var store = new FakeHoaDonStore
-            {
-                Invoices = new List<HoaDon>
-                {
-                    new()
-                    {
-                        HoaDonId = 101,
-                        MaHoaDon = "HD-101",
-                        HopDong = new HopDong
-                        {
-                            NguoiThue = new NguoiThue { Email = "tenant1@test.com" }
-                        }
-                    }
-                }
-            };
+            HoaDonId = id,
+            MaHoaDon = "HD-" + id,
+            HanThanhToan = new DateTime(2026, 11, 5, 16, 59, 59, DateTimeKind.Utc).AddDays(-soNgayQuaHan),
+            HopDong = new HopDong { NguoiThue = new NguoiThue { Email = email } }
+        };
+
+        private static InvoiceReminderUseCase NewInvoiceUseCase(FakeHoaDonStore store, FakeEmailService email, IHoaDonService? hoaDonService = null, bool enabled = true, int overdueDays = 5, int repeatEveryDays = 5)
+            => new(store, email, hoaDonService ?? new FakeHoaDonService(),
+                new AutoReminderSettings { Enabled = enabled, OverdueDays = overdueDays, RepeatEveryDays = repeatEveryDays },
+                new FixedTimeProvider(BayGio), NullLogger<InvoiceReminderUseCase>.Instance);
+
+        [Fact]
+        public async Task InvoiceReminder_FirstMilestone_ShouldSendEmail()
+        {
+            var store = new FakeHoaDonStore { Invoices = { OverdueInvoice(101, 5) } };
             var emailService = new FakeEmailService();
-            var hoaDonService = new FakeHoaDonService();
-            var stateStore = new FakeInvoiceReminderStateStore();
-            var settings = new AutoReminderSettings { Enabled = true, OverdueDays = 5 };
-            var useCase = new InvoiceReminderUseCase(store, emailService, hoaDonService, settings, stateStore, NullLogger<InvoiceReminderUseCase>.Instance);
 
-            // Act
-            var count = await useCase.ExecuteAsync();
+            var count = await NewInvoiceUseCase(store, emailService).ExecuteAsync();
 
-            // Assert
             Assert.Equal(1, count);
             Assert.Equal(1, emailService.SentCount);
-            Assert.True(await stateStore.HasBeenSentAsync(101));
+        }
+
+        [Theory]
+        [InlineData(5, true)]
+        [InlineData(10, true)]
+        [InlineData(15, true)]
+        [InlineData(40, true)]
+        [InlineData(4, false)]
+        [InlineData(6, false)]
+        [InlineData(9, false)]
+        [InlineData(11, false)]
+        public async Task InvoiceReminder_SendsOnlyOnMilestoneDays(int soNgayQuaHan, bool expectedSend)
+        {
+            var store = new FakeHoaDonStore { Invoices = { OverdueInvoice(102, soNgayQuaHan) } };
+            var emailService = new FakeEmailService();
+
+            var count = await NewInvoiceUseCase(store, emailService).ExecuteAsync();
+
+            Assert.Equal(expectedSend ? 1 : 0, count);
+            Assert.Equal(expectedSend ? 1 : 0, emailService.SentCount);
+        }
+
+        [Theory]
+        [InlineData(5, true)]
+        [InlineData(10, false)]
+        public async Task InvoiceReminder_RepeatZero_SendsOnlyFirstMilestone(int soNgayQuaHan, bool expectedSend)
+        {
+            var store = new FakeHoaDonStore { Invoices = { OverdueInvoice(103, soNgayQuaHan) } };
+            var emailService = new FakeEmailService();
+
+            var count = await NewInvoiceUseCase(store, emailService, repeatEveryDays: 0).ExecuteAsync();
+
+            Assert.Equal(expectedSend ? 1 : 0, count);
         }
 
         [Fact]
-        public async Task InvoiceReminder_DuplicateSuppression_ShouldSkipAlreadySent()
+        public async Task InvoiceReminder_CountsOverdueDaysByVietnamDate()
         {
-            // Arrange
+            // 31/10 23:59 giờ VN là quá hạn 5 ngày; 1/11 00:00 giờ VN (31/10 17:00 UTC) mới quá hạn 4 ngày.
             var store = new FakeHoaDonStore
             {
-                Invoices = new List<HoaDon>
+                Invoices =
                 {
-                    new()
-                    {
-                        HoaDonId = 101,
-                        MaHoaDon = "HD-101",
-                        HopDong = new HopDong
-                        {
-                            NguoiThue = new NguoiThue { Email = "tenant1@test.com" }
-                        }
-                    }
+                    new HoaDon { HoaDonId = 104, MaHoaDon = "HD-104", HanThanhToan = new DateTime(2026, 10, 31, 16, 59, 0, DateTimeKind.Utc), HopDong = new HopDong { NguoiThue = new NguoiThue { Email = "a@test.com" } } },
+                    new HoaDon { HoaDonId = 105, MaHoaDon = "HD-105", HanThanhToan = new DateTime(2026, 10, 31, 17, 0, 0, DateTimeKind.Utc), HopDong = new HopDong { NguoiThue = new NguoiThue { Email = "b@test.com" } } }
                 }
             };
             var emailService = new FakeEmailService();
-            var hoaDonService = new FakeHoaDonService();
-            var stateStore = new FakeInvoiceReminderStateStore();
-            await stateStore.MarkAsSentAsync(101); // Pre-marked as sent
-            var settings = new AutoReminderSettings { Enabled = true, OverdueDays = 5 };
-            var useCase = new InvoiceReminderUseCase(store, emailService, hoaDonService, settings, stateStore, NullLogger<InvoiceReminderUseCase>.Instance);
 
-            // Act
-            var count = await useCase.ExecuteAsync();
+            var count = await NewInvoiceUseCase(store, emailService).ExecuteAsync();
 
-            // Assert
-            Assert.Equal(0, count);
-            Assert.Equal(0, emailService.SentCount);
+            Assert.Equal(1, count);
+            Assert.Equal(new[] { "a@test.com" }, emailService.Recipients);
         }
 
         [Fact]
-        public async Task InvoiceReminder_FailedDelivery_ShouldNotMarkState()
+        public async Task InvoiceReminder_WithoutDueDate_UsesSentDate()
         {
-            // Arrange
             var store = new FakeHoaDonStore
             {
-                Invoices = new List<HoaDon>
+                Invoices =
                 {
-                    new()
-                    {
-                        HoaDonId = 102,
-                        MaHoaDon = "HD-102",
-                        HopDong = new HopDong
-                        {
-                            NguoiThue = new NguoiThue { Email = "tenant2@test.com" }
-                        }
-                    }
+                    new HoaDon { HoaDonId = 106, MaHoaDon = "HD-106", NgayGui = new DateTime(2026, 10, 26, 2, 0, 0, DateTimeKind.Utc), HopDong = new HopDong { NguoiThue = new NguoiThue { Email = "c@test.com" } } }
                 }
             };
-            var emailService = new FakeEmailService { ReturnSuccess = false };
-            var hoaDonService = new FakeHoaDonService();
-            var stateStore = new FakeInvoiceReminderStateStore();
-            var settings = new AutoReminderSettings { Enabled = true, OverdueDays = 5 };
-            var useCase = new InvoiceReminderUseCase(store, emailService, hoaDonService, settings, stateStore, NullLogger<InvoiceReminderUseCase>.Instance);
+            var emailService = new FakeEmailService();
 
-            // Act
-            var count = await useCase.ExecuteAsync();
+            var count = await NewInvoiceUseCase(store, emailService).ExecuteAsync();
 
-            // Assert
+            Assert.Equal(1, count); // 26/10 giờ VN tới 5/11 là 10 ngày: mốc thứ hai.
+        }
+
+        [Fact]
+        public async Task InvoiceReminder_QueriesFromStartOfVietnamDay()
+        {
+            var store = new FakeHoaDonStore();
+
+            await NewInvoiceUseCase(store, new FakeEmailService()).ExecuteAsync();
+
+            // Đầu ngày 6/11 giờ VN lùi 5 ngày: mọi hóa đơn quá hạn từ 5 ngày đều có hạn trước mốc này.
+            Assert.Equal(new DateTime(2026, 10, 31, 17, 0, 0, DateTimeKind.Utc), store.LastThresholdUtc);
+        }
+
+        [Fact]
+        public async Task InvoiceReminder_FailedDelivery_ShouldNotCount()
+        {
+            var store = new FakeHoaDonStore { Invoices = { OverdueInvoice(107, 5) } };
+
+            var count = await NewInvoiceUseCase(store, new FakeEmailService { ReturnSuccess = false }).ExecuteAsync();
+
             Assert.Equal(0, count);
-            Assert.False(await stateStore.HasBeenSentAsync(102));
         }
 
         [Fact]
         public async Task InvoiceReminder_CancellationPropagation_ShouldStopProcessing()
         {
-            // Arrange
-            var store = new FakeHoaDonStore
-            {
-                Invoices = new List<HoaDon>
-                {
-                    new()
-                    {
-                        HoaDonId = 103,
-                        MaHoaDon = "HD-103",
-                        HopDong = new HopDong
-                        {
-                            NguoiThue = new NguoiThue { Email = "tenant3@test.com" }
-                        }
-                    }
-                }
-            };
+            var store = new FakeHoaDonStore { Invoices = { OverdueInvoice(108, 5) } };
             var emailService = new FakeEmailService();
-            var hoaDonService = new FakeHoaDonService();
-            var stateStore = new FakeInvoiceReminderStateStore();
-            var settings = new AutoReminderSettings { Enabled = true, OverdueDays = 5 };
-            var useCase = new InvoiceReminderUseCase(store, emailService, hoaDonService, settings, stateStore, NullLogger<InvoiceReminderUseCase>.Instance);
-
-            using var cts = new CancellationTokenSource();
-            cts.Cancel(); // Already cancelled
-
-            // Act
-            var count = await useCase.ExecuteAsync(cts.Token);
-
-            // Assert
-            Assert.Equal(0, count);
-            Assert.Equal(0, emailService.SentCount);
-        }
-
-        [Fact]
-        public async Task ContractExpiryAlert_FirstDelivery_ShouldSendAlertAndMarkState()
-        {
-            // Arrange
-            var now = new DateTime(2026, 11, 5, 0, 0, 0, DateTimeKind.Utc); // cùng ngày với FixedTimeProvider của use case
-            var store = new FakeHopDongStore
-            {
-                Contracts = new List<HopDong>
-                {
-                    new()
-                    {
-                        HopDongId = 201,
-                        MaHopDong = "HDONG-201",
-                        ThoiDiemKetThuc = now.AddDays(30),
-                        NguoiThue = new NguoiThue { HoVaTen = "Nguyễn Văn A", Email = "a@test.com" }
-                    }
-                }
-            };
-            var emailService = new FakeEmailService();
-            var stateStore = new FakeContractExpiryAlertStateStore();
-            var settings = new ContractAlertSettings { Enabled = true, AlertDays = new List<int> { 30, 15 }, AdminEmail = null };
-            var useCase = new ContractExpiryAlertUseCase(store, emailService, settings, stateStore, new FakeThongBaoService(), new FixedTimeProvider(new DateTimeOffset(2026, 11, 5, 3, 0, 0, TimeSpan.Zero)), NullLogger<ContractExpiryAlertUseCase>.Instance);
-
-            // Act
-            var count = await useCase.ExecuteAsync();
-
-            // Assert
-            Assert.Equal(1, count);
-            Assert.Equal(1, emailService.SentCount);
-            Assert.True(await stateStore.HasBeenSentAsync("201_30"));
-        }
-
-        [Fact]
-        public async Task ContractExpiryAlert_DuplicateSuppression_ShouldSkipAlreadySent()
-        {
-            // Arrange
-            var now = new DateTime(2026, 11, 5, 0, 0, 0, DateTimeKind.Utc); // cùng ngày với FixedTimeProvider của use case
-            var store = new FakeHopDongStore
-            {
-                Contracts = new List<HopDong>
-                {
-                    new()
-                    {
-                        HopDongId = 201,
-                        MaHopDong = "HDONG-201",
-                        ThoiDiemKetThuc = now.AddDays(30),
-                        NguoiThue = new NguoiThue { HoVaTen = "Nguyễn Văn A", Email = "a@test.com" }
-                    }
-                }
-            };
-            var emailService = new FakeEmailService();
-            var stateStore = new FakeContractExpiryAlertStateStore();
-            await stateStore.MarkAsSentAsync("201_30"); // Already marked
-            var settings = new ContractAlertSettings { Enabled = true, AlertDays = new List<int> { 30, 15 }, AdminEmail = null };
-            var useCase = new ContractExpiryAlertUseCase(store, emailService, settings, stateStore, new FakeThongBaoService(), new FixedTimeProvider(new DateTimeOffset(2026, 11, 5, 3, 0, 0, TimeSpan.Zero)), NullLogger<ContractExpiryAlertUseCase>.Instance);
-
-            // Act
-            var count = await useCase.ExecuteAsync();
-
-            // Assert
-            Assert.Equal(0, count);
-            Assert.Equal(0, emailService.SentCount);
-        }
-
-        [Fact]
-        public async Task ContractExpiryAlert_FailedDelivery_ShouldNotMarkState()
-        {
-            var now = new DateTime(2026, 11, 5, 0, 0, 0, DateTimeKind.Utc); // cùng ngày với FixedTimeProvider của use case
-            var store = new FakeHopDongStore
-            {
-                Contracts = new List<HopDong>
-                {
-                    new()
-                    {
-                        HopDongId = 301,
-                        MaHopDong = "HDONG-301",
-                        ThoiDiemKetThuc = now.AddDays(15),
-                        NguoiThue = new NguoiThue { HoVaTen = "Trần Văn B", Email = "b@test.com" }
-                    }
-                }
-            };
-            var emailService = new FakeEmailService { ReturnSuccess = false };
-            var stateStore = new FakeContractExpiryAlertStateStore();
-            var settings = new ContractAlertSettings { Enabled = true, AlertDays = new List<int> { 30, 15 } };
-            var useCase = new ContractExpiryAlertUseCase(store, emailService, settings, stateStore, new FakeThongBaoService(), new FixedTimeProvider(new DateTimeOffset(2026, 11, 5, 3, 0, 0, TimeSpan.Zero)), NullLogger<ContractExpiryAlertUseCase>.Instance);
-
-            var count = await useCase.ExecuteAsync();
-
-            Assert.Equal(0, count);
-            Assert.False(await stateStore.HasBeenSentAsync("301_15"));
-        }
-
-        [Fact]
-        public async Task ContractExpiryAlert_DisabledSettings_ShouldReturnZero()
-        {
-            var store = new FakeHopDongStore
-            {
-                Contracts = new List<HopDong>
-                {
-                    new()
-                    {
-                        HopDongId = 401,
-                        ThoiDiemKetThuc = new DateTime(2026, 12, 5, 0, 0, 0, DateTimeKind.Utc),
-                        NguoiThue = new NguoiThue { Email = "x@test.com" }
-                    }
-                }
-            };
-            var emailService = new FakeEmailService();
-            var stateStore = new FakeContractExpiryAlertStateStore();
-            var settings = new ContractAlertSettings { Enabled = false, AlertDays = new List<int> { 30 } };
-            var useCase = new ContractExpiryAlertUseCase(store, emailService, settings, stateStore, new FakeThongBaoService(), new FixedTimeProvider(new DateTimeOffset(2026, 11, 5, 3, 0, 0, TimeSpan.Zero)), NullLogger<ContractExpiryAlertUseCase>.Instance);
-
-            var count = await useCase.ExecuteAsync();
-
-            Assert.Equal(0, count);
-            Assert.Equal(0, emailService.SentCount);
-        }
-
-        [Fact]
-        public async Task ContractExpiryAlert_WithAdminEmail_ShouldSendToAdminAndTenant()
-        {
-            var now = new DateTime(2026, 11, 5, 0, 0, 0, DateTimeKind.Utc); // cùng ngày với FixedTimeProvider của use case
-            var store = new FakeHopDongStore
-            {
-                Contracts = new List<HopDong>
-                {
-                    new()
-                    {
-                        HopDongId = 501,
-                        MaHopDong = "HDONG-501",
-                        ThoiDiemKetThuc = now.AddDays(30),
-                        NguoiThue = new NguoiThue { HoVaTen = "Lê Văn C", Email = "c@test.com" }
-                    }
-                }
-            };
-            var emailService = new FakeEmailService();
-            var stateStore = new FakeContractExpiryAlertStateStore();
-            var settings = new ContractAlertSettings { Enabled = true, AlertDays = new List<int> { 30 }, AdminEmail = "admin@test.com" };
-            var useCase = new ContractExpiryAlertUseCase(store, emailService, settings, stateStore, new FakeThongBaoService(), new FixedTimeProvider(new DateTimeOffset(2026, 11, 5, 3, 0, 0, TimeSpan.Zero)), NullLogger<ContractExpiryAlertUseCase>.Instance);
-
-            var count = await useCase.ExecuteAsync();
-
-            Assert.Equal(1, count);
-            Assert.Equal(2, emailService.SentCount);
-            Assert.True(await stateStore.HasBeenSentAsync("501_30"));
-        }
-
-        [Fact]
-        public async Task ContractExpiryAlert_CancellationPropagation_ShouldStopProcessing()
-        {
-            var now = new DateTime(2026, 11, 5, 0, 0, 0, DateTimeKind.Utc); // cùng ngày với FixedTimeProvider của use case
-            var store = new FakeHopDongStore
-            {
-                Contracts = new List<HopDong>
-                {
-                    new()
-                    {
-                        HopDongId = 601,
-                        ThoiDiemKetThuc = now.AddDays(30),
-                        NguoiThue = new NguoiThue { Email = "d@test.com" }
-                    }
-                }
-            };
-            var emailService = new FakeEmailService();
-            var stateStore = new FakeContractExpiryAlertStateStore();
-            var settings = new ContractAlertSettings { Enabled = true, AlertDays = new List<int> { 30 } };
-            var useCase = new ContractExpiryAlertUseCase(store, emailService, settings, stateStore, new FakeThongBaoService(), new FixedTimeProvider(new DateTimeOffset(2026, 11, 5, 3, 0, 0, TimeSpan.Zero)), NullLogger<ContractExpiryAlertUseCase>.Instance);
-
             using var cts = new CancellationTokenSource();
             cts.Cancel();
 
-            var count = await useCase.ExecuteAsync(cts.Token);
+            var count = await NewInvoiceUseCase(store, emailService).ExecuteAsync(cts.Token);
 
             Assert.Equal(0, count);
             Assert.Equal(0, emailService.SentCount);
@@ -538,52 +314,23 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         [Fact]
         public async Task InvoiceReminder_DisabledSettings_ShouldReturnZero()
         {
-            var store = new FakeHoaDonStore
-            {
-                Invoices = new List<HoaDon>
-                {
-                    new()
-                    {
-                        HoaDonId = 201,
-                        MaHoaDon = "HD-201",
-                        HopDong = new HopDong { NguoiThue = new NguoiThue { Email = "x@test.com" } }
-                    }
-                }
-            };
+            var store = new FakeHoaDonStore { Invoices = { OverdueInvoice(109, 5) } };
             var emailService = new FakeEmailService();
-            var hoaDonService = new FakeHoaDonService();
-            var stateStore = new FakeInvoiceReminderStateStore();
-            var settings = new AutoReminderSettings { Enabled = false, OverdueDays = 5 };
-            var useCase = new InvoiceReminderUseCase(store, emailService, hoaDonService, settings, stateStore, NullLogger<InvoiceReminderUseCase>.Instance);
 
-            var count = await useCase.ExecuteAsync();
+            var count = await NewInvoiceUseCase(store, emailService, enabled: false).ExecuteAsync();
 
             Assert.Equal(0, count);
             Assert.Equal(0, emailService.SentCount);
+            Assert.Null(store.LastThresholdUtc);
         }
 
         [Fact]
         public async Task InvoiceReminder_MissingEmail_ShouldSkipInvoice()
         {
-            var store = new FakeHoaDonStore
-            {
-                Invoices = new List<HoaDon>
-                {
-                    new()
-                    {
-                        HoaDonId = 301,
-                        MaHoaDon = "HD-301",
-                        HopDong = new HopDong { NguoiThue = new NguoiThue { Email = "" } }
-                    }
-                }
-            };
+            var store = new FakeHoaDonStore { Invoices = { OverdueInvoice(110, 5, email: "") } };
             var emailService = new FakeEmailService();
-            var hoaDonService = new FakeHoaDonService();
-            var stateStore = new FakeInvoiceReminderStateStore();
-            var settings = new AutoReminderSettings { Enabled = true, OverdueDays = 5 };
-            var useCase = new InvoiceReminderUseCase(store, emailService, hoaDonService, settings, stateStore, NullLogger<InvoiceReminderUseCase>.Instance);
 
-            var count = await useCase.ExecuteAsync();
+            var count = await NewInvoiceUseCase(store, emailService).ExecuteAsync();
 
             Assert.Equal(0, count);
             Assert.Equal(0, emailService.SentCount);
@@ -592,88 +339,22 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         [Fact]
         public async Task InvoiceReminder_NullPdf_ShouldSkipInvoice()
         {
-            var store = new FakeHoaDonStore
-            {
-                Invoices = new List<HoaDon>
-                {
-                    new()
-                    {
-                        HoaDonId = 401,
-                        MaHoaDon = "HD-401",
-                        HopDong = new HopDong { NguoiThue = new NguoiThue { Email = "test@test.com" } }
-                    }
-                }
-            };
+            var store = new FakeHoaDonStore { Invoices = { OverdueInvoice(111, 5) } };
             var emailService = new FakeEmailService();
-            var hoaDonService = new FakeHoaDonServiceNullPdf();
-            var stateStore = new FakeInvoiceReminderStateStore();
-            var settings = new AutoReminderSettings { Enabled = true, OverdueDays = 5 };
-            var useCase = new InvoiceReminderUseCase(store, emailService, hoaDonService, settings, stateStore, NullLogger<InvoiceReminderUseCase>.Instance);
 
-            var count = await useCase.ExecuteAsync();
+            var count = await NewInvoiceUseCase(store, emailService, new FakeHoaDonServiceNullPdf()).ExecuteAsync();
 
             Assert.Equal(0, count);
             Assert.Equal(0, emailService.SentCount);
         }
 
-        [Fact]
-        public async Task InvoiceReminder_StateStoreThrowsOnMark_ShouldNotCountAsSent_AndNotPersistState()
+        private static HopDong ExpiringContract(int id, int daysLeft, string email = "a@test.com") => new()
         {
-            var store = new FakeHoaDonStore
-            {
-                Invoices = new List<HoaDon>
-                {
-                    new()
-                    {
-                        HoaDonId = 501,
-                        MaHoaDon = "HD-501",
-                        HopDong = new HopDong { NguoiThue = new NguoiThue { Email = "failstore@test.com" } }
-                    }
-                }
-            };
-            var emailService = new FakeEmailService();
-            var hoaDonService = new FakeHoaDonService();
-            var stateStore = new FakeInvoiceReminderStateStore { ThrowOnMark = true };
-            var settings = new AutoReminderSettings { Enabled = true, OverdueDays = 5 };
-            var useCase = new InvoiceReminderUseCase(store, emailService, hoaDonService, settings, stateStore, NullLogger<InvoiceReminderUseCase>.Instance);
-
-            var count = await useCase.ExecuteAsync();
-
-            // Email sent, but store mark failed -> count should not increment, state should not be persisted
-            Assert.Equal(0, count);
-            Assert.Equal(1, emailService.SentCount);
-            Assert.False(await stateStore.HasBeenSentAsync(501));
-        }
-
-        [Fact]
-        public async Task ContractExpiryAlert_StateStoreThrowsOnMark_ShouldNotCountAsSent_AndNotPersistState()
-        {
-            var now = new DateTime(2026, 11, 5, 0, 0, 0, DateTimeKind.Utc); // cùng ngày với FixedTimeProvider của use case
-            var store = new FakeHopDongStore
-            {
-                Contracts = new List<HopDong>
-                {
-                    new()
-                    {
-                        HopDongId = 701,
-                        MaHopDong = "HDONG-701",
-                        ThoiDiemKetThuc = now.AddDays(30),
-                        NguoiThue = new NguoiThue { HoVaTen = "Nguyễn Văn Fail", Email = "failalert@test.com" }
-                    }
-                }
-            };
-            var emailService = new FakeEmailService();
-            var stateStore = new FakeContractExpiryAlertStateStore { ThrowOnMark = true };
-            var settings = new ContractAlertSettings { Enabled = true, AlertDays = new List<int> { 30 }, AdminEmail = null };
-            var useCase = new ContractExpiryAlertUseCase(store, emailService, settings, stateStore, new FakeThongBaoService(), new FixedTimeProvider(new DateTimeOffset(2026, 11, 5, 3, 0, 0, TimeSpan.Zero)), NullLogger<ContractExpiryAlertUseCase>.Instance);
-
-            var count = await useCase.ExecuteAsync();
-
-            // Email sent, but store mark failed -> count should not increment, state should not be persisted
-            Assert.Equal(0, count);
-            Assert.Equal(1, emailService.SentCount);
-            Assert.False(await stateStore.HasBeenSentAsync("701_30"));
-        }
+            HopDongId = id,
+            MaHopDong = "HDONG-" + id,
+            ThoiDiemKetThuc = BayGio.UtcDateTime.Date.AddDays(daysLeft),
+            NguoiThue = new NguoiThue { HoVaTen = "Nguyễn Văn A", Email = email }
+        };
 
         private static HopDong ExpiredContract(int id, DateTime endUtc) => new()
         {
@@ -685,45 +366,128 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
             NguoiThue = new NguoiThue { HoVaTen = "Nguyễn Văn A" }
         };
 
-        private static ContractExpiryAlertUseCase NewExpiryUseCase(FakeHopDongStore store, FakeEmailService email, FakeContractExpiryAlertStateStore state, FakeThongBaoService thongBao, DateTimeOffset now, bool enabled = true)
-            => new(store, email, new ContractAlertSettings { Enabled = enabled, AlertDays = new List<int> { 30, 15 }, AdminEmail = null }, state, thongBao, new FixedTimeProvider(now), NullLogger<ContractExpiryAlertUseCase>.Instance);
+        // 23:59:59 giờ VN ngày 5/11: hợp đồng hết hạn hôm nay.
+        private static readonly DateTime HetHanHomNayUtc = new(2026, 11, 5, 16, 59, 59, DateTimeKind.Utc);
+
+        private static ContractExpiryAlertUseCase NewExpiryUseCase(FakeHopDongStore store, FakeEmailService email, FakeThongBaoService thongBao, DateTimeOffset? now = null, bool enabled = true, string? adminEmail = null)
+            => new(store, email, new ContractAlertSettings { Enabled = enabled, AlertDays = new List<int> { 30, 15 }, AdminEmail = adminEmail }, thongBao, new FixedTimeProvider(now ?? BayGio), NullLogger<ContractExpiryAlertUseCase>.Instance);
 
         [Fact]
-        public async Task ExpiryAlert_SendsAppNoticeOnce_WhenEndDateIsToday()
+        public async Task ContractExpiryAlert_OnAlertDay_ShouldSendAlert()
         {
-            var store = new FakeHopDongStore { Expired = { ExpiredContract(11, new DateTime(2026, 11, 5, 16, 59, 59, DateTimeKind.Utc)) } };
-            var state = new FakeContractExpiryAlertStateStore();
+            var store = new FakeHopDongStore { Contracts = { ExpiringContract(201, 30) } };
+            var emailService = new FakeEmailService();
+
+            var count = await NewExpiryUseCase(store, emailService, new FakeThongBaoService()).ExecuteAsync();
+
+            Assert.Equal(1, count);
+            Assert.Equal(1, emailService.SentCount);
+        }
+
+        [Theory]
+        [InlineData(29)]
+        [InlineData(16)]
+        [InlineData(31)]
+        public async Task ContractExpiryAlert_NotOnAlertDay_ShouldSkip(int daysLeft)
+        {
+            var store = new FakeHopDongStore { Contracts = { ExpiringContract(202, daysLeft) } };
+            var emailService = new FakeEmailService();
+
+            var count = await NewExpiryUseCase(store, emailService, new FakeThongBaoService()).ExecuteAsync();
+
+            Assert.Equal(0, count);
+            Assert.Equal(0, emailService.SentCount);
+        }
+
+        [Fact]
+        public async Task ContractExpiryAlert_FailedDelivery_ShouldNotCount()
+        {
+            var store = new FakeHopDongStore { Contracts = { ExpiringContract(301, 15) } };
+
+            var count = await NewExpiryUseCase(store, new FakeEmailService { ReturnSuccess = false }, new FakeThongBaoService()).ExecuteAsync();
+
+            Assert.Equal(0, count);
+        }
+
+        [Fact]
+        public async Task ContractExpiryAlert_WithAdminEmail_ShouldSendToAdminAndTenant()
+        {
+            var store = new FakeHopDongStore { Contracts = { ExpiringContract(501, 30) } };
+            var emailService = new FakeEmailService();
+
+            var count = await NewExpiryUseCase(store, emailService, new FakeThongBaoService(), adminEmail: "admin@test.com").ExecuteAsync();
+
+            Assert.Equal(1, count);
+            Assert.Equal(2, emailService.SentCount);
+        }
+
+        [Fact]
+        public async Task ContractExpiryAlert_CancellationPropagation_ShouldStopProcessing()
+        {
+            var store = new FakeHopDongStore { Contracts = { ExpiringContract(601, 30) } };
+            var emailService = new FakeEmailService();
+            using var cts = new CancellationTokenSource();
+            cts.Cancel();
+
+            var count = await NewExpiryUseCase(store, emailService, new FakeThongBaoService()).ExecuteAsync(cts.Token);
+
+            Assert.Equal(0, count);
+            Assert.Equal(0, emailService.SentCount);
+        }
+
+        [Fact]
+        public async Task ExpiryAlert_SendsAppNotice_WhenEndDateIsToday()
+        {
+            var store = new FakeHopDongStore { Expired = { ExpiredContract(11, HetHanHomNayUtc) } };
             var thongBao = new FakeThongBaoService();
-            var useCase = NewExpiryUseCase(store, new FakeEmailService(), state, thongBao, new DateTimeOffset(2026, 11, 5, 3, 0, 0, TimeSpan.Zero));
 
-            await useCase.ExecuteAsync();
-            await useCase.ExecuteAsync();
+            var count = await NewExpiryUseCase(store, new FakeEmailService(), thongBao).ExecuteAsync();
 
+            Assert.Equal(1, count);
             var sent = Assert.Single(thongBao.Sent);
             Assert.Equal("Phong", sent.Kind);
             Assert.Equal("/QuanLyNhaTro/HopDong/ChiTiet/11", sent.Link);
             Assert.Contains("05/11/2026", sent.NoiDung);
-            Assert.True(state.SentKeys.Contains("app_het_han_11"));
         }
 
         [Fact]
-        public async Task ExpiryAlert_SendsAppNotice_ForContractExpiredBeforeRelease()
+        public async Task ExpiryAlert_StartOfTodayVn_CountsAsToday()
         {
+            // 00:00 giờ VN ngày 5/11 là hôm nay; 23:59:59 giờ VN ngày 4/11 là hôm qua.
+            var store = new FakeHopDongStore
+            {
+                Expired =
+                {
+                    ExpiredContract(21, new DateTime(2026, 11, 4, 17, 0, 0, DateTimeKind.Utc)),
+                    ExpiredContract(22, new DateTime(2026, 11, 4, 16, 59, 59, DateTimeKind.Utc))
+                }
+            };
+            var thongBao = new FakeThongBaoService();
+
+            await NewExpiryUseCase(store, new FakeEmailService(), thongBao).ExecuteAsync();
+
+            var sent = Assert.Single(thongBao.Sent);
+            Assert.Equal("/QuanLyNhaTro/HopDong/ChiTiet/21", sent.Link);
+        }
+
+        [Fact]
+        public async Task ExpiryAlert_ContractExpiredOnEarlierDay_NoAppNotice()
+        {
+            // Hết hạn từ trước: không báo lại mỗi sáng, mục KH4 của Việc cần làm giữ lời nhắc.
             var store = new FakeHopDongStore { Expired = { ExpiredContract(12, new DateTime(2026, 10, 25, 16, 59, 59, DateTimeKind.Utc)) } };
             var thongBao = new FakeThongBaoService();
-            var useCase = NewExpiryUseCase(store, new FakeEmailService(), new FakeContractExpiryAlertStateStore(), thongBao, new DateTimeOffset(2026, 11, 5, 3, 0, 0, TimeSpan.Zero));
 
-            var count = await useCase.ExecuteAsync();
+            var count = await NewExpiryUseCase(store, new FakeEmailService(), thongBao).ExecuteAsync();
 
-            Assert.Equal(1, count);
-            Assert.Single(thongBao.Sent);
+            Assert.Equal(0, count);
+            Assert.Empty(thongBao.Sent);
         }
 
         [Fact]
         public async Task ExpiryAlert_PassesStartOfTomorrowVn()
         {
             var store = new FakeHopDongStore();
-            var useCase = NewExpiryUseCase(store, new FakeEmailService(), new FakeContractExpiryAlertStateStore(), new FakeThongBaoService(), new DateTimeOffset(2026, 11, 4, 18, 0, 0, TimeSpan.Zero));
+            var useCase = NewExpiryUseCase(store, new FakeEmailService(), new FakeThongBaoService(), new DateTimeOffset(2026, 11, 4, 18, 0, 0, TimeSpan.Zero));
 
             await useCase.ExecuteAsync();
 
@@ -731,31 +495,26 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         }
 
         [Fact]
-        public async Task ExpiryAlert_AppFailure_DoesNotMarkSent()
+        public async Task ExpiryAlert_AppFailure_ShouldNotCount()
         {
-            var store = new FakeHopDongStore { Expired = { ExpiredContract(13, new DateTime(2026, 11, 1, 0, 0, 0, DateTimeKind.Utc)) } };
-            var state = new FakeContractExpiryAlertStateStore();
-            var useCase = NewExpiryUseCase(store, new FakeEmailService(), state, new FakeThongBaoService { FailOnSend = true }, new DateTimeOffset(2026, 11, 5, 3, 0, 0, TimeSpan.Zero));
+            var store = new FakeHopDongStore { Expired = { ExpiredContract(13, HetHanHomNayUtc) } };
 
-            var count = await useCase.ExecuteAsync();
+            var count = await NewExpiryUseCase(store, new FakeEmailService(), new FakeThongBaoService { FailOnSend = true }).ExecuteAsync();
 
             Assert.Equal(0, count);
-            Assert.Empty(state.SentKeys);
         }
 
         [Fact]
         public async Task ExpiryAlert_EmailFailure_DoesNotBlockApp()
         {
-            var now = new DateTimeOffset(2026, 11, 5, 3, 0, 0, TimeSpan.Zero);
             var store = new FakeHopDongStore
             {
-                Contracts = { new HopDong { HopDongId = 14, MaHopDong = "HDONG-14", ThoiDiemKetThuc = now.UtcDateTime.Date.AddDays(30), NguoiThue = new NguoiThue { HoVaTen = "A", Email = "a@test.com" } } },
-                Expired = { ExpiredContract(15, new DateTime(2026, 11, 1, 0, 0, 0, DateTimeKind.Utc)) }
+                Contracts = { ExpiringContract(14, 30) },
+                Expired = { ExpiredContract(15, HetHanHomNayUtc) }
             };
             var thongBao = new FakeThongBaoService();
-            var useCase = NewExpiryUseCase(store, new FakeEmailService { ThrowOnSend = true }, new FakeContractExpiryAlertStateStore(), thongBao, now);
 
-            await useCase.ExecuteAsync();
+            await NewExpiryUseCase(store, new FakeEmailService { ThrowOnSend = true }, thongBao).ExecuteAsync();
 
             Assert.Single(thongBao.Sent);
         }
@@ -763,30 +522,43 @@ namespace QuanLyChoThuePhongTroWeb.Application.UnitTests
         [Fact]
         public async Task ExpiryAlert_AppFailure_DoesNotBlockEmail()
         {
-            var now = new DateTimeOffset(2026, 11, 5, 3, 0, 0, TimeSpan.Zero);
             var store = new FakeHopDongStore
             {
-                Contracts = { new HopDong { HopDongId = 16, MaHopDong = "HDONG-16", ThoiDiemKetThuc = now.UtcDateTime.Date.AddDays(30), NguoiThue = new NguoiThue { HoVaTen = "A", Email = "a@test.com" } } },
-                Expired = { ExpiredContract(17, new DateTime(2026, 11, 1, 0, 0, 0, DateTimeKind.Utc)) }
+                Contracts = { ExpiringContract(16, 30) },
+                Expired = { ExpiredContract(17, HetHanHomNayUtc) }
             };
             var email = new FakeEmailService();
-            var state = new FakeContractExpiryAlertStateStore();
-            var useCase = NewExpiryUseCase(store, email, state, new FakeThongBaoService { ThrowOnSend = true }, now);
 
-            await useCase.ExecuteAsync();
+            var count = await NewExpiryUseCase(store, email, new FakeThongBaoService { ThrowOnSend = true }).ExecuteAsync();
 
             Assert.Equal(1, email.SentCount);
-            Assert.True(state.SentKeys.Contains("16_30"));
+            Assert.Equal(1, count);
+        }
+
+        [Fact]
+        public async Task ExpiryAlert_StoreFailure_ThrowsBeforeSendingAnything()
+        {
+            // Job thử lại cả lượt khi use case ném lỗi; lỗi đọc DB phải xảy ra trước khi gửi email để không gửi trùng.
+            var store = new FakeHopDongStore
+            {
+                Contracts = { ExpiringContract(19, 30) },
+                ThrowOnExpiredQuery = true
+            };
+            var email = new FakeEmailService();
+
+            await Assert.ThrowsAsync<InvalidOperationException>(() => NewExpiryUseCase(store, email, new FakeThongBaoService()).ExecuteAsync());
+
+            Assert.Equal(0, email.SentCount);
         }
 
         [Fact]
         public async Task ExpiryAlert_Disabled_DoesNotQueryStore()
         {
-            var store = new FakeHopDongStore { Expired = { ExpiredContract(18, new DateTime(2026, 11, 1, 0, 0, 0, DateTimeKind.Utc)) } };
-            var useCase = NewExpiryUseCase(store, new FakeEmailService(), new FakeContractExpiryAlertStateStore(), new FakeThongBaoService(), new DateTimeOffset(2026, 11, 5, 3, 0, 0, TimeSpan.Zero), enabled: false);
+            var store = new FakeHopDongStore { Expired = { ExpiredContract(18, HetHanHomNayUtc) } };
 
-            await useCase.ExecuteAsync();
+            var count = await NewExpiryUseCase(store, new FakeEmailService(), new FakeThongBaoService(), enabled: false).ExecuteAsync();
 
+            Assert.Equal(0, count);
             Assert.Equal(0, store.ExpiredCalls);
         }
 

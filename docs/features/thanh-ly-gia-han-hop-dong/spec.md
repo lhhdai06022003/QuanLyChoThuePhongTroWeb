@@ -40,6 +40,7 @@ Mở rộng `ContractExpiryAlertUseCase` (giữ job `ContractExpiryAlertJob`, 08
 - Nội dung: mã hợp đồng, phòng, chi nhánh, người đại diện, ngày hết hạn; link tới chi tiết hợp đồng. Lời nhắc gợi ý hai việc: **Gia hạn** hoặc **Thanh lý**.
 - Gửi bằng `GuiChoNguoiPhuTrachPhongAsync(phongTroId, ...)`, `LinhVuc` = "HopDong".
 - Chống lặp: dùng lại `IContractExpiryAlertStateStore` với khóa `app_het_han_{HopDongId}`. Điều kiện "≤ hôm nay" (không phải "= hôm nay") để hợp đồng đã quá hạn từ trước khi phát hành, hoặc ngày job không chạy, vẫn được báo đúng một lần. Không nhắc lại; việc cần làm ở mục 2.3 giữ lời nhắc tới khi xử lý xong.
+- **Cập nhật 20/11/2026** ([lịch job nền không sổ](../lich-job-nen-khong-so/spec.md)): bỏ state store; chỉ báo đúng ngày hết hạn (giờ VN), job chạy mỗi ngày một lượt lúc 8:00. Hợp đồng hết hạn từ trước hoặc ngày job không chạy thì không báo trong app; KH4 vẫn giữ lời nhắc.
 - Email lỗi không chặn thông báo app và ngược lại.
 - Cờ `ContractAlertSettings.Enabled` vẫn bật/tắt cả use case như hiện nay.
 

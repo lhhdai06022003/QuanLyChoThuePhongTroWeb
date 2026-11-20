@@ -150,10 +150,6 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure
             services.AddSingleton(configuration.GetSection("AutoReminderSettings").Get<QuanLyChoThuePhongTroWeb.Application.Common.Configurations.AutoReminderSettings>() ?? new QuanLyChoThuePhongTroWeb.Application.Common.Configurations.AutoReminderSettings());
             services.AddSingleton(configuration.GetSection("ContractAlertSettings").Get<QuanLyChoThuePhongTroWeb.Application.Common.Configurations.ContractAlertSettings>() ?? new QuanLyChoThuePhongTroWeb.Application.Common.Configurations.ContractAlertSettings());
 
-            // Background job state stores
-            services.AddSingleton<QuanLyChoThuePhongTroWeb.Application.Abstractions.BackgroundJobs.IInvoiceReminderStateStore, BackgroundJobs.State.JsonInvoiceReminderStateStore>();
-            services.AddSingleton<QuanLyChoThuePhongTroWeb.Application.Abstractions.BackgroundJobs.IContractExpiryAlertStateStore, BackgroundJobs.State.JsonContractExpiryAlertStateStore>();
-
             // Hàng đợi và worker gửi Telegram, email biên lai sau khi ghi sổ: luôn đăng ký, không phụ thuộc BackgroundJobs:Enabled
             // (tắt job định kỳ không được làm mất tin thanh toán, spec thanh toán trực tuyến §6.1).
             services.AddSingleton<BackgroundJobs.PaymentNotifications.ChannelPaymentNotificationQueue>();
@@ -165,6 +161,8 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure
             var backgroundJobsEnabled = configuration.GetValue<bool?>("BackgroundJobs:Enabled") ?? true;
             if (backgroundJobsEnabled)
             {
+                // Hai job hẹn giờ theo TimeProvider (lịch 8:00 giờ VN, DailyJobSchedule); Application cũng đăng ký, TryAdd không ghi đè.
+                Microsoft.Extensions.DependencyInjection.Extensions.ServiceCollectionDescriptorExtensions.TryAddSingleton(services, TimeProvider.System);
                 services.AddHostedService<BackgroundJobs.ContractExpiryAlertJob>();
                 services.AddHostedService<BackgroundJobs.InvoiceReminderJob>();
             }

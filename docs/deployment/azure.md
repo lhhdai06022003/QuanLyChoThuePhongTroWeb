@@ -71,7 +71,6 @@ Tài khoản Student chỉ được tạo tài nguyên ở vài vùng. Xem danh 
 | `ASPNETCORE_ENVIRONMENT` | `Production` | |
 | `ASPNETCORE_FORWARDEDHEADERS_ENABLED` | `true` | Bắt buộc: Azure kết thúc HTTPS trước container; thiếu thì app tưởng request là HTTP (cookie không Secure, không HSTS) và mọi người dùng chung một IP, giới hạn đăng nhập sai theo IP sẽ khóa cả hệ thống |
 | `DataProtection__KeysPath` | `/home/DataProtection-Keys` | Giữ khóa cookie qua các lần deploy/khởi động lại |
-| `BackgroundJobs__StatePath` | `/home/state` | Giữ file "đã gửi nhắc hóa đơn / cảnh báo hợp đồng"; thiếu thì deploy lại có thể gửi lại email cũ |
 | `ConnectionStrings__DefaultConnection` | chuỗi ở Bước 1 | Có `SSL Mode=Require` |
 | `AdminSeed__Password` | mật khẩu admin lần đầu | Tối thiểu 8 ký tự; xóa biến sau khi đã đăng nhập và đổi mật khẩu |
 | `Cloudinary__CloudName`, `Cloudinary__ApiKey`, `Cloudinary__ApiSecret` | | Ảnh đồng hồ, minh chứng |
@@ -83,7 +82,7 @@ Tài khoản Student chỉ được tạo tài nguyên ở vài vùng. Xem danh 
 
 Các khóa tùy chọn khác (SePay, VNPay, Telegram, giới hạn đăng nhập...) xem [.env.example](../../.env.example); tên biến giống hệt.
 
-Hai file trạng thái job (`sent_invoice_reminders.json`, `sent_contract_alerts.json`) mặc định nằm ở `/app` trong container và mất sau mỗi lần deploy; đặt `BackgroundJobs__StatePath=/home/state` để giữ chúng trong `/home` (thư mục bền). Chỉ chạy **một** instance (không scale out): state store JSON không điều phối giữa nhiều instance.
+Job nhắc hóa đơn và cảnh báo hợp đồng chạy mỗi ngày lúc 8:00 giờ Việt Nam và không lưu file trạng thái, nên không cần biến hay thư mục riêng; chỉ cần **Always On** bật. Chỉ chạy **một** instance (không scale out): nhiều instance thì instance nào cũng gửi.
 
 ## Bước 3. Nối GitHub Actions
 

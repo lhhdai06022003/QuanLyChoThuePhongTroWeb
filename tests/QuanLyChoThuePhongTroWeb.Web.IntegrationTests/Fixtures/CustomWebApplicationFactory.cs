@@ -12,7 +12,6 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Npgsql;
-using QuanLyChoThuePhongTroWeb.Application.Abstractions.BackgroundJobs;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Services;
 using QuanLyChoThuePhongTroWeb.Application.Common.Configurations;
 using QuanLyChoThuePhongTroWeb.Application.Common.Files;
@@ -95,13 +94,6 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests.Fixtures
                 // Thay thế ImageStorageService thật bằng test fake
                 services.RemoveAll<IImageStorageService>();
                 services.AddScoped<IImageStorageService, FakeImageStorageService>();
-
-                // Thay thế State Stores thật bằng in-memory để không ghi file vật lý vào source
-                services.RemoveAll<IInvoiceReminderStateStore>();
-                services.AddSingleton<IInvoiceReminderStateStore, InMemoryInvoiceReminderStateStore>();
-
-                services.RemoveAll<IContractExpiryAlertStateStore>();
-                services.AddSingleton<IContractExpiryAlertStateStore, InMemoryContractExpiryAlertStateStore>();
 
                 // Thay thế MeterImageStorageService thật bằng test fake
                 services.RemoveAll<IMeterImageStorageService>();
@@ -420,68 +412,6 @@ namespace QuanLyChoThuePhongTroWeb.Web.IntegrationTests.Fixtures
             {
                 lock (_lock) _requests.Clear();
                 Responder = (_, _) => AiModelResult.Ok("Xin chào");
-            }
-        }
-
-        public class InMemoryInvoiceReminderStateStore : IInvoiceReminderStateStore
-        {
-            private readonly HashSet<int> _sentIds = new();
-            private readonly object _lock = new();
-
-            public Task<IReadOnlySet<int>> GetSentInvoiceIdsAsync(CancellationToken cancellationToken = default)
-            {
-                lock (_lock)
-                {
-                    return Task.FromResult<IReadOnlySet<int>>(new HashSet<int>(_sentIds));
-                }
-            }
-
-            public Task<bool> HasBeenSentAsync(int hoaDonId, CancellationToken cancellationToken = default)
-            {
-                lock (_lock)
-                {
-                    return Task.FromResult(_sentIds.Contains(hoaDonId));
-                }
-            }
-
-            public Task MarkAsSentAsync(int hoaDonId, CancellationToken cancellationToken = default)
-            {
-                lock (_lock)
-                {
-                    _sentIds.Add(hoaDonId);
-                }
-                return Task.CompletedTask;
-            }
-        }
-
-        public class InMemoryContractExpiryAlertStateStore : IContractExpiryAlertStateStore
-        {
-            private readonly HashSet<string> _sentKeys = new(StringComparer.OrdinalIgnoreCase);
-            private readonly object _lock = new();
-
-            public Task<IReadOnlySet<string>> GetSentAlertKeysAsync(CancellationToken cancellationToken = default)
-            {
-                lock (_lock)
-                {
-                    return Task.FromResult<IReadOnlySet<string>>(new HashSet<string>(_sentKeys, StringComparer.OrdinalIgnoreCase));
-                }
-            }
-
-            public Task<bool> HasBeenSentAsync(string alertKey, CancellationToken cancellationToken = default)
-            {
-                lock (_lock)
-                {
-                    return Task.FromResult(_sentKeys.Contains(alertKey));
-                }
-            }
-
-            public Task MarkAsSentAsync(string alertKey, CancellationToken cancellationToken = default)
-            {
-                lock (_lock)
-                {
-                    _sentKeys.Add(alertKey);
-                }
-                return Task.CompletedTask;
             }
         }
     }

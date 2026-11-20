@@ -45,6 +45,8 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.BackgroundJob
                     services.AddScoped<IContractExpiryAlertUseCase>(_ => expiryAlert);
                     services.RemoveAll<IInvoiceReminderUseCase>();
                     services.AddScoped<IInvoiceReminderUseCase>(_ => invoiceReminder);
+                    services.RemoveAll<TimeProvider>();
+                    services.AddSingleton<TimeProvider>(new SapToiGioChayTimeProvider());
                     AddTestLogging(services, logSink);
                 });
 
@@ -96,6 +98,10 @@ namespace QuanLyChoThuePhongTroWeb.Infrastructure.IntegrationTests.BackgroundJob
 
                     services.RemoveAll<IInvoiceReminderUseCase>();
                     services.AddScoped<IInvoiceReminderUseCase>(_ => new ObservableInvoiceReminderUseCase(invoiceReminderTcs));
+
+                    // Đồng hồ ngay trước 8:00 giờ VN: job chỉ chạy lúc 8:00, không chạy ngay khi khởi động.
+                    services.RemoveAll<TimeProvider>();
+                    services.AddSingleton<TimeProvider>(new SapToiGioChayTimeProvider());
 
                     // Replace external services with fakes to prevent any real side-effects
                     services.RemoveAll<IEmailService>();

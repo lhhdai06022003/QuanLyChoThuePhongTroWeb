@@ -119,10 +119,10 @@ Khi BackgroundJobs:Enabled bật, Infrastructure đăng ký hai hosted service:
 
 | Job | Hành vi hiện tại |
 | --- | --- |
-| ContractExpiryAlertJob | Chạy khi service bắt đầu, sau đó đợi đến 08:00 giờ Việt Nam mỗi ngày; mốc cảnh báo lấy từ cấu hình; thêm thông báo trong app một lần khi hợp đồng hết hạn (khóa `app_het_han_{id}` trong sent_contract_alerts.json) |
-| InvoiceReminderJob | Chạy khi service bắt đầu rồi lặp mỗi giờ; chỉ gửi khi AutoReminderSettings:Enabled bật |
+| ContractExpiryAlertJob | 08:00 giờ Việt Nam mỗi ngày; email đúng ngày hợp đồng còn `ContractAlertSettings:AlertDays` ngày; thông báo trong app đúng ngày hết hạn (giờ VN) cho Admin và nhân viên chi nhánh |
+| InvoiceReminderJob | 08:00 giờ Việt Nam mỗi ngày; email kèm PDF vào ngày quá hạn `OverdueDays`, rồi mỗi `RepeatEveryDays` ngày tới khi trả; chỉ gửi khi AutoReminderSettings:Enabled bật |
 
-Trạng thái email đã gửi được lưu trong sent_invoice_reminders.json và sent_contract_alerts.json tại content root. Đây là state cục bộ, cần volume ghi bền nếu triển khai bằng container và không phù hợp để nhiều instance ghi chung.
+Cả hai kế thừa `DailyBackgroundJob` (lịch ở `DailyJobSchedule`): không chạy ngay khi khởi động, lượt lỗi thử lại mỗi 10 phút tới 10:00. Không có sổ "đã gửi": mỗi mốc chỉ khớp một ngày nên không gửi trùng khi deploy lại; đổi lại, ngày web không chạy lúc 8:00 thì bỏ lượt (Việc cần làm vẫn hiện các mục này). Chỉ chạy một instance.
 
 ## Kiểm thử theo tầng
 

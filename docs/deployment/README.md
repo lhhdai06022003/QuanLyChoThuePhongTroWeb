@@ -92,16 +92,13 @@ SignalR dùng endpoint /thongBaoHub; proxy phải hỗ trợ WebSocket hoặc fa
 
 Cookie đăng nhập và token antiforgery được mã hóa bằng khóa Data Protection. Mặc định khóa nằm trong thư mục người dùng của process; trong container thư mục đó mất mỗi lần deploy, làm mọi người bị đăng xuất. Đặt `DataProtection__KeysPath` trỏ vào ổ bền (Azure App Service: `/home/DataProtection-Keys` kèm `WEBSITES_ENABLE_APP_SERVICE_STORAGE=true`). Khóa lưu dạng chưa mã hóa (log cảnh báo `No XML encryptor configured`), nên chỉ để thư mục này cho app đọc ghi.
 
-## Background jobs và lưu trạng thái
+## Background jobs
 
-Ba job chạy bên trong mỗi instance Web. Khi triển khai nhiều instance, mỗi instance sẽ chạy job riêng; state store JSON hiện chỉ khóa trong một process, không điều phối phân tán.
+`InvoiceReminderJob` và `ContractExpiryAlertJob` chạy bên trong instance Web, **mỗi ngày một lượt lúc 8:00 giờ Việt Nam**, không chạy ngay khi khởi động. Chúng không lưu trạng thái "đã gửi": mỗi mốc chỉ khớp đúng một ngày (hóa đơn quá hạn 5, 10, 15... ngày; hợp đồng còn 30/15 ngày; ngày hết hạn), nên deploy hay khởi động lại không gửi trùng và không cần ổ đĩa bền cho job.
 
-| File | Mục đích |
-| --- | --- |
-| sent_invoice_reminders.json | Hóa đơn đã gửi nhắc |
-| sent_contract_alerts.json | Cảnh báo hợp đồng đã gửi |
-
-Mặc định hai file nằm ở content root. Dùng container thì đặt `BackgroundJobs__StatePath` trỏ vào thư mục bền (Azure: `/home/state`); không đặt thì giữ content root. Mất file có thể khiến hệ thống gửi lại email; nhiều replica có thể gửi trùng. Với production nhiều instance, nên chỉ bật job ở một instance hoặc thay state store bằng PostgreSQL/distributed store.
+- Lượt lỗi (DB, mạng) thử lại mỗi 10 phút tới 10:00; quá thì bỏ lượt hôm đó. Web không chạy đúng lúc 8:00 cũng bỏ lượt hôm đó; mục Việc cần làm vẫn hiện hóa đơn quá hạn và hợp đồng sắp hết hạn/đã hết hạn.
+- Cần chạy liên tục (Azure: bật **Always On**), nếu không web ngủ và lượt 8:00 không chạy.
+- Chỉ chạy **một** instance: nhiều instance thì instance nào cũng gửi.
 
 ## Bảo mật trước khi public/production
 

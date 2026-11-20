@@ -1,15 +1,16 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using QuanLyChoThuePhongTroWeb.Application.Abstractions.BackgroundJobs;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Services;
 using QuanLyChoThuePhongTroWeb.Application.Common.Configurations;
 using QuanLyChoThuePhongTroWeb.Application.Features.Emails.DTOs;
 using QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.Persistence;
 using QuanLyChoThuePhongTroWeb.Application.Features.ThongBaos.Services;
+using QuanLyChoThuePhongTroWeb.Domain.Entities;
 
 namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.UseCases
 {
@@ -18,7 +19,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.UseCases
         private readonly IHopDongStore _store;
         private readonly IEmailService _emailService;
         private readonly ContractAlertSettings _settings;
-        private readonly IContractExpiryAlertStateStore _stateStore;
         private readonly IThongBaoService _thongBao;
         private readonly TimeProvider _timeProvider;
         private readonly ILogger<ContractExpiryAlertUseCase> _logger;
@@ -27,7 +27,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.UseCases
             IHopDongStore store,
             IEmailService emailService,
             ContractAlertSettings settings,
-            IContractExpiryAlertStateStore stateStore,
             IThongBaoService thongBao,
             TimeProvider timeProvider,
             ILogger<ContractExpiryAlertUseCase> logger)
@@ -35,7 +34,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.UseCases
             _store = store;
             _emailService = emailService;
             _settings = settings;
-            _stateStore = stateStore;
             _thongBao = thongBao;
             _timeProvider = timeProvider;
             _logger = logger;
@@ -51,9 +49,11 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.UseCases
             var alertDays = _settings.AlertDays ?? new List<int> { 30, 15 };
             var adminEmail = _settings.AdminEmail;
 
-            var sentAlerts = await _stateStore.GetSentAlertKeysAsync(cancellationToken);
-
+            // Không có sổ "đã gửi": job chạy mỗi ngày đúng một lượt (DailyJobSchedule), email chỉ gửi đúng ngày còn
+            // AlertDays ngày và thông báo app chỉ gửi đúng ngày hết hạn, nên mỗi mốc tự nhiên chỉ gửi một lần.
+            // Đọc hết dữ liệu trước khi gửi: lỗi đọc DB làm cả lượt được thử lại mà chưa gửi gì, không gây gửi trùng.
             var activeContracts = await _store.GetActiveExpiringContractsAsync(cancellationToken);
+            var expiredToday = await GetContractsExpiringTodayVnAsync(cancellationToken);
 
             int sentCount = 0;
             // Lấy giờ qua TimeProvider (không đọc đồng hồ máy) để test cố định được ngày; giữ cách đếm theo ngày UTC như cũ.
@@ -72,13 +72,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.UseCases
 
                     if (alertDays.Contains(daysLeft))
                     {
-                        var alertKey = $"{contract.HopDongId}_{daysLeft}";
-
-                        if (sentAlerts.Contains(alertKey))
-                        {
-                            continue;
-                        }
-
                         var tenantEmail = contract.NguoiThue?.Email;
                         var alertData = new ContractExpiryAlertData
                         {
@@ -127,7 +120,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.UseCases
 
                             if (sentSuccessfully)
                             {
-                                await _stateStore.MarkAsSentAsync(alertKey, cancellationToken);
                                 sentCount++;
                             }
                         }
@@ -137,24 +129,33 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.UseCases
                         }
                         catch (Exception ex)
                         {
-                            _logger.LogError(ex, "Lỗi xảy ra trong quá trình xử lý gửi cảnh báo hoặc lưu trạng thái cho hợp đồng {MaHopDong}.", contract.MaHopDong);
+                            _logger.LogError(ex, "Lỗi xảy ra trong quá trình xử lý gửi cảnh báo cho hợp đồng {MaHopDong}.", contract.MaHopDong);
                         }
                     }
                 }
             }
 
-            sentCount += await SendExpiredAppNoticesAsync(sentAlerts, cancellationToken);
+            sentCount += await SendExpiredAppNoticesAsync(expiredToday, cancellationToken);
 
             return sentCount;
         }
 
-        private async Task<int> SendExpiredAppNoticesAsync(IReadOnlySet<string> sentAlerts, CancellationToken cancellationToken)
+        // Hợp đồng còn hiệu lực có ngày kết thúc (giờ VN) là hôm nay. Hợp đồng hết hạn từ những ngày trước không báo lại:
+        // mục KH4 "Hợp đồng đã quá hạn chưa xử lý" của Việc cần làm giữ lời nhắc tới khi gia hạn hoặc thanh lý.
+        private async Task<IReadOnlyList<HopDong>> GetContractsExpiringTodayVnAsync(CancellationToken cancellationToken)
         {
             var nowUtc = _timeProvider.GetUtcNow().UtcDateTime;
             var homNayVnBatDauUtc = DateTime.SpecifyKind(nowUtc.AddHours(7).Date, DateTimeKind.Utc).AddHours(-7);
             var ngayMaiVnBatDauUtc = homNayVnBatDauUtc.AddDays(1);
 
             var expired = await _store.GetExpiredActiveContractsAsync(ngayMaiVnBatDauUtc, cancellationToken);
+            return expired
+                .Where(hd => hd.ThoiDiemKetThuc.HasValue && hd.ThoiDiemKetThuc.Value >= homNayVnBatDauUtc)
+                .ToList();
+        }
+
+        private async Task<int> SendExpiredAppNoticesAsync(IReadOnlyList<HopDong> expired, CancellationToken cancellationToken)
+        {
             var count = 0;
 
             foreach (var hd in expired)
@@ -162,12 +163,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.UseCases
                 if (cancellationToken.IsCancellationRequested)
                 {
                     break;
-                }
-
-                var key = $"app_het_han_{hd.HopDongId}";
-                if (sentAlerts.Contains(key))
-                {
-                    continue;
                 }
 
                 try
@@ -181,7 +176,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HopDongs.UseCases
 
                     if (result.Success)
                     {
-                        await _stateStore.MarkAsSentAsync(key, cancellationToken);
                         count++;
                     }
                 }

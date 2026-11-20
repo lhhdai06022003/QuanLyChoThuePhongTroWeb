@@ -2,7 +2,6 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using QuanLyChoThuePhongTroWeb.Application.Abstractions.BackgroundJobs;
 using QuanLyChoThuePhongTroWeb.Application.Abstractions.Services;
 using QuanLyChoThuePhongTroWeb.Application.Common.Configurations;
 using QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.Persistence;
@@ -16,7 +15,7 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.UseCases
         private readonly IEmailService _emailService;
         private readonly IHoaDonService _hoaDonService;
         private readonly AutoReminderSettings _settings;
-        private readonly IInvoiceReminderStateStore _stateStore;
+        private readonly TimeProvider _timeProvider;
         private readonly ILogger<InvoiceReminderUseCase> _logger;
 
         public InvoiceReminderUseCase(
@@ -24,14 +23,14 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.UseCases
             IEmailService emailService,
             IHoaDonService hoaDonService,
             AutoReminderSettings settings,
-            IInvoiceReminderStateStore stateStore,
+            TimeProvider timeProvider,
             ILogger<InvoiceReminderUseCase> logger)
         {
             _store = store;
             _emailService = emailService;
             _hoaDonService = hoaDonService;
             _settings = settings;
-            _stateStore = stateStore;
+            _timeProvider = timeProvider;
             _logger = logger;
         }
 
@@ -42,12 +41,16 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.UseCases
                 return 0;
             }
 
+            // Không có sổ "đã gửi": job chạy mỗi ngày đúng một lượt (DailyJobSchedule) và chỉ gửi vào ngày
+            // có mốc quá hạn OverdueDays, OverdueDays + RepeatEveryDays, ... nên deploy lại không gửi trùng.
             var overdueDays = _settings.OverdueDays;
-            var overdueThreshold = DateTime.UtcNow.AddDays(-overdueDays);
+            var nowUtc = _timeProvider.GetUtcNow().UtcDateTime;
+            var homNayVn = nowUtc.AddHours(7).Date;
+            var ngayMaiVnBatDauUtc = DateTime.SpecifyKind(homNayVn.AddDays(1).AddHours(-7), DateTimeKind.Utc);
+            // Mọi hóa đơn quá hạn từ overdueDays ngày (tính theo ngày VN) đều có hạn trước mốc này; lọc mốc chính xác ở dưới.
+            var overdueThreshold = ngayMaiVnBatDauUtc.AddDays(-overdueDays);
 
-            _logger.LogInformation("Bắt đầu quét hóa đơn quá hạn chưa thanh toán (Quá hạn thanh toán từ {OverdueDays} ngày trước, HanThanhToan (hoặc NgayGui nếu thiếu hạn) <= {OverdueThreshold:yyyy-MM-dd HH:mm:ss})...", overdueDays, overdueThreshold);
-
-            var sentIds = await _stateStore.GetSentInvoiceIdsAsync(cancellationToken);
+            _logger.LogInformation("Bắt đầu quét hóa đơn quá hạn chưa thanh toán (mốc nhắc từ {OverdueDays} ngày, lặp mỗi {RepeatEveryDays} ngày; HanThanhToan (hoặc NgayGui nếu thiếu hạn) <= {OverdueThreshold:yyyy-MM-dd HH:mm:ss})...", overdueDays, _settings.RepeatEveryDays, overdueThreshold);
 
             var overdueInvoices = await _store.GetOverdueInvoicesAsync(overdueThreshold, cancellationToken);
 
@@ -59,7 +62,8 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.UseCases
                 if (cancellationToken.IsCancellationRequested)
                     break;
 
-                if (sentIds.Contains(invoice.HoaDonId))
+                var hanUtc = invoice.HanThanhToan ?? invoice.NgayGui;
+                if (hanUtc is null || !LaNgayNhac((homNayVn - hanUtc.Value.AddHours(7).Date).Days))
                 {
                     continue;
                 }
@@ -93,7 +97,6 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.UseCases
                     if (result.IsSuccess)
                     {
                         _logger.LogInformation("Gửi email nhắc nợ tự động cho hóa đơn {MaHoaDon} thành công.", invoice.MaHoaDon);
-                        await _stateStore.MarkAsSentAsync(invoice.HoaDonId, cancellationToken);
                         sentCount++;
                     }
                     else
@@ -113,6 +116,20 @@ namespace QuanLyChoThuePhongTroWeb.Application.Features.HoaDons.UseCases
 
             _logger.LogInformation("Hoàn tất tiến trình gửi email nhắc nợ tự động. Tổng cộng {SentCount} email đã được gửi thành công.", sentCount);
             return sentCount;
+        }
+
+        // Ngày quá hạn thứ OverdueDays là mốc đầu; RepeatEveryDays > 0 thì nhắc tiếp mỗi RepeatEveryDays ngày tới khi trả.
+        private bool LaNgayNhac(int soNgayQuaHan)
+        {
+            var sauMocDau = soNgayQuaHan - _settings.OverdueDays;
+            if (sauMocDau < 0)
+            {
+                return false;
+            }
+
+            return _settings.RepeatEveryDays > 0
+                ? sauMocDau % _settings.RepeatEveryDays == 0
+                : sauMocDau == 0;
         }
     }
 }
