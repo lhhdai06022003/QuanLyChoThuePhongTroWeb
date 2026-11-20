@@ -37,11 +37,13 @@ Giá thay đổi theo vùng và thời điểm; kiểm lại bằng [Azure Prici
 
 ## Bước 1. Tạo tài nguyên trên Azure Portal
 
-Tài khoản Student chỉ được tạo tài nguyên ở vài vùng. Xem danh sách: **Subscriptions → Azure for Students → Policies → Compliance** → dòng **Allowed resource deployment regions** → **View assignment** → **Parameters**. Tài khoản dùng cho dự án (16/11/2026) được phép `malaysiawest`, `koreacentral`, `indiasouthcentral`, `indonesiacentral`; **không có Southeast Asia**. Chọn **Korea Central**: vùng lâu năm, chắc chắn có PostgreSQL B1ms và App Service B1 (Malaysia West, Indonesia Central gần hơn nhưng là vùng mới, có thể thiếu gói). Đặt tất cả vào cùng một vùng. Các bước đã làm thật ghi ở [nhat-ky-trien-khai-azure.md](nhat-ky-trien-khai-azure.md).
+Tài khoản Student chỉ được tạo tài nguyên ở vài vùng. Xem danh sách: **Subscriptions → Azure for Students → Policies → Compliance** → dòng **Allowed resource deployment regions** → **View assignment** → **Parameters**. Tài khoản dùng cho dự án (16/11/2026) được phép `malaysiawest`, `koreacentral`, `indiasouthcentral`, `indonesiacentral`, `japaneast` (portal cắt mất vùng cuối; xem đủ bằng `az policy assignment list` trong Cloud Shell); **không có Southeast Asia**. Đã dùng **Japan East**: Korea Central được phép nhưng tạo PostgreSQL B1ms bị `SkuNotAvailable`. Vùng được phép không bảo đảm có máy B1ms cho tài khoản Student; tạo thử PostgreSQL trước, Web App đặt theo vùng tạo được. Đặt tất cả vào cùng một vùng. Các bước đã làm thật ghi ở [nhat-ky-trien-khai-azure.md](nhat-ky-trien-khai-azure.md).
 
 1. **Resource group**: ví dụ `rg-trosync`.
 2. **Azure Database for PostgreSQL – Flexible Server**:
-   - Workload: Development; Compute: Burstable **B1ms**; Storage 32 GB; PostgreSQL 16.
+   - Form mặc định chọn General Purpose D4ads_v5, 128 GiB, vùng Canada Central, bản 18: phải đổi hết. Region **Japan East** (Korea Central bị lỗi `SkuNotAvailable` với tài khoản Student, xem nhật ký); PostgreSQL **16**; Workload **Dev/Test**; Configure server → đổi Storage type sang **Premium SSD** trước (Premium SSD v2 khóa Burstable) → Burstable **Standard_B1ms** (không phải B2s, ước tính khoảng 80 USD/tháng); Storage 32 GiB, autogrow tắt; High availability Disabled.
+   - Gặp `SkuNotAvailable`: vùng đó không có máy cho tài khoản, tạo lại ở vùng được phép khác với tên mới; server lỗi tự chuyển Dropping rồi mất. `az postgres flexible-server list-skus` không thấy hạn chế này.
+   - Ô Estimated costs vẫn hiện tiền vì không trừ phần miễn phí của tài khoản Student; kiểm lại ở Cost analysis sau vài ngày.
    - Authentication: PostgreSQL authentication; tự đặt tên và mật khẩu quản trị.
    - Networking: Public access; tick **Allow public access from any Azure service within Azure to this server**. Thêm IP máy bạn nếu cần kết nối bằng pgAdmin.
    - Tạo xong, vào **Databases** → Add, tên ví dụ `trosync`.

@@ -10,8 +10,8 @@ Không ghi vào file này: mật khẩu, khóa API, secret, chuỗi kết nối 
 | --- | --- | --- | --- |
 | 0 | Chuẩn bị code, workflow GitHub Actions, CI chạy xanh | Xong | 16/11/2026 |
 | 1 | Kiểm tài khoản Azure: credit, Free services, vùng được phép, Budget | Xong | 16/11/2026 |
-| 2 | Tạo Resource group và PostgreSQL | Đang làm | |
-| 3 | Tạo App Service plan và Web App | Chưa làm | |
+| 2 | Tạo Resource group và PostgreSQL | Xong | 19/11/2026 |
+| 3 | Tạo App Service plan và Web App | Đang làm | |
 | 4 | Cấu hình Web App và biến môi trường | Chưa làm | |
 | 5 | Nối GitHub với Azure, deploy lần đầu, mở package GHCR | Chưa làm | |
 | 6 | Mở web, tạo admin, kiểm sau deploy | Chưa làm | |
@@ -24,11 +24,11 @@ Không ghi vào file này: mật khẩu, khóa API, secret, chuỗi kết nối 
 | Mục | Giá trị |
 | --- | --- |
 | Subscription | Azure for Students |
-| Vùng dùng cho mọi tài nguyên | **Korea Central** (`koreacentral`) |
-| Resource group | `rg-trosync` (dự kiến) |
-| PostgreSQL server | chưa tạo (tên dạng `<ten>.postgres.database.azure.com`) |
-| Database | `trosync` (dự kiến) |
-| Tài khoản admin PostgreSQL | chưa tạo (mật khẩu: chỉ lưu ở trình quản lý mật khẩu) |
+| Vùng của PostgreSQL và Web App | **Japan East** (`japaneast`). Korea Central bị lỗi `SkuNotAvailable` với PostgreSQL B1ms |
+| Resource group | `rg-trosync` (đã tạo 17/11/2026, Korea Central) |
+| PostgreSQL server | đã tạo 19/11/2026, Japan East, Burstable B1ms, 32 GiB, PostgreSQL 16 (tên và Endpoint `<ten>.postgres.database.azure.com` ghi trong bản Word và trình quản lý mật khẩu) |
+| Database | `trosync` (đã tạo 19/11/2026) |
+| Tài khoản admin PostgreSQL | đã đặt (tên và mật khẩu chỉ lưu ở trình quản lý mật khẩu) |
 | App Service plan | chưa tạo (Linux, B1) |
 | Web App | chưa tạo (địa chỉ `https://<ten-app>.azurewebsites.net`) |
 | Image | `ghcr.io/lhhdai06022003/quanlychothuephongtroweb` |
@@ -72,11 +72,11 @@ Hệ quả chi phí: PostgreSQL miễn phí nếu tạo đúng B1ms + 32 GB; ch�
 
 **Subscriptions → Azure for Students → Policies → Compliance** → dòng **Allowed resource deployment regions** → **View assignment** → **Parameters** → `Allowed locations`.
 
-- Vùng được phép (đã thấy): `malaysiawest`, `koreacentral`, `indiasouthcentral`, `indonesiacentral` (danh sách bị cắt, có thể còn một vùng; bấm biểu tượng copy cạnh ô để xem đủ).
+- Vùng được phép: `malaysiawest`, `koreacentral`, `indiasouthcentral`, `indonesiacentral`, `japaneast` (vùng cuối bị cắt trên portal, xác nhận bằng Cloud Shell ngày 17/11/2026).
 - **Southeast Asia (Singapore) không được phép.**
 - Trạng thái "Not registered" màu đỏ của policy là bình thường với tài khoản mới.
 
-**Đã chọn Korea Central**: vùng lâu năm, chắc chắn có PostgreSQL B1ms và App Service B1. Malaysia West, Indonesia Central gần hơn nhưng là vùng mới, có thể thiếu gói dịch vụ. Chênh lệch tốc độ vài chục mili giây, người dùng không cảm nhận được. Web App và PostgreSQL phải cùng vùng này.
+Lúc đầu chọn Korea Central (vùng lâu năm). Khi tạo PostgreSQL B1ms thì bị lỗi `SkuNotAvailable` (Bước 2), nên **chuyển sang Japan East**. Vùng được phép không bảo đảm có máy B1ms cho tài khoản Student. Web App và PostgreSQL phải cùng vùng.
 
 ### 1.4 Budget (cảnh báo chi phí) — xong
 
@@ -95,15 +95,53 @@ Nếu portal báo subscription không hỗ trợ Budget: bỏ qua, xem credit �
 
 Kết quả: đã tạo `trosync-budget`, Monthly, 35 USD, hiệu lực 01/11/2026 đến 31/10/2028, cảnh báo 50/80/100% qua email. Chi phí hiện tại 0 USD.
 
-## Bước 2. Resource group và PostgreSQL (đang làm)
+## Bước 2. Resource group và PostgreSQL (xong 19/11/2026)
 
-Kế hoạch (chi tiết ở [azure.md](azure.md), Bước 1):
+### 2.1 Resource group — xong 17/11/2026
 
-- Resource group `rg-trosync`, vùng **Korea Central**.
-- PostgreSQL Flexible Server: Korea Central, PostgreSQL 16, Workload **Development**, Compute **Burstable Standard_B1ms**, Storage **32 GiB**, tắt High availability, backup 7 ngày; xác thực PostgreSQL; Networking **Public access** + tick "Allow public access from any Azure service".
-- Tạo database `trosync`.
+**Resource groups → + Create**: Subscription Azure for Students, tên `rg-trosync`, Region đổi từ (US) East US mặc định sang **(Asia Pacific) Korea Central** → Review + create → Create. Danh sách hiện `rg-trosync`, Korea Central.
 
-Kết quả: _(điền khi xong)_
+### 2.2 PostgreSQL Flexible Server — xong 19/11/2026 (lần hai, Japan East)
+
+Form **New Azure Database for PostgreSQL flexible server** mặc định: Region Canada Central, version 18, Workload Production, General Purpose D4ads_v5 (4 vCore, 128 GiB). Phải đổi hết:
+
+- Basics: Resource group `rg-trosync`; Region (đổi trước, vì đổi vùng có thể đặt lại cấu hình máy): lần một Korea Central (lỗi, xem dưới), lần hai **Japan East**; version **16**; Workload **Dev/Test**; Availability zone No preference; High availability **Disabled**.
+- Configure server: Compute tier **Burstable**, Compute size **Standard_B1ms**, Storage Premium SSD **32 GiB**, autogrow tắt, backup 7 ngày, không Geo-redundancy → Save.
+- Authentication: PostgreSQL authentication only, admin username tự đặt.
+- Networking: Public access, tick "Allow public access from any Azure service within Azure to this server".
+
+**Sai đã phát hiện khi xem ảnh:** màn Compute + storage đang chọn **Standard_B2s** (ước tính 80,11 USD/tháng, không thuộc gói miễn phí). Đổi sang Standard_B1ms trước khi Save. Không chọn version 18: bản quá mới so với Npgsql 8 dự án dùng.
+
+Đã sửa sang B1ms (17/11/2026). Ô Estimated costs hiện chữ xanh "Free upto 750 hours" và "Free upto 32 GB", tổng 23,17 USD/tháng là giá trước khi trừ phần miễn phí. Kiểm ở Cost analysis sau 2–3 ngày.
+
+Các tab còn lại:
+
+- Networking: Public access (allowed IP addresses) and private endpoints; tick "Allow public access to this resource through the internet" và "Allow public access from any Azure service within Azure to this server"; 0 firewall rule. Không bấm "+ Add 0.0.0.0 - 255.255.255.255" (mở DB cho cả Internet), chưa thêm IP máy cá nhân.
+- Security: Service-managed key. Tags: trống.
+- Review + create lần một đã kiểm: rg-trosync, Korea Central, version 16, Burstable B1ms 32 GiB P4, High availability / autogrow / Geo-redundancy Not enabled, backup 7 ngày. Tên server và tên đăng nhập quản trị đã đặt (không ghi ở đây; lưu cùng mật khẩu).
+
+**Sự cố 17/11/2026, lần tạo đầu ở Korea Central:** deployment failed, Status Conflict, lỗi `SkuNotAvailable` ("Specified SKU is not supported in this region"). Tài khoản Student bị chặn B1ms ở vùng này dù form cho chọn. Không tốn tiền.
+
+Kiểm bằng Cloud Shell (Bash, chọn "No storage account required"; lệnh chỉ đọc):
+
+- `az policy assignment list --query "[].parameters.listOfAllowedLocations.value"`: đủ 5 vùng được phép là `malaysiawest`, `koreacentral`, `indiasouthcentral`, `indonesiacentral`, **`japaneast`** (danh sách ở Bước 1.3 bị cắt mất vùng cuối).
+- `az postgres flexible-server list-skus -l <vung>`: cả 4 vùng đầu đều liệt kê Standard_B1ms, kể cả Korea Central vừa lỗi. Lệnh này **không** báo hạn chế riêng của tài khoản, chỉ dùng tham khảo.
+- `az appservice list-locations --sku B1 --linux-workers-enabled`: cả 5 vùng đều có App Service B1 Linux.
+
+Hướng xử lý: tạo lại ở vùng khác, thứ tự thử Japan East → Malaysia West → Indonesia Central → India South Central. Web App (Bước 3) phải đặt cùng vùng với PostgreSQL tạo được. Resource group `rg-trosync` giữ nguyên ở Korea Central (vùng của resource group không ràng buộc vùng tài nguyên bên trong).
+
+**Lần hai, Japan East (19/11/2026):**
+
+- Đặt tên server mới (không dùng lại tên lần một). Form ở Japan East đặt lại nhiều mục: Region về Canada Central, Compute về Standard_B2s, Authentication về "PostgreSQL and Microsoft Entra", ô "Allow public access from any Azure service" bị bỏ tick. Phải kiểm lại từng mục.
+- Configure server: **Storage type mặc định Premium SSD v2**, làm ô Burstable bị mờ ("Burstable compute tier is not supported for server with Premium SSD v2"), ước tính 747,80 USD/tháng. Đổi Storage type sang **Premium SSD** trước, rồi mới chọn Burstable → Standard_B1ms. Sau đó portal hiện "Free upto 750 hours / 32 GB", tổng ước tính 23,40 USD/tháng (giá trước khi trừ miễn phí).
+- Review + create: Japan East, Availability zone No preference, version 16, Burstable B1ms 32 GiB P4, High availability / autogrow / Geo-redundancy / Immutable Not enabled, backup 7 ngày, Public access + Allow Azure service Yes, 0 firewall rule, Service-managed key.
+- Kết quả: deployment complete khoảng 5 phút. Overview: Status **Ready**, Japan East, Burstable B1ms 1 vCore 2 GiB RAM 32 GiB, PostgreSQL 16.15, Availability zone 1, High availability Not enabled.
+
+Server lỗi ở Korea Central: dòng còn sót trong `rg-trosync`, Overview báo "Cannot read properties of undefined (reading 'createdAt')", `az postgres flexible-server show` báo `ResourceNotFound`, danh sách hiện Status **Dropping** rồi tự mất. `az postgres flexible-server list -o table` không còn server nào trước khi tạo lần hai. Không sửa được server lỗi (vùng không đổi được sau khi tạo). Phần miễn phí 750 giờ tính chung cả tài khoản, chỉ giữ một server chạy.
+
+### 2.3 Database `trosync` — xong 19/11/2026
+
+Server → **Settings → Databases** → **+ Add** → Name `trosync` (UTF8, en_US.utf8 mặc định) → Save. Danh sách: `azure_maintenance`, `azure_sys` (hệ thống), `postgres`, `trosync`. Endpoint của server ghi ở trình quản lý mật khẩu cùng tên đăng nhập quản trị (Bước 4 cần để tạo chuỗi kết nối).
 
 ## Bước 3 trở đi
 
